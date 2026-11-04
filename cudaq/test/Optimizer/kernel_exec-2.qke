@@ -119,10 +119,12 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
 // CHECK:           %[[VAL_51:.*]] = cc.cast %[[VAL_36]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_52:.*]] = llvm.mlir.addressof @function_hawaiian.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_53:.*]] = cc.cast %[[VAL_52]] : (!llvm.ptr) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_54:.*]] = call @hybridLaunchKernel(%[[VAL_53]], %[[VAL_33]], %[[VAL_34]], %[[VAL_11]], %[[VAL_35]], %[[VAL_51]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[LAUNCH_CTX:.*]] = call @__cudaq_claimLaunchContext() : () -> !cc.ptr<i8>
+// CHECK:           %[[VAL_54:.*]] = call @hybridLaunchKernel(%[[VAL_53]], %[[VAL_33]], %[[VAL_34]], %[[VAL_11]], %[[VAL_35]], %[[VAL_51]], %[[LAUNCH_CTX]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           return
 // CHECK:         }
-// CHECK:         func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:         func.func private @__cudaq_claimLaunchContext() -> !cc.ptr<i8>
+// CHECK:         func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:         func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
 // CHECK:         llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 // CHECK:         func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)

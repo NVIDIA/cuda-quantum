@@ -29,8 +29,6 @@ estimate_impl(const std::string &kernelName, MlirModule kernelMod,
 
   ExecutionContext ctx("resource-count", 1);
   ctx.kernelName = kernelName;
-  // Indicate that this is not an async exec
-  ctx.asyncExec = false;
 
   // Set the choice function for the simulator
   if (!choice) {

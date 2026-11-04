@@ -13,6 +13,7 @@
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
+#include "common/LaunchContext.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
 #include "common/RuntimeTarget.h"
@@ -199,13 +200,18 @@ public:
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
   /// \cond
-  /// Launch \p module outside of a launch policy.
+  /// Launch \p module outside of a launch policy, on the QPU of \p launchCtx.
   ///
-  /// If a `SourceModule` is passed, it is compiled against \p target and
-  /// \p options before being launched.
+  /// If a `SourceModule` is passed, it is compiled with the compile config of
+  /// \p launchCtx before being launched.
   [[nodiscard]] KernelThunkResultType
   compileAndLaunchKernel(const AnyModule &module, KernelArgs args,
-                         std::size_t qpu_id = 0);
+                         const LaunchContext &launchCtx);
+
+  /// The launch context of a kernel launch that no algorithm handed one over
+  /// for: the QPU of the current execution context (or QPU 0), without a
+  /// launch policy.
+  [[nodiscard]] const LaunchContext &defaultLaunchContext() const;
 
   [[nodiscard]] cudaq::CompileTarget
   getCompileTarget(std::size_t qpu_id = 0) const;
@@ -325,17 +331,23 @@ public:
 /// Entry point for the auto-generated kernel execution path. TODO: Needs to be
 /// tied to the quantum platform instance somehow. Note that the compiler cannot
 /// provide that information.
+///
+/// `launchCtx` is the launch context that the kernel launch stub claimed with
+/// `__cudaq_claimLaunchContext`. When it is null, no algorithm handed one over,
+/// and the kernel launches with the platform's default launch context.
 extern "C" {
 // Client-server (legacy) interface.
 [[nodiscard]] KernelThunkResultType
 altLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
-                std::uint64_t argsSize, std::uint64_t resultOffset);
+                std::uint64_t argsSize, std::uint64_t resultOffset,
+                const LaunchContext *launchCtx);
 
 // Streamlined interface for launching kernels. Argument synthesis and JIT
 // compilation *must* happen on the local machine.
 [[nodiscard]] KernelThunkResultType
 streamlinedLaunchKernel(const char *kernelName,
-                        const std::vector<void *> &rawArgs);
+                        const std::vector<void *> &rawArgs,
+                        const LaunchContext *launchCtx);
 
 // Hybrid of the client-server and streamlined approaches. Letting JIT
 // compilation happen either early or late and can handle return values from
@@ -343,7 +355,8 @@ streamlinedLaunchKernel(const char *kernelName,
 [[nodiscard]] KernelThunkResultType
 hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
                    std::uint64_t argsSize, std::uint64_t resultOffset,
-                   const std::vector<void *> &rawArgs);
+                   const std::vector<void *> &rawArgs,
+                   const LaunchContext *launchCtx);
 } // extern "C"
 } // namespace cudaq
 

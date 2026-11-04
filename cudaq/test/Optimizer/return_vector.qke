@@ -81,7 +81,8 @@ func.func @test_0(%0: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i3
 // CHECK:           cc.store %[[VAL_32]], %[[VAL_30]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_33:.*]] = cc.cast %[[VAL_21]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_35:.*]] = cc.cast %[[VAL_34]] : (!llvm.ptr) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_36:.*]] = call @hybridLaunchKernel(%[[VAL_35]], %[[VAL_18]], %[[VAL_19]], %[[VAL_10]], %[[VAL_20]], %[[VAL_33]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[LAUNCH_CTX:.*]] = call @__cudaq_claimLaunchContext() : () -> !cc.ptr<i8>
+// CHECK:           %[[VAL_36:.*]] = call @hybridLaunchKernel(%[[VAL_35]], %[[VAL_18]], %[[VAL_19]], %[[VAL_10]], %[[VAL_20]], %[[VAL_33]], %[[LAUNCH_CTX]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           %[[VAL_37:.*]] = cc.extract_value %[[VAL_36]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_38:.*]] = cc.cast %[[VAL_37]] : (!cc.ptr<i8>) -> i64
 // CHECK:           %[[VAL_39:.*]] = arith.cmpi ne, %[[VAL_38]], %[[VAL_6]] : i64
@@ -178,7 +179,8 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:           cc.store %[[VAL_31]], %[[VAL_29]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_32:.*]] = cc.cast %[[VAL_20]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_34:.*]] = cc.cast %[[VAL_33]] : (!llvm.ptr) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_35:.*]] = call @hybridLaunchKernel(%[[VAL_34]], %[[VAL_17]], %[[VAL_18]], %[[VAL_9]], %[[VAL_19]], %[[VAL_32]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[LAUNCH_CTX:.*]] = call @__cudaq_claimLaunchContext() : () -> !cc.ptr<i8>
+// CHECK:           %[[VAL_35:.*]] = call @hybridLaunchKernel(%[[VAL_34]], %[[VAL_17]], %[[VAL_18]], %[[VAL_9]], %[[VAL_19]], %[[VAL_32]], %[[LAUNCH_CTX]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           %[[VAL_36:.*]] = cc.extract_value %[[VAL_35]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_37:.*]] = cc.cast %[[VAL_36]] : (!cc.ptr<i8>) -> i64
 // CHECK:           %[[VAL_38:.*]] = arith.cmpi ne, %[[VAL_37]], %[[VAL_5]] : i64
@@ -212,7 +214,8 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 
 }
 
-// CHECK:         func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:         func.func private @__cudaq_claimLaunchContext() -> !cc.ptr<i8>
+// CHECK:         func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:         func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
 // CHECK:         llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 // CHECK:         func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)

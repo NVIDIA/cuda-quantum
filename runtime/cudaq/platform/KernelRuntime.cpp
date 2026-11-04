@@ -31,24 +31,32 @@ extern "C" void cudaqInitializeKernelRuntime(
 
 namespace cudaq {
 extern "C" {
+LaunchContext *__cudaq_claimLaunchContext() {
+  return requireCallback(callbacks.claimLaunchContext)();
+}
+
 KernelThunkResultType altLaunchKernel(const char *name, KernelThunkType kernel,
                                       void *args, std::uint64_t size,
-                                      std::uint64_t resultOffset) {
-  return requireCallback(callbacks.alt)(name, kernel, args, size, resultOffset);
+                                      std::uint64_t resultOffset,
+                                      const LaunchContext *launchCtx) {
+  return requireCallback(callbacks.alt)(name, kernel, args, size, resultOffset,
+                                        launchCtx);
 }
 
 KernelThunkResultType streamlinedLaunchKernel(const char *name,
-                                              const std::vector<void *> &args) {
-  return requireCallback(callbacks.streamlined)(name, args);
+                                              const std::vector<void *> &args,
+                                              const LaunchContext *launchCtx) {
+  return requireCallback(callbacks.streamlined)(name, args, launchCtx);
 }
 
 KernelThunkResultType hybridLaunchKernel(const char *name,
                                          KernelThunkType kernel, void *args,
                                          std::uint64_t size,
                                          std::uint64_t resultOffset,
-                                         const std::vector<void *> &rawArgs) {
+                                         const std::vector<void *> &rawArgs,
+                                         const LaunchContext *launchCtx) {
   return requireCallback(callbacks.hybrid)(name, kernel, args, size,
-                                           resultOffset, rawArgs);
+                                           resultOffset, rawArgs, launchCtx);
 }
 } // extern "C"
 

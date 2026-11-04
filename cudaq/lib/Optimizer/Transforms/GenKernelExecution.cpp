@@ -663,6 +663,13 @@ public:
       launchResult = endifBlock->getArgument(0);
     };
 
+    // Claim the launch context that the algorithm calling this kernel, if any,
+    // handed over, and pass it on to `launchKernel`.
+    Value launchCtx =
+        func::CallOp::create(builder, loc, ptrI8Ty,
+                             cudaq::runtime::claimLaunchContext, ValueRange{})
+            .getResult(0);
+
     // Generate the call to `launchKernel`.
     switch (codegenKind) {
     case 0: {
@@ -671,7 +678,8 @@ public:
           builder, loc, cudaq::opt::factory::getDynamicBufferType(ctx),
           cudaq::runtime::launchKernelHybridFuncName,
           ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
-                          extendedStructSize, resultOffset, vecArgPtrs});
+                          extendedStructSize, resultOffset, vecArgPtrs,
+                          launchCtx});
       decodeLaunchResults(launch.getResult(0));
     } break;
     case 1: {
@@ -680,14 +688,15 @@ public:
           builder, loc, cudaq::opt::factory::getDynamicBufferType(ctx),
           cudaq::runtime::launchKernelFuncName,
           ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
-                          extendedStructSize, resultOffset});
+                          extendedStructSize, resultOffset, launchCtx});
       decodeLaunchResults(launch.getResult(0));
     } break;
     case 2: {
       assert(vecArgPtrs && !castLoadThunk);
-      func::CallOp::create(builder, loc, TypeRange{},
-                           cudaq::runtime::launchKernelStreamlinedFuncName,
-                           ArrayRef<Value>{castLoadKernName, vecArgPtrs});
+      func::CallOp::create(
+          builder, loc, TypeRange{},
+          cudaq::runtime::launchKernelStreamlinedFuncName,
+          ArrayRef<Value>{castLoadKernName, vecArgPtrs, launchCtx});
       // For this codegen kind, we drop any results on the floor and return
       // random data in registers and/or off the stack. This maintains parity
       // with any pre-existing kernel launchers.

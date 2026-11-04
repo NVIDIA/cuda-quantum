@@ -96,7 +96,8 @@ module attributes {quake.mangled_name_map = {
 // ALT:           %[[VAL_10:.*]] = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
 // ALT:           %[[VAL_11:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr
 // ALT:           %[[VAL_12:.*]] = cc.cast %[[VAL_11]] : (!llvm.ptr) -> !cc.ptr<i8>
-// ALT:           %[[VAL_13:.*]] = call @altLaunchKernel(%[[VAL_12]], %[[VAL_8]], %[[VAL_9]], %[[VAL_3]], %[[VAL_10]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// ALT:           %[[LAUNCH_CTX:.*]] = call @__cudaq_claimLaunchContext() : () -> !cc.ptr<i8>
+// ALT:           %[[VAL_13:.*]] = call @altLaunchKernel(%[[VAL_12]], %[[VAL_8]], %[[VAL_9]], %[[VAL_3]], %[[VAL_10]], %[[LAUNCH_CTX]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // ALT:           %[[VAL_14:.*]] = cc.extract_value %[[VAL_13]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // ALT:           %[[VAL_15:.*]] = cc.cast %[[VAL_14]] : (!cc.ptr<i8>) -> i64
 // ALT:           %[[VAL_16:.*]] = arith.constant 0 : i64
@@ -114,7 +115,8 @@ module attributes {quake.mangled_name_map = {
 // ALT:           %[[VAL_23:.*]] = cc.load %[[VAL_22]] : !cc.ptr<f64>
 // ALT:           return %[[VAL_23]] : f64
 // ALT:         }
-// ALT:         func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// ALT:         func.func private @__cudaq_claimLaunchContext() -> !cc.ptr<i8>
+// ALT:         func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // ALT:         func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
 // ALT:         llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 // ALT:         func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)
@@ -237,11 +239,13 @@ module attributes {quake.mangled_name_map = {
 // STREAMLINED:           %[[VAL_17:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
 // STREAMLINED:           %[[VAL_18:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr
 // STREAMLINED:           %[[VAL_19:.*]] = cc.cast %[[VAL_18]] : (!llvm.ptr) -> !cc.ptr<i8>
-// STREAMLINED:           call @streamlinedLaunchKernel(%[[VAL_19]], %[[VAL_17]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+// STREAMLINED:           %[[LAUNCH_CTX:.*]] = call @__cudaq_claimLaunchContext() : () -> !cc.ptr<i8>
+// STREAMLINED:           call @streamlinedLaunchKernel(%[[VAL_19]], %[[VAL_17]], %[[LAUNCH_CTX]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>) -> ()
 // STREAMLINED:           %[[VAL_20:.*]] = cc.undef f64
 // STREAMLINED:           return %[[VAL_20]] : f64
 // STREAMLINED:         }
-// STREAMLINED:         func.func private @streamlinedLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>)
+// STREAMLINED:         func.func private @__cudaq_claimLaunchContext() -> !cc.ptr<i8>
+// STREAMLINED:         func.func private @streamlinedLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)
 // STREAMLINED:         func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
 // STREAMLINED:         llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 // STREAMLINED:         func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)
@@ -332,7 +336,8 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:           %[[VAL_24:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
 // HYBRID:           %[[VAL_25:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr
 // HYBRID:           %[[VAL_26:.*]] = cc.cast %[[VAL_25]] : (!llvm.ptr) -> !cc.ptr<i8>
-// HYBRID:           %[[VAL_27:.*]] = call @hybridLaunchKernel(%[[VAL_26]], %[[VAL_8]], %[[VAL_9]], %[[VAL_3]], %[[VAL_10]], %[[VAL_24]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// HYBRID:           %[[LAUNCH_CTX:.*]] = call @__cudaq_claimLaunchContext() : () -> !cc.ptr<i8>
+// HYBRID:           %[[VAL_27:.*]] = call @hybridLaunchKernel(%[[VAL_26]], %[[VAL_8]], %[[VAL_9]], %[[VAL_3]], %[[VAL_10]], %[[VAL_24]], %[[LAUNCH_CTX]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // HYBRID:           %[[VAL_28:.*]] = cc.extract_value %[[VAL_27]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // HYBRID:           %[[VAL_29:.*]] = cc.cast %[[VAL_28]] : (!cc.ptr<i8>) -> i64
 // HYBRID:           %[[VAL_30:.*]] = arith.constant 0 : i64
@@ -350,7 +355,8 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:           %[[VAL_37:.*]] = cc.load %[[VAL_36]] : !cc.ptr<f64>
 // HYBRID:           return %[[VAL_37]] : f64
 // HYBRID:         }
-// HYBRID:         func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// HYBRID:         func.func private @__cudaq_claimLaunchContext() -> !cc.ptr<i8>
+// HYBRID:         func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // HYBRID:         func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
 // HYBRID:         llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 // HYBRID:         func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)

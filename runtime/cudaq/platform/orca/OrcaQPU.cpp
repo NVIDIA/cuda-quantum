@@ -21,9 +21,9 @@ cudaq::sample_result runSampling(TBIParameters &parameters,
   ExecutionContext ctx(orca::sample_policy::name, parameters.n_samples, qpu_id);
   auto &platform = cudaq::get_platform();
   return detail::launch(policy, qpu_id, ctx, platform, [&]() {
-    [[maybe_unused]] auto dynamicResult =
-        cudaq::altLaunchKernel(orca::sample_policy::kernelName, nullptr,
-                               &parameters, sizeof(TBIParameters), 0);
+    [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
+        orca::sample_policy::kernelName, nullptr, &parameters,
+        sizeof(TBIParameters), 0, cudaq::detail::claimLaunchContext());
   });
 }
 
@@ -35,9 +35,9 @@ async_sample_result runAsyncSampling(TBIParameters &parameters,
   ExecutionContext ctx(orca::sample_policy::name, parameters.n_samples, qpu_id);
   auto &platform = cudaq::get_platform();
   return detail::launch(policy, qpu_id, ctx, platform, [&]() {
-    [[maybe_unused]] auto dynamicResult =
-        cudaq::altLaunchKernel(orca::sample_policy::kernelName, nullptr,
-                               &parameters, sizeof(TBIParameters), 0);
+    [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
+        orca::sample_policy::kernelName, nullptr, &parameters,
+        sizeof(TBIParameters), 0, cudaq::detail::claimLaunchContext());
   });
 }
 

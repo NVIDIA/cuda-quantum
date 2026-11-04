@@ -197,9 +197,9 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
         }
         // These references are already bound to our local runtime. Capture them
         // before the facade exports the same ABI names into the global scope.
-        initialize({altLaunchKernel, streamlinedLaunchKernel,
-                    hybridLaunchKernel, getExecutionManagerInternal,
-                    getRegisteredExecutionManager,
+        initialize({__cudaq_claimLaunchContext, altLaunchKernel,
+                    streamlinedLaunchKernel, hybridLaunchKernel,
+                    getExecutionManagerInternal, getRegisteredExecutionManager,
                     detail::getExecutionManagerFromContext,
                     [] { detail::YamlTargetConfigDisabler disabler; },
                     [](const char *backend) {

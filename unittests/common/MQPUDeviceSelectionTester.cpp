@@ -49,11 +49,11 @@ cudaq::KernelThunkResultType kernelThunk(void *, bool) {
 
 // Mimic the compiler-generated launch stub so no JIT is needed.
 void kernel() {
-  auto *ctx = cudaq::getExecutionContext();
-  if (ctx->executeKernelApi) {
+  auto *launchCtx = cudaq::detail::claimLaunchContext();
+  if (launchCtx && launchCtx->launch) {
     cudaq::CompiledModule module{
         cudaq::SourceModule{"device_selection", kernelThunk}};
-    ctx->executeKernelApi(module, {});
+    launchCtx->launch(module, {});
   } else {
     kernelBody();
   }
@@ -128,6 +128,42 @@ TEST_P(MQPUDeviceSelection, TargetSwitchOnlyBindsGpuQpus) {
                     .get()
                     .expectation(),
                 -1.0, 1e-12);
+}
+
+TEST_P(MQPUDeviceSelection, LaunchContextCarriesPolicyCompileOptions) {
+  if (GetParam())
+    GTEST_SKIP() << "Library mode launches kernels without a launch context.";
+  // Record the launch context that each kernel launch claims.
+  static std::optional<cudaq::LaunchContext> claimed;
+  auto recordingKernel = [] {
+    auto *launchCtx = cudaq::detail::claimLaunchContext();
+    claimed = launchCtx ? std::make_optional(*launchCtx)
+                        : cudaq::get_platform().defaultLaunchContext();
+    cudaq::CompiledModule module{
+        cudaq::SourceModule{"device_selection", kernelThunk}};
+    if (claimed->launch)
+      claimed->launch(module, {});
+    else
+      kernelBody();
+  };
+
+  auto obs = cudaq::spin::z(0);
+  cudaq::observe_async(2, recordingKernel, obs).get();
+  ASSERT_TRUE(claimed && claimed->launch);
+  EXPECT_EQ(claimed->qpuId, 2);
+  EXPECT_EQ(claimed->compileConfig.options.measureObservable, obs);
+
+  cudaq::sample_async(10, 1, recordingKernel).get();
+  ASSERT_TRUE(claimed && claimed->launch);
+  EXPECT_EQ(claimed->qpuId, 1);
+  EXPECT_TRUE(claimed->compileConfig.options.addSampleMeasurements);
+
+  // `get_state` hands no launch context over: the kernel launches on the QPU
+  // of the execution context, without a launch policy.
+  cudaq::get_state_async(3, recordingKernel).get();
+  ASSERT_TRUE(claimed && !claimed->launch);
+  EXPECT_EQ(claimed->qpuId, 3);
+  EXPECT_FALSE(claimed->compileConfig.options.emitTargetCode);
 }
 
 INSTANTIATE_TEST_SUITE_P(LaunchPaths, MQPUDeviceSelection,

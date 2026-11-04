@@ -13,6 +13,7 @@
 
 namespace cudaq {
 class ExecutionManager;
+struct LaunchContext;
 
 namespace detail {
 /// Host entry points needed by nvq++ output. The Python loader captures these
@@ -20,13 +21,17 @@ namespace detail {
 /// pointers preserve the active runtime instance without linking its LLVM
 /// dependencies.
 struct KernelRuntimeCallbacks {
+  LaunchContext *(*claimLaunchContext)();
   KernelThunkResultType (*alt)(const char *, KernelThunkType, void *,
-                               std::uint64_t, std::uint64_t);
+                               std::uint64_t, std::uint64_t,
+                               const LaunchContext *);
   KernelThunkResultType (*streamlined)(const char *,
-                                       const std::vector<void *> &);
+                                       const std::vector<void *> &,
+                                       const LaunchContext *);
   KernelThunkResultType (*hybrid)(const char *, KernelThunkType, void *,
                                   std::uint64_t, std::uint64_t,
-                                  const std::vector<void *> &);
+                                  const std::vector<void *> &,
+                                  const LaunchContext *);
   ExecutionManager *(*executionManager)();
   ExecutionManager *(*registeredExecutionManager)();
   ExecutionManager *(*contextExecutionManager)();

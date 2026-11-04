@@ -15,6 +15,7 @@
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
+#include "common/LaunchContext.h"
 #include "cudaq/algorithms/msm/policy.h"
 #include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/platform.h"
@@ -22,6 +23,7 @@
 #include "cudaq/qis/execution_manager.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include <functional>
 #include <stdexcept>
 #include <utility>
 #include <variant>
@@ -38,7 +40,12 @@ cudaq::CompiledModule compileModule(cudaq::CompileTarget target,
 namespace cudaq {
 namespace detail {
 
-/// @brief Execute the given function within the given execution context.
+/// @brief Call \p f, which launches a kernel, under \p policy.
+///
+/// The kernel's launch entry point claims the launch context handed over here.
+/// Its `launch` compiles the kernel if needed and runs it on QPU \p qpu_id
+/// within \p ctx. In library mode, \p f runs the kernel directly, within
+/// \p ctx.
 template <typename Policy, typename Callable, typename... Args>
 auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
             quantum_platform &platform, Callable &&f, Args &&...args)
@@ -69,8 +76,15 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
 
   typename Policy::result_type result;
   auto &qpu = platform.getRuntimeEndpoint(qpu_id);
-  ctx.executeKernelApi = [&qpu, &result, &policy, &platform, qpu_id](
-                             const AnyModule &module, const KernelArgs &args) {
+  LaunchContext launchCtx{
+      .qpuId = qpu_id,
+      .compileConfig = {.target = platform.getCompileTarget(qpu_id),
+                        .options = platform.getCompileOptions(
+                            policy, cudaq::get_random_seed(), qpu_id)},
+      .launch = {}};
+  launchCtx.launch = [&qpu, &result, &policy, &ctx,
+                      &config = std::as_const(launchCtx.compileConfig)](
+                         const AnyModule &module, const KernelArgs &args) {
     CompiledModule compiled;
     if (const auto *source = std::get_if<SourceModule>(&module)) {
 #ifdef CUDAQ_DISABLE_JIT_COMPILER
@@ -80,19 +94,20 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       compiled = CompiledModule{*source};
 #else
       CUDAQ_INFO("No compiled module found. Compiling.");
-      auto options =
-          platform.getCompileOptions(policy, cudaq::get_random_seed(), qpu_id);
-      auto target = platform.getCompileTarget(qpu_id);
-      compiled = cudaq_internal::compiler::compileModule(target, options,
-                                                         *source, args,
-                                                         /*isEntryPoint=*/true);
+      compiled = cudaq_internal::compiler::compileModule(
+          config.target, config.options, *source, args,
+          /*isEntryPoint=*/true);
 #endif
     } else {
       CUDAQ_INFO("Found compiled module. Skipping compilation.");
       compiled = std::get<CompiledModule>(module);
     }
     CUDAQ_INFO("Launching kernel.");
-    result = qpu.launchKernel(policy, compiled, args);
+    // The execution context only exists while the kernel runs: it is how the
+    // QPU, execution manager, and simulator see the launch.
+    detail::with_policy_and_ctx(policy, ctx, [&] {
+      result = qpu.launchKernel(policy, compiled, args);
+    });
   };
 
   if constexpr (requires { policy.inner; })
@@ -107,12 +122,10 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
           "Invalid kernel launch within an active AnalysisScope");
     }
   }
-  detail::try_finally(
-      [&] {
-        detail::with_policy_and_ctx(policy, ctx, std::forward<Callable>(f),
-                                    std::forward<Args>(args)...);
-      },
-      [&] { ctx.executeKernelApi = nullptr; });
+  // `f` calls the kernel, whose launch entry point claims `launchCtx`. The
+  // execution context is not installed here, but by `launchCtx.launch`.
+  LaunchContextHandoff handoff{launchCtx};
+  std::invoke(std::forward<Callable>(f), std::forward<Args>(args)...);
   return result;
 }
 } // namespace detail

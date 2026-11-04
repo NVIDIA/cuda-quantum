@@ -23,8 +23,6 @@ void bindExecutionContext(nanobind::module_ &mod) {
            nanobind::arg("name"), nanobind::arg("shots"),
            nanobind::arg("qpu_id") = 0)
       .def_rw("kernelName", &cudaq::ExecutionContext::kernelName)
-      .def_rw("asyncExec", &cudaq::ExecutionContext::asyncExec)
-      .def_ro("asyncResult", &cudaq::ExecutionContext::asyncResult)
       .def_rw("hasConditionalsOnMeasureResults",
               &cudaq::ExecutionContext::hasConditionalsOnMeasureResults)
       .def_rw("totalIterations", &cudaq::ExecutionContext::totalIterations)

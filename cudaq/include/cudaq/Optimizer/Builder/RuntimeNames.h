@@ -24,6 +24,10 @@ static constexpr const char launchKernelStreamlinedFuncName[] =
     "streamlinedLaunchKernel";
 static constexpr const char launchKernelHybridFuncName[] = "hybridLaunchKernel";
 
+/// Name of the runtime function that a kernel launch claims its launch context
+/// with, right before it calls one of the launch functions above.
+static constexpr const char claimLaunchContext[] = "__cudaq_claimLaunchContext";
+
 static constexpr const char deviceCodeHolderAdd[] =
     "__cudaq_deviceCodeHolderAdd";
 

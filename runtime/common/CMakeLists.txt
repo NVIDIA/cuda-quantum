@@ -25,6 +25,7 @@ set(COMMON_RUNTIME_SRC
   Executor.cpp
   ExtraPayloadProvider.cpp
   Future.cpp
+  LaunchContext.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
   Resources.cpp

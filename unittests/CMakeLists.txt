@@ -234,7 +234,8 @@ target_link_libraries(test_nvqir_verify
 cudaq_gtest_discover_tests(test_nvqir_verify DISCOVERY_TIMEOUT 120)
 
 # Test for thread-local execution context storage
-add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp)
+add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp
+  common/LaunchContextTester.cpp)
 target_include_directories(test_exec_ctx_thread PRIVATE .)
 target_link_libraries(test_exec_ctx_thread
   PRIVATE

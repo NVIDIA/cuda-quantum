@@ -9,6 +9,7 @@
 #include "kernel_builder.h"
 #include "common/Environment.h"
 #include "common/FmtCore.h"
+#include "common/LaunchContext.h"
 #include "cudaq_internal/compiler/ExecutionEngine.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
@@ -1139,7 +1140,8 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   auto resultOffset = reinterpret_cast<std::uint64_t>(*roPtr);
 
   [[maybe_unused]] auto uncheckedResult =
-      altLaunchKernel(properName.data(), thunk, rawArgs, size, resultOffset);
+      altLaunchKernel(properName.data(), thunk, rawArgs, size, resultOffset,
+                      cudaq::detail::claimLaunchContext());
   std::free(rawArgs);
   // TODO: any return values are dropped on the floor here.
 }

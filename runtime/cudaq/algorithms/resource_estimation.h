@@ -31,9 +31,6 @@ estimate_result run_estimate_resources(KernelFunctor &&wrappedKernel,
   ExecutionContext ctx(estimate_policy::name, 1);
   ctx.kernelName = kernelName;
 
-  // Indicate that this is not an async exec
-  ctx.asyncExec = false;
-
   CUDAQ_INFO("Launching kernel with estimate policy");
   return detail::launch(policy, /*qpu_id=*/0, ctx, platform,
                         std::forward<KernelFunctor>(wrappedKernel));
