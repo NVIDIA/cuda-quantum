@@ -767,7 +767,9 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   auto config = getCompileConfig();
   auto &target = config.first;
   auto func = cudaq::getKernelFuncOp(mod, name);
-  auto kernelOptLevel = cudaq::runtime::getOptimizationLevel(func).value_or(1);
+  // Resolve the level as the compiler does, so the key matches the compile.
+  auto kernelOptLevel = cudaq::runtime::getOptimizationLevel(func).value_or(
+      static_cast<unsigned>(config.second.optimizationLevel));
   auto targetHash =
       cudaq::detail::hashVal(config.first, config.second, kernelOptLevel);
 

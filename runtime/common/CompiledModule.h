@@ -330,7 +330,7 @@ public:
     /// Whether the kernel has conditional feedback on measure results.
     bool hasConditionalsOnMeasureResults = false;
     /// The quantum optimization level at which the kernel was compiled.
-    OptimizationLevel optimizationLevel = OptimizationLevel::O1;
+    OptimizationLevel optimizationLevel = defaultOptimizationLevel;
   };
 
   // The choice of constructors is intentionally limited to:
