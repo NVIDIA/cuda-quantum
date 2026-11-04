@@ -784,6 +784,84 @@ TEST(OutlinePartitions, SpecifyPartitionOrder) {
   }
 }
 
+// Preserve caller-supplied gate order in both partitions of a batch, rewire the
+// dependency between them, and place the second call before its measurement
+// boundary even though one of its selected gates originally follows it.
+TEST(OutlinePartitions, OrderedBatchWithSecondPartitionBoundary) {
+  constexpr const char ir[] = R"(
+    func.func @k() {
+      %a = quake.null_wire
+      %b = quake.null_wire
+      %c = quake.null_wire
+      %d = quake.null_wire
+      %h = quake.h %a : (!quake.wire) -> !quake.wire
+      %x = quake.x %b : (!quake.wire) -> !quake.wire
+      %z = quake.z %h : (!quake.wire) -> !quake.wire
+      %m, %d1 = quake.mz %d : (!quake.wire) -> (!quake.measure, !quake.wire)
+      %t = quake.t %c : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  cudaq::quake::HOp h;
+  cudaq::quake::XOp x;
+  cudaq::quake::ZOp z;
+  cudaq::quake::TOp t;
+  cudaq::quake::MzOp boundary;
+  mod->walk([&](cudaq::quake::HOp op) { h = op; });
+  mod->walk([&](cudaq::quake::XOp op) { x = op; });
+  mod->walk([&](cudaq::quake::ZOp op) { z = op; });
+  mod->walk([&](cudaq::quake::TOp op) { t = op; });
+  mod->walk([&](cudaq::quake::MzOp op) { boundary = op; });
+  ASSERT_TRUE(h);
+  ASSERT_TRUE(x);
+  ASSERT_TRUE(z);
+  ASSERT_TRUE(t);
+  ASSERT_TRUE(boundary);
+  Value measuredWire = boundary.getTargets().front();
+
+  SmallVector<cudaq::opt::PartitionToOutline> partitions = {
+      {{x.getOperation(), h.getOperation()}, nullptr, true},
+      {{t.getOperation(), z.getOperation()}, boundary.getOperation(), true}};
+  ASSERT_TRUE(succeeded(cudaq::opt::outlinePartitions(partitions)));
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  SmallVector<cudaq::cc::CreateLambdaOp> lambdas;
+  SmallVector<cudaq::cc::CallCallableOp> calls;
+  mod->walk([&](cudaq::cc::CreateLambdaOp op) { lambdas.push_back(op); });
+  mod->walk([&](cudaq::cc::CallCallableOp op) { calls.push_back(op); });
+  ASSERT_EQ(lambdas.size(), 2u);
+  ASSERT_EQ(calls.size(), 2u);
+
+  Block &firstBody = lambdas[0].getBody().front();
+  ASSERT_EQ(firstBody.getOperations().size(), 3u);
+  auto first = firstBody.begin();
+  EXPECT_TRUE(isa<cudaq::quake::XOp>(*first));
+  EXPECT_TRUE(isa<cudaq::quake::HOp>(*++first));
+  EXPECT_TRUE(isa<cudaq::cc::ReturnOp>(*++first));
+
+  Block &secondBody = lambdas[1].getBody().front();
+  ASSERT_EQ(secondBody.getOperations().size(), 3u);
+  auto second = secondBody.begin();
+  EXPECT_TRUE(isa<cudaq::quake::TOp>(*second));
+  EXPECT_TRUE(isa<cudaq::quake::ZOp>(*++second));
+  ASSERT_EQ(calls[0]->getNumResults(), 2u);
+  EXPECT_EQ(second->getOperand(0), calls[0]->getResult(1));
+  EXPECT_TRUE(isa<cudaq::cc::ReturnOp>(*++second));
+
+  for (unsigned i = 0; i < 2; ++i) {
+    EXPECT_EQ(calls[i]->getOperand(0), lambdas[i].getResult());
+    EXPECT_EQ(lambdas[i]->getNextNode(), calls[i].getOperation());
+  }
+  EXPECT_TRUE(calls[0]->isBeforeInBlock(lambdas[1].getOperation()));
+  EXPECT_EQ(calls[1]->getNextNode(), boundary.getOperation());
+  EXPECT_EQ(boundary.getTargets().front(), measuredWire);
+}
+
 // An upper placement bound cannot delay a call past an outside consumer.
 TEST(OutlinePartitions, ConsumerBeforeBoundaryTakesPrecedence) {
   constexpr const char ir[] = R"(
