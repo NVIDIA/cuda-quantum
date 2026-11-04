@@ -1322,11 +1322,11 @@ LogicalResult cudaq::cc::InsertValueOp::verify() {
   if (!isCompatible(eleTy, resultTy))
     return emitOpError("result type does not match input");
 
-  for (std::int32_t i : getPosition()) {
+  for (std::int64_t i : getPosition()) {
     if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
       if (arrTy.isUnknownSize())
         return emitOpError("array must have constant size");
-      if (i < 0 || static_cast<std::int64_t>(i) >= arrTy.getSize())
+      if (i < 0 || i >= arrTy.getSize())
         return emitOpError("array cannot index out of bounds elements");
       eleTy = arrTy.getElementType();
     } else if (auto strTy = dyn_cast<cc::StructType>(eleTy)) {
