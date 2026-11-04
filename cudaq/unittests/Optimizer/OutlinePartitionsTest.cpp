@@ -42,7 +42,7 @@ static std::string printModule(ModuleOp mod) {
 // A contiguous run of two gates captures its input wires and returns the two
 // output wires; the original gates are removed.
 TEST(OutlinePartitions, ContiguousRun) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k() {
       %w0 = quake.null_wire
       %w1 = quake.null_wire
@@ -114,7 +114,7 @@ TEST(OutlinePartitions, ContiguousRun) {
 // after the last operation in the supplied order, so fallback placement must
 // use the physically last selected operation to make the capture available.
 TEST(OutlinePartitions, SuppliedOrderPreserved) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k() {
       %w0 = quake.null_wire
       %w1 = quake.null_wire
@@ -171,7 +171,7 @@ TEST(OutlinePartitions, SuppliedOrderPreserved) {
 // Dominance in the original block does not validate supplied cloning order.
 // Reject a consumer placed before its selected producer without changing IR.
 TEST(OutlinePartitions, SuppliedConsumerBeforeProducerRejected) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k() {
       %w0 = quake.null_wire
       %h = quake.h %w0 : (!quake.wire) -> !quake.wire
@@ -202,7 +202,7 @@ TEST(OutlinePartitions, SuppliedConsumerBeforeProducerRejected) {
 // Return successor wires in input order, even when their final definitions
 // appear in the opposite order.
 TEST(OutlinePartitions, WireOutputsFollowInputOrder) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k(%a: !quake.wire, %b: !quake.wire) {
       %a1 = quake.h %a : (!quake.wire) -> !quake.wire
       %b_out = quake.x %b : (!quake.wire) -> !quake.wire
@@ -281,7 +281,7 @@ TEST(OutlinePartitions, WireOutputsFollowInputOrder) {
 // block ends is still valid: the closure is inserted before the consumer so
 // its results dominate all uses.
 TEST(OutlinePartitions, EarlyConsumerReordered) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k() {
       %w0 = quake.null_wire
       %w1 = quake.null_wire
@@ -312,7 +312,7 @@ TEST(OutlinePartitions, EarlyConsumerReordered) {
 // A non-partition op that lies on a wire path between two partition ops is a
 // true contiguity violation and must be rejected.
 TEST(OutlinePartitions, NonContiguousRejected) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k() {
       %w0 = quake.null_wire
       %h = quake.h %w0 : (!quake.wire) -> !quake.wire
@@ -338,7 +338,7 @@ TEST(OutlinePartitions, NonContiguousRejected) {
 
 // Supply a partition from a hardcoded analysis to the outlining utility.
 TEST(OutlinePartitions, HardcodedAnalysis) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k() {
       %w0 = quake.null_wire
       %w1 = quake.null_wire
@@ -396,7 +396,7 @@ TEST(OutlinePartitions, HardcodedAnalysis) {
 // The outlined IR should chain three lambdas, with the call results of
 // lambdas 1 and 2 captured by lambda 3.
 TEST(OutlinePartitions, ThreePartitionsWithCrossFlow) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k() {
       %w0 = quake.null_wire
       %w1 = quake.null_wire
@@ -494,7 +494,7 @@ TEST(OutlinePartitions, ThreePartitionsWithCrossFlow) {
 // Both rotations capture the same angle. The measurement handle stays inside
 // the lambda, and the bit's consumer precedes the outgoing wire's consumer.
 TEST(OutlinePartitions, ClassicalInputsAndOutputs) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k(%theta: f64, %other: f64) {
       %w0 = quake.null_wire
       %w1 = quake.rx (%theta) %w0 : (f64, !quake.wire) -> !quake.wire
@@ -586,7 +586,7 @@ TEST(OutlinePartitions, ClassicalInputsAndOutputs) {
 // Unlike an internal handle, a measurement used by an outside discrimination
 // must be returned alongside the wire.
 TEST(OutlinePartitions, MeasurementHandleReturned) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k() -> i1 {
       %w0 = quake.null_wire
       %m, %w1 = quake.mz %w0 : (!quake.wire) -> (!quake.measure, !quake.wire)
@@ -646,7 +646,7 @@ TEST(OutlinePartitions, MeasurementHandleReturned) {
 // Keeping a discrimination in the lambda does not require returning its bit
 // when there is no outside use. The outgoing wire is still returned.
 TEST(OutlinePartitions, UnusedBitNotReturned) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k() {
       %w0 = quake.null_wire
       %m, %w1 = quake.mz %w0 : (!quake.wire) -> (!quake.measure, !quake.wire)
@@ -710,7 +710,7 @@ TEST(OutlinePartitions, UnusedBitNotReturned) {
 // independent measurement. With no outside consumers, default placement is
 // after T, which is physically after the measurement.
 TEST(OutlinePartitions, SpecifyPartitionOrder) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @usethisorder() {
       %a = quake.null_wire
       %b = quake.null_wire
@@ -786,7 +786,7 @@ TEST(OutlinePartitions, SpecifyPartitionOrder) {
 
 // An upper placement bound cannot delay a call past an outside consumer.
 TEST(OutlinePartitions, ConsumerBeforeBoundaryTakesPrecedence) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k() {
       %w0 = quake.null_wire
       %w1 = quake.null_wire
@@ -828,7 +828,7 @@ TEST(OutlinePartitions, ConsumerBeforeBoundaryTakesPrecedence) {
 // Here, the boundary is placed before the measure, but the angle is required
 // for `rx`
 TEST(OutlinePartitions, CaptureAfterBoundaryRejected) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k() {
       %w0 = quake.null_wire
       %w1 = quake.null_wire
@@ -859,7 +859,7 @@ TEST(OutlinePartitions, CaptureAfterBoundaryRejected) {
 
 // Reject a boundary inside the partition or in another block before rewriting.
 TEST(OutlinePartitions, InvalidBoundaryRejected) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k() {
       %w0 = quake.null_wire
       %h = quake.h %w0 : (!quake.wire) -> !quake.wire
@@ -898,7 +898,7 @@ TEST(OutlinePartitions, InvalidBoundaryRejected) {
 // The two selected gates have independent wire paths, but the rotation's angle
 // is defined too late to insert a single call before the outside Z consumer.
 TEST(OutlinePartitions, LateInputRejected) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k(%base: f64) {
       %a0 = quake.null_wire
       %b0 = quake.null_wire
@@ -930,7 +930,7 @@ TEST(OutlinePartitions, LateInputRejected) {
 // The earliest outside consumer also defines an input. Its result is available
 // after that consumer, but cannot be captured by a lambda inserted before it.
 TEST(OutlinePartitions, ConsumerDefinesInputRejected) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k(%hi: f64, %lo: f64) {
       %w0 = quake.null_wire
       %m, %w1 = quake.mz %w0 : (!quake.wire) -> (!quake.measure, !quake.wire)
@@ -961,7 +961,7 @@ TEST(OutlinePartitions, ConsumerDefinesInputRejected) {
 
 // Reject any partition candidates that contain regions
 TEST(OutlinePartitions, RejectRegionOwningOps) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k(%theta: f64, %q: !quake.ref) {
       cc.scope {
         quake.rx (%theta) %q : (f64, !quake.ref) -> ()
@@ -992,7 +992,7 @@ TEST(OutlinePartitions, RejectRegionOwningOps) {
 
 // Reject a selected load that would otherwise move past an outside store.
 TEST(OutlinePartitions, RejectPartitionContainingLoad) {
-  const char *ir = R"(
+  constexpr const char ir[] = R"(
     func.func @k(%p: !cc.ptr<i32>) -> i32 {
       %five = arith.constant 5 : i32
       %w0 = quake.null_wire
