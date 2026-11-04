@@ -134,7 +134,12 @@ if [ ! "$cudaq_import_exit_code" -eq "0" ] || [ ! -d "$build_include_dir" ] || [
 fi
 
 # The parent docs directory also contains compiled documentation tests.
-rm -rf "$sphinx_output_dir" "$doxygen_output_dir"
+# Remove generated references so the checks below cannot accept stale files.
+rm -rf "$sphinx_output_dir" "$doxygen_output_dir" "$dialect_output_dir" \
+    "$docs_build_output/inventories"
+for pass_reference_name in "${compiler_pass_reference_names[@]}"; do
+    rm -f "$docs_build_output/$pass_reference_name.md"
+done
 
 # Extract documentation from tablegen files
 mkdir -p "$build_dir" && cd "$build_dir" && mkdir -p logs
