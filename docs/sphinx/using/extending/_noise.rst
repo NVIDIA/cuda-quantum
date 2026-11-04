@@ -76,29 +76,17 @@ depending on the gate operands and gate parameters if any.
 
 .. tab:: Python
 
-    .. code-block:: python
+    See :download:`noise_callback.py <../../snippets/python/using/extending/noise_callback.py>` for a complete example:
 
-        # Noise channel callback function
-        def noise_cb(qubits, params):
-           # Construct a channel based on specific operands and parameters
-           ...
-           return noise_channel 
-        
-        # Add a dynamic noise channel to the 'rx' gate.
-        noise.add_channel('rx', noise_cb)
-
+    .. literalinclude:: ../../snippets/python/using/extending/noise_callback.py
+       :language: python
 
 .. tab:: C++
 
-    .. code-block:: cpp
-        
-        // Add a dynamic noise channel to the 'rx' gate.
-        noise.add_channel("rx",
-            [](const auto &qubits, const auto &params) -> cudaq::kraus_channel {
-                // Construct a channel based on specific operands and parameters
-                ...
-                return noiseChannel;
-            });
+    See :download:`noise_callback.cpp <../../snippets/cpp/using/extending/noise_callback.cpp>` for a complete example:
+
+    .. literalinclude:: ../../snippets/cpp/using/extending/noise_callback.cpp
+       :language: cpp
 
 
 Noise models can be constructed via the :code:`cudaq::noise_model` and specified for 
