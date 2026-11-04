@@ -1020,3 +1020,36 @@ TEST(OutlinePartitions, RejectPartitionContainingLoad) {
   EXPECT_EQ(printModule(*mod), before);
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
+
+// Make sure that duplicate ops are rejected during outlining with
+// caller-supplied order
+TEST(OutlinePartitions, RejectDuplicateOps) {
+  constexpr const char ir[] = R"(
+    func.func @k() {
+      %w0 = quake.null_wire
+      %w1 = quake.null_wire
+      %h = quake.h %w0 : (!quake.wire) -> !quake.wire
+      %x:2 = quake.x [%h] %w1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      return
+    }
+  )";
+
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  SmallVector<Operation *> partition;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
+      partition.push_back(op);
+  });
+  ASSERT_EQ(partition.size(), 2u);
+  // add duplicatek op
+  partition.push_back(partition[0]);
+  const std::string before = printModule(*mod);
+
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition, nullptr, true})));
+  EXPECT_EQ(printModule(*mod), before);
+  EXPECT_TRUE(succeeded(verify(*mod)));
+}
