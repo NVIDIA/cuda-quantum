@@ -228,6 +228,9 @@ void detail::initServerHelperAndExecutor(
   // Give the server helper to the executor
   executor->setServerHelper(serverHelper.get());
 
+  // Register after client setup, which may initialize SDK statics.
+  detail::registerPlatformCleanup();
+
   // Construct the runtime target
   RuntimeTarget runtimeTarget;
   runtimeTarget.config = targetConfig;

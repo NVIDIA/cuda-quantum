@@ -16,9 +16,13 @@
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <cstdlib>
 #include <exception>
+#include <mutex>
 #include <string>
+#include <unordered_set>
 
 using namespace cudaq_internal::compiler;
 
@@ -32,6 +36,52 @@ extern "C" void cudaq_add_qpu_node(void *node_ptr) {
 }
 
 namespace cudaq {
+
+namespace detail {
+/// Track live platforms so their QPUs can be released before plugin shutdown.
+class PlatformRegistry {
+public:
+  void add(quantum_platform &platform) {
+    std::lock_guard lock(mutex);
+    platforms.insert(&platform);
+  }
+
+  void remove(quantum_platform &platform) {
+    std::lock_guard lock(mutex);
+    platforms.erase(&platform);
+  }
+
+  void clearQPUs() {
+    std::lock_guard lock(mutex);
+    for (auto *platform : platforms)
+      platform->clearQPUs();
+  }
+
+private:
+  std::mutex mutex;
+  std::unordered_set<quantum_platform *> platforms;
+};
+} // namespace detail
+
+namespace {
+detail::PlatformRegistry &platformRegistry() {
+  // Keep the registry alive through static destruction.
+  static auto *registry = new detail::PlatformRegistry;
+  return *registry;
+}
+} // namespace
+
+quantum_platform::quantum_platform() { platformRegistry().add(*this); }
+
+quantum_platform::~quantum_platform() { platformRegistry().remove(*this); }
+
+void detail::registerPlatformCleanup() {
+  if (std::atexit([] {
+        detail::shutdownExecutionQueues();
+        platformRegistry().clearQPUs();
+      }) != 0)
+    throw std::runtime_error("Unable to register platform cleanup.");
+}
 
 // These functions are defined elsewhere, but
 // we are going to use them here.

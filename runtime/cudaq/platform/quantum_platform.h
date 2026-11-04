@@ -44,6 +44,7 @@ class LinkedLibraryHolder;
 namespace detail {
 class TargetSetter;
 class PlatformTestAccess;
+class PlatformRegistry;
 class with_platform_in_library_mode;
 } // namespace detail
 
@@ -63,8 +64,8 @@ using ObserveTask = std::function<observe_result()>;
 /// `clearQPUs`.
 class quantum_platform {
 public:
-  quantum_platform() = default;
-  virtual ~quantum_platform() = default;
+  quantum_platform();
+  virtual ~quantum_platform();
 
   /// @brief Return true if this platform exposes multiple QPUs and
   /// supports parallel distribution of quantum tasks.
@@ -255,6 +256,7 @@ protected:
   friend class cudaq::LinkedLibraryHolder;
   friend class cudaq::detail::TargetSetter;
   friend class cudaq::detail::PlatformTestAccess;
+  friend class cudaq::detail::PlatformRegistry;
   /// @brief Set the target backend, by default do nothing, let subclasses
   /// override
   /// @param name
