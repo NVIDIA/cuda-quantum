@@ -116,6 +116,43 @@ TEST(CuStateVecBatchTester, AppliesCompactedDeferredGate) {
             (std::vector<custatevecIndex_t>{1, 1, 1}));
 }
 
+// Exercises compact uniform and dense indexed gates with both mixed predicates
+// and controls ordered differently from their wire indices.
+TEST(CuStateVecBatchTester, PreservesMixedControlValues) {
+  CuStateVecBatch<double> batch(3, 4, false);
+  auto identity = matrixTask({1.0, 0.0, 0.0, 1.0});
+  auto x = matrixTask({0.0, 1.0, 1.0, 0.0});
+  // Batch members span all control assignments in q0, q1, q2 order:
+  // 000, 100, 010, 110. Only member 1 matches the first predicate.
+  batch.apply({identity, x, identity, x});
+  identity.targets = {1};
+  x.targets = {1};
+  batch.apply({identity, identity, x, x});
+
+  x.targets = {2};
+  x.controls = {1, 0};
+  x.controlValues = {0, 1};
+  auto compactX = x;
+  compactMatrixTask(compactX);
+  batch.apply(compactX);
+  EXPECT_EQ(batch.sample(0, {0, 1, 2}, {0.5}, false).counts.at("000"), 1);
+  EXPECT_EQ(batch.sample(1, {0, 1, 2}, {0.5}, false).counts.at("101"), 1);
+  EXPECT_EQ(batch.sample(2, {0, 1, 2}, {0.5}, false).counts.at("010"), 1);
+  EXPECT_EQ(batch.sample(3, {0, 1, 2}, {0.5}, false).counts.at("110"), 1);
+
+  // Reversing the predicate selects member 2. Reusing the old values would
+  // instead undo member 1's target flip, so both outcomes are checked.
+  identity.targets = x.targets;
+  identity.controls = x.controls;
+  x.controlValues = {1, 0};
+  identity.controlValues = x.controlValues;
+  batch.apply({identity, x, x, identity});
+  EXPECT_EQ(batch.sample(0, {0, 1, 2}, {0.5}, false).counts.at("000"), 1);
+  EXPECT_EQ(batch.sample(1, {0, 1, 2}, {0.5}, false).counts.at("101"), 1);
+  EXPECT_EQ(batch.sample(2, {0, 1, 2}, {0.5}, false).counts.at("011"), 1);
+  EXPECT_EQ(batch.sample(3, {0, 1, 2}, {0.5}, false).counts.at("110"), 1);
+}
+
 // Measures superposition states twice with reversed random values and verifies
 // the first call does not collapse any batch member.
 TEST(CuStateVecBatchTester, MeasuresWholeBatchWithoutCollapse) {

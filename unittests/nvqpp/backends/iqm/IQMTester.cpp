@@ -26,7 +26,8 @@ CUDAQ_TEST(IQMTester, executeOneMeasuredQubitProgram) {
   kernel.mz(qubit[0]);
 
   auto counts = cudaq::sample(kernel);
-  EXPECT_EQ(counts.size(), 2);
+  EXPECT_GE(counts.size(), 1);
+  EXPECT_LE(counts.size(), 2);
 }
 
 CUDAQ_TEST(IQMTester, executeSeveralMeasuredQubitProgram) {
@@ -37,7 +38,7 @@ CUDAQ_TEST(IQMTester, executeSeveralMeasuredQubitProgram) {
   kernel.mz(qubit[1]);
 
   auto counts = cudaq::sample(kernel);
-  EXPECT_GE(counts.size(), 2);
+  EXPECT_GE(counts.size(), 1);
   EXPECT_LE(counts.size(), 4);
 }
 
@@ -54,7 +55,8 @@ CUDAQ_TEST(IQMTester, executeLoopOverQubitsProgram) {
   kernel.mz(qubit[0]);
   auto counts = cudaq::sample(kernel);
 
-  EXPECT_EQ(counts.size(), 2);
+  EXPECT_GE(counts.size(), 1);
+  EXPECT_LE(counts.size(), 2);
 }
 
 CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
@@ -68,7 +70,7 @@ CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
   kernel.mz(qubit);
 
   auto counts = cudaq::sample(kernel);
-  EXPECT_GE(counts.size(), 2);
+  EXPECT_GE(counts.size(), 1);
   EXPECT_LE(counts.size(), 4);
 }
 

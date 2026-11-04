@@ -10,7 +10,7 @@
 
 // clang-format off
 // RUN: if %anyon_avail; then nvq++ --target anyon --emulate %s -o %t && %t; fi
-// RUN: nvq++ --target infleqtion --emulate %s -o %t && %t
+// RUN: if %infleqtion_avail; then nvq++ --target infleqtion --emulate %s -o %t && %t; fi
 // RUN: if %ionq_avail; then nvq++ --target ionq --emulate %s -o %t && %t; fi
 // RUN: if %iqm_avail; then \
 // RUN:   nvq++ --target iqm --emulate %s -o %t && \
@@ -20,7 +20,7 @@
 // RUN: fi
 // RUN: if %oqc_avail; then nvq++ --target oqc --emulate %s -o %t && %t; fi
 // RUN: if %qbraid_avail; then nvq++ --target qbraid --emulate %s -o %t && %t; fi
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t; fi
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t; fi
 // RUN: cudaq-quake %s | cudaq-opt --promote-qubit-allocation | FileCheck --check-prefixes=MLIR %s
 // clang-format on

@@ -10,7 +10,7 @@
 // RUN: cudaq-quake %s | cudaq-opt -constant-propagation -lift-array-alloc -globalize-array-values -canonicalize -get-concrete-matrix | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 CUDAQ_REGISTER_OPERATION(custom_h, 1, 0,
                          {M_SQRT1_2, M_SQRT1_2, M_SQRT1_2, -M_SQRT1_2})

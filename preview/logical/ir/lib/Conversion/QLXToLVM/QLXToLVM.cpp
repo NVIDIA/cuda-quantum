@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Conversion/Passes.h"
 #include "qlx/Dialect/Cflow/IR/CflowOps.h"
@@ -108,7 +108,8 @@ private:
 
   LogicalResult indexSpaces() {
     for (auto space : domain.getBody().getOps<qlx::lvm::SpaceOp>()) {
-      SpaceState state{space};
+      SpaceState state;
+      state.op = space;
       if (auto capacity = space.getCapacityAttr())
         state.capacity = capacity.getInt();
       spaces.push_back(state);
@@ -328,11 +329,12 @@ private:
     auto allocation = allocationOf(value);
     if (failed(allocation))
       return emitError(value.getLoc(),
-                       "native placement cannot release logical owner");
+                       "native placement cannot release logical-qubit value");
     SpaceState &space = spaces[allocation->space];
     if (!space.occupied.erase(allocation->slot))
-      return emitError(value.getLoc(),
-                       "native placement detected a non-live logical owner");
+      return emitError(
+          value.getLoc(),
+          "native placement detected a non-live logical-qubit value");
     if (!space.recycled.insert(allocation->slot).second)
       return emitError(value.getLoc(),
                        "native placement recycled a logical slot twice");
@@ -751,7 +753,7 @@ private:
               initial->slot != loopBack->slot)
             return repeat.emitOpError(
                 "native placement requires each repeat yield to preserve "
-                "its carried owner's exact logical slot");
+                "its carried qubit's exact logical slot");
           resultAllocations[quantumIndex++] = *loopBack;
         }
       }

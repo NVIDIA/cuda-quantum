@@ -89,22 +89,22 @@ kernel_arguments = (2 * sites, 4, angles, paulis, trotter_steps)
 # %%
 # Estimate the workload directly as portable logical actions.
 cudaq.set_target(cql.targets.estimator)
-logical_estimate = cudaq.estimate(fermi_hubbard_trotter, *kernel_arguments)
-logical_resources = cql.estimate.LogicalEstimate.from_annotations(
-    logical_estimate.annotations)
+logical_resources = cudaq.estimate(fermi_hubbard_trotter,
+                                   *kernel_arguments).resources
 
 # %%
 # Estimate the same workload after synthesis with the Clifford+T target.
 clifford_t_target = cql.targets.clifford_t_target(precision=1.0e-6)
 cudaq.set_target(clifford_t_target)
-clifford_t_estimate = cudaq.estimate(fermi_hubbard_trotter, *kernel_arguments)
-clifford_t_resources = cql.estimate.LogicalEstimate.from_annotations(
-    clifford_t_estimate.annotations)
+clifford_t_resources = cudaq.estimate(fermi_hubbard_trotter,
+                                      *kernel_arguments).resources
 
 # %%
 # Print the two independently calculated resource summaries.
 print("Fermi--Hubbard logical resources:")
-print(f"  logical: depth={logical_resources.action_depth_upper_bound}, "
-      f"actions={dict(logical_resources.actions)}")
-print(f"  clifford_t: depth={clifford_t_resources.action_depth_upper_bound}, "
-      f"actions={dict(clifford_t_resources.actions)}")
+for name, resources in (("logical", logical_resources), ("clifford_t",
+                                                         clifford_t_resources)):
+    print(f"  {name}: qubits={resources.num_qubits}, "
+          f"operations={resources.count()}, T={resources.count('t')}, "
+          f"depth={resources.depth}")
+    print(f"    gates={resources.to_dict()}")

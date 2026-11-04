@@ -11,7 +11,7 @@
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 //
 // Quantum emulators
-// RUN: nvq++ -fkernel-exec-kind=2 -target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %quantinuum_avail; then nvq++ -fkernel-exec-kind=2 -target quantinuum --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %ionq_avail; then nvq++ -fkernel-exec-kind=2 -target ionq       --emulate %s -o %t && %t | FileCheck %s ; fi
 // RUN: if %oqc_avail; then nvq++ -fkernel-exec-kind=2 -target oqc        --emulate %s -o %t && %t | FileCheck %s ; fi
 // RUN: if %anyon_avail; then nvq++ -fkernel-exec-kind=2 -target anyon      --emulate %s -o %t && %t | FileCheck %s ; fi

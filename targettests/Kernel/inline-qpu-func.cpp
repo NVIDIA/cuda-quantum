@@ -8,7 +8,7 @@
 
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 // This is device only kernel since entry-point kernels cannot accept
 // `measure_handle` or `std::vector<measure_handle>` as parameters. Make sure we

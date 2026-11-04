@@ -9,7 +9,12 @@
 
 #include "common/SimulationState.h"
 #include <cudensitymat.h>
+#include <memory>
 #include <unordered_map>
+
+namespace cudaq::dynamics {
+class MpiBuffer;
+}
 
 namespace cudaq {
 /// @cond
@@ -32,6 +37,8 @@ private:
   // singleStateDimension.
   std::size_t singleStateDimension = 0;
   bool borrowedData = false;
+  // Owns `devicePtr` for states created by `mpi_buffer_like`.
+  std::unique_ptr<dynamics::MpiBuffer> mpiStorage;
 
 public:
   // Create a state with a size and data pointer.
@@ -41,7 +48,7 @@ public:
   CuDensityMatState(std::size_t s, void *ptr, bool borrowed = false);
 
   // Default constructor
-  CuDensityMatState() {}
+  CuDensityMatState();
 
   // Create an initial state of a specific type, e.g., uniform distribution.
   static std::unique_ptr<CuDensityMatState> createInitialState(
@@ -124,6 +131,25 @@ public:
   // Clone a state
   static std::unique_ptr<CuDensityMatState>
   clone(const CuDensityMatState &other);
+  // Create a state with the shape of `other` and uninitialized contents, stored
+  // in a buffer that cuDensityMat may send over MPI (fabric memory when the
+  // context enables it).
+  static std::unique_ptr<CuDensityMatState>
+  mpi_buffer_like(const CuDensityMatState &other);
+
+  /// @brief Overwrite the contents with those of a state of the same shape.
+  void copy_from(const CuDensityMatState &other);
+
+  /// @brief Set every element to zero.
+  void set_zero();
+
+  /// @brief Exchange contents and storage with another state.
+  void swap(CuDensityMatState &other) noexcept;
+
+  /// @brief Return true if `other` has the same dimensions, batch size, and
+  /// kind (state vector or density matrix).
+  bool has_same_shape(const CuDensityMatState &other) const;
+
   // Prevent copies (avoids double free issues)
   CuDensityMatState(const CuDensityMatState &) = delete;
   CuDensityMatState &operator=(const CuDensityMatState &) = delete;

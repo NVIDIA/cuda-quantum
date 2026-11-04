@@ -24,7 +24,9 @@ using namespace cudaq_internal::compiler;
 using namespace cudaq;
 
 cudaq::KernelThunkResultType
-cudaq::QPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
+cudaq::QPU::compileAndLaunchKernel(const AnyModule &module, KernelArgs args,
+                                   const CompileTarget &target,
+                                   const CompileOptions &options) {
   throw std::runtime_error(
       "This QPU does not support launching the other_policies.");
 }
@@ -120,7 +122,6 @@ cudaq::QPU::launchKernel(const ptsbe::sample_policy &policy,
       "This QPU does not support launching the ptsbe::sample_policy.");
 }
 
-cudaq::CompileTarget
-cudaq::QPU::getCompileTarget(bool skipPipelineSubstitutions) {
+cudaq::CompileTarget cudaq::QPU::getCompileTarget(const RuntimeTarget *) {
   throw std::runtime_error("No CompileTarget defined for this QPU");
 }

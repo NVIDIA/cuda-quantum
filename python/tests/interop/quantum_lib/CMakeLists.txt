@@ -15,6 +15,8 @@ set(CMAKE_CXX_COMPILE_OBJECT
 add_library(quantum_lib
   OBJECT
     quantum_lib.cpp
+    flip.cpp
+    call_flip.cpp
 )
 
 target_include_directories(quantum_lib
@@ -26,5 +28,5 @@ target_include_directories(quantum_lib
 # toolchain built first. fixup-linkage is a post-build step that adjusts
 # library paths on macOS (rpath fixups for relocatable installs).
 add_dependencies(quantum_lib
-  nvq++ cudaq-opt cudaq-quake cudaq-translate cudaq-target-conf fixup-linkage
+  nvq++ cudaq-opt cudaq-quake cudaq-translate cudaq-target-resolve fixup-linkage
 )

@@ -14,6 +14,7 @@ import cudaq
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import JSONResponse
 from llvmlite import binding as llvm
+from .. import expose_nvqir_to_jit
 from pydantic import BaseModel
 from typing import Any, Dict
 
@@ -55,6 +56,7 @@ target = llvm.Target.from_default_triple()
 targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
+expose_nvqir_to_jit()
 
 
 def getNumRequiredQubits(function):

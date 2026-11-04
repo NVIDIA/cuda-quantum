@@ -39,9 +39,6 @@ def should_use_mixed_state(
                 if len(collapse_ops) > 0:
                     return True
 
-    if isinstance(hamiltonian, Sequence):
-        return any(isinstance(op, SuperOperator) for op in hamiltonian)
-
     # Helper to check if the super-operator has right apply operators.
     def has_right_apply(super_op: SuperOperator) -> bool:
         for (left_op, right_op) in super_op:

@@ -1,0 +1,57 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --regtomem %s | FileCheck %s
+// RUN: cudaq-opt --memtoreg --regtomem %s | FileCheck %s
+
+// Each unwrap is a separate definition, even when it loads the same reference.
+// Looking up those definitions must preserve gate order and reference identity.
+func.func @repeated_unwraps(%a: !quake.ref, %b: !quake.ref) -> i1 {
+  %a0 = quake.unwrap %a : (!quake.ref) -> !quake.wire
+  %h = quake.h %a0 : (!quake.wire) -> !quake.wire
+  quake.wrap %h to %a : !quake.wire, !quake.ref
+  %b0 = quake.unwrap %b : (!quake.ref) -> !quake.wire
+  %t = quake.t %b0 : (!quake.wire) -> !quake.wire
+  quake.wrap %t to %b : !quake.wire, !quake.ref
+  %a1 = quake.unwrap %a : (!quake.ref) -> !quake.wire
+  %b1 = quake.unwrap %b : (!quake.ref) -> !quake.wire
+  %c, %x = quake.x [%a1] %b1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.wrap %c to %a : !quake.wire, !quake.ref
+  quake.wrap %x to %b : !quake.wire, !quake.ref
+  %b2 = quake.unwrap %b : (!quake.ref) -> !quake.wire
+  %m, %b3 = quake.mz %b2 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.wrap %b3 to %b : !quake.wire, !quake.ref
+  %result = quake.discriminate %m : (!quake.measure) -> i1
+  return %result : i1
+}
+
+// CHECK-LABEL: func.func @repeated_unwraps(
+// CHECK-SAME: %[[A:.*]]: !quake.ref, %[[B:.*]]: !quake.ref
+// CHECK-NEXT: quake.h %[[A]] : (!quake.ref) -> ()
+// CHECK-NEXT: quake.t %[[B]] : (!quake.ref) -> ()
+// CHECK-NEXT: quake.x [%[[A]]] %[[B]] : (!quake.ref, !quake.ref) -> ()
+// CHECK-NEXT: %[[M:.*]] = quake.mz %[[B]] : (!quake.ref) -> !quake.measure
+// CHECK-NEXT: %[[RESULT:.*]] = quake.discriminate %[[M]] : (!quake.measure) -> i1
+// CHECK-NEXT: return %[[RESULT]] : i1
+
+// Dynamic-index references cannot be promoted, so memtoreg produces one
+// unwrap/wrap pair per gate. This exercises that path through both passes.
+func.func @dynamic_reference(%qs: !quake.veq<?>, %index: i64) {
+  %q = quake.extract_ref %qs[%index] : (!quake.veq<?>, i64) -> !quake.ref
+  quake.h %q : (!quake.ref) -> ()
+  quake.t %q : (!quake.ref) -> ()
+  quake.h %q : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic_reference(
+// CHECK: %[[Q:.*]] = quake.extract_ref
+// CHECK-NEXT: quake.h %[[Q]] : (!quake.ref) -> ()
+// CHECK-NEXT: quake.t %[[Q]] : (!quake.ref) -> ()
+// CHECK-NEXT: quake.h %[[Q]] : (!quake.ref) -> ()
+// CHECK-NEXT: return

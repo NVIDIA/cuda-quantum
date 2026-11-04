@@ -46,10 +46,10 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE ${OPERATOR_DEPENDENCIES})
 install(TARGETS ${LIBRARY_NAME}
         EXPORT cudaq-operator-targets
         DESTINATION lib
-        COMPONENT Runtime)
+        COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT})
 
 install(EXPORT cudaq-operator-targets
         FILE CUDAQOperatorTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq
-        COMPONENT Development)
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})

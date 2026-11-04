@@ -12,8 +12,14 @@
 #include "cudaq/cudaq_mpi.h"
 #include "cudaq/distributed/mpi_plugin.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <algorithm>
+#include <cctype>
+#include <charconv>
+#include <cstdlib>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
+#include <string>
 
 namespace cudaq::dynamics {
 /// @brief Get the current CUDA context for the active device.
@@ -44,20 +50,18 @@ Context *Context::getCurrentContext() {
 /// @arg minSizeBytes Minimum size of the scratch space in bytes.
 /// @return void* Pointer to the scratch space.
 void *Context::getScratchSpace(std::size_t minSizeBytes) {
-  if (minSizeBytes > m_scratchSpaceSizeBytes) {
-    // Realloc
-    if (m_scratchSpace) {
-      cudaq::dynamics::DeviceAllocator::free(m_scratchSpace);
-    }
-
+  if (minSizeBytes > m_scratchSpace.sizeBytes())
     CUDAQ_INFO("Allocate scratch buffer of size {} bytes on device {}",
                minSizeBytes, m_deviceId);
+  return m_scratchSpace.reserve(minSizeBytes, m_useFabricMemory);
+}
 
-    m_scratchSpace = cudaq::dynamics::DeviceAllocator::allocate(minSizeBytes);
-    m_scratchSpaceSizeBytes = minSizeBytes;
-  }
+void *Context::getExpectationResultBuffer(std::size_t minSizeBytes) {
+  return m_expectationResult.reserve(minSizeBytes, m_useFabricMemory);
+}
 
-  return m_scratchSpace;
+void Context::releaseExpectationResultBuffer() {
+  m_expectationResult.release();
 }
 
 /// @brief Get the recommended workspace limit based on available memory.
@@ -94,6 +98,71 @@ static cudaqDistributedCommunicator_t *getMpiCommWrapper() {
   return comm;
 }
 
+int32_t detail::gpuFabricDomainSize(std::string fabric, int32_t numRanks,
+                                    int32_t ranksPerNode) {
+  std::transform(fabric.begin(), fabric.end(), fabric.begin(),
+                 [](unsigned char c) { return std::toupper(c); });
+  if (fabric == "MNNVL")
+    return numRanks;
+  if (fabric == "NVL")
+    return ranksPerNode;
+  if (fabric == "NONE")
+    return 1;
+  int32_t domainSize = 0;
+  const char *const begin = fabric.data();
+  const char *const end = begin + fabric.size();
+  const auto [position, error] = std::from_chars(begin, end, domainSize);
+  if (error != std::errc{} || position != end || domainSize < 1)
+    throw std::invalid_argument(
+        "CUDAQ_GPU_FABRIC must be MNNVL, NVL, NONE, or a positive integer "
+        "domain size.");
+  return domainSize;
+}
+
+bool detail::requestsFabricMemory(const char *fabric, int32_t numRanks,
+                                  int32_t ranksPerNode) {
+  if (!fabric)
+    return false;
+  const int32_t domainSize =
+      gpuFabricDomainSize(fabric, numRanks, ranksPerNode);
+  return ranksPerNode < numRanks && domainSize >= numRanks;
+}
+
+/// @brief Decide whether MPI buffers use fabric-exportable memory, which allows
+/// zero-copy via UCX. This requires more than one node and a `CUDAQ_GPU_FABRIC`
+/// NVLink domain that spans every rank. If a test allocation fails on any rank,
+/// all ranks fall back to `cudaMalloc` and the lowest failing rank prints a
+/// warning.
+static bool useFabricMemory(cudaqDistributedInterface_t *mpiInterface,
+                            const cudaqDistributedCommunicator_t *comm) {
+  const char *fabric = std::getenv("CUDAQ_GPU_FABRIC");
+  if (!fabric)
+    return false;
+  int32_t numRanks = 0;
+  int32_t rank = 0;
+  int32_t ranksPerNode = 0;
+  if (mpiInterface->getNumRanks(comm, &numRanks) != 0 ||
+      mpiInterface->getProcRank(comm, &rank) != 0 ||
+      mpiInterface->getCommSizeShared(comm, &ranksPerNode) != 0)
+    throw std::runtime_error("Failed to query the MPI communicator topology");
+  if (!detail::requestsFabricMemory(fabric, numRanks, ranksPerNode))
+    return false;
+
+  const auto failure = DeviceAllocator::testFabricAllocation();
+  int32_t firstFailedRank = failure ? rank : numRanks;
+  if (mpiInterface->AllreduceInPlace(comm, &firstFailedRank, 1, INT_32, MIN) !=
+      0)
+    throw std::runtime_error("Failed to reduce the fabric memory test result");
+  if (firstFailedRank == numRanks)
+    return true;
+  if (rank == firstFailedRank)
+    CUDAQ_WARN("CUDAQ_GPU_FABRIC={} requests fabric memory for dynamics MPI "
+               "buffers, but a test allocation failed on rank {}: {}. Using "
+               "cudaMalloc on all ranks instead.",
+               fabric, rank, *failure);
+  return false;
+}
+
 /// @brief Construct a new Context object for a specific device.
 /// @arg deviceId ID of the CUDA device.
 Context::Context(int deviceId) : m_deviceId(deviceId) {
@@ -113,6 +182,9 @@ Context::Context(int deviceId) : m_deviceId(deviceId) {
     HANDLE_CUDM_ERROR(cudensitymatResetDistributedConfiguration(
         m_cudmHandle, CUDENSITYMAT_DISTRIBUTED_PROVIDER_MPI, dupComm->commPtr,
         dupComm->commSize));
+    m_useFabricMemory = useFabricMemory(mpiInterface, dupComm);
+    CUDAQ_INFO("Fabric memory for dynamics MPI buffers is {}.",
+               m_useFabricMemory ? "enabled" : "disabled");
   }
   HANDLE_CUBLAS_ERROR(cublasCreate(&m_cublasHandle));
   m_opConverter = std::make_unique<CuDensityMatOpConverter>(m_cudmHandle);
@@ -140,8 +212,7 @@ Context::~Context() {
   m_opConverter.reset();
   cudensitymatDestroy(m_cudmHandle);
   cublasDestroy(m_cublasHandle);
-  if (m_scratchSpaceSizeBytes > 0) {
-    cudaq::dynamics::DeviceAllocator::free(m_scratchSpace);
-  }
+  m_scratchSpace.reset();
+  m_expectationResult.reset();
 }
 } // namespace cudaq::dynamics

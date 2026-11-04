@@ -1,0 +1,744 @@
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "OutlinePartitions.h"
+#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/raw_ostream.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Verifier.h"
+#include "mlir/Parser/Parser.h"
+#include "mlir/Support/LogicalResult.h"
+#include <gtest/gtest.h>
+#include <string>
+
+using namespace mlir;
+
+static OwningOpRef<ModuleOp> parse(MLIRContext &ctx, const char *ir) {
+  ctx.loadDialect<arith::ArithDialect, func::FuncDialect, cudaq::cc::CCDialect,
+                  cudaq::quake::QuakeDialect>();
+  return parseSourceString<ModuleOp>(ir, &ctx);
+}
+
+static std::string printModule(ModuleOp mod) {
+  std::string text;
+  llvm::raw_string_ostream stream(text);
+  mod.print(stream);
+  stream.flush();
+  return text;
+}
+
+// A contiguous run of two gates captures its input wires and returns the two
+// output wires; the original gates are removed.
+TEST(OutlinePartitions, ContiguousRun) {
+  const char *ir = R"(
+    func.func @k() {
+      %w0 = quake.null_wire
+      %w1 = quake.null_wire
+      %h = quake.h %w0 : (!quake.wire) -> !quake.wire
+      %x:2 = quake.x [%h] %w1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+
+  SmallVector<Operation *> partition;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
+      partition.push_back(op);
+  });
+  ASSERT_EQ(partition.size(), 2u);
+  Value firstWire = partition[0]->getOperand(0);
+  Value secondWire = cast<cudaq::quake::XOp>(partition[1]).getTargets().front();
+
+  // Accept an unordered selection with a duplicate while cloning each gate
+  // once in block order.
+  partition = {partition[1], partition[0], partition[1]};
+
+  auto lambda = cudaq::opt::outlinePartition(partition);
+  ASSERT_TRUE(succeeded(lambda));
+  EXPECT_TRUE(succeeded(verify(*mod)));
+
+  // Inputs are captured, so the signature has no parameters.
+  auto sig = lambda->getType().getSignature();
+  EXPECT_EQ(sig.getNumInputs(), 0u);
+  EXPECT_EQ(sig.getNumResults(), 2u);
+  EXPECT_EQ(lambda->getBody().front().getNumArguments(), 0u);
+
+  cudaq::quake::HOp clonedH;
+  cudaq::quake::XOp clonedX;
+  lambda->walk([&](cudaq::quake::HOp op) { clonedH = op; });
+  lambda->walk([&](cudaq::quake::XOp op) { clonedX = op; });
+  ASSERT_TRUE(clonedH);
+  ASSERT_TRUE(clonedX);
+  EXPECT_EQ(clonedH.getTargets().front(), firstWire);
+  EXPECT_EQ(clonedX.getControls().front(), clonedH->getResult(0));
+  EXPECT_EQ(clonedX.getTargets().front(), secondWire);
+
+  // Exactly one create_lambda and one call_callable; the gates moved into the
+  // closure body, so none remain in the enclosing function's block.
+  unsigned lambdas = 0, calls = 0, gates = 0, strayGates = 0;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::cc::CreateLambdaOp>(op))
+      ++lambdas;
+    else if (auto call = dyn_cast<cudaq::cc::CallCallableOp>(op)) {
+      ++calls;
+      EXPECT_TRUE(call.getArgOperands().empty());
+      EXPECT_EQ(call->getNumOperands(), 1u);
+    } else if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
+      ++gates;
+  });
+  for (Operation &op : lambda->getOperation()->getBlock()->getOperations())
+    if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
+      ++strayGates;
+  EXPECT_EQ(lambdas, 1u);
+  EXPECT_EQ(calls, 1u);
+  EXPECT_EQ(gates, 2u);
+  EXPECT_EQ(strayGates, 0u);
+}
+
+// Return successor wires in input order, even when their final definitions
+// appear in the opposite order.
+TEST(OutlinePartitions, WireOutputsFollowInputOrder) {
+  const char *ir = R"(
+    func.func @k(%a: !quake.wire, %b: !quake.wire) {
+      %a1 = quake.h %a : (!quake.wire) -> !quake.wire
+      %b_out = quake.x %b : (!quake.wire) -> !quake.wire
+      %a_out = quake.z %a1 : (!quake.wire) -> !quake.wire
+      %a2 = quake.t %a_out : (!quake.wire) -> !quake.wire
+      %b2 = quake.y %b_out : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+  auto funcOp = mod->lookupSymbol<func::FuncOp>("k");
+  ASSERT_TRUE(funcOp);
+
+  SmallVector<Operation *> partition;
+  cudaq::quake::TOp outsideT;
+  cudaq::quake::YOp outsideY;
+  funcOp.walk([&](Operation *op) {
+    if (isa<cudaq::quake::HOp, cudaq::quake::XOp, cudaq::quake::ZOp>(op))
+      partition.push_back(op);
+    else if (auto t = dyn_cast<cudaq::quake::TOp>(op))
+      outsideT = t;
+    else if (auto y = dyn_cast<cudaq::quake::YOp>(op))
+      outsideY = y;
+  });
+  ASSERT_EQ(partition.size(), 3u);
+  ASSERT_TRUE(outsideT);
+  ASSERT_TRUE(outsideY);
+
+  auto lambda = cudaq::opt::outlinePartition(partition);
+  ASSERT_TRUE(succeeded(lambda));
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  cudaq::quake::HOp clonedH;
+  cudaq::quake::XOp clonedX;
+  cudaq::quake::ZOp clonedZ;
+  lambda->walk([&](cudaq::quake::HOp op) { clonedH = op; });
+  lambda->walk([&](cudaq::quake::XOp op) { clonedX = op; });
+  lambda->walk([&](cudaq::quake::ZOp op) { clonedZ = op; });
+  ASSERT_TRUE(clonedH);
+  ASSERT_TRUE(clonedX);
+  ASSERT_TRUE(clonedZ);
+
+  Block &body = lambda->getBody().front();
+  ASSERT_EQ(body.getNumArguments(), 0u);
+  EXPECT_EQ(lambda->getType().getSignature().getNumInputs(), 0u);
+
+  // Captured wire a flows through H and Z; captured wire b flows through X.
+  EXPECT_EQ(clonedH.getTargets().front(), funcOp.getArgument(0));
+  EXPECT_EQ(clonedX.getTargets().front(), funcOp.getArgument(1));
+  EXPECT_EQ(clonedZ.getTargets().front(), clonedH->getResult(0));
+
+  auto ret = cast<cudaq::cc::ReturnOp>(body.getTerminator());
+  ASSERT_EQ(ret->getNumOperands(), 2u);
+  // note the order here:
+  // The Z output is actually first output operand, then the x
+  EXPECT_EQ(ret->getOperand(0), clonedZ->getResult(0));
+  EXPECT_EQ(ret->getOperand(1), clonedX->getResult(0));
+
+  cudaq::cc::CallCallableOp call;
+  funcOp.walk([&](cudaq::cc::CallCallableOp op) { call = op; });
+  ASSERT_TRUE(call);
+  EXPECT_TRUE(call.getArgOperands().empty());
+  EXPECT_EQ(call->getNumOperands(), 1u);
+
+  // Outside consumers receive the result corresponding to their input wire.
+  ASSERT_EQ(call->getNumResults(), 2u);
+  EXPECT_EQ(outsideT.getTargets().front(), call.getResult(0));
+  EXPECT_EQ(outsideY.getTargets().front(), call.getResult(1));
+}
+
+// A partition whose output wire is consumed by a non-partition op before the
+// block ends is still valid: the closure is inserted before the consumer so
+// its results dominate all uses.
+TEST(OutlinePartitions, EarlyConsumerReordered) {
+  const char *ir = R"(
+    func.func @k() {
+      %w0 = quake.null_wire
+      %w1 = quake.null_wire
+      %h = quake.h %w0 : (!quake.wire) -> !quake.wire
+      %z = quake.z %h : (!quake.wire) -> !quake.wire
+      %t = quake.t %w1 : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+
+  // Partition {h, t}: h's output feeds z (non-partition) which appears before
+  // t in block order, but there is no non-partition op on a wire path between
+  // h and t, so the partition is contiguous. The closure is inserted before z.
+  SmallVector<Operation *> partition;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::quake::HOp, cudaq::quake::TOp>(op))
+      partition.push_back(op);
+  });
+  ASSERT_EQ(partition.size(), 2u);
+  auto lambda = cudaq::opt::outlinePartition(partition);
+  ASSERT_TRUE(succeeded(lambda));
+  EXPECT_TRUE(succeeded(verify(*mod)));
+}
+
+// A non-partition op that lies on a wire path between two partition ops is a
+// true contiguity violation and must be rejected.
+TEST(OutlinePartitions, NonContiguousRejected) {
+  const char *ir = R"(
+    func.func @k() {
+      %w0 = quake.null_wire
+      %h = quake.h %w0 : (!quake.wire) -> !quake.wire
+      %z = quake.z %h : (!quake.wire) -> !quake.wire
+      %x = quake.x %z : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+
+  // Partition {h, x}: the wire path h -> z (non-partition) -> x passes through
+  // a non-partition op, so the partition is not a contiguous slice.
+  SmallVector<Operation *> partition;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
+      partition.push_back(op);
+  });
+  ASSERT_EQ(partition.size(), 2u);
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
+}
+
+// Supply a partition from a hardcoded analysis to the outlining utility.
+TEST(OutlinePartitions, HardcodedAnalysis) {
+  const char *ir = R"(
+    func.func @k() {
+      %w0 = quake.null_wire
+      %w1 = quake.null_wire
+      %h = quake.h %w0 : (!quake.wire) -> !quake.wire
+      %x:2 = quake.x [%h] %w1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+
+  struct HardcodedAnalysis {
+    MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(HardcodedAnalysis)
+    explicit HardcodedAnalysis(mlir::Operation *op) {
+      SmallVector<Operation *> partition;
+      op->walk([&](Operation *inner) {
+        if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(inner))
+          partition.push_back(inner);
+      });
+      if (!partition.empty())
+        partitions.push_back(std::move(partition));
+    }
+    ArrayRef<SmallVector<Operation *>> getPartitions() const {
+      return partitions;
+    }
+
+  private:
+    SmallVector<SmallVector<Operation *>> partitions;
+  };
+  func::FuncOp funcOp;
+  mod->walk([&](func::FuncOp f) { funcOp = f; });
+  ASSERT_TRUE(funcOp);
+
+  HardcodedAnalysis analysis(funcOp.getOperation());
+  ASSERT_TRUE(
+      succeeded(cudaq::opt::outlinePartitions(analysis.getPartitions())));
+  EXPECT_TRUE(succeeded(verify(*mod)));
+
+  unsigned lambdas = 0, calls = 0;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::cc::CreateLambdaOp>(op))
+      ++lambdas;
+    else if (isa<cudaq::cc::CallCallableOp>(op))
+      ++calls;
+  });
+  EXPECT_EQ(lambdas, 1u);
+  EXPECT_EQ(calls, 1u);
+}
+
+// Three partitions where outputs from partitions 1 and 2 feed into partition 3:
+//   P1 = {H}  on w0          → produces h_out
+//   P2 = {T}  on w1          → produces t_out
+//   P3 = {X}  [h_out] t_out  → consumes both h_out and t_out
+// The outlined IR should chain three lambdas, with the call results of
+// lambdas 1 and 2 captured by lambda 3.
+TEST(OutlinePartitions, ThreePartitionsWithCrossFlow) {
+  const char *ir = R"(
+    func.func @k() {
+      %w0 = quake.null_wire
+      %w1 = quake.null_wire
+      %h = quake.h %w0 : (!quake.wire) -> !quake.wire
+      %t = quake.t %w1 : (!quake.wire) -> !quake.wire
+      %x:2 = quake.x [%h] %t : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+
+  struct ThreePartitionAnalysis {
+    MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ThreePartitionAnalysis)
+    explicit ThreePartitionAnalysis(mlir::Operation *op) {
+      SmallVector<Operation *> p1, p2, p3;
+      op->walk([&](Operation *inner) {
+        if (isa<cudaq::quake::HOp>(inner))
+          p1.push_back(inner);
+        else if (isa<cudaq::quake::TOp>(inner))
+          p2.push_back(inner);
+        else if (isa<cudaq::quake::XOp>(inner))
+          p3.push_back(inner);
+      });
+      if (!p1.empty())
+        partitions.push_back(std::move(p1));
+      if (!p2.empty())
+        partitions.push_back(std::move(p2));
+      if (!p3.empty())
+        partitions.push_back(std::move(p3));
+    }
+    ArrayRef<SmallVector<Operation *>> getPartitions() const {
+      return partitions;
+    }
+
+  private:
+    SmallVector<SmallVector<Operation *>> partitions;
+  };
+
+  func::FuncOp funcOp;
+  mod->walk([&](func::FuncOp f) { funcOp = f; });
+  ASSERT_TRUE(funcOp);
+
+  ThreePartitionAnalysis analysis(funcOp.getOperation());
+  ASSERT_TRUE(
+      succeeded(cudaq::opt::outlinePartitions(analysis.getPartitions())));
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  // Collect lambdas and calls in block order.
+  SmallVector<cudaq::cc::CreateLambdaOp> lambdas;
+  SmallVector<cudaq::cc::CallCallableOp> calls;
+  funcOp.walk([&](cudaq::cc::CreateLambdaOp l) { lambdas.push_back(l); });
+  funcOp.walk([&](cudaq::cc::CallCallableOp c) { calls.push_back(c); });
+  ASSERT_EQ(lambdas.size(), 3u);
+  ASSERT_EQ(calls.size(), 3u);
+
+  for (auto lambda : lambdas) {
+    EXPECT_EQ(lambda.getType().getSignature().getNumInputs(), 0u);
+    EXPECT_EQ(lambda.getBody().front().getNumArguments(), 0u);
+  }
+  for (auto call : calls) {
+    EXPECT_TRUE(call.getArgOperands().empty());
+    EXPECT_EQ(call->getNumOperands(), 1u);
+  }
+
+  // P1: lambda body contains H and returns one wire.
+  unsigned hOps = 0;
+  lambdas[0].walk([&](cudaq::quake::HOp) { ++hOps; });
+  EXPECT_EQ(hOps, 1u);
+  EXPECT_EQ(lambdas[0].getType().getSignature().getNumResults(), 1u);
+
+  // P2: lambda body contains T and returns one wire.
+  unsigned tOps = 0;
+  lambdas[1].walk([&](cudaq::quake::TOp) { ++tOps; });
+  EXPECT_EQ(tOps, 1u);
+  EXPECT_EQ(lambdas[1].getType().getSignature().getNumResults(), 1u);
+
+  // P3: lambda body contains X and returns two wires.
+  unsigned xOps = 0;
+  cudaq::quake::XOp clonedX;
+  lambdas[2].walk([&](cudaq::quake::XOp op) {
+    ++xOps;
+    clonedX = op;
+  });
+  EXPECT_EQ(xOps, 1u);
+  ASSERT_TRUE(clonedX);
+  EXPECT_EQ(lambdas[2].getType().getSignature().getNumResults(), 2u);
+
+  // P3 captures the previous call results, rather than raw null_wire values.
+  EXPECT_EQ(clonedX.getControls().front(), calls[0].getResult(0));
+  EXPECT_EQ(clonedX.getTargets().front(), calls[1].getResult(0));
+}
+
+// Both rotations capture the same angle. The measurement handle stays inside
+// the lambda, and the bit's consumer precedes the outgoing wire's consumer.
+TEST(OutlinePartitions, ClassicalInputsAndOutputs) {
+  const char *ir = R"(
+    func.func @k(%theta: f64, %other: f64) {
+      %w0 = quake.null_wire
+      %w1 = quake.rx (%theta) %w0 : (f64, !quake.wire) -> !quake.wire
+      %w2 = quake.rz (%theta) %w1 : (f64, !quake.wire) -> !quake.wire
+      %m, %w3 = quake.mz %w2 : (!quake.wire) -> (!quake.measure, !quake.wire)
+      %bit = quake.discriminate %m : (!quake.measure) -> i1
+      %angle = arith.select %bit, %theta, %other : f64
+      %w4 = quake.ry (%angle) %w3 : (f64, !quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+  auto funcOp = mod->lookupSymbol<func::FuncOp>("k");
+  ASSERT_TRUE(funcOp);
+
+  SmallVector<Operation *> partition;
+  arith::SelectOp select;
+  cudaq::quake::RyOp outsideRy;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::quake::RxOp, cudaq::quake::RzOp, cudaq::quake::MzOp,
+            cudaq::quake::DiscriminateOp>(op))
+      partition.push_back(op);
+    else if (auto selectOp = dyn_cast<arith::SelectOp>(op))
+      select = selectOp;
+    else if (auto ry = dyn_cast<cudaq::quake::RyOp>(op))
+      outsideRy = ry;
+  });
+  ASSERT_EQ(partition.size(), 4u);
+  ASSERT_TRUE(select);
+  ASSERT_TRUE(outsideRy);
+  Value wireIn =
+      cast<cudaq::quake::RxOp>(partition.front()).getTargets().front();
+
+  auto lambda = cudaq::opt::outlinePartition(partition);
+  ASSERT_TRUE(succeeded(lambda));
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  // The angle and input wire are captured, without explicit parameters.
+  // Results are the bit followed by the successor wire.
+  auto sig = lambda->getType().getSignature();
+  ASSERT_EQ(sig.getNumInputs(), 0u);
+  ASSERT_EQ(sig.getNumResults(), 2u);
+  EXPECT_TRUE(sig.getResult(0).isInteger(1));
+  EXPECT_TRUE(isa<cudaq::quake::WireType>(sig.getResult(1)));
+
+  SmallVector<cudaq::cc::CallCallableOp> calls;
+  funcOp.walk([&](cudaq::cc::CallCallableOp call) { calls.push_back(call); });
+  ASSERT_EQ(calls.size(), 1u);
+  auto call = calls.front();
+  EXPECT_EQ(call.getCallee(), lambda->getResult());
+  EXPECT_TRUE(call.getArgOperands().empty());
+  EXPECT_EQ(call->getNumOperands(), 1u);
+  ASSERT_EQ(call->getNumResults(), 2u);
+  EXPECT_TRUE(call->isBeforeInBlock(select.getOperation()));
+  EXPECT_EQ(select.getCondition(), call.getResult(0));
+  EXPECT_EQ(outsideRy.getTargets().front(), call.getResult(1));
+
+  cudaq::quake::RxOp clonedRx;
+  cudaq::quake::RzOp clonedRz;
+  cudaq::quake::MzOp clonedMz;
+  cudaq::quake::DiscriminateOp clonedDiscriminate;
+  lambda->walk([&](cudaq::quake::RxOp op) { clonedRx = op; });
+  lambda->walk([&](cudaq::quake::RzOp op) { clonedRz = op; });
+  lambda->walk([&](cudaq::quake::MzOp op) { clonedMz = op; });
+  lambda->walk(
+      [&](cudaq::quake::DiscriminateOp op) { clonedDiscriminate = op; });
+  ASSERT_TRUE(clonedRx);
+  ASSERT_TRUE(clonedRz);
+  ASSERT_TRUE(clonedMz);
+  ASSERT_TRUE(clonedDiscriminate);
+  Block &body = lambda->getBody().front();
+  ASSERT_EQ(body.getNumArguments(), 0u);
+  Value theta = funcOp.getArgument(0);
+  EXPECT_EQ(clonedRx.getParameters().front(), theta);
+  EXPECT_EQ(clonedRz.getParameters().front(), theta);
+  EXPECT_EQ(clonedRx.getTargets().front(), wireIn);
+  EXPECT_EQ(clonedRz.getTargets().front(), clonedRx->getResult(0));
+  EXPECT_EQ(clonedMz->getOperand(0), clonedRz->getResult(0));
+  EXPECT_EQ(clonedDiscriminate->getOperand(0), clonedMz->getResult(0));
+  auto ret = cast<cudaq::cc::ReturnOp>(body.getTerminator());
+  ASSERT_EQ(ret->getNumOperands(), 2u);
+  EXPECT_EQ(ret->getOperand(0), clonedDiscriminate->getResult(0));
+  EXPECT_EQ(ret->getOperand(1), clonedMz->getResult(1));
+}
+
+// Unlike an internal handle, a measurement used by an outside discrimination
+// must be returned alongside the wire.
+TEST(OutlinePartitions, MeasurementHandleReturned) {
+  const char *ir = R"(
+    func.func @k() -> i1 {
+      %w0 = quake.null_wire
+      %m, %w1 = quake.mz %w0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+      %bit = quake.discriminate %m : (!quake.measure) -> i1
+      %w2 = quake.z %w1 : (!quake.wire) -> !quake.wire
+      return %bit : i1
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  SmallVector<Operation *> partition;
+  cudaq::quake::DiscriminateOp outsideDiscriminate;
+  cudaq::quake::ZOp outsideZ;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::quake::MzOp>(op))
+      partition.push_back(op);
+    else if (auto discriminate = dyn_cast<cudaq::quake::DiscriminateOp>(op))
+      outsideDiscriminate = discriminate;
+    else if (auto z = dyn_cast<cudaq::quake::ZOp>(op))
+      outsideZ = z;
+  });
+  ASSERT_EQ(partition.size(), 1u);
+  ASSERT_TRUE(outsideDiscriminate);
+  ASSERT_TRUE(outsideZ);
+  Value wireIn = partition.front()->getOperand(0);
+
+  auto lambda = cudaq::opt::outlinePartition(partition);
+  ASSERT_TRUE(succeeded(lambda));
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  auto sig = lambda->getType().getSignature();
+  ASSERT_EQ(sig.getNumInputs(), 0u);
+  ASSERT_EQ(sig.getNumResults(), 2u);
+  EXPECT_TRUE(isa<cudaq::quake::MeasureType>(sig.getResult(0)));
+  EXPECT_TRUE(isa<cudaq::quake::WireType>(sig.getResult(1)));
+  EXPECT_EQ(lambda->getBody().front().getNumArguments(), 0u);
+  cudaq::quake::MzOp clonedMz;
+  lambda->walk([&](cudaq::quake::MzOp op) { clonedMz = op; });
+  ASSERT_TRUE(clonedMz);
+  EXPECT_EQ(clonedMz.getTargets().front(), wireIn);
+
+  SmallVector<cudaq::cc::CallCallableOp> calls;
+  mod->walk([&](cudaq::cc::CallCallableOp call) { calls.push_back(call); });
+  ASSERT_EQ(calls.size(), 1u);
+  auto call = calls.front();
+  EXPECT_TRUE(call.getArgOperands().empty());
+  EXPECT_EQ(call->getNumOperands(), 1u);
+  ASSERT_EQ(call->getNumResults(), 2u);
+  EXPECT_TRUE(call->isBeforeInBlock(outsideDiscriminate.getOperation()));
+  EXPECT_EQ(outsideDiscriminate->getOperand(0), call.getResult(0));
+  EXPECT_EQ(outsideZ.getTargets().front(), call.getResult(1));
+}
+
+// Keeping a discrimination in the lambda does not require returning its bit
+// when there is no outside use. The outgoing wire is still returned.
+TEST(OutlinePartitions, UnusedBitNotReturned) {
+  const char *ir = R"(
+    func.func @k() {
+      %w0 = quake.null_wire
+      %m, %w1 = quake.mz %w0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+      %bit = quake.discriminate %m : (!quake.measure) -> i1
+      %w2 = quake.z %w1 : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  SmallVector<Operation *> partition;
+  cudaq::quake::ZOp outsideZ;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::quake::MzOp, cudaq::quake::DiscriminateOp>(op))
+      partition.push_back(op);
+    else if (auto z = dyn_cast<cudaq::quake::ZOp>(op))
+      outsideZ = z;
+  });
+  ASSERT_EQ(partition.size(), 2u);
+  ASSERT_TRUE(outsideZ);
+  Value wireIn = partition.front()->getOperand(0);
+
+  auto lambda = cudaq::opt::outlinePartition(partition);
+  ASSERT_TRUE(succeeded(lambda));
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  auto sig = lambda->getType().getSignature();
+  ASSERT_EQ(sig.getNumInputs(), 0u);
+  ASSERT_EQ(sig.getNumResults(), 1u);
+  EXPECT_TRUE(isa<cudaq::quake::WireType>(sig.getResult(0)));
+  EXPECT_EQ(lambda->getBody().front().getNumArguments(), 0u);
+
+  SmallVector<cudaq::cc::CallCallableOp> calls;
+  mod->walk([&](cudaq::cc::CallCallableOp call) { calls.push_back(call); });
+  ASSERT_EQ(calls.size(), 1u);
+  EXPECT_TRUE(calls.front().getArgOperands().empty());
+  EXPECT_EQ(calls.front()->getNumOperands(), 1u);
+  ASSERT_EQ(calls.front()->getNumResults(), 1u);
+  EXPECT_EQ(outsideZ.getTargets().front(), calls.front().getResult(0));
+
+  cudaq::quake::MzOp clonedMz;
+  cudaq::quake::DiscriminateOp clonedDiscriminate;
+  lambda->walk([&](cudaq::quake::MzOp op) { clonedMz = op; });
+  lambda->walk(
+      [&](cudaq::quake::DiscriminateOp op) { clonedDiscriminate = op; });
+  ASSERT_TRUE(clonedMz);
+  ASSERT_TRUE(clonedDiscriminate);
+  EXPECT_EQ(clonedMz.getTargets().front(), wireIn);
+  EXPECT_EQ(clonedDiscriminate->getOperand(0), clonedMz->getResult(0));
+  EXPECT_TRUE(clonedDiscriminate->getResult(0).use_empty());
+  auto ret =
+      cast<cudaq::cc::ReturnOp>(lambda->getBody().front().getTerminator());
+  ASSERT_EQ(ret->getNumOperands(), 1u);
+  EXPECT_EQ(ret->getOperand(0), clonedMz->getResult(1));
+}
+
+// The two selected gates have independent wire paths, but the rotation's angle
+// is defined too late to insert a single call before the outside Z consumer.
+TEST(OutlinePartitions, LateInputRejected) {
+  const char *ir = R"(
+    func.func @k(%base: f64) {
+      %a0 = quake.null_wire
+      %b0 = quake.null_wire
+      %a1 = quake.h %a0 : (!quake.wire) -> !quake.wire
+      %a2 = quake.z %a1 : (!quake.wire) -> !quake.wire
+      %angle = arith.addf %base, %base : f64
+      %b1 = quake.rx (%angle) %b0 : (f64, !quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  SmallVector<Operation *> partition;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::quake::HOp, cudaq::quake::RxOp>(op))
+      partition.push_back(op);
+  });
+  ASSERT_EQ(partition.size(), 2u);
+  const std::string before = printModule(*mod);
+
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
+  EXPECT_EQ(printModule(*mod), before);
+  EXPECT_TRUE(succeeded(verify(*mod)));
+}
+
+// The earliest outside consumer also defines an input. Its result is available
+// after that consumer, but cannot be captured by a lambda inserted before it.
+TEST(OutlinePartitions, ConsumerDefinesInputRejected) {
+  const char *ir = R"(
+    func.func @k(%hi: f64, %lo: f64) {
+      %w0 = quake.null_wire
+      %m, %w1 = quake.mz %w0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+      %bit = quake.discriminate %m : (!quake.measure) -> i1
+      %angle = arith.select %bit, %hi, %lo : f64
+      %w2 = quake.rx (%angle) %w1 : (f64, !quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  SmallVector<Operation *> partition;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::quake::MzOp, cudaq::quake::DiscriminateOp,
+            cudaq::quake::RxOp>(op))
+      partition.push_back(op);
+  });
+  ASSERT_EQ(partition.size(), 3u);
+  const std::string before = printModule(*mod);
+
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
+  EXPECT_EQ(printModule(*mod), before);
+  EXPECT_TRUE(succeeded(verify(*mod)));
+}
+
+// Reject any partition candidates that contain regions
+TEST(OutlinePartitions, RejectRegionOwningOps) {
+  const char *ir = R"(
+    func.func @k(%theta: f64, %q: !quake.ref) {
+      cc.scope {
+        quake.rx (%theta) %q : (f64, !quake.ref) -> ()
+        cc.continue
+      }
+      return
+    }
+  )";
+
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  SmallVector<Operation *> partition;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::cc::ScopeOp>(op))
+      partition.push_back(op);
+  });
+
+  ASSERT_EQ(partition.size(), 1u);
+  const std::string before = printModule(*mod);
+
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
+  EXPECT_EQ(printModule(*mod), before);
+  EXPECT_TRUE(succeeded(verify(*mod)));
+}
+
+// Reject a selected load that would otherwise move past an outside store.
+TEST(OutlinePartitions, RejectPartitionContainingLoad) {
+  const char *ir = R"(
+    func.func @k(%p: !cc.ptr<i32>) -> i32 {
+      %five = arith.constant 5 : i32
+      %w0 = quake.null_wire
+      %old = cc.load %p : !cc.ptr<i32>
+      cc.store %five, %p : !cc.ptr<i32>
+      %w1 = quake.h %w0 : (!quake.wire) -> !quake.wire
+      return %old : i32
+    }
+  )";
+
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  SmallVector<Operation *> partition;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::cc::LoadOp, cudaq::quake::HOp>(op))
+      partition.push_back(op);
+  });
+  ASSERT_EQ(partition.size(), 2u);
+  const std::string before = printModule(*mod);
+
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
+  EXPECT_EQ(printModule(*mod), before);
+  EXPECT_TRUE(succeeded(verify(*mod)));
+}

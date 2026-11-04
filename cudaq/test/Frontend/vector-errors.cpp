@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake -verify %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // We don't allow building vectors in kernels (yet).
 struct VectorVectorReturner {

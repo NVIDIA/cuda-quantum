@@ -20,6 +20,8 @@
 # -or-
 # bash scripts/build_docs.sh -u python
 # -or-
+# bash scripts/build_docs.sh -L
+# -or-
 # CUDAQ_INSTALL_PREFIX=/cudaq/installation/path/ bash scripts/build_docs.sh
 # -or-
 # DOCS_INSTALL_PREFIX=/path/to/put/docs/ CUDAQ_INSTALL_PREFIX=/cudaq/installation/path bash scripts/build_docs.sh
@@ -28,7 +30,7 @@
 # All tools required to run this script are installed when using the dev container definition
 # in this repository. If you are not using this dev container, you may need to install
 # wget, unzip, make, flex, and bison (available via apt install) in addition to the requirements listed in the 
-# $CUDAQ_REPO_ROOT/docs/requirements.txt file.
+# $CUDAQ_REPO_ROOT/docs/requirements.txt file. The -L option additionally requires uv.
 
 # The script prints the url to the index of the generated docs at the end. Open that url in
 # the browser to preview the docs. If you are working within a dev container, you can use
@@ -43,16 +45,19 @@ export PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
 
 # Process command line arguments
 force_update=""
+build_logical=false
 repo_root=$(git rev-parse --show-toplevel)
 build_dir=${repo_root}/build
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":u:B:" opt; do
+while getopts ":u:B:L" opt; do
   case $opt in
     u) force_update="$OPTARG"
     ;;
     B) build_dir="$OPTARG"
+    ;;
+    L) build_logical=true
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -220,6 +225,22 @@ build_sphinx_docs() (
         done
     fi
 
+    # Fetch the intersphinx inventories up front so a transient failure at an
+    # upstream host does not fail the warnings-as-errors build. conf.py uses
+    # whatever lands here and falls back to the network for the rest.
+    inventory_dir="$docs_build_output/inventories"
+    mkdir -p "$inventory_dir"
+    retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+    fetch_inventory() {
+        if ! retry wget -q --timeout=30 -O "$inventory_dir/$1.inv" "$2"; then
+            rm -f "$inventory_dir/$1.inv"
+            echo "Could not fetch the $1 inventory; sphinx will try to retrieve it."
+        fi
+    }
+    fetch_inventory python https://docs.python.org/3/objects.inv
+    fetch_inventory numpy https://numpy.org/doc/stable/objects.inv
+    export CUDAQ_INTERSPHINX_INVENTORIES="$inventory_dir"
+
     rm -rf "$sphinx_output_dir"
     echo "Running sphinx in $PWD"
     set -x
@@ -242,9 +263,32 @@ elif [ ! "$sphinx_exit_code" -eq "0" ]; then
     docs_exit_code=12
 fi
 
+logical_docs_output="$repo_root/preview/logical/docs/_build/html"
+if [ "$docs_exit_code" -eq "0" ] && $build_logical; then
+    echo "Building CUDA-Q Logical documentation using Sphinx..."
+    if ! command -v uv >/dev/null 2>&1; then
+        echo "uv is required to build CUDA-Q Logical documentation."
+        docs_exit_code=14
+    elif ! uv run --directory "$repo_root/preview/logical/docs" \
+        --extra build-deps build-docs; then
+        echo "Failed to generate CUDA-Q Logical documentation."
+        docs_exit_code=14
+    elif [ ! -d "$logical_docs_output" ]; then
+        echo "CUDA-Q Logical documentation output was not found at $logical_docs_output."
+        docs_exit_code=14
+    fi
+fi
+
 mkdir -p "$DOCS_INSTALL_PREFIX"
 if [ "$docs_exit_code" -eq "0" ]; then
     cp -r "$sphinx_output_dir"/* "$DOCS_INSTALL_PREFIX"
+
+    if $build_logical; then
+        mkdir -p "$DOCS_INSTALL_PREFIX/preview/logical"
+        cp -r "$logical_docs_output"/* "$DOCS_INSTALL_PREFIX/preview/logical"
+        echo "CUDA-Q Logical documentation was copied to $DOCS_INSTALL_PREFIX/preview/logical."
+    fi
+
     touch "$DOCS_INSTALL_PREFIX/.nojekyll"
     echo "Documentation was generated in $DOCS_INSTALL_PREFIX."
     echo "To browse it, open this url in a browser: file://$DOCS_INSTALL_PREFIX/index.html"
@@ -274,12 +318,36 @@ if [ "$docs_exit_code" -eq "0" ]; then
             -exec cp --parents '{}' "$DOCS_INSTALL_PREFIX" \;
         echo "Markdown files copied successfully to $DOCS_INSTALL_PREFIX."
 
-        # Copy llms.txt from the repository root to the docs install prefix
-        if [ -f "$CUDAQ_REPO_ROOT/llms.txt" ]; then
-            cp "$CUDAQ_REPO_ROOT/llms.txt" "$DOCS_INSTALL_PREFIX/"
+        # Copy llms.txt from the repository root to the docs install prefix.
+        # Links are relative to the directory the file is served from, so drop
+        # the version prefix here; the site root copy adds it back.
+        if [ -f "$repo_root/llms.txt" ]; then
+            sed -E 's|\]\((latest/)?([^):]+)\)|](\2)|g' \
+                "$repo_root/llms.txt" > "$DOCS_INSTALL_PREFIX/llms.txt"
             echo "Copied llms.txt to $DOCS_INSTALL_PREFIX."
         else
-            echo "Warning: llms.txt not found in $CUDAQ_REPO_ROOT, skipping copy."
+            echo "Warning: llms.txt not found in $repo_root, skipping copy."
+        fi
+
+        # Generate llms-full.txt from the markdown llms.txt links to. Paths are
+        # read with or without a version prefix, so either link style works.
+        if [ -f "$DOCS_INSTALL_PREFIX/llms.txt" ]; then
+            llms_full_file="$DOCS_INSTALL_PREFIX/llms-full.txt"
+            rm -f "$llms_full_file"
+            grep -oE '\]\([^)]+\.md\)' "$DOCS_INSTALL_PREFIX/llms.txt" | \
+            sed -e 's|^](||' -e 's|)$||' -e 's|^latest/||' | while read -r md_path; do
+                if [ -f "$DOCS_INSTALL_PREFIX/$md_path" ]; then
+                    printf '\n\n<!-- Source: %s -->\n\n' "$md_path" >> "$llms_full_file"
+                    cat "$DOCS_INSTALL_PREFIX/$md_path" >> "$llms_full_file"
+                else
+                    echo "Warning: $md_path is referenced in llms.txt but was not found, skipping it in llms-full.txt."
+                fi
+            done
+            if [ -f "$llms_full_file" ]; then
+                echo "Generated llms-full.txt in $DOCS_INSTALL_PREFIX."
+            else
+                echo "Warning: no markdown files were found to generate llms-full.txt."
+            fi
         fi
     else
         echo "Markdown documentation encountered issues."

@@ -9,7 +9,7 @@
 // NB: uses internal checks and return code.
 // RUN: nvq++ %s -o %t && %t
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 #include <cstdio>
 
 struct VectorBoolResult {

@@ -13,7 +13,7 @@
 //   2. adj(control(k)): wrap control(k) in a `__qpu__` struct, then adjoint it.
 // (https://github.com/NVIDIA/cuda-quantum/issues/854)
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct k {
   void operator()(cudaq::qview<> q) __qpu__ {
@@ -52,8 +52,9 @@ struct ep {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ep()
 // CHECK:           %[[CTRL:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[CV:.*]] = quake.concat %[[CTRL]] : (!quake.ref) -> !quake.veq<1>
 // CHECK:           %[[Q:.*]] = quake.relax_size %{{.*}} : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           quake.apply @__nvqpp__mlirgen__k_adj {{\[}}%[[CTRL]]] (%[[Q]]
+// CHECK:           quake.apply @__nvqpp__mlirgen__k_adj {{\[}}%[[CV]]] (%[[Q]]
 // CHECK:           return
 // clang-format on
 
@@ -69,7 +70,8 @@ struct k_ctrl {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__k_ctrl(
 // CHECK-SAME:      %[[CTRL:.*]]: !quake.ref
 // CHECK-SAME:      %[[Q:.*]]: !quake.veq<?>
-// CHECK:           quake.apply @__nvqpp__mlirgen__k {{\[}}%[[CTRL]]] (%[[Q]]
+// CHECK:           %[[CV:.*]] = quake.concat %[[CTRL]] : (!quake.ref) -> !quake.veq<1>
+// CHECK:           quake.apply @__nvqpp__mlirgen__k {{\[}}%[[CV]]] (%[[Q]]
 // CHECK:           return
 // clang-format on
 

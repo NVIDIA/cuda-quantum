@@ -1,0 +1,125 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// With a specified basis gate set, unsupported quantum types and calls to
+// unresolved kernels are rejected.
+
+// RUN: cudaq-opt --verify-profile-quake-reference-semantics='basis=h,rz,x(1)' --split-input-file --verify-diagnostics %s
+
+func.func @in_basis(%q0: !quake.ref, %q1: !quake.ref) {
+  %c = arith.constant 0.5 : f64
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.rz (%c) %q1 : (f64, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @not_in_basis(%q: !quake.ref) {
+  // expected-error@+1 {{profile violation: operation is not in the target basis}}
+  quake.t %q : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+// The basis check reaches operations nested in regions.
+func.func @nested_not_in_basis(%q: !quake.ref, %b: i1) {
+  cc.if(%b) {
+    // expected-error@+1 {{profile violation: operation is not in the target basis}}
+    quake.y %q : (!quake.ref) -> ()
+  }
+  return
+}
+
+// -----
+
+// A call into an available in-module body is checked in the callee.
+func.func @local_kernel(%q: !quake.ref) {
+  quake.h %q : (!quake.ref) -> ()
+  return
+}
+func.func @calls_local(%q: !quake.ref) {
+  func.call @local_kernel(%q) : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+// A gate with a dynamically-sized control vector cannot be proven against a
+// finite basis.
+func.func @dynamic_controls(%v: !quake.veq<?>, %q: !quake.ref) {
+  // expected-error@+1 {{profile violation: operation is not in the target basis}}
+  quake.x [%v] %q : (!quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+// An external quantum callee has no checkable body.
+func.func private @ext_kernel(!quake.ref)
+func.func @calls_external(%q: !quake.ref) {
+  // expected-error@+1 {{cannot verify: called function body is not available}}
+  func.call @ext_kernel(%q) : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+// A call to an unmarked, quantum-free, callable-free external declaration is accepted:
+// we trust it to be pure classical.
+func.func private @log_classical(i64)
+func.func @calls_classical_external() {
+  %c1 = arith.constant 1 : i64
+  func.call @log_classical(%c1) : (i64) -> ()
+  return
+}
+
+// -----
+
+// A call to a function marked as kernel is rejected, even if the signature is quantum-free.
+func.func private @external_marked_kernel() attributes {"cudaq-kernel"}
+func.func @calls_marked_kernel() {
+  // expected-error@+1 {{cannot verify: called function body is not available}}
+  func.call @external_marked_kernel() : () -> ()
+  return
+}
+
+// -----
+
+// call_by_ref is a Quake call: the trusted-classical convention does not
+// extend to it.
+func.func private @ext_helper()
+func.func @call_by_ref_external() {
+  // expected-error@+1 {{cannot verify: called function body is not available}}
+  quake.call_by_ref @ext_helper() : () -> ()
+  return
+}
+
+// -----
+
+// Opaque callables have no statically available body.
+func.func @call_callable(%c: !cc.callable<() -> ()>) {
+  // expected-error@+1 {{cannot verify: callable body is not available}}
+  cc.call_callable %c : (!cc.callable<() -> ()>) -> ()
+  return
+}
+
+// -----
+
+// Calling a kernel with controlled qubits is currently not supported.
+func.func @apply_helper(%q: !quake.ref) {
+  quake.h %q : (!quake.ref) -> ()
+  return
+}
+func.func @apply_controlled(%c: !quake.ref, %q: !quake.ref) {
+  // expected-error@+1 {{cannot verify: inferring target basis for controlled kernel application is currently not supported}}
+  quake.apply @apply_helper [%c] (%q) : (!quake.ref, !quake.ref) -> ()
+  return
+}

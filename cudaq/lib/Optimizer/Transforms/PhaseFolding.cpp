@@ -10,6 +10,7 @@
 #include "PhaseUtilities.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -425,8 +426,18 @@ static bool isSubCircuitTerminationPoint(Operation *op) {
   auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
   if (!opi)
     return true;
-  // Only allow single control (for CNOT/NOT); Z-rotations must be uncontrolled
-  if (opi.getControls().size() > 0 && !isa<cudaq::quake::XOp>(op))
+  if (auto negations = opi.getNegatedControls())
+    if (llvm::is_contained(*negations, true) && !isControlledOp(op))
+      return true;
+  // Allow only an uncontrolled or singly controlled `quake.x`, and only
+  // uncontrolled Z-axis rotations. A `quake.x` with more controls leaves its
+  // target in a state that is not a parity of the inputs, so it ends the
+  // subcircuit.
+  // TODO: Fold through a Toffoli by keeping its controls' phases and giving its
+  // target a fresh phase variable. The walk would then have to follow all three
+  // of its wires.
+  if (opi.getControls().size() > 1 ||
+      (!opi.getControls().empty() && !isa<cudaq::quake::XOp>(op)))
     return true;
   if (isa<RAW_Z_AXIS_ROTATIONS>(op) && !opi.getControls().empty())
     return true;
@@ -728,6 +739,9 @@ class PhaseFoldingPass
         Phase ctrlPhase = getWirePhase(opi.getControls().front());
         Phase tgtPhase = getWirePhase(opi.getTarget(0));
         wirePhase[op->getResult(0)] = ctrlPhase;
+        if (auto negations = opi.getNegatedControls())
+          if (negations->front())
+            ctrlPhase = Phase::invert(ctrlPhase);
         wirePhase[op->getResult(1)] = Phase::sum(ctrlPhase, tgtPhase);
       } else if (isa<cudaq::quake::XOp>(op)) {
         // AXIS-SPECIFIC: Would want to handle y and z gates here too
@@ -756,7 +770,7 @@ public:
     auto func = dyn_cast<func::FuncOp>(getOperation());
     if (!func)
       return;
-    if (func->hasAttr(cudaq::runtime::disableQuantumOpts))
+    if (cudaq::runtime::isQuantumOptimizationDisabled(func))
       return;
 
     DominanceInfo domInfo(func);

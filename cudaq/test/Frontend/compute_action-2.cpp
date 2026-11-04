@@ -6,15 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt --apply-op-specialization | FileCheck %s
-// RUN: cudaq-quake %s | cudaq-opt --lambda-lifting=constant-prop=1 \
+// RUN: cudaq-quake %s -o %t.qke
+// RUN: cudaq-opt %t.qke --apply-op-specialization | FileCheck %s
+// RUN: cudaq-opt %t.qke --lambda-lifting=constant-prop=1 \
 // RUN:   --canonicalize --apply-op-specialization | \
 // RUN:   FileCheck --check-prefix=LAMBDA1 %s
-// RUN: cudaq-quake %s | cudaq-opt --lambda-lifting=constant-prop=1 \
+// RUN: cudaq-opt %t.qke --lambda-lifting=constant-prop=1 \
 // RUN:   --canonicalize --apply-op-specialization | \
 // RUN:   FileCheck --check-prefix=LAMBDA2 %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void magic_func(cudaq::qvector<> &q) {
   auto nQubits = q.size();

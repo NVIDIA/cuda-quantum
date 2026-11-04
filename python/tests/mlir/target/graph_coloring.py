@@ -13,6 +13,8 @@ import numpy as np
 
 import cudaq
 
+cudaq.parse_args()
+
 
 @cudaq.kernel
 def init_state(qubits: cudaq.qvector, theta: float):

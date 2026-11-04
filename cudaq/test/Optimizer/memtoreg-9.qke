@@ -59,36 +59,55 @@ func.func @nested_loop_wire_alias(%arg0: i64, %arg1: i64) {
 
 // CHECK-LABEL:   func.func @nested_loop_wire_alias(
 // CHECK-SAME:      %[[ARG0:.*]]: i64, %[[ARG1:.*]]: i64) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 0 : i64
+// CHECK:           %[[UNDEF_0:.*]] = cc.undef i64
 // CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_0]], %[[ALLOCA_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
 // CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
-// CHECK:           %{{.*}}:3 = cc.loop while ((%{{.*}} = %{{.*}}, %{{.*}} = %{{.*}}, %[[LIVEIN:.*]] = %[[UNWRAP_0]]) -> (i64, i64, !quake.wire)) {
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[LOOP_0:.*]]:3 = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_1]], %[[VAL_1:.*]] = %[[UNDEF_0]], %[[VAL_2:.*]] = %[[UNWRAP_0]]) -> (i64, i64, !quake.wire)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[ARG0]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]], %[[VAL_1]], %[[VAL_2]] : i64, i64, !quake.wire)
 // CHECK:           } do {
-// CHECK:           ^bb0(%{{.*}}: i64, %{{.*}}: i64, %[[LIVEINARG:.*]]: !quake.wire):
-// CHECK:             %[[X_0:.*]] = quake.x %[[LIVEINARG]] : (!quake.wire) -> !quake.wire
-// CHECK:             quake.wrap %[[X_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
-// CHECK:             cc.loop while
+// CHECK:           ^bb0(%[[VAL_3:.*]]: i64, %[[VAL_4:.*]]: i64, %[[VAL_5:.*]]: !quake.wire):
+// CHECK:             %[[X_0:.*]] = quake.x %[[VAL_5]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[LOOP_1:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[CONSTANT_1]]) -> (i64)) {
+// CHECK:               %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_6]], %[[ARG0]] : i64
+// CHECK:               cc.condition %[[CMPI_1]](%[[VAL_6]] : i64)
 // CHECK:             } do {
+// CHECK:             ^bb0(%[[VAL_7:.*]]: i64):
 // CHECK:               %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[ARG1]]] : (!quake.veq<2>, i64) -> !quake.ref
-// CHECK:               %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
-// CHECK:               %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK:               %[[UNWRAP_2:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:               %[[H_0:.*]] = quake.h %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
 // CHECK:               quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
+// CHECK:               cc.continue %[[VAL_7]] : i64
 // CHECK:             } step {
-// CHECK:             }
-// CHECK:             %[[UNWRAP_2:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
-// CHECK:             %[[X_1:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
-// CHECK:             cc.continue %{{.*}}, %{{.*}}, %[[X_1]] : i64, i64, !quake.wire
+// CHECK:             ^bb0(%[[VAL_8:.*]]: i64):
+// CHECK:               %[[ADDI_0:.*]] = arith.addi %[[VAL_8]], %[[CONSTANT_0]] : i64
+// CHECK:               cc.continue %[[ADDI_0]] : i64
+// CHECK:             } {normalized}
+// CHECK:             %[[SUBI_0:.*]] = arith.subi %[[LOOP_1]], %[[CONSTANT_0]] : i64
+// CHECK:             %[[CMPI_2:.*]] = arith.cmpi eq, %[[LOOP_1]], %[[CONSTANT_1]] : i64
+// CHECK:             %[[SELECT_0:.*]] = arith.select %[[CMPI_2]], %[[VAL_4]], %[[SUBI_0]] : i64
+// CHECK:             %[[X_1:.*]] = quake.x %[[X_0]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[VAL_3]], %[[SELECT_0]], %[[X_1]] : i64, i64, !quake.wire
 // CHECK:           } step {
-// CHECK:           }
-// CHECK:           quake.evince %[[CONCAT_0]]
-// CHECK:           quake.sink
+// CHECK:           ^bb0(%[[VAL_9:.*]]: i64, %[[VAL_10:.*]]: i64, %[[VAL_11:.*]]: !quake.wire):
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_9]], %[[CONSTANT_0]] : i64
+// CHECK:             cc.continue %[[ADDI_1]], %[[VAL_10]], %[[VAL_11]] : i64, i64, !quake.wire
+// CHECK:           } {normalized}
+// CHECK:           quake.evince %[[CONCAT_0]] : (!quake.veq<2>) -> () {compilerGenerated}
+// CHECK:           quake.sink %[[LOOP_0]]#2 : !quake.wire
+// CHECK:           quake.sink %[[UNWRAP_1]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
 
-// A cc.scope entry block cannot take arguments, but its internal CFG blocks
-// may. MemToReg must write the body's incoming wire back to the ref before the
-// dynamic extract, then thread the updated wire to the join block's fixed use.
+// %r is concat'd into %v, which is then indexed dynamically, so %r's qubit
+// may be reached through an unknown element of %v. The location stays in
+// memory form and each gate keeps its own unwrap/wrap, including across the
+// cc.scope's internal CFG blocks -- no wire is threaded through the region.
 func.func @scope_internal_alias(%idx: i64) {
   %c0 = arith.constant 0 : i64
   %r = quake.alloca !quake.ref
@@ -121,13 +140,11 @@ func.func @scope_internal_alias(%idx: i64) {
 // CHECK:             %[[CMPI_0:.*]] = arith.cmpi ugt, %[[ARG0]], %[[CONSTANT_0]] : i64
 // CHECK:             cf.cond_br %[[CMPI_0]], ^bb2(%[[Y_0]] : !quake.wire), ^bb1(%[[Y_0]] : !quake.wire)
 // CHECK:           ^bb1(%[[VAL_0:.*]]: !quake.wire):
-// CHECK:             quake.wrap %[[VAL_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
 // CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[ARG0]]] : (!quake.veq<1>, i64) -> !quake.ref
 // CHECK:             %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
 // CHECK:             %[[H_0:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
 // CHECK:             quake.wrap %[[H_0]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref
-// CHECK:             %[[UNWRAP_2:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
-// CHECK:             %[[X_0:.*]] = quake.x %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[X_0:.*]] = quake.x %[[VAL_0]] : (!quake.wire) -> !quake.wire
 // CHECK:             cf.br ^bb2(%[[X_0]] : !quake.wire)
 // CHECK:           ^bb2(%[[VAL_1:.*]]: !quake.wire):
 // CHECK:             %[[Z_0:.*]] = quake.z %[[VAL_1]] : (!quake.wire) -> !quake.wire
@@ -137,13 +154,10 @@ func.func @scope_internal_alias(%idx: i64) {
 // CHECK:           return
 // CHECK:         }
 
-// Regression for a crash where a memAnalysis-eliminated (non-escaping)
-// alloca (%3, destined to become a null wire) was passed as a control
-// operand of a gate inside a dynamically-aliased loop. The pass must not
-// keep a permanent, literal dereference of such an alloca alive (it is
-// erased at the end of the pass), nor must it lose track of the alloca's
-// binding across an op that gets rebuilt (with extra results) to carry a
-// live-out value past a nested op-with-regions' own aliasing summary.
+// A non-escaping ref alloca (%3) used as a gate control inside a
+// dynamically-aliased loop. %3 is its own root and no memory-form access
+// reaches it, so it is still promoted to a null wire, while the refs coming
+// out of the dynamically-indexed veq stay in memory form alongside it.
 func.func @control_operand_alias(%arg0: i64) {
   %c1_i64 = arith.constant 1 : i64
   %c0_i64 = arith.constant 0 : i64

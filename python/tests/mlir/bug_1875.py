@@ -36,7 +36,6 @@ def test_bug_1875():
 # CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant false
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i64
-# CHECK-DAG:       %[[VAL_UNDEF:.*]] = cc.undef !cc.measure_handle
 # CHECK-DAG:       %[[VAL_2:.*]] = quake.alloca !quake.ref
 # CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.ref
 # CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.ref
@@ -56,12 +55,10 @@ def test_bug_1875():
 # CHECK:             %[[VAL_13:.*]] = arith.cmpi eq, %[[VAL_12]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_13]] : i1
 # CHECK:           }
-# CHECK:           %[[VAL_A:.*]] = cc.if(%[[VAL_11]]) -> !cc.measure_handle {
+# CHECK:           cc.if(%[[VAL_11]]) {
 # CHECK:             quake.x {{\[}}%[[VAL_2]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:             %[[VAL_15:.*]] = quake.mz %[[VAL_4]] name "a" : (!quake.ref) -> !cc.measure_handle
-# CHECK:             cc.continue %[[VAL_15]] : !cc.measure_handle
 # CHECK:           } else {
-# CHECK:             cc.continue %[[VAL_UNDEF]] : !cc.measure_handle
 # CHECK:           }
 # CHECK-DAG:       quake.dealloc %[[VAL_3]] : !quake.ref
 # CHECK-DAG:       quake.dealloc %[[VAL_2]] : !quake.ref

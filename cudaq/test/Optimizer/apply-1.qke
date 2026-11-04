@@ -25,6 +25,60 @@ func.func @do_apply(%arg : !quake.ref, %brg : !quake.ref) {
   return
 }
 
+// A wire actual with no controls to a ref-formal callee autogenerates a
+// value-semantics clone (name suffixed ".w") instead of folding the
+// wrap_new/unwrap coercion into the call site.
+// CHECK-LABEL:   func.func private @wire_kernel.w(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.wire) -> !quake.wire {
+// CHECK:           %[[WRAP_NEW_0:.*]] = quake.wrap_new %[[ARG0]] : (!quake.wire) -> !quake.ref
+// CHECK:           quake.h %[[WRAP_NEW_0]] : (!quake.ref) -> ()
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           return %[[UNWRAP_0]] : !quake.wire
+// CHECK:         }
+
+// CHECK-LABEL:   func.func private @wire_kernel.adj.w(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.wire) -> !quake.wire {
+// CHECK:           %[[WRAP_NEW_0:.*]] = quake.wrap_new %[[ARG0]] : (!quake.wire) -> !quake.ref
+// CHECK:           quake.h %[[WRAP_NEW_0]] : (!quake.ref) -> ()
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           return %[[UNWRAP_0]] : !quake.wire
+// CHECK:         }
+
+// A cable<2> actual with no controls to a veq-formal callee autogenerates a
+// value-semantics clone (name suffixed ".c2") instead of folding the
+// split_cable/wrap_new/concat/relax_size coercion into the call site.
+// CHECK-LABEL:   func.func private @cable_kernel.c2(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.cable<2>) -> !quake.cable<2> {
+// CHECK:           %[[SPLIT_CABLE_0:.*]]:2 = quake.split_cable %[[ARG0]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[WRAP_NEW_0:.*]] = quake.wrap_new %[[SPLIT_CABLE_0]]#0 : (!quake.wire) -> !quake.ref
+// CHECK:           %[[WRAP_NEW_1:.*]] = quake.wrap_new %[[SPLIT_CABLE_0]]#1 : (!quake.wire) -> !quake.ref
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[WRAP_NEW_0]], %[[WRAP_NEW_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK:           %[[RELAX_SIZE_0:.*]] = quake.relax_size %[[CONCAT_0]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           quake.z %[[RELAX_SIZE_0]] : (!quake.veq<?>) -> ()
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[CONCAT_0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[BUNDLE_CABLE_0:.*]] = quake.bundle_cable %[[UNWRAP_0]], %[[UNWRAP_1]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
+// CHECK:           return %[[BUNDLE_CABLE_0]] : !quake.cable<2>
+// CHECK:         }
+
+// CHECK-LABEL:   func.func private @cable_kernel.adj.c2(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.cable<2>) -> !quake.cable<2> {
+// CHECK:           %[[SPLIT_CABLE_0:.*]]:2 = quake.split_cable %[[ARG0]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[WRAP_NEW_0:.*]] = quake.wrap_new %[[SPLIT_CABLE_0]]#0 : (!quake.wire) -> !quake.ref
+// CHECK:           %[[WRAP_NEW_1:.*]] = quake.wrap_new %[[SPLIT_CABLE_0]]#1 : (!quake.wire) -> !quake.ref
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[WRAP_NEW_0]], %[[WRAP_NEW_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK:           %[[RELAX_SIZE_0:.*]] = quake.relax_size %[[CONCAT_0]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           quake.z %[[RELAX_SIZE_0]] : (!quake.veq<?>) -> ()
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[CONCAT_0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[BUNDLE_CABLE_0:.*]] = quake.bundle_cable %[[UNWRAP_0]], %[[UNWRAP_1]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
+// CHECK:           return %[[BUNDLE_CABLE_0]] : !quake.cable<2>
+// CHECK:         }
+
 // CHECK-LABEL: func.func private @test.adj.ctrl(
 // CHECK-SAME:     %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.ref) {
 // CHECK:         %[[VAL_2:.*]] = arith.constant -1.0{{.*}} : f32
@@ -86,21 +140,17 @@ func.func @do_wire_apply(%w : !quake.wire, %ctrl : !quake.ref) -> !quake.wire {
 
 // CHECK-LABEL:   func.func @do_wire_apply(
 // CHECK-SAME:      %[[ARG0:.*]]: !quake.wire, %[[ARG1:.*]]: !quake.ref) -> !quake.wire {
-// CHECK:           %[[WRAP_NEW_0:.*]] = quake.wrap_new %[[ARG0]] : (!quake.wire) -> !quake.ref
-// CHECK:           call @wire_kernel(%[[WRAP_NEW_0]]) : (!quake.ref) -> ()
-// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[WRAP_NEW_1:.*]] = quake.wrap_new %[[UNWRAP_0]] : (!quake.wire) -> !quake.ref
+// CHECK:           %[[CALL_0:.*]] = call @wire_kernel.w(%[[ARG0]]) : (!quake.wire) -> !quake.wire
+// CHECK:           %[[WRAP_NEW_1:.*]] = quake.wrap_new %[[CALL_0]] : (!quake.wire) -> !quake.ref
 // CHECK:           %[[INSTANTIATE_CALLABLE_0:.*]] = cc.instantiate_callable @wire_kernel.ctrl_closurer(%[[ARG1]]) : (!quake.ref) -> !cc.callable<(!quake.ref) -> ()>
 // CHECK:           call @wire_kernel.ctrl_closurer(%[[INSTANTIATE_CALLABLE_0]], %[[WRAP_NEW_1]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
 // CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[WRAP_NEW_1]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[WRAP_NEW_2:.*]] = quake.wrap_new %[[UNWRAP_1]] : (!quake.wire) -> !quake.ref
-// CHECK:           call @wire_kernel.adj(%[[WRAP_NEW_2]]) : (!quake.ref) -> ()
-// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %[[WRAP_NEW_2]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[WRAP_NEW_3:.*]] = quake.wrap_new %[[UNWRAP_2]] : (!quake.wire) -> !quake.ref
+// CHECK:           %[[CALL_1:.*]] = call @wire_kernel.adj.w(%[[UNWRAP_1]]) : (!quake.wire) -> !quake.wire
+// CHECK:           %[[WRAP_NEW_2:.*]] = quake.wrap_new %[[CALL_1]] : (!quake.wire) -> !quake.ref
 // CHECK:           %[[INSTANTIATE_CALLABLE_1:.*]] = cc.instantiate_callable @wire_kernel.adj_ctrl_closurer(%[[ARG1]]) : (!quake.ref) -> !cc.callable<(!quake.ref) -> ()>
-// CHECK:           call @wire_kernel.adj_ctrl_closurer(%[[INSTANTIATE_CALLABLE_1]], %[[WRAP_NEW_3]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
-// CHECK:           %[[UNWRAP_3:.*]] = quake.unwrap %[[WRAP_NEW_3]] : (!quake.ref) -> !quake.wire
-// CHECK:           return %[[UNWRAP_3]] : !quake.wire
+// CHECK:           call @wire_kernel.adj_ctrl_closurer(%[[INSTANTIATE_CALLABLE_1]], %[[WRAP_NEW_2]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %[[WRAP_NEW_2]] : (!quake.ref) -> !quake.wire
+// CHECK:           return %[[UNWRAP_2]] : !quake.wire
 // CHECK:         }
 
 func.func @do_control_apply(%w : !quake.wire, %ctrl : !quake.control, %alt : !quake.wire) -> (!quake.wire, !quake.wire) {
@@ -156,18 +206,8 @@ func.func @do_cable_apply(%c : !quake.cable<2>, %ctrl : !quake.ref, %alt : !quak
 // CHECK-SAME:      %[[ARG0:.*]]: !quake.cable<2>,
 // CHECK-SAME:      %[[ARG1:.*]]: !quake.ref,
 // CHECK-SAME:      %[[ARG2:.*]]: !quake.veq<2>) -> !quake.cable<2> {
-// CHECK:           %[[SPLIT_CABLE_0:.*]]:2 = quake.split_cable %[[ARG0]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[WRAP_NEW_0:.*]] = quake.wrap_new %[[SPLIT_CABLE_0]]#0 : (!quake.wire) -> !quake.ref
-// CHECK:           %[[WRAP_NEW_1:.*]] = quake.wrap_new %[[SPLIT_CABLE_0]]#1 : (!quake.wire) -> !quake.ref
-// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[WRAP_NEW_0]], %[[WRAP_NEW_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
-// CHECK:           %[[RELAX_SIZE_0:.*]] = quake.relax_size %[[CONCAT_0]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           call @cable_kernel(%[[RELAX_SIZE_0]]) : (!quake.veq<?>) -> ()
-// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]][0] : (!quake.veq<2>) -> !quake.ref
-// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[CONCAT_0]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[EXTRACT_REF_1]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[BUNDLE_CABLE_0:.*]] = quake.bundle_cable %[[UNWRAP_0]], %[[UNWRAP_1]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
-// CHECK:           %[[SPLIT_CABLE_1:.*]]:2 = quake.split_cable %[[BUNDLE_CABLE_0]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[CALL_0:.*]] = call @cable_kernel.c2(%[[ARG0]]) : (!quake.cable<2>) -> !quake.cable<2>
+// CHECK:           %[[SPLIT_CABLE_1:.*]]:2 = quake.split_cable %[[CALL_0]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[WRAP_NEW_2:.*]] = quake.wrap_new %[[SPLIT_CABLE_1]]#0 : (!quake.wire) -> !quake.ref
 // CHECK:           %[[WRAP_NEW_3:.*]] = quake.wrap_new %[[SPLIT_CABLE_1]]#1 : (!quake.wire) -> !quake.ref
 // CHECK:           %[[CONCAT_1:.*]] = quake.concat %[[WRAP_NEW_2]], %[[WRAP_NEW_3]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
@@ -179,12 +219,14 @@ func.func @do_cable_apply(%c : !quake.cable<2>, %ctrl : !quake.ref, %alt : !quak
 // CHECK:           %[[EXTRACT_REF_3:.*]] = quake.extract_ref %[[CONCAT_1]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           %[[UNWRAP_3:.*]] = quake.unwrap %[[EXTRACT_REF_3]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[BUNDLE_CABLE_1:.*]] = quake.bundle_cable %[[UNWRAP_2]], %[[UNWRAP_3]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
-// CHECK:           %[[SPLIT_CABLE_2:.*]]:2 = quake.split_cable %[[BUNDLE_CABLE_1]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[CALL_1:.*]] = call @cable_kernel.adj.c2(%[[BUNDLE_CABLE_1]]) : (!quake.cable<2>) -> !quake.cable<2>
+// CHECK:           %[[SPLIT_CABLE_2:.*]]:2 = quake.split_cable %[[CALL_1]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[WRAP_NEW_4:.*]] = quake.wrap_new %[[SPLIT_CABLE_2]]#0 : (!quake.wire) -> !quake.ref
 // CHECK:           %[[WRAP_NEW_5:.*]] = quake.wrap_new %[[SPLIT_CABLE_2]]#1 : (!quake.wire) -> !quake.ref
 // CHECK:           %[[CONCAT_2:.*]] = quake.concat %[[WRAP_NEW_4]], %[[WRAP_NEW_5]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
 // CHECK:           %[[RELAX_SIZE_2:.*]] = quake.relax_size %[[CONCAT_2]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           call @cable_kernel.adj(%[[RELAX_SIZE_2]]) : (!quake.veq<?>) -> ()
+// CHECK:           %[[INSTANTIATE_CALLABLE_1:.*]] = cc.instantiate_callable @cable_kernel.adj_ctrl_closurer(%[[ARG1]]) : (!quake.ref) -> !cc.callable<(!quake.veq<?>) -> ()>
+// CHECK:           call @cable_kernel.adj_ctrl_closurer(%[[INSTANTIATE_CALLABLE_1]], %[[RELAX_SIZE_2]]) : (!cc.callable<(!quake.veq<?>) -> ()>, !quake.veq<?>) -> ()
 // CHECK:           %[[EXTRACT_REF_4:.*]] = quake.extract_ref %[[CONCAT_2]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           %[[UNWRAP_4:.*]] = quake.unwrap %[[EXTRACT_REF_4]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[EXTRACT_REF_5:.*]] = quake.extract_ref %[[CONCAT_2]][1] : (!quake.veq<2>) -> !quake.ref
@@ -195,8 +237,8 @@ func.func @do_cable_apply(%c : !quake.cable<2>, %ctrl : !quake.ref, %alt : !quak
 // CHECK:           %[[WRAP_NEW_7:.*]] = quake.wrap_new %[[SPLIT_CABLE_3]]#1 : (!quake.wire) -> !quake.ref
 // CHECK:           %[[CONCAT_3:.*]] = quake.concat %[[WRAP_NEW_6]], %[[WRAP_NEW_7]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
 // CHECK:           %[[RELAX_SIZE_3:.*]] = quake.relax_size %[[CONCAT_3]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           %[[INSTANTIATE_CALLABLE_1:.*]] = cc.instantiate_callable @cable_kernel.adj_ctrl_closurer(%[[ARG1]]) : (!quake.ref) -> !cc.callable<(!quake.veq<?>) -> ()>
-// CHECK:           call @cable_kernel.adj_ctrl_closurer(%[[INSTANTIATE_CALLABLE_1]], %[[RELAX_SIZE_3]]) : (!cc.callable<(!quake.veq<?>) -> ()>, !quake.veq<?>) -> ()
+// CHECK:           %[[INSTANTIATE_CALLABLE_2:.*]] = cc.instantiate_callable @cable_kernel.ctrl_closurev(%[[ARG2]]) : (!quake.veq<2>) -> !cc.callable<(!quake.veq<?>) -> ()>
+// CHECK:           call @cable_kernel.ctrl_closurev(%[[INSTANTIATE_CALLABLE_2]], %[[RELAX_SIZE_3]]) : (!cc.callable<(!quake.veq<?>) -> ()>, !quake.veq<?>) -> ()
 // CHECK:           %[[EXTRACT_REF_6:.*]] = quake.extract_ref %[[CONCAT_3]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           %[[UNWRAP_6:.*]] = quake.unwrap %[[EXTRACT_REF_6]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[EXTRACT_REF_7:.*]] = quake.extract_ref %[[CONCAT_3]][1] : (!quake.veq<2>) -> !quake.ref
@@ -207,21 +249,9 @@ func.func @do_cable_apply(%c : !quake.cable<2>, %ctrl : !quake.ref, %alt : !quak
 // CHECK:           %[[WRAP_NEW_9:.*]] = quake.wrap_new %[[SPLIT_CABLE_4]]#1 : (!quake.wire) -> !quake.ref
 // CHECK:           %[[CONCAT_4:.*]] = quake.concat %[[WRAP_NEW_8]], %[[WRAP_NEW_9]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
 // CHECK:           %[[RELAX_SIZE_4:.*]] = quake.relax_size %[[CONCAT_4]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           %[[INSTANTIATE_CALLABLE_2:.*]] = cc.instantiate_callable @cable_kernel.ctrl_closurev(%[[ARG2]]) : (!quake.veq<2>) -> !cc.callable<(!quake.veq<?>) -> ()>
-// CHECK:           call @cable_kernel.ctrl_closurev(%[[INSTANTIATE_CALLABLE_2]], %[[RELAX_SIZE_4]]) : (!cc.callable<(!quake.veq<?>) -> ()>, !quake.veq<?>) -> ()
-// CHECK:           %[[EXTRACT_REF_8:.*]] = quake.extract_ref %[[CONCAT_4]][0] : (!quake.veq<2>) -> !quake.ref
-// CHECK:           %[[UNWRAP_8:.*]] = quake.unwrap %[[EXTRACT_REF_8]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[EXTRACT_REF_9:.*]] = quake.extract_ref %[[CONCAT_4]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:           %[[UNWRAP_9:.*]] = quake.unwrap %[[EXTRACT_REF_9]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[BUNDLE_CABLE_4:.*]] = quake.bundle_cable %[[UNWRAP_8]], %[[UNWRAP_9]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
-// CHECK:           %[[SPLIT_CABLE_5:.*]]:2 = quake.split_cable %[[BUNDLE_CABLE_4]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[WRAP_NEW_10:.*]] = quake.wrap_new %[[SPLIT_CABLE_5]]#0 : (!quake.wire) -> !quake.ref
-// CHECK:           %[[WRAP_NEW_11:.*]] = quake.wrap_new %[[SPLIT_CABLE_5]]#1 : (!quake.wire) -> !quake.ref
-// CHECK:           %[[CONCAT_5:.*]] = quake.concat %[[WRAP_NEW_10]], %[[WRAP_NEW_11]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
-// CHECK:           %[[RELAX_SIZE_5:.*]] = quake.relax_size %[[CONCAT_5]] : (!quake.veq<2>) -> !quake.veq<?>
 // CHECK:           %[[INSTANTIATE_CALLABLE_3:.*]] = cc.instantiate_callable @cable_kernel.adj_ctrl_closurev(%[[ARG2]]) : (!quake.veq<2>) -> !cc.callable<(!quake.veq<?>) -> ()>
-// CHECK:           call @cable_kernel.adj_ctrl_closurev(%[[INSTANTIATE_CALLABLE_3]], %[[RELAX_SIZE_5]]) : (!cc.callable<(!quake.veq<?>) -> ()>, !quake.veq<?>) -> ()
-// CHECK:           return %[[BUNDLE_CABLE_3]] : !quake.cable<2>
+// CHECK:           call @cable_kernel.adj_ctrl_closurev(%[[INSTANTIATE_CALLABLE_3]], %[[RELAX_SIZE_4]]) : (!cc.callable<(!quake.veq<?>) -> ()>, !quake.veq<?>) -> ()
+// CHECK:           return %[[BUNDLE_CABLE_2]] : !quake.cable<2>
 // CHECK:         }
 
 // CHECK-LABEL:   func.func private @cable_kernel.adj_ctrl_closurev(

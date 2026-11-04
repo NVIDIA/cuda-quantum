@@ -13,10 +13,10 @@
 
 // RUN: not --crash compile_target_conditional_feedback_crash
 
-#include "common/CompileTarget.h"
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Parser/Parser.h"
 
@@ -48,7 +48,7 @@ int main() {
   target.supportConditionalsOnMeasureResults = false;
 
   Compiler compiler(std::move(target), cudaq::CompileOptions{});
-  compiler.runPassPipeline("feedback", mod.release().getAsOpaquePointer(),
-                           cudaq::KernelArgs{}, /*isEntryPoint=*/true);
+  compiler.compile("feedback", mod.release().getAsOpaquePointer(),
+                   cudaq::KernelArgs{}, /*isEntryPoint=*/true);
   return 0;
 }

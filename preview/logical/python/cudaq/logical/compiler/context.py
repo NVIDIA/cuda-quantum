@@ -33,6 +33,21 @@ def _symbol_path(attribute) -> tuple[str, ...]:
     return tuple(item.lstrip("@") for item in text.split("::") if item)
 
 
+def _walk_operation(operation):
+    """Snapshot operations in pre-order using MLIR's native tree traversal."""
+
+    operations = []
+
+    def visit(current):
+        operations.append(current)
+        return mlir_ir.WalkResult.ADVANCE
+
+    operation.walk(visit, mlir_ir.WalkOrder.PRE_ORDER)
+    # Retain the root wrapper that owns the module, not its callback wrapper.
+    operations[0] = operation
+    return iter(operations)
+
+
 class CompilationContext:
     """Private, transaction-local linker and MLIR owner."""
 
@@ -54,12 +69,13 @@ class CompilationContext:
                                                 tuple[Any, ...], str]] = {}
         self._value_groups: dict[int, dict[str, int]] = {}
         self._symbols: dict[str, object] = {}
+        self._symbol_suffixes: dict[str, int] = {}
         self._symbol_operations: dict[str, object] = {}
         self._symbol_operations_by_kind: dict[tuple[str, str], object] = {}
-        self._objectives: dict[tuple[Any, ...], str] = {}
+        self._actions: dict[tuple[Any, ...], str] = {}
         # Exact Boolean-result provenance for protocol calls materialized in
         # this private transaction.  This lets a closed protocol attempt expose
-        # a success predicate derived unchanged from a selected gadget profile
+        # a success predicate derived unchanged from a selected gadget contract
         # without inventing a second protocol-analysis object model.
         self._protocol_result_provenance: dict[str, tuple[Any | None, ...]] = {}
         self._protocol_payload_blocks: dict[int, tuple[str, ...]] = {}
@@ -96,15 +112,7 @@ class CompilationContext:
         return cls(module=build._fresh_module())
 
     def walk(self):
-
-        def visit(operation):
-            yield operation
-            for region in operation.regions:
-                for block in region.blocks:
-                    for child in block.operations:
-                        yield from visit(child.operation)
-
-        yield from visit(self.module.operation)
+        return _walk_operation(self.module.operation)
 
     def bind_resource_streams(self, device, *, logical_symbol=None) -> None:
         """Bind portable Fabric request placeholders to one selected device."""
@@ -172,6 +180,7 @@ class CompilationContext:
                 # return that stale wrapper from this transaction-local index.
                 self._symbol_operations.pop(name, None)
                 self._symbols.pop(name, None)
+                self._symbol_suffixes.clear()
                 self._symbol_operations_by_kind.pop((operation_name, name),
                                                     None)
             else:
@@ -180,6 +189,7 @@ class CompilationContext:
                     # declaration through the underlying MLIR API.
                     self._symbol_operations.pop(name, None)
                     self._symbols.pop(name, None)
+                    self._symbol_suffixes.clear()
                     self._symbol_operations_by_kind.pop(
                         (cached_operation_name, name), None)
                     if cached_name is not None:
@@ -243,14 +253,16 @@ class CompilationContext:
     def unique_symbol(self, requested: str) -> str:
         base = _symbol(requested)
         candidate = base
-        suffix = 1
+        # Skip suffixes already taken; find_symbol resets this on eviction.
+        suffix = self._symbol_suffixes.get(base, 1)
         while candidate in self._symbols:
             candidate = f"{base}_{suffix}"
             suffix += 1
         self._symbols[candidate] = object()
+        self._symbol_suffixes[base] = suffix
         return candidate
 
-    def objective(
+    def action(
         self,
         *,
         family: str,
@@ -260,9 +272,9 @@ class CompilationContext:
         semantics: Any = None,
     ) -> str:
         key = (family, name, tuple(map(str, inputs)), tuple(map(str, results)))
-        if key in self._objectives:
-            return self._objectives[key]
-        symbol = self.declare_objective(
+        if key in self._actions:
+            return self._actions[key]
+        symbol = self.declare_action(
             family=family,
             requested_symbol=f"qlx_standard_{name}",
             kind=name,
@@ -270,10 +282,10 @@ class CompilationContext:
             results=results,
             semantics=semantics,
         )
-        self._objectives[key] = symbol
+        self._actions[key] = symbol
         return symbol
 
-    def declare_objective(
+    def declare_action(
         self,
         *,
         family: str,
@@ -283,16 +295,28 @@ class CompilationContext:
         results: tuple[Any, ...],
         semantics: Any = None,
     ) -> str:
+        from cudaq.logical.programs.binding import standard_action_operand_names
+
         symbol = self.unique_symbol(requested_symbol)
         function_type = mlir_ir.FunctionType.get(inputs,
                                                  results,
                                                  context=self.context)
         with self.context:
             function_type_attr = mlir_ir.TypeAttr.get(function_type)
+        operand_names = standard_action_operand_names(kind, len(inputs))
         attrs: dict[str, Any] = {
-            "sym_name": mlir_ir.StringAttr.get(symbol, context=self.context),
-            "function_type": function_type_attr,
-            "kind": mlir_ir.StringAttr.get(kind, context=self.context),
+            "sym_name":
+                mlir_ir.StringAttr.get(symbol, context=self.context),
+            "function_type":
+                function_type_attr,
+            "kind":
+                mlir_ir.StringAttr.get(kind, context=self.context),
+            "operand_names":
+                mlir_ir.ArrayAttr.get([
+                    mlir_ir.StringAttr.get(name, context=self.context)
+                    for name in operand_names
+                ],
+                                      context=self.context),
         }
         if family == "action":
             from cudaq.logical.algebra.clifford import (
@@ -304,7 +328,7 @@ class CompilationContext:
                 action = CliffordAction.standard(
                     kind,
                     len(inputs),
-                    ports=tuple(f"q{index}" for index in range(len(inputs))),
+                    ports=operand_names,
                 )
             except NonCliffordAction:
                 pass
@@ -322,6 +346,11 @@ class CompilationContext:
             self.module.body.append(operation)
         self._symbol_operations[symbol] = operation
         return symbol
+
+    # Existing clients can keep their spellings without declaring a second
+    # artifact or changing the MLIR symbol/digest boundary.
+    objective = action
+    declare_objective = declare_action
 
     def materialize(self, definition):
         """Materialize a definition and retain its transaction-local closure."""
@@ -360,11 +389,11 @@ class CompilationContext:
                   if isinstance(definition, ProgramDefinition) else None)
         if kernel is not None and not hasattr(definition,
                                               "_qlx_direct_snapshot"):
-            from cudaq.logical.programs.kernel_objective import (
-                materialize_kernel_objective,)
+            from cudaq.logical.programs.kernel_action import (
+                materialize_kernel_action,)
 
             object.__setattr__(definition, "_qlx_direct_snapshot",
-                               materialize_kernel_objective(definition))
+                               materialize_kernel_action(definition))
         snapshot = getattr(definition, "_qlx_direct_snapshot", None)
         if snapshot is not None:
             return self._import_direct_snapshot(definition, snapshot)
@@ -380,7 +409,7 @@ class CompilationContext:
         )
         from cudaq.logical.gadgets import (
             GadgetDefinition,
-            GadgetProfile,
+            GadgetContract,
         )
         from cudaq.logical.protocols.definition import ProtocolDefinition
         from cudaq.logical.devices.definition import Device
@@ -473,8 +502,8 @@ class CompilationContext:
                 return handle
             finally:
                 self._resolving.remove(identity)
-        if isinstance(definition, GadgetProfile):
-            from cudaq.logical.gadgets.profile_builder import GadgetProfileBuilder
+        if isinstance(definition, GadgetContract):
+            from cudaq.logical.gadgets.contract_lowerer import GadgetContractLowerer
 
             identity = id(definition)
             if identity in self._resolving:
@@ -483,7 +512,7 @@ class CompilationContext:
                     f"{definition.name!r}")
             self._resolving.add(identity)
             try:
-                builder = GadgetProfileBuilder(self, definition)
+                builder = GadgetContractLowerer(self, definition)
                 builder.trace()
                 handle = builder.handle()
                 self.bind(definition, handle)
@@ -538,9 +567,9 @@ class CompilationContext:
                 handle = DefinitionHandle(symbol=builder.symbol,
                                           kind="program",
                                           profile="p0")
-            elif definition.kind == "objective":
-                family = builder.objective_family()
-                objective_symbol = self.declare_objective(
+            elif definition.kind == "action":
+                family = builder.action_family()
+                objective_symbol = self.declare_action(
                     family=family,
                     requested_symbol=definition.name,
                     kind="composite",
@@ -549,6 +578,15 @@ class CompilationContext:
                     semantics=mlir_ir.FlatSymbolRefAttr.get(
                         builder.symbol, context=self.context),
                 )
+                objective = self.find_symbol(
+                    objective_symbol, "qlx.action"
+                    if family == "action" else "qlx.instrument_decl")
+                objective.attributes["operand_names"] = mlir_ir.ArrayAttr.get(
+                    [
+                        mlir_ir.StringAttr.get(name, context=self.context)
+                        for name in definition.signature.parameters
+                    ],
+                    context=self.context)
                 if family == "action":
                     from cudaq.logical.algebra.clifford import (
                         CliffordAction,

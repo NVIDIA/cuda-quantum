@@ -57,13 +57,26 @@ struct DelayMeasurementsPass
     moveMeasurementsToEnd(*blocks.begin());
   }
 
-  /// Add `op` and all of its users into `opsToMoveToEnd`. `op` may not be
-  /// nullptr.
+  /// Collect the reverse of the original recursive preorder, keeping only
+  /// each operation's last occurrence. Moving an operation repeatedly only
+  /// leaves its last move visible, so this preserves the existing order.
   void addOpAndUsersToList(Operation *op,
-                           SmallVectorImpl<Operation *> &opsToMoveToEnd) {
-    opsToMoveToEnd.push_back(op);
-    for (auto user : op->getUsers())
-      addOpAndUsersToList(user, opsToMoveToEnd);
+                           SmallVectorImpl<Operation *> &opsToMoveToEnd,
+                           DenseSet<Operation *> &visited) {
+    SmallVector<std::pair<Operation *, bool>> worklist{{op, false}};
+    while (!worklist.empty()) {
+      auto [current, expanded] = worklist.pop_back_val();
+      if (expanded) {
+        opsToMoveToEnd.push_back(current);
+        continue;
+      }
+      if (!visited.insert(current).second)
+        continue;
+      worklist.emplace_back(current, true);
+      // The stack visits users in reverse order, before their definition.
+      for (auto *user : current->getUsers())
+        worklist.emplace_back(user, false);
+    }
   }
 
   /// The Base Profile requires that irreversible operations (i.e.
@@ -71,13 +84,13 @@ struct DelayMeasurementsPass
   /// that.
   /// @param mainBlock block to process
   void moveMeasurementsToEnd(Block &mainBlock) {
-    SmallVector<Operation *> opsToMoveToEnd;
+    SmallVector<Operation *> roots;
 
     // Keep track of which qubits have been measured as we're walking through
     // the block
     DenseSet<Value> measuredQubits;
 
-    // Step 1: Identify operations to move. Add to opsToMoveToEnd.
+    // Step 1: Identify roots of the use-def subgraphs to move.
     for (auto &op : mainBlock) {
       if (op.hasTrait<cudaq::QuantumMeasure>()) {
         // Save the fact that we're measuring these qubits
@@ -87,7 +100,7 @@ struct DelayMeasurementsPass
 
       if (op.hasTrait<cudaq::QuantumMeasure>() || isa<func::ReturnOp>(op) ||
           isa<cudaq::quake::DeallocOp>(op)) {
-        addOpAndUsersToList(&op, opsToMoveToEnd);
+        roots.push_back(&op);
         continue;
       }
 
@@ -95,14 +108,19 @@ struct DelayMeasurementsPass
       // measured. If so, add this operation to opsToMoveToEnd, too.
       for (auto operand : op.getOperands()) {
         if (measuredQubits.find(operand) != measuredQubits.end()) {
-          addOpAndUsersToList(&op, opsToMoveToEnd);
+          roots.push_back(&op);
           break;
         }
       }
     }
 
-    // Step 2: Sequentially move identified operations to the end of the block
-    for (Operation *opToMove : opsToMoveToEnd)
+    // Step 2: Visit each operation once, starting with the last root, then
+    // reverse the collected order to reproduce the original sequence of moves.
+    SmallVector<Operation *> opsToMoveToEnd;
+    DenseSet<Operation *> visited;
+    for (auto *root : llvm::reverse(roots))
+      addOpAndUsersToList(root, opsToMoveToEnd, visited);
+    for (Operation *opToMove : llvm::reverse(opsToMoveToEnd))
       mainBlock.getOperations().splice(
           mainBlock.end(), mainBlock.getOperations(), opToMove->getIterator());
   }

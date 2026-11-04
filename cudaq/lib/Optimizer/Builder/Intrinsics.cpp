@@ -101,7 +101,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // Initialize a (preallocated) buffer (the first parameter) with i64 values
     // on the semi-open range `[0..n)` where `n` is the second parameter.
     {cudaq::setCudaqRangeVector, {}, R"#(
-  func.func private @__nvqpp_CudaqRangeInit(%arg0: !cc.ptr<!cc.array<i64 x ?>>, %arg1: i64) -> !cc.sequence<i64> {
+  func.func private @__nvqpp_CudaqRangeInit(%arg0: !cc.ptr<!cc.array<i64 x ?>>, %arg1: i64) -> !cc.sequence<i64> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %0 = arith.constant 0 : i64
     %1 = cc.loop while ((%i = %0) -> i64) {
       %w1 = arith.cmpi ult, %i, %arg1 : i64
@@ -133,7 +133,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // three parameters are assumed to be signed values, which is required to
     // have a decrementing loop.
     {cudaq::setCudaqRangeVectorTriple, {cudaq::getCudaqSizeFromTriple}, R"#(
-  func.func private @__nvqpp_CudaqRangeInitTriple(%arg0: !cc.ptr<!cc.array<i64 x ?>>, %arg1: i64, %arg2: i64, %arg3: i64) -> !cc.sequence<i64> {
+  func.func private @__nvqpp_CudaqRangeInitTriple(%arg0: !cc.ptr<!cc.array<i64 x ?>>, %arg1: i64, %arg2: i64, %arg3: i64) -> !cc.sequence<i64> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %c1_i64 = arith.constant 1 : i64
     %c0_i64 = arith.constant 0 : i64
     %0 = call @__nvqpp_CudaqSizeFromTriple(%arg1, %arg2, %arg3) : (i64, i64, i64) -> i64
@@ -166,7 +166,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // Note that all three parameters are assumed to be signed values, which is
     // required to have a decrementing loop.
     {cudaq::getCudaqSizeFromTriple, {}, R"#(
-  func.func private @__nvqpp_CudaqSizeFromTriple(%start: i64, %stop: i64, %step: i64) -> i64 {
+  func.func private @__nvqpp_CudaqSizeFromTriple(%start: i64, %stop: i64, %step: i64) -> i64 attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %0 = arith.constant 0 : i64
     %1 = arith.constant 1 : i64
     %n1 = arith.constant -1 : i64
@@ -201,7 +201,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     //   }
     // ```
     {cudaq::realtimePackBits, {}, R"#(
-  func.func private @__nvqpp_RealtimePackBits(%dst: !cc.ptr<!cc.array<i8 x ?>>, %src: !cc.ptr<!cc.array<i1 x ?>>, %len: i64) {
+  func.func private @__nvqpp_RealtimePackBits(%dst: !cc.ptr<!cc.array<i8 x ?>>, %src: !cc.ptr<!cc.array<i1 x ?>>, %len: i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %zero = arith.constant 0 : i64
     %one = arith.constant 1 : i64
     %seven = arith.constant 7 : i64
@@ -252,7 +252,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // measurement handles. Discrimination is fused with the packing so handle
     // vectors need no temporary bool buffer.
     {cudaq::realtimePackMeasurements, {}, R"#(
-  func.func private @__nvqpp_RealtimePackMeasurements(%dst: !cc.ptr<!cc.array<i8 x ?>>, %src: !cc.ptr<!cc.array<!cc.measure_handle x ?>>, %len: i64) {
+  func.func private @__nvqpp_RealtimePackMeasurements(%dst: !cc.ptr<!cc.array<i8 x ?>>, %src: !cc.ptr<!cc.array<!cc.measure_handle x ?>>, %len: i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %zero = arith.constant 0 : i64
     %one = arith.constant 1 : i64
     %seven = arith.constant 7 : i64
@@ -314,7 +314,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     //   }
     // ```
     {cudaq::realtimeUnpackBits, {}, R"#(
-  func.func private @__nvqpp_RealtimeUnpackBits(%dst: !cc.ptr<!cc.array<i1 x ?>>, %src: !cc.ptr<!cc.array<i8 x ?>>, %len: i64) {
+  func.func private @__nvqpp_RealtimeUnpackBits(%dst: !cc.ptr<!cc.array<i1 x ?>>, %src: !cc.ptr<!cc.array<i8 x ?>>, %len: i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %zero = arith.constant 0 : i64
     %one = arith.constant 1 : i64
     %seven = arith.constant 7 : i64
@@ -368,7 +368,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
     // __nvqpp__cudaq_em_allocate_veq
     {cudaq::opt::CudaqEMAllocateVeq, {}, R"#(
-  func.func private @__nvqpp__cudaq_em_allocate_veq(%span : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %size : i64) {
+  func.func private @__nvqpp__cudaq_em_allocate_veq(%span : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %size : i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %buffptr = cc.compute_ptr %span[0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
     %buffer = cc.load %buffptr : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
     %0 = arith.constant 0 : i64
@@ -396,7 +396,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 )#"},
     // __nvqpp__cudaq_em_concatSpan
     {cudaq::opt::CudaqEMConcatSpan, {cudaq::llvmMemCopyIntrinsic}, R"#(
-  func.func private @__nvqpp__cudaq_em_concatSpan(%dest : !cc.ptr<i64>, %from : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %length : i64) {
+  func.func private @__nvqpp__cudaq_em_concatSpan(%dest : !cc.ptr<i64>, %from : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %length : i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %ptrptr = cc.compute_ptr %from[0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
     %src = cc.load %ptrptr : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
     %eight = arith.constant 8 : i64
@@ -422,7 +422,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 )#"},
     // __nvqpp__cudaq_em_writeToSpan
     {cudaq::opt::CudaqEMWriteToSpan, {}, R"#(
-  func.func private @__nvqpp__cudaq_em_writeToSpan(%span : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %ptr : !cc.ptr<!cc.array<i64 x ?>>, %size : i64) {
+  func.func private @__nvqpp__cudaq_em_writeToSpan(%span : !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %ptr : !cc.ptr<!cc.array<i64 x ?>>, %size : i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %buffptr = cc.compute_ptr %span[0] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
     cc.store %ptr, %buffptr : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
     %szptr = cc.compute_ptr %span[1] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<i64>
@@ -431,6 +431,13 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   }
 )#"},
 
+    // This is a dummy dispatch hook for the generalized `device_call` reference
+    // lowering. The arguments are: device id, callback name, unmarshal func
+    // ptr, argument buffer, buffer size, return offset, num blocks, num threads
+    // per block. This returns the (possibly dynamic) result span.
+    {cudaq::runtime::callDeviceCallback, {}, R"#(
+  func.func private @__nvqpp__device_callback_run(i64, !cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+)#"},
     {cudaq::runtime::extractDevPtr, {}, R"#(
   func.func private @__nvqpp__device_extract_device_ptr(!cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>) -> !cc.ptr<i8>
 )#"},
@@ -445,7 +452,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
           arg3: offset to result slot in buffer */
      {cudaq::llvmMemCopyIntrinsic, "malloc"},
      R"#(
-  func.func private @__nvqpp_createDynamicResult(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>, %arg3: i64) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+  func.func private @__nvqpp_createDynamicResult(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>, %arg3: i64) -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %0 = cc.compute_ptr %arg2[1] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<i64>
     %1 = cc.load %0 : !cc.ptr<i64>
     %2 = arith.addi %arg1, %1 : i64
@@ -468,7 +475,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 )#"},
 
     {cudaq::cudaqConvertToInteger, {}, R"#(
-  func.func private @__nvqpp_cudaqConvertToInteger(%arg : !cc.sequence<i1>) -> i64 {
+  func.func private @__nvqpp_cudaqConvertToInteger(%arg : !cc.sequence<i1>) -> i64 attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %size = cc.sequence_size %arg : (!cc.sequence<i1>) -> i64
     %data = cc.sequence_data %arg : (!cc.sequence<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
     %zero = arith.constant 0 : i64
@@ -517,10 +524,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__nvqpp_cudaq_state_numberOfQubits(%p : !cc.ptr<!quake.state>) -> i64
 )#"},
 
-    {"__nvqpp_customop_size_error", {}, R"#(
-  func.func private @__nvqpp_customop_size_error(i64, i64)
-)#"},
-
     {cudaq::runtime::bindingDeconstructString,
      {},
      "func.func private @__nvqpp_deconstructString(!cc.ptr<i8>)"},
@@ -565,6 +568,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      {},
      "func.func private @__nvqpp_getStringSize(%p: !cc.ptr<i8>) -> i64"},
 
+    // __nvqpp_hostDeallocate(void *): operator delete
+    {cudaq::runtime::hostDeallocate,
+     {},
+     "func.func private @__nvqpp_hostDeallocate(!cc.ptr<i8>) -> ()"},
+
     {cudaq::runtime::bindingInitializeString, {}, R"#(
   func.func private @__nvqpp_initializeStringFromSpan(!cc.ptr<i8>, !cc.ptr<i8>, i64)
 )#"},
@@ -577,7 +585,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // required when the data on the stack is about to go out of scope but is
     // still live.
     {"__nvqpp_vectorCopyCtor", {cudaq::llvmMemCopyIntrinsic, "malloc"}, R"#(
-  func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> {
+  func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %size = arith.muli %arg1, %arg2 : i64
     %0 = call @malloc(%size) : (i64) -> !cc.ptr<i8>
     %false = arith.constant false
@@ -590,12 +598,17 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // the stack. Both buffers must already exist. This helper matches
     // __nvqpp_vectorCopyCtor and eliminates memory leaks.
     {"__nvqpp_vectorCopyToStack", {cudaq::llvmMemCopyIntrinsic, "free"}, R"#(
-  func.func private @__nvqpp_vectorCopyToStack(%to: !cc.ptr<i8>, %from: !cc.ptr<i8>, %size: i64) {
+  func.func private @__nvqpp_vectorCopyToStack(%to: !cc.ptr<i8>, %from: !cc.ptr<i8>, %size: i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %false = arith.constant false
     call @llvm.memcpy.p0.p0.i64(%to, %from, %size, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     call @free(%from) : (!cc.ptr<i8>) -> ()
     return
   })#"},
+
+    // __nvqpp_vector_bool_destroy
+    {cudaq::sequenceBoolDestroy, {}, R"#(
+  func.func private @__nvqpp_vector_bool_destroy(!cc.ptr<i8>) -> ()
+)#"},
 
     // __nvqpp_vector_bool_free_temporary_lists
     {cudaq::sequenceBoolFreeTemporaryLists, {}, R"#(
@@ -611,7 +624,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 )#"},
 
     {"__nvqpp_zeroDynamicResult", {}, R"#(
-  func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
+  func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %c0_i64 = arith.constant 0 : i64
     %0 = cc.cast %c0_i64 : (i64) -> !cc.ptr<i8>
     %1 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>

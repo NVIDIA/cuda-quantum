@@ -43,24 +43,18 @@ struct RuntimeTarget {
   // `<pkgRoot>/lib`; for an in-tree target it stays empty and the runtime
   // falls back to the default CUDA-Q library directory.
   std::string pluginLibDir;
+  /// Path to the target's config artifact. Empty for built-in targets resolved
+  /// from the pre-compiled database.
+  std::filesystem::path configPath;
+  /// Non-empty when this target is known but not available on the current
+  /// host (missing GPU, simulator, platform library, etc.).
+  std::string availabilityDiagnostic;
   // Helper to generate the help string for the extra target arguments
-  // (specified in the target config YAML file).
+  // (specified in the target config).
   std::string get_target_args_help_string() const;
   // Return target precision
   simulation_precision get_precision() const;
-
-  /// @brief Reconstruct the path to this target's YAML config relative to
-  /// `pluginLibDir`. For an external plugin package laid out as
-  ///   `<pkgRoot>/lib/<plugin libs>`
-  ///   `<pkgRoot>/targets/<name>.yml`
-  /// this returns `<pkgRoot>/targets/<name>.yml`. Returns an empty path
-  /// when either `pluginLibDir` or `name` is empty (i.e. this is an
-  /// in-tree target whose YAML lives in the default install location).
-  std::filesystem::path pluginYamlPath() const {
-    if (pluginLibDir.empty() || name.empty())
-      return {};
-    return std::filesystem::path(pluginLibDir).parent_path() / "targets" /
-           (name + ".yml");
-  }
+  /// Whether this target is available on the current host.
+  bool isAvailable() const { return availabilityDiagnostic.empty(); }
 };
 } // namespace cudaq

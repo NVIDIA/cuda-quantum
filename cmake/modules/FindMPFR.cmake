@@ -58,7 +58,7 @@ block()
   set(CMAKE_FIND_LIBRARY_SUFFIXES "${CMAKE_SHARED_LIBRARY_SUFFIX}")
   find_library(MPFR_LIBRARY
     NAMES mpfr
-    HINTS "${CUDAQ_LIBRARY_DIR}"
+    HINTS "${CUDAQ_CORE_LIBRARY_DIR}" "${CUDAQ_LIBRARY_DIR}"
     DOC "MPFR shared library")
 endblock()
 

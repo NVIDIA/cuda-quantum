@@ -12,9 +12,12 @@
 #include "CuDensityMatUtils.h"
 #include "common/FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <ranges>
+#include <set>
 
 namespace {
 std::vector<int64_t>
@@ -40,6 +43,141 @@ convertDimensions(const std::vector<int64_t> &modeExtents) {
     dimensions[i] = static_cast<std::size_t>(modeExtents[i]);
 
   return dimensions;
+}
+
+// Pads `matrix`, which acts on `subDegrees`, with identities so that it acts
+// on `degrees`. Both degree lists are ascending and `subDegrees` is a subset
+// of `degrees`; matrices use the CUDA-Q canonical order (first degree varying
+// fastest).
+cudaq::complex_matrix embedMatrix(const cudaq::complex_matrix &matrix,
+                                  const std::vector<std::size_t> &subDegrees,
+                                  const std::vector<std::size_t> &degrees,
+                                  const std::vector<int64_t> &modeExtents) {
+  if (subDegrees == degrees)
+    return matrix;
+
+  std::vector<bool> isSubDegree(degrees.size(), false);
+  for (auto degree : subDegrees) {
+    const auto it = std::find(degrees.begin(), degrees.end(), degree);
+    if (it == degrees.end())
+      throw std::invalid_argument("Cannot embed a matrix acting on a degree "
+                                  "outside the target degrees.");
+    isSubDegree[it - degrees.begin()] = true;
+  }
+
+  // Splits a full index into its sub-space and complementary parts.
+  const auto splitIndex = [&](std::size_t index) {
+    std::size_t subIndex = 0, restIndex = 0, subStride = 1, restStride = 1;
+    for (std::size_t i = 0; i < degrees.size(); ++i) {
+      const auto extent = static_cast<std::size_t>(modeExtents[degrees[i]]);
+      const auto digit = index % extent;
+      index /= extent;
+      if (isSubDegree[i]) {
+        subIndex += digit * subStride;
+        subStride *= extent;
+      } else {
+        restIndex += digit * restStride;
+        restStride *= extent;
+      }
+    }
+    return std::make_pair(subIndex, restIndex);
+  };
+
+  std::size_t dim = 1;
+  for (auto degree : degrees)
+    dim *= static_cast<std::size_t>(modeExtents[degree]);
+
+  cudaq::complex_matrix result(dim, dim);
+  for (std::size_t col = 0; col < dim; ++col) {
+    const auto [subCol, restCol] = splitIndex(col);
+    for (std::size_t row = 0; row < dim; ++row) {
+      const auto [subRow, restRow] = splitIndex(row);
+      if (restRow == restCol)
+        result[{row, col}] = matrix[{subRow, subCol}];
+    }
+  }
+  return result;
+}
+
+// Groups of term indices keyed by the degrees the terms act on.
+using DegreeGroups =
+    std::map<std::vector<std::size_t>, std::vector<std::size_t>>;
+
+// Folds each group acting on a strict subset of another group's degrees into
+// the first group (in degree order) that is not itself such a subset. Returns
+// the degrees of the groups that remain.
+std::vector<std::vector<std::size_t>> foldSubsetGroups(DegreeGroups &groups) {
+  const auto isStrictSubset = [](const std::vector<std::size_t> &sub,
+                                 const std::vector<std::size_t> &super) {
+    return sub.size() < super.size() &&
+           std::includes(super.begin(), super.end(), sub.begin(), sub.end());
+  };
+  std::vector<std::vector<std::size_t>> targets;
+  for (const auto &[degrees, indices] : groups) {
+    const bool isMaximal =
+        std::none_of(groups.begin(), groups.end(), [&](const auto &other) {
+          return isStrictSubset(degrees, other.first);
+        });
+    if (isMaximal)
+      targets.push_back(degrees);
+  }
+  for (auto &[degrees, indices] : groups) {
+    for (const auto &target : targets) {
+      if (isStrictSubset(degrees, target)) {
+        auto &targetIndices = groups[target];
+        targetIndices.insert(targetIndices.end(), indices.begin(),
+                             indices.end());
+        indices.clear();
+        break;
+      }
+    }
+  }
+  return targets;
+}
+
+std::size_t subspaceDimension(const std::vector<std::size_t> &degrees,
+                              const std::vector<int64_t> &modeExtents) {
+  std::size_t dim = 1;
+  for (auto degree : degrees)
+    dim *= static_cast<std::size_t>(modeExtents[degree]);
+  return dim;
+}
+
+// Returns `a * b` for multi-diagonal matrices of dimension `dim`. Element
+// (row, row + offset) is stored at index min(row, row + offset) of its
+// diagonal (see `cudaq::detail::create_mdiag_sparse_matrix`). Diagonals that
+// are zero in the product are dropped.
+cudaq::mdiag_sparse_matrix
+multiplyDiagonalMatrices(const cudaq::mdiag_sparse_matrix &a,
+                         const cudaq::mdiag_sparse_matrix &b, int64_t dim) {
+  std::map<int64_t, std::vector<std::complex<double>>> diagonals;
+  for (std::size_t i = 0; i < a.second.size(); ++i) {
+    const auto offsetA = a.second[i];
+    for (std::size_t j = 0; j < b.second.size(); ++j) {
+      const auto offsetB = b.second[j];
+      const auto offset = offsetA + offsetB;
+      if (offset <= -dim || offset >= dim)
+        continue;
+      auto &diagonal = diagonals.try_emplace(offset, dim).first->second;
+      for (int64_t row = 0; row < dim; ++row) {
+        const auto mid = row + offsetA;
+        const auto col = mid + offsetB;
+        if (mid < 0 || mid >= dim || col < 0 || col >= dim)
+          continue;
+        diagonal[std::min(row, col)] += a.first[i * dim + std::min(row, mid)] *
+                                        b.first[j * dim + std::min(mid, col)];
+      }
+    }
+  }
+  cudaq::mdiag_sparse_matrix product;
+  for (const auto &[offset, diagonal] : diagonals) {
+    if (std::all_of(diagonal.begin(), diagonal.end(),
+                    [](std::complex<double> x) { return x == 0.0; }))
+      continue;
+    product.second.push_back(offset);
+    product.first.insert(product.first.end(), diagonal.begin(), diagonal.end());
+  }
+  return product;
 }
 
 } // namespace
@@ -136,6 +274,16 @@ cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
       m_maxDiagonalsDiag = maxDiags.value();
     }
   }
+
+  {
+    const auto maxFusedDim =
+        getIntEnvVarIfPresent("CUDAQ_DYNAMICS_MAX_FUSED_DIMENSION");
+    if (maxFusedDim.has_value()) {
+      CUDAQ_INFO("Setting operator fusion max dimension to {}.",
+                 maxFusedDim.value());
+      m_maxFusedDimension = maxFusedDim.value();
+    }
+  }
 }
 
 void cudaq::dynamics::CuDensityMatOpConverter::clearCallbackContext() {
@@ -153,6 +301,339 @@ cudaq::dynamics::CuDensityMatOpConverter::~CuDensityMatOpConverter() {
   for (auto *buffer : m_deviceBuffers) {
     cudaq::dynamics::DeviceAllocator::free(buffer);
   }
+}
+
+bool cudaq::dynamics::CuDensityMatOpConverter::requiresTensorCallback(
+    const cudaq::matrix_handler &elemOp,
+    cudaq::dimension_map &dimensions) const {
+  static const std::vector<std::string> g_knownNonParametricOps = []() {
+    std::vector<std::string> opNames;
+    opNames.emplace_back(
+        cudaq::boson_op::identity(0).begin()->to_string(false));
+    // These are ops that we created during lindblad generation
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(cudaq::boson_op::create(0).begin()->to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(
+        cudaq::boson_op::annihilate(0).begin()->to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(cudaq::boson_op::number(0).begin()->to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(cudaq::spin_op::i(0).begin()->to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(cudaq::spin_op::x(0).begin()->to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(cudaq::spin_op::y(0).begin()->to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    opNames.emplace_back(cudaq::spin_op::z(0).begin()->to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
+    return opNames;
+  }();
+
+  if (std::find(g_knownNonParametricOps.begin(), g_knownNonParametricOps.end(),
+                elemOp.to_string(false)) != g_knownNonParametricOps.end())
+    return false;
+
+  try {
+    elemOp.to_matrix(dimensions, {});
+    return false;
+  } catch (const std::exception &e) {
+    return true;
+  }
+}
+
+bool cudaq::dynamics::CuDensityMatOpConverter::isFusableSubspace(
+    const std::vector<std::size_t> &degrees,
+    const std::vector<int64_t> &modeExtents, bool bothSides) const {
+  if (m_maxFusedDimension <= 0 || degrees.empty())
+    return false;
+  int64_t dim = 1;
+  for (auto degree : degrees) {
+    dim *= modeExtents.at(degree);
+    if (dim > m_maxFusedDimension)
+      return false;
+  }
+  return !bothSides || dim * dim <= m_maxFusedDimension;
+}
+
+std::optional<cudaq::dynamics::CuDensityMatOpConverter::FusedTerm>
+cudaq::dynamics::CuDensityMatOpConverter::computeFusableProductTerm(
+    const product_op<cudaq::matrix_handler> &prodOp,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    const std::vector<int64_t> &modeExtents, bool bothSides) {
+  if (!prodOp.get_coefficient().is_constant() ||
+      !isFusableSubspace(prodOp.degrees(), modeExtents, bothSides))
+    return std::nullopt;
+
+  // Factors acting on distinct degrees commute, so the fused matrix is
+  // independent of the order in which cuDensityMat applies the factors, from
+  // either side.
+  cudaq::dimension_map dimensions = convertDimensions(modeExtents);
+  std::set<std::size_t> seenDegrees;
+  for (const auto &component : prodOp) {
+    if (requiresTensorCallback(component, dimensions))
+      return std::nullopt;
+    for (auto degree : component.degrees())
+      if (!seenDegrees.insert(degree).second)
+        return std::nullopt;
+  }
+  return FusedTerm{prodOp.degrees(), prodOp.to_matrix(dimensions, parameters)};
+}
+
+std::vector<cudaq::dynamics::CuDensityMatOpConverter::FusedTerm>
+cudaq::dynamics::CuDensityMatOpConverter::fuseProductTerms(
+    const sum_op<cudaq::matrix_handler> &op,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    const std::vector<int64_t> &modeExtents,
+    const std::vector<FusedTerm> &extraTerms,
+    std::vector<product_op<cudaq::matrix_handler>> &remaining) {
+  struct Piece {
+    FusedTerm term;
+    // Set if this piece is a single-factor product term, which is left
+    // unfused when nothing else acts on its degrees.
+    std::optional<product_op<cudaq::matrix_handler>> singleFactorTerm;
+  };
+  std::vector<Piece> pieces;
+  for (const auto &extraTerm : extraTerms)
+    pieces.push_back({extraTerm, std::nullopt});
+
+  for (const auto &prodOp : op) {
+    auto fused = computeFusableProductTerm(prodOp, parameters, modeExtents);
+    if (!fused) {
+      remaining.emplace_back(prodOp);
+      continue;
+    }
+    Piece piece{std::move(*fused), std::nullopt};
+    if (prodOp.num_ops() == 1)
+      piece.singleFactorTerm = prodOp;
+    pieces.push_back(std::move(piece));
+  }
+
+  DegreeGroups groups;
+  for (std::size_t i = 0; i < pieces.size(); ++i)
+    groups[pieces[i].term.degrees].push_back(i);
+  const auto targets = foldSubsetGroups(groups);
+
+  std::vector<FusedTerm> fusedTerms;
+  std::size_t numFusedPieces = 0;
+  for (const auto &target : targets) {
+    const auto &indices = groups[target];
+    if (indices.size() == 1 && pieces[indices[0]].singleFactorTerm) {
+      remaining.emplace_back(*pieces[indices[0]].singleFactorTerm);
+      continue;
+    }
+    const auto dim = subspaceDimension(target, modeExtents);
+    FusedTerm fused{target, cudaq::complex_matrix(dim, dim)};
+    for (auto idx : indices)
+      fused.matrix +=
+          embedMatrix(pieces[idx].term.matrix, pieces[idx].term.degrees, target,
+                      modeExtents);
+    numFusedPieces += indices.size();
+    fusedTerms.push_back(std::move(fused));
+  }
+  if (!fusedTerms.empty())
+    CUDAQ_INFO("Fused {} operator terms into {} dense operator terms.",
+               numFusedPieces, fusedTerms.size());
+  return fusedTerms;
+}
+
+std::optional<cudaq::dynamics::CuDensityMatOpConverter::FusedTerm>
+cudaq::dynamics::CuDensityMatOpConverter::computeFusableCollapseOperator(
+    const sum_op<cudaq::matrix_handler> &collapseOp,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    const std::vector<int64_t> &modeExtents, bool bothSides) {
+  const auto degrees = collapseOp.degrees();
+  if (collapseOp.num_terms() == 0 ||
+      !isFusableSubspace(degrees, modeExtents, bothSides))
+    return std::nullopt;
+
+  cudaq::dimension_map dimensions = convertDimensions(modeExtents);
+  for (const auto &prodOp : collapseOp) {
+    if (!prodOp.get_coefficient().is_constant())
+      return std::nullopt;
+    for (const auto &component : prodOp)
+      if (requiresTensorCallback(component, dimensions))
+        return std::nullopt;
+  }
+
+  return FusedTerm{degrees, collapseOp.to_matrix(dimensions, parameters)};
+}
+
+void cudaq::dynamics::CuDensityMatOpConverter::appendFusedSuperoperatorTerms(
+    cudensitymatOperator_t cudmOperator,
+    const std::vector<FusedSuperoperatorTerm> &terms,
+    const std::vector<int64_t> &modeExtents) {
+  if (terms.empty())
+    return;
+
+  DegreeGroups groups;
+  for (std::size_t i = 0; i < terms.size(); ++i)
+    groups[terms[i].degrees].push_back(i);
+  const auto targets = foldSubsetGroups(groups);
+
+  // Merge each group into the previous window (in degree order) if they
+  // overlap and the merged window is still fusible. On a chain of
+  // nearest-neighbor terms this gives windows of consecutive degrees that
+  // share their boundary degrees.
+  struct Window {
+    std::vector<std::size_t> degrees;
+    std::vector<std::size_t> indices;
+  };
+  std::vector<Window> windows;
+  for (const auto &target : targets) {
+    const auto &indices = groups[target];
+    if (!windows.empty()) {
+      auto &last = windows.back();
+      std::vector<std::size_t> merged;
+      std::set_union(last.degrees.begin(), last.degrees.end(), target.begin(),
+                     target.end(), std::back_inserter(merged));
+      const bool overlaps = merged.size() < last.degrees.size() + target.size();
+      if (overlaps &&
+          isFusableSubspace(merged, modeExtents, /*bothSides=*/true)) {
+        last.degrees = std::move(merged);
+        last.indices.insert(last.indices.end(), indices.begin(), indices.end());
+        continue;
+      }
+    }
+    windows.push_back({target, indices});
+  }
+
+  for (const auto &window : windows) {
+    const auto dim = subspaceDimension(window.degrees, modeExtents);
+    const auto embed = [&](const cudaq::complex_matrix &matrix,
+                           const std::vector<std::size_t> &degrees) {
+      return embedMatrix(matrix, degrees, window.degrees, modeExtents);
+    };
+    cudaq::complex_matrix leftSum(dim, dim);
+    cudaq::complex_matrix rightSum(dim, dim);
+    std::vector<std::pair<cudaq::complex_matrix, cudaq::complex_matrix>>
+        sandwiches;
+    for (auto idx : window.indices) {
+      const auto &term = terms[idx];
+      if (term.left && term.right)
+        sandwiches.emplace_back(embed(*term.left, term.degrees),
+                                embed(*term.right, term.degrees));
+      else if (term.left)
+        leftSum += embed(*term.left, term.degrees);
+      else if (term.right)
+        rightSum += embed(*term.right, term.degrees);
+    }
+
+    // A left action contracts the operator's bra indices with the state's ket
+    // modes, and a right action contracts its ket indices with the state's bra
+    // modes. Hence, T[i_ket, i_bra, j_ket, j_bra] = A[i_ket, j_ket] *
+    // B[i_bra, j_bra] gives rho' = A rho B, where the ket half of each index
+    // varies fastest.
+    cudaq::complex_matrix superoperator(dim * dim, dim * dim);
+    for (std::size_t colBra = 0; colBra < dim; ++colBra)
+      for (std::size_t colKet = 0; colKet < dim; ++colKet)
+        for (std::size_t rowBra = 0; rowBra < dim; ++rowBra)
+          for (std::size_t rowKet = 0; rowKet < dim; ++rowKet) {
+            std::complex<double> value = 0.0;
+            if (rowBra == colBra)
+              value += leftSum[{rowKet, colKet}];
+            if (rowKet == colKet)
+              value += rightSum[{rowBra, colBra}];
+            for (const auto &[left, right] : sandwiches)
+              value += left[{rowKet, colKet}] * right[{rowBra, colBra}];
+            superoperator[{rowKet + dim * rowBra, colKet + dim * colBra}] =
+                value;
+          }
+
+    std::vector<std::size_t> degrees(window.degrees);
+    degrees.insert(degrees.end(), window.degrees.begin(), window.degrees.end());
+    std::vector<int> dualities(window.degrees.size(), 0);
+    dualities.resize(degrees.size(), 1);
+    auto cudmElemOp = createDenseElementaryOperator(
+        superoperator, getSubspaceExtents(modeExtents, degrees));
+    auto term = createProductOperatorTerm({cudmElemOp}, modeExtents, {degrees},
+                                          {dualities});
+    HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+        m_handle, cudmOperator, term, /*duality=*/0,
+        make_cuDoubleComplex(1.0, 0.0), cudensitymatScalarCallbackNone,
+        cudensitymatScalarGradientCallbackNone));
+  }
+  CUDAQ_INFO("Fused {} Liouvillian terms into {} dense superoperator terms.",
+             terms.size(), windows.size());
+}
+
+cudensitymatElementaryOperator_t
+cudaq::dynamics::CuDensityMatOpConverter::createDenseElementaryOperator(
+    const cudaq::complex_matrix &matrix,
+    const std::vector<int64_t> &subspaceExtents) {
+  auto *elementaryMat_d =
+      cudaq::dynamics::createArrayGpu(flattenMatrixColumnMajor(matrix));
+  m_deviceBuffers.emplace(elementaryMat_d);
+
+  cudensitymatElementaryOperator_t cudmElemOp = nullptr;
+  HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+      m_handle, static_cast<int32_t>(subspaceExtents.size()),
+      subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
+      CUDA_C_64F, elementaryMat_d, cudensitymatTensorCallbackNone,
+      cudensitymatTensorGradientCallbackNone, &cudmElemOp));
+  m_elementaryOperators.emplace(cudmElemOp);
+  return cudmElemOp;
+}
+
+cudensitymatElementaryOperator_t
+cudaq::dynamics::CuDensityMatOpConverter::createFusedMultidiagonalOperator(
+    const std::vector<cudaq::matrix_handler> &factors,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    const std::vector<int64_t> &modeExtents) {
+  if (m_maxFusedDimension <= 0 || factors.size() < 2)
+    return nullptr;
+  const auto degrees = factors[0].degrees();
+  const auto dim =
+      static_cast<int64_t>(subspaceDimension(degrees, modeExtents));
+  if (dim < m_minDimensionDiag)
+    return nullptr;
+
+  cudaq::dimension_map dimensions = convertDimensions(modeExtents);
+  std::optional<cudaq::mdiag_sparse_matrix> product;
+  for (const auto &factor : factors) {
+    if (factor.degrees() != degrees ||
+        requiresTensorCallback(factor, dimensions))
+      return nullptr;
+    auto matrix = factor.to_diagonal_matrix(dimensions, parameters);
+    if (matrix.second.empty())
+      return nullptr;
+    product = product ? multiplyDiagonalMatrices(*product, matrix, dim)
+                      : std::move(matrix);
+  }
+  if (product->second.empty() ||
+      product->second.size() > static_cast<std::size_t>(m_maxDiagonalsDiag))
+    return nullptr;
+
+  const auto subspaceExtents = getSubspaceExtents(modeExtents, degrees);
+  const std::vector<int32_t> offsets(product->second.begin(),
+                                     product->second.end());
+  auto *elementaryMat_d = cudaq::dynamics::createArrayGpu(product->first);
+  m_deviceBuffers.emplace(elementaryMat_d);
+
+  cudensitymatElementaryOperator_t cudmElemOp = nullptr;
+  HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+      m_handle, static_cast<int32_t>(subspaceExtents.size()),
+      subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_MULTIDIAGONAL,
+      offsets.size(), offsets.data(), CUDA_C_64F, elementaryMat_d,
+      cudensitymatTensorCallbackNone, cudensitymatTensorGradientCallbackNone,
+      &cudmElemOp));
+  m_elementaryOperators.emplace(cudmElemOp);
+  CUDAQ_INFO("Fused {} factors into a multi-diagonal operator with {} "
+             "diagonals.",
+             factors.size(), offsets.size());
+  return cudmElemOp;
+}
+
+void cudaq::dynamics::CuDensityMatOpConverter::appendFusedTerm(
+    cudensitymatOperator_t cudmOperator, const FusedTerm &fusedTerm,
+    const std::vector<int64_t> &modeExtents, int32_t duality) {
+  auto cudmElemOp = createDenseElementaryOperator(
+      fusedTerm.matrix, getSubspaceExtents(modeExtents, fusedTerm.degrees));
+  auto term = createProductOperatorTerm({cudmElemOp}, modeExtents,
+                                        {fusedTerm.degrees}, {});
+  HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+      m_handle, cudmOperator, term, duality, make_cuDoubleComplex(1.0, 0.0),
+      cudensitymatScalarCallbackNone, cudensitymatScalarGradientCallbackNone));
 }
 
 cudensitymatElementaryOperator_t
@@ -180,52 +661,10 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
   cudensitymatWrappedTensorCallback_t wrappedTensorCallback =
       cudensitymatTensorCallbackNone;
 
-  static const std::vector<std::string> g_knownNonParametricOps = []() {
-    std::vector<std::string> opNames;
-    opNames.emplace_back(
-        cudaq::boson_op::identity(0).begin()->to_string(false));
-    // These are ops that we created during lindblad generation
-    opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(cudaq::boson_op::create(0).begin()->to_string(false));
-    opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::boson_op::annihilate(0).begin()->to_string(false));
-    opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(cudaq::boson_op::number(0).begin()->to_string(false));
-    opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(cudaq::spin_op::i(0).begin()->to_string(false));
-    opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(cudaq::spin_op::x(0).begin()->to_string(false));
-    opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(cudaq::spin_op::y(0).begin()->to_string(false));
-    opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(cudaq::spin_op::z(0).begin()->to_string(false));
-    opNames.emplace_back(opNames.back() + "_dagger");
-    return opNames;
-  }();
-
-  const bool isCallbackTensor = [&]() {
-    const auto checkIfCanEvaluateWithoutParam =
-        [](const cudaq::matrix_handler &op,
-           std::unordered_map<std::size_t, std::int64_t> &dimensions) {
-          try {
-            op.to_matrix(dimensions, {});
-            return true;
-          } catch (const std::exception &e) {
-            return false;
-          }
-        };
-
-    for (const auto &elemOp : elemOps) {
-      if (std::find(g_knownNonParametricOps.begin(),
-                    g_knownNonParametricOps.end(),
-                    elemOp.to_string(false)) == g_knownNonParametricOps.end() &&
-          !checkIfCanEvaluateWithoutParam(elemOp, dimensions)) {
-        return true;
-      }
-    }
-    return false;
-  }();
+  const bool isCallbackTensor =
+      std::any_of(elemOps.begin(), elemOps.end(), [&](const auto &elemOp) {
+        return requiresTensorCallback(elemOp, dimensions);
+      });
 
   // This is a callback
   if (!parameters.empty() && isCallbackTensor) {
@@ -410,13 +849,14 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
     cudensitymatOperator_t &cudmOperator,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<sum_op<cudaq::matrix_handler>> &ops,
-    const std::vector<int64_t> &modeExtents, int32_t duality) {
+    const std::vector<int64_t> &modeExtents, int32_t duality,
+    const std::vector<FusedTerm> &extraFusableTerms) {
   if (ops.empty())
     throw std::invalid_argument(
         "Operator sum cannot be empty. At least one operator is required.");
 
   const auto numberProductTerms = ops[0].num_terms();
-  if (numberProductTerms == 0)
+  if (numberProductTerms == 0 && extraFusableTerms.empty())
     throw std::invalid_argument(
         "Operator sum must have at least one product term.");
   for (const auto &op : ops) {
@@ -431,8 +871,24 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
   auto ks = std::views::keys(sortedParameters);
   const std::vector<std::string> keys{ks.begin(), ks.end()};
   const bool isBatched = ops.size() > 1;
+  if (isBatched && !extraFusableTerms.empty())
+    throw std::invalid_argument(
+        "Extra fused terms are not supported for batched operators.");
   if (!isBatched) {
-    auto &op = ops[0];
+    std::vector<product_op<cudaq::matrix_handler>> remainingTerms;
+    const auto fusedTerms = fuseProductTerms(ops[0], parameters, modeExtents,
+                                             extraFusableTerms, remainingTerms);
+    for (const auto &fusedTerm : fusedTerms)
+      appendFusedTerm(cudmOperator, fusedTerm, modeExtents, duality);
+    if (remainingTerms.empty())
+      return;
+
+    auto op = ops[0];
+    if (!fusedTerms.empty()) {
+      op = sum_op<cudaq::matrix_handler>::empty();
+      for (auto &term : remainingTerms)
+        op += std::move(term);
+    }
     for (auto &[coeff, term] :
          convertToCudensitymat(op, parameters, modeExtents)) {
       cudensitymatWrappedScalarCallback_t wrappedCallback =

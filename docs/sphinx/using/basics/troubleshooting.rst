@@ -43,9 +43,19 @@ variable. For any CUDA-Q executable, just prepend as follows:
 Python Stack-Traces
 ++++++++++++++++++++++++
 
-When CUDA-Q parses Python command-line options via :func:`cudaq.parse_args`,
-Python stack-traces are suppressed by default to keep runtime errors concise.
-To show the full stack-trace for debugging, pass
+CUDA-Q does not parse command-line options when it is imported. To use CUDA-Q
+runtime options, call :func:`cudaq.parse_args` explicitly before running the
+rest of the program.
+
+.. code-block:: python
+
+    import cudaq
+
+    cudaq.parse_args()
+
+When :func:`cudaq.parse_args` processes Python command-line options, Python
+stack-traces are suppressed by default to keep runtime errors concise. To show
+the full stack-trace for debugging, pass
 :code:`--cudaq-full-stack-trace` when invoking your script.
 
 .. code-block:: bash
@@ -59,6 +69,26 @@ This flag can be combined with other CUDA-Q Python runtime options such as
 
     python3 program.py --target nvidia --target-option fp64 --cudaq-full-stack-trace
 
-If your application parses CUDA-Q command-line arguments explicitly, call
-:func:`cudaq.parse_args` before running the rest of the program so the flag is
-recognized.
+LLVM-based Python packages
+++++++++++++++++++++++++++
+
+Older CUDA-Q releases can expose their bundled LLVM symbols to other Python
+extensions. On Linux, importing Numba or Triton after CUDA-Q can then abort the
+process during JIT compilation or report duplicate LLVM command-line options.
+For affected releases, import Numba or Triton before importing CUDA-Q. If the
+application cannot control import order, run CUDA-Q in a separate process.
+
+CUDA-Q keeps its LLVM-dependent runtime and backend libraries local. Importing
+``cudaq`` exposes only the LLVM-free kernel runtime (``libnvqir``,
+``libcudaq-common``, ``libcudaq-kernel-runtime``, and their dependencies) globally.
+This allows shared libraries containing ``nvq++``-compiled kernels to be loaded
+with ``dlopen`` or ``ctypes.CDLL`` after importing CUDA-Q, even when compiled with
+``nvq++ -c -fPIC`` and linked without explicit CUDA-Q dependencies. Kernel launches
+use the active CUDA-Q target without exposing the compiler's LLVM symbols
+globally.
+
+External native extensions using C++ runtime APIs must still link to the CUDA-Q
+libraries they use, including ``cudaq::cudaq-em-default`` when using the default
+execution manager. Compiler plugins should link to ``cudaq::MLIR``. They must not
+rely on ``import cudaq`` placing those dependencies in the process-wide symbol
+scope.

@@ -11,14 +11,28 @@ Everything in here is subject to change without the usual deprecation cycle and
 may involve undocumented foot guns.
 """
 
-from .runtime_endpoint import set_runtime_endpoint
-from .compile_target import CompileTarget, PipelineConfig, set_compile_target
-from .custom_target import CustomTarget
+from .runtime_endpoint import RuntimeEndpoint
+from .compile_target import (Codegen, CompilationStage, CompileTarget,
+                             CostModel, CustomPipelineLowering, LoopUnrolling,
+                             NoiseSupport, QuakeMappedProfile,
+                             QuakeReferenceSemanticsProfile,
+                             QuakeUnmappedProfile, UncheckedProfile,
+                             get_compile_target)
+from cudaq.core._experimental import CustomTarget
 
 __all__ = [
+    "Codegen",
+    "CompilationStage",
     "CompileTarget",
+    "CostModel",
+    "CustomPipelineLowering",
     "CustomTarget",
-    "PipelineConfig",
-    "set_compile_target",
-    "set_runtime_endpoint",
+    "LoopUnrolling",
+    "NoiseSupport",
+    "RuntimeEndpoint",
+    "QuakeMappedProfile",
+    "QuakeReferenceSemanticsProfile",
+    "QuakeUnmappedProfile",
+    "UncheckedProfile",
+    "get_compile_target",
 ]

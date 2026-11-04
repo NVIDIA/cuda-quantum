@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt --qubit-reset-before-reuse | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 void no_reuse() __qpu__ {
   cudaq::qubit q;
   h(q);

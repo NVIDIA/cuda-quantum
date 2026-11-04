@@ -11,13 +11,12 @@ build
 delocate; sys_platform == "darwin"
 auditwheel; sys_platform == "linux"
 lit==18.1.4
-pytest==9.0.3
-pytest-xdist==3.8.0
+-r requirements-tests.txt
 psutil
 numpy==1.26.4; python_version < "3.14"
 numpy>=2.3.2; python_version >= "3.14"
 -r requirements.txt
-nbconvert==7.17.1
+nbconvert==7.17.2
 -r requirements-mock-qpu.txt
 scipy==1.16.3
 requests==2.33.0

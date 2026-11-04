@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 CUDAQ_REGISTER_OPERATION(custom_h, 1, 0,
                          {M_SQRT1_2, M_SQRT1_2, M_SQRT1_2, -M_SQRT1_2})

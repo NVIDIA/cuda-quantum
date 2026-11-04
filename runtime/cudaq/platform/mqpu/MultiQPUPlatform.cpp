@@ -11,7 +11,6 @@
 #include "common/FmtCore.h"
 #include "common/RuntimeTarget.h"
 #include "helpers/MQPUUtils.h"
-#include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -40,19 +39,16 @@ public:
 
   bool supports_task_distribution() const override { return true; }
 
-  void beginExecution() override {
+  void prepareExecution(std::size_t qid) const override {
     // Only set the CUDA device when GPU-backed QPUs are active.
     // Non-GPU platforms (e.g. ORCA) that replace the default QPUs
     // via setTargetBackend do not require a CUDA device assignment.
-    auto qid = cudaq::getCurrentQpuId();
-    int nDevices = cudaq::getCudaDeviceCount();
-    if (nDevices > 0)
+    if (gpuBackedQpus)
       cudaq::setCudaDevice(qid);
-    // Base implementation of beginExecution will be called after this.
-    cudaq::quantum_platform::beginExecution();
   }
 
 private:
+  bool gpuBackedQpus = false;
   void populateDefaultQPUs();
 
   static std::string getTargetName(const std::string &description) {
@@ -64,25 +60,18 @@ private:
   }
 
   static std::string getQpuType(const std::string &description) {
-    // Target name is the first one in the target config string
-    // or the whole string if this is the only config.
     const auto targetName = getTargetName(description);
-    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    std::string targetConfigFileName = targetName + std::string(".yml");
-    const auto explicitConfigPath =
-        cudaq::detail::getBackendConfigOption(description, "__yml_path");
-    auto configFilePath = explicitConfigPath
-                              ? std::filesystem::path(*explicitConfigPath)
-                              : platformPath / targetConfigFileName;
-    CUDAQ_INFO("Config file path for target {} = {}", targetName,
-               configFilePath.string());
-    // Don't try to load something that doesn't exist.
-    if (!explicitConfigPath && !std::filesystem::exists(configFilePath))
-      return "";
-    auto config = cudaq::config::loadTargetConfig(configFilePath);
-    cudaq::detail::loadTargetPluginLibraries(targetName, configFilePath,
-                                             config);
+    cudaq::config::TargetConfig config;
+    try {
+      auto resolved = cudaq::detail::resolveTargetConfig(description);
+      config = resolved.config;
+      CUDAQ_INFO("Config file path for target {} = {}", targetName,
+                 resolved.configPath.string());
+    } catch (const std::runtime_error &error) {
+      if (std::string(error.what()).find("Invalid Target") != std::string::npos)
+        return "";
+      throw;
+    }
 
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->PlatformQpu.empty()) {
@@ -121,13 +110,15 @@ private:
       if (qpuSubType == "orca") {
         auto urls = cudaq::split(getOption(description, "url"), ',');
         clearQPUs();
+        gpuBackedQpus = false;
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           // Populate the information and add the QPUs
-          auto &qpu = addQPU(cudaq::registry::get<cudaq::QPU>("orca"));
-          qpu.setId(qId);
+          auto qpu = cudaq::registry::get<cudaq::QPU>("orca");
           const std::string configStr =
               fmt::format("orca;url;{}", formatUrl(urls[qId]));
-          qpu.setTargetBackend(configStr);
+          qpu->setId(qId);
+          qpu->setTargetBackend(configStr);
+          addQPU(std::move(qpu));
         }
         return;
       } else {
@@ -152,6 +143,7 @@ private:
 
 void MultiQPUQuantumPlatform::populateDefaultQPUs() {
   clearQPUs();
+  gpuBackedQpus = false;
   int nDevices = cudaq::getCudaDeviceCount();
   // Skipped if CUDA-Q was built with CUDA but no devices present at
   // runtime.
@@ -174,8 +166,12 @@ void MultiQPUQuantumPlatform::populateDefaultQPUs() {
       throw std::runtime_error("No GPUs available to instantiate platform.");
 
     // Add a QPU for each GPU.
-    for (int i = 0; i < nDevices; i++)
-      addQPU(std::make_unique<cudaq::DefaultQPU>()).setId(i);
+    for (int i = 0; i < nDevices; i++) {
+      auto qpu = std::make_unique<cudaq::DefaultQPU>();
+      qpu->setId(i);
+      addQPU(std::move(qpu));
+    }
+    gpuBackedQpus = true;
   }
 }
 } // namespace

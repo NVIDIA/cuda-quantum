@@ -36,6 +36,28 @@ state CuDensityMatTimeStepper::compute(
       std::make_unique<CuDensityMatState>(std::move(next_state)).release());
 }
 
+void CuDensityMatTimeStepper::computeInto(
+    const CuDensityMatState &inputState, CuDensityMatState &outputState,
+    double t,
+    const std::unordered_map<std::string, std::complex<double>> &parameters) {
+  assert(outputState.has_same_shape(inputState));
+  // The operator action accumulates into the output state.
+  outputState.set_zero();
+  computeImpl(inputState.get_impl(), outputState.get_impl(), t, parameters,
+              inputState.getBatchSize());
+}
+
+CuDensityMatState &
+CuDensityMatTimeStepper::workspaceState(std::size_t index,
+                                        const CuDensityMatState &like) {
+  if (index >= m_workspaceStates.size())
+    m_workspaceStates.resize(index + 1);
+  auto &state = m_workspaceStates[index];
+  if (!state || !state->has_same_shape(like))
+    state = CuDensityMatState::mpi_buffer_like(like);
+  return *state;
+}
+
 void CuDensityMatTimeStepper::computeImpl(
     cudensitymatState_t inState, cudensitymatState_t outState, double t,
     const std::unordered_map<std::string, std::complex<double>> &parameters,

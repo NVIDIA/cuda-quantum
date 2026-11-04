@@ -10,7 +10,7 @@
 // RUN: cudaq-quake %s | cudaq-opt --unwind-lowering --canonicalize | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 bool f1(int);
 bool f2(int);

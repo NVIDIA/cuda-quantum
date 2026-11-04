@@ -88,6 +88,55 @@ def test_simple_run_ghz_with_noise():
     cudaq.reset_target()
 
 
+@cudaq.kernel
+def flip_one() -> bool:
+    q = cudaq.qubit()
+    x(q)
+    return mz(q)
+
+
+def test_run_after_noisy_run_rejects_kernel():
+    cudaq.set_target("density-matrix-cpu")
+    try:
+
+        @cudaq.kernel
+        def no_result():
+            q = cudaq.qubit()
+            x(q)
+
+        noise = cudaq.NoiseModel()
+        noise.add_channel("x", [0], cudaq.BitFlipChannel(1.0))
+        with pytest.raises(RuntimeError, match="must return a value"):
+            cudaq.run(no_result, shots_count=1, noise_model=noise)
+        # The failed call must not leave its noise model installed.
+        assert cudaq.run(flip_one, shots_count=10) == [True] * 10
+        assert cudaq.run(flip_one, shots_count=10,
+                         noise_model=noise) == [False] * 10
+    finally:
+        cudaq.reset_target()
+
+
+def test_run_after_noisy_run_fails_in_simulator():
+    cudaq.set_target("stim")
+    try:
+
+        @cudaq.kernel
+        def non_clifford() -> bool:
+            q = cudaq.qubit()
+            t(q)
+            return mz(q)
+
+        # Stim's noise sampling asserts on a channel probability of 1.
+        noise = cudaq.NoiseModel()
+        noise.add_channel("x", [0], cudaq.BitFlipChannel(0.5))
+        with pytest.raises(RuntimeError, match="not supported by Stim"):
+            cudaq.run(non_clifford, shots_count=1, noise_model=noise)
+        # The failed call must not leave its noise model installed.
+        assert cudaq.run(flip_one, shots_count=100) == [True] * 100
+    finally:
+        cudaq.reset_target()
+
+
 def test_return_bool():
 
     @cudaq.kernel

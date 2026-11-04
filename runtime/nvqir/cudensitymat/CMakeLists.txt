@@ -26,6 +26,7 @@ endif()
 if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
 
   add_library(${LIBRARY_NAME} SHARED
+    AnalogEvolution.cpp
     CuDensityMatSim.cpp
     mpi_support.cpp
     CuDensityMatTimeStepper.cpp
@@ -40,6 +41,7 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
     CuDensityMatCallbackConverter.cpp
     CuDensityMatSuperOpCtor.cpp
     CuDensityMatUtils.cpp
+    CuDensityMatDeviceAllocator.cpp
   )
 
   message("CUDAToolkit_INCLUDE_DIRS: ${CUDAToolkit_INCLUDE_DIRS}")
@@ -62,6 +64,7 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
                           fmt::fmt-header-only 
                           cudaq-logger
                           cudaq-common
+                          cudaq
                           cuDensityMat::cuDensityMat
                           cuTensor::cuTensor
                           cuTensorNet::cuTensorNet
@@ -73,7 +76,6 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
                         cuDensityMat::cuDensityMat
                       )
   install(TARGETS ${LIBRARY_NAME} DESTINATION lib COMPONENT Runtime)
-  add_target_config(dynamics)
 else()
   message(FATAL_ERROR "cuDensityMat version ${cuDensityMat_VERSION} is not supported. Please use version 0.4.0 or higher.")
 endif()

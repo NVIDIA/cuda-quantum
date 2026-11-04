@@ -22,11 +22,24 @@ routes events through the existing log. ``reset_backend()`` clears the
 installed backend and disables capture.
 
 ``traced(name)`` is a decorator form of ``span``.
+
+Setting ``CUDAQ_TRACE_FORMAT=chrome`` and ``CUDAQ_TRACE_PATH`` installs a
+file-backed ``ChromeBackend`` at startup; a path of ``-`` writes the JSON as
+one line to standard error at exit. ``otherData.cudaq_trace_version``
+versions the output. Tooling keys on these span names, which tests pin:
+
+- ``cudaq.pipeline.aot`` / ``cudaq.pipeline.jit``: enclose the
+  ``mlir_pass`` events of each pipeline.
+- ``cudaq.logical.target.<tag>``: one CUDA-Q Logical target `backend's`
+  compile, with tag ``p0``, ``clifford_t``, ``p1``, ``p2`` or ``p3``.
+- ``cudaq.estimate.<TIER>``: one resource estimate, with tier ``LOGICAL``,
+  ``STATIC``, ``ANALYTICAL`` or ``SCHEDULE``.
 """
 
 from functools import wraps
 
-from ..mlir._mlir_libs._quakeDialects.cudaq_runtime.trace import (
+# The shared binding also serves logical compilation without the frontend.
+from ..mlir._mlir_libs._backends.trace import (
     span,
     TraceBackend,
     ChromeBackend,

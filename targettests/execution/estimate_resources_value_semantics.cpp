@@ -11,10 +11,10 @@
 // operate on references.
 
 // clang-format off
-// RUN: nvq++ --target value-semantics-test %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --build-target-from-config %cudaq_src_dir/targettests/targets/value-semantics-test.yml %s -o %t && %t | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <cudaq/algorithms/resource_estimation.h>
 
 struct bell_kernel {

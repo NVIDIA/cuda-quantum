@@ -765,9 +765,11 @@ More detailed instructions for your platform can be found in the online document
 linked for that `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__. 
 Please make sure to install CUDA version 12.0 or newer, and confirm that your 
 `GPU driver <https://www.nvidia.com/download/index.aspx>`__ supports that version.
-While the above packages are sufficient to use GPU-acceleration within CUDA-Q, 
-we recommend installing the complete CUDA toolkit (`cuda-toolkit-12-0`) that also 
-includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 12, 
+The above packages are sufficient for the GPU kernels in CUDA-Q itself.
+CuPy, which the `dynamics` target uses, compiles kernels at runtime and also needs the CUDA headers
+(`cuda-cudart-dev-12-0`), or CuPy installed with `pip install cupy-cuda12x[ctk]`.
+We recommend installing the complete CUDA toolkit (`cuda-toolkit-12-0`) that includes both and also
+the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 12, 
 built against version 12.6, and for CUDA 13, built against version 13.0.
 
 .. _distributed-computing-with-mpi:

@@ -27,13 +27,13 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       RpcFrame.cpp)
 
   # Optional CPU-RoCE RDMA channel (cpu_transport Phase 2). Only available when
-  # the realtime package was built with libibverbs (i.e. the cpu-transport
+  # the realtime package was built with HololinkRoce (i.e. the cpu-transport
   # target exists); hosts without RDMA simply omit the cpu_roce channel.
   set(CUDAQ_DEVICE_CALL_CPU_ROCE_LIB "")
   if (TARGET cudaq::cudaq-realtime-cpu-roce-transport)
     list(APPEND CUDAQ_DEVICE_CALL_SOURCES CpuRoceChannel.cpp)
     set(CUDAQ_DEVICE_CALL_CPU_ROCE_LIB cudaq::cudaq-realtime-cpu-roce-transport)
-    message(STATUS "  - device_call: cpu_roce channel enabled (libibverbs)")
+    message(STATUS "  - device_call: cpu_roce channel enabled (Hololink)")
   endif()
 
   # UDP channel: device_call over plain UDP for systems without an RDMA NIC,

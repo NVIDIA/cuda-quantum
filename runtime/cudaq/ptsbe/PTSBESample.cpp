@@ -114,10 +114,24 @@ static void convertTraceInstruction(const cudaq::Trace::Instruction &inst,
   }
 
   if (inst.type == cudaq::TraceInstructionType::Gate) {
+    // Note: PTSBE instructions have no required control values, so expand open
+    // controls here. Synthetic X gates have no modeled noise.
+    for (std::size_t i = 0; i < inst.controlValues.size(); ++i)
+      if (inst.controlValues[i] == 0)
+        result.push_back(
+            {TraceInstructionType::Gate, "x", {controls[i]}, {}, {}});
+
     auto channels =
         noise_model.get_channels(inst.name, targets, controls, inst.params);
     result.push_back({TraceInstructionType::Gate, inst.name, targets, controls,
                       inst.params});
+
+    // Restore controls before adding the logical gate's noise, which may act on
+    // control qubits as well as targets.
+    for (std::size_t i = inst.controlValues.size(); i > 0; --i)
+      if (inst.controlValues[i - 1] == 0)
+        result.push_back(
+            {TraceInstructionType::Gate, "x", {controls[i - 1]}, {}, {}});
 
     std::vector<std::size_t> noiseQubits = targets;
     noiseQubits.insert(noiseQubits.end(), controls.begin(), controls.end());

@@ -32,7 +32,6 @@ target_link_libraries(${LIBRARY_NAME}
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib
         COMPONENT Runtime)
 
-add_target_config(quera)
 
 add_library(cudaq-serverhelper-quera SHARED QuEraExecutor.cpp QuEraServerHelper.cpp)
 target_link_libraries(cudaq-serverhelper-quera

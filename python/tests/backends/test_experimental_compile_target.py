@@ -10,20 +10,18 @@
 #
 # A compile target owns the compilation half of a backend: the pass pipelines,
 # the code generation and the capabilities kernels are compiled against.
-# Registering one with `set_compile_target` overrides what the active target's
-# QPU would otherwise provide, while the launch stays where it was.
+# Install it together with a runtime endpoint as a `CustomTarget`.
 
 import os
+import subprocess
+import sys
 
 import pytest
 
 import cudaq
-from cudaq._experimental import (
-    CompileTarget,
-    PipelineConfig,
-    set_compile_target,
-    set_runtime_endpoint,
-)
+from cudaq._experimental import (Codegen, CompileTarget, CustomPipelineLowering,
+                                 CustomTarget)
+from cudaq._experimental import CompilationStage
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.ir import WalkResult
 
@@ -54,10 +52,89 @@ def make_swap_kernel():
     return swap_kernel
 
 
+def test_frontend_reexports_shared_bindings():
+    from importlib import import_module
+    from types import ModuleType
+    from cudaq.core import _experimental as core_experimental
+    from cudaq.core import results
+    from cudaq.mlir._mlir_libs import _backends, _quakeDialects, _quakeDialectsCore
+
+    assert Codegen is core_experimental.Codegen
+    assert CompileTarget is core_experimental.CompileTarget
+    assert CustomPipelineLowering is core_experimental.CustomPipelineLowering
+    assert CustomTarget is core_experimental.CustomTarget
+    assert cudaq.Resources is results.Resources
+    assert cudaq.EstimateResult is results.EstimateResult
+    # Every public native export must retain object identity through the
+    # frontend, including imports using its original submodule paths.
+    for source, destination in ((_quakeDialectsCore, _quakeDialects),
+                                (_backends, cudaq_runtime)):
+        for name, value in vars(source).items():
+            if name.startswith("_"):
+                continue
+            assert getattr(destination, name) is value
+            if isinstance(value, ModuleType):
+                assert import_module(f"{destination.__name__}.{name}") is value
+
+
+def test_target_values_have_one_registration():
+    from cudaq import _experimental
+    from cudaq.core import _experimental as core_experimental
+    from cudaq.core import _target, results
+
+    for name in ("Codegen", "CompilationStage", "CompileTarget", "CostModel",
+                 "CustomPipelineLowering", "LoopUnrolling", "NoiseSupport",
+                 "QuakeMappedProfile", "QuakeReferenceSemanticsProfile",
+                 "QuakeUnmappedProfile", "UncheckedProfile"):
+        value = getattr(_target, name)
+        for module in (_experimental, core_experimental):
+            assert getattr(module, name) is value
+
+    # The compile-target types are experimental; they must not leak into the
+    # stable-looking results module.
+    assert not hasattr(results, "CompileTarget")
+
+
+def test_get_compile_target_registers_its_return_type():
+    code = """
+import sys
+
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+
+target = cudaq_runtime.get_compile_target()
+assert type(target).__name__ == "CompileTarget", type(target)
+assert type(target).__module__ == "cudaq.core._target"
+
+# The extension registered the type itself; nothing pulled in the frontend's
+# experimental facade.
+assert "cudaq.core._target" in sys.modules
+assert "cudaq._experimental" not in sys.modules
+"""
+    result = subprocess.run([sys.executable, "-c", code],
+                            capture_output=True,
+                            text=True)
+    assert result.returncode == 0, result.stderr
+
+
+def test_custom_target_runtime_annotations():
+    from dataclasses import fields
+    from typing import get_type_hints
+    from cudaq._experimental import RuntimeEndpoint
+    from cudaq.core import _experimental as core_experimental
+
+    expected = {
+        "runtime_endpoint": RuntimeEndpoint,
+        "compile_target": CompileTarget,
+    }
+    assert get_type_hints(CustomTarget) == expected
+    assert {
+        field.name: field.type for field in fields(CustomTarget)
+    } == expected
+    assert RuntimeEndpoint is core_experimental.RuntimeEndpoint
+
+
 def swap_pipeline_target():
-    ct = CompileTarget()
-    ct.pipeline_config.override_pass_pipeline = SWAP_TO_CX_PIPELINE
-    return ct
+    return CompileTarget(custom_pipeline=SWAP_TO_CX_PIPELINE)
 
 
 class CapturingEndpoint:
@@ -71,14 +148,19 @@ class CapturingEndpoint:
         return cudaq.SampleResult()
 
 
-def compiled_quake_ops(kernel):
-    """Launch `kernel` through a capturing endpoint and return its quake ops.
+def set_custom_target(compile_target, endpoint=None):
+    if endpoint is None:
+        endpoint = CapturingEndpoint()
+    cudaq.set_target(
+        CustomTarget(runtime_endpoint=endpoint, compile_target=compile_target))
 
-    Registering the endpoint keeps the compile target that is already
-    installed, so this observes the IR that the current target compiles to.
-    """
+
+def compiled_quake_ops(kernel, compile_target=None):
+    """Launch `kernel` through a capturing endpoint and return its quake ops."""
+    if compile_target is None:
+        compile_target = CompileTarget()
     endpoint = CapturingEndpoint()
-    set_runtime_endpoint(endpoint)
+    set_custom_target(compile_target, endpoint=endpoint)
     cudaq.sample(kernel, shots_count=1)
 
     module = endpoint.mlir_module
@@ -95,42 +177,14 @@ def compiled_quake_ops(kernel):
     return ops
 
 
-# ---------------------------------------------------------------------------- #
-# Use with set_compile_target
-# ---------------------------------------------------------------------------- #
-
-
-def test_set_compile_target_rejects_non_target():
-    with pytest.raises(TypeError, match="not a compile target"):
-        set_compile_target("qpp-cpu")
-
-
-def test_kernel_runs_with_a_custom_compile_target():
-    set_compile_target(CompileTarget())
-
-    @cudaq.kernel
-    def bell():
-        q = cudaq.qvector(2)
-        h(q[0])
-        x.ctrl(q[0], q[1])
-        mz(q)
-
-    counts = cudaq.sample(bell, shots_count=10)
-    # Bell state: only correlated outcomes should appear.
-    assert set(counts) <= {"00", "11"}
-    assert sum(counts.values()) == 10
-
-
-def test_pipeline_config_controls_compiled_ir():
+def test_lowering_controls_compiled_ir():
     # Baseline: the default qpp-cpu pipeline keeps the swap intact.
-    set_compile_target(CompileTarget())
     default_ops = compiled_quake_ops(make_swap_kernel())
     assert any(name == "quake.swap" for name, _ in default_ops)
 
     # Custom pipeline: decompose swap into CNOTs.
-    cudaq.set_target("qpp-cpu")
-    set_compile_target(swap_pipeline_target())
-    decomposed_ops = compiled_quake_ops(make_swap_kernel())
+    decomposed_ops = compiled_quake_ops(make_swap_kernel(),
+                                        compile_target=swap_pipeline_target())
 
     # The swap has been decomposed away into three controlled-x (CNOT) ops.
     assert all(name != "quake.swap" for name, _ in decomposed_ops)
@@ -141,17 +195,6 @@ def test_pipeline_config_controls_compiled_ir():
     assert len(controlled_x) == 3
 
 
-def test_pipeline_config_preserves_kernel_semantics():
-    # Decomposition must not change the observable behaviour of the kernel.
-    set_compile_target(CompileTarget())
-    default_counts = cudaq.sample(make_swap_kernel(), shots_count=10)
-
-    set_compile_target(swap_pipeline_target())
-    decomposed_counts = cudaq.sample(make_swap_kernel(), shots_count=10)
-
-    assert dict(decomposed_counts.items()) == dict(default_counts.items())
-
-
 def test_compile_target_does_not_leak_after_switch():
     """A compile target must not survive a target change.
 
@@ -160,19 +203,19 @@ def test_compile_target_does_not_leak_after_switch():
     kernels (e.g. `cudaq.draw`).
     """
 
-    def op_names(kernel):
-        return [name for name, _ in compiled_quake_ops(kernel)]
+    def op_names(kernel, compile_target=None):
+        return [name for name, _ in compiled_quake_ops(kernel, compile_target)]
 
     # Install a compile target that decomposes swaps into CNOTs.
-    set_compile_target(swap_pipeline_target())
-    assert "quake.swap" not in op_names(make_swap_kernel())
+    assert "quake.swap" not in op_names(make_swap_kernel(),
+                                        compile_target=swap_pipeline_target())
 
     # Switching targets must restore default behaviour.
     cudaq.set_target("qpp-cpu")
     assert "quake.swap" in op_names(make_swap_kernel())
 
     # Same expectation after a reset.
-    set_compile_target(swap_pipeline_target())
+    set_custom_target(swap_pipeline_target())
     cudaq.reset_target()
     assert "quake.swap" in op_names(make_swap_kernel())
 
@@ -180,37 +223,45 @@ def test_compile_target_does_not_leak_after_switch():
 def test_support_explicit_measurements():
     ct = CompileTarget()
     ct.support_explicit_measurements = False
-    set_compile_target(ct)
+    set_custom_target(ct)
     assert cudaq_runtime.supportsExplicitMeasurements() is False
 
     ct.support_explicit_measurements = True
-    set_compile_target(ct)
+    set_custom_target(ct)
     assert cudaq_runtime.supportsExplicitMeasurements() is True
 
 
-def test_support_conditionals_on_measure_results():
+# ---------------------------------------------------------------------------- #
+# Use with a named target
+# ---------------------------------------------------------------------------- #
+
+
+def test_named_target_with_compile_target():
     ct = CompileTarget()
-    ct.support_conditionals_on_measure_results = True
-    set_compile_target(ct)
+    ct.support_explicit_measurements = False
+    cudaq.set_target("qpp-cpu", compile_target=ct)
+    assert cudaq.get_target().name == "qpp-cpu"
+    assert cudaq_runtime.supportsExplicitMeasurements() is False
 
-    @cudaq.kernel
-    def kernel() -> bool:
-        q = cudaq.qvector(2)
-        h(q[0])
-        b = mz(q[0])
-        if b:
-            x(q[1])
-        return b == mz(q[1])
+    # A new seed must not rebuild the compile target from the target config.
+    cudaq.set_random_seed(13)
+    assert cudaq_runtime.supportsExplicitMeasurements() is False
 
-    # it runs fine
-    assert kernel()
+    # Without compile_target, the target's default compile target is used.
+    cudaq.set_target("qpp-cpu")
+    assert cudaq_runtime.supportsExplicitMeasurements() is True
 
-    ct.support_conditionals_on_measure_results = False
-    set_compile_target(ct)
 
-    # now it throws a runtime error
-    with pytest.raises(RuntimeError):
-        kernel()
+def test_named_target_compiles_against_given_compile_target():
+    cudaq.set_target(
+        "qpp-cpu",
+        compile_target=CompileTarget(custom_pipeline="not-a-registered-pass"))
+    with pytest.raises(RuntimeError, match="not-a-registered-pass"):
+        cudaq.sample(make_swap_kernel(), shots_count=1)
+
+    cudaq.set_target(cudaq.get_target("qpp-cpu"),
+                     compile_target=swap_pipeline_target())
+    assert cudaq.sample(make_swap_kernel(), shots_count=10)["01"] == 10
 
 
 # ---------------------------------------------------------------------------- #
@@ -218,13 +269,13 @@ def test_support_conditionals_on_measure_results():
 # ---------------------------------------------------------------------------- #
 
 
-def test_pipeline_config_equality_and_hash():
-    a = PipelineConfig()
-    b = PipelineConfig()
+def test_custom_pipeline_lowering_equality_and_hash():
+    a = CustomPipelineLowering()
+    b = CustomPipelineLowering()
     assert a == b
     assert hash(a) == hash(b)
 
-    b.disable_qubit_mapping = True
+    b.high_level = SWAP_TO_CX_PIPELINE
     assert a != b
 
 
@@ -234,15 +285,193 @@ def test_compile_target_equality_and_hash():
     assert a == b
     assert hash(a) == hash(b)
 
-    b.pipeline_config.override_pass_pipeline = SWAP_TO_CX_PIPELINE
+    b.stages = swap_pipeline_target().stages
     assert a != b
     assert hash(a) != hash(b)
 
 
+def test_reading_stages_does_not_mutate_target():
+    a = CompileTarget()
+    b = CompileTarget()
+    assert a.stages == []
+    assert a == b
+    assert hash(a) == hash(b)
+
+
+def test_empty_stages_roundtrip():
+    ct = swap_pipeline_target()
+    assert ct != CompileTarget()
+    ct.stages = []
+    assert ct == CompileTarget()
+    assert ct.stages == []
+
+
+def test_staged_lowering():
+    ct = CompileTarget(custom_pipeline=CustomPipelineLowering(
+        high_level=SWAP_TO_CX_PIPELINE))
+    assert ct.stages[0].lowering.high_level == SWAP_TO_CX_PIPELINE
+    assert ct.stages[0].lowering.override_pass_pipeline == ""
+
+    # The high-level pipeline runs around the built-in passes: the swap is
+    # still decomposed into three controlled-x (CNOT) ops.
+    decomposed_ops = compiled_quake_ops(make_swap_kernel(), compile_target=ct)
+    assert all(name != "quake.swap" for name, _ in decomposed_ops)
+    controlled_x = [
+        name for name, num_operands in decomposed_ops
+        if name == "quake.x" and num_operands > 1
+    ]
+    assert len(controlled_x) == 3
+
+
+def test_codegen_defaults_and_equality():
+    a = Codegen()
+    b = Codegen()
+    assert a == b
+    assert hash(a) == hash(b)
+    assert a.emission_format == ""
+    assert a.post_codegen_passes == ""
+
+    b.post_codegen_passes = "canonicalize"
+    assert a != b
+
+
+def test_string_codegen_matches_codegen_object():
+    via_string = CompileTarget(codegen="qir-base")
+    via_codegen = CompileTarget(codegen=Codegen("qir-base"))
+    assert via_string == via_codegen
+    assert hash(via_string) == hash(via_codegen)
+
+    a = CompileTarget()
+    b = CompileTarget()
+    a.codegen = "qir-base"
+    b.codegen = Codegen("qir-base")
+    assert a == b
+    assert a.codegen.emission_format == "qir-base"
+
+
+def test_codegen_in_place_mutation_updates_target():
+    ct = CompileTarget(
+        codegen=Codegen("qir-base", post_codegen_passes="canonicalize"))
+    ct.codegen.post_codegen_passes = "remove-measurements"
+    assert ct.codegen.post_codegen_passes == "remove-measurements"
+    assert ct.codegen.emission_format == "qir-base"
+
+    a = CompileTarget()
+    a.codegen.emission_format = "qir-base"
+    assert a.codegen == Codegen("qir-base")
+
+
+def test_override_and_staged_pipelines_are_mutually_exclusive():
+    with pytest.raises(ValueError):
+        CustomPipelineLowering(SWAP_TO_CX_PIPELINE, high_level="canonicalize")
+
+
 def test_repr_is_informative():
-    assert "PipelineConfig(" in repr(PipelineConfig())
-    assert "CompileTarget(" in repr(CompileTarget())
+    assert "CustomPipelineLowering" in repr(CustomPipelineLowering())
+    assert SWAP_TO_CX_PIPELINE in repr(
+        CustomPipelineLowering(SWAP_TO_CX_PIPELINE))
+    assert "qir:" in repr(Codegen("qir:"))
+    assert "canonicalize" in repr(Codegen("qir-base", "canonicalize"))
+    assert "stages=[]" in repr(CompileTarget())
+    assert "custom-pipeline" in repr(swap_pipeline_target())
     assert SWAP_TO_CX_PIPELINE in repr(swap_pipeline_target())
+
+
+def make_static_bell_kernel():
+
+    @cudaq.kernel
+    def bell():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+        mz(q)
+
+    return bell
+
+
+def compile_profile_target(kernel, controlled_gate):
+    from cudaq._experimental import QuakeReferenceSemanticsProfile
+
+    profile = QuakeReferenceSemanticsProfile(
+        basis_gates=["h", "t", controlled_gate],
+        measurement_type="single_qubit")
+    target = CompileTarget(ir_output_profile=profile, codegen="qir-base")
+    endpoint = CapturingEndpoint()
+    set_custom_target(target, endpoint)
+    cudaq.sample(kernel, shots_count=1)
+    assert endpoint.mlir_module is not None
+    ir = str(endpoint.mlir_module)
+    assert ir.count("= quake.mz ") == 2
+    assert not any(
+        "quake.mz" in line and "!quake.veq" in line for line in ir.splitlines())
+    assert "quake." + controlled_gate[0] + " [" in ir
+    return ir
+
+
+def test_profile_target_switching_uses_the_same_kernel_cache_safely():
+    kernel = make_static_bell_kernel()
+    z_ir = compile_profile_target(kernel, "z(1)")
+    x_ir = compile_profile_target(kernel, "x(1)")
+    assert "quake.x [" not in z_ir
+    assert "quake.z [" not in x_ir
+    assert compile_profile_target(kernel, "z(1)") == z_ir
+
+
+def test_later_stage_cannot_add_passes_before_deploy():
+    from cudaq._experimental import QuakeReferenceSemanticsProfile
+
+    # Single-qubit measurements add `expand-measurements` before deploy, and
+    # only the first stage may add passes there.
+    stages = [
+        CompilationStage(
+            QuakeReferenceSemanticsProfile(basis_gates=["h", "t", gate],
+                                           measurement_type="single_qubit"))
+        for gate in ("z(1)", "x(1)")
+    ]
+    set_custom_target(CompileTarget(stages=stages, codegen="qir-base"))
+    with pytest.raises(RuntimeError,
+                       match="stage 2: only the first stage may add passes"):
+        cudaq.sample(make_static_bell_kernel(), shots_count=1)
+
+
+def remote_profile_target(post_codegen_passes=""):
+    from cudaq._experimental import QuakeReferenceSemanticsProfile
+
+    target = CompileTarget(ir_output_profile=QuakeReferenceSemanticsProfile(
+        basis_gates=["h", "x(1)"], measurement_type="single_qubit"),
+                           codegen=Codegen(
+                               "qir-adaptive:0.1:int_computations",
+                               post_codegen_passes=post_codegen_passes))
+    target.fully_specialize = True
+    return target
+
+
+def test_remote_target_codegen_uses_given_compile_target():
+    cudaq.set_target("quantinuum",
+                     emulate=True,
+                     compile_target=remote_profile_target())
+    assert len(cudaq.sample(make_static_bell_kernel(), shots_count=10)) > 0
+
+    cudaq.set_target(
+        "quantinuum",
+        emulate=True,
+        compile_target=remote_profile_target("not-a-registered-pass"))
+    with pytest.raises(RuntimeError, match="Could not successfully translate"):
+        cudaq.sample(make_static_bell_kernel(), shots_count=10)
+
+
+def test_remote_tracing_does_not_emit_target_code():
+    cudaq.set_target(
+        "quantinuum",
+        emulate=True,
+        compile_target=remote_profile_target("not-a-registered-pass"))
+    kernel = make_static_bell_kernel()
+
+    # Drawing executes the JIT artifact and must not run transport codegen.
+    assert "h" in cudaq.draw(kernel)
+    # Sampling the same kernel still requires transport codegen.
+    with pytest.raises(RuntimeError, match="Could not successfully translate"):
+        cudaq.sample(kernel, shots_count=1)
 
 
 if __name__ == "__main__":

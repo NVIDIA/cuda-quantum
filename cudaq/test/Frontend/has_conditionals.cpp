@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt --quake-add-metadata | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel

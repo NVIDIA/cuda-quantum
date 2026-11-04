@@ -13,9 +13,8 @@ from typing import List
 
 import cudaq
 
-skipIfNoGQPU = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
-    reason="nvidia-mqpu backend not available")
+skipIfNoGQPU = pytest.mark.skipif(not cudaq.has_target('nvidia'),
+                                  reason="nvidia-mqpu backend not available")
 
 
 @pytest.fixture(autouse=True)

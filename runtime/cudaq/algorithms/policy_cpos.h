@@ -28,6 +28,7 @@ class CircuitSimulator;
 namespace cudaq {
 class ExecutionManager;
 class ExecutionContext;
+std::size_t get_random_seed();
 
 /// @brief Default finalization — called when no policy-specific overload
 ///        exists. Defined in execution_manager.h.
@@ -78,14 +79,20 @@ concept has_custom_compile_options =
 /// @brief CPO function object for per-policy compile options.
 ///
 /// Dispatches to a policy-specific @c get_compile_options_impl if one exists,
-/// otherwise returns default-constructed @c CompileOptions.
+/// otherwise starts from default-constructed @c CompileOptions. Either way the
+/// options carry @p randomSeed, the value of @c cudaq::get_random_seed, which
+/// also seeds randomized compiler passes. A random seed of 0 means unseeded,
+/// as it does for @c cudaq::set_random_seed.
 struct get_compile_options_fn {
   template <class Policy>
-  CompileOptions operator()(const Policy &policy) const {
+  CompileOptions operator()(const Policy &policy,
+                            std::size_t randomSeed) const {
+    CompileOptions options;
     if constexpr (has_custom_compile_options<Policy>)
-      return get_compile_options_impl(policy);
-    else
-      return CompileOptions{};
+      options = get_compile_options_impl(policy);
+    if (randomSeed != 0)
+      options.seed = randomSeed;
+    return options;
   }
 };
 

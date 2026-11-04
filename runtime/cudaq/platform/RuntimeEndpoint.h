@@ -12,7 +12,9 @@
 #include "cudaq/Support/Tuple.h"
 #include "cudaq/algorithms/policies.h"
 #include <any>
+#include <concepts>
 #include <cstddef>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -105,8 +107,37 @@ struct RuntimeEndpoint {
     return fn(impl, policy, module, args);
   }
 
-  /// Create a RuntimeEndpoint from a QPU instance.
-  static RuntimeEndpoint wrapQPU(QPU &qpu);
+  /// Get the QPU wrapped by this RuntimeEndpoint (if any).
+  ///
+  /// Returns nullptr if the RuntimeEndpoint does not wrap a QPU.
+  template <std::derived_from<QPU> T = QPU>
+  T *getQPU() {
+    auto ptr = std::any_cast<std::shared_ptr<QPU>>(&impl);
+    if (!ptr)
+      return nullptr;
+    auto *qpu = ptr->get();
+    if constexpr (std::is_same_v<T, QPU>) {
+      return qpu;
+    } else {
+      return dynamic_cast<T *>(qpu);
+    }
+  }
+
+  template <std::derived_from<QPU> T = QPU>
+  const T *getQPU() const {
+    const auto ptr = std::any_cast<std::shared_ptr<QPU>>(&impl);
+    if (!ptr)
+      return nullptr;
+    const auto *qpu = ptr->get();
+    if constexpr (std::is_same_v<T, QPU>) {
+      return qpu;
+    } else {
+      return dynamic_cast<T *>(qpu);
+    }
+  }
+
+  /// Create a RuntimeEndpoint from a QPU instance. Takes ownership of the QPU.
+  static RuntimeEndpoint fromQPU(std::unique_ptr<QPU> qpu);
 };
 
 } // namespace cudaq

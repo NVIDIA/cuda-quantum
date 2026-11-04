@@ -99,7 +99,7 @@ Synthesis legalizes off-lattice rotations to Clifford+T; see
 Magic states are typed resources, not ad-hoc qubits. The standard library
 namespace `cudaq.logical.logical` declares the kinds — `T_STATE`,
 `RAW_T_STATE`, `Y_STATE`, `CCZ_STATE`, `CS_STATE`, `ENCODED_BELL_PAIR` — each
-with a typed consume action, and its `produce(...)` builds the objective a
+with a typed consume action, and its `produce(...)` builds the action a
 production protocol claims to implement. A protocol body sees resources through
 `cudaq.logical.types.resource[...]` handles: `cudaq.logical.request_many` draws
 raw inputs, `cudaq.logical.unpack_resource` opens a resource into a patch, and
@@ -107,20 +107,20 @@ raw inputs, `cudaq.logical.unpack_resource` opens a resource into a patch, and
 
 ## 15-to-1: a concrete factory
 
-`examples/standalone/03_magic_state_distillation.py` authors the real five-row
+`examples/standalone/07_magic_state_distillation.py` authors the real five-row
 triorthogonal circuit with the root authoring facade — not an analytical
 placeholder:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/03_magic_state_distillation.py
+.. literalinclude:: ../../../examples/standalone/07_magic_state_distillation.py
    :language: python
    :start-at: import cudaq.logical as cql
    :end-before: # %%
-   :caption: The 15-to-1 T-state protocol (examples/standalone/03_magic_state_distillation.py).
+   :caption: The 15-to-1 T-state protocol (examples/standalone/07_magic_state_distillation.py).
 ```
 
-The protocol unpacks fifteen linear raw-state inputs onto bare patches; eleven
-resource-assisted product rotations from
+The protocol requests fifteen linear raw-state inputs and unpacks four onto bare
+patches as check rows; eleven resource-assisted product rotations from
 `cudaq.logical.protocols.FIFTEEN_TO_ONE_ROTATION_STEPS` apply the triorthogonal
 circuit; `cudaq.logical.protocols.bare_s` converts the resulting T† on the odd
 row to the canonical T|+⟩; and exactly the four even rows must measure $+X$ —
@@ -131,7 +131,7 @@ Because the protocol is an ordinary compiled definition, the static estimation
 tier counts it directly:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/03_magic_state_distillation.py
+.. literalinclude:: ../../../examples/standalone/07_magic_state_distillation.py
    :language: python
    :start-at: # Estimate the protocol directly
    :end-at: peak live patches
@@ -160,12 +160,18 @@ The `cudaq.logical.protocols` library also exposes the reusable pieces —
 and the ready-made `distill_15to1` definition — so you can compose your own
 production protocol from verified parts.
 
-:::{admonition} Evidence boundary :class: note
+:::{admonition} Evidence boundary
+:class: note
 
 A static estimate counts what the declared protocol costs; it does not sample
 the factory, decode its checks, or model the noise that makes distillation
 necessary. The estimate reports postselection as counts and success rows, not
-as simulated accept/reject statistics. :::
+as simulated accept/reject statistics. The
+[T-state distillation example](examples/t-factory-evaluation.md) runs the same
+rotations and checks with `cudaq.run`, realizing each rotation by gate
+teleportation, and compares its acceptance and output error with
+`DISTILL_15TO1_T`.
+:::
 
 ## Compact factory models at P3
 

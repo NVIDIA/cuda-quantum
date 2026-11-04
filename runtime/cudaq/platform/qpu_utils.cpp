@@ -10,10 +10,13 @@
 #include "common/Executor.h"
 #include "common/RuntimeTarget.h"
 #include "common/ServerHelper.h"
+#include "cudaq.h"
 #include "nvqpp_config.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
+#include "cudaq/Support/Version.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetConfig.h"
-#include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -27,11 +30,6 @@
 #include <vector>
 
 using namespace cudaq;
-
-void detail::parseTargetConfigYml(const std::string &yamlContent,
-                                  config::TargetConfig &targetConfig) {
-  targetConfig = config::parseTargetConfig(yamlContent);
-}
 
 std::string detail::decodeBase64(const std::string &encoded) {
   std::vector<char> decoded_vec;
@@ -61,9 +59,55 @@ detail::getBackendConfigOption(const std::string &backend,
 std::filesystem::path
 detail::getTargetConfigPath(const std::string &backend,
                             const std::filesystem::path &fallback) {
-  if (auto path = getBackendConfigOption(backend, "__yml_path"))
+  if (auto path = getBackendConfigOption(backend, "__target_config_path"))
     return *path;
   return fallback;
+}
+
+cudaq::config::HostEnvironment detail::currentHostEnvironment() {
+  cudaq::config::HostEnvironment env;
+  const int gpus = cudaq::num_available_gpus();
+  env.gpuCount = gpus > 0 ? static_cast<unsigned>(gpus) : 0u;
+  env.cudaqVersion = cudaq::getVersion();
+  const std::filesystem::path cudaqLibraryPath{cudaq::getCUDAQLibraryPath()};
+  env.libraryPaths.emplace_back(cudaqLibraryPath.parent_path());
+  return env;
+}
+
+detail::ResolvedTargetConfig
+detail::resolveTargetConfig(const std::string &backend) {
+  auto split = cudaq::split(backend, ';');
+  const std::string targetName = split.empty() ? backend : split.front();
+
+  cudaq::config::TargetCatalog registry;
+  std::filesystem::path explicitPath;
+  if (auto path = getBackendConfigOption(backend, "__target_config_path")) {
+    explicitPath = *path;
+    const auto configDir = explicitPath.parent_path();
+    const auto pluginRoot =
+        configDir.filename() == "targets" ? configDir.parent_path() : configDir;
+    registry.addPluginRoot(pluginRoot);
+  }
+
+  auto resolved = registry.resolve(targetName, currentHostEnvironment());
+  if (!resolved)
+    throw std::runtime_error("Invalid Target: (" + targetName + ")");
+  if (!resolved->status.isAvailable())
+    throw std::runtime_error(resolved->status.diagnostic);
+
+  ResolvedTargetConfig result;
+  result.name = targetName;
+  result.config = *resolved->entry->config;
+  result.configPath = resolved->entry->configPath.empty()
+                          ? explicitPath
+                          : resolved->entry->configPath;
+  result.pluginLibDir = resolved->entry->pluginLibDir;
+  result.simulatorName = resolved->resolved.simulatorName;
+  result.platformName = resolved->resolved.platformName;
+  result.fp64Simulation = resolved->resolved.fp64Simulation;
+
+  loadTargetPluginLibraries(result.name, result.configPath, result.config);
+  return result;
 }
 
 namespace {
@@ -80,7 +124,7 @@ void loadTargetPluginLibrary(const std::filesystem::path &path,
 
   CUDAQ_INFO("Loading plugin library '{}' for target '{}'.", pathString,
              targetName);
-  void *handle = dlopen(pathString.c_str(), RTLD_GLOBAL | RTLD_NOW);
+  void *handle = dlopen(pathString.c_str(), RTLD_LOCAL | RTLD_NOW);
   if (!handle) {
     const char *error = dlerror();
     throw std::runtime_error("Unable to load plugin library '" + pathString +
@@ -103,24 +147,10 @@ void detail::loadTargetPluginLibraries(
       configDir.filename() == "targets" ? configDir.parent_path() : configDir;
   const auto pluginLibDir = pluginRoot / "lib";
 
-  // A plugin library may be named in the target YAML without a platform
-  // suffix (e.g. "libcudaq-rest-qpu") so that one config file works on every
-  // platform; the suffix for this build is appended here. An explicitly
-  // suffixed name is still honoured, and is tried first.
-  const std::string sharedLibSuffix = PLATFORM_SHARED_LIBRARY_SUFFIX;
-  auto endsWithSuffix = [&sharedLibSuffix](const std::string &name) {
-    return name.size() >= sharedLibSuffix.size() &&
-           name.compare(name.size() - sharedLibSuffix.size(),
-                        sharedLibSuffix.size(), sharedLibSuffix) == 0;
-  };
-
   for (const auto &pluginLibrary : targetConfig.PluginLibraries) {
-    std::vector<std::string> names{pluginLibrary};
-    if (!endsWithSuffix(pluginLibrary))
-      names.push_back(pluginLibrary + sharedLibSuffix);
-
     std::vector<std::filesystem::path> candidates;
-    for (const auto &name : names) {
+    for (const auto &name :
+         config::sharedLibraryNameCandidates(pluginLibrary)) {
       const std::filesystem::path requestedPath(name);
       if (requestedPath.is_absolute()) {
         candidates.push_back(requestedPath);
@@ -184,12 +214,22 @@ void detail::initServerHelperAndExecutor(
   CUDAQ_INFO("Retrieving executor with name {}", qpuName);
   CUDAQ_INFO("Is this executor registered? {}",
              cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
-  executor = cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
-                 ? cudaq::registry::get<cudaq::Executor>(qpuName)
-                 : std::make_unique<cudaq::Executor>();
+  // Emulation uses the helper's compilation settings, but executes locally.
+  // Constructing a remote executor can start network connections (e.g. AWS
+  // metadata and S3 requests) even when no remote job will ever be submitted.
+  const auto emulate = backendConfig.find("emulate");
+  const bool isEmulated =
+      emulate != backendConfig.end() && emulate->second == "true";
+  executor =
+      !isEmulated && cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
+          ? cudaq::registry::get<cudaq::Executor>(qpuName)
+          : std::make_unique<cudaq::Executor>();
 
   // Give the server helper to the executor
   executor->setServerHelper(serverHelper.get());
+
+  // Register after client setup, which may initialize SDK statics.
+  detail::registerPlatformCleanup();
 
   // Construct the runtime target
   RuntimeTarget runtimeTarget;

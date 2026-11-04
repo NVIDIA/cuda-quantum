@@ -1,0 +1,28 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+version: 2-alpha
+name: compiler-bench-nisq
+description: "NISQ benchmark target lowering to a CZ and rotation basis, with optional routing onto a device, for resource counting"
+
+config:
+  nvqir-simulation-backend: qpp
+
+# Set `device` on the `quake-mapped` stage of `get_compile_target()`, such
+# as `path(5)`, to route; without one nothing is routed.
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-unmapped
+        options:
+          basis-gates: [h, rx, ry, rz, x, "z(1)"]
+          cost-model: two-qubit-gate-count
+    - ir-output-profile:
+        name: quake-mapped
+        options:
+          basis-gates: [h, rx, ry, rz, x, "z(1)"]

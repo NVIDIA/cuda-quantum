@@ -75,6 +75,29 @@ def test_translate_openqasm():
     assert "qreg var0[2];" in asm
 
 
+def test_translate_openqasm_negated_custom_control():
+    cudaq.register_operation("custom_x", np.array([[0, 1], [1, 0]]))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x(q[1])
+        custom_x.ctrl(~q[0], q[1])
+
+    @cudaq.kernel
+    def reference():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x(q[1])
+        x(q[0])
+        custom_x.ctrl(q[0], q[1])
+        x(q[0])
+
+    assert cudaq.translate(kernel, format="openqasm2") == cudaq.translate(
+        reference, format="openqasm2")
+
+
 def test_translate_openqasm_with_ignored_args():
     with pytest.raises(RuntimeError) as e:
         asm = cudaq.translate(bell_pair, 5, format="openqasm2")
@@ -129,6 +152,21 @@ def test_translate_qir_with_args():
     qir = cudaq.translate(kernel_loop_params, 5, format="qir")
     pattern = r"call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate"
     assert re.search(pattern, qir, re.DOTALL), f"{qir} content mismatch"
+
+
+def test_translate_qir_bool_list_args():
+    # Translation substitutes the arguments, so a `list[bool]` must be packed
+    # for argument synthesis rather than in the run-time layout.
+
+    @cudaq.kernel
+    def flip(bits: list[bool]):
+        qubits = cudaq.qvector(len(bits))
+        for i in range(len(bits)):
+            if bits[i]:
+                x(qubits[i])
+
+    qir = cudaq.translate(flip, [True, False, True], format="qir")
+    assert re.findall(r"store i8 (\d), ptr", qir) == ["1", "0", "1"], qir
 
 
 def test_translate_qir_call():

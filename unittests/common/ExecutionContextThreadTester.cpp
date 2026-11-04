@@ -21,16 +21,18 @@ using namespace cudaq;
 
 TEST(QPUUtilsTester, getsRawBackendConfigOption) {
   const std::string backend =
-      "target;__yml_path;/tmp/plugin/targets/target.yml;emulate;false";
-  EXPECT_EQ(cudaq::detail::getBackendConfigOption(backend, "__yml_path"),
-            "/tmp/plugin/targets/target.yml");
+      "target;__target_config_path;/tmp/plugin/targets/target.so;emulate;false";
+  EXPECT_EQ(
+      cudaq::detail::getBackendConfigOption(backend, "__target_config_path"),
+      "/tmp/plugin/targets/target.so");
 }
 
 TEST(QPUUtilsTester, getsBase64BackendConfigOptionWithSpaces) {
-  const std::string backend = "target;__yml_path;base64_"
-                              "L3RtcC9wbHVnaW4gcGF0aC90YXJnZXRzL3Rlc3QueW1s";
+  // base64("/tmp/plugin path/targets/test.so")
+  const std::string backend = "target;__target_config_path;base64_"
+                              "L3RtcC9wbHVnaW4gcGF0aC90YXJnZXRzL3Rlc3Quc28=";
   EXPECT_EQ(cudaq::detail::getTargetConfigPath(backend, "/fallback.yml"),
-            "/tmp/plugin path/targets/test.yml");
+            "/tmp/plugin path/targets/test.so");
 }
 
 TEST(QPUUtilsTester, usesFallbackTargetConfigPath) {
@@ -43,11 +45,16 @@ class DummyQPU : public cudaq::QPU {
 public:
   DummyQPU() = default;
 
+  cudaq::CompileTarget getCompileTarget(const cudaq::RuntimeTarget *) override {
+    return {};
+  }
+
   void enqueue(cudaq::QuantumTask &task) override {}
 
   cudaq::KernelThunkResultType
-  unifiedLaunchModule(const cudaq::AnyModule &module,
-                      cudaq::KernelArgs args) override {
+  compileAndLaunchKernel(const cudaq::AnyModule &module, cudaq::KernelArgs args,
+                         const cudaq::CompileTarget &target,
+                         const cudaq::CompileOptions &options) override {
     return {};
   }
 };

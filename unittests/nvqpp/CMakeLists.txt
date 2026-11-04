@@ -92,6 +92,16 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
       ${CMAKE_SOURCE_DIR}/tpls/Stim/src)
     target_link_libraries(${TEST_EXE_NAME} PRIVATE libstim)
   endif()
+  if (${NVQIR_BACKEND} STREQUAL "custabilizer")
+    # Reuse Stim's Clifford and noise tests. cuStabilizer does not support MSM.
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE
+      CUDAQ_BACKEND_STIM CUDAQ_BACKEND_CUSTABILIZER CUDAQ_SIMULATION_SCALAR_FP64)
+    target_include_directories(${TEST_EXE_NAME} PRIVATE
+      ${CMAKE_SOURCE_DIR}/tpls/Stim/src)
+    # The shared AnalysisScope suite explicitly looks up the Stim factory.
+    target_link_libraries(${TEST_EXE_NAME} PRIVATE libstim nvqir-stim)
+    set(TEST_LABELS "gpu_required")
+  endif()
   if (${NVQIR_BACKEND} STREQUAL "tensornet")
     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_SIMULATION_SCALAR_FP64)
     set(TEST_LABELS "gpu_required")
@@ -124,6 +134,9 @@ endmacro()
 create_tests_with_backend(qpp "")
 create_tests_with_backend(dm "")
 create_tests_with_backend(stim "")
+if(TARGET nvqir-custabilizer)
+  create_tests_with_backend(custabilizer "")
+endif()
 
 if (cuStateVec_FOUND)
   add_subdirectory(custatevec)

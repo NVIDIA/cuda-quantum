@@ -820,9 +820,8 @@ def test_ctrl_rotation_integration():
     print(result)
 
     # The `target` should be in a 50/50 mix between |0> and |1>.
-    extra_mapping_qubits = "0000"
-    want_1_state = extra_mapping_qubits + "111111"
-    want_0_state = extra_mapping_qubits + "111110"
+    want_1_state = "111111"
+    want_0_state = "111110"
     assert result[want_1_state] == 505
     assert result[want_0_state] == 495
     cudaq.reset_target()
@@ -879,7 +878,7 @@ def test_recursive_calls():
 
 
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
+    not cudaq.has_target('nvidia-fp64'),
     reason='Could not find nvidia-fp64 in installation')
 
 
@@ -972,7 +971,7 @@ def test_from_state0():
 
 
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    not cudaq.has_target('nvidia'),
     reason='Could not find nvidia in installation')
 
 

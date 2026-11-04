@@ -81,10 +81,16 @@ struct ExecutionResult {
   /// @param other
   ExecutionResult(const ExecutionResult &other);
 
+  /// @brief Transfer ownership of the counts and sequential shot data.
+  ExecutionResult(ExecutionResult &&) noexcept = default;
+
   /// @brief Set this ExecutionResult equal to the provided one
   /// @param other
   /// @return
   ExecutionResult &operator=(const ExecutionResult &other);
+
+  /// @brief Replace this result by transferring ownership from another.
+  ExecutionResult &operator=(ExecutionResult &&) noexcept = default;
 
   /// @brief Return true if the given `ExecutionResult` is the same as this one.
   /// @param result
@@ -169,6 +175,13 @@ public:
   /// @param concatenate If prior results are found, this concatenates the
   /// bitstrings.
   void append(const ExecutionResult &result, bool concatenate = false);
+
+  /// @brief Add another `ExecutionResult` to this `sample_result`, taking over
+  /// its storage. Same semantics as the copying overload otherwise.
+  /// @param result Result to append; left empty
+  /// @param concatenate If prior results are found, this concatenates the
+  /// bitstrings.
+  void append(ExecutionResult &&result, bool concatenate = false);
 
   /// @brief Return all register names. Can be used in tandem with
   /// sample_result::to_map(regName : string) to retrieve the counts

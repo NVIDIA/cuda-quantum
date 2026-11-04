@@ -26,7 +26,15 @@ def path(p):
         return os.path.realpath(os.path.join(os.path.dirname(__file__), p))
 
 def cmake_boolvar_to_bool(s):
-    return s == "1" or s.upper() == "TRUE" or s.upper() == "ON"
+    # Follow CMake's own rules for a true constant: 1, ON, YES, TRUE, Y, or a
+    # non-zero number, in any case. Everything else is false.
+    s = s.strip().upper()
+    if s in ("ON", "YES", "TRUE", "Y"):
+        return True
+    import re
+    if re.fullmatch(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?", s):
+        return float(s) != 0
+    return False
 
 config.llvm_tools_dir = lit_config.substitute("@LLVM_TOOLS_BINARY_DIR@")
 config.llvm_shlib_dir = lit_config.substitute(path(r"@SHLIBDIR@"))
@@ -45,6 +53,8 @@ config.cudaq_shlib_ext = "@CMAKE_SHARED_LIBRARY_SUFFIX@"
 config.cudaq_target_dir = "@CMAKE_BINARY_DIR@/targets"
 config.cudaq_example_plugins_dir = "@CMAKE_BINARY_DIR@/external"
 config.cudaq_plugin_ext = "@LLVM_PLUGIN_EXT@"
+config.cudaq_plugin_cxx = "@CMAKE_CXX_COMPILER@"
+config.cudaq_plugin_cxx_flags = "@CUDAQ_TARGET_PLUGIN_CXX_FLAGS@"
 config.python_executable = "@PYTHON_EXECUTABLE@"
 config.cc = "@CMAKE_C_COMPILER@"
 config.targets_to_build = "@TARGETS_TO_BUILD@"

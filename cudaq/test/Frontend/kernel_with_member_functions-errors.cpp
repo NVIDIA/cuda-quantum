@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s -verify
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 // expected-error@+1 {{struct with user-defined methods is not allowed}}
 struct test {

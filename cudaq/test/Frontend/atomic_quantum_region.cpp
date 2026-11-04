@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ __atomic_quantum_region__ void atomic_function(cudaq::qubit &q) {
   h(q);

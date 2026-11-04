@@ -1,0 +1,26 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+version: 2-alpha
+name: compiler-bench-ftqc-clifford-t
+description: "Post-rotation-synthesis Clifford+T benchmark target for resource counting"
+
+config:
+  nvqir-simulation-backend: qpp
+
+# The quake-unmapped handler picks the passes from these options and the
+# optimization level. The basis has no rotation gate, so every rotation is
+# synthesized within the tolerance. `cudaq.set_random_seed` seeds synthesis.
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-unmapped
+        options:
+          basis-gates: [h, s, t, x, y, z, swap, "x(1)", "y(1)", "z(1)"]
+          approximation-tolerance: 1e-10
+          cost-model: t-count

@@ -38,6 +38,10 @@ include(GoogleTest)
 # Explicit path: standalone realtime builds do not have cmake/modules on
 # CMAKE_MODULE_PATH.
 include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/modules/CUDAQGtestDiscovery.cmake)
+# The application dispatch kernel the test server and gpu_loopback embed with
+# cudaq_realtime_add_dispatch_kernel, and the driver_launch.h they launch it
+# with.
+set(CUDAQ_REALTIME_TEST_DISPATCHERS_DIR ${CMAKE_CURRENT_LIST_DIR}/dispatchers)
 
 
 add_compile_options(-Wno-attributes)
@@ -50,7 +54,18 @@ find_package(CUDAToolkit)
 if(CMAKE_CUDA_COMPILER)
   enable_language(CUDA)
   
-  add_executable(test_dispatch_kernel test_dispatch_kernel.cu)
+  # The dispatch kernel sources are compiled into this test directly instead
+  # of linking cudaq-realtime-dispatch: the unified kernel ships in no archive
+  # (libcudaq-realtime links it at run time over a bridge), and the
+  # unified-kernel tests define the three cudaq_dev_* transport hooks over a
+  # fake pinned-memory ring and device-link them with it here.
+  # libcudaq-realtime.so's weak references to the ring launchers bind to this
+  # executable's copies.
+  add_executable(test_dispatch_kernel
+    test_dispatch_kernel.cu
+    ${CUDAQ_REALTIME_SOURCE_DIR}/lib/daemon/dispatcher/dispatch_kernel.cu
+    ${CUDAQ_REALTIME_SOURCE_DIR}/lib/daemon/dispatcher/unified_dispatch_kernel.cu
+  )
   
   set_target_properties(test_dispatch_kernel PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
@@ -71,7 +86,6 @@ if(CMAKE_CUDA_COMPILER)
     GTest::gtest_main 
     CUDA::cudart
     cudaq-realtime
-    cudaq-realtime-dispatch
     ${CUDADEVRT_LIBRARY}
   )
   
@@ -110,9 +124,10 @@ endif()
 # HSB bridge/emulator/playback tools (optional, not CI)
 # ==============================================================================
 
+# utils defines rpc_increment_ft, which the test server links for its device
+# path, so it is configured before test_server.
 if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
   add_subdirectory(utils)
-  add_subdirectory(bridge_interface/gpu_roce)
 endif()
 
 # Transport-agnostic two-process test server.  Links cudaq-realtime, which
@@ -122,11 +137,35 @@ if (TARGET cudaq-realtime)
   add_subdirectory(test_server)
 endif()
 
+if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
+  add_subdirectory(bridge_interface/gpu_roce)
+endif()
+
+# Run-time linked GPU data plane over a test-only loopback provider: self-gated
+# on CUDA; skips at run time without a GPU.
+add_subdirectory(bridge_interface/gpu_loopback)
+
+# The public headers must compile as C.
+add_subdirectory(c_api)
+
 # UDP bridge provider tests: self-gated on the always-built udp provider
 # target, so they run in CI without any HSB/RDMA setup.
 add_subdirectory(bridge_interface/udp)
 
+# CPU RoCE bridge provider tests: self-gated on the cpu_roce provider target;
+# they skip at run time unless CUDAQ_CPU_ROCE_TEST_* name an RDMA topology.
+add_subdirectory(bridge_interface/cpu_roce)
+
 # CPU RoCE transport (Phase 1 of cpu_transport umbrella).
 # Self-gates on TARGET cudaq-realtime-cpu-roce-transport so this is harmless when
-# libibverbs is not available.
+# HololinkRoce is not available.
 add_subdirectory(cpu_transport)
+
+# A host that must run the RoCE tests must also build them: otherwise a
+# configuration that silently drops the binaries reports "no tests" and passes.
+if (CUDAQ_REALTIME_REQUIRE_ROCE_TESTS AND
+    NOT (TARGET test_cpu_roce_transceiver AND TARGET test_cpu_roce_two_process))
+  message(FATAL_ERROR
+    "CUDAQ_REALTIME_REQUIRE_ROCE_TESTS=ON but the cpu_roce RDMA tests are not "
+    "built (they need the CPU RoCE transport and the test server)")
+endif()

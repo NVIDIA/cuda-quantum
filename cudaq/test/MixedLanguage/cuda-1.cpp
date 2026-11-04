@@ -16,7 +16,7 @@
 // CHECK-LABEL: Success
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct CUDA_Quantum_Kernel {
   void operator()() __qpu__ {

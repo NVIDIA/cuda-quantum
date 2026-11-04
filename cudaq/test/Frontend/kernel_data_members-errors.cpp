@@ -6,22 +6,55 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake -verify %s
-
-#include <cudaq.h>
-
-// Error for kernels with data members. Not supported (yet).
-
 // clang-format off
-// expected-error@+2{{CUDA-Q kernel class with data members is not yet supported}}
-// clang-format on
+// RUN: not cudaq-quake %s 2>&1 | FileCheck %s
+
+#include "cudaq/qis/qubit_qis.h"
+
+// Kernel classes with data members: the members must be scalars, and the class
+// may not have other member functions.
+
 struct C {
   void operator()(cudaq::qubit &q) __qpu__ { h(q); }
 
-  double unsupported;
+  double supported;
 };
 
-// expected-error@+1{{class inheritance is not allowed for CUDA-Q kernel}}
+struct Q {
+  void operator()() __qpu__ {}
+
+  // CHECK: :[[@LINE+1]]:{{[0-9]+}}: error: CUDA-Q kernel class data member may not have a quantum type
+  cudaq::qubit q;
+  // CHECK: :[[@LINE+1]]:{{[0-9]+}}: error: CUDA-Q kernel class data member may not have a quantum type
+  cudaq::qvector<> v;
+};
+
+struct R {
+  void operator()() __qpu__ {}
+
+  // CHECK: :[[@LINE+1]]:{{[0-9]+}}: error: CUDA-Q kernel class data member must be of an arithmetic or enumeration type
+  int &ref;
+  // CHECK: :[[@LINE+1]]:{{[0-9]+}}: error: CUDA-Q kernel class data member must be of an arithmetic or enumeration type
+  double *ptr;
+  // CHECK: :[[@LINE+1]]:{{[0-9]+}}: error: CUDA-Q kernel class data member must be of an arithmetic or enumeration type
+  std::vector<int> vec;
+  // CHECK: :[[@LINE+1]]:{{[0-9]+}}: error: CUDA-Q kernel class data member must be of an arithmetic or enumeration type
+  unsigned bits : 3;
+};
+
+struct M {
+  M() = default;
+  M(const M &) = default;
+  M &operator=(const M &) = default;
+  ~M() = default;
+  void operator()() __qpu__ {}
+  // CHECK: :[[@LINE+1]]:{{[0-9]+}}: error: CUDA-Q kernel class with data members may not have other member functions
+  int helper() { return i; }
+  int i = 1;
+};
+
+// CHECK: :[[@LINE+1]]:{{[0-9]+}}: error: class inheritance is not allowed for CUDA-Q kernel
 struct D : public C {
   void operator()(cudaq::qubit &q) __qpu__ { h(q); }
 };
+// clang-format on

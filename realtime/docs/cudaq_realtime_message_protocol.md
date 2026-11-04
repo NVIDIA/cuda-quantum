@@ -66,8 +66,8 @@ Typical uses:
   duplicated messages.
 - **Unused**: Set to 0 when not needed. The dispatcher echoes it regardless.
 
-The dispatcher echoes `request_id` in all dispatch paths (cooperative,
-regular, and graph-launch).
+The dispatcher echoes `request_id` in all dispatch paths (regular and
+graph-launch).
 
 ## `PTP` Timestamp Semantics
 
@@ -95,8 +95,8 @@ The encoding is opaque to the protocol; the 64-bit value is echoed without
 interpretation. By convention, the field carries a `PTP` time-of-day in
 nanoseconds, but senders and receivers may agree on any encoding.
 
-The dispatcher echoes `ptp_timestamp` in all dispatch paths (cooperative,
-regular, and graph-launch).
+The dispatcher echoes `ptp_timestamp` in all dispatch paths (regular and
+graph-launch).
 
 ## Function ID Semantics
 

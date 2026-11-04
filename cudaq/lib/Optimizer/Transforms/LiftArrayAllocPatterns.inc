@@ -11,6 +11,8 @@
 // This file must be included after a `using namespace mlir;` as it uses bare
 // identifiers from that namespace.
 
+#include "llvm/ADT/SetVector.h"
+
 namespace {
 class AllocaPattern : public OpRewritePattern<cudaq::cc::AllocaOp> {
 public:
@@ -55,12 +57,7 @@ public:
 
     // Collect all the stores, casts, and compute_ptr to be erased safely and in
     // topological order.
-    SmallVector<Operation *> opsToErase;
-    auto insertOpToErase = [&](Operation *op) {
-      auto iter = std::find(opsToErase.begin(), opsToErase.end(), op);
-      if (iter == opsToErase.end())
-        opsToErase.push_back(op);
-    };
+    llvm::SetVector<Operation *> opsToErase;
 
     // Rewalk all the uses of alloc, u, which must be cc.cast or cc.compute_ptr.
     // For each u remove a store and replace a load with a cc.extract_value.
@@ -88,11 +85,11 @@ public:
                 rewriter, loc, eleTy, conArr,
                 ArrayRef<cudaq::cc::ExtractValueArg>{offset});
             rewriter.replaceAllUsesWith(load, extractValue);
-            insertOpToErase(load);
+            opsToErase.insert(load);
             continue;
           }
           if (isa<cudaq::cc::StoreOp>(useuser)) {
-            insertOpToErase(useuser);
+            opsToErase.insert(useuser);
             continue;
           }
           LLVM_DEBUG(llvm::dbgs() << "alloc is live\n");
@@ -100,7 +97,7 @@ public:
         }
       }
       if (!isLive)
-        insertOpToErase(user);
+        opsToErase.insert(user);
     }
 
     for (auto *e : opsToErase)

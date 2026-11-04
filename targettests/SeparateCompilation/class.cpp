@@ -18,7 +18,7 @@
 
 //--- classlib.h
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 struct HereIsTheThing {
   void operator()(cudaq::qvector<> &q) __qpu__;

@@ -180,15 +180,17 @@ void SimulatorTensorNetBase<ScalarType>::applyGate(
 }
 
 // Helper to look up a device memory pointer from a cache.
-// If not found, allocate a new device memory buffer and put it to the cache.
-template <typename T>
+// If not found, the matrix is produced by `makeMat`, uploaded to the device
+// and put into the cache. `makeMat` is only invoked on a cache miss, so the
+// (precision-converted) matrix is not constructed unnecessarily.
+template <typename MakeMat>
 void *
-getOrCacheMat(const std::string &key, const std::vector<std::complex<T>> &mat,
+getOrCacheMat(const std::string &key, MakeMat &&makeMat,
               std::unordered_map<std::string, void *> &gateDeviceMemCache) {
   const auto iter = gateDeviceMemCache.find(key);
 
   if (iter == gateDeviceMemCache.end()) {
-    void *dMem = allocateGateMatrix(mat);
+    void *dMem = allocateGateMatrix(makeMat());
     gateDeviceMemCache[key] = dMem;
     return dMem;
   }
@@ -203,10 +205,13 @@ void SimulatorTensorNetBase<ScalarType>::applyKrausChannel(
   if (krausChannel.is_unitary_mixture()) {
     std::vector<void *> channelMats;
     for (const auto &mat : krausChannel.unitary_ops) {
-      std::vector<std::complex<ScalarType>> casted(mat.begin(), mat.end());
-      channelMats.emplace_back(
-          getOrCacheMat("ScaledUnitary_" + std::to_string(vecComplexHash(mat)),
-                        casted, m_gateDeviceMemCache));
+      channelMats.emplace_back(getOrCacheMat(
+          "ScaledUnitary_" + std::to_string(vecComplexHash(mat)),
+          [&mat] {
+            return std::vector<std::complex<ScalarType>>(mat.begin(),
+                                                         mat.end());
+          },
+          m_gateDeviceMemCache));
     }
     m_state->applyUnitaryChannel(qubits, channelMats,
                                  krausChannel.probabilities);
@@ -218,26 +223,17 @@ void SimulatorTensorNetBase<ScalarType>::applyKrausChannel(
 
     std::vector<void *> channelMats;
     for (const auto &op : krausChannel.get_ops()) {
-      void *channelMatPtr_d = [&]() {
-        const auto targetPrecision = std::is_same_v<ScalarType, float>
-                                         ? cudaq::simulation_precision::fp32
-                                         : cudaq::simulation_precision::fp64;
-        const std::string cacheKey = cudaq_fmt::format(
-            "GeneralKrausMat_{}", std::to_string(vecComplexHash(op.data)));
-        if (op.precision == targetPrecision)
-          return getOrCacheMat(cacheKey, op.data, m_gateDeviceMemCache);
-        // The channel data in a different precision.
-        return op.precision == cudaq::simulation_precision::fp32
-                   ? getOrCacheMat(cacheKey,
-                                   std::vector<std::complex<double>>(
-                                       op.data.begin(), op.data.end()),
-                                   m_gateDeviceMemCache)
-                   : getOrCacheMat(cacheKey,
-                                   std::vector<std::complex<float>>(
-                                       op.data.begin(), op.data.end()),
-                                   m_gateDeviceMemCache);
-      }();
-      channelMats.emplace_back(channelMatPtr_d);
+      // `kraus_op::data` is always double precision regardless of the
+      // simulator scalar type, so cast it to ScalarType before uploading.
+      const std::string cacheKey = cudaq_fmt::format(
+          "GeneralKrausMat_{}", std::to_string(vecComplexHash(op.data)));
+      channelMats.emplace_back(getOrCacheMat(
+          cacheKey,
+          [&op] {
+            return std::vector<std::complex<ScalarType>>(op.data.begin(),
+                                                         op.data.end());
+          },
+          m_gateDeviceMemCache));
     }
     m_state->applyGeneralChannel(qubits, channelMats);
   }
@@ -574,10 +570,11 @@ void SimulatorTensorNetBase<ScalarType>::setToZeroState() {
 template <typename ScalarType>
 void SimulatorTensorNetBase<ScalarType>::swap(
     const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
-    const std::size_t tgtIdx) {
+    const std::size_t tgtIdx, const std::vector<std::int32_t> &controlValues) {
+  this->validateControlValues(ctrlBits.size(), controlValues);
   if (ctrlBits.empty())
     return nvqir::CircuitSimulatorBase<ScalarType>::swap(ctrlBits, srcIdx,
-                                                         tgtIdx);
+                                                         tgtIdx, controlValues);
   // Controlled swap gate: using cnot decomposition of swap gate to perform
   // decomposition.
   // Note: cutensornetStateApplyControlledTensorOperator can only handle
@@ -585,17 +582,23 @@ void SimulatorTensorNetBase<ScalarType>::swap(
   const auto size = ctrlBits.size();
   std::vector<std::size_t> ctls(size + 1);
   std::copy(ctrlBits.begin(), ctrlBits.end(), ctls.begin());
+  // Each decomposition X adds the other SWAP target as a control on |1>.
+  // Keep empty values empty: the gate acts only when every control qubit is |1>.
+  auto values = controlValues;
+  if (!values.empty()) {
+    values.push_back(1);
+  }
   {
     ctls[size] = tgtIdx;
-    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, srcIdx);
+    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, srcIdx, values);
   }
   {
     ctls[size] = srcIdx;
-    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, tgtIdx);
+    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, tgtIdx, values);
   }
   {
     ctls[size] = tgtIdx;
-    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, srcIdx);
+    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, srcIdx, values);
   }
 }
 

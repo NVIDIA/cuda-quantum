@@ -17,7 +17,9 @@
 // clang-format on
 
 #include "cudaq/algorithms/evolve_internal.h"
+#include "cudaq/platform.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
+#include "cudaq/platform/platform_test_access.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <cstdio>
 #include <future>
@@ -71,22 +73,24 @@ int main() {
 
   RuntimeEndpoint endpoint;
   endpoint.impl = 0;
+  // A remote analog QPU; emulated ones run async launches on the platform
+  // queue instead.
+  endpoint.isRemote = true;
   endpoint.dispatch.set<sample_policy>(mockSample);
   endpoint.dispatch.set<async_sample_policy>(mockSampleAsync);
-  get_platform().setRuntimeEndpoint(std::move(endpoint));
-  // Installing the endpoint discards the backing QPU, so the platform installs
-  // a default compile target and warns about it.
-  // CHECK: Overriding compile target with default
+  auto &platform = get_platform();
+  detail::PlatformTestAccess::setTarget(
+      platform, createDefaultCompileTarget(&platform), endpoint);
 
   auto syncResult = detail::launchAnalogKernel(
-      "__analog_hamiltonian_kernel__sync", R"({"sync":true})", 11);
-  // CHECK: [sample] kernel=__analog_hamiltonian_kernel__sync shots=11
+      "__cudaq_analog_hamiltonian_kernel__sync", R"({"sync":true})", 11);
+  // CHECK: [sample] kernel=__cudaq_analog_hamiltonian_kernel__sync shots=11
   // thunk=null payload={"sync":true}
 
   auto asyncResult = detail::launchAnalogKernelAsync(
-      "__analog_hamiltonian_kernel__async", R"({"async":true})", 13);
-  // CHECK: [sample_async] kernel=__analog_hamiltonian_kernel__async shots=13
-  // thunk=null payload={"async":true}
+      "__cudaq_analog_hamiltonian_kernel__async", R"({"async":true})", 13);
+  // CHECK: [sample_async] kernel=__cudaq_analog_hamiltonian_kernel__async
+  // shots=13 thunk=null payload={"async":true}
 
   std::printf("shots sync=%zu async=%zu\n",
               static_cast<std::size_t>(syncResult.get_total_shots()),

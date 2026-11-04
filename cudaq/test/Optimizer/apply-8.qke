@@ -6,14 +6,11 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --pass-pipeline='builtin.module(func.func(variable-coalesce,canonicalize,memtoreg{classical=1 quantum=0},canonicalize,cc-loop-normalize,cc-loop-induction-fusion),apply-op-specialization)' %s | FileCheck %s
+// RUN: cudaq-opt --pass-pipeline='builtin.module(func.func(shrink-wrap,canonicalize,memtoreg{quantum=0},canonicalize,cc-loop-normalize,cc-loop-induction-fusion),apply-op-specialization)' %s | FileCheck %s
 
 // Regression test for issue #5223. Taking the adjoint of a kernel with a nested
-// loop. The inner loop's induction variable `j` is local to the outer loop's
-// body. If its `cc.alloca` is raised to the function entry block, `memtoreg`
-// promotes it to a value threaded through both loops that nothing ever reads,
-// `cc-loop-normalize` wraps that value in `subi`/`cmpi`/`select`, and reversing
-// the loop fails with "control-flow def-use not reversible".
+// loop. This needed the shrink-wrap pass to limit the scope of variables. When
+// added, no hacks are required to mangle other passes.
 
 func.func @qft(%arg0: !quake.veq<?>) attributes {"cudaq-kernel"} {
   %cst = arith.constant 6.2831853071795862 : f64

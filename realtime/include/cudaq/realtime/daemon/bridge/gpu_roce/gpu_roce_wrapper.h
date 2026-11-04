@@ -73,11 +73,14 @@ void gpu_roce_close(gpu_roce_transceiver_t handle);
 void gpu_roce_blocking_monitor(gpu_roce_transceiver_t handle);
 
 /**
- * Force CPU+GPU accessible allocation for ring flags and data only.
- * Does NOT change CQ/QP UMEMs or TX kernel handler (BlueFlame preserved).
- * Must be called after create and before start().
- * Required when a CPU thread needs to read ring flags/data directly
- * (e.g. HOST_LOOP dispatcher on Grace-Blackwell dGPU).
+ * Allocate the RX/TX ring flags and data as CPU+GPU accessible memory
+ * (DOCA_GPU_MEM_TYPE_CPU_GPU) even on a discrete GPU. CQ/QP UMEMs and the TX
+ * kernel's BlueFlame handler are unaffected. Call after create and before
+ * start(). Needed by a host-side ring consumer that polls the ring flags and
+ * reads and writes slot data from a CPU thread, such as the
+ * gpu_roce_predecoder_bridge tool in cudaq-qec, which hands the rings to its
+ * own host dispatch loop. A no-op on an integrated GPU, where the rings are
+ * already CPU-accessible.
  */
 void gpu_roce_set_cpu_ring_buffers(gpu_roce_transceiver_t handle, int enable);
 
@@ -88,6 +91,11 @@ void gpu_roce_set_cpu_ring_buffers(gpu_roce_transceiver_t handle, int enable);
 uint32_t gpu_roce_get_qp_number(gpu_roce_transceiver_t handle);
 uint32_t gpu_roce_get_rkey(gpu_roce_transceiver_t handle);
 uint64_t gpu_roce_get_buffer_addr(gpu_roce_transceiver_t handle);
+
+/** Local key of the TX ring's memory region, in host byte order like
+ *  gpu_roce_get_rkey().  Send WQEs that read from the TX ring need it; the
+ *  rkey above belongs to the RX ring and is what the FPGA writes with. */
+uint32_t gpu_roce_get_tx_ring_lkey(gpu_roce_transceiver_t handle);
 
 /** Get the DOCA GPU device QP handle (doca_gpu_dev_verbs_qp*).
  *  Needed by the unified dispatch kernel for direct DOCA verbs calls. */
@@ -124,7 +132,7 @@ unsigned gpu_roce_get_num_pages(gpu_roce_transceiver_t handle);
  * Pre-post receive WQEs and initialize the send WQE template.
  *
  * Calls GpuRoceTransceiverPrepareKernel with the transceiver's GPU QP,
- * frame_size, and RX ring `rkey`.  Use this when start() didn't call the
+ * frame_size, and TX ring `lkey`.  Use this when start() didn't call the
  * prepare kernel (e.g. unified mode on iGPU with forward=false).
  *
  * @param frame_size  Actual frame/payload size for send WQE setup

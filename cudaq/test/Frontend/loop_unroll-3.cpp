@@ -10,7 +10,7 @@
 // RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --cc-loop-peeling --canonicalize --cc-loop-normalize --cse --cc-loop-unroll | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // This example demonstrates a combination of loop peeling (converting the
 // do-while loop to a peeled iteration + a while loop), followed by loop

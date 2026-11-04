@@ -212,9 +212,22 @@ autosummary_generate = True
 # see also https://github.com/sphinx-doc/sphinx/issues/11211.
 # autodoc_mock_imports = ['cuquantum', 'cupy']
 
+# Prefer the inventories build_docs.sh fetched, falling back to the network.
+# Without this a transient outage upstream fails the whole -W build.
+_inventory_dir = os.environ.get('CUDAQ_INTERSPHINX_INVENTORIES')
+
+
+def _inventory(name):
+    if _inventory_dir:
+        path = os.path.join(_inventory_dir, name + '.inv')
+        if os.path.isfile(path):
+            return (path, None)
+    return None
+
+
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3/', None),
-    'numpy': ('https://numpy.org/doc/stable/', None),
+    'python': ('https://docs.python.org/3/', _inventory('python')),
+    'numpy': ('https://numpy.org/doc/stable/', _inventory('numpy')),
 }
 
 redirects = {

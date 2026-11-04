@@ -1,0 +1,29 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: %target-catalog-driver parse %s --plugin-root /opt/plugins/acme | FileCheck %s
+# RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=DEFROOT
+
+# Test %PLUGIN_ROOT% substitution; default is the grandparent directory (here cudaq/lib/Target).
+
+version: 1
+name: lit-plugin-root
+description: "Plugin-root substitution coverage"
+config:
+  link-libs: ["-L%PLUGIN_ROOT%/lib"]
+  compiler-flags:
+    - "-I%PLUGIN_ROOT%/include"
+    - "-L%PLUGIN_ROOT%/lib -L%PLUGIN_ROOT%/lib64"
+  plugin-libraries: ["%PLUGIN_ROOT%/lib/libacme-qpu.so"]
+
+# CHECK:   compiler-flags: ["-I/opt/plugins/acme/include", "-L/opt/plugins/acme/lib -L/opt/plugins/acme/lib64"]
+# CHECK:   link-libs: ["-L/opt/plugins/acme/lib"]
+# CHECK:   plugin-libraries: ["/opt/plugins/acme/lib/libacme-qpu.so"]
+# CHECK: plugin-libraries: ["/opt/plugins/acme/lib/libacme-qpu.so"]
+
+# DEFROOT:   link-libs: ["-L{{[^"]*}}/cudaq/lib/Target/lib"]

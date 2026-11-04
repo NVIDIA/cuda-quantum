@@ -10,7 +10,7 @@
 
 // CHECK: C++ source has errors. nvq++ cannot proceed.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void invalid_code() {
   cudaq::qubit reg(4);

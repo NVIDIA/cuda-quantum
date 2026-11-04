@@ -1,0 +1,72 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Exact repository-relative files included in the source distribution.
+LICENSE
+LICENSES/LICENSE.nanobind
+LICENSES/LICENSE.robin-map
+NOTICE
+edem/CMakeLists.txt
+edem/README.md
+edem/cmake/cudaq-edem-config.cmake.in
+edem/include/cudaq/edem/composition.h
+edem/include/cudaq/edem/composition.hpp
+edem/include/cudaq/edem/core.h
+edem/include/cudaq/edem/format.h
+edem/include/cudaq/edem/noise.h
+edem/include/cudaq/edem/noise.hpp
+edem/include/cudaq/edem/owned.hpp
+edem/include/cudaq/edem/python.h
+edem/lib/cudaq-edem.map
+edem/lib/composition.cpp
+edem/lib/edem.cpp
+edem/lib/noise.cpp
+edem/lib/vocabulary.h
+edem/package-sources.txt
+edem/python/CMakeLists.txt
+edem/python/adoption_test.cpp
+edem/python/bindings.cpp
+edem/python/cudaq_edem/__init__.py
+edem/scripts/build_wheel.py
+edem/test/CMakeLists.txt
+edem/test/check_allocators.cmake
+edem/test/check_package.cmake.in
+edem/test/check_sdist.py
+edem/test/check_wheel.py
+edem/test/composition.c
+edem/test/consumer/CMakeLists.txt
+edem/test/consumer/composition.cpp
+edem/test/consumer/main.c
+edem/test/consumer/main.cpp
+edem/test/consumer/ownership.cpp
+edem/test/core.c
+edem/test/noise.c
+edem/test/owned_memory.c
+edem/test/parent/CMakeLists.txt
+edem/test/scaling.c
+edem/test/test_noise.py
+edem/test/test_values.py
+math/gf2/CMakeLists.txt
+math/gf2/include/cudaq/gf2/bump_allocator.h
+math/gf2/include/cudaq/gf2/core.h
+math/gf2/include/cudaq/gf2/format.h
+math/gf2/include/cudaq/gf2/map.h
+math/gf2/include/cudaq/gf2/memory.h
+math/gf2/lib/allocation.h
+math/gf2/lib/csc_xor.h
+math/gf2/lib/cudaq-gf2.map
+math/gf2/lib/gf2.cpp
+math/gf2/lib/map.cpp
+math/gf2/lib/memory.cpp
+math/gf2/lib/storage.h
+math/gf2/test/CMakeLists.txt
+math/gf2/test/core.c
+math/gf2/test/owned_memory.c
+math/gf2/test/test_allocator.h
+math/gf2/test/typed_map.c
+pyproject.toml.edem

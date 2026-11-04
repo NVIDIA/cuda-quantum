@@ -149,6 +149,7 @@ CUDA
 ~~~~~~~~~~
 
 Building CUDA-Q requires a full installation of the CUDA toolkit.
+Running CUDA-Q only requires the CUDA runtime libraries, see :ref:`below <cuda-runtime-libraries>`.
 **You can install the CUDA toolkit and use the CUDA compiler without having a GPU.**
 The instructions are tested using version 12.6 and 13.0, but other CUDA 12 or 13 versions
 should work, as long as the CUDA runtime version on the host system matches the 
@@ -217,7 +218,7 @@ and merely downloading the source code as ZIP archive hence will not work.
 Please follow the instructions in the respective subsection(s) to build the necessary 
 components for using CUDA-Q from C++ and/or Python.
 After the build, check that the GPU-accelerated components have been built by confirming
-that the file `nvidia.yml` exists in the `$CUDAQ_INSTALL_PREFIX/targets` folder.
+that the file `libnvqir-custatevec-fp32.so` exists in the `$CUDAQ_INSTALL_PREFIX/lib` folder.
 We also recommend checking the build log printed to the console to confirm that all desired 
 components have been built. 
 
@@ -397,6 +398,8 @@ The remaining sections in this document list additional runtime dependencies
 that are not included in the migrated assets and are needed to use some of the 
 CUDA-Q features and components.
 
+.. _cuda-runtime-libraries:
+
 CUDA Runtime Libraries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -412,6 +415,11 @@ commands, for example, install the necessary packages for the AlmaLinux 8 enviro
     :dedent:
     :start-after: [>CUDARTInstall]
     :end-before: [<CUDARTInstall]
+
+`CuPy <https://cupy.dev>`__ compiles kernels at runtime and needs the CUDA headers, which the runtime libraries
+do not include. Without them it fails with "Failed to find CUDA headers", for example when using the ``dynamics`` target.
+Install ``cuda-cudart-dev-<version>`` or the complete CUDA toolkit, or install CuPy with its ``ctk`` extra,
+for example ``pip install cupy-cuda13x[ctk]``.
 
 MPI
 ~~~~~~

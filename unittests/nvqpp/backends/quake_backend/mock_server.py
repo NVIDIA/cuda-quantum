@@ -8,7 +8,7 @@
 
 import cudaq
 from fastapi import FastAPI, HTTPException, Request
-import uvicorn, uuid, base64, ctypes, sys, re
+import uvicorn, uuid, base64, ctypes, sys, re, os
 from llvmlite import binding as llvm
 from cudaq.mlir.passmanager import PassManager
 from cudaq.mlir.ir import Module
@@ -25,13 +25,16 @@ target = llvm.Target.from_default_triple()
 targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
+# CUDA-Q loads `libnvqir` RTLD_LOCAL. Expose its QIR runtime to the JIT.
+ctypes.CDLL("libnvqir.dylib" if sys.platform == "darwin" else "libnvqir.so",
+            mode=os.RTLD_GLOBAL | os.RTLD_NOLOAD)
 
 # Keep track of Job Ids to their Names
 createdJobs = {}
 
 SERVER_EXECUTION_PIPELINE = (
     "builtin.module("
-    "canonicalize,distributed-device-call,cse,return-to-output-log,"
+    "canonicalize,qir-device-call,cse,return-to-output-log,"
     "func.func("
     "memtoreg,canonicalize,cc-loop-normalize,"
     "cc-loop-unroll{maximum-iterations=1024 "
@@ -315,8 +318,8 @@ async def postJob(request: Request):
 
     verifyValueSemanticsPayload(recovered_mod)
 
-    pm = PassManager.parse(
-        "builtin.module(canonicalize,distributed-device-call,cse)", context=ctx)
+    pm = PassManager.parse("builtin.module(canonicalize,qir-device-call,cse)",
+                           context=ctx)
     try:
         pm.run(recovered_mod.operation)
     except Exception as e:

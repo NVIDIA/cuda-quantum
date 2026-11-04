@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target infleqtion --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %infleqtion_avail; then nvq++ --target infleqtion --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %braket_avail; \
 // RUN: then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on

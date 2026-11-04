@@ -29,8 +29,19 @@ def _normalize_binary_values(values, *, what: str) -> tuple[int, ...]:
     return tuple(_normalize_binary_value(value, what=what) for value in values)
 
 
+_BINARY_DIGITS = bytes.maketrans(b"\x00\x01", b"01")
+
+
 def _row_bits(row) -> int:
-    return sum(int(bit) << index for index, bit in enumerate(row))
+    """Pack normalized binary entries with column zero as the low bit.
+
+    Byte translation and base-two parsing avoid a Python shift and addition
+    for every cell, including repeated large-integer allocations on wide rows.
+    Callers validate authored entries before reaching this internal helper.
+    """
+
+    digits = bytes(row).translate(_BINARY_DIGITS)
+    return int(digits[::-1], 2) if digits else 0
 
 
 @dataclass(frozen=True, slots=True, init=False)
@@ -87,7 +98,7 @@ class GF2Matrix:
     def rank(self) -> int:
         basis: dict[int, int] = {}
         for row in self.rows:
-            value = sum(bit << index for index, bit in enumerate(row))
+            value = _row_bits(row)
             while value:
                 pivot = value.bit_length() - 1
                 if pivot not in basis:

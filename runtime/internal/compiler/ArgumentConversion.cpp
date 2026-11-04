@@ -97,15 +97,15 @@ static Value genConstant(OpBuilder &builder, const std::string &v,
 
 // Forward declare aggregate type builder as they can be recursive.
 static Value genRecursiveSpan(OpBuilder &, cudaq::cc::SequenceType, void *,
-                              ModuleOp, llvm::DataLayout &, bool);
+                              ModuleOp, llvm::DataLayout &);
 static Value genConstant(OpBuilder &, cudaq::cc::SequenceType, void *, ModuleOp,
-                         llvm::DataLayout &, bool);
+                         llvm::DataLayout &);
 static Value genConstant(OpBuilder &, cudaq::cc::StructType, void *, ModuleOp,
-                         llvm::DataLayout &, bool);
+                         llvm::DataLayout &);
 static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *, ModuleOp,
-                         llvm::DataLayout &, bool);
+                         llvm::DataLayout &);
 static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
-                         llvm::DataLayout &, bool);
+                         llvm::DataLayout &);
 
 /// Create callee.init_N that initializes the state
 ///
@@ -233,6 +233,39 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
 
   // Process the function body
   process(initFunc.getRegion().front());
+
+  // Trace \p v back through the state and veq view operations to the value it
+  // is a view of.
+  auto traceToAllocation = [](Value v) {
+    while (Operation *def = v.getDefiningOp()) {
+      if (auto init = dyn_cast<cudaq::quake::InitializeStateOp>(def))
+        v = init.getTargets();
+      else if (auto sub = dyn_cast<cudaq::quake::SubVeqOp>(def))
+        v = sub.getVeq();
+      else if (auto relax = dyn_cast<cudaq::quake::RelaxSizeOp>(def))
+        v = relax.getInputVec();
+      else
+        break;
+    }
+    return v;
+  };
+
+  // The caller owns the qubits, so drop deallocations of the argument.
+  initFunc.walk([&](cudaq::quake::DeallocOp dealloc) {
+    if (isa<BlockArgument>(traceToAllocation(dealloc.getReference())))
+      dealloc.erase();
+  });
+
+  // The caller is also responsible for making its own qubits observable. Drop
+  // the compiler-generated evince ops on the argument, which would otherwise
+  // be observation points in the middle of the caller's circuit.
+  initFunc.walk([&](cudaq::quake::EvinceOp evince) {
+    if (evince.getCompilerGenerated() &&
+        llvm::all_of(evince.getArgs(), [&](Value v) {
+          return isa<BlockArgument>(traceToAllocation(v));
+        }))
+      evince.erase();
+  });
 }
 
 /// Create callee.num_qubits_N that calculates the number of qubits to
@@ -524,7 +557,7 @@ static bool isSupportedRecursiveSpan(cudaq::cc::SequenceType ty) {
 
 // Recursive step processing of aggregates.
 Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
-                      llvm::DataLayout &layout, bool boolVecBitPacked = false) {
+                      llvm::DataLayout &layout) {
   auto *ctx = builder.getContext();
   return TypeSwitch<Type, Value>(ty)
       .Case([&](IntegerType intTy) -> Value {
@@ -567,16 +600,16 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
                            substMod);
       })
       .Case([&](cudaq::cc::SequenceType ty) {
-        return genConstant(builder, ty, p, substMod, layout, boolVecBitPacked);
+        return genConstant(builder, ty, p, substMod, layout);
       })
       .Case([&](cudaq::cc::StructType ty) {
-        return genConstant(builder, ty, p, substMod, layout, boolVecBitPacked);
+        return genConstant(builder, ty, p, substMod, layout);
       })
       .Case([&](cudaq::cc::ArrayType ty) {
-        return genConstant(builder, ty, p, substMod, layout, boolVecBitPacked);
+        return genConstant(builder, ty, p, substMod, layout);
       })
       .Case([&](cudaq::cc::CallableType ty) {
-        return genConstant(builder, ty, p, substMod, layout, boolVecBitPacked);
+        return genConstant(builder, ty, p, substMod, layout);
       })
       .Default({});
 }
@@ -597,40 +630,21 @@ static std::size_t getHostSideElementSize(Type eleTy,
 }
 
 /// Recursively builds an `ArrayAttr` containing the constants.
-///
-/// Set \p boolVecBitPacked when an `i1` vector arg is a host
-/// `std::vector<bool>` (bit-packed; not the `{begin, end, capacity}` triple).
 ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
                                     cudaq::cc::SequenceType vecTy, void *p,
-                                    llvm::DataLayout &layout,
-                                    bool boolVecBitPacked = false) {
-  auto eleTy = vecTy.getElementType();
-
-  // Bit-packed `std::vector<bool>`: read via the container API, not a triple.
-  if (boolVecBitPacked && eleTy.isInteger(1)) {
-    auto *boolVec = reinterpret_cast<const std::vector<bool> *>(p);
-    if (boolVec->empty())
-      return {};
-    auto intTy = cast<IntegerType>(eleTy);
-    SmallVector<Attribute> members;
-    members.reserve(boolVec->size());
-    for (bool bit : *boolVec)
-      members.push_back(IntegerAttr::get(intTy, bit ? 1 : 0));
-    return ArrayAttr::get(builder.getContext(), members);
-  }
-
+                                    llvm::DataLayout &layout) {
   typedef const char *VectorType[3];
   VectorType *vecPtr = static_cast<VectorType *>(p);
   auto delta = (*vecPtr)[1] - (*vecPtr)[0];
   if (!delta)
     return {};
+  auto eleTy = vecTy.getElementType();
   unsigned stepBy = 0;
   std::function<Attribute(char *)> genAttr;
   if (auto innerTy = dyn_cast<cudaq::cc::SequenceType>(eleTy)) {
     stepBy = sizeof(VectorType);
     genAttr = [&, innerTy](char *p) -> Attribute {
-      return genRecursiveConstantArray(builder, innerTy, p, layout,
-                                       boolVecBitPacked);
+      return genRecursiveConstantArray(builder, innerTy, p, layout);
     };
   } else if (auto stringTy = dyn_cast<cudaq::cc::CharspanType>(eleTy)) {
     stepBy = sizeof(std::string);
@@ -707,10 +721,8 @@ static Type convertRecursiveSpanType(Type ty) {
 /// constant propagation through the recursive span structure. The reify
 /// operation will be lowered to more primitive ops on an as-needed basis.
 Value genRecursiveSpan(OpBuilder &builder, cudaq::cc::SequenceType ty, void *p,
-                       ModuleOp substMod, llvm::DataLayout &layout,
-                       bool boolVecBitPacked = false) {
-  ArrayAttr constants =
-      genRecursiveConstantArray(builder, ty, p, layout, boolVecBitPacked);
+                       ModuleOp substMod, llvm::DataLayout &layout) {
+  ArrayAttr constants = genRecursiveConstantArray(builder, ty, p, layout);
   auto loc = builder.getUnknownLoc();
   if (!constants) {
     // Empty vector. Not much to contemplate here.
@@ -726,11 +738,9 @@ Value genRecursiveSpan(OpBuilder &builder, cudaq::cc::SequenceType ty, void *p,
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::SequenceType vecTy, void *p,
-                  ModuleOp substMod, llvm::DataLayout &layout,
-                  bool boolVecBitPacked = false) {
+                  ModuleOp substMod, llvm::DataLayout &layout) {
   if (isSupportedRecursiveSpan(vecTy))
-    return genRecursiveSpan(builder, vecTy, p, substMod, layout,
-                            boolVecBitPacked);
+    return genRecursiveSpan(builder, vecTy, p, substMod, layout);
   typedef const char *VectorType[3];
   VectorType *vecPtr = static_cast<VectorType *>(p);
   auto delta = (*vecPtr)[1] - (*vecPtr)[0];
@@ -750,7 +760,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::SequenceType vecTy, void *p,
   for (std::int32_t i = 0; i < vecSize; ++i) {
     if (Value val = dispatchSubtype(
             builder, eleTy, static_cast<void *>(const_cast<char *>(cursor)),
-            substMod, layout, boolVecBitPacked)) {
+            substMod, layout)) {
       auto atLoc = cudaq::cc::ComputePtrOp::create(
           builder, loc, elePtrTy, buffer,
           ArrayRef<cudaq::cc::ComputePtrArg>{i});
@@ -763,8 +773,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::SequenceType vecTy, void *p,
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::StructType strTy, void *p,
-                  ModuleOp substMod, llvm::DataLayout &layout,
-                  bool boolVecBitPacked = false) {
+                  ModuleOp substMod, llvm::DataLayout &layout) {
   if (strTy.getMembers().empty())
     return {};
   const char *cursor = static_cast<const char *>(p);
@@ -776,7 +785,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StructType strTy, void *p,
             builder, iter.value(),
             static_cast<void *>(const_cast<char *>(
                 cursor + cudaq::opt::getDataOffset(layout, strTy, i))),
-            substMod, layout, boolVecBitPacked))
+            substMod, layout))
       aggie =
           cudaq::cc::InsertValueOp::create(builder, loc, strTy, aggie, v, i);
   }
@@ -784,8 +793,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StructType strTy, void *p,
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::CallableType callTy, void *p,
-                  ModuleOp substMod, llvm::DataLayout &layout,
-                  bool boolVecBitPacked = false) {
+                  ModuleOp substMod, llvm::DataLayout &layout) {
   if (!p)
     return {};
   auto loc = builder.getUnknownLoc();
@@ -812,7 +820,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::CallableType callTy, void *p,
         if (hasLiftedArgs) {
           for (unsigned i = liftedPos, j = 0; i < liftedArity; ++i, ++j) {
             Value v = dispatchSubtype(builder, calleeInpTys[i], closureArgs[j],
-                                      substMod, layout, boolVecBitPacked);
+                                      substMod, layout);
             assert(v && "lifted argument must be handled");
             args.push_back(v);
           }
@@ -831,8 +839,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::CallableType callTy, void *p,
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
-                  ModuleOp substMod, llvm::DataLayout &layout,
-                  bool boolVecBitPacked = false) {
+                  ModuleOp substMod, llvm::DataLayout &layout) {
   if (arrTy.isUnknownSize())
     return {};
   auto eleTy = arrTy.getElementType();
@@ -844,7 +851,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
   for (std::size_t i = 0; i < arrSize; ++i) {
     if (Value v = dispatchSubtype(
             builder, eleTy, static_cast<void *>(const_cast<char *>(cursor)),
-            substMod, layout, boolVecBitPacked))
+            substMod, layout))
       aggie =
           cudaq::cc::InsertValueOp::create(builder, loc, arrTy, aggie, v, i);
     cursor += eleSize;
@@ -880,9 +887,8 @@ Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
 //===----------------------------------------------------------------------===//
 
 cudaq_internal::compiler::ArgumentConverter::ArgumentConverter(
-    StringRef kernelName, ModuleOp sourceModule, bool boolVecBitPacked)
-    : sourceModule(sourceModule), kernelName(kernelName),
-      boolVecBitPacked(boolVecBitPacked) {}
+    StringRef kernelName, ModuleOp sourceModule)
+    : sourceModule(sourceModule), kernelName(kernelName) {}
 
 void cudaq_internal::compiler::ArgumentConverter::gen(
     std::span<void *const> arguments) {
@@ -981,23 +987,19 @@ void cudaq_internal::compiler::ArgumentConverter::gen(
               return {};
             })
             .Case([&](cudaq::cc::SequenceType ty) {
-              return buildSubst(ty, argPtr, substModule, dataLayout,
-                                boolVecBitPacked);
+              return buildSubst(ty, argPtr, substModule, dataLayout);
             })
             .Case([&](cudaq::cc::StructType ty) {
-              return buildSubst(ty, argPtr, substModule, dataLayout,
-                                boolVecBitPacked);
+              return buildSubst(ty, argPtr, substModule, dataLayout);
             })
             .Case([&](cudaq::cc::ArrayType ty) {
-              return buildSubst(ty, argPtr, substModule, dataLayout,
-                                boolVecBitPacked);
+              return buildSubst(ty, argPtr, substModule, dataLayout);
             })
             .Case([&](cudaq::cc::IndirectCallableType ty) {
               return buildSubst(ty, argPtr, substModule, dataLayout);
             })
             .Case([&](cudaq::cc::CallableType ty) {
-              return buildSubst(ty, argPtr, substModule, dataLayout,
-                                boolVecBitPacked);
+              return buildSubst(ty, argPtr, substModule, dataLayout);
             })
             .Default({});
     if (subst)

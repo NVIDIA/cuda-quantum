@@ -235,27 +235,19 @@ RingBufferWrapper::FrameState &RingBufferWrapper::claimSlot(
 }
 
 std::uint64_t RingBufferWrapper::waitForResponseAndValidate(
-    const FrameState &state, DeviceCallChannel::DeviceCallFrame &frame,
-    bool captureCudaError) {
-  constexpr const char *txErrorMessage =
-      "device_call dispatch reported an error";
+    const FrameState &state, DeviceCallChannel::DeviceCallFrame &frame) {
   constexpr const char *timeoutMessage =
       "timed out waiting for device_call response";
   const auto deadline = std::chrono::steady_clock::now() +
                         std::chrono::milliseconds(timeoutMsValue);
   while (true) {
-    int cudaError = 0;
-    int *const cudaErrorPtr = captureCudaError ? &cudaError : nullptr;
     switch (cudaq_host_ringbuffer_poll_tx_flag(&ringbufferValue, state.slot,
-                                               cudaErrorPtr)) {
+                                               nullptr)) {
     case CUDAQ_TX_EMPTY:
-    case CUDAQ_TX_IN_FLIGHT:
       break;
     case CUDAQ_TX_READY:
       return validateResponseFrame(txHostSlot(state.slot), state.requestId,
                                    frame.response.capacity, slotSizeValue);
-    case CUDAQ_TX_ERROR:
-      throw DeviceCallError(DeviceCallStatus::CudaError, txErrorMessage);
     }
 
     if (std::chrono::steady_clock::now() > deadline)

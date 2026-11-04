@@ -45,21 +45,37 @@ struct __attribute__((packed)) RPCResponse {
 
 /// @brief Device RPC function signature.
 ///
-/// The handler reads arguments from the input buffer and writes results
-/// directly to the output buffer. The two buffers never overlap, which
-/// enables the dispatch kernel to point `output` straight into the TX
-/// ring-buffer slot, eliminating a post-handler copy.
+/// Mirrors the host-call ABI (`cudaq_host_rpc_fn_t` in cudaq_realtime.h): the
+/// handler is handed the inbound RX slot and the outbound TX slot, plus the
+/// slot size.  The only difference is that a device handler returns a status.
 ///
-/// @param input  Pointer to argument data (RX buffer, read-only)
-/// @param output Pointer to result buffer (TX buffer, write-only)
-/// @param arg_len Length of argument data in bytes
-/// @param max_result_len Maximum result buffer size in bytes
-/// @param result_len Output: actual result length written
-/// @return Status code (0 = success)
-using DeviceRPCFunction = int (*)(const void *input, void *output,
-                                  std::uint32_t arg_len,
-                                  std::uint32_t max_result_len,
-                                  std::uint32_t *result_len);
+/// @param rx_slot   RPCHeader followed by `arg_len` bytes of argument data
+///                  (read-only).
+/// @param tx_slot   RPCResponse followed by the result buffer.  The handler
+///                  writes its result bytes at `tx_slot + sizeof(RPCResponse)`
+///                  (capacity `slot_size - sizeof(RPCResponse)`) and sets
+///                  `((RPCResponse *)tx_slot)->result_len`.  The dispatch
+///                  kernel fills the remaining header fields (magic, status,
+///                  request_id, ptp_timestamp) after the call and forces
+///                  result_len to 0 when the returned status is non-zero.
+///                  On an in-place ring tx_slot aliases rx_slot (the two
+///                  headers share one layout), so read what you need from
+///                  the request before writing the response.
+/// @param slot_size Byte size of each slot (the TX stride on the device path).
+/// @return Status code (0 = success).  CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH
+///         keeps its meaning (see cudaq_realtime.h).
+///
+/// Threading: the dispatch kernel calls the handler on every thread of its
+/// block with identical arguments and synchronizes before writing the
+/// response; only the first thread's return value is recorded.  A handler
+/// that does not partition its work should do it on one thread and return
+/// early on the others.  Barriers inside a handler must be reached by every
+/// thread; there is no grid-wide sync.  That is the dispatcher's own kernel; a
+/// dispatch kernel the application launches itself
+/// (cudaq_dispatcher_set_unified_launch) sets its own rule for the handlers it
+/// calls.
+using DeviceRPCFunction = int (*)(const void *rx_slot, void *tx_slot,
+                                  std::size_t slot_size);
 
 //==============================================================================
 // Function ID Hashing
@@ -98,7 +114,7 @@ struct GraphIOContext {
   std::uint8_t *tx_slot;           ///< Output: TX slot for RPCResponse
   volatile std::uint64_t *tx_flag; ///< Pointer to TX flag for this slot
   std::uint64_t tx_flag_value;     ///< Value to write to tx_flag when done
-  std::size_t tx_stride_sz;        ///< TX slot size (for max_result_len)
+  std::size_t tx_stride_sz;        ///< TX slot size (slot_size for handlers)
 };
 
 //==============================================================================

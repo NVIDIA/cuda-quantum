@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake --no-simplify %s | cudaq-opt --symbol-dce | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 extern "C" {
 void foo(double);

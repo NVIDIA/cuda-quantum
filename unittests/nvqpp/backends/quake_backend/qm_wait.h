@@ -12,4 +12,5 @@
 
 // A quantum operation the backend implements, as a vendor would ship it.
 // `extern "C"` keeps the symbol verbatim in the payload.
-extern "C" void __qm__wait_function(double duration, cudaq::qubit &q);
+extern "C" __qpu_intrinsic__ void __qm__wait_function(double duration,
+                                                      cudaq::qubit &q);

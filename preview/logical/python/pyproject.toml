@@ -17,10 +17,10 @@ requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 dependencies = [
-  # The base package is runtime-agnostic: the CUDA-Q runtime arrives through
-  # the cu12/cu13 extras below, and the much larger CUDA-Q development SDK
-  # wheel is installed only in the isolated CI build environment. Neither may
-  # ever appear in this list.
+  # Core supplies the IR bindings without frontend execution or CUDA dependencies.
+  # Release builds pin it to the tested CUDA-Q version; devel is build-time only.
+  "cudaq-core",
+  "cudaq-edem>=0.1,<0.2",
 ]
 classifiers = [
   'Intended Audience :: Science/Research',
@@ -59,6 +59,7 @@ requires = [
   "scikit-build-core==0.12.2",
   "setuptools-scm>=8,<9",
   "cudaq-devel",
+  "cudaq-edem>=0.1,<0.2",
 ]
 build-backend = "scikit_build_core.build"
 
@@ -120,9 +121,11 @@ disable_error_code = ["name-defined", "misc", "type-arg", "valid-type"]
 testpaths = ["tests/cudaq/logical"]
 # Use importlib mode so pytest doesn't insert the source tree into sys.path,
 # which would shadow the build dir's cudaq.logical package (with compiled extensions).
-addopts = "--import-mode=importlib"
+# Keep larger resource-estimation cases out of routine runs, including PR CI.
+# Override with `-m slow` for those cases or `-m ''` for the full suite.
+addopts = "--import-mode=importlib -m 'not slow'"
 # The packaging tests import the repo's `scripts/` helpers, so the repo root
 # (rootdir/..) must be importable regardless of the invocation directory. It
 # holds no top-level cudaq package, so this cannot shadow the built one.
 pythonpath = [".."]
-markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
+markers = ["slow: expensive tests excluded by default (select with '-m slow')"]

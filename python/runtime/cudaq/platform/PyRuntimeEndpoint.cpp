@@ -248,7 +248,7 @@ pyLaunch(std::any &impl, const Policy &policy, const CompiledModule &module,
         (objClassName.empty() ? "" : " of type '" + objClassName + "'") +
         " to implement '" + Protocol::Method +
         "'. Was the runtime endpoint mutated? To fix this error, call "
-        "`cudaq.set_runtime_endpoint` with the new object.");
+        "`cudaq.set_target` with the new object.");
   }
 
   CUDAQ_INFO("Dispatching a '{}' launch to the Python runtime endpoint.",
@@ -285,14 +285,14 @@ static bool getAttrOrDefault(const nanobind::object &obj, const char *attr,
   return defaultValue;
 }
 
-static RuntimeEndpoint makeRuntimeEndpoint(nanobind::object obj) {
+RuntimeEndpoint cudaq::makeRuntimeEndpoint(nanobind::object obj) {
   nanobind::gil_scoped_acquire gil;
   bool allNullptr = true;
   RuntimeEndpoint endpoint;
   endpoint.dispatch = detail::DispatchTable<all_policies>::create(
       // Note: this fixes the set of supported policies at construction time.
       // This means we currently don't support changing the set of supported
-      // policies after `set_runtime_endpoint` is called.
+      // policies after `cudaq.set_target` is called.
       [&obj, &allNullptr]<typename Policy>() -> detail::launch_fn_type<Policy> {
         if constexpr (PyLaunchPolicy<Policy>) {
           if (!nanobind::hasattr(obj, PyProtocol<Policy>::Method))
@@ -307,7 +307,8 @@ static RuntimeEndpoint makeRuntimeEndpoint(nanobind::object obj) {
   if (allNullptr) {
     std::stringstream errMsg;
     auto className = getPythonClassName(obj);
-    errMsg << className ? className : "Object passed to `set_runtime_endpoint`";
+    errMsg << (className.empty() ? "Object passed to `cudaq.set_target`"
+                                 : "Object of type '" + className + "'");
     errMsg << " is not a valid runtime endpoint: it must define at least one "
               "launch policy";
     throw nanobind::type_error(errMsg.str().c_str());
@@ -345,20 +346,4 @@ void cudaq::bindRuntimeEndpoint(nanobind::module_ &mod) {
           "Convert the argument at the given index to a Python value. "
           "Currently only supports a limited set of types.")
       .def("__repr__", &PyKernelArgs::repr);
-
-  mod.def(
-      "set_runtime_endpoint",
-      [](nanobind::object endpoint, std::size_t qpu_id) {
-        get_platform().setRuntimeEndpoint(
-            makeRuntimeEndpoint(std::move(endpoint)), qpu_id);
-      },
-      nanobind::arg("endpoint"), nanobind::arg("qpu_id") = 0,
-      R"#(
-Route kernel launches to `endpoint` instead of the active target's QPU.
-
-Args:
-  endpoint: An object implementing at least one of :class:`SupportsSample`,
-    :class:`SupportsObserve`. Launches under a policy the object does not
-    implement raise a `RuntimeError`.
-)#");
 }

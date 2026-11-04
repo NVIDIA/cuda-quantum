@@ -33,6 +33,8 @@ RUN if [ -n "$preinstalled_modules" ]; then \
 ARG optional_dependencies=
 ARG cuda_quantum_wheel=cuda_quantum_cu12-0.0.0-cp311-cp311-manylinux_2_28_x86_64.whl
 COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
+ARG cudaq_core_wheel=cudaq_core-*.whl
+COPY $cudaq_core_wheel /tmp/core/
 COPY docs/sphinx/examples/python /tmp/examples/
 COPY docs/sphinx/applications/python /tmp/applications/
 COPY docs/sphinx/targets/python /tmp/targets/
@@ -54,7 +56,7 @@ RUN for i in 1 2 3; do \
         || { echo "gha-tools download attempt $i failed; retrying..."; sleep 5; }; \
     done && rm -f /tmp/tools.tar.gz && \
     RAPIDS_PIP_EXE="python${python_version} -m pip" \
-    /usr/local/bin/rapids-pip-retry install ${pip_install_flags} /tmp/$cuda_quantum_wheel
+    /usr/local/bin/rapids-pip-retry install ${pip_install_flags} --find-links /tmp/core /tmp/$cuda_quantum_wheel
 RUN if [ -n "$optional_dependencies" ]; then \
         cudaq_package=$(echo $cuda_quantum_wheel | cut -d '-' -f1 | tr _ -) && \
         RAPIDS_PIP_EXE="python${python_version} -m pip" \

@@ -10,7 +10,7 @@
 // RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --apply-op-specialization --canonicalize | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct kernel_alpha {
   void operator()(cudaq::qubit &qb) __qpu__ {

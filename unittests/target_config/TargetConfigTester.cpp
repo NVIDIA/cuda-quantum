@@ -6,22 +6,87 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Target/TargetConfigYaml.h"
+#include "TargetConfigHelper.h"
+#include "Yaml/TargetConfigSchema.h"
 #ifdef CUDAQ_ENABLE_PYTHON
 #include "LinkedLibraryHolder.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu_utils.h"
+#include <dlfcn.h>
 #endif
+#include "cudaq/Target/TargetCatalog.h"
+#include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/Target/TargetPluginLibrary.h"
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <sstream>
 #include <unordered_map>
 
 // ExternalBackendTester is not inherently Python-specific, but this test group
 // currently uses backend discovery helpers and LinkedLibraryHolder from
 // python/utils, which is only available when the Python project is enabled.
 #ifdef CUDAQ_ENABLE_PYTHON
+namespace {
+// Filename a compiled target plugin library gets on this platform.
+std::string pluginLibraryName(const std::string &stem) {
+  return stem + std::string(cudaq::config::kSharedLibraryExtension);
+}
+
+// Compiles `yamlContent` into a target plugin library at
+// `targetsDir/<name>` (with the platform's shared library extension) via
+// `cudaq-target-db-gen --plugin`, exactly as an external plugin author would
+// (see packaging.rst) - external targets are no longer resolved from raw YAML
+// text. The YAML is staged at its final `targetsDir/<name>.yml` location just
+// long enough to generate/compile (so `%PLUGIN_ROOT%` resolves against the
+// real target root), then removed; only the compiled artifact remains,
+// matching production behavior.
+void compileTargetPluginLibrary(const std::string &name,
+                                const std::string &yamlContent,
+                                const std::filesystem::path &targetsDir) {
+  const auto stagedYml = targetsDir / (name + ".yml");
+  {
+    std::ofstream out(stagedYml);
+    out << yamlContent;
+  }
+  const auto genCpp = targetsDir / (name + "_target.gen.cpp");
+  const auto libPath = targetsDir / pluginLibraryName(name);
+
+  std::string genCmd = std::string(CUDAQ_TARGET_DB_GEN_PATH) + " --plugin -o " +
+                       genCpp.string() + " " + name + "=" + stagedYml.string();
+  ASSERT_EQ(std::system(genCmd.c_str()), 0) << genCmd;
+
+  std::string compileCmd = std::string(CUDAQ_TEST_CXX_COMPILER) + " " +
+                           CUDAQ_TEST_CXX_FLAGS + " -I " +
+                           CUDAQ_TEST_INCLUDE_DIR + " " + genCpp.string() +
+                           " -o " + libPath.string();
+  ASSERT_EQ(std::system(compileCmd.c_str()), 0) << compileCmd;
+
+  std::filesystem::remove(stagedYml);
+  std::filesystem::remove(genCpp);
+}
+
+std::unordered_map<std::string, cudaq::RuntimeTarget>
+loadFromPluginRoot(const std::filesystem::path &pkgRoot) {
+  cudaq::config::TargetCatalog registry;
+  registry.addPluginRoot(pkgRoot);
+  std::unordered_map<std::string, cudaq::RuntimeTarget> targets;
+  for (const auto *entry : registry.list()) {
+    if (entry->origin == cudaq::config::detail::TargetOrigin::Builtin)
+      continue;
+    cudaq::RuntimeTarget target;
+    target.name = entry->name;
+    target.config = *entry->config;
+    target.pluginLibDir = entry->pluginLibDir.string();
+    target.configPath = entry->configPath;
+    target.description = entry->config->Description;
+    targets.emplace(target.name, std::move(target));
+  }
+  return targets;
+}
+} // namespace
+
 class ExternalBackendTester : public ::testing::Test {
 protected:
   std::filesystem::path tmpRoot;
@@ -46,15 +111,17 @@ protected:
     std::filesystem::create_directories(targetsDir);
     std::filesystem::create_directories(libDir);
 
-    std::ofstream configFile(targetsDir / (name + ".yml"));
-    configFile << "name: " << name << "\ndescription: \"Test backend.\"\n";
+    std::ostringstream yaml;
+    yaml << "name: " << name << "\ndescription: \"Test backend.\"\n";
     if (!version.empty())
-      configFile << "cudaq-version: \"" << version << "\"\n";
-    configFile << "config:\n"
-               << "  platform-qpu: remote_rest\n  library-mode: false\n";
+      yaml << "cudaq-version: \"" << version << "\"\n";
+    yaml << "config:\n"
+         << "  platform-qpu: remote_rest\n  library-mode: false\n";
+    compileTargetPluginLibrary(name, yaml.str(), targetsDir);
 
     if (createSo)
-      std::ofstream(libDir / ("libcudaq-serverhelper-" + name + ".so")).close();
+      std::ofstream(libDir / pluginLibraryName("libcudaq-serverhelper-" + name))
+          .close();
 
     return root;
   }
@@ -68,8 +135,193 @@ description: Version parsing test
 cudaq-version: "0.9.0-rc2+build.1"
 config:
   library-mode: true
-)");
+)",
+                                                       {});
   EXPECT_EQ(config.CudaqVersion, "0.9.0-rc2+build.1");
+}
+
+TEST(TargetConfigTester, parsesV2StagedPipeline) {
+  const auto config = cudaq::config::parseTargetConfig(R"(
+version: 2-alpha
+name: v2-target
+description: V2 schema coverage
+config:
+  platform-qpu: remote_rest
+  library-mode: false
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline:
+          high-level: "high-pipe"
+          mid-level: "mid-pipe"
+          low-level: "low-pipe"
+  codegen:
+    emission-format: qir-base
+    post-codegen-passes: "canonicalize"
+)",
+                                                       {});
+  ASSERT_TRUE(config.BackendConfig.has_value());
+  const auto &compileTarget = config.BackendConfig->CompileTarget;
+  ASSERT_EQ(compileTarget.stages.size(), 1);
+  EXPECT_TRUE(std::holds_alternative<cudaq::config::UncheckedProfile>(
+      compileTarget.stages[0].irOutputProfile));
+  const auto *lowering = std::get_if<cudaq::config::CustomPipelineLowering>(
+      &compileTarget.stages[0].lowering);
+  ASSERT_NE(lowering, nullptr);
+  EXPECT_EQ(lowering->highLevelPipeline, "high-pipe");
+  EXPECT_EQ(lowering->midLevelPipeline, "mid-pipe");
+  EXPECT_EQ(lowering->lowLevelPipeline, "low-pipe");
+  EXPECT_TRUE(lowering->overridePassPipeline.empty());
+  EXPECT_EQ(compileTarget.codegen.emissionFormat, "qir-base");
+  EXPECT_EQ(compileTarget.codegen.postCodegenPasses, "canonicalize");
+  EXPECT_EQ(config.getCodeGenSpec({}), "qir-base");
+  EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
+}
+
+TEST(TargetConfigTester, parsesV2OverridePipeline) {
+  const auto config = cudaq::config::parseTargetConfig(R"(
+version: 2-alpha
+name: v2-override
+description: V2 override pipeline
+config:
+  library-mode: false
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline: "canonicalize,cse"
+  codegen: nop
+)",
+                                                       {});
+  ASSERT_TRUE(config.BackendConfig.has_value());
+  ASSERT_EQ(config.BackendConfig->CompileTarget.stages.size(), 1);
+  const auto *lowering = std::get_if<cudaq::config::CustomPipelineLowering>(
+      &config.BackendConfig->CompileTarget.stages[0].lowering);
+  ASSERT_NE(lowering, nullptr);
+  EXPECT_EQ(lowering->overridePassPipeline, "canonicalize,cse");
+  EXPECT_TRUE(lowering->highLevelPipeline.empty());
+  EXPECT_TRUE(lowering->midLevelPipeline.empty());
+  EXPECT_TRUE(lowering->lowLevelPipeline.empty());
+  EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
+}
+
+TEST(TargetConfigTester, quakeReferenceSemanticsProfileIdentity) {
+  const cudaq::config::QuakeReferenceSemanticsProfile baseline{
+      .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"},
+      .measurementType = cudaq::config::MeasurementForm::single_qubit,
+      .resetAfterMeasure = true};
+  const std::hash<cudaq::config::QuakeReferenceSemanticsProfile> hash;
+
+  // Distinct profile kinds are never equal.
+  EXPECT_NE(cudaq::config::Profile{cudaq::config::UncheckedProfile{}},
+            cudaq::config::Profile{baseline});
+
+  // Changing any single constraint changes equality and identity.
+  auto basisChanged = baseline;
+  basisChanged.basisGates = {"h", "rz"};
+  EXPECT_NE(basisChanged, baseline);
+  EXPECT_NE(hash(basisChanged), hash(baseline));
+
+  auto measurementTypeChanged = baseline;
+  measurementTypeChanged.measurementType = cudaq::config::MeasurementForm::any;
+  EXPECT_NE(measurementTypeChanged, baseline);
+  EXPECT_NE(hash(measurementTypeChanged), hash(baseline));
+
+  auto resetChanged = baseline;
+  resetChanged.resetAfterMeasure = false;
+  EXPECT_NE(resetChanged, baseline);
+  EXPECT_NE(hash(resetChanged), hash(baseline));
+}
+
+TEST(TargetConfigTester, quakeReferenceSemanticsProfileTargetIdentity) {
+  cudaq::CompileTarget target;
+  target.stages = {cudaq::config::CompilationStage{
+      .irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{},
+      .lowering = cudaq::config::CustomPipelineLowering{}}};
+
+  // Profile options contribute to stage and compile-target identity.
+  cudaq::CompileTarget changed = target;
+  std::get<cudaq::config::QuakeReferenceSemanticsProfile>(
+      changed.stages[0].irOutputProfile)
+      .resetAfterMeasure = true;
+  EXPECT_NE(target, changed);
+  EXPECT_NE(std::hash<cudaq::CompileTarget>{}(target),
+            std::hash<cudaq::CompileTarget>{}(changed));
+}
+
+TEST(TargetConfigTester, inferredLoweringIdentityAndHash) {
+  using cudaq::config::CustomPipelineLowering;
+  using cudaq::config::InferredLowering;
+  using cudaq::config::UncheckedProfile;
+
+  const auto singleStageTarget = [](cudaq::config::Lowering lowering) {
+    cudaq::CompileTarget target;
+    target.stages.push_back({UncheckedProfile{}, std::move(lowering)});
+    return target;
+  };
+  const auto inferred = singleStageTarget(InferredLowering{});
+  const auto alsoInferred = singleStageTarget(InferredLowering{});
+  const auto emptyCustom = singleStageTarget(CustomPipelineLowering{});
+  const auto custom =
+      singleStageTarget(CustomPipelineLowering{.highLevelPipeline = "canon"});
+
+  // Inferred lowering is its own kind: equal to itself, distinct from every
+  // custom pipeline, including an empty one.
+  EXPECT_EQ(inferred, alsoInferred);
+  EXPECT_NE(inferred, emptyCustom);
+  EXPECT_NE(inferred, custom);
+
+  const std::hash<cudaq::CompileTarget> targetHash;
+  EXPECT_EQ(targetHash(inferred), targetHash(alsoInferred));
+  EXPECT_NE(targetHash(inferred), targetHash(emptyCustom));
+  EXPECT_NE(targetHash(inferred), targetHash(custom));
+}
+
+TEST(TargetConfigTester, v2RejectsV1CompilationKeys) {
+  const std::string yaml = R"(
+version: 2-alpha
+name: v2-invalid
+description: V1 compilation keys rejected under v2
+config:
+  library-mode: false
+  jit-mid-level-pipeline: "mid-pipe"
+)";
+  try {
+    (void)cudaq::config::parseTargetConfig(yaml, {});
+    FAIL() << "Expected parseTargetConfig to throw";
+  } catch (const std::runtime_error &error) {
+    EXPECT_NE(std::string(error.what()).find("Failed to parse"),
+              std::string::npos);
+  }
+}
+
+TEST(TargetConfigTester, v2RejectsMixedPipelineOptions) {
+  const std::string yaml = R"(
+version: 2-alpha
+name: v2-mixed
+description: Mixed pipeline options rejected
+config:
+  library-mode: false
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline:
+          override-pipeline: "canonicalize"
+          mid-level: "mid-pipe"
+  codegen: nop
+)";
+  try {
+    (void)cudaq::config::parseTargetConfig(yaml, {});
+    FAIL() << "Expected parseTargetConfig to throw";
+  } catch (const std::runtime_error &error) {
+    EXPECT_NE(std::string(error.what()).find("Failed to parse"),
+              std::string::npos);
+  }
 }
 
 TEST(TargetConfigTester, missingTargetConfigThrows) {
@@ -202,9 +454,7 @@ target-arguments:
           codegen-emission: qir-adaptive:1.0:int_computations,float_computations
 )";
 
-  cudaq::config::TargetConfig config;
-  llvm::yaml::Input Input(configYmlContents.c_str());
-  Input >> config;
+  auto config = cudaq::config::parseTargetConfig(configYmlContents, {});
   // No machine, use default
   EXPECT_EQ(config.getCodeGenSpec({}), "qir-base");
   // Unspecified machine, use default
@@ -219,6 +469,44 @@ target-arguments:
             "qir-adaptive:1.0:int_computations,float_computations");
   EXPECT_EQ(config.getCodeGenSpec({{"machine", "device2-2"}}),
             "qir-adaptive:1.0:int_computations,float_computations");
+}
+
+// Regression test: the target-pass-pipeline name registered for a
+// configuration-matrix entry joins the target's name and the entry's name
+// with '.', not '-'. Target and entry names routinely contain '-' (e.g.
+// "nvidia-mqpu-fp64", "single-gpu-fp32"), so joining with '-' could make two
+// distinct (target, entry) pairs collide on the same registered pipeline
+// name -- see cudaq-opt.cpp's registerAllTargetPassPipelines(), which is the
+// consumer of this same convention on the registration side.
+TEST(TargetConfigTester, targetPassPipelineNameJoinsWithDotNotHyphen) {
+  const std::string configYmlContents = R"(
+name: xyz
+description: "CUDA-Q test target."
+target-arguments:
+  - key: option
+    required: false
+    type: option-flags
+    help-string: "Specify the target options."
+configuration-matrix:
+  - name: bar
+    option-flags: [qpp]
+    default: true
+    config:
+      target-pass-pipeline: "canonicalize"
+)";
+
+  auto config = cudaq::config::parseTargetConfig(configYmlContents);
+  std::string output = cudaq::config::processRuntimeArgs(config, {});
+  EXPECT_NE(
+      output.find("TARGET_PASS_PIPELINE_NAME=target-pass-pipeline-xyz.bar"),
+      std::string::npos)
+      << "output was:\n"
+      << output;
+  EXPECT_EQ(
+      output.find("TARGET_PASS_PIPELINE_NAME=target-pass-pipeline-xyz-bar"),
+      std::string::npos)
+      << "must not use the ambiguous '-' join; output was:\n"
+      << output;
 }
 
 TEST(TargetConfigTester, checkRegex) {
@@ -247,9 +535,7 @@ target-arguments:
           codegen-emission: qir-adaptive:1.0:int_computations,float_computations
 )";
 
-  cudaq::config::TargetConfig config;
-  llvm::yaml::Input Input(configYmlContents.c_str());
-  Input >> config;
+  auto config = cudaq::config::parseTargetConfig(configYmlContents, {});
   // No machine, use default
   EXPECT_EQ(config.getCodeGenSpec({}), "qir-base");
   // Unmatched machine, use default
@@ -270,9 +556,7 @@ target-arguments:
 TEST_F(ExternalBackendTester, setsPluginLibDir) {
   auto root = createBackendPackage("my-backend");
 
-  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
-  cudaq::findAvailableTargets(root / "targets", targets, simTargets,
-                              root / "lib");
+  auto targets = loadFromPluginRoot(root);
 
   ASSERT_EQ(targets.count("my-backend"), 1);
   EXPECT_EQ(targets.at("my-backend").pluginLibDir, (root / "lib").string());
@@ -283,10 +567,9 @@ TEST_F(ExternalBackendTester, backendPathMultipleEntries) {
   auto rootA = createBackendPackage("backend-a");
   auto rootB = createBackendPackage("backend-b");
 
-  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
-  for (auto &root : {rootA, rootB})
-    cudaq::findAvailableTargets(root / "targets", targets, simTargets,
-                                root / "lib");
+  auto targets = loadFromPluginRoot(rootA);
+  auto targetsB = loadFromPluginRoot(rootB);
+  targets.insert(targetsB.begin(), targetsB.end());
 
   ASSERT_EQ(targets.count("backend-a"), 1);
   ASSERT_EQ(targets.count("backend-b"), 1);
@@ -297,31 +580,27 @@ TEST_F(ExternalBackendTester, backendPathMultipleEntries) {
 TEST_F(ExternalBackendTester, serverHelperPathResolvesToLibDir) {
   auto root = createBackendPackage("my-backend", /*createSo=*/true);
 
-  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
-  cudaq::findAvailableTargets(root / "targets", targets, simTargets,
-                              root / "lib");
+  auto targets = loadFromPluginRoot(root);
 
   ASSERT_EQ(targets.count("my-backend"), 1);
   const auto &target = targets.at("my-backend");
   auto resolvedPath = std::filesystem::path(target.pluginLibDir) /
-                      ("libcudaq-serverhelper-" + target.name + ".so");
+                      pluginLibraryName("libcudaq-serverhelper-" + target.name);
   EXPECT_TRUE(std::filesystem::exists(resolvedPath));
 }
 
-TEST_F(ExternalBackendTester, pluginYamlPath_resolvesToTargetsDir) {
+TEST_F(ExternalBackendTester, configPath_resolvesToTargetsDir) {
   auto root = createBackendPackage("my-backend");
 
-  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
-  cudaq::findAvailableTargets(root / "targets", targets, simTargets,
-                              root / "lib");
+  auto targets = loadFromPluginRoot(root);
 
   ASSERT_EQ(targets.count("my-backend"), 1);
   const auto &target = targets.at("my-backend");
   ASSERT_FALSE(target.pluginLibDir.empty());
 
-  auto ymlPath = target.pluginYamlPath();
-  EXPECT_EQ(ymlPath, root / "targets" / "my-backend.yml");
-  EXPECT_TRUE(std::filesystem::exists(ymlPath));
+  EXPECT_EQ(target.configPath,
+            root / "targets" / pluginLibraryName("my-backend"));
+  EXPECT_TRUE(std::filesystem::exists(target.configPath));
 }
 
 // -- B1: registerBackendPath -------------------------------------------------
@@ -329,8 +608,7 @@ TEST_F(ExternalBackendTester, pluginYamlPath_resolvesToTargetsDir) {
 TEST_F(ExternalBackendTester, registerBackendPath_addsTargets) {
   auto root = createBackendPackage("my-backend");
 
-  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
-  cudaq::registerBackendPath(root, targets, simTargets);
+  auto targets = loadFromPluginRoot(root);
 
   ASSERT_EQ(targets.count("my-backend"), 1);
   EXPECT_EQ(targets.at("my-backend").name, "my-backend");
@@ -339,9 +617,9 @@ TEST_F(ExternalBackendTester, registerBackendPath_addsTargets) {
 
 TEST_F(ExternalBackendTester, registerBackendPath_rejectsMissingPath) {
   auto bogus = tmpRoot / "does-not-exist";
-  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
+  cudaq::LinkedLibraryHolder holder;
   try {
-    cudaq::registerBackendPath(bogus, targets, simTargets);
+    holder.registerBackendPath(bogus);
     FAIL() << "expected runtime_error";
   } catch (const std::runtime_error &e) {
     EXPECT_NE(std::string(e.what()).find(bogus.string()), std::string::npos)
@@ -354,9 +632,9 @@ TEST_F(ExternalBackendTester, registerBackendPath_rejectsMissingTargetsDir) {
   auto root = tmpRoot / "no-targets";
   std::filesystem::create_directories(root);
 
-  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
+  cudaq::LinkedLibraryHolder holder;
   try {
-    cudaq::registerBackendPath(root, targets, simTargets);
+    holder.registerBackendPath(root);
     FAIL() << "expected runtime_error";
   } catch (const std::runtime_error &e) {
     EXPECT_NE(std::string(e.what()).find(root.string()), std::string::npos)
@@ -373,13 +651,14 @@ TEST_F(ExternalBackendTester,
     std::filesystem::create_directories(targetsDir);
     std::filesystem::create_directories(root / "lib");
 
-    std::ofstream configFile(targetsDir / (name + ".yml"));
-    configFile << "name: " << name << "\ndescription: \"Test backend.\"\n";
+    std::ostringstream yaml;
+    yaml << "name: " << name << "\ndescription: \"Test backend.\"\n";
     if (!version.empty())
-      configFile << "cudaq-version: \"" << version << "\"\n";
-    configFile << "config:\n"
-               << "  nvqir-simulation-backend: qpp\n"
-               << "  library-mode: false\n";
+      yaml << "cudaq-version: \"" << version << "\"\n";
+    yaml << "config:\n"
+         << "  nvqir-simulation-backend: qpp\n"
+         << "  library-mode: false\n";
+    compileTargetPluginLibrary(name, yaml.str(), targetsDir);
     return root;
   };
 
@@ -402,8 +681,8 @@ TEST_F(ExternalBackendTester, pluginLibrariesFieldIsParsed) {
   std::filesystem::create_directories(targetsDir);
   std::filesystem::create_directories(libDir);
 
-  // Write a YAML with plugin-libraries
-  std::ofstream(targetsDir / "my-backend.yml") << R"(
+  // Compile a target plugin library with plugin-libraries set.
+  compileTargetPluginLibrary("my-backend", R"(
 name: my-backend
 description: Plugin-libraries test
 target-arguments: []
@@ -413,10 +692,10 @@ config:
   plugin-libraries:
     - libdummy1.so
     - libdummy2.so
-)";
+)",
+                             targetsDir);
 
-  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
-  cudaq::findAvailableTargets(targetsDir, targets, simTargets, libDir);
+  auto targets = loadFromPluginRoot(root);
 
   ASSERT_EQ(targets.count("my-backend"), 1);
   const auto &target = targets.at("my-backend");
@@ -444,7 +723,8 @@ TEST_F(ExternalBackendTester, versionWarningAllowsPluginLibraryLoad) {
   std::filesystem::remove(sentinelPath);
   setenv("CUDAQ_DLOPEN_SENTINEL_PATH", sentinelPath.c_str(), 1);
 
-  std::ofstream(targetsDir / "future-backend.yml") << R"(
+  std::ostringstream yaml;
+  yaml << R"(
 name: future-backend
 description: Future-version plugin test
 cudaq-version: 999999.0.0
@@ -453,8 +733,9 @@ config:
   nvqir-simulation-backend: qpp
   library-mode: false
   plugin-libraries:
-    - )" << pluginFileName << R"(
-)";
+    - )"
+       << pluginFileName << "\n";
+  compileTargetPluginLibrary("future-backend", yaml.str(), targetsDir);
 
   cudaq::LinkedLibraryHolder holder;
   holder.registerBackendPath(root);
@@ -462,6 +743,12 @@ config:
   EXPECT_FALSE(std::filesystem::exists(sentinelPath));
   EXPECT_NO_THROW(holder.setTarget("future-backend"));
   EXPECT_TRUE(std::filesystem::exists(sentinelPath));
+  EXPECT_EQ(dlsym(RTLD_DEFAULT, "cudaqDlopenSentinelProbe"), nullptr);
+  auto *handle =
+      dlopen((libDir / pluginFileName).c_str(), RTLD_NOW | RTLD_LOCAL);
+  ASSERT_NE(handle, nullptr);
+  EXPECT_NE(dlsym(handle, "cudaqDlopenSentinelProbe"), nullptr);
+  dlclose(handle);
   unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
 }
 
@@ -477,7 +764,7 @@ TEST_F(ExternalBackendTester,
 
   const auto expectedTopology = (root / "data" / "topology.txt").string();
   std::ofstream(dataDir / "topology.txt") << "topology\n";
-  std::ofstream(targetsDir / "my-backend.yml") << R"(
+  compileTargetPluginLibrary("my-backend", R"(
 name: my-backend
 description: Plugin-root substitution test
 target-arguments: []
@@ -486,15 +773,19 @@ config:
   jit-mid-level-pipeline: "map{device=file(%PLUGIN_ROOT%/data/topology.txt)}"
   preprocessor-defines:
     - "-DTOPOLOGY=%PLUGIN_ROOT%/data/topology.txt"
-)";
+)",
+                             targetsDir);
 
-  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
-  cudaq::findAvailableTargets(targetsDir, targets, simTargets, libDir);
+  auto targets = loadFromPluginRoot(root);
 
   ASSERT_EQ(targets.count("my-backend"), 1);
   const auto &config = targets.at("my-backend").config;
   ASSERT_TRUE(config.BackendConfig.has_value());
-  EXPECT_EQ(config.BackendConfig->JITMidLevelPipeline,
+  ASSERT_EQ(config.BackendConfig->CompileTarget.stages.size(), 1);
+  const auto &lowering = std::get_if<cudaq::config::CustomPipelineLowering>(
+      &config.BackendConfig->CompileTarget.stages[0].lowering);
+  ASSERT_NE(lowering, nullptr);
+  EXPECT_EQ(lowering->midLevelPipeline,
             "map{device=file(" + expectedTopology + ")}");
   ASSERT_EQ(config.BackendConfig->PreprocessorDefines.size(), 1);
   EXPECT_EQ(config.BackendConfig->PreprocessorDefines.front(),
@@ -525,6 +816,12 @@ TEST_F(ExternalBackendTester, nativeTargetLoadsPluginLibraries) {
       "native-plugin-load", targetsDir / "native-plugin-load.yml", config);
 
   EXPECT_TRUE(std::filesystem::exists(sentinelPath));
+  EXPECT_EQ(dlsym(RTLD_DEFAULT, "cudaqDlopenSentinelProbe"), nullptr);
+  auto *handle =
+      dlopen((libDir / pluginFileName).c_str(), RTLD_NOW | RTLD_LOCAL);
+  ASSERT_NE(handle, nullptr);
+  EXPECT_NE(dlsym(handle, "cudaqDlopenSentinelProbe"), nullptr);
+  dlclose(handle);
   unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
 }
 

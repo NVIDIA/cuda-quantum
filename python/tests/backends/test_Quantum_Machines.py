@@ -27,7 +27,6 @@ port = 62448
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     os.environ["QUANTUM_MACHINES_API_KEY"] = "00000000000000000000000000000000"
-    cudaq.set_target("quantum_machines", url="http://localhost:{}".format(port))
 
     # Launch the Mock Server
     p = Process(target=start_server, args=(port,))
@@ -37,6 +36,8 @@ def startUpMockServer():
         p.terminate()
         pytest.exit("Mock server did not start in time, skipping tests.",
                     returncode=1)
+
+    cudaq.set_target("quantum_machines", url="http://localhost:{}".format(port))
 
     yield "Server started."
 

@@ -29,10 +29,12 @@ add_cudaq_library(OptCodeGen
   QuakeToCodegen.cpp
   QuakeToExecMgr.cpp
   QuakeToLLVM.cpp
+  Registration.cpp
   RemoveMeasurements.cpp
   ReturnToOutputLog.cpp
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
+  WireSetsToNullWires.cpp
   WireSetsToProfileQIR.cpp
 
   DEPENDS

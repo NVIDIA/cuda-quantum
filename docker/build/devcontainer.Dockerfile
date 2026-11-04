@@ -31,6 +31,10 @@ RUN if [ -z "${cuda_version}" ]; then \
     fi
 
 FROM $base_image
+
+# Install uv and uvx.
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /usr/local/bin/
+RUN uv --version
 SHELL ["/bin/bash", "-c"]
 ARG cuda_version
 ENV CUDA_VERSION=${cuda_version}
@@ -171,7 +175,8 @@ ENV OMPI_MCA_smsc=cma
 
 # Install CUDA
 
-ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink cuda-nvml-dev"
+# libnvjitlink-dev provides the nvJitLink.h header that cudaq-realtime builds against.
+ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink libnvjitlink-dev cuda-nvml-dev"
 RUN if [ -n "$cuda_packages" ]; then \
         # Filter out libnvjitlink if CUDA version is less than 12
         if [ $(echo $CUDA_VERSION | cut -d "." -f1) -lt 12 ]; then \
@@ -221,7 +226,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     else \
         cupy_version=13.4.1; \
     fi && \
-    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==${cupy_version} cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==26.6.0 && \
+    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==${cupy_version} cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==26.9.0 && \
     if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.12" ]; then \
         echo "expecting Python version 3.12"; \
     fi

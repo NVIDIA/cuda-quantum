@@ -1,0 +1,69 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -add-dealloc -kernel-execution -canonicalize -split-input-file %s | FileCheck %s
+
+// A kernel result that has dynamic parts, but is not a flat vector, cannot be
+// copied into the host's sret block. The layout of the host value differs from
+// the layout of the device's value, so the host value is built in place, and
+// adopts the heap storage of the device's value.
+
+// A struct with a vector member. The vector's storage is adopted as is.
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__test_0 = "test_0"}} {
+func.func @__nvqpp__mlirgen__test_0(%arg0: i32) -> !cc.struct<"WithVec" {i32, !cc.sequence<i32>} [192,8]> {
+  %0 = cc.undef !cc.struct<"WithVec" {i32, !cc.sequence<i32>} [192,8]>
+  return %0 : !cc.struct<"WithVec" {i32, !cc.sequence<i32>} [192,8]>
+}
+func.func @test_0(%0: !cc.ptr<!cc.struct<"WithVec" {i32, !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>} [256,8]>> {llvm.sret = !cc.struct<"WithVec" {i32, !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>} [256,8]>}, %1: !cc.ptr<i8>, %2: i32) {
+  return
+}
+}
+
+// CHECK-LABEL:   func.func @test_0(
+// CHECK-SAME:      %[[SRET:.*]]: !cc.ptr<!cc.struct<"WithVec" {i32, !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>} [256,8]>> {llvm.sret
+// CHECK:           call @hybridLaunchKernel(
+// CHECK-NOT:       llvm.memcpy
+// CHECK:           %[[TAG:.*]] = cc.extract_value %{{.*}}[0] : (!cc.struct<"WithVec" {i32, !cc.sequence<i32>} [192,8]>) -> i32
+// CHECK:           cc.store %[[TAG]], %{{.*}} : !cc.ptr<i32>
+// CHECK:           %[[VEC:.*]] = cc.extract_value %{{.*}}[1] : (!cc.struct<"WithVec" {i32, !cc.sequence<i32>} [192,8]>) -> !cc.sequence<i32>
+// CHECK:           %[[DATA:.*]] = cc.sequence_data %[[VEC]] : (!cc.sequence<i32>) -> !cc.ptr<i32>
+// CHECK:           cc.sequence_size %[[VEC]] : (!cc.sequence<i32>) -> i64
+// CHECK:           cc.store %{{.*}}, %{{.*}} : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           return
+
+// -----
+
+// A vector of vectors. The host's elements are std::vector triples, which are
+// bigger than the device's spans, so an array of triples is built that adopts
+// the storage of each inner vector. The device's array of spans is released.
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__test_0 = "test_0"}} {
+func.func @__nvqpp__mlirgen__test_0(%arg0: i32) -> !cc.sequence<!cc.sequence<i32>> {
+  %0 = cc.undef !cc.sequence<!cc.sequence<i32>>
+  return %0 : !cc.sequence<!cc.sequence<i32>>
+}
+func.func @test_0(%0: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>}>> {llvm.sret = !cc.struct<{!cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>}>}, %1: !cc.ptr<i8>, %2: i32) {
+  return
+}
+}
+
+// CHECK-LABEL:   func.func @test_0(
+// CHECK:           call @hybridLaunchKernel(
+// CHECK-NOT:       llvm.memcpy
+// CHECK:           %[[N:.*]] = cc.extract_value %{{.*}}[1] : (!cc.struct<{!cc.ptr<!cc.sequence<i32>>, i64}>) -> i64
+// CHECK:           %[[TRIPLE:.*]] = cc.sizeof !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}> : i64
+// CHECK:           %[[BYTES:.*]] = arith.muli %[[N]], %[[TRIPLE]] : i64
+// CHECK:           %[[ARRAY:.*]] = call @malloc(%[[BYTES]]) : (i64) -> !cc.ptr<i8>
+// CHECK:           cc.loop while
+// CHECK:           %[[INNER:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.sequence<i32>>
+// CHECK:           cc.sequence_data %[[INNER]] : (!cc.sequence<i32>) -> !cc.ptr<i32>
+// CHECK:           cc.sequence_size %[[INNER]] : (!cc.sequence<i32>) -> i64
+// CHECK:           } step {
+// CHECK:           cc.store %[[ARRAY]], %{{.*}} : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           call @free(%{{.*}}) : (!cc.ptr<i8>) -> ()
+// CHECK:           call @free(%{{.*}}) : (!cc.ptr<i8>) -> ()
+// CHECK:           return

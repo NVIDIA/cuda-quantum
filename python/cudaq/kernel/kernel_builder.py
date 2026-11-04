@@ -37,7 +37,8 @@ from .utils import (boundaryDiagnostic, containsMeasureHandle, emitFatalError,
                     emitWarning, nvqppPrefix, getMLIRContext, recover_func_op,
                     mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
-                    globalRegisteredOperations)
+                    globalRegisteredOperations, set_optimization_level_attr,
+                    get_optimization_level_attr)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -980,15 +981,40 @@ class PyKernel(object):
 
     def givens_rotation(self, angle, qubitA, qubitB):
         """
-        Add Givens rotation kernel (theta angle as a QuakeValue) to the kernel
-        builder object.
+        Add a Givens rotation kernel to the kernel builder object.
+
+        The Givens rotation mixes the two-qubit basis states `|01>` and `|10>`
+        and leaves `|00>` and `|11>` unchanged. It is equivalent to
+        `exp(-i theta (YX - XY) / 2)`, and in the basis
+        `|00>, |01>, |10>, |11>` it is given by::
+
+            | 1  0  0  0 |
+            | 0  c -s  0 |         c = cos(theta)
+            | 0  s  c  0 |         s = sin(theta)
+            | 0  0  0  1 |
+
+        Because it preserves the number of excitations, it is a common
+        building block for particle-number conserving ansatz. The angle can be
+        provided as a concrete float or a `QuakeValue`.
         """
         givens_builder(self, angle, qubitA, qubitB)
 
     def fermionic_swap(self, angle, qubitA, qubitB):
         """
-        Add Fermionic SWAP rotation kernel (phi angle as a QuakeValue) to the
-        kernel builder object.
+        Add a fermionic SWAP rotation kernel to the kernel builder object.
+
+        This rotation acts on two adjacent fermionic modes under the
+        Jordan-Wigner mapping, swapping them while tracking the fermionic
+        exchange phase. In the basis `|00>, |01>, |10>, |11>` it is given by::
+
+            | 1    0       0      0  |
+            | 0   e*c    -i*e*s   0  |    c = cos(phi/2), s = sin(phi/2)
+            | 0  -i*e*s   e*c     0  |    e = exp(i phi/2)
+            | 0    0       0     e^2 |
+
+        For `phi = pi` this reduces to the fermionic SWAP gate, i.e. a SWAP
+        with an additional phase of -1 on `|11>`. The angle can be provided as
+        a concrete float or a `QuakeValue`.
         """
         fermionic_swap_builder(self, angle, qubitA, qubitB)
 
@@ -1727,8 +1753,7 @@ class PyKernel(object):
         Mark this kernel so that quantum optimization passes (e.g. value
         semantics lowering) are skipped during code generation.
         """
-        self.module.operation.attributes.__setitem__(
-            'quake.noOptimization', UnitAttr.get(context=self.ctx))
+        set_optimization_level_attr(self.module, self.name, level=0)
 
     def atomic_quantum_region(self):
         """
@@ -1763,7 +1788,7 @@ class PyKernel(object):
                 cudaq__unique_attr_name,
                 StringAttr.get(self.uniqName, context=ctx))
 
-    def __call__(self, *args):
+    def __call__(self, *args, optimization_level=None):
         """
         Just-In-Time (JIT) compile `self` (:class:`Kernel`), and call the kernel
         function at the provided concrete arguments.
@@ -1872,6 +1897,12 @@ class PyKernel(object):
 
         self.compile()
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
+        # An optimization level declared on the kernel (e.g. `disable_quantum_optimization`)
+        # overrides launch options.
+        if (optimization_level is not None and
+                get_optimization_level_attr(self.qkeModule, self.name) is None):
+            set_optimization_level_attr(specialized, self.name,
+                                        optimization_level)
         cudaq_runtime.marshal_and_launch_module(
             self.name,
             specialized,

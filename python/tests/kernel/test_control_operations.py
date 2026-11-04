@@ -46,6 +46,79 @@ def test_ctrl_x():
     assert counts["0011111"] == 1000
 
 
+def test_empty_control_register():
+
+    @cudaq.kernel
+    def cnot(control: cudaq.qubit, target: cudaq.qubit):
+        x.ctrl(control, target)
+
+    @cudaq.kernel
+    def kernel(n: int, register_on: bool, scalar_on: bool):
+        qreg = cudaq.qvector(n)
+        ancilla = cudaq.qubit()
+        target = cudaq.qubit()
+        if register_on:
+            x(qreg)
+        if scalar_on:
+            x(ancilla)
+        # Specialization gives X both register and scalar controls.
+        cudaq.control(cnot, qreg, ancilla, target)
+
+    shots = 10
+    for n in (0, 2):
+        for register_on in (False, True):
+            for scalar_on in (False, True):
+                counts = cudaq.sample(kernel,
+                                      n,
+                                      register_on,
+                                      scalar_on,
+                                      shots_count=shots)
+                target_on = scalar_on and (n == 0 or register_on)
+                expected = ("1" if register_on else "0") * n
+                expected += "1" if scalar_on else "0"
+                expected += "1" if target_on else "0"
+                assert len(counts) == 1
+                assert counts[expected] == shots
+
+
+def test_gate_list_comprehension_filter():
+    """Tests that `if` filters of a gate-applying list comprehension are
+    honored."""
+
+    @cudaq.kernel
+    def never():
+        qs = cudaq.qvector(3)
+        [x(q) for q in qs if False]
+
+    counts = cudaq.sample(never)
+    assert counts["000"] == 1000
+
+    @cudaq.kernel
+    def skip_one(skip: int):
+        qs = cudaq.qvector(3)
+        [x(qs[i]) for i in range(3) if i != skip]
+
+    counts = cudaq.sample(skip_one, 1)
+    assert counts["101"] == 1000
+
+    @cudaq.kernel
+    def two_filters():
+        qs = cudaq.qvector(4)
+        [x(qs[i]) for i in range(4) if i > 0 if i < 3]
+
+    counts = cudaq.sample(two_filters)
+    assert counts["0110"] == 1000
+
+    @cudaq.kernel
+    def ctrl_filter():
+        qs = cudaq.qvector(4)
+        x(qs[0])
+        [x.ctrl(qs[0], qs[i]) for i in range(1, 4) if i != 2]
+
+    counts = cudaq.sample(ctrl_filter)
+    assert counts["1101"] == 1000
+
+
 def test_ctrl_x_list_comprehension():
     """Tests x.ctrl with list comprehension."""
 

@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: FileCheck %s --input-file=%cudaq_src_dir/runtime/cudaq/platform/default/rest/helpers/braket/braket.yml --check-prefix=YAML
+// RUN: FileCheck %s --input-file=%cudaq_src_dir/cudaq/lib/Targets/braket/braket.yml --check-prefix=YAML
 // RUN: cudaq-opt --pass-pipeline="builtin.module(decomposition{basis=h,rx,ry,rz,x,y,z,x(1)})" %s | cudaq-translate --convert-to=openqasm2 | FileCheck %s --implicit-check-not=sdg --implicit-check-not=tdg
 
 module {

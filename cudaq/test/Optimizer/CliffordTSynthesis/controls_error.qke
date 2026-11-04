@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3 fail-on-controlled-rotation=true' -verify-diagnostics %s
-// RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3 fail-on-controlled-rotation=true' -verify-diagnostics %s
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='approximation-tolerance=1e-3' -verify-diagnostics %s
 
 // A resource boundary must reject a controlled rotation rather than silently
 // preserving an operation the resource counter cannot represent. Global-phase

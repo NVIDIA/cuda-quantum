@@ -1,0 +1,55 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// clang-format off
+// RUN: not cudaq-opt --borrow-checking --split-input-file %s 2>&1 | FileCheck --check-prefix=DEFAULT %s
+// RUN: cudaq-opt --borrow-checking=raise-failure=false --split-input-file %s 2>&1 | FileCheck --check-prefix=WARN --implicit-check-not=error: %s
+// RUN: not cudaq-opt --borrow-checking=warn-on-possible=false --split-input-file %s 2>&1 | FileCheck --check-prefix=QUIET --implicit-check-not="may be borrowed" --implicit-check-not="cannot determine" %s
+// clang-format on
+
+// The pass fails on a definite violation. `raise-failure=false` downgrades that
+// to a warning. `warn-on-possible=false` silences the possible conflicts.
+
+quake.wire_set @phys[4]
+
+func.func @definite() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  %1 = quake.borrow_wire @phys[0] : !quake.wire
+  quake.return_wire %0 : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+// DEFAULT: error: wire @phys[0] is borrowed while it is already borrowed
+// WARN: warning: wire @phys[0] is borrowed while it is already borrowed
+// QUIET: error: wire @phys[0] is borrowed while it is already borrowed
+
+// -----
+
+quake.wire_set @phys[4]
+
+// A possible conflict, and a return that cannot be traced, are warnings unless
+// warn-on-possible=false, which assumes they are correct.
+func.func @possible(%c: i1, %w: !quake.wire) {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  cf.cond_br %c, ^bb1, ^bb2
+^bb1:
+  quake.return_wire %0 : !quake.wire
+  cf.br ^bb3
+^bb2:
+  cf.br ^bb3
+^bb3:
+  %1 = quake.borrow_wire @phys[0] : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %w : !quake.wire
+  return
+}
+
+// DEFAULT: warning: wire @phys[0] may be borrowed while it is already borrowed
+// DEFAULT: warning: cannot determine which wire is returned
+// WARN: warning: wire @phys[0] may be borrowed while it is already borrowed

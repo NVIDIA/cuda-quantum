@@ -40,6 +40,45 @@ TEST_F(MagnusIntegratorTest, Initialization) {
   EXPECT_NO_THROW(cudaq::integrators::magnus_expansion m3(15, 0.01));
   EXPECT_THROW(cudaq::integrators::magnus_expansion bad(0),
                std::invalid_argument);
+  EXPECT_THROW(cudaq::integrators::magnus_expansion(10, 0.0),
+               std::invalid_argument);
+  EXPECT_THROW(cudaq::integrators::magnus_expansion(10, -0.01),
+               std::invalid_argument);
+}
+
+TEST_F(MagnusIntegratorTest, IntegrateLandsExactlyOnSchedulePoints) {
+  constexpr std::size_t numIntervals = 99;
+  const double maxStepSize = 1.0 / numIntervals;
+  cudaq::integrators::magnus_expansion integrator(/*num_taylor_terms=*/1,
+                                                  maxStepSize);
+
+  const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
+                                                             {0.0, 0.0}};
+  const std::vector<int64_t> dims = {2};
+  cudaq::sum_op<cudaq::matrix_handler> ham(cudaq::spin_op::x(0));
+  SystemDynamics system(dims, ham);
+
+  auto initialState = cudaq::state::from_data(initialStateVec);
+  auto *castSimState = dynamic_cast<CuDensityMatState *>(
+      cudaq::state_helper::getSimulationState(&initialState));
+  ASSERT_NE(castSimState, nullptr);
+  castSimState->initialize_cudm(handle_, dims, /*batchSize=*/1);
+  integrator.setState(initialState, 0.0);
+
+  std::vector<std::complex<double>> steps;
+  for (std::size_t i = 0; i <= numIntervals; ++i)
+    steps.emplace_back(static_cast<double>(i) / numIntervals, 0.0);
+  cudaq::schedule schedule(
+      steps, {"t"}, [](const std::string &, const std::complex<double> &value) {
+        return value;
+      });
+  cudaq::integrator_helper::init_system_dynamics(integrator, system, schedule);
+
+  for (std::size_t i = 1; i < steps.size(); ++i) {
+    const double targetTime = steps[i].real();
+    integrator.integrate(targetTime);
+    EXPECT_EQ(integrator.getState().first, targetTime);
+  }
 }
 
 TEST_F(MagnusIntegratorTest, CheckEvolve) {
@@ -121,6 +160,52 @@ TEST_F(MagnusIntegratorTest, CloneReproducesTrajectory) {
   EXPECT_NEAR(origVec[0].imag(), cloneVec[0].imag(), 1e-10);
   EXPECT_NEAR(origVec[1].real(), cloneVec[1].real(), 1e-10);
   EXPECT_NEAR(origVec[1].imag(), cloneVec[1].imag(), 1e-10);
+}
+
+TEST_F(MagnusIntegratorTest, CloneDoesNotShareState) {
+  const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
+                                                             {0.0, 0.0}};
+  const std::vector<int64_t> dims = {2};
+  cudaq::sum_op<cudaq::matrix_handler> ham(2.0 * M_PI * 0.1 *
+                                           cudaq::spin_op::x(0));
+  SystemDynamics system(dims, ham);
+
+  cudaq::integrators::magnus_expansion integrator(10, 0.01);
+  auto initialState = cudaq::state::from_data(initialStateVec);
+  auto *castSimState = dynamic_cast<CuDensityMatState *>(
+      cudaq::state_helper::getSimulationState(&initialState));
+  ASSERT_NE(castSimState, nullptr);
+  castSimState->initialize_cudm(handle_, dims, 1);
+
+  std::vector<std::complex<double>> steps;
+  for (double t : cudaq::linspace(0.0, 1.0, 11))
+    steps.emplace_back(t, 0.0);
+  cudaq::schedule schedule(
+      steps, {"t"},
+      [](const std::string &, const std::complex<double> &v) { return v; });
+
+  integrator.setState(initialState, 0.0);
+  cudaq::integrator_helper::init_system_dynamics(integrator, system, schedule);
+  integrator.integrate(0.5);
+  std::vector<std::complex<double>> beforeVec(2);
+  integrator.getState().second.to_host(beforeVec.data(), beforeVec.size());
+
+  // Integrating the clone must leave the original's state untouched.
+  auto cloned = integrator.clone();
+  cloned->integrate(1.0);
+
+  std::vector<std::complex<double>> origVec(2), cloneVec(2);
+  auto [t1, origState] = integrator.getState();
+  origState.to_host(origVec.data(), origVec.size());
+  auto [t2, cloneState] = cloned->getState();
+  cloneState.to_host(cloneVec.data(), cloneVec.size());
+
+  EXPECT_EQ(t1, 0.5);
+  EXPECT_EQ(t2, 1.0);
+  for (std::size_t i = 0; i < origVec.size(); ++i)
+    EXPECT_EQ(origVec[i], beforeVec[i]) << "Amplitude " << i;
+  EXPECT_GT(std::abs(cloneVec[1] - beforeVec[1]), 1e-3)
+      << "The clone should have evolved past t = 0.5";
 }
 
 TEST_F(MagnusIntegratorTest, ConvergenceOrderVerification) {

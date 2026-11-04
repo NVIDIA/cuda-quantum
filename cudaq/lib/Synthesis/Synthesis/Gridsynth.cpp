@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <utility>
 
 #define DEBUG_TYPE "cudaq-synth"
 
@@ -530,15 +531,32 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
         else if (z_reduced.k() < w_reduced.k())
           z_reduced = with_denom_exp(z_reduced, w_reduced.k());
 
-        // Pick between two equivalent unitary representations that differ
-        // by one T-gate (Lemma 7.3): if z + w admits a smaller LDE, the
-        // straight pair (z, w) wins. Otherwise rotating w by omega gains
-        // one denominator slot.
-        DOmegaUnitary u_approx(DOmega::from_int(0), DOmega::from_int(0), 0);
-        if (to_lde(z_reduced + w_reduced).k() < z_reduced.k())
-          u_approx = DOmegaUnitary(z_reduced, w_reduced, 0);
-        else
-          u_approx = DOmegaUnitary(z_reduced, mul_by_omega(w_reduced), 0);
+        // Every omega^j * w solves the same equation as w, and the error
+        // depends on z alone (equation (13)), so all eight approximate
+        // R_z(theta) equally well. They differ in Clifford content, and by up
+        // to one T gate (Lemma 7.3). Left to the solver's RNG that choice
+        // costs gates at random. Score the orbit on (T-count, gate count):
+        // T-count leads, so it cannot regress.
+        DOmegaUnitary u_approx(z_reduced, w_reduced, 0);
+        Circuit best = kmm_synthesize(u_approx);
+        int64_t t_count_ties = 0;
+        for (int32_t j = 1; j < 8; j++) {
+          DOmegaUnitary candidate(z_reduced, mul_by_omega_power(w_reduced, j),
+                                  0);
+          Circuit circuit = kmm_synthesize(candidate);
+          if (circuit.t_count() > best.t_count())
+            continue;
+          if (circuit.t_count() < best.t_count())
+            t_count_ties = 0;
+          else
+            t_count_ties++;
+          if (std::make_pair(circuit.t_count(), circuit.size()) <
+              std::make_pair(best.t_count(), best.size())) {
+            u_approx = candidate;
+            best = std::move(circuit);
+          }
+        }
+        local.orbit_t_count_ties = t_count_ties;
 
         local.enumeration_ns = elapsed_ns() - local.diophantine_ns;
         publish(GridsynthOutcome::Success);

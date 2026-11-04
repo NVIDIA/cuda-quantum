@@ -73,9 +73,13 @@ def test_product_stage_estimation_and_target_surface():
     )
     assert hasattr(fabric_dialect, "ResourceRequestOp")
     assert {name for name in vars(_qlx_ops_gen) if name.endswith("Op")
-           } == {name for name in vars(qlx_dialect) if name.endswith("Op")}
+           } | {"ActionBodyOp"} == {
+               name for name in vars(qlx_dialect) if name.endswith("Op")
+           }
     assert {name for name in vars(_fabric_ops_gen) if name.endswith("Op")
-           } == {name for name in vars(fabric_dialect) if name.endswith("Op")}
+           } | {"ActionOp"} == {
+               name for name in vars(fabric_dialect) if name.endswith("Op")
+           }
     assert "resource" in cql.types.__all__
     authoring_verbs = {
         "allocate_patch",
@@ -168,6 +172,143 @@ def test_native_logical_objective_exports_a_kernel_through_its_gadget():
 
     imported = cql.compiler.import_cudaq(paired_x_caller)
     assert "qlx.apply @paired_x" in imported.to_mlir()
+
+
+def test_import_cudaq_accepts_a_qvector_kernel():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def bell_qvector():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+        mz(q)
+
+    p0 = cql.compiler.import_cudaq(bell_qvector).to_mlir()
+    assert p0.count("#qlx.action<h>") == 1
+    assert p0.count("#qlx.action<cx>") == 1
+    assert p0.count("qlx.measure <Z>") == 2
+
+
+def test_import_cudaq_accepts_a_scalar_qubit_kernel():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def bell_qubits():
+        left = cudaq.qubit()
+        right = cudaq.qubit()
+        h(left)
+        x.ctrl(left, right)
+        mz(left)
+        mz(right)
+
+    p0 = cql.compiler.import_cudaq(bell_qubits).to_mlir()
+    assert p0.count("#qlx.action<h>") == 1
+    assert p0.count("#qlx.action<cx>") == 1
+    assert p0.count("qlx.measure <Z>") == 2
+
+
+def test_import_cudaq_accepts_an_unmeasured_qvector_kernel():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def unmeasured():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+
+    p0 = cql.compiler.import_cudaq(unmeasured).to_mlir()
+    assert p0.count("#qlx.action<h>") == 1
+    assert p0.count("#qlx.action<cx>") == 1
+    assert "qlx.measure" not in p0
+
+
+def test_import_cudaq_accepts_a_multicontrolled_gate():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def toffoli():
+        q = cudaq.qvector(3)
+        x.ctrl(q[0], q[1], q[2])
+        mz(q)
+
+    p0 = cql.compiler.import_cudaq(toffoli).to_mlir()
+    assert p0.count("#qlx.action<ccx>") == 1
+    assert p0.count("qlx.measure <Z>") == 3
+
+
+def test_import_cudaq_unrolls_only_loops_that_use_their_index():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def loops():
+        q = cudaq.qvector(1100)
+        for _ in range(50):
+            for i in range(4):
+                x.ctrl(q[i], q[i + 1])
+        for i in range(1100):
+            h(q[i])
+        for i in range(4):
+            rz(0.1 * (i + 1), q[0])
+        mz(q)
+
+    # The repeat loop stays folded, with the index loop inside it unrolled.
+    # The 1100-iteration loop and the angle loop unroll, so they leave no
+    # second `cflow.repeat`.
+    build = cql.compiler.import_cudaq(loops)
+    assert build.to_mlir().count("cflow.repeat") == 1
+    actions = cql.analysis.estimate(build,
+                                    tier=cql.analysis.Tier.LOGICAL).actions
+    assert actions["qlx_standard_cx"] == 50 * 4
+    assert actions["qlx_standard_h"] == 1100
+
+
+def test_import_cudaq_matches_the_target_whatever_target_is_installed():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def ccrx():
+        q = cudaq.qvector(3)
+        rx.ctrl(0.7, q[0], q[1], q[2])
+        mz(q)
+
+    cudaq.set_target(cql.targets.estimator)
+    try:
+        through_target = cudaq.estimate(ccrx).annotations["LOGICAL"]
+    finally:
+        cudaq.reset_target()
+    # `import_cudaq` compiles with a Logical target's compile target, never
+    # with the installed one, even when that target is emulated.
+    cudaq.set_target("quantinuum", emulate=True)
+    try:
+        direct = cql.compiler.import_cudaq(ccrx)
+    finally:
+        cudaq.reset_target()
+    assert cql.analysis.estimate(
+        direct, tier=cql.analysis.Tier.LOGICAL).to_dict() == through_target
+
+
+def test_import_cudaq_rejects_a_noisy_kernel(capfd):
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def noisy():
+        q = cudaq.qvector(2)
+        h(q[0])
+        cudaq.apply_noise(cudaq.DepolarizationChannel, 0.1, q[0])
+        mz(q)
+
+    # The compiler reports the reason on `stderr`, not in the exception.
+    with pytest.raises(RuntimeError, match="Quake lowering failed"):
+        cql.compiler.import_cudaq(noisy)
+    assert "the target does not support noise" in capfd.readouterr().err
 
 
 def test_logical_estimate_is_invariant_under_cached_view_mutation():

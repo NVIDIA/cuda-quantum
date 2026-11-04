@@ -10,8 +10,8 @@
 
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 
+#include "cudaq/qis/qubit_qis.h"
 #include <cstdio>
-#include <cudaq.h>
 
 struct vector3 {
   bool operator()(std::vector<double> theta) __qpu__ {

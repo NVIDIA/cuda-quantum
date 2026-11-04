@@ -88,7 +88,7 @@ distillation example straight from its authoring definition:
 % invisible-code-block: python
 %
 % distill_15to1 = load_ql_example(
-% "preview/logical/examples/standalone/03_magic_state_distillation.py",
+% "preview/logical/examples/standalone/07_magic_state_distillation.py",
 % "distill_15to1")
 -->
 
@@ -113,7 +113,7 @@ override them for sensitivity studies. The result keeps its assumptions and
 reports whether the selected distance meets the requested budget.
 
 `examples/02_surface_code_resource_estimate.py` uses this tier through a CUDA-Q
-target, while `examples/standalone/05_gidney_ekera_lookup_addition.py` invokes
+target, while `examples/standalone/09_gidney_ekera_lookup_addition.py` invokes
 it directly on a P2 build.
 
 ## `Tier.SCHEDULE` — cost the physical event graph
@@ -121,7 +121,7 @@ it directly on a P2 build.
 The schedule tier consumes a scheduled P3 graph. It reports authenticated
 physical-resource and event counts, first-attempt/expected/maximum makespans,
 resource-time, utilization, exhaustion probability, and the selected
-termination policy. `examples/standalone/04_physical_schedule.py` shows the
+termination policy. `examples/standalone/03_physical_schedule.py` shows the
 smallest direct workflow; the surface-code and Carbon CUDA-Q targets expose the
 same tier through `cudaq.estimate` annotations.
 
@@ -193,21 +193,33 @@ estimate quoted in a paper from the bundle alone.
 ## Paper-specific projections live in the open
 
 The built-in analytical tier is not a substitute for a paper-specific system
-model. `examples/05_gidney_ekera.py` compiles a windowed-arithmetic RSA-2048
-resource kernel to a folded logical profile, then applies the paper's explicit
-timing and layout equations. That default fast path deliberately does not call
-`Tier.ANALYTICAL`; its assumptions remain visible and editable in the example.
-The same example offers `--physical` as an opt-in P3 compilation and scheduling
-path. The related library calculation is available through
-`cudaq.logical.algorithms.estimate_gidney_ekera`.
+model. `examples/05_gidney_ekera.py` compiles a windowed-arithmetic RSA-2048,
+RSA-3072, or RSA-4096 resource kernel to a folded logical profile, then
+applies the paper's explicit timing and layout equations. That default fast
+path deliberately does not call `Tier.ANALYTICAL`; its assumptions remain
+visible and editable in the example. The same example offers `--physical` as
+an opt-in P3 compilation and scheduling path. The related library calculation
+is available through `cudaq.logical.algorithms.estimate_gidney_ekera`.
 
 ## Estimating ordinary CUDA-Q kernels
 
 When you select a `cudaq.logical` target, ordinary CUDA-Q kernels compile
 through the stages that target owns. The logical, Clifford+T, Fermi–Hubbard,
 surface-code, and Carbon examples exercise progressively deeper target stacks.
-`cudaq.estimate(kernel)` returns the available per-tier results as CUDA-Q
-annotations, and typed views rehydrate directly from them:
+Calling `result = cudaq.estimate(kernel)` returns an `EstimateResult` with
+two views of the estimate:
+
+- `result.resources` is a CUDA-Q `Resources` object that reports the **logical**
+  program only: gate counts, `num_qubits`, `depth`, and `t_depth`. It is
+  populated whenever a LOGICAL estimate is available, which is the case for
+  every full target stack, and is empty otherwise (for example when a target
+  pins a physical tier). Measurements appear as `mz`, preparations as `reset`,
+  and idle steps as `idle`; a consumed magic state counts as the gate it
+  applies. `depth` is a serial upper bound, so it is not a critical-path depth.
+- `result.annotations` holds the full per-tier results, including the LOGICAL
+  tier and every physical tier. Typed views rehydrate directly from them, which
+  is the way to reach details `Resources` cannot express, such as idle sites,
+  synthesis demand, resource requests, and the physical tiers:
 
 <!--
 % invisible-code-block: python
@@ -227,4 +239,5 @@ static = FabricCounts.from_annotations(estimates.annotations)
 logical = LogicalEstimate.from_annotations(estimates.annotations)
 assert static.patches_peak == 1
 assert logical.logical_qubits_peak == 1
+assert estimates.resources.num_qubits == logical.logical_qubits_peak
 ```

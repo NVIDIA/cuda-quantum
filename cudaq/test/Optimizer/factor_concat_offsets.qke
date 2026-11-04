@@ -1,0 +1,81 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --factor-quantum-alloc %s | FileCheck %s
+
+// Offsets count every preceding operand, including refs that are not allocas,
+// zero-length vectors, and sized vectors. Preserve uses before the concat and
+// deallocations, but rewrite both direct and nested uses after it.
+func.func @mixed_offsets(%arg: !quake.ref, %vec: !quake.veq<3>, %empty: !quake.veq<0>, %cond: i1) {
+  %a = quake.alloca !quake.ref
+  %b = quake.alloca !quake.ref
+  quake.x %a : (!quake.ref) -> ()
+  %v = quake.concat %arg, %empty, %a, %vec, %b : (!quake.ref, !quake.veq<0>, !quake.ref, !quake.veq<3>, !quake.ref) -> !quake.veq<6>
+  quake.h %v : (!quake.veq<6>) -> ()
+  quake.x %a : (!quake.ref) -> ()
+  cc.if(%cond) {
+    quake.y %b : (!quake.ref) -> ()
+  }
+  quake.dealloc %a : !quake.ref
+  quake.dealloc %b : !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @mixed_offsets(
+// CHECK: %[[A:.*]] = quake.alloca !quake.ref
+// CHECK: %[[B:.*]] = quake.alloca !quake.ref
+// CHECK: quake.x %[[A]]
+// CHECK: %[[V:.*]] = quake.concat
+// CHECK: quake.h %[[V]]
+// CHECK: %[[AR:.*]] = quake.extract_ref %[[V]][1]
+// CHECK: quake.x %[[AR]]
+// CHECK: cc.if
+// CHECK: %[[BR:.*]] = quake.extract_ref %[[V]][5]
+// CHECK: quake.y %[[BR]]
+// CHECK: quake.dealloc %[[A]]
+// CHECK: quake.dealloc %[[B]]
+
+// An unsized vector prevents determining offsets only for subsequent operands.
+func.func @unknown_offset(%vec: !quake.veq<?>) {
+  %a = quake.alloca !quake.ref
+  %b = quake.alloca !quake.ref
+  %v = quake.concat %a, %vec, %b : (!quake.ref, !quake.veq<?>, !quake.ref) -> !quake.veq<?>
+  quake.h %v : (!quake.veq<?>) -> ()
+  quake.x %a : (!quake.ref) -> ()
+  quake.y %b : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @unknown_offset(
+// CHECK: %[[A:.*]] = quake.alloca !quake.ref
+// CHECK: %[[B:.*]] = quake.alloca !quake.ref
+// CHECK: %[[V:.*]] = quake.concat
+// CHECK: quake.h %[[V]]
+// CHECK: %[[AR:.*]] = quake.extract_ref %[[V]][0]
+// CHECK: quake.x %[[AR]]
+// CHECK-NEXT: quake.y %[[B]]
+
+// Preserve the existing conservative treatment of struq operands.
+func.func @struq_offset(%s: !quake.struq<!quake.ref, !quake.ref>) {
+  %a = quake.alloca !quake.ref
+  %b = quake.alloca !quake.ref
+  %v = quake.concat %a, %s, %b : (!quake.ref, !quake.struq<!quake.ref, !quake.ref>, !quake.ref) -> !quake.veq<4>
+  quake.h %v : (!quake.veq<4>) -> ()
+  quake.x %a : (!quake.ref) -> ()
+  quake.y %b : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @struq_offset(
+// CHECK: %[[A:.*]] = quake.alloca !quake.ref
+// CHECK: %[[B:.*]] = quake.alloca !quake.ref
+// CHECK: %[[V:.*]] = quake.concat
+// CHECK: quake.h %[[V]]
+// CHECK: %[[AR:.*]] = quake.extract_ref %[[V]][0]
+// CHECK: quake.x %[[AR]]
+// CHECK-NEXT: quake.y %[[B]]

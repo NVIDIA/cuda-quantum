@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake -verify %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // Test that we raise an error for lambda's with capture lists.
 

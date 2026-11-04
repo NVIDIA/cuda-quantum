@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/SmallPtrSet.h"
@@ -495,6 +496,18 @@ public:
       //    b) Otherwise this is "unbounded" stack growth, so pin it.
       analysis.pinned.push_back(cand);
     }
+
+    // A cc.scope that is not enclosed by any repeating construct runs at most
+    // once per activation, so lowering it need not emit a
+    // stacksave/stackrestore pair. Such a pair would only free storage
+    // (possibly a dynamically sized alloca that escapes the scope) that has no
+    // reason to be freed early. Mark the scope so that this holds whether
+    // lowering to CFG happens before or after this pass. (If it happened
+    // before, the calls are removed below.)
+    for (Operation *fence : analysis.regionFences)
+      if (isa<cudaq::cc::ScopeOp>(fence) && !analysis.findEnclosingLoop(fence))
+        fence->setAttr(cudaq::opt::noStackFenceAttrName,
+                       UnitAttr::get(fence->getContext()));
 
     DenseSet<func::CallOp> pinnedCalls;
     for (auto pin : analysis.pinned) {

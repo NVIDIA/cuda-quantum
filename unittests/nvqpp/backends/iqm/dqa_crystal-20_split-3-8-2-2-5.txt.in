@@ -1,0 +1,18 @@
+crystal-20
+QB1-QB2,QB4-QB5,QB9-QB10,QB14-QB15,QB15-QB19,QB16-QB20,QB3-QB8,QB4-QB9,QB8-QB13,QB9-QB14,QB6-QB7,QB11-QB12,QB12-QB17
+
+
+Number of nodes: 8
+Number of edges: ?
+
+0 --> {1}
+1 --> {0, 2, 3}
+2 --> {1, 4}
+3 --> {1, 4, 5}
+4 --> {2, 3, 6}
+5 --> {3, 6}
+6 --> {4, 5, 7}
+7 --> {6}
+
+# Mapping to physical qubit tags for IQM backend
+# IQM qubit map: "QB2" "QB5" "QB6" "QB10" "QB11" "QB15" "QB16" "QB17"

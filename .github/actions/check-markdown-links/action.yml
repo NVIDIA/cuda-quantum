@@ -50,6 +50,18 @@ runs:
           echo "No rst files found to check"
         fi
 
+    - name: Create stub for cudaq-logical docs homepage
+      shell: bash
+      run: |
+        # Add a dummy cudaq-logical homepage so the relative link resolves when
+        # checking links
+        stub="docs/sphinx/preview/logical/index.html"
+        if [ ! -f "$stub" ]; then
+          mkdir -p "$(dirname "$stub")"
+          echo '<html><body>Placeholder for the separately-built CUDA-Q Logical docs.</body></html>' > "$stub"
+          echo "Created placeholder: $stub"
+        fi
+
     - name: Check links in Markdown files
       uses: gaurav-nelson/github-action-markdown-link-check@v1
       with:

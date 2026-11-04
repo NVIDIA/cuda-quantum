@@ -1,0 +1,272 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Deeply nested regions. What a region may write is worked out once, from what
+// the regions nested in it may write, so the cost does not grow with the depth
+// of the nesting. The innermost scope writes to the slot that is stored to at
+// the top, so the load at the end is not forwarded. Each level forwards its own
+// store to its own load.
+
+// RUN: cudaq-opt --dead-store-removal %s | FileCheck %s
+
+func.func private @use(i32)
+
+// CHECK-LABEL: func.func @deep(
+// CHECK-SAME:      %[[V:.*]]: i32, %[[P:.*]]: !cc.ptr<i32>, %[[Q:.*]]: !cc.ptr<i32>)
+// CHECK:         cc.store %[[V]], %[[P]]
+// CHECK-COUNT-48: cc.scope
+// CHECK-NOT:     cc.load %[[Q]]
+// CHECK:         %[[R:.*]] = cc.load %[[P]]
+// CHECK:         call @use(%[[R]])
+func.func @deep(%v: i32, %p: !cc.ptr<i32>, %q: !cc.ptr<i32>) {
+  cc.store %v, %p : !cc.ptr<i32>
+  cc.scope {
+    cc.store %v, %q : !cc.ptr<i32>
+    %r0 = cc.load %q : !cc.ptr<i32>
+    func.call @use(%r0) : (i32) -> ()
+    cc.scope {
+      cc.store %v, %q : !cc.ptr<i32>
+      %r1 = cc.load %q : !cc.ptr<i32>
+      func.call @use(%r1) : (i32) -> ()
+      cc.scope {
+        cc.store %v, %q : !cc.ptr<i32>
+        %r2 = cc.load %q : !cc.ptr<i32>
+        func.call @use(%r2) : (i32) -> ()
+        cc.scope {
+          cc.store %v, %q : !cc.ptr<i32>
+          %r3 = cc.load %q : !cc.ptr<i32>
+          func.call @use(%r3) : (i32) -> ()
+          cc.scope {
+            cc.store %v, %q : !cc.ptr<i32>
+            %r4 = cc.load %q : !cc.ptr<i32>
+            func.call @use(%r4) : (i32) -> ()
+            cc.scope {
+              cc.store %v, %q : !cc.ptr<i32>
+              %r5 = cc.load %q : !cc.ptr<i32>
+              func.call @use(%r5) : (i32) -> ()
+              cc.scope {
+                cc.store %v, %q : !cc.ptr<i32>
+                %r6 = cc.load %q : !cc.ptr<i32>
+                func.call @use(%r6) : (i32) -> ()
+                cc.scope {
+                  cc.store %v, %q : !cc.ptr<i32>
+                  %r7 = cc.load %q : !cc.ptr<i32>
+                  func.call @use(%r7) : (i32) -> ()
+                  cc.scope {
+                    cc.store %v, %q : !cc.ptr<i32>
+                    %r8 = cc.load %q : !cc.ptr<i32>
+                    func.call @use(%r8) : (i32) -> ()
+                    cc.scope {
+                      cc.store %v, %q : !cc.ptr<i32>
+                      %r9 = cc.load %q : !cc.ptr<i32>
+                      func.call @use(%r9) : (i32) -> ()
+                      cc.scope {
+                        cc.store %v, %q : !cc.ptr<i32>
+                        %r10 = cc.load %q : !cc.ptr<i32>
+                        func.call @use(%r10) : (i32) -> ()
+                        cc.scope {
+                          cc.store %v, %q : !cc.ptr<i32>
+                          %r11 = cc.load %q : !cc.ptr<i32>
+                          func.call @use(%r11) : (i32) -> ()
+                          cc.scope {
+                            cc.store %v, %q : !cc.ptr<i32>
+                            %r12 = cc.load %q : !cc.ptr<i32>
+                            func.call @use(%r12) : (i32) -> ()
+                            cc.scope {
+                              cc.store %v, %q : !cc.ptr<i32>
+                              %r13 = cc.load %q : !cc.ptr<i32>
+                              func.call @use(%r13) : (i32) -> ()
+                              cc.scope {
+                                cc.store %v, %q : !cc.ptr<i32>
+                                %r14 = cc.load %q : !cc.ptr<i32>
+                                func.call @use(%r14) : (i32) -> ()
+                                cc.scope {
+                                  cc.store %v, %q : !cc.ptr<i32>
+                                  %r15 = cc.load %q : !cc.ptr<i32>
+                                  func.call @use(%r15) : (i32) -> ()
+                                  cc.scope {
+                                    cc.store %v, %q : !cc.ptr<i32>
+                                    %r16 = cc.load %q : !cc.ptr<i32>
+                                    func.call @use(%r16) : (i32) -> ()
+                                    cc.scope {
+                                      cc.store %v, %q : !cc.ptr<i32>
+                                      %r17 = cc.load %q : !cc.ptr<i32>
+                                      func.call @use(%r17) : (i32) -> ()
+                                      cc.scope {
+                                        cc.store %v, %q : !cc.ptr<i32>
+                                        %r18 = cc.load %q : !cc.ptr<i32>
+                                        func.call @use(%r18) : (i32) -> ()
+                                        cc.scope {
+                                          cc.store %v, %q : !cc.ptr<i32>
+                                          %r19 = cc.load %q : !cc.ptr<i32>
+                                          func.call @use(%r19) : (i32) -> ()
+                                          cc.scope {
+                                            cc.store %v, %q : !cc.ptr<i32>
+                                            %r20 = cc.load %q : !cc.ptr<i32>
+                                            func.call @use(%r20) : (i32) -> ()
+                                            cc.scope {
+                                              cc.store %v, %q : !cc.ptr<i32>
+                                              %r21 = cc.load %q : !cc.ptr<i32>
+                                              func.call @use(%r21) : (i32) -> ()
+                                              cc.scope {
+                                                cc.store %v, %q : !cc.ptr<i32>
+                                                %r22 = cc.load %q : !cc.ptr<i32>
+                                                func.call @use(%r22) : (i32) -> ()
+                                                cc.scope {
+                                                  cc.store %v, %q : !cc.ptr<i32>
+                                                  %r23 = cc.load %q : !cc.ptr<i32>
+                                                  func.call @use(%r23) : (i32) -> ()
+                                                  cc.scope {
+                                                    cc.store %v, %q : !cc.ptr<i32>
+                                                    %r24 = cc.load %q : !cc.ptr<i32>
+                                                    func.call @use(%r24) : (i32) -> ()
+                                                    cc.scope {
+                                                      cc.store %v, %q : !cc.ptr<i32>
+                                                      %r25 = cc.load %q : !cc.ptr<i32>
+                                                      func.call @use(%r25) : (i32) -> ()
+                                                      cc.scope {
+                                                        cc.store %v, %q : !cc.ptr<i32>
+                                                        %r26 = cc.load %q : !cc.ptr<i32>
+                                                        func.call @use(%r26) : (i32) -> ()
+                                                        cc.scope {
+                                                          cc.store %v, %q : !cc.ptr<i32>
+                                                          %r27 = cc.load %q : !cc.ptr<i32>
+                                                          func.call @use(%r27) : (i32) -> ()
+                                                          cc.scope {
+                                                            cc.store %v, %q : !cc.ptr<i32>
+                                                            %r28 = cc.load %q : !cc.ptr<i32>
+                                                            func.call @use(%r28) : (i32) -> ()
+                                                            cc.scope {
+                                                              cc.store %v, %q : !cc.ptr<i32>
+                                                              %r29 = cc.load %q : !cc.ptr<i32>
+                                                              func.call @use(%r29) : (i32) -> ()
+                                                              cc.scope {
+                                                                cc.store %v, %q : !cc.ptr<i32>
+                                                                %r30 = cc.load %q : !cc.ptr<i32>
+                                                                func.call @use(%r30) : (i32) -> ()
+                                                                cc.scope {
+                                                                  cc.store %v, %q : !cc.ptr<i32>
+                                                                  %r31 = cc.load %q : !cc.ptr<i32>
+                                                                  func.call @use(%r31) : (i32) -> ()
+                                                                  cc.scope {
+                                                                    cc.store %v, %q : !cc.ptr<i32>
+                                                                    %r32 = cc.load %q : !cc.ptr<i32>
+                                                                    func.call @use(%r32) : (i32) -> ()
+                                                                    cc.scope {
+                                                                      cc.store %v, %q : !cc.ptr<i32>
+                                                                      %r33 = cc.load %q : !cc.ptr<i32>
+                                                                      func.call @use(%r33) : (i32) -> ()
+                                                                      cc.scope {
+                                                                        cc.store %v, %q : !cc.ptr<i32>
+                                                                        %r34 = cc.load %q : !cc.ptr<i32>
+                                                                        func.call @use(%r34) : (i32) -> ()
+                                                                        cc.scope {
+                                                                          cc.store %v, %q : !cc.ptr<i32>
+                                                                          %r35 = cc.load %q : !cc.ptr<i32>
+                                                                          func.call @use(%r35) : (i32) -> ()
+                                                                          cc.scope {
+                                                                            cc.store %v, %q : !cc.ptr<i32>
+                                                                            %r36 = cc.load %q : !cc.ptr<i32>
+                                                                            func.call @use(%r36) : (i32) -> ()
+                                                                            cc.scope {
+                                                                              cc.store %v, %q : !cc.ptr<i32>
+                                                                              %r37 = cc.load %q : !cc.ptr<i32>
+                                                                              func.call @use(%r37) : (i32) -> ()
+                                                                              cc.scope {
+                                                                                cc.store %v, %q : !cc.ptr<i32>
+                                                                                %r38 = cc.load %q : !cc.ptr<i32>
+                                                                                func.call @use(%r38) : (i32) -> ()
+                                                                                cc.scope {
+                                                                                  cc.store %v, %q : !cc.ptr<i32>
+                                                                                  %r39 = cc.load %q : !cc.ptr<i32>
+                                                                                  func.call @use(%r39) : (i32) -> ()
+                                                                                  cc.scope {
+                                                                                    cc.store %v, %q : !cc.ptr<i32>
+                                                                                    %r40 = cc.load %q : !cc.ptr<i32>
+                                                                                    func.call @use(%r40) : (i32) -> ()
+                                                                                    cc.scope {
+                                                                                      cc.store %v, %q : !cc.ptr<i32>
+                                                                                      %r41 = cc.load %q : !cc.ptr<i32>
+                                                                                      func.call @use(%r41) : (i32) -> ()
+                                                                                      cc.scope {
+                                                                                        cc.store %v, %q : !cc.ptr<i32>
+                                                                                        %r42 = cc.load %q : !cc.ptr<i32>
+                                                                                        func.call @use(%r42) : (i32) -> ()
+                                                                                        cc.scope {
+                                                                                          cc.store %v, %q : !cc.ptr<i32>
+                                                                                          %r43 = cc.load %q : !cc.ptr<i32>
+                                                                                          func.call @use(%r43) : (i32) -> ()
+                                                                                          cc.scope {
+                                                                                            cc.store %v, %q : !cc.ptr<i32>
+                                                                                            %r44 = cc.load %q : !cc.ptr<i32>
+                                                                                            func.call @use(%r44) : (i32) -> ()
+                                                                                            cc.scope {
+                                                                                              cc.store %v, %q : !cc.ptr<i32>
+                                                                                              %r45 = cc.load %q : !cc.ptr<i32>
+                                                                                              func.call @use(%r45) : (i32) -> ()
+                                                                                              cc.scope {
+                                                                                                cc.store %v, %q : !cc.ptr<i32>
+                                                                                                %r46 = cc.load %q : !cc.ptr<i32>
+                                                                                                func.call @use(%r46) : (i32) -> ()
+                                                                                                cc.scope {
+                                                                                                  cc.store %v, %q : !cc.ptr<i32>
+                                                                                                  %r47 = cc.load %q : !cc.ptr<i32>
+                                                                                                  func.call @use(%r47) : (i32) -> ()
+                                                                                                  cc.store %v, %p : !cc.ptr<i32>
+                                                                                                }
+                                                                                              }
+                                                                                            }
+                                                                                          }
+                                                                                        }
+                                                                                      }
+                                                                                    }
+                                                                                  }
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  %r = cc.load %p : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  return
+}

@@ -74,26 +74,23 @@ std::vector<std::size_t> getControlIndices(std::size_t numBits) {
 
 std::vector<double> convertAngles(const std::span<double> alphas) {
   // Implements Eq. (3) from https://arxiv.org/pdf/quant-ph/0407010.pdf
-  //
-  // N.B: The paper fails to explicitly define what is the dot operator in
-  // the exponent of -1. https://arxiv.org/abs/quant-ph/0404089 (Eq. 5) solves
-  // the mystery: its the bitwise inner product.
-  auto bitwiseInnerProduct = [](std::size_t a, std::size_t b) {
-    auto product = a & b;
-    auto sumOfProducts = 0;
-    while (product) {
-      sumOfProducts += product & 0b1 ? 1 : 0;
-      product = product >> 1;
+  // The signs form a Walsh-Hadamard transform, with rows in Gray-code order.
+  // Compute the transform in O(N log N), then permute and normalize its rows.
+  assert(alphas.empty() || (alphas.size() & (alphas.size() - 1)) == 0);
+  std::vector<double> transformed(alphas.begin(), alphas.end());
+  for (std::size_t stride = 1; stride < transformed.size(); stride *= 2) {
+    for (std::size_t base = 0; base < transformed.size(); base += 2 * stride) {
+      for (std::size_t j = 0; j < stride; ++j) {
+        const double a = transformed[base + j];
+        const double b = transformed[base + j + stride];
+        transformed[base + j] = a + b;
+        transformed[base + j + stride] = a - b;
+      }
     }
-    return sumOfProducts;
-  };
-  std::vector<double> thetas(alphas.size(), 0);
-  for (std::size_t i = 0u; i < alphas.size(); ++i) {
-    for (std::size_t j = 0u; j < alphas.size(); ++j)
-      thetas[i] +=
-          bitwiseInnerProduct(j, ((i >> 1) ^ i)) & 0b1 ? -alphas[j] : alphas[j];
-    thetas[i] /= alphas.size();
   }
+  std::vector<double> thetas(alphas.size());
+  for (std::size_t i = 0; i < alphas.size(); ++i)
+    thetas[i] = transformed[(i >> 1) ^ i] / alphas.size();
   return thetas;
 }
 

@@ -43,12 +43,32 @@ if(POLICY CMP0116)
   cmake_policy(SET CMP0116 NEW)
 endif()
 
+# CMP0177: install() DESTINATION paths are normalized.
+# New in CMake 3.31. https://cmake.org/cmake/help/latest/policy/CMP0177.html
+if(POLICY CMP0177)
+  cmake_policy(SET CMP0177 NEW)
+endif()
+
 # Project setup
 # ==============================================================================
 project(cudaq LANGUAGES CXX C)
 
 # By default, install everything to the "Runtime" component.
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Runtime)
+
+# By default, the core library and development components are set for a combined wheel 
+# (e.g., build from source).
+option(CUDAQ_BUILD_SPLIT_WHEELS "Build separate core and frontend wheels" OFF)
+set(CUDAQ_CORE_LIBRARY_COMPONENT Runtime)
+set(CUDAQ_CORE_DEVELOPMENT_COMPONENT Development)
+set(CUDAQ_CORE_EXPORT_SET cudaq-targets)
+set(CUDAQ_CORE_CAPI_COMPONENT CUDAQuantumPythonModules)
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  set(CUDAQ_CORE_LIBRARY_COMPONENT Core)
+  set(CUDAQ_CORE_DEVELOPMENT_COMPONENT Core)
+  set(CUDAQ_CORE_EXPORT_SET cudaq-core-targets)
+  set(CUDAQ_CORE_CAPI_COMPONENT Core)
+endif()
 
 # Always install to `lib`. This avoids the `lib` vs `lib64` mismatch depending
 # on distribution.
@@ -192,6 +212,16 @@ if (NOT DEFINED CUDAQ_ENABLE_QBRAID_BACKEND)
   set(CUDAQ_ENABLE_QBRAID_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the qBraid target.")
 endif()
 
+# Enable Quantinuum target by default.
+if (NOT DEFINED CUDAQ_ENABLE_QUANTINUUM_BACKEND)
+  set(CUDAQ_ENABLE_QUANTINUUM_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantinuum target.")
+endif()
+
+# Enable Infleqtion target by default.
+if (NOT DEFINED CUDAQ_ENABLE_INFLEQTION_BACKEND)
+  set(CUDAQ_ENABLE_INFLEQTION_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Infleqtion target.")
+endif()
+
 # =============================================================================
 # CUDAQ_EXTERNAL_PROJECTS
 # -----------------------------------------------------------------------------
@@ -232,6 +262,17 @@ endif()
 # =============================================================================
 set(CUDAQ_EXTERNAL_PROJECTS "" CACHE STRING
     "Semicolon-separated list of external projects to add to the CUDA-Q build.")
+
+# cudaq.logical (preview/logical) is an in-tree external project. It needs the
+# CUDA-Q Python bindings, so CUDAQ_ENABLE_PROJECTS must include 'python'
+# (the deprecated CUDAQ_ENABLE_PYTHON=ON does the same).
+option(CUDAQ_ENABLE_LOGICAL
+  "Build the cudaq.logical fault-tolerance resource-estimation toolkit." OFF)
+if(CUDAQ_ENABLE_LOGICAL AND NOT "logical" IN_LIST CUDAQ_EXTERNAL_PROJECTS)
+  list(APPEND CUDAQ_EXTERNAL_PROJECTS logical)
+  set(CUDAQ_EXTERNAL_LOGICAL_SOURCE_DIR
+      "${CMAKE_CURRENT_SOURCE_DIR}/preview/logical" CACHE PATH "" FORCE)
+endif()
 foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
   string(TOUPPER "${_cudaq_ext_proj}" _cudaq_ext_upper)
   string(REGEX REPLACE "-" "_" _cudaq_ext_upper "${_cudaq_ext_upper}")
@@ -256,7 +297,9 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
   option(GIT_SUBMODULE "Check submodules during build" ON)
   if(GIT_SUBMODULE)
     message(STATUS "Submodule update")
-    execute_process(COMMAND ${GIT_EXECUTABLE} -c submodule.tpls/llvm.update=none submodule update --init --recursive
+    # Retries and falls back to mirrors when gitlab.com is down.
+    execute_process(COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/scripts/update_submodules.sh
+                            -c submodule.tpls/llvm.update=none
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     RESULT_VARIABLE GIT_SUBMOD_RESULT)
     if(NOT GIT_SUBMOD_RESULT EQUAL "0")
@@ -282,7 +325,7 @@ option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Be
 
 # Sub-projects that can be enabled independently, in the style of
 # LLVM_ENABLE_PROJECTS. Accepts a semicolon-separated list.
-set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime")
+set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime;edem")
 set(CUDAQ_ENABLE_PROJECTS "" CACHE STRING
     "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set). Include 'realtime' to build source-tree realtime; set CUDAQ_REALTIME_DIR to use an installed realtime package.")
 
@@ -317,6 +360,15 @@ foreach(_proj IN LISTS CUDAQ_ENABLE_PROJECTS)
       "Valid: ${CUDAQ_ALL_PROJECTS}.")
   endif()
 endforeach()
+
+# Logical always consumes EDEM, including its Python value package.
+if("logical" IN_LIST CUDAQ_EXTERNAL_PROJECTS)
+  if(NOT "edem" IN_LIST CUDAQ_ENABLE_PROJECTS)
+    list(APPEND CUDAQ_ENABLE_PROJECTS edem)
+  endif()
+  set(CUDAQ_EDEM_BUILD_PYTHON ON)
+  set(CUDAQ_EDEM_PYTHON_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+endif()
 
 # python depends on the MLIR dialects in cudaq/ and on runtime symbols.
 if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
@@ -487,6 +539,21 @@ else()
   SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins:$ORIGIN/../cudaq/mlir/_mlir_libs:$ORIGIN/../python/cudaq/mlir/_mlir_libs")
 endif()
 
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # Use build-tree paths during development, and do not automatically append
+  # linker search directories to the installed wheel's relative loader paths.
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+  if(APPLE)
+    set(_wheel_origin "@loader_path")
+  else()
+    set(_wheel_origin "$ORIGIN")
+  endif()
+  list(APPEND CMAKE_INSTALL_RPATH
+    "${_wheel_origin}/../cudaq_core/cudaq/core/lib"
+    "${_wheel_origin}/../cudaq_core/cudaq/mlir/_mlir_libs")
+endif()
+
 if(NOT SKBUILD)
   install(DIRECTORY LICENSES DESTINATION .)
 endif()
@@ -540,8 +607,8 @@ if (CUDAQ_STATIC_CXX_RUNTIME)
   # each other. If we were to link everything statically, it is probably advisable to
   # set CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN
   # to 1, to avoid some of these issues.
-  # We don't set these configurations here, since the LLVM runtime libraries that we
-  # build from source are already configured to hide symbols and include dependencies.
+  # We don't set these configurations here, since the C++ runtime must export its
+  # symbols for exceptions to work across libraries (see cmake/caches/LLVM.cmake).
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
   message(STATUS "Static C++ runtime linking enabled.")
@@ -554,12 +621,6 @@ if (CUDAQ_STATIC_DEPS)
   set(CURL_USE_STATIC_LIBS TRUE)
   message(STATUS "Static external dependencies enabled.")
 endif()
-
-# ZLIB is required when we build LLVM with zlib support. ZLIB support in LLVM is
-# good to have e.g. for the linker, since some binaries will use zlib
-# compression to store symbols.
-find_package(ZLIB REQUIRED)
-include(ExternalProject)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
@@ -632,7 +693,10 @@ if(NOT LLVM_DIR)
   if(LLVM_CONFIG_RESULT)
     message(FATAL_ERROR
       "Could not find suitable llvm-config(-${LLVM_VERSION_MAJOR}).\
-      \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm.")
+      \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm, \
+      \nor build LLVM/MLIR/Clang from the tpls/llvm submodule by running \
+      \nbash scripts/build_llvm.sh (see that script for options, e.g. \
+      \nLLVM_INSTALL_PREFIX) and then set -DLLVM_DIR=$LLVM_INSTALL_PREFIX/lib/cmake/llvm.")
   else()
     find_package(LLVM ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR} REQUIRED CONFIG
       HINTS ${LLVM_CONFIG_CMAKE_DIR} NO_DEFAULT_PATH)
@@ -658,6 +722,12 @@ endif()
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "Using ClangConfig.cmake in: ${Clang_DIR}")
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
+
+# ZLIB is required when we build LLVM with zlib support. ZLIB support in LLVM is
+# good to have e.g. for the linker, since some binaries will use zlib
+# compression to store symbols.
+find_package(ZLIB REQUIRED)
+include(ExternalProject)
 
 # Detect C++ standard library headers for cudaq-quake
 # cudaq-quake needs to find C++ stdlib headers for parsing user code.
@@ -815,20 +885,17 @@ endif()
 # Third-party libraries (tpls)
 # ==============================================================================
 set(FMT_INSTALL ON)
-cmake_policy(PUSH)
-# CMP0146: The FindCUDA module is removed.
-# CMake 3.27 and above no longer provide the modules.
-# https://cmake.org/cmake/help/latest/policy/CMP0146.html
-if(POLICY CMP0146)
-  cmake_policy(SET CMP0146 OLD)
-endif()
 add_subdirectory(tpls/fmt)
-cmake_policy(POP)
 include_directories(SYSTEM tpls/json/single_include)
 include_directories(SYSTEM tpls/json/single_include_fwd)
 install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
   DESTINATION include/nlohmann
-  COMPONENT Development)
+  COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # Public backend headers include json.hpp as well as the forward declarations.
+  install(FILES tpls/json/single_include/nlohmann/json.hpp
+    DESTINATION include/nlohmann COMPONENT Core)
+endif()
 
 # Add spdlog
 #
@@ -866,7 +933,8 @@ set(BUILD_SHARED_LIBS ${CUDAQ_SAVED_BUILD_SHARED_LIBS})
 unset(CUDAQ_SAVED_BUILD_SHARED_LIBS)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 if (CUDAQ_SPDLOG_BUILD_SHARED AND CUDAQ_INSTALL_SPDLOG)
-  install(TARGETS spdlog DESTINATION lib)
+  install(TARGETS spdlog DESTINATION lib
+    COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT})
 endif()
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
@@ -875,12 +943,12 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
 
   if (CURL_FOUND)
     message(STATUS "Using system curl for CPR.")
-    set(CPR_FORCE_USE_SYSTEM_CURL TRUE)
+    set(CPR_USE_SYSTEM_CURL TRUE)
   elseif (CMAKE_USE_SYSTEM_CURL)
     message(FATAL_ERROR "CMAKE_USE_SYSTEM_CURL defined but a suitable package was not found. Make sure that `curl-config --protocols` lists HTTP and HTTPS.")
   else()
     message(STATUS "Curl not found. Building curl for CPR.")
-    set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
+    set(CPR_USE_SYSTEM_CURL FALSE)
   endif()
 
   # Now, build CPR as needed
@@ -953,6 +1021,7 @@ endif()
 # cuQuantum / cuTensor component discovery
 if (CUDA_FOUND)
   find_package(cuStateVec 1.14) # Required for custatevecEx API
+  find_package(cuStabilizer 0.5)
   find_package(cuTensor)
   find_package(cuTensorNet)
   find_package(cuDensityMat)
@@ -1019,8 +1088,13 @@ endif(CUDAQ_ENABLE_CC)
 
 add_subdirectory(cmake)
 
-if(CUDAQ_BUILD_TESTS)
+if(CUDAQ_BUILD_TESTS OR
+    ("edem" IN_LIST CUDAQ_ENABLE_PROJECTS AND CUDAQ_EDEM_BUILD_TESTS))
   enable_testing()
+endif()
+
+if("edem" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  add_subdirectory(edem)
 endif()
 
 if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
@@ -1063,6 +1137,10 @@ foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
                    "${CMAKE_BINARY_DIR}/external/${_cudaq_ext_proj}")
 endforeach()
 
+if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  cudaq_finalize_target_database()
+endif()
+
 if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   include(CheckCXXCompilerFlag)
   umbrella_lit_testsuite_begin(check-all)
@@ -1103,6 +1181,10 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
     add_subdirectory(docs)
   endif()
   umbrella_lit_testsuite_end(check-all)
+endif()
+
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  add_subdirectory(cmake/wheels)
 endif()
 
 if (CUDAQ_EXTERNAL_NVQIR_SIMS)

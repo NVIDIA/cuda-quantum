@@ -34,10 +34,13 @@ ADD "$workspace" "$destination"
 
 ARG python_version=3.10
 ARG build_devel=
+ARG ccache_max_size=8G
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR=/cuda-quantum
 ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
 ENV CCACHE_COMPILERCHECK=content
+# The restored cache is shared by all Python and CUDA versions; keep it bounded.
+ENV CCACHE_MAXSIZE=$ccache_max_size
 ENV CCACHE_LOGFILE=/root/.ccache/ccache.log
 RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
@@ -63,11 +66,20 @@ RUN cd /cuda-quantum && \
     PYTHON=python${python_version} \
     CUDA_VERSION=${CUDA_VERSION} \
     bash scripts/build_wheel.sh \
-        $([ -n "$build_devel" ] && echo "-d") \
+        $([ -n "$build_devel" ] && echo "-d" || echo "-s") \
         -c $(echo ${CUDA_VERSION} | cut -d . -f1) \
         -o wheelhouse \
         -a assets \
         -v && \
+    # Core is CUDA-independent and shared by both frontends. Only the CUDA 13
+    # pipeline supplies the published core; keep CUDA 12's paired copy for
+    # build-local validation, outside the release wheel glob.
+    if [ -z "$build_devel" ] && [ "${CUDA_VERSION%%.*}" = 12 ]; then \
+        mkdir -p wheelhouse/candidate-core && \
+        mv wheelhouse/cudaq_core-*.whl wheelhouse/candidate-core/; \
+    fi && \
+    # Enforce the size limit; the counters of a restored cache can be stale.
+    (ccache -c 2>/dev/null || true) && (ccache -c 2>/dev/null || true) && \
     echo "=== ccache stats ===" && (ccache -s 2>/dev/null || true) && \
     (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
 
@@ -82,4 +94,4 @@ FROM scratch AS ccache-export
 COPY --from=ccache-tar /ccache.tar /
 
 FROM scratch
-COPY --from=wheelbuild /cuda-quantum/wheelhouse/*.whl .
+COPY --from=wheelbuild /cuda-quantum/wheelhouse/ .

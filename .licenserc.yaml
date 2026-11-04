@@ -39,6 +39,7 @@ header:
     - 'runtime/cudaq/platform/default/rest/helpers/anyon/*.txt'
     - 'targettests/Target/IQM/*.txt'
     - 'unittests/nvqpp/backends/iqm/*.txt'
+    - 'unittests/nvqpp/backends/iqm/*.txt.in'
     - 'build'
     - 'examples'
     - 'tpls'

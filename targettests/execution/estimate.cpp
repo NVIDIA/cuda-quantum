@@ -10,8 +10,8 @@
 // RUN: nvq++ %s -o %t && %t
 // clang-format on
 
+#include "cudaq/qis/qubit_qis.h"
 #include <cassert>
-#include <cudaq.h>
 #include <cudaq/algorithms/resource_estimation.h>
 
 int main() {

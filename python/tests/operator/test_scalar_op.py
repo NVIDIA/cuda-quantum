@@ -236,6 +236,26 @@ def test_parameter_docs():
         'args'] == 'Description of `args`. Multiple lines are supported.'
 
 
+def test_parameter_docs_word_arguments_in_prose():
+    # A docstring line that starts with the literal word "Arguments" (matching
+    # the "Arguments|Args" alternation used to locate the Args: section) but
+    # is prose, not the section header itself, must not confuse the parser -
+    # the real Args: section below still has to be found.
+    def generator(x):
+        """Some function.
+
+        Arguments passed to callers of this function must be numeric.
+
+        Args:
+            x: the value of x
+        """
+        return x
+
+    so = ScalarOperator(generator)
+    assert 'x' in so.parameters
+    assert so.parameters['x'] == "the value of x"
+
+
 def test_equality():
 
     assert ScalarOperator.const(5) == ScalarOperator.const(5)

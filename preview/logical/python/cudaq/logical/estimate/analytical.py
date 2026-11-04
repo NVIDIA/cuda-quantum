@@ -17,6 +17,7 @@ from ._fabric_walk import (
     _children,
     _symbol,
     _walk_executable,
+    _walk_selected_executable,
 )
 from ._parameters import resolve_physical_parameters
 from .static import count
@@ -91,7 +92,7 @@ def analytical(
         if _symbol(operation.operation) is not None
     }
     root = symbols[build.root.symbol]
-    if root.name == "fabric.gadget_profile":
+    if root.name == "fabric.gadget_contract":
         root = symbols[_attr_text(root.attributes["gadget"])]
 
     def _dictionary(attribute):
@@ -444,7 +445,7 @@ def analytical(
                     f"retry probability source @{source_name} disagrees with its gadget spec"
                 )
             metadata_source = spec
-        elif source.name in {"fabric.protocol", "fabric.gadget_profile"}:
+        elif source.name in {"fabric.protocol", "fabric.gadget_contract"}:
             metadata_source = source
         else:
             raise MissingEvidence(
@@ -454,14 +455,26 @@ def analytical(
 
     def _resource_demand():
         demand = Counter()
+        code_names = {}
         retry_demands = []
         expected_extra_operations = 0.0
         retry_acceptance = 1.0
         retry_logical_error = 0.0
+
+        # Only demand and retry operations need per-invocation records.
+        def relevant(visit):
+            operation = visit.operation
+            for result in operation.results:
+                name = _patch_code(result.type)
+                if name is not None:
+                    code_names.setdefault(name, None)
+            return operation.name in {"fabric.resource_request", "fabric.retry"}
+
         visits = tuple(
-            _walk_executable(
+            _walk_selected_executable(
                 _children(root),
                 symbols,
+                relevant,
                 call_stack=(build.root.symbol,),
                 error_type=MissingEvidence,
             ))
@@ -611,7 +624,7 @@ def analytical(
                         "its selected action site")
             elif evidence.startswith("analysis:"):
                 profile_name = _attr_text(operation.attributes.get("profile"))
-                if source_name != profile_name or source.name != "fabric.gadget_profile":
+                if source_name != profile_name or source.name != "fabric.gadget_contract":
                     raise MissingEvidence(
                         f"retry @{attempt_name} analysis evidence is not the "
                         "selected profile")
@@ -626,7 +639,12 @@ def analytical(
                     f"retry @{attempt_name} uses unsupported probability evidence"
                 )
 
-            if probability == 1.0:
+            if maximum == 1:
+                # One attempt always executes once. Avoid a log/exp round trip
+                # that can put the expectation outside the singleton [1, 1].
+                completion = probability
+                exhaustion = 1.0 - probability
+            elif probability == 1.0:
                 completion = 1.0
                 exhaustion = 0.0
             else:
@@ -680,8 +698,8 @@ def analytical(
                         "fabric.protocol",
                         "fabric.protocol_return",
                         "fabric.return",
-                        "fabric.profile_end",
-                        "fabric.gadget_profile",
+                        "fabric.contract_end",
+                        "fabric.gadget_contract",
                         "cflow.yield",
                         "event.yield",
                     })
@@ -701,14 +719,14 @@ def analytical(
                     f"{exhaustion_action!r}")
         return (
             demand,
-            visits,
+            tuple(code_names),
             tuple(retry_demands),
             expected_extra_operations,
             retry_acceptance,
             retry_logical_error,
         )
 
-    demand = executable_visits = None
+    demand = executable_codes = None
     retry_demands = ()
     expected_extra_operations = 0.0
     retry_acceptance = 1.0
@@ -725,18 +743,13 @@ def analytical(
         # inside the body instead.
         (
             demand,
-            executable_visits,
+            executable_codes,
             retry_demands,
             expected_extra_operations,
             retry_acceptance,
             retry_logical_error,
         ) = _resource_demand()
-        for visit in executable_visits:
-            operation = visit.operation
-            for result in operation.results:
-                name = _patch_code(result.type)
-                if name is not None and name not in code_names:
-                    code_names.append(name)
+        code_names.extend(executable_codes)
     if not code_names:
         raise MissingEvidence(
             "Tier.ANALYTICAL needs an executable P2 root with typed code boundaries"
@@ -789,7 +802,7 @@ def analytical(
     if demand is None:
         (
             demand,
-            executable_visits,
+            executable_codes,
             retry_demands,
             expected_extra_operations,
             retry_acceptance,

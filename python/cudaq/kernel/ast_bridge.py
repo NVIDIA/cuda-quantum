@@ -36,7 +36,8 @@ from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
                     getMLIRContext, is_recovered_value_ok,
                     recover_annotation_of_or_none, recover_value_of_or_none,
-                    cudaq__unique_attr_name, mlirTryCreateStructType)
+                    cudaq__unique_attr_name, mlirTryCreateStructType,
+                    set_optimization_level_attr)
 
 State = cudaq_runtime.State
 
@@ -149,12 +150,12 @@ class PyScopedSymbolTable(object):
         self._scope = None
         self.emitError = error_handler or default_error_handler
 
-    def pushScope(self, scope_root):
+    def enterFuncDef(self, scope_root):
         self._scope = PyScopedSymbolTable.Scope(scope_root, parent=self._scope)
 
-    def popScope(self):
+    def exitFuncDef(self):
         if not self._scope:
-            self.emitError("symbol table has no scopes to pop")
+            self.emitError("symbol table has no function definition to exit")
         elif self._scope.depth > 0:
             self.emitError("unfinished block(s) in symbol table")
         else:
@@ -432,54 +433,6 @@ class PyASTBridge(ast.NodeVisitor):
         self.isSubscriptRoot = False
         self.verbose = verbose
         self.currentNode = None
-        # `for` loop targets that are used nowhere outside their loop, keyed on
-        # `id(<ast.For node>)`
-        self.loopLocalTargets = {}
-        self.sinkAllocaNames = set()
-
-    def __analyzeLoopLocalTargets(self, statements, argNames):
-        """Record, for each `for` loop in `statements`, which of its target
-        variables never occur outside that loop.
-
-        Python keeps a loop variable alive after its loop, so by default the
-        storage for one is allocated in the function's entry block. That is
-        needed only when something below the loop can still read it; a variable
-        that no code outside the loop mentions can live in the loop body
-        instead. Keeping it there matters because `memtoreg` promotes an
-        entry-block slot into a value carried by every enclosing loop, whether
-        or not anything reads it, and those dead loop-carried values defeat
-        `cc.loop` reversal in the apply-op-specialization pass.
-        """
-        forNodes = [
-            n for stmt in statements for n in ast.walk(stmt)
-            if isinstance(n, ast.For)
-        ]
-        if not forNodes:
-            return
-        allNames = [
-            n for stmt in statements for n in ast.walk(stmt)
-            if isinstance(n, ast.Name)
-        ]
-        for forNode in forNodes:
-            if forNode.orelse:
-                continue
-            targets = {
-                t.id
-                for t in ast.walk(forNode.target)
-                if isinstance(t, ast.Name)
-            }
-            targets -= set(argNames)
-            if not targets:
-                continue
-            insideLoop = {id(n) for n in ast.walk(forNode)}
-            usedOutside = {
-                n.id
-                for n in allNames
-                if n.id in targets and id(n) not in insideLoop
-            }
-            local = targets - usedOutside
-            if local:
-                self.loopLocalTargets[id(forNode)] = local
 
     def isCudaqName(self, name):
         """Return True if `name` is 'cudaq' or a known alias for the cudaq
@@ -1056,12 +1009,16 @@ class PyASTBridge(ast.NodeVisitor):
 
     def __createSequenceWithKnownValues(self, listElementValues):
         assert (len(set((v.type for v in listElementValues))) == 1)
-        arrSize = self.getConstantInt(len(listElementValues))
         elemTy = listElementValues[0].type
         # If this is an `i1`, turns it into an `i8` array.
         isBool = elemTy == self.getIntegerType(1)
         if isBool:
             elemTy = self.getIntegerType(8)
+        # Allocated wherever this list literal naturally is (possibly nested
+        # inside a `cc.loop`/`cc.if`'s own `cc.scope`); see the comment on
+        # the analogous buffer in `toHandleIfBareStruct` for why this is not
+        # hoisted here.
+        arrSize = self.getConstantInt(len(listElementValues))
         alloca = cc.AllocaOp(cc.PointerType.get(cc.ArrayType.get(elemTy)),
                              TypeAttr.get(elemTy),
                              seqSize=arrSize).result
@@ -1325,7 +1282,7 @@ class PyASTBridge(ast.NodeVisitor):
         lambdaFct = cc.CreateLambdaOp(ty)
         initBlock = Block.create_at_start(lambdaFct.initRegion, [])
 
-        self.symbolTable.pushScope(initBlock)
+        self.symbolTable.enterFuncDef(initBlock)
         with InsertionPoint(initBlock):
             self.symbolTable.beginBlock()
             [self.visit(stm) for stm in statements]
@@ -1333,7 +1290,7 @@ class PyASTBridge(ast.NodeVisitor):
             # functions defined inside quantum kernels.
             cc.ReturnOp([])
             self.symbolTable.endBlock()
-        self.symbolTable.popScope()
+        self.symbolTable.exitFuncDef()
         return lambdaFct.result
 
     def __insertDbgStmt(self, value, dbgStmt):
@@ -2072,7 +2029,7 @@ class PyASTBridge(ast.NodeVisitor):
             # Create the entry block
             entry_block = f.add_entry_block()
 
-            self.symbolTable.pushScope(entry_block)
+            self.symbolTable.enterFuncDef(entry_block)
             with InsertionPoint(entry_block):
                 self.symbolTable.beginBlock()
                 # Process function arguments like any other assignments.
@@ -2103,8 +2060,6 @@ class PyASTBridge(ast.NodeVisitor):
                 # errors on assignments that may lead to unexpected behavior
                 # (i.e. behavior not following expected Python behavior).
                 self.buildingFunctionBody = True
-                self.__analyzeLoopLocalTargets(
-                    node.body, [arg.arg for arg in node.args.args])
                 with trace.span("ast_bridge.visit_function_body",
                                 statement_count=len(node.body)):
                     for n in node.body:
@@ -2124,7 +2079,7 @@ class PyASTBridge(ast.NodeVisitor):
                         func.ReturnOp([])
                 self.buildingFunctionBody = False
                 self.symbolTable.endBlock()
-            self.symbolTable.popScope()
+            self.symbolTable.exitFuncDef()
             if not self.symbolTable.isEmpty:
                 self.emitFatalError(
                     "processing error - unprocessed scope(s) in symbol table",
@@ -2309,6 +2264,16 @@ class PyASTBridge(ast.NodeVisitor):
                     if (cc.StructType.isinstance(value.type) and
                             cc.StructType.getName(value.type) != 'tuple'):
                         structTy = value.type
+                        # Allocated wherever this assignment naturally is
+                        # (possibly nested inside a `cc.loop`/`cc.if`'s own
+                        # `cc.scope`). The variable's own header pointer,
+                        # below, is null-initialized in the entry block for
+                        # exactly this reason: it lets `shrink-wrap` (and
+                        # `stack-frame-prealloc`) decide, with a full
+                        # dataflow view neither available nor appropriate to
+                        # duplicate here, whether this buffer can safely stay
+                        # at the entry block or should instead be sunk back
+                        # down into the loop/if nest alongside its header.
                         buffer = cc.AllocaOp(cc.PointerType.get(structTy),
                                              TypeAttr.get(structTy)).result
                         cc.StoreOp(value, buffer)
@@ -2329,14 +2294,36 @@ class PyASTBridge(ast.NodeVisitor):
                 if storeAsVal:
                     return target, value
 
-                # A variable that outlives the block it is assigned in needs
-                # its storage in the function's entry block.
-                allocaBlock = (InsertionPoint.current.block
-                               if target.id in self.sinkAllocaNames else
-                               self.symbolTable.scopeRoot)
-                with InsertionPoint.at_block_begin(allocaBlock):
+                # A dataclass handle (a pointer, from `toHandleIfBareStruct`
+                # above) or a list value's header is null-initialized here,
+                # in the entry block, regardless of where the real buffer
+                # backing it ends up being allocated (which, for both, is
+                # wherever this assignment naturally is - see the comments
+                # on `toHandleIfBareStruct` and `__createSequenceWithKnownValues`
+                # /`visit_ListComp`). This keeps the entry block's only
+                # content for this variable a trivial, always-safe write,
+                # which is what lets `shrink-wrap` sink the header down into
+                # a loop/if nest alongside its buffer when that is safe and
+                # profitable, instead of this function trying to guess that
+                # itself with only a local, per-assignment view.
+                with InsertionPoint.at_block_begin(self.symbolTable.scopeRoot):
                     address = cc.AllocaOp(cc.PointerType.get(value.type),
                                           TypeAttr.get(value.type)).result
+                    if cc.PointerType.isinstance(value.type):
+                        nullHandle = cc.CastOp(value.type,
+                                               self.getConstantInt(0)).result
+                        cc.StoreOp(nullHandle, address)
+                    elif cc.SequenceType.isinstance(value.type):
+                        nullData = cc.CastOp(
+                            cc.PointerType.get(
+                                cc.ArrayType.get(
+                                    cc.SequenceType.getElementType(
+                                        value.type))),
+                            self.getConstantInt(0)).result
+                        nullSeq = cc.SequenceInitOp(
+                            value.type, nullData,
+                            length=self.getConstantInt(0)).result
+                        cc.StoreOp(nullSeq, address)
                 cc.StoreOp(value, address)
                 return target, address
 
@@ -2598,75 +2585,6 @@ class PyASTBridge(ast.NodeVisitor):
                 if isa_kernel_decorator(result):
                     return name + ".." + hex(id(result))
         return None
-
-    def __expandCustomOpTargets(self, pyArgs, numTargets, node):
-        """Collect qubit references for a custom operation call, expanding `qvector`
-        arguments into individual references.
-        """
-        # Pass 1: Compute the static qubit count
-        values = []
-        staticCount = 0
-        for arg in pyArgs:
-            if isinstance(arg, ast.Starred):
-                self.visit(arg.value)
-            else:
-                self.visit(arg)
-            val = self.popValue()
-            values.append(val)
-            if quake.RefType.isinstance(val.type):
-                staticCount += 1
-            elif quake.VeqType.isinstance(val.type):
-                if quake.VeqType.hasSpecifiedSize(val.type):
-                    staticCount += quake.VeqType.getSize(val.type)
-            else:
-                self.emitFatalError(
-                    'invalid target operand for custom operation: '
-                    'expected a qubit or qvector', node)
-
-        dynamicExpected = numTargets - staticCount
-
-        # Pass 2: emit runtime size checks
-        targets = []
-        for val in values:
-            if quake.VeqType.isinstance(val.type):
-                if quake.VeqType.hasSpecifiedSize(val.type):
-                    size = quake.VeqType.getSize(val.type)
-                else:
-                    load_intrinsic(self.module, '__nvqpp_customop_size_error')
-                    actualSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                 val).result
-                    expectedSizeVal = self.getConstantInt(dynamicExpected)
-                    eqPred = IntegerAttr.get(self.getIntegerType(), 0)
-                    sizesMatch = arith.CmpIOp(eqPred, actualSize,
-                                              expectedSizeVal).result
-                    ifOp = cc.IfOp([], sizesMatch, [])
-                    thenBlock = Block.create_at_start(ifOp.thenRegion, [])
-                    with InsertionPoint(thenBlock):
-                        cc.ContinueOp([])
-                    elseBlock = Block.create_at_start(ifOp.elseRegion, [])
-                    with InsertionPoint(elseBlock):
-                        totalActual = arith.AddIOp(
-                            actualSize, self.getConstantInt(staticCount)).result
-                        func.CallOp(
-                            [], '__nvqpp_customop_size_error',
-                            [self.getConstantInt(numTargets), totalActual])
-                        cc.ContinueOp([])
-                    size = dynamicExpected
-                for i in range(size):
-                    ref = quake.ExtractRefOp(
-                        self.getRefType(),
-                        val,
-                        -1,
-                        index=self.getConstantInt(i)).result
-                    targets.append(ref)
-            elif quake.RefType.isinstance(val.type):
-                targets.append(val)
-
-        if len(targets) != numTargets:
-            self.emitFatalError(
-                f'custom operation requires {numTargets} qubit target(s), '
-                f'but {len(targets)} were provided', node)
-        return targets
 
     def visit_Call(self, node):
         """Map a Python Call operation to equivalent MLIR. This method handles
@@ -3379,8 +3297,14 @@ class PyASTBridge(ast.NodeVisitor):
                 with trace.span("ast_bridge.call.emit_custom_operation"):
                     unitary = globalRegisteredOperations[node.func.id]
                     numTargets = int(np.log2(np.sqrt(unitary.size)))
-                    targets = self.__expandCustomOpTargets(
-                        node.args, numTargets, node)
+                    targets = self.__groupValues(node.args,
+                                                 [(numTargets, numTargets)])
+
+                    for i, t in enumerate(targets):
+                        if not quake.RefType.isinstance(t.type):
+                            self.emitFatalError(
+                                f'invalid target operand {i}, broadcasting is not supported on custom operations.'
+                            )
 
                     globalName = f'{nvqppPrefix}{node.func.id}_generator_{numTargets}.rodata'
 
@@ -4416,9 +4340,19 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitWarning(
                 "produced elements in list comprehension contain None - "
                 "expression will be evaluated but no list is generated", node)
+            body = [node.elt]
+            if hasFilter:
+                # Apply the `if` clauses so only the selected elements are
+                # evaluated, matching Python semantics.
+                test = (if_clauses[0] if len(if_clauses) == 1 else ast.BoolOp(
+                    op=ast.And(), values=list(if_clauses)))
+                ifNode = ast.If(test=test, body=body, orelse=[])
+                ast.copy_location(ifNode, node.elt)
+                ast.fix_missing_locations(ifNode)
+                body = [ifNode]
             forNode = ast.For(target=node.generators[0].target,
                               iter=node.generators[0].iter,
-                              body=[node.elt],
+                              body=body,
                               orelse=[])
             forNode.lineno = node.lineno
             # This loop could be marked as invariant if we didn't use
@@ -4746,6 +4680,19 @@ class PyASTBridge(ast.NodeVisitor):
         if listElemTy == self.getIntegerType(1):
             listElemTy = self.getIntegerType(8)
         listTy = cc.ArrayType.get(listElemTy)
+        # `iterableSize` may not be known at compile time (e.g. a
+        # comprehension over `range(n)`), so this buffer is allocated
+        # dynamically on the stack, wherever this comprehension naturally
+        # is, exactly like a fixed-size local's storage - see the analogous
+        # buffer in `toHandleIfBareStruct`. A comprehension that runs many
+        # times (e.g. once per loop iteration) therefore does grow the stack
+        # `unboundedly` if nothing reclaims it; that is a real but lesser risk
+        # than the alternative of heap-managing this buffer's lifetime
+        # ourselves, which cannot be done soundly here since Python list
+        # assignment is reference/alias-based (`l2 = l1` aliases the same
+        # buffer, not a copy) and this function has no visibility into
+        # every other variable that might already be aliasing this same
+        # buffer when it comes time to decide whether it is safe to free.
         listValue = cc.AllocaOp(cc.PointerType.get(listTy),
                                 TypeAttr.get(listElemTy),
                                 seqSize=iterableSize).result
@@ -5344,8 +5291,6 @@ class PyASTBridge(ast.NodeVisitor):
             else:
                 self.emitFatalError('{} iterable type not supported.', node)
 
-        loopLocal = self.loopLocalTargets.get(id(node), set())
-
         def blockBuilder(iterVar, stmts):
             self.symbolTable.beginBlock()
             values = getValues(iterVar)
@@ -5353,14 +5298,7 @@ class PyASTBridge(ast.NodeVisitor):
             # iteration variable(s) to have consistent behavior.
             assignNode = ast.Assign(targets=[node.target], value=values)
             assignNode.lineno = node.lineno
-            outerSink = self.sinkAllocaNames
-            self.sinkAllocaNames = {
-                name for name in loopLocal if name not in self.symbolTable
-            }
-            try:
-                self.visit(assignNode)
-            finally:
-                self.sinkAllocaNames = outerSink
+            self.visit(assignNode)
             self.buildScopedBlock(stmts)
             self.symbolTable.endBlock()
 
@@ -6281,8 +6219,7 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
         cudaq__unique_attr_name, StringAttr.get(bridge.name,
                                                 context=bridge.ctx))
     if disable_quantum_optimization:
-        bridge.module.operation.attributes.__setitem__(
-            'quake.noOptimization', UnitAttr.get(context=bridge.ctx))
+        set_optimization_level_attr(bridge.module, bridge.name, level=0)
     if verbose:
         print(bridge.module)
     # Clear the live operations cache. This avoids python crashing with

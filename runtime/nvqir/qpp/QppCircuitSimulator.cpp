@@ -204,12 +204,14 @@ protected:
         const_cast<void *>(stateDataIn));
 
     if (state.size() == 0) {
-      // If this is the first time, allocate the state
+      // Size from qubitCount: with deferred allocations stateDimension
+      // can already count qubits this call is not materializing.
+      const auto dimension = calculateStateDim(qubitCount);
       if (stateData == nullptr) {
-        state = qpp::ket::Zero(stateDimension);
+        state = qpp::ket::Zero(dimension);
         state(0) = 1.0;
       } else
-        state = qpp::ket::Map(stateData, stateDimension);
+        state = qpp::ket::Map(stateData, dimension);
       return;
     }
     // If we are resizing an existing, allocate

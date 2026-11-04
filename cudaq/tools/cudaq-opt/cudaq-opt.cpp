@@ -16,6 +16,10 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/Version.h"
+#include "cudaq/Target/TargetCatalog.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/StringSet.h"
 #include "llvm/Option/Option.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/InitLLVM.h"
@@ -26,6 +30,7 @@
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Pass/PassRegistry.h"
 #include "mlir/Support/FileUtilities.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 
@@ -52,6 +57,92 @@ static cl::list<std::string>
     CudaQPlugins("load-cudaq-plugin",
                  cl::desc("Load CUDA-Q plugin by specifying its library"));
 
+static cl::list<std::string> ExtraTargetPipelines(
+    "register-target-pipelines",
+    cl::desc("Register the pass pipelines declared by the target "
+             "configuration at this path (a .yml, or a compiled target "
+             "plugin library)"),
+    cl::value_desc("path"));
+
+/// Registers `pipelineText` as a named pipeline, `pipelineName`. Once
+/// registered, nvq++ can select it by referencing `pipelineName` inside an
+/// ordinary
+/// `-pass-pipeline='builtin.module(<pipelineName>)'` argument.
+static void registerTargetPassPipeline(const std::string &pipelineName,
+                                       const std::string &targetName,
+                                       std::string pipelineText) {
+  mlir::PassPipelineRegistration<>(
+      pipelineName,
+      "Precompiled pass pipeline for target '" + targetName + "'.",
+      [pipelineName, pipelineText](mlir::OpPassManager &pm) {
+        if (failed(mlir::parsePassPipeline(pipelineText, pm))) {
+          const std::string message = "failed to parse the pass pipeline "
+                                      "configured for target '" +
+                                      pipelineName + "'";
+          llvm::report_fatal_error(llvm::StringRef(message));
+        }
+      });
+}
+
+/// Registers a named pipeline for every
+///  - in-tree target (and, within it, every configuration-matrix entry)
+///  - extra YAML or compiled plugin-library files passed in @p configPaths
+/// that configures an override pass pipeline in its compilation profile.
+///
+/// A target's name and a configuration-matrix entry's name are joined with
+/// '.' (not '-') to form the registered pipeline name: target and entry
+/// names routinely contain '-' themselves (e.g. "nvidia-mqpu-fp64",
+/// "single-gpu-fp32"), so joining with '-' can make two distinct
+/// (target, entry) pairs collide on the same registered name (e.g. target
+/// "xyz-bar" with no entry vs. target "xyz" with entry "bar"). Nothing
+/// stops a future target/entry name from containing '.' either, so
+/// registration also checks for and rejects any resulting collision
+/// outright rather than relying solely on the separator choice.
+// TODO: it seems inconsistent that we only register named pipelines (and nvq++
+// executes them) when the YAML uses 'target-pass-pipeline' to specify them.
+// Alternatives pipeline declarations such as 'jit-*-level-pipeline' options are
+// currently ignored. When this gets resolved, also add support for multi-stage
+// compilation sequences.
+static void
+registerAllTargetPassPipelines(llvm::ArrayRef<std::string> configPaths = {}) {
+  cudaq::config::TargetCatalog registry;
+  for (const auto &path : configPaths)
+    registry.addTargetConfigFile(path);
+  llvm::StringSet<> registeredNames;
+  auto registerUnique = [&](const std::string &pipelineName,
+                            const std::string &targetName,
+                            const std::string &pipelineText) {
+    if (!registeredNames.insert(pipelineName).second) {
+      const std::string message =
+          "duplicate target pass pipeline name '" + pipelineName +
+          "': two different targets or configuration-matrix entries "
+          "produced the same registered pipeline name";
+      llvm::report_fatal_error(llvm::StringRef(message));
+    }
+    registerTargetPassPipeline(pipelineName, targetName, pipelineText);
+  };
+  const auto overridePipeline =
+      [](const cudaq::config::BackendEndConfigEntry &backend) -> std::string {
+    if (backend.CompileTarget.stages.size() != 1)
+      return std::string{};
+    const auto *overridePassPipeline =
+        backend.CompileTarget.getOverridePassPipeline();
+    return overridePassPipeline ? *overridePassPipeline : std::string{};
+  };
+  for (const auto *entry : registry.list()) {
+    const auto &config = *entry->config;
+    const std::string targetName = entry->name;
+    if (config.BackendConfig.has_value() &&
+        !overridePipeline(*config.BackendConfig).empty())
+      registerUnique("target-pass-pipeline-" + targetName, targetName,
+                     overridePipeline(*config.BackendConfig));
+    for (const auto &entry : config.ConfigMap)
+      if (!overridePipeline(entry.Config).empty())
+        registerUnique("target-pass-pipeline-" + targetName + "." + entry.Name,
+                       targetName, overridePipeline(entry.Config));
+  }
+}
+
 int main(int argc, char **argv) {
   // Set the bug report message to indicate users should file issues on
   // nvidia/cuda-quantum
@@ -59,6 +150,23 @@ int main(int argc, char **argv) {
 
   cudaq::registerAllCLOptions();
   cudaq::registerAllPasses();
+
+  // Scan argv before option parsing: pass pipelines must be registered before
+  // MlirOptMain parses `--pass-pipeline`. Same reason as the plugin scan below.
+  std::vector<std::string> extraTargetConfigs;
+  for (int i = 1; i < argc; ++i) {
+    llvm::StringRef arg(argv[i]);
+    if (arg.consume_front("--register-target-pipelines=") ||
+        arg.consume_front("-register-target-pipelines=")) {
+      extraTargetConfigs.push_back(arg.str());
+      continue;
+    }
+    if ((arg == "--register-target-pipelines" ||
+         arg == "-register-target-pipelines") &&
+        i + 1 < argc)
+      extraTargetConfigs.push_back(argv[++i]);
+  }
+  registerAllTargetPassPipelines(extraTargetConfigs);
 
   // See if we have been asked to load a pass plugin,
   // if so load it.

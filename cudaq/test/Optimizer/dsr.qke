@@ -20,6 +20,93 @@ func.func @test_it() {
 // CHECK:           return
 // CHECK:         }
 
+// Remove every store through the allocation and its derived pointers.
+func.func @dead_mixed_stores(%array: !cc.array<i32 x 2>, %value: i32) {
+  %p = cc.alloca !cc.array<i32 x 2>
+  cc.store %array, %p : !cc.ptr<!cc.array<i32 x 2>>
+  %cast = cc.cast %p : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %cast : !cc.ptr<i32>
+  cc.store %value, %cast : !cc.ptr<i32>
+  %element = cc.compute_ptr %p[1] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %element : !cc.ptr<i32>
+  cc.store %value, %element : !cc.ptr<i32>
+  return
+}
+
+// CHECK-LABEL: func.func @dead_mixed_stores
+// CHECK-NOT: cc.store
+// CHECK: return
+
+// Stores can be removed together even when they are in separate blocks.
+func.func @dead_branch_stores(%condition: i1, %value: i32) {
+  %p = cc.alloca i32
+  cc.store %value, %p : !cc.ptr<i32>
+  cf.cond_br %condition, ^yes, ^no
+^yes:
+  cc.store %value, %p : !cc.ptr<i32>
+  cf.br ^exit
+^no:
+  cc.store %value, %p : !cc.ptr<i32>
+  cf.br ^exit
+^exit:
+  return
+}
+
+// CHECK-LABEL: func.func @dead_branch_stores
+// CHECK-NOT: cc.store
+// CHECK: return
+
+// Finding a read must leave all stores intact, including already visited ones.
+func.func @live_derived_load(%array: !cc.array<i32 x 2>, %value: i32,
+                             %index: i64) -> i32 {
+  %p = cc.alloca !cc.array<i32 x 2>
+  cc.store %array, %p : !cc.ptr<!cc.array<i32 x 2>>
+  %cast = cc.cast %p : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %cast : !cc.ptr<i32>
+  %element = cc.compute_ptr %p[1] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %element : !cc.ptr<i32>
+  %unknown = cc.compute_ptr %p[%index] : (!cc.ptr<!cc.array<i32 x 2>>, i64) -> !cc.ptr<i32>
+  %result = cc.load %unknown : !cc.ptr<i32>
+  return %result : i32
+}
+
+// CHECK-LABEL: func.func @live_derived_load
+// CHECK: cc.store
+// CHECK: cc.store
+// CHECK: cc.store
+// CHECK: cc.load
+// CHECK: return
+
+// Storing the address is an escape, not a dead write to the allocation.
+func.func @live_address_escape(%out: !cc.ptr<!cc.ptr<i32>>, %value: i32) {
+  %p = cc.alloca i32
+  cc.store %value, %p : !cc.ptr<i32>
+  cc.store %p, %out : !cc.ptr<!cc.ptr<i32>>
+  cc.store %value, %p : !cc.ptr<i32>
+  return
+}
+
+// CHECK-LABEL: func.func @live_address_escape
+// CHECK: cc.store
+// CHECK: cc.store
+// CHECK: cc.store
+// CHECK: return
+
+func.func @live_cast_escape(%out: !cc.ptr<!cc.ptr<i32>>, %value: i32) {
+  %p = cc.alloca !cc.array<i32 x 2>
+  %cast = cc.cast %p : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %cast : !cc.ptr<i32>
+  cc.store %cast, %out : !cc.ptr<!cc.ptr<i32>>
+  cc.store %value, %cast : !cc.ptr<i32>
+  return
+}
+
+// CHECK-LABEL: func.func @live_cast_escape
+// CHECK: cc.store
+// CHECK: cc.store
+// CHECK: cc.store
+// CHECK: return
+
 func.func @test_slam() {
   %0 = cc.alloca i32
   %1 = arith.constant 1 : i32
@@ -40,7 +127,28 @@ func.func @test_slam() {
 // CHECK:           return
 // CHECK:         }
 
-func.func @test_not_so_fast_bucko() -> i32 {
+func.func @test_not_so_fast_bucko(%arg0: !cc.ptr<i32>) -> i32 {
+  %0 = cc.alloca i32
+  %1 = arith.constant 1 : i32
+  cc.store %1, %0 : !cc.ptr<i32>
+  call @clobber(%0) : (!cc.ptr<i32>) -> ()
+  %2 = cc.load %0 : !cc.ptr<i32>
+  return %2 : i32
+}
+
+func.func private @clobber(!cc.ptr<i32>)
+
+// The slot's address escaped to the call, so the load must stay and so must
+// the store.
+// CHECK-LABEL:   func.func @test_not_so_fast_bucko(
+// CHECK:           cc.store %{{.*}}, %[[VAL_0:.*]]
+// CHECK:           call @clobber
+// CHECK:           cc.load %[[VAL_0]]
+// CHECK:           return
+// CHECK:         }
+
+// The load is forwarded from the store, which then has no readers.
+func.func @test_forwarded() -> i32 {
   %0 = cc.alloca i32
   %1 = arith.constant 1 : i32
   cc.store %1, %0 : !cc.ptr<i32>
@@ -48,8 +156,170 @@ func.func @test_not_so_fast_bucko() -> i32 {
   return %2 : i32
 }
 
-// CHECK-LABEL:   func.func @test_not_so_fast_bucko() -> i32 {
-// CHECK:           cc.store %{{.*}}, %[[VAL_0:.*]]
-// CHECK:           cc.load %[[VAL_0]]
-// CHECK:           return
+// CHECK-LABEL:   func.func @test_forwarded() -> i32 {
+// CHECK-NOT:       cc.store
+// CHECK-NOT:       cc.load
+// CHECK:           return %{{.*}} : i32
 // CHECK:         }
+
+// Stores through dynamically indexed pointers alone do not trigger removal.
+func.func @dynamic_index_only(%i: i64, %value: i32) {
+  %p = cc.alloca !cc.array<i32 x 4>
+  %e = cc.compute_ptr %p[%i] : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.ptr<i32>
+  cc.store %value, %e : !cc.ptr<i32>
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic_index_only
+// CHECK: cc.store
+// CHECK: return
+
+// An unused load is erased as dead, after which the stores are removed too.
+func.func @dead_load(%array: !cc.array<i32 x 2>, %value: i32) {
+  %p = cc.alloca !cc.array<i32 x 2>
+  %e = cc.compute_ptr %p[1] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %e : !cc.ptr<i32>
+  %unused = cc.load %e : !cc.ptr<i32>
+  cc.store %array, %p : !cc.ptr<!cc.array<i32 x 2>>
+  return
+}
+
+// CHECK-LABEL: func.func @dead_load
+// CHECK-NOT: cc.store
+// CHECK-NOT: cc.load
+// CHECK: return
+
+// Stores nested in cc.if regions are removed.
+func.func @dead_if_stores(%condition: i1, %value: i32) {
+  %p = cc.alloca !cc.array<i32 x 2>
+  %cast = cc.cast %p : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.if(%condition) {
+    cc.store %value, %cast : !cc.ptr<i32>
+  } else {
+    %e = cc.compute_ptr %p[1] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+    cc.store %value, %e : !cc.ptr<i32>
+  }
+  return
+}
+
+// CHECK-LABEL: func.func @dead_if_stores
+// CHECK-NOT: cc.store
+// CHECK: return
+
+// A load in either branch of a cc.if keeps all stores.
+func.func @live_if_load(%condition: i1, %value: i32, %index: i64) -> i32 {
+  %p = cc.alloca !cc.array<i32 x 2>
+  %e = cc.compute_ptr %p[0] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %e : !cc.ptr<i32>
+  %r = cc.if(%condition) -> i32 {
+    cc.store %value, %e : !cc.ptr<i32>
+    cc.continue %value : i32
+  } else {
+    %d = cc.compute_ptr %p[%index] : (!cc.ptr<!cc.array<i32 x 2>>, i64) -> !cc.ptr<i32>
+    %l = cc.load %d : !cc.ptr<i32>
+    cc.continue %l : i32
+  }
+  return %r : i32
+}
+
+// CHECK-LABEL: func.func @live_if_load
+// CHECK: cc.store
+// CHECK: cc.if
+// CHECK: cc.store
+// CHECK: cc.load
+// CHECK: return
+
+// Stores nested in a cc.loop body are removed. Once the allocation is known to
+// be dead, this includes the dynamically indexed store in the loop.
+func.func @dead_loop_stores(%value: i64) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %p = cc.alloca !cc.array<i64 x 4>
+  %first = cc.compute_ptr %p[0] : (!cc.ptr<!cc.array<i64 x 4>>) -> !cc.ptr<i64>
+  cc.store %value, %first : !cc.ptr<i64>
+  %0 = cc.loop while ((%i = %c0) -> (i64)) {
+    %1 = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %1(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = cc.compute_ptr %p[%i] : (!cc.ptr<!cc.array<i64 x 4>>, i64) -> !cc.ptr<i64>
+    cc.store %i, %e : !cc.ptr<i64>
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %1 = arith.addi %i, %c1 : i64
+    cc.continue %1 : i64
+  }
+  return
+}
+
+// CHECK-LABEL: func.func @dead_loop_stores
+// CHECK-NOT: cc.store
+// CHECK: return
+
+// A load after the loop keeps the stores made in the loop body.
+func.func @live_loop_load(%value: i64) -> i64 {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %p = cc.alloca i64
+  %0 = cc.loop while ((%i = %c0) -> (i64)) {
+    %1 = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %1(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    cc.store %i, %p : !cc.ptr<i64>
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %1 = arith.addi %i, %c1 : i64
+    cc.continue %1 : i64
+  }
+  %r = cc.load %p : !cc.ptr<i64>
+  return %r : i64
+}
+
+// CHECK-LABEL: func.func @live_loop_load
+// CHECK: cc.loop
+// CHECK: cc.store
+// CHECK: cc.load
+// CHECK: return
+
+// Stores to an allocation inside a cc.scope are removed.
+func.func @dead_scope_stores(%value: i32) {
+  cc.scope {
+    %p = cc.alloca !cc.array<i32 x 2>
+    %e = cc.compute_ptr %p[0] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+    cc.store %value, %e : !cc.ptr<i32>
+    cc.scope {
+      cc.store %value, %e : !cc.ptr<i32>
+    }
+  }
+  return
+}
+
+// CHECK-LABEL: func.func @dead_scope_stores
+// CHECK-NOT: cc.store
+// CHECK: return
+
+// A load in a nested cc.scope keeps all stores.
+func.func @live_scope_load(%value: i32, %index: i64) -> i32 {
+  %r = cc.scope -> i32 {
+    %p = cc.alloca !cc.array<i32 x 2>
+    %e = cc.compute_ptr %p[0] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+    cc.store %value, %e : !cc.ptr<i32>
+    %l = cc.scope -> i32 {
+      %d = cc.compute_ptr %p[%index] : (!cc.ptr<!cc.array<i32 x 2>>, i64) -> !cc.ptr<i32>
+      %v = cc.load %d : !cc.ptr<i32>
+      cc.continue %v : i32
+    }
+    cc.continue %l : i32
+  }
+  return %r : i32
+}
+
+// CHECK-LABEL: func.func @live_scope_load
+// CHECK: cc.store
+// CHECK: cc.load
+// CHECK: return

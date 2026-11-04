@@ -21,15 +21,6 @@
 
 namespace cudaq {
 namespace detail {
-// Test std::tuple layout.
-constexpr bool isTupleRecursivelyDefined() {
-  std::tuple<double, int, char> t;
-  return static_cast<void *>(&std::get<double>(t)) != static_cast<void *>(&t);
-}
-[[maybe_unused]] static bool TupleIsReverse = isTupleRecursivelyDefined();
-} // namespace detail
-
-namespace detail {
 std::string demangle_kernel(const char *);
 extern bool globalFalse;
 } // namespace detail

@@ -8,7 +8,7 @@
 
 // RUN: nvq++ -shared -fpic %s -o %t && file %t | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct Qernel {
   void operator()() __qpu__ {}

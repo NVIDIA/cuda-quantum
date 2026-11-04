@@ -252,6 +252,55 @@ def test_list_update_failures():
     assert kernel2([0, 1, 2]) == (8, 3)
 
 
+def test_list_reassignment_preserves_alias():
+    """`l2 = l1` aliases the same list object as `l1`, matching Python
+    reference semantics. Reassigning `l1` to a brand new list afterward must
+    rebind the name `l1` only - it must not affect the list object `l2`
+    still refers to. This specifically exercises a dynamically-sized list
+    comprehension (`[... for _ in range(n)]`, where `n` is a genuine runtime
+    kernel argument, not a compile-time constant), which is backed by a
+    stack allocation whose lifetime spans the whole kernel call; `l1`'s
+    reassignment allocates an entirely new buffer rather than touching the
+    one `l2` still points to."""
+
+    @cudaq.kernel
+    def alias_test(n: int) -> int:
+        l1 = [j + 1 for j in range(n)]
+        l2 = l1
+        l1 = [100 + j for j in range(n)]
+        return l2[0] * 1000 + l1[0]
+
+    results = cudaq.run(alias_test, 3, shots_count=1)
+    # l2 must still see the *original* list ([1, 2, 3], so l2[0] == 1),
+    # unaffected by l1 being rebound to a new list ([100, 101, 102]).
+    assert len(results) == 1 and results[0] == 1100
+
+
+def test_dataclass_reassignment_preserves_alias():
+    """The same aliasing scenario as `test_list_reassignment_preserves_alias`,
+    for a dataclass instance instead of a list: `p2 = p1` aliases the same
+    struct handle as `p1`, and reassigning `p1` to a brand new instance
+    afterward must rebind the name `p1` only, not affect the object `p2`
+    still refers to."""
+
+    @dataclass(slots=True)
+    class Pair:
+        x: int
+        y: int
+
+    @cudaq.kernel
+    def alias_test_dc() -> int:
+        p1 = Pair(1, 2)
+        p2 = p1
+        p1 = Pair(100, 200)
+        return p2.x * 1000 + p1.x
+
+    results = cudaq.run(alias_test_dc, shots_count=1)
+    # p2 must still see the *original* struct (Pair(1, 2), so p2.x == 1),
+    # unaffected by p1 being rebound to a new instance (Pair(100, 200)).
+    assert len(results) == 1 and results[0] == 1100
+
+
 def test_dataclass_update():
 
     @dataclass(slots=True)

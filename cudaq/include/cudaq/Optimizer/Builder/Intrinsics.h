@@ -56,6 +56,12 @@ static constexpr const char sequenceBoolUnpackToInitList[] =
 static constexpr const char sequenceBoolFreeTemporaryLists[] =
     "__nvqpp_vector_bool_free_temporary_initlists";
 
+// Destroy a host std::vector<bool> in place, releasing its storage. The layout
+// of the host's std::vector<bool> specialization is not known to the compiler,
+// so this must be done by the library that was built with that specialization.
+static constexpr const char sequenceBoolDestroy[] =
+    "__nvqpp_vector_bool_destroy";
+
 // The internal data of the cudaq::state object must be `2**n` in length. This
 // function returns the value `n`.
 static constexpr const char getNumQubitsFromCudaqState[] =

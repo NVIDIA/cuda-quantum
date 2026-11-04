@@ -10,58 +10,168 @@ import uuid
 from typing import Optional
 import math
 from cmath import exp
+from os import environ
 
 # Use IQM Client Tools to verify data structures
 import iqm.iqm_client as iqm_client
 from fastapi import FastAPI, HTTPException, Request
+from contextlib import asynccontextmanager
 from pydantic import BaseModel
 import numpy as np
 
 # Testing constants
 good_access_token = "Bearer good_access_token"
-server_qpu_architecture = "Crystal_20"
-operations = []  # TBA
-qubits = [
-    "QB1", "QB2", "QB3", "QB4", "QB5", "QB6", "QB7", "QB8", "QB9", "QB10",
-    "QB11", "QB12", "QB13", "QB14", "QB15", "QB16", "QB17", "QB18", "QB19",
-    "QB20"
-]
-qubit_connectivity = [
-    ["QB1", "QB2"],
-    ["QB1", "QB4"],
-    ["QB2", "QB5"],
-    ["QB3", "QB4"],
-    ["QB3", "QB8"],
-    ["QB4", "QB5"],
-    ["QB4", "QB9"],
-    ["QB5", "QB6"],
-    ["QB5", "QB10"],
-    ["QB6", "QB7"],
-    ["QB6", "QB11"],
-    ["QB7", "QB12"],
-    ["QB8", "QB9"],
-    ["QB8", "QB13"],
-    ["QB9", "QB10"],
-    ["QB9", "QB14"],
-    ["QB10", "QB11"],
-    ["QB10", "QB15"],
-    ["QB11", "QB12"],
-    ["QB11", "QB16"],
-    ["QB12", "QB17"],
-    ["QB13", "QB14"],
-    ["QB14", "QB15"],
-    ["QB14", "QB18"],
-    ["QB15", "QB16"],
-    ["QB15", "QB19"],
-    ["QB16", "QB17"],
-    ["QB16", "QB20"],
-    ["QB18", "QB19"],
-    ["QB19", "QB20"],
-]
+
+bad_qubits_prx = []
+"""
+To simulate a QPU with an imperfect calibration this list can be used to
+deliberately exclude `prx` gates from the dynamic quantum architecture.
+By default 2 qubits are excluded which the integration needs to skip over
+in order for tests to succeed. This list can be set at startup by assigning
+a list to the environment variable IQM_MOCK_BAD_PRX_GATES. It can also be
+extended dynamically at runtime using HTTP requests to endpoints defined below.
+"""
+
+bad_cz_gates = []
+"""
+Similar to `bad_qubits_prx` this lists all the CZ gates which should be removed
+from the dynamic quantum architecture to simulate an imperfect calibration.
+This list can be set at startup by assigning a list to the environment variable
+IQM_MOCK_BAD_CZ_GATES. It can also be extended dynamically at runtime using
+HTTP requests to endpoints defined below.
+"""
+
+qubits = []
+
+qubit_connectivity = []
+
 computational_resonators = []
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Once on server start get configuration from the environment.
+       Setting the environment variable `IQM_MOCK_BAD_PRX_GATES` with a comma
+       separated list of qubit names will remove these qubits from the list
+       of qubits with PRX functionality in the dynamic quantum architecture.
+       Example: `export IQM_MOCK_BAD_PRX_GATES="QB2,QB5"`
+
+       Setting the environment variable `IQM_MOCK_BAD_CZ_GATES` with a comma
+       separated list of qubit name pairs separated by hyphen will remove
+       matching cz-gates from the list of gates with CZ functionality in the
+       dynamic quantum architecture.
+       Example: `export IQM_MOCK_BAD_CZ_GATES="QB1-QB2,QB5-QB6,QB19-QB20"`
+    """
+
+    # default quantum architecture on startup
+    _generate_quantum_architecture("crystal-20")
+
+    if ("IQM_MOCK_BAD_PRX_GATES" in environ):
+        # Allow setting the list of bad PRX gates via environment variable.
+        bad_qubits_prx.clear()
+        gate_list = environ["IQM_MOCK_BAD_PRX_GATES"]
+        _parse_bad_prx_gate_list(gate_list)
+
+    for qb in bad_qubits_prx:
+        print(f"Disabled PRX-gate on: {qb}")
+
+    if ("IQM_MOCK_BAD_CZ_GATES" in environ):
+        # Likewise a list of bad CZ gates can be given.
+        bad_cz_gates.clear()
+        gate_list = environ["IQM_MOCK_BAD_CZ_GATES"]
+        _parse_bad_cz_gate_list(gate_list)
+
+    _process_bad_cz_gate_list()
+
+    yield
+
+
 # Define the REST Server App
-app = FastAPI()
+app = FastAPI(title="IQM Mock QPU Server", version="V1", lifespan=lifespan)
+
+
+def _parse_bad_prx_gate_list(gate_list: str):
+    """Parse the given list and update the global var bad_qubits_prx."""
+    for qb in gate_list.split(","):
+        qb = qb.strip()
+        if qb in qubits and qb not in bad_qubits_prx:
+            bad_qubits_prx.append(qb)
+
+
+def _parse_bad_cz_gate_list(gate_list: str):
+    """Parse the given list and update the global var bad_cz_gates."""
+    for gate in gate_list.split(","):
+        cz_qubits: list[str] = gate.split("-")
+        if len(cz_qubits) == 2 and cz_qubits not in bad_cz_gates:
+            bad_cz_gates.append(cz_qubits)
+
+
+def _process_bad_cz_gate_list():
+    """Process the global var bad_cz_gates and remove the listed cz-gates from
+    the qubit connectivity list."""
+    for gate in bad_cz_gates:
+        if gate in qubit_connectivity:
+            qubit_connectivity.remove(gate)
+            print(f"Disabled CZ-gate between: {gate[0]}-{gate[1]}")
+        else:
+            reverse_gate: list[str] = gate.copy()
+            reverse_gate.reverse()
+            if reverse_gate in qubit_connectivity:
+                qubit_connectivity.remove(reverse_gate)
+                print(f"Disabled CZ-gate between: "
+                      f"{reverse_gate[0]}-{reverse_gate[1]}")
+
+
+def _generate_quantum_architecture(qpu: str) -> bool:
+    """Generate the quantum architecture description of the specified QPU.
+    This populates the global variables 'qubits' and 'qubit_connectivity'."""
+    architectures = {
+        "crystal-5": [1, 0, 3, 1, 1, -1],
+        "crystal-20": [2, 0, 5, 1, 5, 0, 5, 0, 3, -1],
+        "crystal-54": [2, 0, 5, 2, 7, 1, 8, 1, 9, 0, 8, -1, 7, 0, 5, -1, 3, -1]
+    }
+    if qpu not in architectures:
+        return False
+
+    qubits.clear()
+    qubit_connectivity.clear()
+    layout = architectures[qpu]
+
+    # generate the list of two qubit gates
+    row_start = 1
+    last_row_start = 0
+    last_row_length = 0
+
+    for r in range(0, len(layout), 2):
+        row_length = layout[r]
+        row_offset = layout[r + 1]
+
+        # horizontal
+        for qb in range(0, row_length - 1):
+            qb1 = row_start + qb
+            qb2 = qb1 + 1
+            qubit_connectivity.append([f"QB{qb1}", f"QB{qb2}"])
+
+        # vertical
+        if last_row_start != 0:
+            for qb in range(0, min(last_row_length, row_length)):
+                if row_offset >= 0:
+                    qb1 = last_row_start + qb
+                    qb2 = row_start + row_offset + qb
+                else:
+                    qb1 = last_row_start - row_offset + qb
+                    qb2 = row_start + qb
+                qubit_connectivity.append([f"QB{qb1}", f"QB{qb2}"])
+
+        last_row_length = row_length
+        last_row_start = row_start
+        row_start += row_length
+
+    # generate the list of qubits
+    qubit_cnt = row_start - 1
+    qubits.extend(f"QB{qb + 1}" for qb in range(qubit_cnt))
+
+    return True
 
 
 class Counts(BaseModel):
@@ -145,19 +255,18 @@ def _partial_trace(N, rho, keep):
     """Calculate the partial trace of a density matrix"""
     trace_out = sorted(set(range(N)) - set(keep), reverse=True)
 
-    if len(trace_out) == 0:
-        return rho.reshape(
-            2**N, 2**N)  # No tracing needed, return the reshaped matrix
+    if len(trace_out):
 
-    # Reshape into tensor with shape (2,2,...,2,2,...,2), 2N times
-    rho = rho.reshape([2] * 2 * N)
+        # Reshape into tensor with shape (2,2,...,2,2,...,2), 2N times
+        rho = rho.reshape([2] * 2 * N)
 
-    # Trace over the unwanted qubits
-    for q in trace_out:
-        rho = np.trace(rho, axis1=q, axis2=q + N)
-        N -= 1  # Adjust N as one qubit is traced out
+        # Trace over the unwanted qubits
+        for q in trace_out:
+            rho = np.trace(rho, axis1=q, axis2=q + N)
+            N -= 1  # Adjust N as one qubit is traced out
 
-    return rho
+    # Return the reshaped matrix
+    return rho.reshape(2**N, 2**N)
 
 
 def _validate_measurements(job: Job, circuit: iqm_client.Circuit) -> bool:
@@ -213,7 +322,8 @@ def _validate_connectivity(job: Job, circuit: iqm_client.Circuit) -> bool:
 
 
 def _gather_circuit_information(
-    instructions: list[iqm_client.Instruction],) -> tuple[set[int], int]:
+    instructions: list[iqm_client.Instruction],
+) -> tuple[set[int], dict[int, str], int]:
     """Gather qubits from the circuit"""
     measurement_qubits: set[int] = set()
     measurement_keys: dict[int, str] = dict()
@@ -292,7 +402,7 @@ def _simulate_circuit(instructions: list[iqm_client.Instruction],
         ms: int(np.round(np.real(prob * shots))) for ms, prob in zip(
             _generate_measurement_strings(len(measurement_qubits_positions)),
             probabilities,
-        )
+        )  # if np.real(prob * shots) >= 1  # to suppress < 1 shots occurrences
     }, measurement_keys
 
 
@@ -322,28 +432,7 @@ async def compile_and_submit_job(job: Job):
     createdJobs[job.id] = job
 
 
-@app.get("/quantum-architecture")
-async def get_quantum_architecture(
-        request: Request) -> iqm_client.QuantumArchitecture:
-    """Get the quantum architecture"""
-
-    access_token = request.headers.get("Authorization")
-    if access_token != good_access_token:
-        raise HTTPException(401)
-
-    return iqm_client.QuantumArchitecture(
-        quantum_architecture=iqm_client.QuantumArchitectureSpecification(
-            name=server_qpu_architecture,
-            operations=operations,
-            qubits=qubits,
-            qubit_connectivity=qubit_connectivity,
-        ))
-
-
-# Note: in this dynamic quantum architecture 2 qubits are deliberately
-# excluded from the list of calibrated `prx` gates. This simulates a QPU
-# with an imperfect calibration.
-@app.get("/calibration-sets/default/dynamic-quantum-architecture")
+@app.get("/api/v1/calibration-sets/{qc}/default/dynamic-quantum-architecture")
 async def get_dynamic_quantum_architecture(
         request: Request) -> iqm_client.DynamicQuantumArchitecture:
     """Get the dynamic quantum architecture"""
@@ -381,29 +470,10 @@ async def get_dynamic_quantum_architecture(
                 iqm_client.GateInfo(
                     implementations={
                         "drag_crf":
-                            iqm_client.GateImplementationInfo(loci=(
-                                ("QB1",),
-                                #("QB2",),
-                                #("QB3",),
-                                (
-                                    "QB4",),
-                                ("QB5",),
-                                ("QB6",),
-                                ("QB7",),
-                                ("QB8",),
-                                ("QB9",),
-                                ("QB10",),
-                                ("QB11",),
-                                ("QB12",),
-                                ("QB13",),
-                                ("QB14",),
-                                ("QB15",),
-                                ("QB16",),
-                                ("QB17",),
-                                ("QB18",),
-                                ("QB19",),
-                                ("QB20",),
-                            ))
+                            iqm_client.GateImplementationInfo(loci=tuple(
+                                (qubit,)
+                                for qubit in qubits
+                                if qubit not in bad_qubits_prx))
                     },
                     default_implementation="drag_crf",
                     override_default_implementation={},
@@ -411,9 +481,9 @@ async def get_dynamic_quantum_architecture(
         })
 
 
-@app.post("/circuits")
-async def post_jobs(job_request: iqm_client.RunRequest,
-                    request: Request) -> PostJobsResponse:
+@app.post("/api/v1/jobs/{qc}/circuit")
+async def post_job(job_request: iqm_client.RunRequest,
+                   request: Request) -> PostJobsResponse:
     """Register a new job and start execution"""
 
     access_token = request.headers.get("Authorization")
@@ -437,8 +507,8 @@ async def post_jobs(job_request: iqm_client.RunRequest,
     return PostJobsResponse(id=new_job_id)
 
 
-@app.get("/circuits/{job_id}/status")
-async def get_jobs_status(job_id: str, request: Request) -> iqm_client.Status:
+@app.get("/api/v1/jobs/{job_id}")
+async def get_job_status(job_id: str, request: Request):
     """Get the status of a job"""
 
     access_token = request.headers.get("Authorization")
@@ -448,25 +518,19 @@ async def get_jobs_status(job_id: str, request: Request) -> iqm_client.Status:
     if job_id not in createdJobs:
         raise HTTPException(404)
 
-    return createdJobs[job_id].status
-
-
-@app.get("/circuits/{job_id}/counts")
-async def get_jobs(job_id: str, request: Request):
-    """Get the result of a job"""
-    access_token = request.headers.get("Authorization")
-    if access_token != good_access_token:
-        raise HTTPException(401)
-
-    if job_id not in createdJobs:
-        raise HTTPException(404)
-
     job = createdJobs[job_id]
 
-    # TODO: return the actual counts, check the requested measurements
     results = {
+        # Note: this is a subset of what a real server would return.
+        "artifacts": [],
+        "messages": [],
+        "queue_position":
+            1,
+        "runtime_ms":
+            None,
         "status":
-            job.status,
+            "completed"
+            if job.status == iqm_client.Status.READY else job.status,
         "message":
             job.result.message if job.result and job.result.message else None,
         "counts_batch":
@@ -475,7 +539,30 @@ async def get_jobs(job_id: str, request: Request):
             job.metadata,
     }
 
+    if job.status == iqm_client.Status.FAILED:
+        results["errors"] = list()
+        results["errors"].append({
+            "error_code": "unknown",
+            "message": job.result.message,
+            "source": "iqm-server"
+        })
+
     return results
+
+
+@app.get("/api/v1/jobs/{job_id}/payload")
+async def get_job_payload(job_id: str, request: Request):
+    """Get the payload of a job"""
+
+    access_token = request.headers.get("Authorization")
+    if access_token != good_access_token:
+        raise HTTPException(401)
+
+    if job_id not in createdJobs:
+        raise HTTPException(404)
+
+    job = createdJobs[job_id]
+    return job.metadata.request
 
 
 @app.get("/api/v1/jobs/{job_id}/artifacts/measurement_counts")
@@ -490,10 +577,50 @@ async def get_job_counts(job_id: str, request: Request):
 
     job = createdJobs[job_id]
 
-    # TODO: return the actual counts, check the requested measurements
-    results = job.counts_batch
+    return job.counts_batch
 
-    return results
+
+@app.get("/config/qa/qpu")
+async def set_qa_qpu(qpu: str, request: Request):
+    """Set the quantum architecture by selecting a QPU"""
+    access_token = request.headers.get("Authorization")
+    if access_token != good_access_token:
+        raise HTTPException(401)
+
+    status = _generate_quantum_architecture(qpu)
+    if not status:
+        raise HTTPException(404, "Requested QPU not found")
+
+    bad_qubits_prx.clear()
+    bad_cz_gates.clear()
+
+    print(f"Using QPU architecture {qpu} now.")
+    return {"message": "ok"}
+
+
+@app.get("/config/qa/bad-prx-gates")
+async def set_qa_bad_qubits_prx(loci_list: str, request: Request):
+    """Set a list of qubits which cannot be used for PRX gates."""
+    access_token = request.headers.get("Authorization")
+    if access_token != good_access_token:
+        raise HTTPException(401)
+
+    _parse_bad_prx_gate_list(loci_list)
+    for qb in bad_qubits_prx:
+        print(f"Disabled PRX-gate on: {qb}")
+    return {"message": "ok"}
+
+
+@app.get("/config/qa/bad-cz-gates")
+async def set_qa_bad_cz_gates(loci_list: str, request: Request):
+    """Set a list of cz-gates which cannot be used."""
+    access_token = request.headers.get("Authorization")
+    if access_token != good_access_token:
+        raise HTTPException(401)
+
+    _parse_bad_cz_gate_list(loci_list)
+    _process_bad_cz_gate_list()
+    return {"message": "ok"}
 
 
 def startServer(port):

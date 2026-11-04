@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 target_sources(cudaq-rest-qpu PRIVATE QbraidServerHelper.cpp)
-add_target_config(qbraid)
 
 add_library(cudaq-serverhelper-qbraid SHARED QbraidServerHelper.cpp )
 target_link_libraries(cudaq-serverhelper-qbraid

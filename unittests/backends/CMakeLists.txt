@@ -44,6 +44,28 @@ target_include_directories(stim_tester PRIVATE
   ${CMAKE_SOURCE_DIR}/tpls/Stim/src)
 target_link_libraries(stim_tester PRIVATE libstim)
 
+if(TARGET nvqir-custabilizer)
+  add_executable(custabilizer_tester CustabilizerTester.cpp)
+  target_compile_definitions(custabilizer_tester PRIVATE
+    NVQIR_BACKEND_NAME=custabilizer)
+  target_include_directories(custabilizer_tester PRIVATE
+    ${CMAKE_SOURCE_DIR}/runtime/nvqir/custabilizer
+    ${CMAKE_SOURCE_DIR}/tpls/Stim/src)
+  target_link_libraries(custabilizer_tester PRIVATE
+    nvqir
+    nvqir-custabilizer
+    libstim
+    cuStabilizer::cuStabilizer
+    CUDA::cudart_static
+    cudaq
+    cudaq-logger
+    fmt::fmt-header-only
+    gtest_main)
+  cudaq_gtest_discover_tests(custabilizer_tester
+    DISCOVERY_TIMEOUT 120
+    PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
+endif()
+
 if(TARGET cudaq-orca-qpu)
   add_executable(orca_policy_tester OrcaPolicyTester.cpp)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)

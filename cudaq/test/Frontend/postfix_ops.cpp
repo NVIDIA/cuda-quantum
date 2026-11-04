@@ -8,9 +8,9 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
-void uma(cudaq::qubit &, cudaq::qubit &, cudaq::qubit &);
+__qpu_intrinsic__ void uma(cudaq::qubit &, cudaq::qubit &, cudaq::qubit &);
 
 __qpu__ void test(cudaq::qview<> a, cudaq::qview<> b) {
   for (uint32_t i = a.size(); i-- > 1ul; (void)0) {

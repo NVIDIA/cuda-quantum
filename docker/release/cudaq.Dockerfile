@@ -23,7 +23,8 @@
 # base_image must contain the necessary CUDA-Q runtime dependencies.
 
 ARG base_image=ubuntu:24.04
-ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:latest
+ARG arch=amd64
+ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:${arch}-cu13-latest
 FROM $cudaqdev_image AS cudaqbuild
 
 # Unfortunately, there is no way to use the environment variables defined in the dev image
@@ -94,13 +95,25 @@ ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:$CUDA_QUANTUM_PATH/include"
 RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" | cut -d '.' -f -2)/dist-packages/cudaq.pth
 
 # Deployments supplies one Python 3.12 Logical wheel for this architecture in
-# docker/release/logical-wheels/. Bind it so the archive is not retained in a layer.
+# docker/release/wheels/. Bind it so the archive is not retained in a layer.
 ARG include_logical=false
 RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
     if [ "$include_logical" = true ]; then \
         python3 /tmp/cudaq-release/install_logical_wheel.py \
-            --wheel-dir /tmp/cudaq-release/logical-wheels \
+            --wheel-dir /tmp/cudaq-release/wheels \
             --prefix "$CUDA_QUANTUM_PATH"; \
+    fi
+
+# Deployments supplies one Python 3.12 cudaq-edem wheel for this architecture in
+# docker/release/wheels/. cudaq-edem is an independent distribution, so it
+# is installed with pip into the system Python.
+ARG include_edem=false
+RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
+    if [ "$include_edem" = true ]; then \
+        set -- /tmp/cudaq-release/wheels/cudaq_edem-*.whl \
+        && [ "$#" -eq 1 ] && [ -f "$1" ] \
+        && python3 -m pip install --disable-pip-version-check --no-cache-dir \
+            --no-index --no-deps --break-system-packages "$1"; \
     fi
 
 # Some tools related to shell handling.
@@ -157,6 +170,10 @@ RUN sudo apt-get update
 RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
     if [ "$include_logical" = true ]; then \
         python3 /tmp/cudaq-release/validate_logical.py; \
+    fi
+RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
+    if [ "$include_edem" = true ]; then \
+        python3 /tmp/cudaq-release/validate_edem.py; \
     fi
 
 ENTRYPOINT ["bash", "-l"]

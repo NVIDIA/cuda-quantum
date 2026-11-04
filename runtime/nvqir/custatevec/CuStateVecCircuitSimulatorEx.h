@@ -120,10 +120,40 @@ public:
       return;
     m_engine->flush(*m_state, m_pendingRandomNumbers);
     m_pendingRandomNumbers.clear();
+    if (m_deferHostWait)
+      return;
     m_state->synchronize();
   }
 
 protected:
+  /// @brief Suppress the host-side wait in synchronize() for the duration of a
+  /// scope. Used to flush ExpPauli without unnecessary host-side wait.
+  /// Implemented as guard object, so m_deferHostWait is reset to false on
+  /// an exception.
+  class DeferredHostWait {
+  public:
+    explicit DeferredHostWait(CuStateVecCircuitSimulator &simulator)
+        : m_simulator(simulator) {
+      m_simulator.m_deferHostWait = true;
+    }
+    ~DeferredHostWait() { m_simulator.m_deferHostWait = false; }
+    DeferredHostWait(const DeferredHostWait &) = delete;
+    DeferredHostWait &operator=(const DeferredHostWait &) = delete;
+
+  private:
+    CuStateVecCircuitSimulator &m_simulator;
+  };
+
+  /// @brief Hand the queued gates to the engine without the host-side wait,
+  /// leaving the engine flush in place.
+  ///
+  /// flushGateQueue() ends in synchronize() and this bypasses the final
+  /// host synchronization in cases where it is unnecessary to read the state.
+  void flushGateQueueNoWait() {
+    const DeferredHostWait defer(*this);
+    flushGateQueue();
+  }
+
   void addQubitToState() override { addQubitsToState(1, nullptr); }
 
   void addQubitsToState(std::size_t count, const void *stateData) override {
@@ -262,24 +292,27 @@ protected:
     flushPendingQubits();
     ensureState();
     rejectOperationAfterMeasurement();
-    if (isNoisySimulation()) {
-      // Defer gates together with their following noise channels so the entire
-      // circuit can be replayed independently for every trajectory.
-      MatrixTask<Scalar> operation;
-      operation.matrix = task.matrix;
-      operation.targets = detail::toInt32(task.targets);
-      operation.controls = detail::toInt32(task.controls);
-      compactMatrixTask(operation);
-      m_deferredTasks.emplace_back(std::move(operation));
-      return;
-    }
-
+    // Both engine submission and deferred replay need the control predicate.
     MatrixTask<Scalar> operation;
     operation.matrix = task.matrix;
     operation.targets = detail::toInt32(task.targets);
     operation.controls = detail::toInt32(task.controls);
+    operation.controlValues = task.controlValues;
     compactMatrixTask(operation);
+    if (isNoisySimulation()) {
+      // Defer gates together with their following noise channels so the entire
+      // circuit can be replayed independently for every trajectory.
+      m_deferredTasks.emplace_back(std::move(operation));
+      return;
+    }
+
     m_engine->apply(*m_state, operation);
+  }
+
+  void applyGateWithControlValues(const GateApplicationTask &task) override {
+    // The gate engine consumes control values directly, including during
+    // noisy replay, so bypass the base X-conjugation fallback.
+    applyGate(task);
   }
 
   void setToZeroState() override {
@@ -387,21 +420,25 @@ protected:
         /*reserved=*/nullptr));
   }
 
-  void applyExpPauli(double theta, const std::vector<std::size_t> &controls,
-                     const std::vector<std::size_t> &qubits,
-                     const cudaq::spin_op_term &term) override {
+  void
+  applyExpPauli(double theta, const std::vector<std::size_t> &controls,
+                const std::vector<std::size_t> &qubits,
+                const cudaq::spin_op_term &term,
+                const std::vector<std::int32_t> &controlValues = {}) override {
+    this->validateControlValues(controls.size(), controlValues);
     if (cudaq::isInTracerMode()) {
-      nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubits, term);
+      nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubits, term,
+                                             controlValues);
       return;
     }
     flushPendingQubits();
     if (isNoisySimulation() || m_config.forceExpPauliDecomposition) {
       // Noise models are specified on individual gates, so noisy exp-Pauli
       // operations must use the decomposed circuit form.
-      Base::applyExpPauli(theta, controls, qubits, term);
+      Base::applyExpPauli(theta, controls, qubits, term, controlValues);
       return;
     }
-    flushGateQueue();
+    flushGateQueueNoWait();
     if (term.num_ops() != qubits.size())
       throw std::runtime_error(
           "incorrect number of qubits in exp_pauli - expecting " +
@@ -411,6 +448,7 @@ protected:
     operation.angle = theta;
     operation.targets = detail::toInt32(qubits);
     operation.controls = detail::toInt32(controls);
+    operation.controlValues = controlValues;
     for (const auto &termOp : term)
       operation.paulis.push_back(detail::toCuStateVecPauli(termOp.as_pauli()));
     m_engine->apply(state(), operation);
@@ -560,6 +598,8 @@ protected:
         /*abs2Sums=*/nullptr));
 
     cudaq::ExecutionResult result;
+    if (includeSequentialData)
+      result.sequentialData.reserve(shots);
     // cuStateVecEx returns ascending bit strings. Run-length encoding avoids a
     // string conversion for every shot and instead performs one per unique
     // sampled bit string.
@@ -571,9 +611,9 @@ protected:
         ++runLength;
       std::string bitString = formatBitString(value, measuredBits.size());
       if (includeSequentialData)
-        result.appendResult(bitString, runLength);
+        result.appendResult(std::move(bitString), runLength);
       else
-        result.counts[bitString] += runLength;
+        result.counts[std::move(bitString)] += runLength;
       index += runLength;
     }
     result.expectationValue = detail::parityExpectation(result, shots);
@@ -810,23 +850,14 @@ protected:
       }
     } else {
       task.kind = NoiseChannelKind::General;
-      for (const auto &operation : channel.get_ops()) {
-        auto &converted = task.matrices.emplace_back();
-        // Python-defined channels may carry a precision different from the
-        // simulator, so inspect each operation before converting its matrix.
-        converted.reserve(operation.data.size());
-        if (operation.precision == cudaq::simulation_precision::fp32) {
-          const auto *const values =
-              reinterpret_cast<const std::complex<float> *>(
-                  operation.data.data());
-          converted.assign(values, values + operation.data.size());
-        } else {
-          const auto *const values =
-              reinterpret_cast<const std::complex<double> *>(
-                  operation.data.data());
-          converted.assign(values, values + operation.data.size());
-        }
-      }
+      // Both `kraus_op::data` and `NoiseTask::matrices` are always double
+      // precision regardless of the simulator scalar type, so the Kraus
+      // matrices can be moved in directly. `get_ops()` returns by value, so
+      // moving out of the local copy avoids a second copy of each matrix.
+      auto ops = channel.get_ops();
+      task.matrices.reserve(ops.size());
+      for (auto &operation : ops)
+        task.matrices.push_back(std::move(operation.data));
     }
     compactNoiseMatrices(task);
     return task;
@@ -1378,6 +1409,8 @@ protected:
   bool m_measurementRecorded = false;
   bool m_replayingTrajectory = false;
   bool m_hasCustomInitialState = false;
+  // Set by DeferredHostWait; read by synchronize().
+  bool m_deferHostWait = false;
 };
 
 } // namespace cudaq::cusv

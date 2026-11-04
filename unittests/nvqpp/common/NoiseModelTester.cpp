@@ -12,6 +12,41 @@
 
 using namespace cudaq;
 
+// `kraus_op::data` is part of the cross-library ABI contract: it must not
+// depend on the simulation precision of the translation unit. These
+// assertions fail to compile in fp32 test binaries if the element type ever
+// drifts back to `cudaq::complex`.
+static_assert(std::is_same_v<cudaq::kraus_op::value_type, std::complex<double>>,
+              "kraus_op::value_type must be std::complex<double>");
+static_assert(std::is_same_v<decltype(cudaq::kraus_op::data),
+                             std::vector<cudaq::kraus_op::value_type>>,
+              "kraus_op::data must always store double precision");
+
+CUDAQ_TEST(NoiseModelTester, checkFloatVectorConversion) {
+  // The converting constructor from single-precision vectors must produce
+  // the exact double promotion of each float element.
+  std::vector<std::complex<float>> floatData{
+      {1.f, 0.f}, {0.f, 0.5f}, {0.f, -0.5f}, {1.f, 0.f}};
+  cudaq::kraus_op op(floatData);
+  ASSERT_EQ(4, op.data.size());
+  for (std::size_t i = 0; i < 4; i++) {
+    EXPECT_EQ(static_cast<double>(floatData[i].real()), op.data[i].real());
+    EXPECT_EQ(static_cast<double>(floatData[i].imag()), op.data[i].imag());
+  }
+}
+
+CUDAQ_TEST(NoiseModelTester, checkKrausOpBraceInitRegression) {
+  // The converting constructor from other-precision vectors is a template,
+  // so braced-init-lists (for which template argument deduction fails)
+  // unambiguously resolve to the double-precision vector constructor.
+  // Both forms below must remain compilable.
+  const double s = 0.7071067811865476;
+  cudaq::kraus_op mixedArithmetic({s, 0, 0, s});
+  EXPECT_EQ(4, mixedArithmetic.data.size());
+  cudaq::kraus_op nestedBraces({{1., 0.}, {0., 0.}, {0., 0.}, {1., 0.}});
+  EXPECT_EQ(4, nestedBraces.data.size());
+}
+
 CUDAQ_TEST(NoiseModelTester, checkConstruction) {
   // Amplitude damping, p = 0.5
   cudaq::kraus_channel simpleChannel{{1., 0., 0., .8660254037844386},
@@ -54,11 +89,16 @@ CUDAQ_TEST(NoiseModelTester, checkConstruction) {
   EXPECT_EQ(4, kraus_channels[0].size());
 
   // The first kraus op should be the following
+  // Note: `kraus_op::data` is always stored in double precision, so the
+  // expected values (in the translation unit's `cudaq::complex` precision)
+  // are converted before the comparison.
   std::vector<complex> expected{complex{0.99498743710662, 0.0},
                                 {0.0, 0.0},
                                 {0.0, 0.0},
                                 {0.99498743710662, 0.0}};
-  EXPECT_EQ(expected, kraus_channels[0][0].data);
+  EXPECT_EQ(
+      (std::vector<std::complex<double>>(expected.begin(), expected.end())),
+      kraus_channels[0][0].data);
 
   // No channel for h on qubit 1, its on 0
   kraus_channels = noise.get_channels("h", {1});

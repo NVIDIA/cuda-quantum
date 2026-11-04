@@ -27,36 +27,63 @@ nvqir::ArrayTracker &nvqir::ArrayTracker::getInstance() {
 }
 
 // Track the given array
-void nvqir::ArrayTracker::track(Array *arr) { allocated_arrays.push_back(arr); }
+void nvqir::ArrayTracker::track(Array *arr) {
+  if (use_set)
+    allocated_arrays.insert(arr);
+  else
+    recent_arrays.push_back(arr);
+}
 // Untrack the given array (manually delete outside)
 void nvqir::ArrayTracker::untrack(Array *arr) {
   if (arr == nullptr)
     return;
 
-  auto it = std::find(allocated_arrays.begin(), allocated_arrays.end(), arr);
-  // Use nullptr to indicate untracked arrays (manually deleted outside) to
-  // prevent vector shrink.
-  if (it != allocated_arrays.end())
-    *it = nullptr;
-  else
+  if (!use_set && recent_arrays.size() > maxScannedArrays) {
+    allocated_arrays.reserve(recent_arrays.size());
+    allocated_arrays.insert(recent_arrays.begin(), recent_arrays.end());
+    recent_arrays.clear();
+    use_set = true;
+  }
+
+  if (use_set) {
+    if (!allocated_arrays.erase(arr))
+      CUDAQ_WARN("Attempting to untrack an Array that is not tracked.");
+    return;
+  }
+
+  // Newest arrays are usually released first.
+  auto it = std::find(recent_arrays.rbegin(), recent_arrays.rend(), arr);
+  if (it == recent_arrays.rend()) {
     CUDAQ_WARN("Attempting to untrack an Array that is not tracked.");
+    return;
+  }
+  *it = recent_arrays.back();
+  recent_arrays.pop_back();
 }
 
 // Clean up all tracked arrays
 void nvqir::ArrayTracker::clear() {
-  CUDAQ_INFO("Cleaning up {} allocated arrays", allocated_arrays.size());
+  CUDAQ_INFO("Cleaning up {} allocated arrays",
+             recent_arrays.size() + allocated_arrays.size());
 
-  for (auto arr : allocated_arrays)
-    if (arr != nullptr)
+  for (auto arr : recent_arrays)
+    delete arr;
+  recent_arrays.clear();
+  // Clearing the set touches every bucket, so skip it when unused.
+  if (use_set) {
+    for (auto arr : allocated_arrays)
       delete arr;
-  allocated_arrays.clear();
+    allocated_arrays.clear();
+    use_set = false;
+  }
 }
 
 int8_t *Array::operator[](std::size_t index) {
-  if (static_cast<uint64_t>(index * element_size_bytes) >= storage.size())
+  // Check the element index before computing a potentially overflowing byte
+  // offset.
+  if (index >= size())
     throw std::runtime_error(
-        fmt::format("Provided index [{}] >= array size [{}]", index,
-                    storage.size() / element_size_bytes));
+        fmt::format("Provided index [{}] >= array size [{}]", index, size()));
   return &storage.at(index * element_size_bytes);
 }
 // Ctors

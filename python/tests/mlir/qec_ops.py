@@ -284,11 +284,11 @@ def test_rep_code_d3():
 # CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:       %[[CONSTANT_0:.*]] = arith.constant 1 : i64
 # CHECK-DAG:       %[[CONSTANT_1:.*]] = arith.constant 0 : i64
-# CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[ALLOCA_2:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[UNDEF_0:.*]] = cc.undef !cc.measure_handle
-# CHECK:           %[[UNDEF_1:.*]] = cc.undef !cc.measure_handle
+# CHECK-DAG:       %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<3>
+# CHECK-DAG:       %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[ALLOCA_2:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[UNDEF_0:.*]] = cc.undef !cc.measure_handle
+# CHECK-DAG:       %[[UNDEF_1:.*]] = cc.undef !cc.measure_handle
 # CHECK:           %[[LOOP_0:.*]]:3 = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_1]], %[[VAL_2:.*]] = %[[UNDEF_0]], %[[VAL_3:.*]] = %[[UNDEF_1]]) -> (i64, !cc.measure_handle, !cc.measure_handle)) {
 # CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[ARG0]] : i64
 # CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]], %[[VAL_2]], %[[VAL_3]] : i64, !cc.measure_handle, !cc.measure_handle)

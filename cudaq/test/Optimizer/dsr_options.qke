@@ -1,0 +1,98 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --dead-store-removal %s | FileCheck --check-prefix=DEFAULT %s
+// RUN: cudaq-opt --dead-store-removal=max-tracked-locations=0 %s | FileCheck --check-prefix=NOTRACK %s
+// RUN: cudaq-opt --dead-store-removal=max-tracked-locations=1 %s | FileCheck --check-prefix=ONE %s
+// RUN: cudaq-opt --dead-store-removal=max-address-depth=0 %s | FileCheck --check-prefix=DEPTH %s
+// RUN: cudaq-opt --dead-store-removal=max-escaping-uses=0 %s | FileCheck --check-prefix=ESC %s
+
+func.func private @opaque()
+func.func private @take(!cc.ptr<i32>)
+
+// Forwarding needs the location to be tracked.
+func.func @forward(%p: !cc.ptr<i32>, %v: i32) -> i32 {
+  cc.store %v, %p : !cc.ptr<i32>
+  %r = cc.load %p : !cc.ptr<i32>
+  return %r : i32
+}
+
+// DEFAULT-LABEL: func.func @forward(
+// DEFAULT-SAME:      %[[P:.*]]: !cc.ptr<i32>, %[[V:.*]]: i32) -> i32 {
+// DEFAULT-NEXT:    cc.store %[[V]], %[[P]]
+// DEFAULT-NEXT:    return %[[V]]
+// ONE-LABEL:     func.func @forward(
+// ONE-SAME:          %[[P:.*]]: !cc.ptr<i32>, %[[V:.*]]: i32) -> i32 {
+// ONE-NEXT:        cc.store %[[V]], %[[P]]
+// ONE-NEXT:        return %[[V]]
+// NOTRACK-LABEL: func.func @forward(
+// NOTRACK-SAME:      %[[P:.*]]: !cc.ptr<i32>, %[[V:.*]]: i32) -> i32 {
+// NOTRACK-NEXT:    cc.store %[[V]], %[[P]]
+// NOTRACK-NEXT:    %[[R:.*]] = cc.load %[[P]]
+// NOTRACK-NEXT:    return %[[R]]
+
+// With room for one location, the second store pushes out the first.
+func.func @two(%p: !cc.ptr<i32>, %v: i32) -> i32 {
+  %q = cc.alloca i32
+  cc.store %v, %p : !cc.ptr<i32>
+  cc.store %v, %q : !cc.ptr<i32>
+  %r = cc.load %p : !cc.ptr<i32>
+  return %r : i32
+}
+
+// DEFAULT-LABEL: func.func @two(
+// DEFAULT-SAME:      %[[P:.*]]: !cc.ptr<i32>, %[[V:.*]]: i32) -> i32 {
+// DEFAULT:         cc.store %[[V]], %[[P]]
+// DEFAULT-NEXT:    return %[[V]]
+// ONE-LABEL:     func.func @two(
+// ONE-SAME:          %[[P:.*]]: !cc.ptr<i32>, %[[V:.*]]: i32) -> i32 {
+// ONE:             cc.store %[[V]], %[[P]]
+// ONE-NEXT:        %[[R:.*]] = cc.load %[[P]]
+// ONE-NEXT:        return %[[R]]
+
+// Comparing structurally equal (but not identical) operands needs some depth.
+func.func @depth(%a: !cc.ptr<!cc.array<i32 x 4>>, %v: i32) -> i32 {
+  %i = arith.constant 1 : i64
+  %j = arith.constant 1 : i64
+  %0 = cc.compute_ptr %a[%i] : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.ptr<i32>
+  cc.store %v, %0 : !cc.ptr<i32>
+  %1 = cc.compute_ptr %a[%j] : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.ptr<i32>
+  %r = cc.load %1 : !cc.ptr<i32>
+  return %r : i32
+}
+
+// DEFAULT-LABEL: func.func @depth(
+// DEFAULT-SAME:      %{{.*}}: !cc.ptr<!cc.array<i32 x 4>>, %[[V:.*]]: i32) -> i32 {
+// DEFAULT:         cc.store %[[V]], %{{.*}}
+// DEFAULT-NEXT:    return %[[V]]
+// DEPTH-LABEL:   func.func @depth(
+// DEPTH:           cc.store
+// DEPTH-NEXT:      cc.compute_ptr
+// DEPTH-NEXT:      %[[R:.*]] = cc.load
+// DEPTH-NEXT:      return %[[R]]
+
+// A slot with more escaping uses than are tracked is escaped everywhere.
+func.func @escape(%v: i32) -> i32 {
+  %s = cc.alloca i32
+  cc.store %v, %s : !cc.ptr<i32>
+  func.call @opaque() : () -> ()
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @take(%s) : (!cc.ptr<i32>) -> ()
+  return %r : i32
+}
+
+// DEFAULT-LABEL: func.func @escape(
+// DEFAULT-SAME:      %[[V:.*]]: i32) -> i32 {
+// DEFAULT:         call @opaque
+// DEFAULT-NEXT:    call @take
+// DEFAULT-NEXT:    return %[[V]]
+// ESC-LABEL:     func.func @escape(
+// ESC:             call @opaque
+// ESC-NEXT:        %[[R:.*]] = cc.load
+// ESC-NEXT:        call @take
+// ESC-NEXT:        return %[[R]]

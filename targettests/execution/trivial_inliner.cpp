@@ -105,8 +105,11 @@ int main() {
   }
   {
     auto results = cudaq::run(5, kernel);
-    // Test here is that this does not crash.
-    printf("success!\n");
+    // Test here is that this does not crash and returns one result per shot.
+    if (results.size() != 5)
+      printf("FAILED! Expected 5 shots. Got %lu\n", results.size());
+    else
+      printf("success!\n");
   }
   {
     auto results = cudaq::run(1, kernel_with_args, 4);
