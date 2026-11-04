@@ -16,7 +16,7 @@
 namespace cudaq::opt {
 
 struct PartitionToOutline {
-  llvm::SmallVector<mlir::Operation *> ops;
+  mlir::SmallVector<mlir::Operation *> ops;
   /// Optional operation before which the generated lambda and call must be
   /// inserted. Must belong to the partition's block and be outside ops.
   /// An earlier external consumer takes precedence as the insertion point.
