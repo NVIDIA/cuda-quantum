@@ -10,6 +10,7 @@
 
 #include "CuStateVecError.h"
 #include "cudaq/cudaq_mpi.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
 
 #include <custatevecEx_ext.h>
@@ -111,6 +112,12 @@ private:
 struct SharedProviderState {
   std::mutex mutex;
   std::shared_ptr<CuStateVecCommunicatorProvider> provider;
+
+  ~SharedProviderState() {
+    // Join workers before destroying the provider, while MPI is still alive.
+    // This releases their thread-local simulators and communicators safely.
+    cudaq::detail::shutdownExecutionQueues();
+  }
 };
 
 // cuStateVecEx permits multiple communicator descriptors, but its provider is
