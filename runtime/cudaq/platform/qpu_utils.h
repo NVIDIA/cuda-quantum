@@ -76,6 +76,7 @@ bool isAnalogHamiltonianKernel(const std::string &kernelName);
 /// into the executor, and populate the server helper's runtime target from
 /// @p targetConfig and @p backendConfig. Throws @c std::runtime_error if no
 /// @c ServerHelper is registered for @p qpuName.
+/// Emulation uses the generic executor to avoid initializing remote clients.
 void initServerHelperAndExecutor(
     const std::string &qpuName,
     const std::map<std::string, std::string> &backendConfig,
