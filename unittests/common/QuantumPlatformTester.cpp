@@ -17,8 +17,10 @@
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/ptsbe/policy.h"
+#include <cstdlib>
 #include <cxxabi.h>
 #include <gtest/gtest.h>
 #include <memory>
@@ -218,6 +220,45 @@ void expectUnsupported(Fn &&fn, const std::string &what) {
 }
 
 } // namespace
+
+TEST(QuantumPlatformLifetimeDeathTest, ReleasesEndpointsBeforePluginGlobals) {
+  // Re-exec to avoid inheriting locked runtime mutexes.
+  ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+  EXPECT_EXIT(
+      {
+        static int released = 0;
+        static TestPlatform first(0);
+        static TestPlatform second(0);
+
+        // Both platforms must release resources before plugin shutdown.
+        std::atexit([] {
+          if (released != 2)
+            std::_Exit(1);
+        });
+        detail::registerPlatformCleanup();
+        // Repeated cleanup must be safe.
+        detail::registerPlatformCleanup();
+        {
+          RuntimeEndpoint endpoint;
+          endpoint.impl = std::shared_ptr<int>(new int(0), [](int *value) {
+            ++released;
+            delete value;
+          });
+          first.setEndpoint({}, endpoint);
+          endpoint.impl = std::shared_ptr<int>(new int(0), [](int *value) {
+            ++released;
+            delete value;
+          });
+          second.setEndpoint({}, endpoint);
+          // Destroyed platforms must leave the registry.
+          TestPlatform temporary(0);
+        }
+        if (released != 0)
+          std::_Exit(2);
+        std::exit(0);
+      },
+      ::testing::ExitedWithCode(0), "");
+}
 
 TEST(QuantumPlatformCompileTargetTester, legacyEmulationNeedsJitNotTargetCode) {
   TestPlatform platform;

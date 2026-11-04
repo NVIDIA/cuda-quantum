@@ -25,7 +25,7 @@
 
 // Our hooks into configuring the NVQIR backend.
 extern "C" {
-void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
+void __nvqir__setCircuitSimulatorFactory(nvqir::CircuitSimulator *(*)());
 void __nvqir__setSimulatorInitCallback(void (*)());
 }
 
@@ -323,8 +323,8 @@ void *LinkedLibraryHolder::ensureLibLoaded(const std::filesystem::path &path) {
   return handle;
 }
 
-nvqir::CircuitSimulator *
-LinkedLibraryHolder::getSimulator(const std::string &simName) {
+LinkedLibraryHolder::SimulatorFactory
+LinkedLibraryHolder::getSimulatorFactory(const std::string &simName) {
   auto end = availableSimulators.end();
   auto iter = std::find(availableSimulators.begin(), end, simName);
   if (iter == end)
@@ -332,11 +332,16 @@ LinkedLibraryHolder::getSimulator(const std::string &simName) {
 
   auto *handle = ensureLibLoaded(simulatorLibPaths.at(simName));
   auto symbol = "getCircuitSimulator_" + simName;
-  auto factory = reinterpret_cast<nvqir::CircuitSimulator *(*)()>(
-      dlsym(handle, symbol.c_str()));
+  auto factory =
+      reinterpret_cast<SimulatorFactory>(dlsym(handle, symbol.c_str()));
   if (!factory)
     throw std::runtime_error("Could not load simulator factory: " + symbol);
-  return factory();
+  return factory;
+}
+
+nvqir::CircuitSimulator *
+LinkedLibraryHolder::getSimulator(const std::string &simName) {
+  return getSimulatorFactory(simName)();
 }
 
 quantum_platform *
@@ -558,7 +563,8 @@ void LinkedLibraryHolder::setTarget(
                                " doesn't define a simulator. Please check your "
                                "CUDAQ_DEFAULT_SIMULATOR environment variable.");
   }
-  __nvqir__setCircuitSimulator(getSimulator(simName));
+  // Pass the factory (this thread's instance dies with it).
+  __nvqir__setCircuitSimulatorFactory(getSimulatorFactory(simName));
   auto *platform = getPlatform(target.platformName);
 
   // Provide the already-parsed target config so that
