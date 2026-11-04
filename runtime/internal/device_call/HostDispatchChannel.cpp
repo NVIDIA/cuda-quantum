@@ -259,10 +259,6 @@ private:
       CUDAQ_CHECK_DISPATCHER_STATUS(
           cudaq_dispatcher_set_function_table(hostDispatcher, &table));
 
-      shutdownFlag = 0;
-      stats = 0;
-      CUDAQ_CHECK_DISPATCHER_STATUS(
-          cudaq_dispatcher_set_control(hostDispatcher, &shutdownFlag, &stats));
       CUDAQ_CHECK_DISPATCHER_STATUS(cudaq_dispatcher_start(hostDispatcher));
 
       dispatcherStarted = true;
@@ -306,8 +302,6 @@ private:
   bool dispatcherStarted = false;
   cudaq_dispatch_manager_t *dispatchManager = nullptr;
   cudaq_dispatcher_t *hostDispatcher = nullptr;
-  volatile int shutdownFlag = 0;
-  std::uint64_t stats = 0;
   mutable std::mutex mutex;
 };
 

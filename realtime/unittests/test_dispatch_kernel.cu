@@ -12,8 +12,10 @@
 #include <vector>
 #include <cstring>
 #include <unistd.h>
+#include <atomic>
 #include <chrono>
 #include <iostream>
+#include <thread>
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel.cuh"
@@ -386,20 +388,6 @@ protected:
     ASSERT_TRUE(allocate_ring_buffer(num_slots_, slot_size_, &tx_flags_host_,
                                      &tx_flags_, &tx_data_host_, &tx_data_));
 
-    void* tmp_shutdown = nullptr;
-    CUDA_CHECK(cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
-    shutdown_flag_ = static_cast<volatile int*>(tmp_shutdown);
-    void* tmp_d_shutdown = nullptr;
-    CUDA_CHECK(cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
-    d_shutdown_flag_ = static_cast<volatile int*>(tmp_d_shutdown);
-    *shutdown_flag_ = 0;
-    int zero = 0;
-    CUDA_CHECK(cudaMemcpy(const_cast<int*>(d_shutdown_flag_), &zero,
-                          sizeof(int), cudaMemcpyHostToDevice));
-
-    CUDA_CHECK(cudaMalloc(&d_stats_, sizeof(uint64_t)));
-    CUDA_CHECK(cudaMemset(d_stats_, 0, sizeof(uint64_t)));
-
     CUDA_CHECK(cudaMalloc(&d_function_entries_,
                           kRpcFuncCount * sizeof(cudaq_function_entry_t)));
     init_rpc_function_table<<<1, 1>>>(d_function_entries_);
@@ -436,9 +424,6 @@ protected:
     table.count = func_count_;
     ASSERT_EQ(cudaq_dispatcher_set_function_table(dispatcher_, &table), CUDAQ_OK);
 
-    ASSERT_EQ(
-        cudaq_dispatcher_set_control(dispatcher_, d_shutdown_flag_, d_stats_),
-        CUDAQ_OK);
     if (setLaunchFn()) {
       ASSERT_EQ(cudaq_dispatcher_set_launch_fn(
                     dispatcher_, &launch_dispatch_kernel_wrapper),
@@ -448,10 +433,6 @@ protected:
   }
 
   void TearDown() override {
-    if (shutdown_flag_) {
-      *shutdown_flag_ = 1;
-      __sync_synchronize();
-    }
     if (dispatcher_) {
       cudaq_dispatcher_stop(dispatcher_);
       cudaq_dispatcher_destroy(dispatcher_);
@@ -464,10 +445,6 @@ protected:
     free_ring_buffer(rx_flags_host_, rx_data_host_);
     free_ring_buffer(tx_flags_host_, tx_data_host_);
 
-    if (shutdown_flag_)
-      cudaFreeHost(const_cast<int*>(shutdown_flag_));
-    if (d_stats_)
-      cudaFree(d_stats_);
     if (d_function_entries_)
       cudaFree(d_function_entries_);
   }
@@ -551,10 +528,6 @@ protected:
   std::uint8_t* rx_data_ = nullptr;
   std::uint8_t* tx_data_ = nullptr;
 
-  volatile int* shutdown_flag_ = nullptr;
-  volatile int* d_shutdown_flag_ = nullptr;
-  uint64_t* d_stats_ = nullptr;
-
   cudaq_function_entry_t* d_function_entries_ = nullptr;
   std::size_t func_count_ = 0;
 
@@ -582,10 +555,8 @@ TEST_F(HostApiDispatchTest, AllThreadsCallHandler) {
   EXPECT_EQ(status, 0);
   EXPECT_EQ(result_len, 0u);
 
-  // The dispatcher's stream is blocking: stop the kernel before reading a
-  // device symbol.  TearDown's second stop is a no-op.
-  *shutdown_flag_ = 1;
-  __sync_synchronize();
+  // Stop the kernel before reading its device symbol.  TearDown's second
+  // stop is a no-op.
   ASSERT_EQ(cudaq_dispatcher_stop(dispatcher_), CUDAQ_OK);
   unsigned long long count = 0;
   CUDA_CHECK(cudaMemcpyFromSymbol(&count, g_all_threads_count, sizeof(count)));
@@ -1207,6 +1178,68 @@ launch_unified_dispatch_kernel(void *transport_ctx, size_t tx_stride_sz,
   return cudaPeekAtLastError() == cudaSuccess ? CUDAQ_OK : CUDAQ_ERR_CUDA;
 }
 
+/// Resident until `flag`, the device view of a mapped host word, is set.
+__global__ void peer_kernel(volatile int *flag) {
+  while (!*flag) {
+  }
+}
+
+/// An unrelated kernel that stays resident for the whole of a dispatcher's
+/// life.  Ended by the destructor, or early by a watchdog, so a dispatcher
+/// step that queued behind it fails the test instead of hanging it.
+struct ResidentPeer {
+  volatile int *flag = nullptr;
+  cudaStream_t stream = nullptr;
+  std::atomic<bool> done{false};
+  std::atomic<bool> fired{false};
+  std::thread watchdog;
+
+  bool launch() {
+    void *host = nullptr, *dev = nullptr;
+    if (cudaHostAlloc(&host, sizeof(int), cudaHostAllocMapped) != cudaSuccess)
+      return false;
+    flag = static_cast<volatile int *>(host);
+    *flag = 0;
+    if (cudaHostGetDevicePointer(&dev, host, 0) != cudaSuccess ||
+        cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking) !=
+            cudaSuccess)
+      return false;
+    peer_kernel<<<1, 32, 0, stream>>>(static_cast<volatile int *>(dev));
+    if (cudaGetLastError() != cudaSuccess)
+      return false;
+    watchdog = std::thread([this] {
+      const auto deadline =
+          std::chrono::steady_clock::now() + std::chrono::seconds(30);
+      while (!done && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+      if (!done) {
+        fired = true;
+        end();
+      }
+    });
+    return true;
+  }
+
+  void end() {
+    *flag = 1;
+    __sync_synchronize();
+  }
+
+  ~ResidentPeer() {
+    done = true;
+    if (watchdog.joinable())
+      watchdog.join();
+    if (flag)
+      end();
+    if (stream) {
+      cudaStreamSynchronize(stream);
+      cudaStreamDestroy(stream);
+    }
+    if (flag)
+      cudaFreeHost(const_cast<int *>(flag));
+  }
+};
+
 using cudaq::realtime::RPC_MAGIC_REQUEST;
 using cudaq::realtime::RPC_MAGIC_RESPONSE;
 using cudaq::realtime::RPCHeader;
@@ -1311,12 +1344,13 @@ protected:
 
   void TearDown() override {
     // Unconditional, so a failed test cannot leave a kernel spinning into
-    // the next one.  The dispatcher-owned kernel runs on a BLOCKING stream:
-    // set the flag through the mapped host pointer first, as the bridge tool
-    // does, so stop()'s own cudaMemcpy finds the kernel already leaving.
-    // stop() then synchronizes that stream with no timeout, so a kernel that
-    // ignored the flag would hang here; the direct-launch tests bound that
-    // same shutdown path with a timeout.
+    // the next one.  This flag reaches only the kernels the direct-launch
+    // tests start themselves; the dispatcher-owned kernel polls the
+    // dispatcher's own device word, which stop() raises with a legacy-stream
+    // copy its non-blocking stream never holds up.  stop() then synchronizes
+    // that stream with no timeout, so a kernel that ignored the flag would
+    // hang here; the direct-launch tests bound that same shutdown path with a
+    // timeout.
     if (shutdown_flag_) {
       *shutdown_flag_ = 1;
       __sync_synchronize();
@@ -1595,8 +1629,6 @@ TEST_F(UnifiedDispatchKernelTest, DispatcherApi) {
     if (cudaq_dispatcher_create(manager_, &cfg, &d) != CUDAQ_OK)
       return nullptr;
     if (cudaq_dispatcher_set_function_table(d, &table) != CUDAQ_OK ||
-        cudaq_dispatcher_set_control(d, d_shutdown_flag_, d_stats_) !=
-            CUDAQ_OK ||
         cudaq_dispatcher_set_unified_launch(d, launch_unified_dispatch_kernel,
                                             d_ctx_) != CUDAQ_OK) {
       cudaq_dispatcher_destroy(d);
@@ -1631,8 +1663,6 @@ TEST_F(UnifiedDispatchKernelTest, DispatcherApi) {
   ASSERT_NE(dispatcher_, nullptr);
   ASSERT_EQ(cudaq_dispatcher_start(dispatcher_), CUDAQ_OK);
 
-  // The dispatcher's stream is BLOCKING: from here until stop() returns, only
-  // host memory may be touched (no cudaMemcpy, no get_processed).
   Response r;
   ASSERT_TRUE(round_trip(0, RPC_INCREMENT_FUNCTION_ID, {10, 20, 30, 40}, 42u,
                          4242ull, &r));
@@ -1650,10 +1680,6 @@ TEST_F(UnifiedDispatchKernelTest, DispatcherApi) {
   EXPECT_EQ(r.header.result_len, 0u);
   EXPECT_EQ(r.header.request_id, 43u);
 
-  // Flag first, through the mapped host pointer, then stop(): its cudaMemcpy
-  // to the flag would otherwise wait on the still-running kernel.
-  *shutdown_flag_ = 1;
-  __sync_synchronize();
   ASSERT_EQ(cudaq_dispatcher_stop(dispatcher_), CUDAQ_OK);
 
   std::uint64_t processed = 0;
@@ -1664,6 +1690,79 @@ TEST_F(UnifiedDispatchKernelTest, DispatcherApi) {
 
   ASSERT_EQ(cudaq_dispatcher_destroy(dispatcher_), CUDAQ_OK);
   dispatcher_ = nullptr;
+}
+
+// A dispatcher's whole life beside an unrelated kernel that stays resident
+// throughout: start() sets up the dispatcher's own words, a request round
+// trips, stop() ends the dispatch kernel and destroy() frees the words, none
+// of them waiting for the peer.  The dispatcher runs this executable's kernel
+// through a launch override, so no module is loaded or unloaded on the way
+// (either waits for every resident kernel).  Both kernels' code is loaded up
+// front: under lazy module loading, a first launch beside a resident kernel
+// waits for it too.
+TEST_F(UnifiedDispatchKernelTest, LivesBesideAResidentKernel) {
+  int pools = 0;
+  ASSERT_EQ(cudaDeviceGetAttribute(&pools, cudaDevAttrMemoryPoolsSupported, 0),
+            cudaSuccess);
+  if (!pools)
+    GTEST_SKIP() << "no stream-ordered allocation on this device: the "
+                    "dispatcher's cudaMalloc/cudaFree may wait for the peer";
+  cudaFuncAttributes attr{};
+  ASSERT_EQ(cudaFuncGetAttributes(&attr, cudaq_unified_dispatch_kernel),
+            cudaSuccess);
+  ASSERT_EQ(cudaFuncGetAttributes(&attr, peer_kernel), cudaSuccess);
+
+  ASSERT_EQ(cudaq_dispatch_manager_create(&manager_), CUDAQ_OK);
+  cudaq_dispatcher_config_t cfg{};
+  cfg.device_id = 0;
+  cfg.num_blocks = 1;
+  cfg.threads_per_block = kThreadsPerBlock;
+  cfg.num_slots = static_cast<std::uint32_t>(kNumSlots);
+  cfg.slot_size = static_cast<std::uint32_t>(kSlotSize);
+  cfg.kernel_type = CUDAQ_KERNEL_UNIFIED;
+  cfg.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+  cfg.dispatch_path = CUDAQ_DISPATCH_PATH_DEVICE;
+  cudaq_function_table_t table{};
+  table.entries = d_entries_;
+  table.count = static_cast<std::uint32_t>(kRpcFuncCount);
+  ASSERT_EQ(cudaq_dispatcher_create(manager_, &cfg, &dispatcher_), CUDAQ_OK);
+  ASSERT_EQ(cudaq_dispatcher_set_function_table(dispatcher_, &table),
+            CUDAQ_OK);
+  ASSERT_EQ(cudaq_dispatcher_set_unified_launch(
+                dispatcher_, launch_unified_dispatch_kernel, d_ctx_),
+            CUDAQ_OK);
+
+  ResidentPeer peer;
+  ASSERT_TRUE(peer.launch());
+  // Each step must finish while the peer is still running: well inside the
+  // watchdog's delay, and the peer's flag still clear afterwards.
+  auto timed = [&](const char *step, auto &&body) {
+    const auto t0 = std::chrono::steady_clock::now();
+    body();
+    const double seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - t0)
+            .count();
+    EXPECT_LT(seconds, 10.0) << step << " waited for the peer kernel";
+    EXPECT_FALSE(peer.fired) << step << " waited for the peer kernel";
+    RecordProperty(step, static_cast<int>(seconds * 1000));
+  };
+  timed("start",
+        [&] { ASSERT_EQ(cudaq_dispatcher_start(dispatcher_), CUDAQ_OK); });
+  timed("round_trip_and_stop", [&] {
+    Response r;
+    ASSERT_TRUE(round_trip(0, RPC_INCREMENT_FUNCTION_ID, {10, 20, 30, 40}, 42u,
+                           4242ull, &r));
+    EXPECT_EQ(r.payload, (std::vector<std::uint8_t>{11, 21, 31, 41}));
+    ASSERT_EQ(cudaq_dispatcher_stop(dispatcher_), CUDAQ_OK);
+    std::uint64_t processed = 0;
+    ASSERT_EQ(cudaq_dispatcher_get_processed(dispatcher_, &processed),
+              CUDAQ_OK);
+    EXPECT_EQ(processed, 1u);
+  });
+  timed("destroy", [&] {
+    ASSERT_EQ(cudaq_dispatcher_destroy(dispatcher_), CUDAQ_OK);
+    dispatcher_ = nullptr;
+  });
 }
 
 } // namespace

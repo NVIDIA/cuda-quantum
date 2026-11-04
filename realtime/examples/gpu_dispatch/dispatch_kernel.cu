@@ -215,10 +215,6 @@ int main() {
   std::uint8_t *rx_data_device = nullptr;
   std::uint8_t *tx_data_device = nullptr;
 
-  volatile int *shutdown_flag_ = nullptr;
-  volatile int *d_shutdown_flag_ = nullptr;
-  uint64_t *d_stats_ = nullptr;
-
   cudaq_function_entry_t *d_function_entries_ = nullptr;
   std::size_t func_count_ = 0;
 
@@ -241,20 +237,6 @@ int main() {
     std::cerr << "Failed to allocate TX ring buffer" << std::endl;
     return 1;
   }
-
-  void *tmp_shutdown = nullptr;
-  CUDA_CHECK(cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
-  shutdown_flag_ = static_cast<volatile int *>(tmp_shutdown);
-  void *tmp_d_shutdown = nullptr;
-  CUDA_CHECK(cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
-  d_shutdown_flag_ = static_cast<volatile int *>(tmp_d_shutdown);
-  *shutdown_flag_ = 0;
-  int zero = 0;
-  CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag_), &zero, sizeof(int),
-                        cudaMemcpyHostToDevice));
-
-  CUDA_CHECK(cudaMalloc(&d_stats_, sizeof(uint64_t)));
-  CUDA_CHECK(cudaMemset(d_stats_, 0, sizeof(uint64_t)));
 
   CUDA_CHECK(cudaMalloc(&d_function_entries_, sizeof(cudaq_function_entry_t)));
   init_rpc_function_table<<<1, 1>>>(d_function_entries_);
@@ -287,8 +269,6 @@ int main() {
   table.count = func_count_;
   CUDAQ_CHECK(cudaq_dispatcher_set_function_table(dispatcher_, &table));
 
-  CUDAQ_CHECK(
-      cudaq_dispatcher_set_control(dispatcher_, d_shutdown_flag_, d_stats_));
   CUDAQ_CHECK(cudaq_dispatcher_set_launch_fn(dispatcher_,
                                              &launch_dispatch_kernel_wrapper));
   CUDAQ_CHECK(cudaq_dispatcher_start(dispatcher_));
@@ -358,10 +338,6 @@ int main() {
             << " and result length " << result_len << std::endl;
 
   // Stop the dispatcher and clean up resources:
-  if (shutdown_flag_) {
-    *shutdown_flag_ = 1;
-    __sync_synchronize();
-  }
   if (dispatcher_) {
     cudaq_dispatcher_stop(dispatcher_);
     cudaq_dispatcher_destroy(dispatcher_);
@@ -374,10 +350,6 @@ int main() {
   free_ring_buffer(rx_flags_host, rx_data_host);
   free_ring_buffer(tx_flags_host, tx_data_host);
 
-  if (shutdown_flag_)
-    cudaFreeHost(const_cast<int *>(shutdown_flag_));
-  if (d_stats_)
-    cudaFree(d_stats_);
   if (d_function_entries_)
     cudaFree(d_function_entries_);
 
