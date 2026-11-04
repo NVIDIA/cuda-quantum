@@ -8,9 +8,10 @@
 
 #pragma once
 
-#include "cudaq/cudaq_mpi.h"
 #include "cutensornet.h"
 #include "tensornet_spin_op.h"
+#include "cudaq/cudaq_mpi.h"
+#include "cudaq/platform/qpu_utils.h"
 
 namespace nvqir {
 template <typename ScalarType>
@@ -25,6 +26,9 @@ SimulatorTensorNetBase<ScalarType>::SimulatorTensorNetBase()
   HANDLE_CUTN_ERROR(cutensornetCreate(&m_cutnHandle));
   // The scratch pad must be allocated after we have selected the device.
   scratchPad.allocate();
+
+  // Register after CUDA initialization so workers exit before CUDA shuts down.
+  cudaq::detail::registerPlatformCleanup();
 
   // Check whether observe path reuse is enabled.
   m_reuseContractionPathObserve =
