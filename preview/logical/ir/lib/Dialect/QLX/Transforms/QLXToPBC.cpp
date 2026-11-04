@@ -364,9 +364,8 @@ private:
     case BuiltinAction::t:
     case BuiltinAction::tdg:
       return requireLogicalGateSignature(apply, 1);
-    default:
-      return apply.emitOpError("qlx-to-pbc: unsupported action");
     }
+    return apply.emitOpError("qlx-to-pbc: unsupported action");
   }
 
   LogicalResult requireTracked(Value value, Operation *owner,
