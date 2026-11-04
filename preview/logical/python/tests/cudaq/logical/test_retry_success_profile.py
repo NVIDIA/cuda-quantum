@@ -33,7 +33,7 @@ def retry_measurement(
     return block, result
 
 
-retry_profile = cql.gadgets.GadgetProfile(
+retry_profile = cql.gadgets.GadgetContract(
     retry_measurement,
     success=(cql.gadgets.SuccessPredicate(
         cql.gadgets.ProfileParity.from_value(

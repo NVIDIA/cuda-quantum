@@ -1235,8 +1235,8 @@ void Walker::walkOp(Operation *op, int64_t mult) {
           FramePropagateOp, FrameResolveOp, qlx::event::TestOp,
           qlx::event::PollOp, qlx::event::IsOp, qlx::event::SelectReadyOp,
           qlx::event::CancelOp, qlx::event::AwaitOp, qlx::event::FenceOp,
-          SendOp, RecvOp, BarrierOp, XorOp, AllZeroOp, ParityOp, AllFalseOp,
-          OutputSyndromeOp>(op)) {
+          SendOp, RecvOp, BarrierOp, XorOp, AllZeroOp, ParityOp, AllFalseOp>(
+          op)) {
     propagatePatchValues(op);
     return;
   }

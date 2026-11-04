@@ -325,7 +325,10 @@ def test_selected_wsc_output_syndromes_do_not_block_static_costing():
 
     assert "fabric.output_syndrome" in build.to_mlir()
     estimate = cql.analysis.estimate(build, tier=Tier.STATIC)
-    assert estimate.operation_counts["output_syndrome"] == 30
+    # Contract rows are analysis declarations, not executable quantum work.
+    assert "output_syndrome" not in estimate.operation_counts
+    assert estimate.logical_qubits_peak >= 2
+    assert sum(estimate.operation_counts.values()) > 0
 
 
 def test_estimation_tiers_fail_closed_when_fidelity_inputs_are_missing():
