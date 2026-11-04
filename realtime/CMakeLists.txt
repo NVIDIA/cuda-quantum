@@ -164,6 +164,10 @@ endif()
 
 add_subdirectory(lib)
 
+# cudaq_realtime_add_dispatch_kernel, for applications that bring their own
+# dispatch kernel; installed with the package config, and used by the tests.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CudaqRealtimeDispatchKernel.cmake)
+
 # Install the export set and package config unconditionally: members of
 # cudaq-realtime-targets exist on CUDA-less configures too (the UDP transport
 # is always built), and CMake silently installs an orphaned archive if a
@@ -183,6 +187,8 @@ install(EXPORT cudaq-realtime-targets
 
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CudaqRealtimeDispatchKernel.cmake
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cudaq_realtime_dispatch_kernel_image.cpp.in
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime
   COMPONENT Development)
 

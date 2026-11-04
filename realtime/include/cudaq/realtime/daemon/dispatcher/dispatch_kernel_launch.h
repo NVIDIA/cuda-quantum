@@ -70,7 +70,10 @@ struct __attribute__((packed)) RPCResponse {
 /// response; only the first thread's return value is recorded.  A handler
 /// that does not partition its work should do it on one thread and return
 /// early on the others.  Barriers inside a handler must be reached by every
-/// thread; there is no grid-wide sync.
+/// thread; there is no grid-wide sync.  That is the dispatcher's own kernel; a
+/// dispatch kernel the application launches itself
+/// (cudaq_dispatcher_set_unified_launch) sets its own rule for the handlers it
+/// calls.
 using DeviceRPCFunction = int (*)(const void *rx_slot, void *tx_slot,
                                   std::size_t slot_size);
 

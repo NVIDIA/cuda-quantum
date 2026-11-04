@@ -246,7 +246,7 @@ CUDAQ_TEST(NoiseTest, checkSimple) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support arbitrary cudaq::kraus_channel specification.
 
 CUDAQ_TEST(NoiseTest, checkAmplitudeDamping) {
@@ -267,7 +267,8 @@ CUDAQ_TEST(NoiseTest, checkAmplitudeDamping) {
 
 #endif
 
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET_MPS)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET_MPS) ||       \
+    defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 CUDAQ_TEST(NoiseTest, checkAmplitudeDamping2) {
   cudaq::set_random_seed(13);
   cudaq::kraus_channel amplitudeDamping{{1., 0., 0., .8660254037844386},
@@ -283,6 +284,52 @@ CUDAQ_TEST(NoiseTest, checkAmplitudeDamping2) {
   EXPECT_NEAR(counts.probability("10"), 0.1875, .1);
   EXPECT_NEAR(counts.probability("01"), 0.1875, .1);
   EXPECT_NEAR(counts.probability("11"), 0.5625, .1);
+  cudaq::unset_noise(); // clear for subsequent tests
+}
+#endif
+
+// Regression test for the cross-translation-unit precision bug in
+// `kraus_op::data`: with gamma = 1 the two Kraus ops are symmetric, so under
+// the buggy fp32 reinterpretation of the (double) matrix data their device
+// matrix cache keys collided and the channel was applied incorrectly (or
+// crashed the sampler, e.g. "Invalid dense matrix task size" on
+// custatevec-fp32). `kraus_op::data` is now always double precision, so this
+// must give the exact gamma = 1 result on fp32 backends as well.
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET_MPS) ||       \
+    defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
+CUDAQ_TEST(NoiseTest, checkAmplitudeDamping2GammaOne) {
+  cudaq::set_random_seed(13);
+  cudaq::kraus_channel amplitudeDamping{{1., 0., 0., 0.}, {0., 1., 0., 0.}};
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel<cudaq::types::x>(amplitudeDamping);
+  cudaq::set_noise(noise);
+
+  auto counts = cudaq::sample(xOp2{});
+  counts.dump();
+
+  // gamma = 1 damps every excited qubit to |0>.
+  EXPECT_EQ(1, counts.size());
+  EXPECT_NEAR(counts.probability("00"), 1., .001);
+  cudaq::unset_noise(); // clear for subsequent tests
+}
+
+// Same regression coverage as above, but through the documented built-in
+// channel type: its Kraus matrices are generated inline in this translation
+// unit's precision (float in fp32 test binaries) and converted to double for
+// storage, exercising the float->double converting constructor end to end.
+CUDAQ_TEST(NoiseTest, checkAmplitudeDampingChannelGammaOne) {
+  cudaq::set_random_seed(13);
+  cudaq::amplitude_damping_channel ad(1.);
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel<cudaq::types::x>(ad);
+  cudaq::set_noise(noise);
+
+  auto counts = cudaq::sample(xOp2{});
+  counts.dump();
+
+  // gamma = 1 damps every excited qubit to |0>.
+  EXPECT_EQ(1, counts.size());
+  EXPECT_NEAR(counts.probability("00"), 1., .001);
   cudaq::unset_noise(); // clear for subsequent tests
 }
 #endif
@@ -482,7 +529,7 @@ CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support cudaq::amplitude_damping_channel.
 
 CUDAQ_TEST(NoiseTest, checkAmpDampType) {
@@ -536,7 +583,7 @@ CUDAQ_TEST(NoiseTest, checkPhaseDampType) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support cudaq::amplitude_damping_channel.
 
 CUDAQ_TEST(NoiseTest, checkAmpDampTypeSimple) {

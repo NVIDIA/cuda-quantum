@@ -13,43 +13,26 @@ from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator,
 from cudaq.util import trace
 import numpy as np
 
-# Maintain a dictionary of queued `async` run kernels. This dictionary is used
-# to keep the `mlir::ModuleOp` alive so the interpreter doesn't garbage collect
-# them before they can be launched properly.
-cudaq_async_run_module_cache = {}
-cudaq_async_run_cache_counter = 0
-
 
 class AsyncRunResult:
 
     def __init__(self, impl, mod):
-        global cudaq_async_run_module_cache
-        global cudaq_async_run_cache_counter
         self.impl = impl
-        self.getCalled = False
-        self.counter = cudaq_async_run_cache_counter
-        cudaq_async_run_cache_counter = self.counter + 1
-        cudaq_async_run_module_cache[self.counter] = mod
+        # `get` converts the results through `mod`. The queued run uses its own
+        # clone, so `mod` only has to outlive this handle.
+        self.mod = mod
 
     def get(self):
-        try:
-            return self.impl.get()
-        finally:
-            self.getCalled = True
-
-    def __del__(self):
-        # FIXME: This potentially leaks memory intentionally. It is possible
-        # that the AsyncRunResult object gets deleted *before* the `async` run
-        # call occurs or finishes. In that case, we leave the module in the
-        # dictionary to prevent the interpreter from crashing.
-        # We ought to have a way to inform the C++ code that the result is no
-        # longer being sought and the module and `py::handle` should be freed.
-        if self.getCalled:
-            del (cudaq_async_run_module_cache[self.counter])
+        return self.impl.get()
 
 
 @trace.traced
-def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
+def run(decorator,
+        *args,
+        shots_count=100,
+        noise_model=None,
+        qpu_id=0,
+        optimization_level=None):
     to_quake = getattr(decorator, "to_quake", None)
     if to_quake is not None and not isa_kernel_decorator(decorator):
         decorator = _kernel_from_quake(to_quake())
@@ -67,14 +50,20 @@ def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
         raise RuntimeError(
             "Invalid `shots_count`. Must be a non-negative number.")
 
-    processedArgs, module = decorator.prepare_call(*args)
+    processedArgs, module = decorator.prepare_call(
+        *args, optimization_level=optimization_level)
     return cudaq_runtime.run_impl(decorator.uniqName + ".run", module,
                                   decorator.compiledModuleCache(), shots_count,
                                   noise_model, qpu_id, *processedArgs)
 
 
 @trace.traced
-def run_async(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
+def run_async(decorator,
+              *args,
+              shots_count=100,
+              noise_model=None,
+              qpu_id=0,
+              optimization_level=None):
     """
 Run the provided `kernel` with the given kernel `arguments` over the specified
 number of circuit executions (`shots_count`) asynchronously on the specified
@@ -93,6 +82,8 @@ Args:
     noise to the kernel execution on the simulator. Defaults to an empty noise
     model.
   `qpu_id` (Optional[int]): The id of the QPU. Defaults to 0. Key-word only.
+  optimization_level (Optional[int]): The quantum optimization level to compile
+    the kernel with, an integer between 0 and 3.
 
 Returns:
   `AsyncRunResult`:
@@ -123,7 +114,8 @@ Returns:
         if target.is_remote():
             raise ValueError("Noise model is not supported on hardware QPU.")
 
-    processedArgs, module = decorator.prepare_call(*args)
+    processedArgs, module = decorator.prepare_call(
+        *args, optimization_level=optimization_level)
     async_results = cudaq_runtime.run_async_impl(
         decorator.uniqName + ".run", module, decorator.compiledModuleCache(),
         shots_count, noise_model, qpu_id, *processedArgs)

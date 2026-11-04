@@ -14,8 +14,10 @@
 // RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
 // RUN:   func.func(fuse-1q-chains-for-clifford-t{epsilon=0.001},canonicalize))' \
 // RUN:   %s | FileCheck %s --check-prefix=EPSILON
-// RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3' %s | \
-// RUN:   FileCheck %s --check-prefix=FT
+// RUN: cudaq-opt --pass-pipeline='builtin.module( \
+// RUN:   decomposition{enable-patterns=U3ToRotations},convert-to-linear-values, \
+// RUN:   clifford-t-optimization-pipeline{approximation-tolerance=1e-3})' %s | \
+// RUN:   FileCheck %s --check-prefix=LEVEL2
 // RUN: not cudaq-opt --pass-pipeline='builtin.module( \
 // RUN:   func.func(fuse-1q-chains-for-clifford-t{epsilon=-1}))' %s 2>&1 | \
 // RUN:   FileCheck %s --check-prefix=INVALID
@@ -39,10 +41,10 @@ func.func @xzx(%target: !quake.ref) {
 // CHECK-NEXT: quake.rx
 // CHECK-NEXT: quake.phase
 // CHECK-NEXT: quake.wrap
-// FT-LABEL: func.func @xzx(
-// FT-COUNT-2: call @__cliffordt_rz_
-// FT-NOT: call @__cliffordt_rz_
-// FT: return
+// LEVEL2-LABEL: func.func @xzx(
+// LEVEL2-COUNT-2: quake.r{{[xyz1]}}
+// LEVEL2-NOT: quake.r{{[xyz1]}}
+// LEVEL2: return
 
 // T, adjoint, and rotation gates compose into one chain. Adjoint gates
 // contribute their inverse matrix and phase. The chain is diagonal, so the
@@ -63,10 +65,10 @@ func.func @mixed_chain(%target: !quake.ref) {
 // CHECK-NEXT: quake.rz
 // CHECK-NEXT: quake.phase
 // CHECK-NEXT: quake.wrap
-// FT-LABEL: func.func @mixed_chain(
-// FT: call @__cliffordt_rz_
-// FT-NOT: call @__cliffordt_rz_
-// FT: return
+// LEVEL2-LABEL: func.func @mixed_chain(
+// LEVEL2: quake.r{{[xyz1]}}
+// LEVEL2-NOT: quake.r{{[xyz1]}}
+// LEVEL2: return
 
 // A half-turn middle angle leaves only the difference of the outer angles
 // meaningful, so one rotation remains next to the half turn.
@@ -83,10 +85,10 @@ func.func @half_turn(%target: !quake.ref) {
 // CHECK: quake.rz
 // CHECK-NEXT: quake.rx
 // CHECK-NEXT: quake.wrap
-// FT-LABEL: func.func @half_turn(
-// FT: call @__cliffordt_rz_
-// FT-NOT: call @__cliffordt_rz_
-// FT: return
+// LEVEL2-LABEL: func.func @half_turn(
+// LEVEL2: quake.r{{[xyz1]}}
+// LEVEL2-NOT: quake.r{{[xyz1]}}
+// LEVEL2: return
 
 // A chain whose every Euler form needs the same number of approximate
 // rotations is left alone. Neither basis emits Ry, so any rewrite would show.
@@ -104,10 +106,10 @@ func.func @tie(%target: !quake.ref) {
 // CHECK-NEXT: quake.ry
 // CHECK-NEXT: quake.rz
 // CHECK-NEXT: quake.wrap
-// FT-LABEL: func.func @tie(
-// FT-COUNT-3: call @__cliffordt_rz_
-// FT-NOT: call @__cliffordt_rz_
-// FT: return
+// LEVEL2-LABEL: func.func @tie(
+// LEVEL2-COUNT-3: quake.r{{[xyz1]}}
+// LEVEL2-NOT: quake.r{{[xyz1]}}
+// LEVEL2: return
 
 // Rotations within epsilon of a quarter turn count as exact, so the chain
 // below needs no rewrite at epsilon 1e-3 but is rewritten at epsilon zero.
@@ -133,13 +135,13 @@ func.func @epsilon(%target: !quake.ref) {
 // EPSILON-NEXT: quake.rx
 // EPSILON-NEXT: quake.ry
 // EPSILON-NEXT: quake.wrap
-// FT-LABEL: func.func @epsilon(
-// FT-NOT: call @__cliffordt_rz_
-// FT: return
+// LEVEL2-LABEL: func.func @epsilon(
+// LEVEL2-NOT: quake.r{{[xyz1]}}
+// LEVEL2: return
 
 // The function-level opt-out keeps the chain intact.
 func.func @no_optimization(%target: !quake.ref)
-    attributes {"quake.noOptimization"} {
+    attributes {quake.optimizationLevel = 0 : i32} {
   %a = arith.constant 0.3 : f64
   %b = arith.constant 0.5 : f64
   quake.rz (%a) %target : (f64, !quake.ref) -> ()
@@ -149,7 +151,7 @@ func.func @no_optimization(%target: !quake.ref)
 // CHECK-LABEL: func.func @no_optimization(
 // CHECK: quake.rz
 // CHECK-NEXT: quake.rz
-// FT-LABEL: func.func @no_optimization(
-// FT-COUNT-2: call @__cliffordt_rz_
-// FT-NOT: call @__cliffordt_rz_
-// FT: return
+// LEVEL2-LABEL: func.func @no_optimization(
+// LEVEL2-COUNT-2: quake.r{{[xyz1]}}
+// LEVEL2-NOT: quake.r{{[xyz1]}}
+// LEVEL2: return

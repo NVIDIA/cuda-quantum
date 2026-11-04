@@ -12,6 +12,7 @@
 #include "LinkedLibraryHolder.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu_utils.h"
+#include <dlfcn.h>
 #endif
 #include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetConfigYaml.h"
@@ -742,6 +743,12 @@ config:
   EXPECT_FALSE(std::filesystem::exists(sentinelPath));
   EXPECT_NO_THROW(holder.setTarget("future-backend"));
   EXPECT_TRUE(std::filesystem::exists(sentinelPath));
+  EXPECT_EQ(dlsym(RTLD_DEFAULT, "cudaqDlopenSentinelProbe"), nullptr);
+  auto *handle =
+      dlopen((libDir / pluginFileName).c_str(), RTLD_NOW | RTLD_LOCAL);
+  ASSERT_NE(handle, nullptr);
+  EXPECT_NE(dlsym(handle, "cudaqDlopenSentinelProbe"), nullptr);
+  dlclose(handle);
   unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
 }
 
@@ -809,6 +816,12 @@ TEST_F(ExternalBackendTester, nativeTargetLoadsPluginLibraries) {
       "native-plugin-load", targetsDir / "native-plugin-load.yml", config);
 
   EXPECT_TRUE(std::filesystem::exists(sentinelPath));
+  EXPECT_EQ(dlsym(RTLD_DEFAULT, "cudaqDlopenSentinelProbe"), nullptr);
+  auto *handle =
+      dlopen((libDir / pluginFileName).c_str(), RTLD_NOW | RTLD_LOCAL);
+  ASSERT_NE(handle, nullptr);
+  EXPECT_NE(dlsym(handle, "cudaqDlopenSentinelProbe"), nullptr);
+  dlclose(handle);
   unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
 }
 

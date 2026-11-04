@@ -9,6 +9,7 @@
 #pragma once
 
 #include "QuantumExecutionQueue.h"
+#include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/KernelArgs.h"
 #include "common/Registry.h"
@@ -168,9 +169,22 @@ public:
   launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
                KernelArgs args);
 
+  /// \cond
+  /// Launch \p module outside of a launch policy.
+  ///
+  /// If a `SourceModule` is passed, it is compiled against \p target and
+  /// \p options before being launched.
+  ///
+  /// This is a legacy API. The preferred path is what all the policy-based
+  /// kernel launches do: the QPU only deals with pre-compiled `CompiledModule`s
+  /// and never drives compilation itself.
   [[nodiscard]] virtual KernelThunkResultType
-  unifiedLaunchModule(const AnyModule &module, KernelArgs args);
+  compileAndLaunchKernel(const AnyModule &module, KernelArgs args,
+                         const CompileTarget &target,
+                         const CompileOptions &options);
+  /// \endcond
 
+  /// Create the default compile target of this QPU.
   [[nodiscard]] virtual CompileTarget
   getCompileTarget(const RuntimeTarget *rt = nullptr);
 

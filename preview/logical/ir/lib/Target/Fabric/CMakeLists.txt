@@ -27,4 +27,4 @@ add_mlir_translation_library(MLIRFabricTranslate
   ${_qlx_mlir_link_libraries}
 )
 
-qlx_propagate_llvm_rtti_eh(MLIRFabricTranslate)
+qlx_propagate_llvm_rtti_eh(MLIRFabricTranslate EXCEPTIONS)

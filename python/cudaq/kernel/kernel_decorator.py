@@ -32,7 +32,8 @@ from .utils import (cudaqModuleName, emitFatalError, emitErrorIfInvalidPauli,
                     globalRegisteredTypes, isQuantumReferenceType,
                     mlirTypeFromPyType, mlirTypeToPyType, nvqppPrefix,
                     getMLIRContext, recover_func_op, recover_value_of,
-                    cudaq__unique_attr_name)
+                    cudaq__unique_attr_name, set_optimization_level_attr,
+                    get_optimization_level_attr)
 
 # This file implements the decorator mechanism needed to JIT compile CUDA-Q
 # kernels. It exposes the cudaq.kernel() decorator which hooks us into the JIT
@@ -431,34 +432,45 @@ class PyKernelDecorator(object):
 
         return False
 
+    def scalarCaster(self, toTy):
+        """Return a one-argument callable converting a scalar to `toTy`.
+
+        Which conversion applies depends only on the target type, so a list can
+        resolve it once instead of once per element.
+        None means `toTy` is not a scalar this can convert
+        """
+        if IntegerType.isinstance(toTy):
+            width = IntegerType(toTy).width
+            if width == 1:
+                return bool
+            if width == 8:
+                return np.int8
+            if width == 16:
+                return np.int16
+            if width == 32:
+                return np.int32
+            if width == 64:
+                return int
+            return None
+
+        if F64Type.isinstance(toTy):
+            return float
+
+        if F32Type.isinstance(toTy):
+            return np.float32
+
+        if ComplexType.isinstance(toTy):
+            if F64Type.isinstance(ComplexType(toTy).element_type):
+                return complex
+            return np.complex64
+
+        return None
+
     def castPyType(self, fromTy, toTy, value):
         if self.isCastablePyType(fromTy, toTy):
-            if IntegerType.isinstance(toTy):
-                intToTy = IntegerType(toTy)
-                if intToTy.width == 1:
-                    return bool(value)
-                if intToTy.width == 8:
-                    return np.int8(value)
-                if intToTy.width == 16:
-                    return np.int16(value)
-                if intToTy.width == 32:
-                    return np.int32(value)
-                if intToTy.width == 64:
-                    return int(value)
-
-            if F64Type.isinstance(toTy):
-                return float(value)
-
-            if F32Type.isinstance(toTy):
-                return np.float32(value)
-
-            if ComplexType.isinstance(toTy):
-                floatToType = ComplexType(toTy).element_type
-
-                if F64Type.isinstance(floatToType):
-                    return complex(value)
-
-                return np.complex64(value)
+            caster = self.scalarCaster(toTy)
+            if caster is not None:
+                return caster(value)
 
             # Support passing `list[int]` to a `list[float]` argument and
             # passing `list[int]` or `list[float]` to a `list[complex]` argument
@@ -468,6 +480,10 @@ class PyKernelDecorator(object):
                     toEleTy = cc.SequenceType.getElementType(toTy)
 
                     if self.isCastablePyType(fromEleTy, toEleTy):
+                        eleCaster = self.scalarCaster(toEleTy)
+                        if eleCaster is not None:
+                            return [eleCaster(element) for element in value]
+                        # A list of lists, whose elements need the full path.
                         return [
                             self.castPyType(fromEleTy, toEleTy, element)
                             for element in value
@@ -540,7 +556,7 @@ class PyKernelDecorator(object):
         return args
 
     @trace.traced
-    def prepare_call(self, *args, allow_no_args=False):
+    def prepare_call(self, *args, allow_no_args=False, optimization_level=None):
         """
         Process call site arguments, capture lifted arguments and retrieve
         compiled module for kernel execution.
@@ -560,6 +576,13 @@ class PyKernelDecorator(object):
 
         with trace.span("kernel.clone_module"):
             module = cudaq_runtime.cloneModule(self.qkeModule)
+
+        # An optimization level declared on the kernel (e.g. `disable_quantum_optimization`)
+        # overrides launch options.
+        if (optimization_level is not None and get_optimization_level_attr(
+                self.qkeModule, self.uniqName) is None):
+            set_optimization_level_attr(module, self.uniqName,
+                                        optimization_level)
 
         return processed_args, module
 
@@ -597,7 +620,7 @@ class PyKernelDecorator(object):
         shortName = self.uniqName
         return cudaq_runtime.get_launch_args_required(self.qkeModule, shortName)
 
-    def __call__(self, *args):
+    def __call__(self, *args, optimization_level=None):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the kernel AOT Quake module
         to machine code will occur here.
@@ -612,7 +635,8 @@ class PyKernelDecorator(object):
         if args and self.formal_arity() != len(args):
             emitFatalError("wrong number of arguments provided")
 
-        processed_args, module = self.prepare_call(*args)
+        processed_args, module = self.prepare_call(
+            *args, optimization_level=optimization_level)
         return cudaq_runtime.marshal_and_launch_module(
             self.uniqName,
             module,
@@ -641,7 +665,15 @@ class PyKernelDecorator(object):
             _validate_kernel_callable_arg(arg, arg_type)
             return DecoratorCapture(arg)
 
-        arg = self.convertStringsToPauli(arg)
+        depth, eleType = _sequence_depth_and_element(arg_type)
+
+        # Rebuild `list` subclasses as plain lists.
+        if isinstance(arg, list):
+            arg = _normalize_list_subclasses(arg, depth)
+
+        if _may_hold_pauli_string(arg, eleType):
+            arg = self.convertStringsToPauli(arg)
+
         mlirType = mlirTypeFromPyType(type(arg),
                                       getMLIRContext(),
                                       argInstance=arg,
@@ -980,6 +1012,58 @@ def _parse_ast(funcSrc: str, verbose: bool = False):
         except ImportError:
             pass
     return astModule
+
+
+def _sequence_depth_and_element(argType):
+    """
+    Return the number of declared `list` levels in `argType` and the element
+    type beneath them.
+    """
+    depth = 0
+    while cc.SequenceType.isinstance(argType):
+        depth += 1
+        argType = cc.SequenceType.getElementType(argType)
+    return depth, argType
+
+
+def _normalize_list_subclasses(arg, depth):
+    """
+    Rebuild `list` subclasses as plain lists to preserve iteration order, even
+    in the case of a subclass that redefines `__iter__`.
+    """
+    if not isinstance(arg, list):
+        return arg
+
+    if depth > 1:
+        return [_normalize_list_subclasses(a, depth - 1) for a in arg]
+
+    return arg if type(arg) is list else list(arg)
+
+
+def _may_hold_pauli_string(arg, eleType):
+    """
+    Return whether `arg`, whose declared element type is `eleType`, can hold a
+    string that `convertStringsToPauli` would have to convert.
+    """
+    if (IntegerType.isinstance(eleType) or F64Type.isinstance(eleType) or
+            F32Type.isinstance(eleType) or ComplexType.isinstance(eleType)):
+        return False
+
+    return _holds_string(arg)
+
+
+def _holds_string(arg):
+    """
+    Return whether `arg` is a string or holds one at any depth. A nested list
+    is no evidence on its own, so look inside rather than assume.
+    """
+    if isinstance(arg, str):
+        return True
+
+    if type(arg) is list:
+        return any(_holds_string(element) for element in arg)
+
+    return False
 
 
 def _validate_kernel_callable_arg(kernel, arg_type):

@@ -8,9 +8,10 @@
 
 import pytest
 
-from cudaq._target import (Codegen, CompilationStage, CompileTarget,
-                           CustomPipelineLowering,
-                           QuakeReferenceSemanticsProfile, UncheckedProfile)
+from cudaq.core._target import (Codegen, CompilationStage, CompileTarget,
+                                CustomPipelineLowering,
+                                QuakeReferenceSemanticsProfile,
+                                UncheckedProfile)
 
 
 @pytest.mark.parametrize("target", [

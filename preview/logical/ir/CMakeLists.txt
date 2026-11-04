@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+include(HandleLLVMOptions)
 add_subdirectory(include/qlx/Conversion)
 add_subdirectory(include/qlx/Dialect/Cflow)
 add_subdirectory(include/qlx/Dialect/Event)
@@ -35,6 +36,8 @@ endif()
 
 # Translation backends (MLIR-style Target/).
 add_subdirectory(lib/Target/Fabric)
+
+add_subdirectory(lib/Analysis/EDEM)
 
 # C-API shims for the Python bindings (always built; pure additive layer).
 add_subdirectory(lib/CAPI)

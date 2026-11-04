@@ -65,7 +65,8 @@ on:
 name: Deployments # do not change name without updating workflow_run triggers
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  # The nightly cache refresh must not queue behind (or be replaced by) deployments.
+  group: ${{ github.workflow }}-${{ github.event_name == 'schedule' && 'schedule-' || '' }}${{ github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -89,6 +90,7 @@ jobs:
       platforms: ${{ steps.build_info.outputs.platforms }}
       build_dependencies: ${{ steps.build_config.outputs.build_dependencies }}
       create_packages: ${{ steps.build_config.outputs.create_packages }}
+      python_versions: ${{ steps.build_config.outputs.python_versions }}
       environment: ${{ steps.build_info.outputs.environment }}
       release_title: ${{ steps.build_info.outputs.release_title }}
       release_version: ${{ steps.build_info.outputs.release_version }}
@@ -209,6 +211,9 @@ jobs:
         run: |
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
+
+          # The Python versions of all wheels and the metapackage tests.
+          echo 'python_versions=["3.11","3.12","3.13","3.14"]' >> $GITHUB_OUTPUT
 
           if ${{ github.event_name != 'workflow_run' || steps.pr_info.outputs.pr_number != '' }}; then
             echo "build_dependencies=true" >> $GITHUB_OUTPUT
@@ -572,8 +577,8 @@ jobs:
 
   docker_images:
     name: Create Docker images
-    # `cudaq.logical` wheels must finish building and testing before images are published.
-    needs: [metadata, config, ext_config, python_wheels]
+    # cudaq-logical and cudaq-edem wheels must finish building and testing before images are published.
+    needs: [metadata, config, ext_config, python_wheels, edem_wheels]
     if: ${{ ! inputs.devcontainer_only }}
     strategy:
       matrix:
@@ -592,6 +597,7 @@ jobs:
       devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-cu{1}-ext', matrix.platform, matrix.cuda_version)] }}
       cudaq_enable_projects: 'cudaq;runtime;python;realtime'
       include_logical: true
+      include_edem: true
       build_docs: ${{ matrix.cuda_version == '12.6' && matrix.platform == fromJson(needs.metadata.outputs.platforms).ids[0] }}
       environment: ghcr-deployment
       run_validation: false # validation runs in the Validation workflow
@@ -918,12 +924,12 @@ jobs:
 
   python_wheels:
     name: Create Python wheels
-    needs: [metadata, config, python_devel_wheel]
+    needs: [metadata, config, python_devel_wheel, edem_wheels]
     if: ${{ !cancelled() && ! inputs.devcontainer_only && needs.metadata.result == 'success' && needs.config.result == 'success' }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        python_version: ['3.11', '3.12', '3.13', '3.14']
+        python_version: ${{ fromJson(needs.metadata.outputs.python_versions) }}
         cuda_version: ["12.6", "13.0"]
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
@@ -944,6 +950,29 @@ jobs:
       devel_artifact_name: cudaq-devel-${{ matrix.platform }}
       build_logical_wheel: ${{ matrix.cuda_version == '13.0' }}
       release_version: ${{ needs.metadata.outputs.cudaq_version }}
+
+  # cudaq-edem does not depend on CUDA-Q, so it builds in parallel with
+  # everything else. `pip install cudaq` depends on these wheels.
+  edem_wheels:
+    name: Create cudaq-edem wheels (${{ matrix.platform }})
+    needs: metadata
+    if: ${{ ! inputs.devcontainer_only }}
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/edem_wheels.yml
+    with:
+      platform: ${{ matrix.platform }}
+      python_versions: ${{ needs.metadata.outputs.python_versions }}
+      # One source distribution is enough, and it is attached to the release
+      # with the metapackages.
+      upload_sdist: ${{ matrix.platform == fromJson(needs.metadata.outputs.platforms).ids[0] }}
+      # A release must not ship changed sources under a published version.
+      pypi_version_check: ${{ (needs.metadata.outputs.release_title != '' && 'strict') || 'none' }}
 
   binaries:
     name: Create CUDA Quantum installer
@@ -1068,11 +1097,12 @@ jobs:
   # One zip per platform; a single zip of all wheels is too big.
   release_wheels:
     name: Attach ${{ matrix.platform }} wheels to draft release
-    needs: [metadata, release_draft, python_devel_wheel, python_wheels]
+    needs: [metadata, release_draft, python_devel_wheel, python_wheels, edem_wheels]
     if: >-
       ${{ !cancelled() && needs.release_draft.result == 'success'
       && needs.python_devel_wheel.result == 'success'
-      && needs.python_wheels.result == 'success' }}
+      && needs.python_wheels.result == 'success'
+      && needs.edem_wheels.result == 'success' }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
@@ -1101,10 +1131,18 @@ jobs:
           path: logical-wheels
           merge-multiple: true
 
+      - name: Download cudaq-edem wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_edem-*'
+          path: edem-wheels
+          merge-multiple: true
+
       - name: Attach wheels to draft release
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
           RELEASE_TAG: ${{ needs.release_draft.outputs.release_tag }}
+          PYTHON_VERSIONS: ${{ needs.metadata.outputs.python_versions }}
         run: |
           arch=`([ "${{ matrix.platform }}" == "amd64" ] && echo x86_64) || echo aarch64`
           mkdir wheelhouse-${arch}
@@ -1115,12 +1153,21 @@ jobs:
             mv -vf "${dir}"* wheelhouse-${arch}/
           done
 
-          for kind in logical devel; do
+          for kind in logical edem devel; do
             if ! compgen -G "${kind}-wheels/cudaq_${kind}-*${arch}.whl" > /dev/null; then
               echo "::error::No cudaq-${kind} wheel found for ${arch}."
               exit 1
             fi
             mv -v ${kind}-wheels/cudaq_${kind}-*${arch}.whl wheelhouse-${arch}/
+          done
+
+          # cudaq-edem wheels exist for each supported Python version.
+          for version in $(jq -r '.[]' <<< "$PYTHON_VERSIONS"); do
+            py="cp${version/./}"
+            if ! compgen -G "wheelhouse-${arch}/cudaq_edem-*-${py}-*.whl" > /dev/null; then
+              echo "::error::No cudaq-edem wheel found for ${py} on ${arch}."
+              exit 1
+            fi
           done
 
           zip -r wheelhouse-${arch}.zip wheelhouse-${arch}
@@ -1140,7 +1187,7 @@ jobs:
     uses: ./.github/workflows/python_metapackages.yml
     with:
       cudaq_version: ${{ needs.metadata.outputs.package_version }}
-      python_versions: "['3.11', '3.12', '3.13', '3.14']"
+      python_versions: ${{ needs.metadata.outputs.python_versions }}
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: 'pycudaq-*' # unused, the tests run in Validation
       run_tests: false
@@ -1148,10 +1195,11 @@ jobs:
 
   release_metapackages:
     name: Attach metapackages to draft release
-    needs: [release_draft, metapackages]
+    needs: [release_draft, metapackages, edem_wheels]
     if: >-
       ${{ !cancelled() && needs.release_draft.result == 'success'
-      && needs.metapackages.result == 'success' }}
+      && needs.metapackages.result == 'success'
+      && needs.edem_wheels.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -1163,11 +1211,26 @@ jobs:
           name: ${{ needs.metapackages.outputs.artifact_name }}
           path: metapackages
 
+      # The source distributions of the metapackages and cudaq-edem are
+      # published together.
+      - name: Download cudaq-edem source distribution
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cudaq-edem-sdist-*
+          path: metapackages
+          merge-multiple: true
+
       - name: Attach metapackages to draft release
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
           RELEASE_TAG: ${{ needs.release_draft.outputs.release_tag }}
         run: |
+          shopt -s nullglob
+          sdists=(metapackages/cudaq_edem-*.tar.gz)
+          if [ "${#sdists[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one cudaq-edem source distribution, found ${#sdists[@]}."
+            exit 1
+          fi
           zip -r metapackages.zip metapackages
           gh release upload "$RELEASE_TAG" -R ${{ github.repository }} metapackages.zip --clobber
 
@@ -1275,12 +1338,13 @@ jobs:
   trigger_validation:
     name: Trigger Validation
     # macOS and realtime assets are not needed to start Validation.
-    needs: [summary, python_wheels, binaries, metapackages]
+    needs: [summary, python_wheels, edem_wheels, binaries, metapackages]
     # Explicit: a skipped ancestor (release_draft) would skip this under the default success().
     if: >-
       ${{ !cancelled() && inputs.run_validation_after
       && needs.summary.result == 'success'
       && needs.python_wheels.result == 'success'
+      && needs.edem_wheels.result == 'success'
       && needs.binaries.result == 'success'
       && needs.metapackages.result == 'success' }}
     runs-on: ubuntu-latest

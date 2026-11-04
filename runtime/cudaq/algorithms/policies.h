@@ -23,7 +23,9 @@
 namespace cudaq {
 
 /// @brief Fallback policy tag used when no specific policy matches.
-struct other_policies {};
+struct other_policies {
+  friend CompileOptions get_compile_options_impl(const other_policies &);
+};
 
 /// @brief List of all existing launch policies.
 ///

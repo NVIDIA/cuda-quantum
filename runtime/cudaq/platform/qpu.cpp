@@ -24,7 +24,9 @@ using namespace cudaq_internal::compiler;
 using namespace cudaq;
 
 cudaq::KernelThunkResultType
-cudaq::QPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
+cudaq::QPU::compileAndLaunchKernel(const AnyModule &module, KernelArgs args,
+                                   const CompileTarget &target,
+                                   const CompileOptions &options) {
   throw std::runtime_error(
       "This QPU does not support launching the other_policies.");
 }

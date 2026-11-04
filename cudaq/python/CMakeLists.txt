@@ -184,16 +184,18 @@ if(CUDAQ_BUILD_SPLIT_WHEELS)
 endif()
 
 add_dependencies(CUDAQCorePythonModules CUDAQTargetPython)
-add_dependencies(CUDAQCorePythonModules.extension._backends.dso CUDAQTargetPython)
 
 # Shared backend values are available without the frontend package.
 cudaq_stage_python_sources(CUDAQCorePythonPackageStaging
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
   OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python/cudaq"
-  SOURCES core/__init__.py core/backends.py)
+  SOURCES core/__init__.py core/results.py
+    core/_experimental/__init__.py)
 add_dependencies(CUDAQCorePythonModules CUDAQCorePythonPackageStaging)
-install(FILES core/__init__.py core/backends.py
+install(FILES core/__init__.py core/results.py
   DESTINATION cudaq/core COMPONENT CUDAQCorePythonModules)
+install(FILES core/_experimental/__init__.py
+  DESTINATION cudaq/core/_experimental COMPONENT CUDAQCorePythonModules)
 
 # Logical compilation uses the shared logger's tracing API without the frontend.
 # Keep its public Python path and source location; core stages and installs it.

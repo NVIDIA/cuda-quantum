@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // Tier 1 of the resource-estimation stack
 // (design/resource-estimation-proposal.md §4.1).
@@ -60,8 +60,6 @@
 #include "mlir/Pass/Pass.h"
 
 #include <algorithm>
-#include <chrono>
-#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <map>
@@ -245,18 +243,16 @@ public:
   bool sawSelectedDeviceGadget = false;
   bool sawSelectedDeviceRegionUse = false;
 
-  void printProfile(llvm::raw_ostream &stream) const {
-    stream << "fabric-count: operations=" << visitedOperations
-           << " delegations=" << delegations << " retry-probes=" << retryProbes
-           << " retry-probe-cache-hits=" << retryProbeCacheHits
-           << " retry-probe-operations=" << retryProbeOperations
-           << " retry-probe-seconds=" << retryProbeSeconds
-           << "s callable-summary-probes=" << callableSummaryProbes
-           << " callable-summary-hits=" << callableSummaryHits
-           << " callable-summary-negative-hits=" << callableSummaryNegativeHits
-           << " callable-summary-saved-operations="
-           << callableSummarySavedOperations << "\n";
-  }
+  // Work counters, reported through the pass statistics.
+  uint64_t visitedOperations = 0;
+  uint64_t delegations = 0;
+  uint64_t retryProbes = 0;
+  uint64_t retryProbeCacheHits = 0;
+  uint64_t retryProbeOperations = 0;
+  uint64_t callableSummaryProbes = 0;
+  uint64_t callableSummaryHits = 0;
+  uint64_t callableSummaryNegativeHits = 0;
+  uint64_t callableSummarySavedOperations = 0;
 
   void recordRegionDecl(RegionOp r);
   void recordCodeDecl(CodeOp c);
@@ -273,20 +269,10 @@ private:
   llvm::SmallSet<StringRef, 8> activeCalls;
   bool suppressInlineAnalysis = false;
   FlatSymbolRefAttr selectedQec;
-  uint64_t visitedOperations = 0;
-  uint64_t delegations = 0;
-  uint64_t retryProbes = 0;
-  uint64_t retryProbeCacheHits = 0;
-  uint64_t retryProbeOperations = 0;
-  double retryProbeSeconds = 0.0;
   DenseMap<Operation *, RetryAttemptFacts> retryAttemptCache;
   llvm::SmallSet<StringRef, 8> tickContextRegions;
   // Caller-mapped regions; ticks count only while they are live.
   llvm::SmallSet<StringRef, 8> mappedContextRegions;
-  uint64_t callableSummaryProbes = 0;
-  uint64_t callableSummaryHits = 0;
-  uint64_t callableSummaryNegativeHits = 0;
-  uint64_t callableSummarySavedOperations = 0;
   // A probe records the entry-count bounds under which its liveness evolution
   // and tick attribution remain identical after translating the starting
   // counts.
@@ -478,7 +464,6 @@ void Walker::recordRetry(RetryOp retry, int64_t mult) {
   // so cache this exact, selected-QEC-specific callable summary by operation.
   auto cached = retryAttemptCache.find(attempt);
   if (cached == retryAttemptCache.end()) {
-    const auto probeStarted = std::chrono::steady_clock::now();
     Walker probe(ctx, symTab, selectedQec);
     ModuleOp module = retry->getParentOfType<ModuleOp>();
     for (auto code : module.getOps<CodeOp>())
@@ -500,9 +485,6 @@ void Walker::recordRetry(RetryOp retry, int64_t mult) {
     probe.walkEntry(attempt);
     ++retryProbes;
     retryProbeOperations += probe.visitedOperations;
-    retryProbeSeconds += std::chrono::duration<double>(
-                             std::chrono::steady_clock::now() - probeStarted)
-                             .count();
     if (probe.hadError) {
       hadError = true;
       return;
@@ -733,7 +715,7 @@ void Walker::propagatePatchValues(Operation *op) {
 void Walker::walkEntry(Operation *entry) {
   if (!entry)
     return;
-  if (auto profile = dyn_cast<GadgetProfileOp>(entry)) {
+  if (auto profile = dyn_cast<GadgetContractOp>(entry)) {
     auto gadget = symTab.lookup<GadgetOp>(profile.getGadgetAttr().getValue());
     if (!gadget || gadget.getBody().empty()) {
       profile.emitOpError("fabric-count profile references missing gadget");
@@ -876,8 +858,11 @@ void Walker::walkOp(Operation *op, int64_t mult) {
     requiresExtendedAnalyticalModel = true;
 
   StringRef operationName = op->getName().getStringRef();
+  // Analysis declarations have no executable quantum-resource cost.
+  if (isa<DetectorOp, ObservableOp, OutputSyndromeOp>(op))
+    return;
   if (operationName.starts_with("fabric.") &&
-      !isa<ReturnOp, ProtocolReturnOp, ProfileEndOp>(op)) {
+      !isa<ReturnOp, ProtocolReturnOp, ContractEndOp>(op)) {
     bump(operationCounts, operationName.drop_front(7), mult, op,
          "operation count");
   } else if (StringRef legacyName =
@@ -1052,7 +1037,7 @@ void Walker::walkOp(Operation *op, int64_t mult) {
     gate = "split";
   else if (isa<MultiMeasureOp>(op))
     gate = "multi_measure";
-  else if (isa<MeasureProductOp>(op))
+  else if (isa<MeasureProductOp, MppOp>(op))
     gate = "measure_product";
   else if (isa<RotateProductOp>(op))
     gate = "rotate_product";
@@ -1265,7 +1250,7 @@ void Walker::walkOp(Operation *op, int64_t mult) {
   });
   if ((operationName.starts_with("fabric.") || touchesFabricSemantics) &&
       !isa<ReturnOp, ProtocolReturnOp, qlx::cflow::YieldOp, qlx::event::YieldOp,
-           ProfileEndOp>(op)) {
+           ContractEndOp>(op)) {
     op->emitOpError(
         "fabric-count native v1 has no typed cost semantics for this "
         "executable operation");
@@ -1287,7 +1272,7 @@ void Walker::walkCall(CallOp call, int64_t mult) {
   if (hadError || !call.getProfileAttr())
     return;
   auto profile =
-      symTab.lookup<GadgetProfileOp>(call.getProfileAttr().getValue());
+      symTab.lookup<GadgetContractOp>(call.getProfileAttr().getValue());
   if (!profile || profile.getBody().empty()) {
     call.emitOpError("fabric-count cannot resolve selected profile ")
         << call.getProfileAttr();
@@ -1385,7 +1370,6 @@ Walker::buildCallableSummary(Operation *callee, Operation *wrapper,
   retryProbes += probe.retryProbes;
   retryProbeCacheHits += probe.retryProbeCacheHits;
   retryProbeOperations += probe.retryProbeOperations;
-  retryProbeSeconds += probe.retryProbeSeconds;
   retryAttemptCache = std::move(probe.retryAttemptCache);
   if (probe.hadError) {
     hadError = true;
@@ -1730,7 +1714,7 @@ FailureOr<int64_t> Walker::mapChildrenMultiplicity(MapChildrenOp map,
   auto hierarchy =
       hierarchyRef ? symTab.lookup<EncodingHierarchyOp>(hierarchyRef.getValue())
                    : EncodingHierarchyOp{};
-  if (!hierarchy || hierarchy.getMultiplicity() <= 0) {
+  if (!hierarchy || hierarchy.getMultiplicityAttr().getInt() <= 0) {
     map.emitOpError(
         "fabric-count mapped children require a positive typed hierarchy");
     hadError = true;
@@ -1831,7 +1815,7 @@ void Walker::walkIf(qlx::cflow::IfOp ifop, int64_t mult) {
   if (thenTotal != elseTotal || thenLogical != elseLogical ||
       thenLive != elseLive) {
     ifop.emitOpError(
-        "fabric-count requires branches to agree on live patch ownership");
+        "fabric-count requires branches to agree on live patch valueship");
     hadError = true;
     return;
   }
@@ -2038,7 +2022,7 @@ struct FabricCountPass
             << rootSymbol << " does not resolve to a top-level symbol";
         return signalPassFailure();
       }
-      if (!isa<GadgetOp, ProtocolOp, GadgetProfileOp>(entry)) {
+      if (!isa<GadgetOp, ProtocolOp, GadgetContractOp>(entry)) {
         module.emitError("fabric-count root @")
             << rootSymbol << " resolves to " << entry->getName()
             << ", not an executable Fabric root";
@@ -2075,7 +2059,7 @@ struct FabricCountPass
       return signalPassFailure();
     }
     auto gadgetEntry = dyn_cast<GadgetOp>(entry);
-    if (auto profile = dyn_cast<GadgetProfileOp>(entry))
+    if (auto profile = dyn_cast<GadgetContractOp>(entry))
       gadgetEntry = symTab.lookup<GadgetOp>(profile.getGadgetAttr().getValue());
     if (device && (!device.getQecAttr() ||
                    (gadgetEntry &&
@@ -2117,8 +2101,15 @@ struct FabricCountPass
       signalPassFailure();
       return;
     }
-    if (std::getenv("QLX_PROFILE_SCHEDULE_ESTIMATE"))
-      w.printProfile(llvm::errs());
+    numVisitedOperations = w.visitedOperations;
+    numDelegations = w.delegations;
+    numRetryProbes = w.retryProbes;
+    numRetryProbeCacheHits = w.retryProbeCacheHits;
+    numRetryProbeOperations = w.retryProbeOperations;
+    numCallableSummaryProbes = w.callableSummaryProbes;
+    numCallableSummaryHits = w.callableSummaryHits;
+    numCallableSummaryNegativeHits = w.callableSummaryNegativeHits;
+    numCallableSummarySavedOperations = w.callableSummarySavedOperations;
     auto protocolEntry = dyn_cast<ProtocolOp>(entry);
     bool selectedP2Protocol = false;
     if (device && protocolEntry) {

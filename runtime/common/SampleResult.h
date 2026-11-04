@@ -176,6 +176,13 @@ public:
   /// bitstrings.
   void append(const ExecutionResult &result, bool concatenate = false);
 
+  /// @brief Add another `ExecutionResult` to this `sample_result`, taking over
+  /// its storage. Same semantics as the copying overload otherwise.
+  /// @param result Result to append; left empty
+  /// @param concatenate If prior results are found, this concatenates the
+  /// bitstrings.
+  void append(ExecutionResult &&result, bool concatenate = false);
+
   /// @brief Return all register names. Can be used in tandem with
   /// sample_result::to_map(regName : string) to retrieve the counts
   /// for each register.

@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Dialect/Phys/Transforms/Passes.h"
 
@@ -4820,13 +4820,13 @@ private:
               if (owner)
                 return schedule.emitOpError(
                     "missing evidence: abort parallel retry occurrence has "
-                    "multiple summarized owners");
+                    "multiple summarized units");
               owner = unitIndex;
             }
             if (!owner)
               return schedule.emitOpError(
                   "missing evidence: abort parallel retry occurrence lacks "
-                  "a summarized owner");
+                  "a summarized unit");
             if (std::abs(units[*owner].finish -
                          retrySlices[sliceIndex].retryStart) > tolerance)
               return schedule.emitOpError(
@@ -5094,7 +5094,6 @@ private:
             return schedule.emitOpError(
                 "missing evidence: abort retry occurrence lacks an "
                 "authenticated replay slice");
-          const ReplaySlice &slice = retrySlices[retained->second];
           const RetryMetricResult &metrics =
               retryMetricResults[retained->second];
           RetryStatistics statistics =

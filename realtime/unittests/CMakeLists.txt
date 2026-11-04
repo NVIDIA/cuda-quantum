@@ -38,6 +38,10 @@ include(GoogleTest)
 # Explicit path: standalone realtime builds do not have cmake/modules on
 # CMAKE_MODULE_PATH.
 include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/modules/CUDAQGtestDiscovery.cmake)
+# The application dispatch kernel the test server and gpu_loopback embed with
+# cudaq_realtime_add_dispatch_kernel, and the driver_launch.h they launch it
+# with.
+set(CUDAQ_REALTIME_TEST_DISPATCHERS_DIR ${CMAKE_CURRENT_LIST_DIR}/dispatchers)
 
 
 add_compile_options(-Wno-attributes)
@@ -51,11 +55,12 @@ if(CMAKE_CUDA_COMPILER)
   enable_language(CUDA)
   
   # The dispatch kernel sources are compiled into this test directly instead
-  # of linking cudaq-realtime-dispatch: the unified-kernel tests define the
-  # three cudaq_dev_* transport hooks over a fake pinned-memory ring, and the
-  # archive carries its own hook TU (unified_transport_none.cu or the gpu_roce
-  # one), which would collide at device link.  libcudaq-realtime.so's weak
-  # references to the launchers bind to this executable's copies.
+  # of linking cudaq-realtime-dispatch: the unified kernel ships in no archive
+  # (libcudaq-realtime links it at run time over a bridge), and the
+  # unified-kernel tests define the three cudaq_dev_* transport hooks over a
+  # fake pinned-memory ring and device-link them with it here.
+  # libcudaq-realtime.so's weak references to the ring launchers bind to this
+  # executable's copies.
   add_executable(test_dispatch_kernel
     test_dispatch_kernel.cu
     ${CUDAQ_REALTIME_SOURCE_DIR}/lib/daemon/dispatcher/dispatch_kernel.cu
@@ -135,6 +140,13 @@ endif()
 if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
   add_subdirectory(bridge_interface/gpu_roce)
 endif()
+
+# Run-time linked GPU data plane over a test-only loopback provider: self-gated
+# on CUDA; skips at run time without a GPU.
+add_subdirectory(bridge_interface/gpu_loopback)
+
+# The public headers must compile as C.
+add_subdirectory(c_api)
 
 # UDP bridge provider tests: self-gated on the always-built udp provider
 # target, so they run in CI without any HSB/RDMA setup.

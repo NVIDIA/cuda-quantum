@@ -7,19 +7,16 @@
  ******************************************************************************/
 
 #include "py_run.h"
+#include "common/RecordLogParser.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithms/run.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <exception>
 #include <future>
 #include <memory>
 #include <nanobind/nanobind.h>
-#include <nanobind/ndarray.h>
-#include <nanobind/stl/complex.h>
-#include <nanobind/stl/function.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
@@ -71,7 +68,7 @@ getFuncOpAndCheckResult(mlir::ModuleOp mod, const std::string &shortName) {
   return fn;
 }
 
-static detail::RunResultSpan pyRunTheKernel(
+static std::unique_ptr<RecordLogParser> pyRunTheKernel(
     const std::string &name, quantum_platform &platform, mlir::ModuleOp mod,
     std::shared_ptr<detail::CompiledModuleCache> cache, std::size_t shots_count,
     std::size_t qpu_id, OpaqueArguments &opaques) {
@@ -104,13 +101,20 @@ static detail::RunResultSpan pyRunTheKernel(
       },
       platform, name, shots_count, qpu_id);
 
-  return detail::convertToRunResultSpan(runResult.outputLog, layoutInfo);
+  // Parse here rather than through `convertToRunResultSpan`: the parser keeps
+  // owning the result storage and frees it once the results are read.
+  auto parser = std::make_unique<RecordLogParser>(layoutInfo);
+  parser->parse(runResult.outputLog);
+  return parser;
 }
 
 static std::vector<nanobind::object>
-pyReadResults(detail::RunResultSpan results, mlir::ModuleOp mod,
+pyReadResults(const RecordLogParser &parser, mlir::ModuleOp mod,
               const std::string &name) {
   auto returnTy = recoverReturnType(mod, name);
+  detail::RunResultSpan results{static_cast<char *>(parser.getBufferPtr()),
+                                parser.getBufferSize(),
+                                parser.getResultCount()};
   return readRunResults(mod, returnTy, results, results.resultCount);
 }
 
@@ -129,36 +133,38 @@ run_impl(const std::string &shortName, MlirModule module,
     throw std::runtime_error(
         "Noise model is not supported on remote platforms.");
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, runtimeArgs, fnOp, launchSpecializesArguments(qpu_id));
 
-  detail::RunResultSpan span;
+  std::unique_ptr<RecordLogParser> parser;
   {
     nanobind::gil_scoped_release release;
     if (noise_model.has_value())
       // Launch the kernel in the appropriate context.
-      platform.set_noise(&noise_model.value());
-    span = detail::try_finally(
+      platform.set_noise(&noise_model.value(), qpu_id);
+    parser = detail::try_finally(
         [&] {
           return pyRunTheKernel(shortName, platform, mod, std::move(cache),
                                 shots_count, qpu_id, opaques);
         },
         [&] {
           if (noise_model.has_value())
-            platform.reset_noise();
+            platform.reset_noise(qpu_id);
         });
   }
-  return pyReadResults(span, mod, shortName);
+  return pyReadResults(*parser, mod, shortName);
 }
 
 namespace {
-// Internal struct representing buffer to be filled asynchronously.
-// When the `ready` future is set, the content of the buffer is filled.
-// `results` is owned by the struct; the deferred future captures a non-owning
-// raw pointer to it, which stays valid for the future's lifetime because the
-// future is destroyed before this member.
+// The parsed output log of a queued run. `get()` converts it on every call, so
+// the handle holds no Python object. A Python error kept here would collect the
+// frames of each `get()` caller, which can refer back to this handle through a
+// reference the garbage collector cannot see.
 struct PyAsyncRunResult {
-  std::unique_ptr<std::vector<nanobind::object>> results;
-  std::future<void> ready;
+  std::shared_future<std::unique_ptr<RecordLogParser>> parser;
+  // Owned by the Python handle, `AsyncRunResult.mod`.
+  mlir::ModuleOp mod;
+  std::string shortName;
 };
 } // namespace
 
@@ -183,70 +189,58 @@ run_async_impl(const std::string &shortName, MlirModule module,
     throw std::runtime_error(
         "Noise model is not supported on remote platforms.");
 
-  PyAsyncRunResult result;
-  result.results = std::make_unique<std::vector<nanobind::object>>();
+  std::promise<std::unique_ptr<RecordLogParser>> parserPromise;
+  PyAsyncRunResult result{parserPromise.get_future().share(), mod, shortName};
 
   if (shots_count == 0) {
-    std::promise<void> promise;
-    result.ready = promise.get_future();
-    promise.set_value();
+    parserPromise.set_value(nullptr);
     return result;
   }
 
-  std::promise<detail::RunResultSpan> spanPromise;
-  auto spanFuture = spanPromise.get_future();
-
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
-  // Run the kernel and compute results span.
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, runtimeArgs, fnOp, launchSpecializesArguments(qpu_id));
+  // Run the kernel and parse its output log.
   {
     // Release GIL to allow c++ threads, all code inside the scope is c++, so
     // there is no need to re-acquire the GIL inside the thread.
     nanobind::gil_scoped_release gil_release{};
     QuantumTask wrapped = detail::make_copyable_function(
-        [sp = std::move(spanPromise), noise_model = std::move(noise_model),
+        [pp = std::move(parserPromise), noise_model = std::move(noise_model),
          qpu_id, name = shortName, opaques = std::move(opaques), shots_count,
-         cache, mod = mod.clone()]() mutable {
+         cache,
+         clonedMod = std::shared_ptr<mlir::ModuleOp>(
+             new mlir::ModuleOp(mod.clone()), [](mlir::ModuleOp *p) {
+               p->erase();
+               delete p;
+             })]() mutable {
           auto &platform = get_platform();
 
-          detail::RunResultSpan span{};
+          std::unique_ptr<RecordLogParser> parser;
           std::exception_ptr error;
           try {
             // Launch the kernel in the appropriate context.
             if (noise_model.has_value())
-              platform.set_noise(&noise_model.value());
-            span = pyRunTheKernel(name, platform, mod, cache, shots_count,
-                                  qpu_id, opaques);
+              platform.set_noise(&noise_model.value(), qpu_id);
+            parser = pyRunTheKernel(name, platform, *clonedMod, cache,
+                                    shots_count, qpu_id, opaques);
           } catch (...) {
             error = std::current_exception();
           }
 
           if (noise_model.has_value())
-            detail::invoke_no_throw([&]() { platform.reset_noise(); });
+            detail::invoke_no_throw([&]() { platform.reset_noise(qpu_id); });
 
+          // Erase the clone before signaling, so that it is gone by the time
+          // `get()` returns. Otherwise whichever thread drops the last copy of
+          // this task erases it, possibly after `get()`.
+          clonedMod.reset();
           if (error)
-            sp.set_exception(std::move(error));
+            pp.set_exception(std::move(error));
           else
-            sp.set_value(span);
+            pp.set_value(std::move(parser));
         });
     platform.enqueueAsyncTask(qpu_id, wrapped);
-  }
-
-  // Convert results after the span is computed.
-  {
-    // Release GIL to allow c++ threads, re-acquire for conversion of the
-    // results to python objects.
-    nanobind::gil_scoped_release gil_release{};
-    auto resultFuture =
-        std::async(std::launch::deferred, [sf = std::move(spanFuture),
-                                           resultsPtr = result.results.get(),
-                                           mod, shortName]() mutable {
-          auto span = sf.get();
-          nanobind::gil_scoped_acquire gil{};
-          auto results = pyReadResults(span, mod, shortName);
-          std::swap(*resultsPtr, results);
-        });
-    result.ready = std::move(resultFuture);
   }
 
   return result;
@@ -283,9 +277,25 @@ void cudaq::bindPyRunAsync(nanobind::module_ &mod) {
               // Release the GIL so the async task's MLIR worker threads
               // can call PyGILState_Ensure without deadlocking on us.
               nanobind::gil_scoped_release release;
-              self.ready.get();
+              self.parser.wait();
             }
-            return std::move(*self.results);
+            const RecordLogParser *parser = nullptr;
+            try {
+              // A failed run raises its error from every `get()`.
+              parser = self.parser.get().get();
+            } catch (const nanobind::python_error &e) {
+              // A Python callback in the queued run, such as a noise channel,
+              // raised it. Raising a `python_error` hands the error to Python
+              // and empties `e`, so a later `get()` raises its text instead.
+              if (!e.value())
+                throw std::runtime_error(e.what());
+              e.what(); // Keep the text before the error is handed over.
+              throw;
+            }
+            // A null parser means `shots_count` was 0.
+            if (!parser)
+              return std::vector<nanobind::object>{};
+            return pyReadResults(*parser, self.mod, self.shortName);
           },
           "FIXME: documentation goes here");
 

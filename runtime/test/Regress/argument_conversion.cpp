@@ -29,6 +29,7 @@ using namespace cudaq_internal::compiler;
 class FakeDeviceState : public cudaq::SimulationState {
 private:
   std::string kernelName;
+  std::string code;
   std::vector<void *> args;
   std::size_t size = 0;
   void *data = 0;
@@ -42,10 +43,11 @@ public:
 
   FakeDeviceState() = default;
   FakeDeviceState(std::size_t size, void *data) : size(size), data(data) {}
-  FakeDeviceState(const std::string &kernelName, const std::vector<void *> args)
-      : kernelName(kernelName), args(args) {}
+  FakeDeviceState(const std::string &kernelName, const std::string &code,
+                  const std::vector<void *> args)
+      : kernelName(kernelName), code(code), args(args) {}
   FakeDeviceState(const FakeDeviceState &other)
-      : kernelName(other.kernelName), args(other.args) {}
+      : kernelName(other.kernelName), code(other.code), args(other.args) {}
 
   virtual std::unique_ptr<cudaq::SimulationState>
   createFromData(const cudaq::state_data &data) override {
@@ -53,6 +55,14 @@ public:
   }
 
   virtual bool hasData() const override { return data != nullptr; }
+
+  virtual std::optional<
+      std::tuple<std::string, std::string, std::vector<void *>>>
+  getKernelInfo() const override {
+    if (kernelName.empty())
+      return std::nullopt;
+    return std::make_tuple(kernelName, code, args);
+  }
 
   virtual Tensor getTensor(std::size_t tensorIdx = 0) const override {
     throw std::runtime_error("Not implemented");
@@ -572,6 +582,50 @@ void test_simulation_state(mlir::MLIRContext *ctx) {
   // clang-format on
 }
 
+// A state captured from a kernel is replaced by generated `init` and
+// `num_qubits` functions. The caller owns the qubits it passes to `init`, so
+// the deallocation and the compiler-generated evince of the argument must be
+// dropped from `init`. A user-written evince is kept.
+void test_kernel_state(mlir::MLIRContext *ctx) {
+  const char *code = R"#(
+func.func @__nvqpp__mlirgen__callee(%arg0: i64) {
+  %0 = quake.alloca !quake.veq<?>[%arg0 : i64]
+  %1 = quake.extract_ref %0[0] : (!quake.veq<?>) -> !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  quake.evince %0 : (!quake.veq<?>) -> () {compilerGenerated}
+  quake.evince %0 : (!quake.veq<?>) -> ()
+  quake.dealloc %0 : !quake.veq<?>
+  return
+})#";
+  std::int64_t numQubits = 2;
+  std::vector<void *> calleeArgs = {static_cast<void *>(&numQubits)};
+  auto x = cudaq::state(new FakeDeviceState("callee", code, calleeArgs));
+  std::vector<void *> v = {static_cast<void *>(&x)};
+  doSimpleTest(ctx, "!cc.ptr<!quake.state>", v);
+
+  // clang-format off
+// CHECK:       Source module:
+// CHECK:         func.func private @callee(!cc.ptr<!quake.state>)
+// CHECK:       Substitution module:
+
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK:           quake.materialize_state @__nvqpp__mlirgen__callee.num_qubits_{{[0-9]+}}, @__nvqpp__mlirgen__callee.init_{{[0-9]+}} : !cc.ptr<!quake.state>
+// CHECK:         }
+
+// CHECK-LABEL:   func.func private @__nvqpp__mlirgen__callee.init_{{[0-9]+}}(
+// CHECK-SAME:        %{{.*}}: i64, %[[ARG:.*]]: !quake.veq<?>) -> !quake.veq<?> {
+// CHECK:           %[[SUB:.*]] = quake.subveq %[[ARG]], %{{.*}}, %{{.*}} : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+// The compiler-generated evince on the argument is dropped; the user one is not.
+// CHECK-NEXT:      quake.evince %[[SUB]] : (!quake.veq<?>) -> ()
+// CHECK-NOT:       quake.evince
+// The caller owns the qubits, so the argument is not deallocated here.
+// CHECK-NOT:       quake.dealloc
+// CHECK:           return %{{.*}} : !quake.veq<?>
+// CHECK:         }
+  // clang-format on
+}
+
 void test_combinations(mlir::MLIRContext *ctx) {
   {
     bool x = true;
@@ -693,6 +747,7 @@ int main() {
   test_aggregates(&context);
   test_recursive(&context);
   test_simulation_state(&context);
+  test_kernel_state(&context);
   test_combinations(&context);
   test_callable_closure_argument(&context);
   return 0;

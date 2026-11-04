@@ -13,17 +13,26 @@ may involve undocumented foot guns.
 
 from .runtime_endpoint import RuntimeEndpoint
 from .compile_target import (Codegen, CompilationStage, CompileTarget,
-                             CustomPipelineLowering,
-                             QuakeReferenceSemanticsProfile, UncheckedProfile)
-from .custom_target import CustomTarget
+                             CostModel, CustomPipelineLowering, LoopUnrolling,
+                             NoiseSupport, QuakeMappedProfile,
+                             QuakeReferenceSemanticsProfile,
+                             QuakeUnmappedProfile, UncheckedProfile,
+                             get_compile_target)
+from cudaq.core._experimental import CustomTarget
 
 __all__ = [
     "Codegen",
     "CompilationStage",
     "CompileTarget",
+    "CostModel",
     "CustomPipelineLowering",
     "CustomTarget",
+    "LoopUnrolling",
+    "NoiseSupport",
     "RuntimeEndpoint",
+    "QuakeMappedProfile",
     "QuakeReferenceSemanticsProfile",
+    "QuakeUnmappedProfile",
     "UncheckedProfile",
+    "get_compile_target",
 ]

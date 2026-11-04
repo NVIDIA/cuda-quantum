@@ -92,7 +92,7 @@ def analytical(
         if _symbol(operation.operation) is not None
     }
     root = symbols[build.root.symbol]
-    if root.name == "fabric.gadget_profile":
+    if root.name == "fabric.gadget_contract":
         root = symbols[_attr_text(root.attributes["gadget"])]
 
     def _dictionary(attribute):
@@ -445,7 +445,7 @@ def analytical(
                     f"retry probability source @{source_name} disagrees with its gadget spec"
                 )
             metadata_source = spec
-        elif source.name in {"fabric.protocol", "fabric.gadget_profile"}:
+        elif source.name in {"fabric.protocol", "fabric.gadget_contract"}:
             metadata_source = source
         else:
             raise MissingEvidence(
@@ -624,7 +624,7 @@ def analytical(
                         "its selected action site")
             elif evidence.startswith("analysis:"):
                 profile_name = _attr_text(operation.attributes.get("profile"))
-                if source_name != profile_name or source.name != "fabric.gadget_profile":
+                if source_name != profile_name or source.name != "fabric.gadget_contract":
                     raise MissingEvidence(
                         f"retry @{attempt_name} analysis evidence is not the "
                         "selected profile")
@@ -639,7 +639,12 @@ def analytical(
                     f"retry @{attempt_name} uses unsupported probability evidence"
                 )
 
-            if probability == 1.0:
+            if maximum == 1:
+                # One attempt always executes once. Avoid a log/exp round trip
+                # that can put the expectation outside the singleton [1, 1].
+                completion = probability
+                exhaustion = 1.0 - probability
+            elif probability == 1.0:
                 completion = 1.0
                 exhaustion = 0.0
             else:
@@ -693,8 +698,8 @@ def analytical(
                         "fabric.protocol",
                         "fabric.protocol_return",
                         "fabric.return",
-                        "fabric.profile_end",
-                        "fabric.gadget_profile",
+                        "fabric.contract_end",
+                        "fabric.gadget_contract",
                         "cflow.yield",
                         "event.yield",
                     })

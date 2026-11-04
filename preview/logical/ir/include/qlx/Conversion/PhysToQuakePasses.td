@@ -1,4 +1,4 @@
-/********************************************************** -*- tablegen -*- ***
+/***********************************************************-*- tablegen -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -19,8 +19,8 @@ def PhysToQuake : Pass<"phys-to-quake", "mlir::ModuleOp"> {
     named `__nvqpp__mlirgen__<entry>`, as the CUDA-Q front-ends name kernels.
     The module then holds only that function and the intrinsics it calls.
     The pass removes the `qlx.*` module attributes, keeps the others, and
-    adds `quake.noOptimization`. Other graphs in the module are erased
-    without being translated.
+    adds `quake.optimizationLevel=0` to the function. Other graphs in the
+    module are erased without being translated.
 
     Each P3 operation becomes the Quake below, in program order:
       - `phys.acquire` and `phys.release` of a carrier become
@@ -38,10 +38,7 @@ def PhysToQuake : Pass<"phys-to-quake", "mlir::ModuleOp"> {
         ancilla, and the ancilla is measured and freed. With `invert`, the
         bit is complemented where it is read.
       - `phys.rotate_product` is `exp(-i angle P / 2)`: basis changes and a
-        CX ladder around `rz`. A multiple of pi/2 up to floating-point
-        rounding, at most 128 full turns, uses `s`, `z`, `sdg`, or no gate
-        instead, because Stim runs no `rz`. An angle whose magnitude is at
-        most 1e-12 rad uses no gate. Every other angle keeps `rz`.
+        CX ladder around `rz`, at every angle.
       - `phys.call` is inlined. `phys.call_template` replays the body of the
         call that `template_event` names, on the carriers that
         `state_aliases` maps the body's resources to. A template with

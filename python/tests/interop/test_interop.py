@@ -6,6 +6,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import os
+import subprocess
+import sys
+
 import cudaq, pytest
 
 
@@ -218,6 +222,55 @@ def test_cpp_kernel_from_python_4():
     counts = cudaq.sample(callQftAndAnother)
     print(counts)
     assert len(counts) == 1 and '0010' in counts
+
+
+def test_cpp_kernel_calling_cpp_kernel_from_another_file():
+    """The captured C++ kernel only declares its callee, whose definition the
+    compiler must fetch from the registry."""
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    from cudaq_test_cpp_algo import qstd
+
+    @cudaq.kernel
+    def callCallFlip() -> bool:
+        q = cudaq.qvector(4)
+        qstd.call_flip(q, 2)
+        return mz(q[2])
+
+    # The program cannot be cached, so every call compiles it.
+    assert callCallFlip()
+    assert callCallFlip()
+
+
+@pytest.mark.parametrize("structural", [False, True])
+def test_cpp_kernel_calling_cpp_kernel_from_another_file_in_both_fingerprint_modes(
+        structural):
+    """The fingerprint mode is read once per process, so re-run the test above
+    in a fresh process for each mode."""
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    env = dict(os.environ)
+    if structural:
+        env["CUDAQ_FINGERPRINT_STRUCTURE"] = "1"
+    else:
+        env.pop("CUDAQ_FINGERPRINT_STRUCTURE", None)
+
+    test = (f"{__file__}::"
+            "test_cpp_kernel_calling_cpp_kernel_from_another_file")
+    result = subprocess.run([
+        sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
+        "--no-header", test
+    ],
+                            capture_output=True,
+                            text=True,
+                            env=env)
+
+    # The child skips rather than fails if it cannot import the module, so
+    # require that the test actually passed.
+    assert result.returncode == 0 and "1 passed" in result.stdout, (
+        "failed with CUDAQ_FINGERPRINT_STRUCTURE="
+        f"{env.get('CUDAQ_FINGERPRINT_STRUCTURE', '<unset>')}\n"
+        f"{result.stdout}\n{result.stderr}")
 
 
 def test_callbacks():

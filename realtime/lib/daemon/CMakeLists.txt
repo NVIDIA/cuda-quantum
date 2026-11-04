@@ -30,13 +30,13 @@ if(CUDA_FOUND)
   # otherwise defaults to libc++). The public interface is C-compatible and
   # does not expose C++ standard-library ABI types.
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} APPEND PROPERTY
-      COMPILE_OPTIONS -stdlib=libstdc++)
+    set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} dispatcher/host_dispatcher.cpp
+      APPEND PROPERTY COMPILE_OPTIONS -stdlib=libstdc++)
     target_link_options(cudaq-realtime PRIVATE
       "$<HOST_LINK:-stdlib=libstdc++>")
     if(DEFINED ENV{GCC_TOOLCHAIN} AND IS_DIRECTORY "$ENV{GCC_TOOLCHAIN}")
-      set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} APPEND PROPERTY
-        COMPILE_OPTIONS "--gcc-toolchain=$ENV{GCC_TOOLCHAIN}")
+      set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} dispatcher/host_dispatcher.cpp
+        APPEND PROPERTY COMPILE_OPTIONS "--gcc-toolchain=$ENV{GCC_TOOLCHAIN}")
       target_link_options(cudaq-realtime PRIVATE
         "$<HOST_LINK:--gcc-toolchain=$ENV{GCC_TOOLCHAIN}>")
     endif()
@@ -53,6 +53,7 @@ if(CUDA_FOUND)
       CUDA::cudart_static
     PRIVATE
       cudaq-realtime-host-dispatch
+      cudaq-realtime-device-code
   )
 
   target_compile_definitions(cudaq-realtime PUBLIC CUDAQ_REALTIME_HAVE_CUDA)
@@ -74,7 +75,6 @@ if(CUDA_FOUND)
 
   add_library(cudaq-realtime-dispatch STATIC
     dispatcher/dispatch_kernel.cu
-    dispatcher/unified_dispatch_kernel.cu
   )
   # Source-tree CUDA-Q integration uses the same cudaq:: target names
   # that installed exports provide.
@@ -114,13 +114,14 @@ if(CUDA_FOUND)
   )
 
   # ============================================================================
-  # Host-side graph dispatcher (optional, for Grace Hopper / Grace Blackwell etc.)
+  # Host dispatch loops (CUDAQ_DISPATCH_PATH_HOST)
   # ============================================================================
-  # Compiled with nvcc so libcu++ (<cuda/std/atomic>) works without extra
-  # include paths. Host-only code; no device code in this TU.
+  # Plain C++: the loops run HOST_CALL handlers and never call the CUDA
+  # runtime, so the library links no cudart.  cudaq_realtime.h includes
+  # <cuda_runtime.h>, so consumers need the toolkit headers: CUDA::toolkit is
+  # the headers-only interface target, linked PUBLIC to say so.
   add_library(cudaq-realtime-host-dispatch STATIC
-    dispatcher/host_dispatcher.cu
-    dispatcher/graph_launch_engine.cu
+    dispatcher/host_dispatcher.cpp
   )
   # Source-tree CUDA-Q integration uses the same cudaq:: target names
   # that installed exports provide.
@@ -134,11 +135,10 @@ if(CUDA_FOUND)
 
   target_link_libraries(cudaq-realtime-host-dispatch
     PUBLIC
-      CUDA::cudart_static
+      CUDA::toolkit
   )
 
   set_target_properties(cudaq-realtime-host-dispatch PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
     ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
   )
@@ -153,34 +153,6 @@ if(CUDA_FOUND)
     add_subdirectory(bridge/gpu_roce)
   endif()
 
-  # No transport supplied the unified device hooks, so link the null data
-  # plane; see unified_transport_none.cu.
-  get_property(_cudaq_unified_transport GLOBAL
-    PROPERTY CUDAQ_REALTIME_UNIFIED_TRANSPORT_TU)
-  if (NOT _cudaq_unified_transport)
-    set(_cudaq_unified_transport dispatcher/unified_transport_none.cu)
-    target_sources(cudaq-realtime-dispatch PRIVATE ${_cudaq_unified_transport})
-  endif()
-
-  # Device LTO for the unified kernel and its transport hooks.  The hooks are
-  # extern __device__ functions in another TU, so without LTO they stay
-  # out-of-line calls on the per-message path.  Both TUs carry LTO IR next to
-  # their SASS -- nvcc rejects a bare -dlto beside the global -gencode flags
-  # -- and consumers device-link with -dlto, which inlines the hooks into the
-  # kernel.  A consumer linking without -dlto still gets the plain SASS.
-  # nvlink sizes the kernel's registers for every handler reachable through
-  # the function table, LTO or not, since they share the consumer's module.
-  foreach(_arch IN LISTS CUDA_TARGET_ARCHS)
-    set_property(SOURCE dispatcher/unified_dispatch_kernel.cu
-      ${_cudaq_unified_transport} APPEND PROPERTY COMPILE_OPTIONS
-      "--generate-code=arch=compute_${_arch},code=lto_${_arch}")
-  endforeach()
-  unset(_arch)
-  if (CUDA_TARGET_ARCHS)
-    target_link_options(cudaq-realtime-dispatch INTERFACE
-      "$<DEVICE_LINK:-dlto>")
-  endif()
-  unset(_cudaq_unified_transport)
   # CPU transport bridge providers (thin provider .so's over the
   # cpu_transport ring transceivers; loaded via CUDAQ_REALTIME_BRIDGE_LIB).
   add_subdirectory(bridge/udp)

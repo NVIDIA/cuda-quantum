@@ -22,7 +22,7 @@ from cudaq.mlir.dialects import func
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import quake, cc
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
-                           IntegerType, Context, Module)
+                           IntegerAttr, IntegerType, Context, Module)
 from cudaq.mlir._mlir_libs._quakeDialects import register_all_dialects
 from cudaq.kernel_types import measure_handle, qubit, qvector, qview
 
@@ -306,11 +306,47 @@ def set_tracebacklimit(limit=None):
         del sys.tracebacklimit
 
 
+# The MLIR function attribute carrying the quantum optimization level.
+optimization_level_attr_name = 'quake.optimizationLevel'
+
+
+def get_optimization_level_attr(module, kernelName):
+    """
+    Return the `quake.optimizationLevel` set on the kernel `kernelName` in
+    `module`, or `None` when it carries no explicit level.
+    """
+    funcOp = recover_func_op(module, nvqppPrefix + kernelName)
+    attr = funcOp.attributes.get(optimization_level_attr_name)
+    return None if attr is None else attr.value
+
+
+def set_optimization_level_attr(module, kernelName, level):
+    """
+    Set the `quake.optimizationLevel` attribute on the kernel `kernelName` in
+     `module`, and on its `.run` entry point if it has one. `level` must be an
+     integer between 0 and 3.
+    """
+    if isinstance(level,
+                  bool) or not isinstance(level, int) or level < 0 or level > 3:
+        raise ValueError(
+            f"`optimization_level` must be an integer between 0 and 3, got "
+            f"{level!r}.")
+    levelAttr = IntegerAttr.get(
+        IntegerType.get_signless(32, context=module.context), level)
+    recover_func_op(module, nvqppPrefix + kernelName).attributes.__setitem__(
+        optimization_level_attr_name, levelAttr)
+    # `cudaq.run` launches the `.run` entry point instead of the kernel.
+    runFuncOp = recover_func_op(module, nvqppPrefix + kernelName + ".run")
+    if runFuncOp is not None:
+        runFuncOp.attributes.__setitem__(optimization_level_attr_name,
+                                         levelAttr)
+
+
 def emitFatalError(msg):
     """
-    Emit a fatal error diagnostic. The goal here is to 
-    retain the input message, but also provide the offending 
-    source location by inspecting the stack trace. 
+    Emit a fatal error diagnostic. The goal here is to
+    retain the input message, but also provide the offending
+    source location by inspecting the stack trace.
     """
     print(Color.BOLD, end='')
     try:
@@ -653,6 +689,11 @@ def mlirTypeFromAnnotation(annotation,
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
+    # A `list` subclass carries no type information so assign as list here
+    if type(argType) is type and argType is not list and issubclass(
+            argType, list):
+        argType = list
+
     if argType in [int, np.int64]:
         return IntegerType.get_signless(64, ctx)
     if argType == np.int32:

@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Dialect/LVM/IR/LVMDialect.h"
 #include "qlx/Dialect/Event/IR/EventTypes.h"
@@ -177,7 +177,7 @@ LogicalResult DomainOp::verify() {
           "an lvm.apply source_site requires kind = action");
     if (site.getObjectiveAttr() != source.getActionAttr())
       return site.emitOpError(
-          "objective does not match the source_site lvm.apply action");
+          "action does not match the source_site lvm.apply action");
     if (site.getPlacements() != source.getPlacements())
       return site.emitOpError(
           "placements do not match the source_site lvm.apply placements");
@@ -825,14 +825,14 @@ static LogicalResult verifyPlacedCall(Operation *op, ArrayAttr placements,
         results, [](Type type) { return isa<LogicalQubitType>(type); });
     if (!expectInstrument && quantumInputs.size() != quantumResults)
       return op->emitOpError(
-          "built-in logical actions must preserve logical owner arity");
+          "built-in logical actions must preserve logical-qubit value arity");
     return success();
   }
   Operation *declaration = lookupObjective(op, reference);
   if (!declaration ||
       (expectInstrument && !isa<qlx::InstrumentDeclOp>(declaration)) ||
       (!expectInstrument && !isa<qlx::ActionOp>(declaration)))
-    return op->emitOpError("references missing or wrong-kind objective ")
+    return op->emitOpError("references missing or wrong-kind action ")
            << reference;
   auto functionType =
       expectInstrument
@@ -846,16 +846,14 @@ static LogicalResult verifyPlacedCall(Operation *op, ArrayAttr placements,
     // compare non-quantum types and arity while accepting that refinement.
     if (inputs.size() != functionType.getNumInputs() ||
         results.size() != functionType.getNumResults())
-      return op->emitOpError("objective arity does not match placed call");
+      return op->emitOpError("action arity does not match placed call");
     for (auto [actual, ideal] :
          llvm::zip(inputs.getTypes(), functionType.getInputs()))
       if (!isa<LogicalQubitType>(actual) && actual != ideal)
-        return op->emitOpError(
-            "non-quantum input type does not match objective");
+        return op->emitOpError("non-quantum input type does not match action");
     for (auto [actual, ideal] : llvm::zip(results, functionType.getResults()))
       if (!isa<LogicalQubitType>(actual) && actual != ideal)
-        return op->emitOpError(
-            "non-quantum result type does not match objective");
+        return op->emitOpError("non-quantum result type does not match action");
   }
   return success();
 }
@@ -871,7 +869,7 @@ static FailureOr<FlatSymbolRefAttr>
 resolveOwnerSpace(Operation *op, DomainOp domain, SymbolRefAttr placement) {
   if (!placement || placement.getNestedReferences().size() != 1 ||
       placement.getRootReference() != domain.getSymNameAttr()) {
-    op->emitOpError("owner placements must be rooted in the kernel domain");
+    op->emitOpError("qubit placements must be rooted in the kernel domain");
     return failure();
   }
   Operation *target =
@@ -880,7 +878,7 @@ resolveOwnerSpace(Operation *op, DomainOp domain, SymbolRefAttr placement) {
     return FlatSymbolRefAttr::get(op->getContext(), space.getSymName());
   if (auto binding = dyn_cast_or_null<PlacementOp>(target))
     return binding.getSpaceAttr();
-  op->emitOpError("owner placement does not resolve to lvm.space or "
+  op->emitOpError("qubit placement does not resolve to lvm.space or "
                   "lvm.placement");
   return failure();
 }
@@ -1049,13 +1047,13 @@ static LogicalResult verifyCommunicationObligation(InstrumentOp op) {
       resultOwners.push_back(type);
   if (inputOwners.size() != 2)
     return op.emitOpError(
-        "remote observable requires exactly two logical owners");
+        "remote observable requires exactly two logical-qubit values");
   if (inputOwners != resultOwners)
     return op.emitOpError(
-        "remote observable must preserve owner types and order");
+        "remote observable must preserve operand types and order");
   if (op.getNumResults() == resultOwners.size())
     return op.emitOpError(
-        "remote observable requires at least one non-owner outcome");
+        "remote observable requires at least one classical outcome");
 
   for (auto [index, placementAttr] : llvm::enumerate(op.getPlacements())) {
     auto placement = dyn_cast<SymbolRefAttr>(placementAttr);
@@ -1064,7 +1062,7 @@ static LogicalResult verifyCommunicationObligation(InstrumentOp op) {
       return failure();
     if (*ownerSpace != endpointSpaces[index])
       return op.emitOpError(
-          "owner placement does not match its ordered endpoint");
+          "qubit placement does not match its ordered endpoint");
   }
   return success();
 }
@@ -1102,7 +1100,7 @@ LogicalResult ActionSiteOp::verify() {
       dyn_cast_or_null<qlx::BuiltinInstrumentAttr>(getObjectiveAttr());
   if (!builtin || builtin.getValue() != qlx::BuiltinInstrument::mpp)
     return emitOpError(
-        "communication action site objective must be the built-in MPP");
+        "communication action site must declare the built-in MPP");
   if (getChannelCapabilityAttr().getKey() != "qlx.machine/observable_remote")
     return emitOpError("communication action site requires observable_remote "
                        "channel capability");
@@ -1173,7 +1171,7 @@ LogicalResult ActionSiteOp::verify() {
     if (failed(ownerSpace))
       return failure();
     if (*ownerSpace != endpoint)
-      return emitOpError("owner placement does not match its ordered endpoint");
+      return emitOpError("qubit placement does not match its ordered endpoint");
   }
   return success();
 }
