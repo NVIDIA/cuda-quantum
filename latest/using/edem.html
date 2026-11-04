@@ -1202,6 +1202,12 @@ native build with <code class="docutils literal notranslate"><span class="pre">C
 installing <code class="docutils literal notranslate"><span class="pre">nanobind&gt;=2.12,&lt;3</span></code> into the chosen Python environment. Set
 <code class="docutils literal notranslate"><span class="pre">Python_EXECUTABLE</span></code> to select an interpreter. Standalone native builds default to
 <code class="docutils literal notranslate"><span class="pre">CUDAQ_EDEM_BUILD_PYTHON=OFF</span></code>.</p>
+<p>Native Python bindings install under
+<code class="docutils literal notranslate"><span class="pre">lib/pythonX.Y/site-packages/cudaq_edem</span></code> by default. Set
+<code class="docutils literal notranslate"><span class="pre">CUDAQ_EDEM_PYTHON_INSTALL_DIR</span></code> to change the package directory relative to
+<code class="docutils literal notranslate"><span class="pre">CMAKE_INSTALL_PREFIX</span></code>. <code class="docutils literal notranslate"><span class="pre">scripts/build_cudaq.sh</span> <span class="pre">-L</span></code> sets it to <code class="docutils literal notranslate"><span class="pre">cudaq_edem</span></code>,
+beside the native installation’s <code class="docutils literal notranslate"><span class="pre">cudaq</span></code> package, so the same <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code>
+entry exposes both packages.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">cudaq-edem</span></code> wheel includes the <code class="docutils literal notranslate"><span class="pre">cudaq_edem</span></code> Python package, both native
 libraries, headers, and CMake exports. The Python module owns aligned buffers
 and delegates construction, validation, and evaluation to the C interface.

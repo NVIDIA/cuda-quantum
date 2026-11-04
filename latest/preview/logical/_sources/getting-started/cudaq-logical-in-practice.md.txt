@@ -86,7 +86,7 @@ replace the class definition with `Steane = cql.codes.Steane`.
 Supply [gadgets](concepts.md#codes-and-operation-implementations) for the Bell
 program's Hadamard and controlled-X operations. Each `implements=` clause
 names the ideal logical
-[objective](concepts.md#codes-and-operation-implementations); the body
+[action](concepts.md#codes-and-operation-implementations); the body
 describes its implementation on encoded patches. For Steane, these operations
 can be applied across the data qubits:
 

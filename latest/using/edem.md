@@ -2087,6 +2087,20 @@ chosen Python environment. Set [`Python_EXECUTABLE`{.docutils .literal
 default to [`CUDAQ_EDEM_BUILD_PYTHON=OFF`{.docutils .literal
 .notranslate}]{.pre}.
 
+Native Python bindings install under
+[`lib/pythonX.Y/site-packages/cudaq_edem`{.docutils .literal
+.notranslate}]{.pre} by default. Set
+[`CUDAQ_EDEM_PYTHON_INSTALL_DIR`{.docutils .literal .notranslate}]{.pre}
+to change the package directory relative to
+[`CMAKE_INSTALL_PREFIX`{.docutils .literal .notranslate}]{.pre}.
+[`scripts/build_cudaq.sh`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`-L`{.docutils
+.literal .notranslate}]{.pre} sets it to [`cudaq_edem`{.docutils
+.literal .notranslate}]{.pre}, beside the native installation's
+[`cudaq`{.docutils .literal .notranslate}]{.pre} package, so the same
+[`PYTHONPATH`{.docutils .literal .notranslate}]{.pre} entry exposes both
+packages.
+
 The [`cudaq-edem`{.docutils .literal .notranslate}]{.pre} wheel includes
 the [`cudaq_edem`{.docutils .literal .notranslate}]{.pre} Python
 package, both native libraries, headers, and CMake exports. The Python
