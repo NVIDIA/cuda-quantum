@@ -40,3 +40,29 @@ func.func @linear_values(%dynamic : !quake.veq<?>) {
 // LINEAR:         quake.sink %[[SPLIT]]#1 : !quake.wire
 // LINEAR-NOT:     quake.extract_ref
 // LINEAR:         return
+
+// Regression test for issue #5400: a `quake.subveq` with constant bounds that
+// feeds a non-convertible use (here, a `call`) must still be lowered to wire
+// form. Before the fix, `factor-quantum-alloc` left the `subveq` in place,
+// and `cable-rough-in` refused to convert the call because it only recognizes
+// `concat` (or `relax_size` of a `concat`) at the argument position. After
+// the fix, `factor-quantum-alloc` rewrites the `subveq` into a narrow
+// `concat` of refs, which `cable-rough-in` then turns into a `bundle_cable`
+// for the `apply`/`call`.
+func.func private @take_veq2(!quake.veq<2>)
+
+func.func @subveq_at_call_site_to_linear() {
+  %v = quake.alloca !quake.veq<4>
+  %s = quake.subveq %v, 1, 2 : (!quake.veq<4>) -> !quake.veq<2>
+  call @take_veq2(%s) : (!quake.veq<2>) -> ()
+  quake.dealloc %v : !quake.veq<4>
+  return
+}
+
+// LINEAR-LABEL: func.func @subveq_at_call_site_to_linear()
+// LINEAR-NOT:     quake.alloca
+// LINEAR-NOT:     quake.subveq
+// LINEAR:         %[[CABLE:.*]] = quake.bundle_cable %{{.*}}, %{{.*}} : (!quake.wire, !quake.wire) -> !quake.cable<2>
+// LINEAR:         %[[CALL:.*]] = quake.apply @take_veq2 (%[[CABLE]]) : (!quake.cable<2>) -> !quake.cable<2>
+// LINEAR:         %[[SPLIT:.*]]:2 = quake.split_cable %[[CALL]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+// LINEAR:         return
