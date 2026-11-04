@@ -144,7 +144,7 @@ public:
   /// values into a message buffer. The message buffer is a pointer-free block
   /// of memory allocated on the heap on the host. Once the argument values are
   /// packed into the message buffer, they can be passed to
-  /// __cudaq_altLaunchKernel or the corresponding thunk function.
+  /// __cudaq_launchKernel or the corresponding thunk function.
   ///
   /// The created function takes two arguments. The first argument is a pointer
   /// to a block containing the argument values to be encoded. The second
@@ -662,44 +662,40 @@ public:
       launchResult = endifBlock->getArgument(0);
     };
 
-    // Generate the call to `launchKernel`.
-    switch (codegenKind) {
-    case 0: {
-      assert(vecArgPtrs && castLoadThunk);
-      auto launch = func::CallOp::create(
-          builder, loc, cudaq::opt::factory::getDynamicBufferType(ctx),
-          cudaq::runtime::launchKernelHybridFuncName,
-          ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
-                          extendedStructSize, resultOffset, vecArgPtrs});
-      decodeLaunchResults(launch.getResult(0));
-    } break;
-    case 1: {
-      assert(!vecArgPtrs && castLoadThunk);
-      auto launch = func::CallOp::create(
-          builder, loc, cudaq::opt::factory::getDynamicBufferType(ctx),
-          cudaq::runtime::launchKernelFuncName,
-          ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
-                          extendedStructSize, resultOffset});
-      decodeLaunchResults(launch.getResult(0));
-    } break;
-    case 2: {
-      assert(vecArgPtrs && !castLoadThunk);
-      func::CallOp::create(builder, loc, TypeRange{},
-                           cudaq::runtime::launchKernelStreamlinedFuncName,
-                           ArrayRef<Value>{castLoadKernName, vecArgPtrs});
-      // For this codegen kind, we drop any results on the floor and return
-      // random data in registers and/or off the stack. This maintains parity
-      // with any pre-existing kernel launchers.
+    // Generate the call to `__cudaq_launchKernel`. The codegen kind decides
+    // which argument conventions are built. The others are passed as null.
+    const bool packed = cudaq::opt::marshal::isCodegenPackedData(codegenKind);
+    const bool gather =
+        cudaq::opt::marshal::isCodegenArgumentGather(codegenKind);
+    if (!packed || !gather) {
+      Value zero = arith::ConstantIntOp::create(builder, loc, 0, 64);
+      Value nullPtr = cudaq::cc::CastOp::create(builder, loc, ptrI8Ty, zero);
+      if (!packed) {
+        castLoadThunk = nullPtr;
+        castTemp = nullPtr;
+        extendedStructSize = zero;
+        resultOffset = zero;
+      }
+      if (!gather)
+        vecArgPtrs = nullPtr;
+    }
+    auto launch = func::CallOp::create(
+        builder, loc, cudaq::opt::factory::getDynamicBufferType(ctx),
+        cudaq::runtime::launchKernelFuncName,
+        ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
+                        extendedStructSize, resultOffset, vecArgPtrs});
+    if (!packed) {
+      // Without the packed convention, there is no buffer to return results
+      // in. We drop any results on the floor and return random data in
+      // registers and/or off the stack. This maintains parity with any
+      // pre-existing kernel launchers.
       SmallVector<Value> garbage;
       for (auto ty : hostFunc.getFunctionType().getResults())
         garbage.push_back(cudaq::cc::UndefOp::create(builder, loc, ty));
       func::ReturnOp::create(builder, loc, garbage);
       return;
     }
-    default:
-      hostFunc.emitOpError("codegen kind is invalid");
-      return;
-    }
+    decodeLaunchResults(launch.getResult(0));
 
     // If and only if this kernel returns a value, unpack and load the
     // result value(s) from the struct returned by `launchKernel` and return
@@ -889,28 +885,11 @@ public:
     if (!mangledNameMap || mangledNameMap.empty())
       return failure();
     auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
-    switch (codegenKind) {
-    case 0:
-      if (failed(irBuilder.loadIntrinsic(
-              module, cudaq::runtime::launchKernelHybridFuncName)))
-        return module.emitError(
-            "could not load __cudaq_altLaunchKernel intrinsic.");
-      break;
-    case 1:
-      if (failed(irBuilder.loadIntrinsic(module,
-                                         cudaq::runtime::launchKernelFuncName)))
-        return module.emitError(
-            "could not load __cudaq_altLaunchKernel intrinsic.");
-      break;
-    case 2:
-      if (failed(irBuilder.loadIntrinsic(
-              module, cudaq::runtime::launchKernelStreamlinedFuncName)))
-        return module.emitError(
-            "could not load __cudaq_altLaunchKernel intrinsic.");
-      break;
-    default:
+    if (codegenKind > 2)
       return module.emitError("invalid codegen kind value.");
-    }
+    if (failed(irBuilder.loadIntrinsic(module,
+                                       cudaq::runtime::launchKernelFuncName)))
+      return module.emitError("could not load __cudaq_launchKernel intrinsic.");
 
     if (failed(irBuilder.loadIntrinsic(
             module, cudaq::runtime::CudaqRegisterKernelName)))

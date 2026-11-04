@@ -77,8 +77,6 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
        func = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
         try {
           ExecutionContext context("extract-state");
-          // Indicate that this is an async exec
-          context.asyncExec = true;
           context.qpuId = qpu_id;
           // Set the platform and the qpu id.
           platform.with_execution_context(context,

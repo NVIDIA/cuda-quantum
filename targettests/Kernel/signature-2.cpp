@@ -13,7 +13,7 @@
 // All tests should pass.
 
 // Test that we pass vector of struct, struct of struct, and a struct of vector
-// through __cudaq_altLaunchKernel() and get the correct values in the spans in
+// through __cudaq_launchKernel() and get the correct values in the spans in
 // the kernel.
 
 #include "cudaq/qis/qubit_qis.h"

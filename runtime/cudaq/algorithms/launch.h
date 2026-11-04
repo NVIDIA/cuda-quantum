@@ -14,6 +14,7 @@
 #include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
+#include "common/InvocationContext.h"
 #include "common/KernelArgs.h"
 #include "cudaq/algorithms/msm/policy.h"
 #include "cudaq/algorithms/policy_cpos.h"
@@ -22,9 +23,9 @@
 #include "cudaq/qis/execution_manager.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include <functional>
 #include <stdexcept>
 #include <utility>
-#include <variant>
 
 #ifndef CUDAQ_DISABLE_JIT_COMPILER
 namespace cudaq_internal::compiler {
@@ -38,7 +39,7 @@ cudaq::CompiledModule compileModule(cudaq::CompileTarget target,
 namespace cudaq {
 namespace detail {
 
-/// @brief Execute the given function within the given execution context.
+/// @brief Execute the given function within the given \p policy.
 template <typename Policy, typename Callable, typename... Args>
 auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
             quantum_platform &platform, Callable &&f, Args &&...args)
@@ -68,32 +69,13 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
   }
 
   typename Policy::result_type result;
-  auto &qpu = platform.getRuntimeEndpoint(qpu_id);
-  ctx.executeKernelApi = [&qpu, &result, &policy, &platform, qpu_id](
-                             const AnyModule &module, const KernelArgs &args) {
-    CompiledModule compiled;
-    if (const auto *source = std::get_if<SourceModule>(&module)) {
-#ifdef CUDAQ_DISABLE_JIT_COMPILER
-      // If JIT compilation is disabled, compilation is a no-op. QPUs may throw
-      // an error if they expect a JIT-compiled module.
-      CUDAQ_INFO("JIT compilation is disabled. Compilation is a no-op.");
-      compiled = CompiledModule{*source};
-#else
-      CUDAQ_INFO("No compiled module found. Compiling.");
-      auto options =
-          platform.getCompileOptions(policy, cudaq::get_random_seed(), qpu_id);
-      auto target = platform.getCompileTarget(qpu_id);
-      compiled = cudaq_internal::compiler::compileModule(target, options,
-                                                         *source, args,
-                                                         /*isEntryPoint=*/true);
+  InvocationContext invocation =
+      platform.makeInvocationContext(policy, cudaq::get_random_seed(), qpu_id);
+  invocation.launchOptions.result = &result;
+  invocation.launchOptions.executionContext = &ctx;
+#ifndef CUDAQ_DISABLE_JIT_COMPILER
+  invocation.compileModule = &cudaq_internal::compiler::compileModule;
 #endif
-    } else {
-      CUDAQ_INFO("Found compiled module. Skipping compilation.");
-      compiled = std::get<CompiledModule>(module);
-    }
-    CUDAQ_INFO("Launching kernel.");
-    result = qpu.launchKernel(policy, compiled, args);
-  };
 
   if constexpr (requires { policy.inner; })
     CUDAQ_INFO("Launching kernel in async mode with policy {}",
@@ -107,12 +89,9 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
           "Invalid kernel launch within an active AnalysisScope");
     }
   }
-  detail::try_finally(
-      [&] {
-        detail::with_policy_and_ctx(policy, ctx, std::forward<Callable>(f),
-                                    std::forward<Args>(args)...);
-      },
-      [&] { ctx.executeKernelApi = nullptr; });
+  // `f` calls the kernel, whose launch entry point claims `invocation`.
+  auto live = cudaq::pushInvocationContext(std::move(invocation));
+  std::invoke(std::forward<Callable>(f), std::forward<Args>(args)...);
   return result;
 }
 } // namespace detail

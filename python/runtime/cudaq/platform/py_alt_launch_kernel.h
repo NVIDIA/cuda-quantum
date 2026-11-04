@@ -10,6 +10,7 @@
 
 #include "CompiledModuleCache.h"
 #include "common/CompiledModule.h"
+#include "common/InvocationContext.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
@@ -57,7 +58,8 @@ nanobind::object marshal_and_launch_module(
     std::shared_ptr<detail::CompiledModuleCache> cache = nullptr);
 
 /// Pure C++ code that launches a kernel. Argument marshaling and result
-/// unmarshalling is \e not performed.
+/// unmarshalling is \e not performed. Claims the launch context that the
+/// algorithm handed over, if any.
 KernelThunkResultType clean_launch_module(
     const std::string &kernelName, mlir::ModuleOp mod, OpaqueArguments &args,
     std::shared_ptr<detail::CompiledModuleCache> cache = nullptr);

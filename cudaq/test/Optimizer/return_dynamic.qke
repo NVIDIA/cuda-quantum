@@ -26,7 +26,7 @@ func.func @test_0(%0: !cc.ptr<!cc.struct<"WithVec" {i32, !cc.struct<{!cc.ptr<i32
 
 // CHECK-LABEL:   func.func @test_0(
 // CHECK-SAME:      %[[SRET:.*]]: !cc.ptr<!cc.struct<"WithVec" {i32, !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>} [256,8]>> {llvm.sret
-// CHECK:           call @__cudaq_hybridLaunchKernel(
+// CHECK:           call @__cudaq_launchKernel(
 // CHECK-NOT:       llvm.memcpy
 // CHECK:           %[[TAG:.*]] = cc.extract_value %{{.*}}[0] : (!cc.struct<"WithVec" {i32, !cc.sequence<i32>} [192,8]>) -> i32
 // CHECK:           cc.store %[[TAG]], %{{.*}} : !cc.ptr<i32>
@@ -52,7 +52,7 @@ func.func @test_0(%0: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.
 }
 
 // CHECK-LABEL:   func.func @test_0(
-// CHECK:           call @__cudaq_hybridLaunchKernel(
+// CHECK:           call @__cudaq_launchKernel(
 // CHECK-NOT:       llvm.memcpy
 // CHECK:           %[[N:.*]] = cc.extract_value %{{.*}}[1] : (!cc.struct<{!cc.ptr<!cc.sequence<i32>>, i64}>) -> i64
 // CHECK:           %[[TRIPLE:.*]] = cc.sizeof !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}> : i64

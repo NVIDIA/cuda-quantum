@@ -137,7 +137,7 @@ endif()
 set(CUDAQ_GTEST_MAIN "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
 
 # Create an executable for SpinOp UnitTests
-set(CUDAQ_SPIN_TEST_SOURCES 
+set(CUDAQ_SPIN_TEST_SOURCES
    spin_op/SpinOpTester.cpp
    operators/utils.cpp
 )
@@ -220,7 +220,7 @@ target_link_libraries(test_utils
   cudaq-platform-default
   cudaq-em-photonics
   nvqir
-  nvqir-qpp 
+  nvqir-qpp
   gtest_main)
 cudaq_gtest_discover_tests(test_utils PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
@@ -234,7 +234,8 @@ target_link_libraries(test_nvqir_verify
 cudaq_gtest_discover_tests(test_nvqir_verify DISCOVERY_TIMEOUT 120)
 
 # Test for thread-local execution context storage
-add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp)
+add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp
+  common/InvocationContextTester.cpp)
 target_include_directories(test_exec_ctx_thread PRIVATE .)
 target_link_libraries(test_exec_ctx_thread
   PRIVATE
@@ -292,4 +293,3 @@ add_subdirectory(target_config)
 add_subdirectory(logger)
 add_subdirectory(backends)
 add_subdirectory(ptsbe)
-

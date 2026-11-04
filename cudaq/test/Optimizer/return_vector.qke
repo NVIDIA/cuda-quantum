@@ -81,7 +81,7 @@ func.func @test_0(%0: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i3
 // CHECK:           %[[VAL_33:.*]] = cc.cast %[[VAL_21]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_34:.*]] = cc.address_of @test_0.kernelName : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_35:.*]] = cc.cast %[[VAL_34]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_36:.*]] = call @__cudaq_hybridLaunchKernel(%[[VAL_35]], %[[VAL_18]], %[[VAL_19]], %[[VAL_10]], %[[VAL_20]], %[[VAL_33]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_36:.*]] = call @__cudaq_launchKernel(%[[VAL_35]], %[[VAL_18]], %[[VAL_19]], %[[VAL_10]], %[[VAL_20]], %[[VAL_33]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           %[[VAL_37:.*]] = cc.extract_value %[[VAL_36]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_38:.*]] = cc.cast %[[VAL_37]] : (!cc.ptr<i8>) -> i64
 // CHECK:           %[[VAL_39:.*]] = arith.cmpi ne, %[[VAL_38]], %[[VAL_6]] : i64
@@ -178,7 +178,7 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:           %[[VAL_32:.*]] = cc.cast %[[VAL_20]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_33:.*]] = cc.address_of @test_1.kernelName : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_34:.*]] = cc.cast %[[VAL_33]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_35:.*]] = call @__cudaq_hybridLaunchKernel(%[[VAL_34]], %[[VAL_17]], %[[VAL_18]], %[[VAL_9]], %[[VAL_19]], %[[VAL_32]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_35:.*]] = call @__cudaq_launchKernel(%[[VAL_34]], %[[VAL_17]], %[[VAL_18]], %[[VAL_9]], %[[VAL_19]], %[[VAL_32]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           %[[VAL_36:.*]] = cc.extract_value %[[VAL_35]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_37:.*]] = cc.cast %[[VAL_36]] : (!cc.ptr<i8>) -> i64
 // CHECK:           %[[VAL_38:.*]] = arith.cmpi ne, %[[VAL_37]], %[[VAL_5]] : i64
@@ -212,7 +212,7 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 
 }
 
-// CHECK:         func.func private @__cudaq_hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:         func.func private @__cudaq_launchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:         func.func private @__cudaq_registerArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
 // CHECK:         llvm.func @__cudaq_registerLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 // CHECK:         func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)

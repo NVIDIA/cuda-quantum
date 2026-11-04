@@ -74,12 +74,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @_ZNK5cudaq10pauli_word11_nvqpp_sizeEv(%pw : !cc.ptr<i8>) -> i64
 )#"},
 
-    // __cudaq_altLaunchKernel(kernelName, thunk, commBuffer, buffSize,
-    // resultOffset)
-    {cudaq::runtime::launchKernelFuncName, {}, R"#(
-  func.func private @__cudaq_altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
-)#"},
-
     {cudaq::runtime::bindingDeconstructString,
      {},
      "func.func private @__cudaq_deconstructString(!cc.ptr<i8>)"},
@@ -122,12 +116,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      {},
      "func.func private @__cudaq_hostDeallocate(!cc.ptr<i8>) -> ()"},
 
-    // __cudaq_hybridLaunchKernel(kernelName, thunk, commBuffer, buffSize,
-    //                    resultOffset, vectorArgPtrs)
-    {cudaq::runtime::launchKernelHybridFuncName, {}, R"#(
-  func.func private @__cudaq_hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-)#"},
-
     {cudaq::runtime::bindingInitializeString, {}, R"#(
   func.func private @__cudaq_initializeStringFromSpan(!cc.ptr<i8>, !cc.ptr<i8>, i64)
 )#"},
@@ -135,6 +123,13 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // __cudaq_initializerListToVectorBool
     {cudaq::sequenceBoolCtorFromInitList, {}, R"#(
   func.func private @__cudaq_initializerListToVectorBool(!cc.ptr<none>, !cc.ptr<none>, i64) -> ())#"},
+
+    // __cudaq_launchKernel(kernelName, thunk, commBuffer, buffSize,
+    //                     resultOffset, vectorArgPtrs)
+    // Any pointer may be null when its argument convention is not used.
+    {cudaq::runtime::launchKernelFuncName, {}, R"#(
+  func.func private @__cudaq_launchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+)#"},
 
     {cudaq::runtime::CudaqRegisterArgsCreator, {}, R"#(
   func.func private @__cudaq_registerArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>) -> ()
@@ -181,11 +176,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
     {cudaq::getNumQubitsFromCudaqState, {}, R"#(
   func.func private @__cudaq_stateNumberOfQubits(%p : !cc.ptr<!quake.state>) -> i64
-)#"},
-
-    // __cudaq_streamlinedLaunchKernel(kernelName, vectorArgPtrs)
-    {cudaq::runtime::launchKernelStreamlinedFuncName, {}, R"#(
-  func.func private @__cudaq_streamlinedLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>) -> ()
 )#"},
 
     // __cudaq_vectorBoolDestroy

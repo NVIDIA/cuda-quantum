@@ -19,11 +19,7 @@ static constexpr unsigned cudaqGenPrefixLength = sizeof(cudaqGenPrefixName) - 1;
 /// A kernel entry procedure can either be replaced with a new function at
 /// compile time (see `cudaqGenPrefixName`) or it can be rewritten to call back
 /// to the runtime library (and be handled at runtime).
-static constexpr const char launchKernelFuncName[] = "__cudaq_altLaunchKernel";
-static constexpr const char launchKernelStreamlinedFuncName[] =
-    "__cudaq_streamlinedLaunchKernel";
-static constexpr const char launchKernelHybridFuncName[] =
-    "__cudaq_hybridLaunchKernel";
+static constexpr const char launchKernelFuncName[] = "__cudaq_launchKernel";
 
 static constexpr const char deviceCodeHolderAdd[] =
     "__cudaq_deviceCodeHolderAdd";
