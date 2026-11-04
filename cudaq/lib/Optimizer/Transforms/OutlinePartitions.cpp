@@ -49,13 +49,21 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
       return failure();
   }
 
+  // copy the partition operations into a separate vector for ordering
   SmallVector<Operation *> orderedOps(partitionOps.begin(), partitionOps.end());
+
+  // Anchor is last selected op in IR block. If the caller
+  // specifies an ordered partition, anchor is not guaranteed to be the last op
+  // in `orderedOps` so search for true anchor.
+  Operation *anchor = nullptr;
+
   if (!acceptOrderedPartition) {
     // Sort the unique selected operations in block (topological) order.
     orderedOps.assign(inPartition.begin(), inPartition.end());
     llvm::sort(orderedOps, [](Operation *lhs, Operation *rhs) {
       return lhs->isBeforeInBlock(rhs);
     });
+    anchor = orderedOps.back();
   } else {
     // Verify that producers inside the partition precede their consumers in
     // the supplied order. Captured inputs are checked later for dominance at
@@ -69,6 +77,11 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
       }
       if (!seen.insert(op).second)
         return failure();
+
+      // find the true anchor since caller supplied partition not necessarily in
+      // textual IR block order
+      if (!anchor || anchor->isBeforeInBlock(op))
+        anchor = op;
     }
   }
 
@@ -146,14 +159,6 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
     }
   }
 
-  // Anchor is last selected op in IR block. If the caller
-  // specifies an ordered partition, anchor is not guaranteed to be the last op
-  // in `orderedOps` so search for true anchor.
-  Operation *anchor = orderedOps.back();
-  if (acceptOrderedPartition)
-    for (Operation *op : orderedOps)
-      if (anchor->isBeforeInBlock(op))
-        anchor = op;
   if (orderedWireOutputs.size() != outputs.size())
     return failure();
 
