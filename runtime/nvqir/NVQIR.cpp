@@ -20,6 +20,8 @@
 #include <cmath>
 #include <complex>
 #include <cstdint>
+#include <memory>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -57,16 +59,70 @@ static thread_local std::map<Result *, Qubit *> measRes2QB;
 static thread_local std::map<Result *, Result> measRes2Val;
 static thread_local std::vector<std::int64_t> measHandle2Index;
 
-/// @brief Provide a holder for externally created
-/// CircuitSimulator pointers (like from Python) that
-/// will invoke clone on the simulator when requested, which
-/// in turn will create the simulator if there isn't one on the
-/// current thread, otherwise it will reuse the existing one
-struct ExternallyProvidedSimGenerator {
-  nvqir::CircuitSimulator *simulator;
-  ExternallyProvidedSimGenerator(nvqir::CircuitSimulator *sim)
-      : simulator(sim) {}
-  auto operator()() { return simulator->clone(); }
+/// @brief Hands each thread its own simulator by cloning an externally
+/// provided prototype (for example from Python). The prototype is thread_local
+/// to the thread that set it. If that thread exits, a new one is built from
+/// `factory`.
+class ExternallyProvidedSimGenerator {
+public:
+  using Factory = nvqir::CircuitSimulator *(*)();
+
+  ExternallyProvidedSimGenerator(nvqir::CircuitSimulator *sim, Factory factory)
+      : prototype(sim), factory(factory) {
+    std::lock_guard<std::mutex> lock(mutex());
+    adoptOnCurrentThread();
+  }
+  ~ExternallyProvidedSimGenerator() {
+    std::lock_guard<std::mutex> lock(mutex());
+    if (owner)
+      owner->generator = nullptr;
+  }
+
+  nvqir::CircuitSimulator *operator()() {
+    std::lock_guard<std::mutex> lock(mutex());
+    if (prototype)
+      return prototype->clone();
+    if (!factory)
+      throw std::runtime_error(
+          "The circuit simulator was configured on a thread that has since "
+          "exited. Set the target again to configure a new simulator.");
+    // The owning thread exited so adopt this thread's instance.
+    prototype = factory();
+    adoptOnCurrentThread();
+    return prototype;
+  }
+
+private:
+  /// Clears the prototype when its owning thread exits.
+  struct OwnerGuard {
+    ExternallyProvidedSimGenerator *generator = nullptr;
+    ~OwnerGuard() {
+      std::lock_guard<std::mutex> lock(mutex());
+      if (generator && generator->owner == this) {
+        generator->owner = nullptr;
+        generator->prototype = nullptr;
+      }
+    }
+  };
+
+  static std::mutex &mutex() {
+    // Leaked so it outlives static destruction.
+    static auto *m = new std::mutex;
+    return *m;
+  }
+
+  // Requires `mutex()` to be held.
+  void adoptOnCurrentThread() {
+    thread_local OwnerGuard guard;
+    if (owner)
+      owner->generator = nullptr;
+    owner = &guard;
+    owner->generator = this;
+  }
+
+  nvqir::CircuitSimulator *prototype;
+  Factory factory;
+  OwnerGuard *owner = nullptr;
 };
 static std::unique_ptr<ExternallyProvidedSimGenerator> externSimGenerator;
 
@@ -77,15 +133,25 @@ static std::unique_ptr<ExternallyProvidedSimGenerator> externSimGenerator;
 static void (*simulatorInitCallback)() = nullptr;
 
 extern "C" {
-void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *sim) {
+static void
+setExternalCircuitSimulator(nvqir::CircuitSimulator *sim,
+                            ExternallyProvidedSimGenerator::Factory factory) {
   simulator = sim;
-  // If we had been given one before, reset the holder
-  if (externSimGenerator) {
-    auto ptr = externSimGenerator.release();
-    delete ptr;
-  }
-  externSimGenerator = std::make_unique<ExternallyProvidedSimGenerator>(sim);
+  externSimGenerator.reset();
+  externSimGenerator =
+      std::make_unique<ExternallyProvidedSimGenerator>(sim, factory);
   CUDAQ_INFO("[runtime] Setting the circuit simulator to {}.", sim->name());
+}
+
+void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *sim) {
+  setExternalCircuitSimulator(sim, nullptr);
+}
+
+/// Like `__nvqir__setCircuitSimulator`, but can recover if the calling thread
+/// exits.
+void __nvqir__setCircuitSimulatorFactory(
+    nvqir::CircuitSimulator *(*factory)()) {
+  setExternalCircuitSimulator(factory(), factory);
 }
 
 void __nvqir__setSimulatorInitCallback(void (*callback)()) {

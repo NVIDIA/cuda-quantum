@@ -236,7 +236,9 @@ int main(int argc, char **argv) {
         onPath.stages.back().irOutputProfile)
         .device = "path(4)";
     printPipeline("compiler-bench-nisq on path(4) level 0", onPath, level0);
-    printPipeline("compiler-bench-nisq on path(4) level 1", onPath, {});
+    cudaq::CompileOptions level1;
+    level1.optimizationLevel = cudaq::OptimizationLevel::O1;
+    printPipeline("compiler-bench-nisq on path(4) level 1", onPath, level1);
   }
 
   cudaq::CompileTarget target;

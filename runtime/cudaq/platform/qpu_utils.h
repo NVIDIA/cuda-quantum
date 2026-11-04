@@ -95,6 +95,10 @@ void unregisterExecutionQueue(QuantumExecutionQueue &queue);
 /// Note: Queues are reached directly rather than through the current platform:
 /// changing targets leaves previous platforms alive with their queues loaded.
 void shutdownExecutionQueues();
+
+/// Release platform resources at exit before plugin globals are destroyed.
+/// Call after initializing plugin clients and their statics.
+void registerPlatformCleanup();
 } // namespace detail
 
 } // namespace cudaq
