@@ -400,7 +400,7 @@ def test_analytical_single_attempt_retry_executes_once(probability):
         return block, bit
 
     evidence = "analysis:declared-probability-model"
-    profile = cql.gadgets.GadgetProfile(
+    profile = cql.gadgets.GadgetContract(
         attempt,
         success=(cql.gadgets.SuccessPredicate(attempt.record("mpp0.outcome")),),
         metadata={
