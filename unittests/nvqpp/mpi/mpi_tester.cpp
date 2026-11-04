@@ -106,6 +106,44 @@ TEST(MPITester, checkAllGather) {
   }
 }
 
+TEST(MPITester, checkAllGatherUneven) {
+  const int rank = cudaq::mpi::rank();
+  const int numRanks = cudaq::mpi::num_ranks();
+  // Rank `r` contributes `rankSize(r)` elements. Return the concatenation of
+  // all ranks' data, in rank order, and the offset of this rank's data in it.
+  const auto layout = [&](auto rankSize) {
+    std::vector<int> values;
+    std::size_t offset = 0;
+    for (int r = 0; r < numRanks; ++r) {
+      if (r == rank)
+        offset = values.size();
+      for (int i = 0; i < rankSize(r); ++i)
+        values.push_back(r * 100 + i);
+    }
+    return std::make_pair(values, offset);
+  };
+  {
+    // double type, rank `r` contributes `r + 1` elements
+    const auto [values, offset] = layout([](int r) { return r + 1; });
+    const std::vector<double> expectedGatherData(values.begin(), values.end());
+    const std::vector<double> rankData(expectedGatherData.begin() + offset,
+                                       expectedGatherData.begin() + offset +
+                                           rank + 1);
+    std::vector<double> gatherData(expectedGatherData.size());
+    cudaq::mpi::all_gather(gatherData, rankData);
+    EXPECT_EQ(gatherData, expectedGatherData);
+  }
+  {
+    // int type, rank `r` contributes `r` elements, so rank 0 contributes none
+    const auto [expectedGatherData, offset] = layout([](int r) { return r; });
+    const std::vector<int> rankData(expectedGatherData.begin() + offset,
+                                    expectedGatherData.begin() + offset + rank);
+    std::vector<int> gatherData(expectedGatherData.size());
+    cudaq::mpi::all_gather(gatherData, rankData);
+    EXPECT_EQ(gatherData, expectedGatherData);
+  }
+}
+
 TEST(MPITester, checkAllGatherV) {
   const auto rank = cudaq::mpi::rank();
   const auto numRanks = cudaq::mpi::num_ranks();
