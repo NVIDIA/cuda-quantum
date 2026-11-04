@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import os
+import platform
 import subprocess
 import sys
 import lit.formats
@@ -42,6 +43,14 @@ llvm_config.feature_config([('--assertion-mode', {'ON': 'asserts'})])
 config.targets = frozenset(config.targets_to_build.split())
 for arch in config.targets_to_build.split():
     config.available_features.add(arch.lower() + '-registered-target')
+
+# Host architecture, for tests that only run on one. Not the same as the
+# `<arch>-registered-target` features above, which name LLVM's codegen targets
+# rather than the host. arm64 (Apple silicon) is normalized to aarch64, so a
+# test needs only one REQUIRES line.
+host_arch = platform.machine().lower()
+host_arch = {'arm64': 'aarch64'}.get(host_arch, host_arch)
+config.available_features.add('host-' + host_arch)
 
 # CUDA-Q targets that this build actually produced. A target is only present
 # when its backend was enabled at configure time (e.g. CUDAQ_ENABLE_OQC_BACKEND),
