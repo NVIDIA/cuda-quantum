@@ -25,7 +25,8 @@ struct PartitionToOutline {
   /// With nullptr, placement follows external consumers or falls back to just
   /// after the physically last selected operation.
   /// This pointer is non-owning and must remain valid until this partition is
-  /// processed; earlier partitions in a batch must not erase the operation.
+  /// processed. outlinePartitions rejects the batch if this operation is
+  /// selected by any partition in the batch.
   mlir::Operation *mustPrecede = nullptr;
   /// If true, clone ops in the supplied order, rejecting any internal producer
   /// placed after its consumer. The caller must preserve additional semantic
@@ -45,7 +46,10 @@ outlinePartition(const PartitionToOutline &partition);
 
 /// Outline each supplied partition using its own acceptOrderedPartition and
 /// mustPrecede settings, returning failure if any is rejected.
-/// Successful rewrites are retained even if another partition is rejected.
+/// Batch validation rejects duplicate or overlapping selections and boundaries
+/// selected by any partition, returning failure without modifying the IR.
+/// Once validation succeeds, partitions are outlined individually; successful
+/// rewrites are retained even if another partition fails to outline.
 mlir::LogicalResult
 outlinePartitions(mlir::ArrayRef<PartitionToOutline> partitions);
 
