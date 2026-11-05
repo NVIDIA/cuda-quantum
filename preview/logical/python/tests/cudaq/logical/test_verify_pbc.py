@@ -88,8 +88,10 @@ def _mpp(res, inp, xm, zm, n=1):
         f": ({ins}) -> ({outs})\n")
 
 
-def _module(body, ret):
-    return _HDR + body + f"    qlx.return {ret} : i1\n" + _FOOT
+def _module(body, ret, terminal_owner=None):
+    discard = (f"    qlx.discard {terminal_owner} : !qlx.logical_qubit\n"
+               if terminal_owner is not None else "")
+    return _HDR + body + discard + f"    qlx.return {ret} : i1\n" + _FOOT
 
 
 def test_rejects_non_quarter_pi_rotation():
@@ -112,19 +114,19 @@ def test_rejects_noncommuting_measurements():
     # mpp X0 then mpp Z0 on the same qubit -> anticommute.
     body = _PREP + _mpp("%2:2", "%0", 1, 0) + _mpp("%3:2", "%2#0", 0, 1)
     with pytest.raises(RuntimeError, match="pairwise commute"):
-        rt.verify_pbc(_module(body, "%3#1"))
+        rt.verify_pbc(_module(body, "%3#1", "%3#0"))
 
 
 def test_accepts_valid_form():
     body = _PREP + _CST + _rot("%2", "%0", 1, 4, 1, 0) + _mpp(
         "%3:2", "%2", 1, 0)
-    assert rt.verify_pbc(_module(body, "%3#1")) is True
+    assert rt.verify_pbc(_module(body, "%3#1", "%3#0")) is True
 
 
 def test_negative_quarter_pi_uses_the_product_sign():
     body = (_PREP + _CST + _rot("%2", "%0", 1, 4, 0, 1, sign=-1) +
             _mpp("%3:2", "%2", 0, 1))
-    assert rt.verify_pbc(_module(body, "%3#1")) is True
+    assert rt.verify_pbc(_module(body, "%3#1", "%3#0")) is True
 
 
 def test_rejects_negative_exact_numerator_even_with_positive_operand():
