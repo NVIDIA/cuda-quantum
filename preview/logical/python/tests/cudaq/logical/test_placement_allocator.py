@@ -69,3 +69,15 @@ def test_first_fit_does_not_rescan_the_occupied_prefix(capacity):
     allocator.used_slots[space.name] = slots
     assert [allocator.take()[1] for _ in range(1024)] == list(range(1024))
     assert slots.probes <= 2 * 1024
+
+
+@pytest.mark.parametrize("capacity", [0, 2])
+def test_full_space_is_skipped_even_without_a_remaining_demand(capacity):
+    machine = LogicalMachine(
+        "machine", {"compute": Space(name="compute", capacity=capacity)})
+    space = machine.spaces[0]
+    allocator = _Allocator(machine, ())
+    for expected in range(capacity):
+        assert allocator.take(minimum_remaining=0) == (space, expected)
+    with pytest.raises(ValueError, match="capacity is exhausted"):
+        allocator.take(minimum_remaining=0)

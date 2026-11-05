@@ -162,7 +162,7 @@ class _Allocator:
                 return candidate, slot
             if candidate.capacity is not None:
                 available = candidate.capacity - len(occupied)
-                if available < minimum_remaining:
+                if available < max(minimum_remaining, 1):
                     continue
             selected = self._next_slot[candidate.name]
             while selected in occupied:
