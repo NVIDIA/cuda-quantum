@@ -446,6 +446,13 @@ defines each size’s operating point and the factory.</p>
 
 
 <span class="c1"># %%</span>
+<span class="c1"># Compile at level 1 so the Toffoli count matches the paper's model of</span>
+<span class="c1"># `2 * piece_length - 1` per carry piece. Level 2 also works and saves a few</span>
+<span class="c1"># gates.</span>
+<span class="n">PAPER_OPTIMIZATION_LEVEL</span> <span class="o">=</span> <span class="mi">1</span>
+
+
+<span class="c1"># %%</span>
 <span class="c1"># Build the folded RSA kernel for one operating point.</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_resource_kernel</span><span class="p">(</span><span class="n">point</span><span class="p">:</span> <span class="n">factory</span><span class="o">.</span><span class="n">OperatingPoint</span><span class="p">):</span>
     <span class="n">pieces</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">carry_pieces</span>
@@ -586,7 +593,8 @@ defines each size’s operating point and the factory.</p>
 
     <span class="n">point</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">OPERATING_POINTS</span><span class="p">[</span><span class="n">modulus_bits</span><span class="p">]</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">estimator</span><span class="p">)</span>
-    <span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">build_resource_kernel</span><span class="p">(</span><span class="n">point</span><span class="p">))</span>
+    <span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">build_resource_kernel</span><span class="p">(</span><span class="n">point</span><span class="p">),</span>
+                              <span class="n">optimization_level</span><span class="o">=</span><span class="n">PAPER_OPTIMIZATION_LEVEL</span><span class="p">)</span>
     <span class="c1"># The closed-form model consumes the full logical profile (for example its</span>
     <span class="c1"># action-depth bound and synthesis demand), which `estimate.resources` only</span>
     <span class="c1"># partly carries, so rehydrate the LOGICAL annotation.</span>
@@ -632,7 +640,8 @@ defines each size’s operating point and the factory.</p>
 
     <span class="n">point</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">OPERATING_POINTS</span><span class="p">[</span><span class="n">modulus_bits</span><span class="p">]</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">build_physical_target</span><span class="p">(</span><span class="n">point</span><span class="p">))</span>
-    <span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">build_resource_kernel</span><span class="p">(</span><span class="n">point</span><span class="p">))</span>
+    <span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">build_resource_kernel</span><span class="p">(</span><span class="n">point</span><span class="p">),</span>
+                              <span class="n">optimization_level</span><span class="o">=</span><span class="n">PAPER_OPTIMIZATION_LEVEL</span><span class="p">)</span>
     <span class="n">schedule</span> <span class="o">=</span> <span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"SCHEDULE"</span><span class="p">]</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">PhysicalResult</span><span class="p">(</span>
         <span class="n">physical_qubits</span><span class="o">=</span><span class="n">schedule</span><span class="p">[</span><span class="s2">"physical_qubits"</span><span class="p">],</span>
