@@ -10,6 +10,7 @@
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
 #include "runtime/cudaq/platform/PyRuntimeEndpoint.h"
+#include "cudaq/Target/python/CompileTargetCaster.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"

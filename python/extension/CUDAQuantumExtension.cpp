@@ -144,7 +144,6 @@ NB_MODULE(_quakeDialects, m) {
   auto dialects =
       nanobind::module_::import_("cudaq.mlir._mlir_libs._quakeDialectsCore");
   auto backends = nanobind::module_::import_("cudaq.mlir._mlir_libs._backends");
-  nanobind::module_::import_("cudaq.core._target");
 
   auto cudaqRuntime = m.def_submodule("cudaq_runtime");
   cudaqRuntime.def(

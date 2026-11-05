@@ -32,6 +32,7 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Hash.h"
+#include "cudaq/Target/python/CompileTargetCaster.h"
 #include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/nvqpp_interface.h"
