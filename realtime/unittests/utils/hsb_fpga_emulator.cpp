@@ -515,6 +515,10 @@ public:
   bool player_loop_enabled() const {
     return player_enable_.load() == PLAYER_ENABLE_LOOP;
   }
+  bool ptp_enabled() const {
+    return cudaq::realtime::testing::hsb::timestamp_insertion_enabled(
+        player_enable_.load());
+  }
 
   /// Get player config.
   uint32_t window_size() const { return regs_.read(PLAYER_WIN_SIZE); }
@@ -1156,9 +1160,10 @@ int main(int argc, char *argv[]) {
         // RDMA WRITE to bridge's ring buffer (remote has num_pages slots)
         uint64_t remote_addr =
             target.buffer_addr + (remote_slot * rdma_page_size);
-        cudaq::realtime::testing::hsb::stamp_request(
-            tx_addr, copy_len,
-            cudaq::realtime::testing::hsb::monotonic_timestamp());
+        if (server.ptp_enabled())
+          cudaq::realtime::testing::hsb::stamp_request(
+              tx_addr, copy_len,
+              cudaq::realtime::testing::hsb::monotonic_timestamp());
         if (!rdma.post_rdma_write_imm(qp, playback_index, tx_addr, copy_len,
                                       tx_buffer.lkey(), remote_addr,
                                       target.rkey, remote_slot)) {

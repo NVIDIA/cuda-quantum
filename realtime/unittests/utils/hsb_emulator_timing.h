@@ -20,6 +20,12 @@ namespace cudaq::realtime::testing::hsb {
 
 constexpr std::uint64_t nanoseconds_per_second = 1'000'000'000;
 constexpr unsigned ila_timestamp_bit_offset = 521 % 32;
+constexpr std::uint32_t player_timestamp_enable_mask = std::uint32_t{1} << 3;
+
+// The player's ptp_bram_ena bit controls request timestamp insertion.
+constexpr bool timestamp_insertion_enabled(std::uint32_t player_enable) {
+  return (player_enable & player_timestamp_enable_mask) != 0;
+}
 
 // Match the playback tools' {seconds[31:0], nanoseconds[31:0]} encoding.
 constexpr std::uint64_t pack_timestamp(std::uint64_t nanoseconds) {

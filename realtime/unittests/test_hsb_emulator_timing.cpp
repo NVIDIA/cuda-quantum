@@ -39,6 +39,15 @@ TEST(HsbEmulatorTiming, SecondsBoundaryUsesNormalizedNanoseconds) {
             (std::uint64_t{1} << 32) | 1);
 }
 
+TEST(HsbEmulatorTiming, TimestampInsertionFollowsPlayerEnableBit) {
+  for (const std::uint32_t control : {0x0u, 0x1u, 0x4u, 0x5u}) {
+    EXPECT_FALSE(timing::timestamp_insertion_enabled(control));
+    EXPECT_TRUE(timing::timestamp_insertion_enabled(control | 0x8u));
+  }
+  EXPECT_FALSE(timing::timestamp_insertion_enabled(0xfffffff7u));
+  EXPECT_TRUE(timing::timestamp_insertion_enabled(0xffffffffu));
+}
+
 TEST(HsbEmulatorTiming, IlaRoundTripPreservesControlsAndPayload) {
   constexpr std::uint32_t controls = 0b111; // tvalid, tlast, wr_tcnt=1
   for (const auto timestamp :

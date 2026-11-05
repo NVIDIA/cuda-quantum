@@ -203,6 +203,7 @@ i.e., the elapsed time from the timestamp in the header to the `ILA` receive tim
 The software `hsb_fpga_emulator` uses its host's monotonic clock for both the
 outgoing request timestamp and the response capture. It encodes both as
 `{seconds[31:0], nanoseconds[31:0]}`, matching the playback reader's FPGA format.
+Request timestamp insertion follows the player's `ptp_bram_ena` enable bit.
 Software FPGA latency includes software transport and host scheduling overhead.
 The emulator logs its capture clock when playback starts.
 
