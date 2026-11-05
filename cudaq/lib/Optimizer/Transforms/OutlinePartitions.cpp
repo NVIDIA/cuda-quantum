@@ -41,210 +41,209 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
 
   DenseSet<Operation *> inPartition(partitionOps.begin(), partitionOps.end());
 
-  // Reject any partition with duplicate operations
+:  // Reject any partition with duplicate operations
   if (inPartition.size() != partitionOps.size())
     return failure();
 
-  // All operations must be supported and live in one block.
-  Block *block = partitionOps.front()->getBlock();
-  for (Operation *op : partitionOps) {
-    if (op->getBlock() != block)
-      return failure();
-    if (!isSupportedOutlineOp(op))
-      return failure();
-  }
+// All operations must be supported and live in one block.
+Block *block = partitionOps.front()->getBlock();
+for (Operation *op : partitionOps) {
+  if (op->getBlock() != block)
+    return failure();
+  if (!isSupportedOutlineOp(op))
+    return failure();
+}
 
-  // copy the partition operations into a separate vector for ordering
-  SmallVector<Operation *> orderedOps(partitionOps.begin(), partitionOps.end());
+// copy the partition operations into a separate vector for ordering
+SmallVector<Operation *> orderedOps(partitionOps.begin(), partitionOps.end());
 
-  // Anchor is last selected op in IR block. If the caller
-  // specifies an ordered partition, anchor is not guaranteed to be the last op
-  // in `orderedOps` so search for true anchor.
-  Operation *anchor = nullptr;
+// Anchor is last selected op in IR block. If the caller
+// specifies an ordered partition, anchor is not guaranteed to be the last op
+// in `orderedOps` so search for true anchor.
+Operation *anchor = nullptr;
 
-  if (!acceptOrderedPartition) {
-    // Sort the unique selected operations in block (topological) order.
-    orderedOps.assign(inPartition.begin(), inPartition.end());
-    llvm::sort(orderedOps, [](Operation *lhs, Operation *rhs) {
-      return lhs->isBeforeInBlock(rhs);
-    });
-    anchor = orderedOps.back();
-  } else {
-    // Verify that producers inside the partition precede their consumers in
-    // the supplied order. Captured inputs are checked later for dominance at
-    // the lambda insertion point.
-    DenseSet<Operation *> seen;
-    for (Operation *op : orderedOps) {
-      for (Value operand : op->getOperands()) {
-        Operation *def = operand.getDefiningOp();
-        if (def && inPartition.contains(def) && !seen.contains(def))
-          return failure();
-      }
-      if (!seen.insert(op).second)
-        return failure();
-
-      // find the true anchor since caller supplied partition not necessarily in
-      // textual IR block order
-      if (!anchor || anchor->isBeforeInBlock(op))
-        anchor = op;
-    }
-  }
-
-  // Collect captured inputs and outputs. Non-wire outputs precede wires in the
-  // callable results.
-  SetVector<Value> inputs, outputs, nonWireInputs, nonWireOutputs;
+if (!acceptOrderedPartition) {
+  // Sort the unique selected operations in block (topological) order.
+  orderedOps.assign(inPartition.begin(), inPartition.end());
+  llvm::sort(orderedOps, [](Operation *lhs, Operation *rhs) {
+    return lhs->isBeforeInBlock(rhs);
+  });
+  anchor = orderedOps.back();
+} else {
+  // Verify that producers inside the partition precede their consumers in
+  // the supplied order. Captured inputs are checked later for dominance at
+  // the lambda insertion point.
+  DenseSet<Operation *> seen;
   for (Operation *op : orderedOps) {
     for (Value operand : op->getOperands()) {
       Operation *def = operand.getDefiningOp();
-      if (!def || !inPartition.contains(def)) {
-        if (isa<cudaq::quake::WireType>(operand.getType()))
-          inputs.insert(operand);
-        else
-          nonWireInputs.insert(operand);
-      }
-    }
-    for (Value res : op->getResults()) {
-      // Preserve unused wires as outputs.
-      bool externalUse =
-          isa<cudaq::quake::WireType>(res.getType()) && res.use_empty();
-      // Export any result with a user outside the partition.
-      for (Operation *user : res.getUsers())
-        if (!inPartition.contains(user)) {
-          externalUse = true;
-          break;
-        }
-      if (externalUse) {
-        if (isa<cudaq::quake::WireType>(res.getType()))
-          outputs.insert(res);
-        else
-          nonWireOutputs.insert(res);
-      }
-    }
-  }
-
-  // Require all external output consumers to live in the same block.
-  for (Value out : llvm::concat<const Value>(nonWireOutputs, outputs))
-    for (Operation *user : out.getUsers())
-      if (!inPartition.contains(user) && user->getBlock() != block)
+      if (def && inPartition.contains(def) && !seen.contains(def))
         return failure();
-
-  auto inputList = inputs.takeVector();
-  auto nonWireInputList = nonWireInputs.takeVector();
-  auto nonWireOutputList = nonWireOutputs.takeVector();
-
-  // Create a map to order the output wires in the same order as the
-  // discovered wire inputs by tracing wire flow
-  // current wire --> original input index
-  DenseMap<Value, unsigned> outputIdxByWire;
-  // create vector of ordered wire outputs to match input wire order
-  SmallVector<Value> orderedWireOutputs(inputList.begin(), inputList.end());
-
-  for (auto [i, wire] : llvm::enumerate(inputList))
-    outputIdxByWire[wire] = i;
-
-  // now order the outputs based on discovered wire inputs
-  for (Operation *op : orderedOps) {
-    // no wire input in `quake.discriminate`
-    if (isa<cudaq::quake::DiscriminateOp>(op))
-      continue;
-
-    auto flow = cudaq::quake::detail::getWireFlow(op);
-    if (!flow)
+    }
+    if (!seen.insert(op).second)
       return failure();
 
-    for (auto [in, out] : llvm::zip(flow->inputs, flow->results)) {
-      auto it = outputIdxByWire.find(in);
-      if (it == outputIdxByWire.end())
-        return failure();
+    // find the true anchor since caller supplied partition not necessarily in
+    // textual IR block order
+    if (!anchor || anchor->isBeforeInBlock(op))
+      anchor = op;
+  }
+}
 
-      unsigned idx = it->second;
-      outputIdxByWire.erase(it);
-      outputIdxByWire[out] = idx;
-      orderedWireOutputs[idx] = out;
+// Collect captured inputs and outputs. Non-wire outputs precede wires in the
+// callable results.
+SetVector<Value> inputs, outputs, nonWireInputs, nonWireOutputs;
+for (Operation *op : orderedOps) {
+  for (Value operand : op->getOperands()) {
+    Operation *def = operand.getDefiningOp();
+    if (!def || !inPartition.contains(def)) {
+      if (isa<cudaq::quake::WireType>(operand.getType()))
+        inputs.insert(operand);
+      else
+        nonWireInputs.insert(operand);
     }
   }
+  for (Value res : op->getResults()) {
+    // Preserve unused wires as outputs.
+    bool externalUse =
+        isa<cudaq::quake::WireType>(res.getType()) && res.use_empty();
+    // Export any result with a user outside the partition.
+    for (Operation *user : res.getUsers())
+      if (!inPartition.contains(user)) {
+        externalUse = true;
+        break;
+      }
+    if (externalUse) {
+      if (isa<cudaq::quake::WireType>(res.getType()))
+        outputs.insert(res);
+      else
+        nonWireOutputs.insert(res);
+    }
+  }
+}
 
-  if (orderedWireOutputs.size() != outputs.size())
+// Require all external output consumers to live in the same block.
+for (Value out : llvm::concat<const Value>(nonWireOutputs, outputs))
+  for (Operation *user : out.getUsers())
+    if (!inPartition.contains(user) && user->getBlock() != block)
+      return failure();
+
+auto inputList = inputs.takeVector();
+auto nonWireInputList = nonWireInputs.takeVector();
+auto nonWireOutputList = nonWireOutputs.takeVector();
+
+// Create a map to order the output wires in the same order as the
+// discovered wire inputs by tracing wire flow
+// current wire --> original input index
+DenseMap<Value, unsigned> outputIdxByWire;
+// create vector of ordered wire outputs to match input wire order
+SmallVector<Value> orderedWireOutputs(inputList.begin(), inputList.end());
+
+for (auto [i, wire] : llvm::enumerate(inputList))
+  outputIdxByWire[wire] = i;
+
+// now order the outputs based on discovered wire inputs
+for (Operation *op : orderedOps) {
+  // no wire input in `quake.discriminate`
+  if (isa<cudaq::quake::DiscriminateOp>(op))
+    continue;
+
+  auto flow = cudaq::quake::detail::getWireFlow(op);
+  if (!flow)
     return failure();
 
-  // Check that tracing found exactly the discovered output wires.
-  for (Value out : orderedWireOutputs)
-    if (!out || !outputs.contains(out))
+  for (auto [in, out] : llvm::zip(flow->inputs, flow->results)) {
+    auto it = outputIdxByWire.find(in);
+    if (it == outputIdxByWire.end())
       return failure();
 
-  // Prepare a callable without explicit parameters. Non-wire results precede
-  // wire results.
-  auto *ctx = block->getParentOp()->getContext();
-  SmallVector<Type> outTys;
-  for (Value v : nonWireOutputList)
-    outTys.push_back(v.getType());
-  for (Value v : orderedWireOutputs)
-    outTys.push_back(v.getType());
-  auto callableTy =
-      cudaq::cc::CallableType::get(ctx, FunctionType::get(ctx, {}, outTys));
+    unsigned idx = it->second;
+    outputIdxByWire.erase(it);
+    outputIdxByWire[out] = idx;
+    orderedWireOutputs[idx] = out;
+  }
+}
 
-  // Insert before mustPrecede or an earlier external consumer. With neither,
-  // insert after the physically last selected operation. Reject placements
-  // where a captured input is unavailable.
-  OpBuilder builder(ctx);
+// Check that tracing found exactly the discovered output wires.
+if (orderedWireOutputs.size() != outputs.size())
+  return failure();
 
-  Operation *insertBefore = partition.mustPrecede;
-  // A supplied boundary must be in the same block and outside the partition.
-  if (partition.mustPrecede && (partition.mustPrecede->getBlock() != block ||
-                                inPartition.contains(partition.mustPrecede)))
+for (Value out : orderedWireOutputs)
+  if (!out || !outputs.contains(out))
     return failure();
 
-  for (Value out : llvm::concat<Value>(nonWireOutputList, orderedWireOutputs))
-    for (Operation *user : out.getUsers())
-      if (!inPartition.contains(user))
-        if (!insertBefore || user->isBeforeInBlock(insertBefore))
-          insertBefore = user;
-  for (Value in : llvm::concat<Value>(nonWireInputList, inputList)) {
-    // make sure that input is available at insertion point
-    bool available = insertBefore
-                         ? dominance.properlyDominates(in, insertBefore)
-                         : dominance.dominates(in, anchor);
-    if (!available)
-      return failure();
-  }
+// Prepare a callable without explicit parameters. Non-wire results precede
+// wire results.
+auto *ctx = block->getParentOp()->getContext();
+SmallVector<Type> outTys;
+for (Value v : nonWireOutputList)
+  outTys.push_back(v.getType());
+for (Value v : orderedWireOutputs)
+  outTys.push_back(v.getType());
+auto callableTy =
+    cudaq::cc::CallableType::get(ctx, FunctionType::get(ctx, {}, outTys));
 
-  if (insertBefore)
-    builder.setInsertionPoint(insertBefore);
-  else
-    builder.setInsertionPointAfter(anchor);
-  Location loc = anchor->getLoc();
+// Insert before mustPrecede or an earlier external consumer. With neither,
+// insert after the physically last selected operation. Reject placements
+// where a captured input is unavailable.
+OpBuilder builder(ctx);
 
-  // Create the lambda with all external inputs captured.
-  auto lambda = cudaq::cc::CreateLambdaOp::create(
-      builder, loc, callableTy, [&](OpBuilder &b, Location l) {
-        IRMapping map;
-        // External inputs remain captures; cloning maps internally defined
-        // values to their copies.
-        for (Operation *op : orderedOps)
-          b.clone(*op, map);
-        SmallVector<Value> results;
-        for (Value out : nonWireOutputList)
-          results.push_back(map.lookup(out));
-        for (Value out : orderedWireOutputs)
-          results.push_back(map.lookup(out));
-        cudaq::cc::ReturnOp::create(b, l, results);
-      });
+Operation *insertBefore = partition.mustPrecede;
+// A supplied boundary must be in the same block and outside the partition.
+if (partition.mustPrecede && (partition.mustPrecede->getBlock() != block ||
+                              inPartition.contains(partition.mustPrecede)))
+  return failure();
 
-  // Call the lambda without explicit arguments.
-  builder.setInsertionPointAfter(lambda);
-  OperationState state(loc, cudaq::cc::CallCallableOp::getOperationName());
-  state.addTypes(outTys);
-  state.addOperands(lambda.getResult());
-  auto call = cast<cudaq::cc::CallCallableOp>(builder.create(state));
+for (Value out : llvm::concat<Value>(nonWireOutputList, orderedWireOutputs))
+  for (Operation *user : out.getUsers())
+    if (!inPartition.contains(user))
+      if (!insertBefore || user->isBeforeInBlock(insertBefore))
+        insertBefore = user;
+for (Value in : llvm::concat<Value>(nonWireInputList, inputList)) {
+  // make sure that input is available at insertion point
+  bool available = insertBefore ? dominance.properlyDominates(in, insertBefore)
+                                : dominance.dominates(in, anchor);
+  if (!available)
+    return failure();
+}
 
-  for (auto [i, out] : llvm::enumerate(nonWireOutputList))
-    out.replaceAllUsesWith(call.getResult(i));
-  for (auto [i, out] : llvm::enumerate(orderedWireOutputs))
-    out.replaceAllUsesWith(call.getResult(i + nonWireOutputList.size()));
-  for (Operation *op : llvm::reverse(orderedOps))
-    op->erase();
+if (insertBefore)
+  builder.setInsertionPoint(insertBefore);
+else
+  builder.setInsertionPointAfter(anchor);
+Location loc = anchor->getLoc();
 
-  return lambda;
+// Create the lambda with all external inputs captured.
+auto lambda = cudaq::cc::CreateLambdaOp::create(
+    builder, loc, callableTy, [&](OpBuilder &b, Location l) {
+      IRMapping map;
+      // External inputs remain captures; cloning maps internally defined
+      // values to their copies.
+      for (Operation *op : orderedOps)
+        b.clone(*op, map);
+      SmallVector<Value> results;
+      for (Value out : nonWireOutputList)
+        results.push_back(map.lookup(out));
+      for (Value out : orderedWireOutputs)
+        results.push_back(map.lookup(out));
+      cudaq::cc::ReturnOp::create(b, l, results);
+    });
+
+// Call the lambda without explicit arguments.
+builder.setInsertionPointAfter(lambda);
+OperationState state(loc, cudaq::cc::CallCallableOp::getOperationName());
+state.addTypes(outTys);
+state.addOperands(lambda.getResult());
+auto call = cast<cudaq::cc::CallCallableOp>(builder.create(state));
+
+for (auto [i, out] : llvm::enumerate(nonWireOutputList))
+  out.replaceAllUsesWith(call.getResult(i));
+for (auto [i, out] : llvm::enumerate(orderedWireOutputs))
+  out.replaceAllUsesWith(call.getResult(i + nonWireOutputList.size()));
+for (Operation *op : llvm::reverse(orderedOps))
+  op->erase();
+
+return lambda;
 }
 
 /// validate that
