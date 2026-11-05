@@ -861,6 +861,178 @@ TEST(OutlinePartitions, OrderedBatchWithSecondPartitionBoundary) {
   EXPECT_EQ(boundary.getTargets().front(), measuredWire);
 }
 
+// Reject overlapping selections before an earlier valid partition is rewritten.
+TEST(OutlinePartitions, OverlappingBatchRejectedWithoutChanges) {
+  constexpr const char ir[] = R"(
+    func.func @k() {
+      %a = quake.null_wire
+      %b = quake.null_wire
+      %c = quake.null_wire
+      %h = quake.h %a : (!quake.wire) -> !quake.wire
+      %x = quake.x %b : (!quake.wire) -> !quake.wire
+      %z = quake.z %c : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  cudaq::quake::HOp h;
+  cudaq::quake::XOp x;
+  cudaq::quake::ZOp z;
+  mod->walk([&](cudaq::quake::HOp op) { h = op; });
+  mod->walk([&](cudaq::quake::XOp op) { x = op; });
+  mod->walk([&](cudaq::quake::ZOp op) { z = op; });
+  ASSERT_TRUE(h);
+  ASSERT_TRUE(x);
+  ASSERT_TRUE(z);
+
+  SmallVector<cudaq::opt::PartitionToOutline> partitions = {
+      {{h.getOperation()}},
+      {{x.getOperation()}},
+      {{x.getOperation(), z.getOperation()}}};
+  const std::string before = printModule(*mod);
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartitions(partitions)));
+  EXPECT_EQ(printModule(*mod), before);
+  EXPECT_TRUE(succeeded(verify(*mod)));
+}
+
+// A boundary selected anywhere in the batch is rejected, regardless of which
+// partition would erase it first. (Note the location of the partitions
+// predicated by `boundarySelectedEarlier`. No preceding partition may be
+// rewritten.
+TEST(OutlinePartitions, SelectedBatchBoundaryRejectedWithoutChanges) {
+  constexpr const char ir[] = R"(
+    func.func @k() {
+      %a = quake.null_wire
+      %b = quake.null_wire
+      %c = quake.null_wire
+      %h = quake.h %a : (!quake.wire) -> !quake.wire
+      %x = quake.x %b : (!quake.wire) -> !quake.wire
+      %z = quake.z %c : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  for (bool boundarySelectedEarlier : {false, true}) {
+    SCOPED_TRACE(boundarySelectedEarlier ? "boundary selected earlier"
+                                         : "boundary selected later");
+    MLIRContext ctx;
+    auto mod = parse(ctx, ir);
+    ASSERT_TRUE(mod);
+    ASSERT_TRUE(succeeded(verify(*mod)));
+
+    cudaq::quake::HOp h;
+    cudaq::quake::XOp x;
+    cudaq::quake::ZOp z;
+    mod->walk([&](cudaq::quake::HOp op) { h = op; });
+    mod->walk([&](cudaq::quake::XOp op) { x = op; });
+    mod->walk([&](cudaq::quake::ZOp op) { z = op; });
+    ASSERT_TRUE(h);
+    ASSERT_TRUE(x);
+    ASSERT_TRUE(z);
+
+    // create partitions where `mustPrecede` of one partition is included in the
+    // other partition.
+    cudaq::opt::PartitionToOutline partitionUsingBoundary = {{x.getOperation()},
+                                                             z.getOperation()};
+    cudaq::opt::PartitionToOutline partitionContainingBoundary = {
+        {z.getOperation()}};
+    SmallVector<cudaq::opt::PartitionToOutline> partitions = {
+        {{h.getOperation()}},
+        boundarySelectedEarlier ? partitionContainingBoundary
+                                : partitionUsingBoundary,
+        boundarySelectedEarlier ? partitionUsingBoundary
+                                : partitionContainingBoundary};
+    const std::string before = printModule(*mod);
+    EXPECT_TRUE(failed(cudaq::opt::outlinePartitions(partitions)));
+    EXPECT_EQ(printModule(*mod), before);
+    EXPECT_TRUE(succeeded(verify(*mod)));
+  }
+}
+
+// A repeated pointer inside a later partition must also be caught before an
+// earlier valid partition is rewritten.
+TEST(OutlinePartitions, DuplicateInBatchRejectedWithoutChanges) {
+  constexpr const char ir[] = R"(
+    func.func @k() {
+      %a = quake.null_wire
+      %b = quake.null_wire
+      %h = quake.h %a : (!quake.wire) -> !quake.wire
+      %x = quake.x %b : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  cudaq::quake::HOp h;
+  cudaq::quake::XOp x;
+  mod->walk([&](cudaq::quake::HOp op) { h = op; });
+  mod->walk([&](cudaq::quake::XOp op) { x = op; });
+  ASSERT_TRUE(h);
+  ASSERT_TRUE(x);
+
+  SmallVector<cudaq::opt::PartitionToOutline> partitions = {
+      {{h.getOperation()}}, {{x.getOperation(), x.getOperation()}}};
+  const std::string before = printModule(*mod);
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartitions(partitions)));
+  EXPECT_EQ(printModule(*mod), before);
+  EXPECT_TRUE(succeeded(verify(*mod)));
+}
+
+// Sharing an external boundary is valid: both calls precede it, and its input
+// is rewired to the first call's returned wire without erasing the boundary.
+TEST(OutlinePartitions, SharedExternalBatchBoundaryAccepted) {
+  constexpr const char ir[] = R"(
+    func.func @k() {
+      %a = quake.null_wire
+      %b = quake.null_wire
+      %h = quake.h %a : (!quake.wire) -> !quake.wire
+      %x = quake.x %b : (!quake.wire) -> !quake.wire
+      %m, %measured = quake.mz %h : (!quake.wire) -> (!quake.measure, !quake.wire)
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  cudaq::quake::HOp h;
+  cudaq::quake::XOp x;
+  cudaq::quake::MzOp boundary;
+  mod->walk([&](cudaq::quake::HOp op) { h = op; });
+  mod->walk([&](cudaq::quake::XOp op) { x = op; });
+  mod->walk([&](cudaq::quake::MzOp op) { boundary = op; });
+  ASSERT_TRUE(h);
+  ASSERT_TRUE(x);
+  ASSERT_TRUE(boundary);
+
+  SmallVector<cudaq::opt::PartitionToOutline> partitions = {
+      {{h.getOperation()}, boundary.getOperation()},
+      {{x.getOperation()}, boundary.getOperation(), true}};
+  ASSERT_TRUE(succeeded(cudaq::opt::outlinePartitions(partitions)));
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  SmallVector<cudaq::cc::CreateLambdaOp> lambdas;
+  SmallVector<cudaq::cc::CallCallableOp> calls;
+  mod->walk([&](cudaq::cc::CreateLambdaOp op) { lambdas.push_back(op); });
+  mod->walk([&](cudaq::cc::CallCallableOp op) { calls.push_back(op); });
+  ASSERT_EQ(lambdas.size(), 2u);
+  ASSERT_EQ(calls.size(), 2u);
+  for (unsigned i = 0; i < 2; ++i) {
+    EXPECT_EQ(calls[i]->getOperand(0), lambdas[i].getResult());
+    EXPECT_EQ(lambdas[i]->getNextNode(), calls[i].getOperation());
+    EXPECT_TRUE(calls[i]->isBeforeInBlock(boundary.getOperation()));
+  }
+  EXPECT_EQ(calls.back()->getNextNode(), boundary.getOperation());
+  EXPECT_EQ(boundary.getTargets().front(), calls.front()->getResult(0));
+}
+
 // An upper placement bound cannot delay a call past an outside consumer.
 TEST(OutlinePartitions, ConsumerBeforeBoundaryTakesPrecedence) {
   constexpr const char ir[] = R"(

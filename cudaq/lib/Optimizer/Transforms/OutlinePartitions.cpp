@@ -247,6 +247,31 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
   return lambda;
 }
 
+/// validate that
+/// 1. no overlap among partitions
+/// 2. no `mustPrecede` ops in any of the partitions
+static LogicalResult
+validatePartitions(ArrayRef<cudaq::opt::PartitionToOutline> partitions) {
+  DenseSet<Operation *> allOps;
+
+  // reject if any overlap among partitions
+  for (const auto &partition : partitions) {
+    if (llvm::any_of(partition.ops,
+                     [&](Operation *op) { return !allOps.insert(op).second; }))
+      return failure();
+  }
+
+  // reject if `mustPrecede` contained within any of the partitions
+  if (llvm::any_of(partitions,
+                   [&](const cudaq::opt::PartitionToOutline &partition) {
+                     return partition.mustPrecede &&
+                            allOps.contains(partition.mustPrecede);
+                   }))
+    return failure();
+
+  return success();
+}
+
 FailureOr<cudaq::cc::CreateLambdaOp>
 cudaq::opt::outlinePartition(const PartitionToOutline &partition) {
   DominanceInfo dominance;
@@ -255,6 +280,9 @@ cudaq::opt::outlinePartition(const PartitionToOutline &partition) {
 
 LogicalResult
 cudaq::opt::outlinePartitions(ArrayRef<PartitionToOutline> partitions) {
+  if (failed(validatePartitions(partitions)))
+    return failure();
+
   // The CFG of existing regions is unchanged, so cached dominance information
   // remains valid across these rewrites.
   DominanceInfo dominance;
