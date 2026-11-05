@@ -164,6 +164,24 @@ build holding signed π/4 Pauli-product rotations and pairwise-commuting
 terminal product measurements. `qlx-verify-pbc` then checks that contract.
 Neither pass chooses a code, requests magic states, or inspects a machine.
 
+Static unitary `cflow.repeat` regions can stay folded through this transform.
+The supported slice carries logical qubits positionally and requires the
+current SSA owner at every use. An identity residual Clifford frame retains the
+source count. Counts zero and one are exact directly; bounded nonidentity
+residuals are normalized into signed-Clifford periods, a folded quotient, and
+an optional count-one remainder. Period search is limited to 64 phases and one
+normalization may clone at most 4096 body operations. Nested repeats are
+handled innermost-first.
+
+Hidden qubit captures, measurement inside the repeat, unsupported periods,
+excessive expansion, workload-bearing logical idle, or physical `event_id`
+metadata fail closed. Positive-basis source actions must use exact
+logical-qubit-only signatures with no classical payload or parameter bindings.
+Every source owner must be measured or explicitly discarded; after the first
+MPP, no new logical preparation may appear and all owners must be terminally
+discarded. Authored discard reasons remain distinct from compiler-introduced
+cleanup of nondestructive-MPP survivors.
+
 ## When not to synthesize
 
 Do not synthesize early when the intended realization should choose a native

@@ -1104,7 +1104,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">cudaq-logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="../preview/logical/index.html">cudaq-logical</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">cudaq-edem</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#standalone-build">Standalone build</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#python-bindings-and-wheel">Python bindings and wheel</a></li>
@@ -1202,6 +1202,12 @@ native build with <code class="docutils literal notranslate"><span class="pre">C
 installing <code class="docutils literal notranslate"><span class="pre">nanobind&gt;=2.12,&lt;3</span></code> into the chosen Python environment. Set
 <code class="docutils literal notranslate"><span class="pre">Python_EXECUTABLE</span></code> to select an interpreter. Standalone native builds default to
 <code class="docutils literal notranslate"><span class="pre">CUDAQ_EDEM_BUILD_PYTHON=OFF</span></code>.</p>
+<p>Native Python bindings install under
+<code class="docutils literal notranslate"><span class="pre">lib/pythonX.Y/site-packages/cudaq_edem</span></code> by default. Set
+<code class="docutils literal notranslate"><span class="pre">CUDAQ_EDEM_PYTHON_INSTALL_DIR</span></code> to change the package directory relative to
+<code class="docutils literal notranslate"><span class="pre">CMAKE_INSTALL_PREFIX</span></code>. <code class="docutils literal notranslate"><span class="pre">scripts/build_cudaq.sh</span> <span class="pre">-L</span></code> sets it to <code class="docutils literal notranslate"><span class="pre">cudaq_edem</span></code>,
+beside the native installation’s <code class="docutils literal notranslate"><span class="pre">cudaq</span></code> package, so the same <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code>
+entry exposes both packages.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">cudaq-edem</span></code> wheel includes the <code class="docutils literal notranslate"><span class="pre">cudaq_edem</span></code> Python package, both native
 libraries, headers, and CMake exports. The Python module owns aligned buffers
 and delegates construction, validation, and evaluation to the C interface.
@@ -1230,8 +1236,18 @@ package configuration through the same Python environment:</p>
 <span class="w">  </span>-Dcudaq-edem_DIR<span class="o">=</span><span class="s2">"</span><span class="k">$(</span>python3<span class="w"> </span>-c<span class="w"> </span><span class="s1">'import cudaq_edem; print(cudaq_edem.get_cmake_dir())'</span><span class="k">)</span><span class="s2">"</span>
 </pre></div>
 </div>
-<p>Wheels use CPython and platform compatibility tags. CI produces wheel and
-source-distribution artifacts; public release publishing is a separate step.</p>
+<p>Wheels use CPython and platform compatibility tags. The Deployments workflow
+builds Linux wheels for CPython 3.11 through 3.14 in a <code class="docutils literal notranslate"><span class="pre">manylinux_2_28</span></code> container
+(<code class="docutils literal notranslate"><span class="pre">.github/workflows/edem_wheels.yml</span></code>), repairs them with <code class="docutils literal notranslate"><span class="pre">auditwheel</span></code>, and runs
+<code class="docutils literal notranslate"><span class="pre">check_wheel.py</span></code> on the repaired wheel. It attaches the wheels and the source
+distribution to the draft release. The <code class="docutils literal notranslate"><span class="pre">cudaq</span></code> package depends on the exact
+<code class="docutils literal notranslate"><span class="pre">cudaq-edem</span></code> version from <code class="docutils literal notranslate"><span class="pre">CUDAQ_EDEM_VERSION</span></code> on Linux, so <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cudaq</span></code>
+installs it. PyPI never accepts a second upload of a version, so a Deployments
+run that creates a release fails if <code class="docutils literal notranslate"><span class="pre">CUDAQ_EDEM_VERSION</span></code> is already on PyPI with
+different sources (see <code class="docutils literal notranslate"><span class="pre">edem/scripts/check_pypi_version.py</span></code>). Bump the version
+before publishing changes. The Deployments release images also install the
+Python 3.12 wheel into the system Python. Publish <code class="docutils literal notranslate"><span class="pre">cudaq-edem</span></code> to PyPI before
+<code class="docutils literal notranslate"><span class="pre">cudaq</span></code>.</p>
 </section>
 <section id="cuda-q-build">
 <h2>CUDA-Q build<a class="headerlink" href="#cuda-q-build" title="Permalink to this heading">¶</a></h2>

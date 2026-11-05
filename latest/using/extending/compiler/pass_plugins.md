@@ -1982,7 +1982,8 @@ latest
 
 [Preview]{.caption-text}
 
--   [cudaq-logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-logical](../../../preview/logical/index.html){.reference
+    .external}
 -   [cudaq-edem](../../edem.html){.reference .internal}
     -   [Standalone build](../../edem.html#standalone-build){.reference
         .internal}

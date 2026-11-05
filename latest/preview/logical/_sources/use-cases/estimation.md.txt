@@ -88,7 +88,7 @@ distillation example straight from its authoring definition:
 % invisible-code-block: python
 %
 % distill_15to1 = load_ql_example(
-% "preview/logical/examples/standalone/03_magic_state_distillation.py",
+% "preview/logical/examples/standalone/07_magic_state_distillation.py",
 % "distill_15to1")
 -->
 
@@ -113,7 +113,7 @@ override them for sensitivity studies. The result keeps its assumptions and
 reports whether the selected distance meets the requested budget.
 
 `examples/02_surface_code_resource_estimate.py` uses this tier through a CUDA-Q
-target, while `examples/standalone/05_gidney_ekera_lookup_addition.py` invokes
+target, while `examples/standalone/09_gidney_ekera_lookup_addition.py` invokes
 it directly on a P2 build.
 
 ## `Tier.SCHEDULE` — cost the physical event graph
@@ -121,7 +121,7 @@ it directly on a P2 build.
 The schedule tier consumes a scheduled P3 graph. It reports authenticated
 physical-resource and event counts, first-attempt/expected/maximum makespans,
 resource-time, utilization, exhaustion probability, and the selected
-termination policy. `examples/standalone/04_physical_schedule.py` shows the
+termination policy. `examples/standalone/03_physical_schedule.py` shows the
 smallest direct workflow; the surface-code and Carbon CUDA-Q targets expose the
 same tier through `cudaq.estimate` annotations.
 
