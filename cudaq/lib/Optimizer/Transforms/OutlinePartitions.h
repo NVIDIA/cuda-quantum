@@ -16,7 +16,9 @@
 namespace cudaq::opt {
 
 struct PartitionToOutline {
-  /// Selected operations. Duplicate operation pointers are rejected.
+  /// Selected operations in cloning order. Each internal producer must precede
+  /// its consumers. Duplicate pointers and invalid def-use order are rejected.
+  /// The caller must preserve additional semantic ordering constraints.
   mlir::SmallVector<mlir::Operation *> ops;
   /// Optional operation before which the generated lambda and call must be
   /// inserted. Must belong to the partition's block and be outside ops.
@@ -28,24 +30,19 @@ struct PartitionToOutline {
   /// processed. outlinePartitions rejects the batch if this operation is
   /// selected by any partition in the batch.
   mlir::Operation *mustPrecede = nullptr;
-  /// If true, clone ops in the supplied order, rejecting any internal producer
-  /// placed after its consumer. The caller must preserve additional semantic
-  /// ordering constraints. If false, clone operations in block order.
-  bool acceptOrderedPartition = false;
 };
 
 /// Outline supported operations from one block into a lambda and a call.
-/// Cloning order is controlled by partition.acceptOrderedPartition, and
-/// placement is constrained by partition.mustPrecede. All external inputs are
-/// captured.
+/// Operations are cloned in the supplied def-use order, with all external
+/// inputs captured. Placement is constrained by partition.mustPrecede.
 /// Non-wire results precede wire results. Wire results follow the first-use
 /// order of their corresponding incoming wires. Returns failure without
 /// modifying the IR if the selection cannot be outlined.
 mlir::FailureOr<cudaq::cc::CreateLambdaOp>
 outlinePartition(const PartitionToOutline &partition);
 
-/// Outline each supplied partition using its own acceptOrderedPartition and
-/// mustPrecede settings, returning failure if any is rejected.
+/// Outline each supplied partition in its supplied def-use order using its own
+/// mustPrecede boundary, returning failure if any is rejected.
 /// Batch validation rejects duplicate or overlapping selections and boundaries
 /// selected by any partition, returning failure without modifying the IR.
 /// Once validation succeeds, partitions are outlined individually; successful

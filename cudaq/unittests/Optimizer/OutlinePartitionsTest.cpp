@@ -64,9 +64,6 @@ TEST(OutlinePartitions, ContiguousRun) {
   Value firstWire = partition[0]->getOperand(0);
   Value secondWire = cast<cudaq::quake::XOp>(partition[1]).getTargets().front();
 
-  // Accept a selection supplied out of block order and clone in block order.
-  partition = {partition[1], partition[0]};
-
   auto lambda = cudaq::opt::outlinePartition({partition});
   ASSERT_TRUE(succeeded(lambda));
   EXPECT_TRUE(succeeded(verify(*mod)));
@@ -140,7 +137,7 @@ TEST(OutlinePartitions, SuppliedOrderPreserved) {
 
   SmallVector<Operation *> partition{rotation.getOperation(),
                                      measurement.getOperation()};
-  auto lambda = cudaq::opt::outlinePartition({partition, nullptr, true});
+  auto lambda = cudaq::opt::outlinePartition({partition});
   ASSERT_TRUE(succeeded(lambda));
   EXPECT_TRUE(succeeded(verify(*mod)));
   EXPECT_TRUE(angle->isBeforeInBlock(lambda->getOperation()));
@@ -193,7 +190,7 @@ TEST(OutlinePartitions, SuppliedConsumerBeforeProducerRejected) {
   SmallVector<Operation *> partition{consumer.getOperation(),
                                      producer.getOperation()};
   std::string before = printModule(*mod);
-  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition, nullptr, true})));
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition})));
   EXPECT_EQ(printModule(*mod), before);
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
@@ -752,7 +749,7 @@ TEST(OutlinePartitions, SpecifyPartitionOrder) {
     // producer-before-consumer order of the other three gates.
     partition.insert(partition.begin(), t.getOperation());
     auto lambda = cudaq::opt::outlinePartition(
-        {partition, specifyBoundary ? boundary.getOperation() : nullptr, true});
+        {partition, specifyBoundary ? boundary.getOperation() : nullptr});
     ASSERT_TRUE(succeeded(lambda));
     ASSERT_TRUE(succeeded(verify(*mod)));
 
@@ -824,8 +821,8 @@ TEST(OutlinePartitions, OrderedBatchWithSecondPartitionBoundary) {
   Value measuredWire = boundary.getTargets().front();
 
   SmallVector<cudaq::opt::PartitionToOutline> partitions = {
-      {{x.getOperation(), h.getOperation()}, nullptr, true},
-      {{t.getOperation(), z.getOperation()}, boundary.getOperation(), true}};
+      {{x.getOperation(), h.getOperation()}, nullptr},
+      {{t.getOperation(), z.getOperation()}, boundary.getOperation()}};
   ASSERT_TRUE(succeeded(cudaq::opt::outlinePartitions(partitions)));
   ASSERT_TRUE(succeeded(verify(*mod)));
 
@@ -1014,7 +1011,7 @@ TEST(OutlinePartitions, SharedExternalBatchBoundaryAccepted) {
 
   SmallVector<cudaq::opt::PartitionToOutline> partitions = {
       {{h.getOperation()}, boundary.getOperation()},
-      {{x.getOperation()}, boundary.getOperation(), true}};
+      {{x.getOperation()}, boundary.getOperation()}};
   ASSERT_TRUE(succeeded(cudaq::opt::outlinePartitions(partitions)));
   ASSERT_TRUE(succeeded(verify(*mod)));
 
@@ -1270,8 +1267,7 @@ TEST(OutlinePartitions, RejectPartitionContainingLoad) {
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
 
-// Reject duplicate operation pointers in both ordering modes without changing
-// the IR.
+// Reject duplicate operation pointers without changing the IR.
 TEST(OutlinePartitions, RejectDuplicateOps) {
   constexpr const char ir[] = R"(
     func.func @k() {
@@ -1283,25 +1279,21 @@ TEST(OutlinePartitions, RejectDuplicateOps) {
     }
   )";
 
-  for (bool acceptOrderedPartition : {false, true}) {
-    SCOPED_TRACE(acceptOrderedPartition ? "supplied order" : "block order");
-    MLIRContext ctx;
-    auto mod = parse(ctx, ir);
-    ASSERT_TRUE(mod);
-    ASSERT_TRUE(succeeded(verify(*mod)));
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
 
-    SmallVector<Operation *> partition;
-    mod->walk([&](Operation *op) {
-      if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
-        partition.push_back(op);
-    });
-    ASSERT_EQ(partition.size(), 2u);
-    partition.push_back(partition[0]);
-    const std::string before = printModule(*mod);
+  SmallVector<Operation *> partition;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
+      partition.push_back(op);
+  });
+  ASSERT_EQ(partition.size(), 2u);
+  partition.push_back(partition[0]);
+  const std::string before = printModule(*mod);
 
-    EXPECT_TRUE(failed(cudaq::opt::outlinePartition(
-        {partition, nullptr, acceptOrderedPartition})));
-    EXPECT_EQ(printModule(*mod), before);
-    EXPECT_TRUE(succeeded(verify(*mod)));
-  }
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition})));
+  EXPECT_EQ(printModule(*mod), before);
+  EXPECT_TRUE(succeeded(verify(*mod)));
 }

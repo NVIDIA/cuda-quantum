@@ -37,8 +37,6 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
   if (partitionOps.empty())
     return failure();
 
-  bool acceptOrderedPartition = partition.acceptOrderedPartition;
-
   DenseSet<Operation *> inPartition(partitionOps.begin(), partitionOps.end());
 
   // Reject any partition with duplicate operations
@@ -54,40 +52,23 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
       return failure();
   }
 
-  // copy the partition operations into a separate vector for ordering
-  SmallVector<Operation *> orderedOps(partitionOps.begin(), partitionOps.end());
-
-  // Anchor is last selected op in IR block. If the caller
-  // specifies an ordered partition, anchor is not guaranteed to be the last op
-  // in `orderedOps` so search for true anchor.
+  // Preserve the supplied order and verify that internal producers precede
+  // their consumers. Captured inputs are checked later for dominance at the
+  // lambda insertion point.
+  ArrayRef<Operation *> orderedOps = partitionOps;
+  DenseSet<Operation *> seen;
+  // Placement uses the physically last selected operation, which may differ
+  // from the last operation in the supplied order.
   Operation *anchor = nullptr;
-
-  if (!acceptOrderedPartition) {
-    // Sort the unique selected operations in block (topological) order.
-    orderedOps.assign(inPartition.begin(), inPartition.end());
-    llvm::sort(orderedOps, [](Operation *lhs, Operation *rhs) {
-      return lhs->isBeforeInBlock(rhs);
-    });
-    anchor = orderedOps.back();
-  } else {
-    // Verify that producers inside the partition precede their consumers in
-    // the supplied order. Captured inputs are checked later for dominance at
-    // the lambda insertion point.
-    DenseSet<Operation *> seen;
-    for (Operation *op : orderedOps) {
-      for (Value operand : op->getOperands()) {
-        Operation *def = operand.getDefiningOp();
-        if (def && inPartition.contains(def) && !seen.contains(def))
-          return failure();
-      }
-      if (!seen.insert(op).second)
+  for (Operation *op : orderedOps) {
+    for (Value operand : op->getOperands()) {
+      Operation *def = operand.getDefiningOp();
+      if (def && inPartition.contains(def) && !seen.contains(def))
         return failure();
-
-      // find the true anchor since caller supplied partition not necessarily in
-      // textual IR block order
-      if (!anchor || anchor->isBeforeInBlock(op))
-        anchor = op;
     }
+    seen.insert(op);
+    if (!anchor || anchor->isBeforeInBlock(op))
+      anchor = op;
   }
 
   // Collect captured inputs and outputs. Non-wire outputs precede wires in the
