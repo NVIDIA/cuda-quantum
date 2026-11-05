@@ -200,6 +200,13 @@ Using the Integrated Logic Analyzer (`ILA`) timestamp when the FPGA receives
 the response from the GPU, we can compute the round-trip latency,
 i.e., the elapsed time from the timestamp in the header to the `ILA` receive timestamp.
 
+The software `hsb_fpga_emulator` uses its host's monotonic clock for both the
+outgoing request timestamp and the response capture. It encodes both as
+`{seconds[31:0], nanoseconds[31:0]}`, matching the playback reader's FPGA format.
+Request timestamp insertion follows the player's `ptp_bram_ena` enable bit.
+Software FPGA latency includes software transport and host scheduling overhead.
+The emulator logs its capture clock when playback starts.
+
 Please refer to `hsb_fpga_playback.cpp` code in the [CUDA-Q repository](https://github.com/NVIDIA/cuda-quantum)
 for a sample of data generation tools.
 

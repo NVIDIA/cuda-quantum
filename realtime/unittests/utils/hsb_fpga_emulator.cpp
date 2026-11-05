@@ -45,6 +45,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "hsb_emulator_timing.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
 //==============================================================================
@@ -514,6 +515,10 @@ public:
   bool player_loop_enabled() const {
     return player_enable_.load() == PLAYER_ENABLE_LOOP;
   }
+  bool ptp_enabled() const {
+    return cudaq::realtime::testing::hsb::timestamp_insertion_enabled(
+        player_enable_.load());
+  }
 
   /// Get player config.
   uint32_t window_size() const { return regs_.read(PLAYER_WIN_SIZE); }
@@ -817,9 +822,11 @@ cache_playback_windows(const RegisterFile &regs, uint32_t window_count,
 ///   Bank 16     = control signals:
 ///     bit 0 = tvalid (bit 512), bit 1 = tlast (bit 513),
 ///     bits [8:2] = wr_tcnt (bits 520:514, 7-bit write transaction count)
-///   Banks 17-18 = PTP timestamp at bits [584:521] (zero in emulator)
+///   Bits [584:521] = software-monotonic receive timestamp, in the same
+///     seconds/nanoseconds encoding as the FPGA's PTP capture.
 static void store_ila_sample(RegisterFile &regs, uint32_t sample_index,
-                             const uint8_t *data, size_t data_len) {
+                             const uint8_t *data, size_t data_len,
+                             uint64_t receive_timestamp) {
   // Banks 0-15: 512-bit AXI data bus
   for (int bank = 0; bank < 16; bank++) {
     uint32_t addr =
@@ -833,22 +840,25 @@ static void store_ila_sample(RegisterFile &regs, uint32_t sample_index,
     regs.write(addr, val);
   }
 
-  // Bank 16: control signals (tvalid=1, tlast=1, wr_tcnt=1)
+  const auto timestamp_words =
+      cudaq::realtime::testing::hsb::ila_timestamp_words(receive_timestamp);
+
+  // Bank 16: control signals and the low 23 bits of the timestamp.
   {
     uint32_t ctrl_addr =
         ILA_DATA_BASE + (16 << (ILA_W_ADDR + 2)) + (sample_index * 4);
-    uint32_t ctrl_val = 0;
+    uint32_t ctrl_val = timestamp_words[0];
     ctrl_val |= (1u << 0); // tvalid (bit 512)
     ctrl_val |= (1u << 1); // tlast  (bit 513)
     ctrl_val |= (1u << 2); // wr_tcnt = 1 (bits 514+, value 1 in 7-bit field)
     regs.write(ctrl_addr, ctrl_val);
   }
 
-  // Banks 17-18: PTP timestamp placeholder (no PTP hardware in emulator)
+  // Banks 17-18: remaining software-monotonic timestamp bits.
   for (int bank = 17; bank < ILA_NUM_BANKS; bank++) {
     uint32_t addr =
         ILA_DATA_BASE + (bank << (ILA_W_ADDR + 2)) + (sample_index * 4);
-    regs.write(addr, 0);
+    regs.write(addr, timestamp_words[bank - 16]);
   }
 
   // Update sample count
@@ -1113,6 +1123,7 @@ int main(int argc, char *argv[]) {
     uint32_t num_pages = target.max_buff + 1;
 
     std::cout << "\n=== Starting syndrome transmission ===" << std::endl;
+    std::cout << "  Capture clock: host monotonic" << std::endl;
 
     const auto start_time = std::chrono::high_resolution_clock::now();
     uint64_t windows_sent = 0;
@@ -1149,6 +1160,10 @@ int main(int argc, char *argv[]) {
         // RDMA WRITE to bridge's ring buffer (remote has num_pages slots)
         uint64_t remote_addr =
             target.buffer_addr + (remote_slot * rdma_page_size);
+        if (server.ptp_enabled())
+          cudaq::realtime::testing::hsb::stamp_request(
+              tx_addr, copy_len,
+              cudaq::realtime::testing::hsb::monotonic_timestamp());
         if (!rdma.post_rdma_write_imm(qp, playback_index, tx_addr, copy_len,
                                       tx_buffer.lkey(), remote_addr,
                                       target.rkey, remote_slot)) {
@@ -1217,6 +1232,8 @@ int main(int argc, char *argv[]) {
           int n = rdma.poll_cq(rx_cq, &wc, 1);
           if (n > 0) {
             if (wc.status == IBV_WC_SUCCESS) {
+              const auto receive_timestamp =
+                  cudaq::realtime::testing::hsb::monotonic_timestamp();
               corr_ok = true;
               responses_received++;
 
@@ -1249,7 +1266,8 @@ int main(int argc, char *argv[]) {
 
               // Store in ILA capture if armed
               if (ila_armed) {
-                store_ila_sample(regs, window, resp_data, wc.byte_len);
+                store_ila_sample(regs, window, resp_data, wc.byte_len,
+                                 receive_timestamp);
               }
 
               // Re-post receive WQE
