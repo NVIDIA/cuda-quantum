@@ -1,0 +1,256 @@
+diff --git a/mlir/include/mlir/Transforms/Inliner.h b/mlir/include/mlir/Transforms/Inliner.h
+index 0d3d3d1a3f9f..59f58baa8588 100644
+--- a/mlir/include/mlir/Transforms/Inliner.h
++++ b/mlir/include/mlir/Transforms/Inliner.h
+@@ -40,8 +40,11 @@ public:
+   }
+   const OpPipelinesTy &getOpPipelines() const { return opPipelines; }
+   unsigned getMaxInliningIterations() const { return maxInliningIterations; }
+-  const InlinerInterface::CloneCallbackTy &getCloneCallback() const {
+-    return cloneCallback;
++  /// Return the custom clone callback, or null to use the default cloning path.
++  function_ref<InlinerInterface::CloneCallbackSigTy> getCloneCallback() const {
++    if (cloneCallback)
++      return cloneCallback;
++    return nullptr;
+   }
+   bool getCanHandleMultipleBlocks() const { return canHandleMultipleBlocks; }
+ 
+@@ -72,22 +75,8 @@ private:
+   /// For SCC-based inlining algorithms, specifies maximum number of iterations
+   /// when inlining within an SCC.
+   unsigned maxInliningIterations{0};
+-  /// Callback for cloning operations during inlining
+-  InlinerInterface::CloneCallbackTy cloneCallback =
+-      [](OpBuilder &builder, Region *src, Block *inlineBlock,
+-         Block *postInsertBlock, IRMapping &mapper,
+-         bool shouldCloneInlinedRegion) {
+-        // Check to see if the region is being cloned, or moved inline. In
+-        // either case, move the new blocks after the 'insertBlock' to improve
+-        // IR readability.
+-        Region *insertRegion = inlineBlock->getParent();
+-        if (shouldCloneInlinedRegion)
+-          src->cloneInto(insertRegion, postInsertBlock->getIterator(), mapper);
+-        else
+-          insertRegion->getBlocks().splice(postInsertBlock->getIterator(),
+-                                           src->getBlocks(), src->begin(),
+-                                           src->end());
+-      };
++  /// Optional custom callback for cloning operations during inlining.
++  InlinerInterface::CloneCallbackTy cloneCallback;
+   /// Determine if the inliner can inline a function containing multiple
+   /// blocks into a region that requires a single block. By default, it is
+   /// not allowed. If it is true, cloneCallback should perform the extra
+diff --git a/mlir/include/mlir/Transforms/InliningUtils.h b/mlir/include/mlir/Transforms/InliningUtils.h
+index b6c6da3ddcc9..d2293db47fed 100644
+--- a/mlir/include/mlir/Transforms/InliningUtils.h
++++ b/mlir/include/mlir/Transforms/InliningUtils.h
+@@ -94,6 +94,9 @@ public:
+ // Inline Methods.
+ //===----------------------------------------------------------------------===//
+ 
++/// A null clone callback selects the default cloning implementation. Custom
++/// callbacks receive a caller block split at the insertion point.
++///
+ /// This function inlines a region, 'src', into another. This function returns
+ /// failure if it is not possible to inline this function. If the function
+ /// returned failure, then no changes to the module have been made.
+@@ -142,6 +145,7 @@ inlineRegion(InlinerInterface &interface,
+              std::optional<Location> inlineLoc = std::nullopt,
+              bool shouldCloneInlinedRegion = true);
+ 
++/// A null clone callback selects the default cloning implementation.
+ /// This function inlines a given region, 'src', of a callable operation,
+ /// 'callable', into the location defined by the given call operation. This
+ /// function returns failure if inlining is not possible, success otherwise. On
+diff --git a/mlir/lib/Transforms/Utils/InliningUtils.cpp b/mlir/lib/Transforms/Utils/InliningUtils.cpp
+index 73107cfc36ea..0ba15466ba33 100644
+--- a/mlir/lib/Transforms/Utils/InliningUtils.cpp
++++ b/mlir/lib/Transforms/Utils/InliningUtils.cpp
+@@ -301,9 +301,23 @@ static LogicalResult inlineRegionImpl(
+     handleArgumentImpl(interface, builder, call, callable, mapper);
+ 
+   // Clone the callee's source into the caller.
+-  Block *postInsertBlock = inlineBlock->splitBlock(inlinePoint);
+-  cloneCallback(builder, src, inlineBlock, postInsertBlock, mapper,
+-                shouldCloneInlinedRegion);
++  // Keep the caller's suffix in place when the default cloning path can
++  // produce a single block. Splitting and merging the suffix at every call
++  // otherwise takes quadratic time for callers containing many calls.
++  // Custom callbacks retain the split-block layout they expect.
++  bool deferSplit = !cloneCallback && src->hasOneBlock();
++  Block *postInsertBlock =
++      inlineBlock->splitBlock(deferSplit ? inlineBlock->end() : inlinePoint);
++  if (cloneCallback) {
++    cloneCallback(builder, src, inlineBlock, postInsertBlock, mapper,
++                  shouldCloneInlinedRegion);
++  } else if (shouldCloneInlinedRegion) {
++    src->cloneInto(insertRegion, postInsertBlock->getIterator(), mapper);
++  } else {
++    insertRegion->getBlocks().splice(postInsertBlock->getIterator(),
++                                     src->getBlocks(), src->begin(),
++                                     src->end());
++  }
+ 
+   // Get the range of newly inserted blocks.
+   auto newBlocks = llvm::make_range(std::next(inlineBlock->getIterator()),
+@@ -340,11 +354,27 @@ static LogicalResult inlineRegionImpl(
+     interface.handleTerminator(firstBlockTerminator, resultsToReplace);
+     firstBlockTerminator->erase();
+ 
++    if (deferSplit) {
++      inlineBlock->getOperations().splice(inlinePoint,
++                                          firstNewBlock->getOperations());
++      firstNewBlock->erase();
++      postInsertBlock->erase();
++      return success();
++    }
++
+     // Merge the post insert block into the cloned entry block.
+     firstNewBlock->getOperations().splice(firstNewBlock->end(),
+                                           postInsertBlock->getOperations());
+     postInsertBlock->erase();
+   } else {
++    // A dialect may disable the single-block optimization, or processing the
++    // inlined blocks may have introduced more blocks. Materialize the deferred
++    // split before handling their terminators.
++    if (deferSplit)
++      postInsertBlock->getOperations().splice(postInsertBlock->end(),
++                                              inlineBlock->getOperations(),
++                                              inlinePoint, inlineBlock->end());
++
+     // Otherwise, there were multiple blocks inlined. Add arguments to the post
+     // insertion block to represent the results to replace.
+     for (const auto &resultToRepl : llvm::enumerate(resultsToReplace)) {
+diff --git a/mlir/unittests/Transforms/CMakeLists.txt b/mlir/unittests/Transforms/CMakeLists.txt
+index dc5920087b50..6c27a4de3e5f 100644
+--- a/mlir/unittests/Transforms/CMakeLists.txt
++++ b/mlir/unittests/Transforms/CMakeLists.txt
+@@ -1,8 +1,13 @@
+ add_mlir_unittest(MLIRTransformsTests
+   Canonicalizer.cpp
+   DialectConversion.cpp
++  Inliner.cpp
+ )
+ mlir_target_link_libraries(MLIRTransformsTests
+   PRIVATE
++  MLIRArithDialect
++  MLIRControlFlowDialect
++  MLIRFuncDialect
++  MLIRFuncInlinerExtension
+   MLIRParser
+   MLIRTransforms)
+diff --git a/mlir/unittests/Transforms/Inliner.cpp b/mlir/unittests/Transforms/Inliner.cpp
+new file mode 100644
+--- /dev/null
++++ b/mlir/unittests/Transforms/Inliner.cpp
+@@ -0,0 +1,109 @@
++//===- Inliner.cpp - Inliner tests
++//-----------------------------------------===//
++//
++// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
++// See https://llvm.org/LICENSE.txt for license information.
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++//
++//===----------------------------------------------------------------------===//
++
++#include "mlir/Transforms/Inliner.h"
++#include "mlir/Dialect/Arith/IR/Arith.h"
++#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
++#include "mlir/Dialect/Func/Extensions/InlinerExtension.h"
++#include "mlir/Dialect/Func/IR/FuncOps.h"
++#include "mlir/IR/Builders.h"
++#include "mlir/IR/IRMapping.h"
++#include "mlir/IR/Verifier.h"
++#include "mlir/Parser/Parser.h"
++#include "gtest/gtest.h"
++
++using namespace mlir;
++
++namespace {
++struct CheckingInliner : InlinerInterface {
++  CheckingInliner(MLIRContext *context, Operation *suffix, Block *callerBlock,
++                  bool customClone, bool allowFastPath)
++      : InlinerInterface(context), suffix(suffix), callerBlock(callerBlock),
++        customClone(customClone), allowFastPath(allowFastPath) {}
++
++  void processInlinedBlocks(iterator_range<Region::iterator>) override {
++    // Check the structural property responsible for linear scaling: the
++    // default path must not move the caller's suffix at each call site.
++    EXPECT_EQ(suffix->getBlock() == callerBlock, !customClone);
++    processed = true;
++  }
++
++  bool allowSingleBlockOptimization(
++      iterator_range<Region::iterator>) const override {
++    return allowFastPath;
++  }
++
++  Operation *suffix;
++  Block *callerBlock;
++  bool customClone;
++  bool allowFastPath;
++  bool processed = false;
++};
++
++TEST(Inliner, SingleBlockInsertion) {
++  for (bool clone : {false, true}) {
++    for (bool customClone : {false, true}) {
++      for (bool allowFastPath : {false, true}) {
++        SCOPED_TRACE(::testing::Message()
++                     << "clone=" << clone << " custom=" << customClone
++                     << " fast=" << allowFastPath);
++        DialectRegistry registry;
++        registry.insert<arith::ArithDialect, cf::ControlFlowDialect,
++                        func::FuncDialect>();
++        func::registerInlinerExtension(registry);
++        MLIRContext context(registry);
++        auto module = parseSourceString<ModuleOp>(R"mlir(
++          module {
++            func.func private @callee(%x: i32) -> i32 {
++              %y = arith.addi %x, %x : i32
++              return %y : i32
++            }
++            func.func @caller(%x: i32) -> i32 {
++              %y = func.call @callee(%x) : (i32) -> i32
++              %z = arith.muli %y, %x : i32
++              return %z : i32
++            }
++          }
++        )mlir",
++                                                  &context);
++        ASSERT_TRUE(module);
++        auto callee = module->lookupSymbol<func::FuncOp>("callee");
++        auto caller = module->lookupSymbol<func::FuncOp>("caller");
++        auto call = cast<func::CallOp>(caller.getBody().front().front());
++        Operation *suffix = call->getNextNode();
++        CheckingInliner interface(&context, suffix, call->getBlock(),
++                                  customClone, allowFastPath);
++        InlinerConfig config;
++        if (customClone) {
++          config.setCloneCallback([&](OpBuilder &, Region *src, Block *before,
++                                      Block *after, IRMapping &mapper,
++                                      bool shouldClone) {
++            EXPECT_EQ(&before->back(), call.getOperation());
++            EXPECT_EQ(&after->front(), suffix);
++            if (shouldClone)
++              src->cloneInto(before->getParent(), after->getIterator(), mapper);
++            else
++              before->getParent()->getBlocks().splice(after->getIterator(),
++                                                      src->getBlocks());
++          });
++        }
++        ASSERT_TRUE(
++            succeeded(inlineCall(interface, config.getCloneCallback(), call,
++                                 callee, &callee.getBody(), clone)));
++        EXPECT_TRUE(interface.processed);
++        call.erase();
++        if (!clone)
++          callee.erase();
++        EXPECT_TRUE(succeeded(verify(*module)));
++        EXPECT_EQ(caller.getBody().hasOneBlock(), allowFastPath);
++      }
++    }
++  }
++}
++} // namespace
