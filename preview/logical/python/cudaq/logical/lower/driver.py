@@ -62,7 +62,13 @@ def lower(spec, build):
     for stage in spec.stages:
         stage.apply(work, ctx)
         ctx.evidence.append(stage.describe())
-    if not work.operation.verify():
+    # For a published Build, ``_fresh_module`` returns an exact private clone
+    # of its authenticated module. With no recipe stages there is no mutation
+    # to re-verify; carrying that authority forward avoids a full recursive
+    # walk of paper-scale P3 graphs before every target finalizer. Any
+    # transforming recipe (and the internal transient ownership path) still
+    # has to prove its output below.
+    if (spec.stages or build._transient) and not work.operation.verify():
         raise ValueError("target lowering produced invalid MLIR")
     ctx._verification_receipt = _verified_module_receipt(work)
     return work, ctx
