@@ -41,6 +41,10 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
 
   DenseSet<Operation *> inPartition(partitionOps.begin(), partitionOps.end());
 
+  // Reject any partition with duplicate operations
+  if (inPartition.size() != partitionOps.size())
+    return failure();
+
   // All operations must be supported and live in one block.
   Block *block = partitionOps.front()->getBlock();
   for (Operation *op : partitionOps) {

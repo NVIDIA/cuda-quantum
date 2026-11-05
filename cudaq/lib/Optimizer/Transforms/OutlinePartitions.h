@@ -16,6 +16,7 @@
 namespace cudaq::opt {
 
 struct PartitionToOutline {
+  /// Selected operations. Duplicate operation pointers are rejected.
   mlir::SmallVector<mlir::Operation *> ops;
   /// Optional operation before which the generated lambda and call must be
   /// inserted. Must belong to the partition's block and be outside ops.
@@ -26,10 +27,9 @@ struct PartitionToOutline {
   /// This pointer is non-owning and must remain valid until this partition is
   /// processed; earlier partitions in a batch must not erase the operation.
   mlir::Operation *mustPrecede = nullptr;
-  /// If true, clone ops in the supplied order, rejecting duplicates and any
-  /// internal producer placed after its consumer. The caller must preserve
-  /// additional semantic ordering constraints. If false, ignore duplicates and
-  /// clone operations in block order.
+  /// If true, clone ops in the supplied order, rejecting any internal producer
+  /// placed after its consumer. The caller must preserve additional semantic
+  /// ordering constraints. If false, clone operations in block order.
   bool acceptOrderedPartition = false;
 };
 

@@ -64,9 +64,8 @@ TEST(OutlinePartitions, ContiguousRun) {
   Value firstWire = partition[0]->getOperand(0);
   Value secondWire = cast<cudaq::quake::XOp>(partition[1]).getTargets().front();
 
-  // Accept an unordered selection with a duplicate while cloning each gate
-  // once in block order.
-  partition = {partition[1], partition[0], partition[1]};
+  // Accept a selection supplied out of block order and clone in block order.
+  partition = {partition[1], partition[0]};
 
   auto lambda = cudaq::opt::outlinePartition({partition});
   ASSERT_TRUE(succeeded(lambda));
@@ -1099,8 +1098,8 @@ TEST(OutlinePartitions, RejectPartitionContainingLoad) {
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
 
-// Make sure that duplicate ops are rejected during outlining with
-// caller-supplied order
+// Reject duplicate operation pointers in both ordering modes without changing
+// the IR.
 TEST(OutlinePartitions, RejectDuplicateOps) {
   constexpr const char ir[] = R"(
     func.func @k() {
@@ -1112,22 +1111,25 @@ TEST(OutlinePartitions, RejectDuplicateOps) {
     }
   )";
 
-  MLIRContext ctx;
-  auto mod = parse(ctx, ir);
-  ASSERT_TRUE(mod);
-  ASSERT_TRUE(succeeded(verify(*mod)));
+  for (bool acceptOrderedPartition : {false, true}) {
+    SCOPED_TRACE(acceptOrderedPartition ? "supplied order" : "block order");
+    MLIRContext ctx;
+    auto mod = parse(ctx, ir);
+    ASSERT_TRUE(mod);
+    ASSERT_TRUE(succeeded(verify(*mod)));
 
-  SmallVector<Operation *> partition;
-  mod->walk([&](Operation *op) {
-    if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
-      partition.push_back(op);
-  });
-  ASSERT_EQ(partition.size(), 2u);
-  // add duplicatek op
-  partition.push_back(partition[0]);
-  const std::string before = printModule(*mod);
+    SmallVector<Operation *> partition;
+    mod->walk([&](Operation *op) {
+      if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
+        partition.push_back(op);
+    });
+    ASSERT_EQ(partition.size(), 2u);
+    partition.push_back(partition[0]);
+    const std::string before = printModule(*mod);
 
-  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition, nullptr, true})));
-  EXPECT_EQ(printModule(*mod), before);
-  EXPECT_TRUE(succeeded(verify(*mod)));
+    EXPECT_TRUE(failed(cudaq::opt::outlinePartition(
+        {partition, nullptr, acceptOrderedPartition})));
+    EXPECT_EQ(printModule(*mod), before);
+    EXPECT_TRUE(succeeded(verify(*mod)));
+  }
 }
