@@ -111,6 +111,8 @@ static void reexportBindings(nanobind::module_ source,
 template <typename T>
 static nanobind::object pyAllGather(std::size_t globalVectorSize,
                                     const std::vector<T> &local) {
+  static_assert(std::is_same_v<T, int> || std::is_same_v<T, double>,
+                "pyAllGather supports only int and double elements");
   // Element kind of each rank: 0 = empty, 1 = int, 2 = float.
   constexpr int ownKind = std::is_same_v<T, int> ? 1 : 2;
   std::vector<int> kinds(mpi::num_ranks());
