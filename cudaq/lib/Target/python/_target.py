@@ -26,6 +26,10 @@ cudaq.set_target("qpp-cpu", compile_target=target)
 # data is deep-copied into the target language. Modifying a Python object will not
 # modify the original C++ object.
 
+# Python never converts values: after `a.foo = b`, `a.foo == b`. Values are only
+# converted, or rejected, when they cross into C++. Type hints list the types that
+# conversion accepts, e.g. an enum member or its name.
+
 # # Why not bind the C++ types?
 
 # When exposing C++ types through bindings, we must either copy the data at every property
@@ -44,7 +48,7 @@ cudaq.set_target("qpp-cpu", compile_target=target)
 # ```
 
 import enum
-from dataclasses import InitVar, dataclass, field
+from dataclasses import KW_ONLY, InitVar, dataclass, field
 from typing import Optional, Union
 
 
@@ -88,8 +92,8 @@ class QuakeUnmappedProfile:
     """IR profile for Quake before qubit mapping."""
     basis_gates: list[str] = field(default_factory=list)
     approximation_tolerance: float = 0.0
-    cost_model: Optional[CostModel] = None
-    unroll_loops: LoopUnrolling = LoopUnrolling.all
+    cost_model: Union[CostModel, str, None] = None
+    unroll_loops: Union[LoopUnrolling, str] = LoopUnrolling.all
     max_unroll_iterations: int = 1024
 
 
@@ -109,12 +113,23 @@ class CustomPipelineLowering:
     """An explicit MLIR pass pipeline.
 
     `override_pass_pipeline` replaces the whole compilation pipeline and cannot
-    be combined with the `high_level`, `mid_level` and `low_level` fragments.
+    be combined with the `high_level_pipeline`, `mid_level_pipeline` and
+    `low_level_pipeline` fragments.
     """
     override_pass_pipeline: str = ""
-    high_level: str = ""
-    mid_level: str = ""
-    low_level: str = ""
+    high_level_pipeline: str = ""
+    mid_level_pipeline: str = ""
+    low_level_pipeline: str = ""
+
+    def __post_init__(self):
+        self.verify()
+
+    def verify(self):
+        if self.override_pass_pipeline and (self.high_level_pipeline or
+                                            self.mid_level_pipeline or
+                                            self.low_level_pipeline):
+            raise ValueError("override_pass_pipeline cannot be combined with "
+                             "pipeline fragments")
 
 
 @dataclass
@@ -143,10 +158,7 @@ class CompileTarget:
     `CustomPipelineLowering`). A `codegen` string is the emission format.
     """
     stages: list[CompilationStage] = field(default_factory=list)
-    codegen: Union[Codegen,
-                   str] = field(default_factory=lambda: Codegen("qir:"))
-    ir_output_profile: InitVar[Optional[Profile]] = None
-    custom_pipeline: InitVar[Union[CustomPipelineLowering, str, None]] = None
+    codegen: Union[Codegen, str] = field(default_factory=Codegen)
     override_aot_compilation: bool = False
     support_conditionals_on_measure_results: bool = True
     support_device_calls: bool = False
@@ -154,24 +166,37 @@ class CompileTarget:
     support_explicit_measurements: bool = True
     support_observable_measurements: bool = True
     support_sample_without_measurements: bool = True
-    fully_specialize: bool = False
+    fully_specialize: bool = True
     preserve_loops: bool = False
-    noise_support: NoiseSupport = NoiseSupport.erase
+    noise_support: Union[NoiseSupport, str] = NoiseSupport.erase
     erase_qec: bool = True
-    argument_synth_change_semantics: bool = False
+    argument_synth_change_semantics: bool = True
     disable_qubit_mapping: bool = False
     replace_state_with_kernel: bool = False
 
+    # These are aliases for some common options - not stored on the dataclass,
+    # but `__init__` accepts them and passes them to `__post_init__`.
+    _: KW_ONLY
+    ir_output_profile: InitVar[Optional[Profile]] = None
+    custom_pipeline: InitVar[Union[CustomPipelineLowering, str, None]] = None
+
     def __post_init__(self, ir_output_profile, custom_pipeline):
-        if (bool(self.stages) + (ir_output_profile is not None) +
-            (custom_pipeline is not None)) > 1:
-            raise TypeError("stages, ir_output_profile and custom_pipeline "
-                            "are mutually exclusive")
+
+        def set_stages(stage, shortcut):
+            if self.stages:
+                raise TypeError(
+                    f"'{shortcut}' cannot be combined with a non-empty 'stages' value"
+                )
+            self.stages = [stage]
+
+        if ir_output_profile is not None and custom_pipeline is not None:
+            raise TypeError(
+                "'ir_output_profile' and 'custom_pipeline' are mutually exclusive"
+            )
         if ir_output_profile is not None:
-            self.stages = [CompilationStage(ir_output_profile)]
+            set_stages(CompilationStage(ir_output_profile), "ir_output_profile")
         elif custom_pipeline is not None:
             if isinstance(custom_pipeline, str):
                 custom_pipeline = CustomPipelineLowering(custom_pipeline)
-            self.stages = [
-                CompilationStage(UncheckedProfile(), custom_pipeline)
-            ]
+            set_stages(CompilationStage(UncheckedProfile(), custom_pipeline),
+                       "custom_pipeline")
