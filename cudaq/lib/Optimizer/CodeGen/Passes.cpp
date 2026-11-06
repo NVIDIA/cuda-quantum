@@ -56,6 +56,17 @@ static void addIQMPipeline(OpPassManager &pm) {
   pm.addPass(createBasisConversion(options));
 }
 
+static void addLQCloudPipeline(OpPassManager &pm) {
+  pm.addPass(cudaq::opt::createLQCloudGateDecomposition());
+  cudaq::opt::BasisConversionOptions options;
+  options.basis = {"h", "x", "y", "rz", "z(1)"};
+  options.enabledPatterns = {"U3ToRotations", "RzAdjToRz", "RxAdjToRx",
+                             "RyAdjToRy",     "CXToCZ",    "CYToCX",
+                             "SwapToCX",      "RxToRz",    "RyToRz",
+                             "SToR1",         "TToR1",     "R1ToRz"};
+  pm.addPass(createBasisConversion(options));
+}
+
 static void addIonQPipeline(OpPassManager &pm) {
   cudaq::opt::BasisConversionOptions options;
   options.basis = {
@@ -86,6 +97,9 @@ void cudaq::opt::registerTargetPipelines() {
   PassPipelineRegistration<>("iqm-gate-set-mapping",
                              "Convert kernels to IQM gate set.",
                              addIQMPipeline);
+  PassPipelineRegistration<>("lqcloud-gate-set-mapping",
+                             "Convert kernels to LQCloud native gates.",
+                             addLQCloudPipeline);
   PassPipelineRegistration<>("quantinuum-gate-set-mapping",
                              "Convert kernels to Quantinuum gate set.",
                              addQuantinuumPipeline);

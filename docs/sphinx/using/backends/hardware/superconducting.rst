@@ -201,6 +201,56 @@ The IQM backend integration offers more options for advanced use cases. Please f
 Please find more documentation after logging in to the `IQM Resonance portal <https://resonance.iqm.tech/>`__.
 
 
+.. _lqcloud-backend:
+
+LQCloud
++++++++
+
+Use ``https://cloud.logicalqubit.com`` as the service URL. In the
+`LQCloud console <https://cloud.logicalqubit.com>`__, select an available QPU
+and use its exact device name for ``qpu``. ``MQ02`` is an example; device
+availability depends on your account and the current service status.
+Obtain the API key from your LQCloud account.
+Set ``LQCLOUD_API_KEY`` in the environment before running your program; do not
+pass the key in source code or compiler arguments.
+
+Select the ``lqcloud`` target with ``url`` and ``qpu``. ``measurement_type``
+(``measure`` or ``measure2``) is optional: by default it is selected
+automatically from the QPU's supported readout modes. Sampling results are returned as
+counts.
+For C++ the corresponding compiler options are ``--lqcloud-url``,
+``--lqcloud-qpu``, and ``--lqcloud-measurement-type``.
+See :ref:`lqcloud-examples` for complete C++ and Python programs using synchronous
+sampling and same-process ``sample_async(...).get()``.
+
+Circuits are mapped automatically using the QPU coupling map fetched from the
+platform at run time. The compiler inserts SWAPs as needed for routable qubit
+pairs. For debugging, a coupling-map file can be selected with the
+``LQCLOUD_QPU_ARCH`` environment variable or the ``mapping_file`` target argument.
+
+The default mode accepts static circuits with one terminal Z measurement per
+selected qubit, including partial measurements. Global count strings contain
+only the measured qubits, in their original allocation order, including after
+routing. Unmeasured routing ancillas are excluded. Supported gates are ``H``,
+``X``, ``Y``, ``Z``, ``S``, ``T``, ``Rx``, ``Ry``, ``Rz``, ``CX``, ``CY``, ``CZ``,
+``U3``, and ``SWAP``. Negated controls, controlled SWAP, named measurement
+registers, and classical feedback are not supported.
+
+For mid-circuit and repeated Z measurements, use the official ``cudaq.run`` or
+``cudaq.run_async(...).get()`` APIs with a kernel returning a ``list[bool]``
+containing every Z measurement exactly once. LQCloud supports static measurement-only boolean
+lists; classical feedback and computed return values are not supported. Each
+shot returns its own list, using genuine per-shot memory from the service.
+
+Use ``kernel.barrier(q)`` in the builder or bare ``barrier(q)`` in a decorated
+kernel to synchronize a non-empty, statically sized qvector. Barriers are not
+supported in C++ or on simulators.
+
+Qubits are reset automatically before execution. On devices supporting mid-circuit
+reset, scalar or vector resets after gates are also supported. Resets after
+measurement require ``run`` to retain the measurement history. Use explicit barriers when reset must synchronize with operations on
+other qubits.
+
 OQC
 ++++
 

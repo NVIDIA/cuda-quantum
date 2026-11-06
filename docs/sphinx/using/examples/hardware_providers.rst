@@ -94,6 +94,27 @@ The following code illustrates how to run kernels on IQM's backends.
       :language: cpp
 
 
+.. _lqcloud-examples:
+
+LQCloud
+==================================
+
+The following examples use the :ref:`LQCloud backend <lqcloud-backend>` for
+synchronous sampling and same-process ``sample_async(...).get()``. Select an
+available QPU by its exact device name in the LQCloud console, and set
+``LQCLOUD_API_KEY`` in the environment before running either example.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/lqcloud.py
+      :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/lqcloud.cpp
+      :language: cpp
+
+
 .. _oqc-examples:
 
 OQC

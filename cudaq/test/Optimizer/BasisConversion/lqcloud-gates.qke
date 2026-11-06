@@ -1,0 +1,96 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: split-file %s %t
+// RUN: cudaq-opt --lqcloud-gate-set-mapping %t/single.qke | CircuitCheck %t/single.qke --up-to-global-phase
+// RUN: cudaq-opt --lqcloud-gate-set-mapping %t/public.qke | CircuitCheck %t/public.qke --up-to-global-phase
+// RUN: not cudaq-opt --lqcloud-gate-set-mapping %t/negated-y.qke 2>&1 | FileCheck %s --check-prefix=NEGATED-Y
+// RUN: not cudaq-opt --lqcloud-gate-set-mapping %t/controlled-swap.qke 2>&1 | FileCheck %s --check-prefix=CONTROLLED-SWAP
+
+//--- single.qke
+module {
+  func.func @x(%q: !quake.ref) {
+    quake.x %q : (!quake.ref) -> ()
+    return
+  }
+
+  func.func @y(%q: !quake.ref) {
+    quake.y %q : (!quake.ref) -> ()
+    return
+  }
+
+  func.func @z(%q: !quake.ref) {
+    quake.z %q : (!quake.ref) -> ()
+    return
+  }
+
+  func.func @rx(%q: !quake.ref) {
+    %theta = arith.constant 2.500000e-01 : f64
+    quake.rx (%theta) %q : (f64, !quake.ref) -> ()
+    return
+  }
+
+  func.func @rx_adj(%q: !quake.ref) {
+    %theta = arith.constant 2.500000e-01 : f64
+    quake.rx<adj> (%theta) %q : (f64, !quake.ref) -> ()
+    return
+  }
+
+  func.func @ry(%q: !quake.ref) {
+    %theta = arith.constant 5.000000e-01 : f64
+    quake.ry (%theta) %q : (f64, !quake.ref) -> ()
+    return
+  }
+
+  func.func @ry_adj(%q: !quake.ref) {
+    %theta = arith.constant 5.000000e-01 : f64
+    quake.ry<adj> (%theta) %q : (f64, !quake.ref) -> ()
+    return
+  }
+}
+
+//--- public.qke
+module {
+  func.func @public_gates(%a: !quake.ref, %b: !quake.ref) {
+    %theta = arith.constant 1.250000e-01 : f64
+    %phi = arith.constant 2.500000e-01 : f64
+    %lambda = arith.constant 5.000000e-01 : f64
+    quake.s %a : (!quake.ref) -> ()
+    quake.s<adj> %b : (!quake.ref) -> ()
+    quake.t %a : (!quake.ref) -> ()
+    quake.t<adj> %b : (!quake.ref) -> ()
+    quake.rz<adj> (%theta) %a : (f64, !quake.ref) -> ()
+    quake.u3 (%theta, %phi, %lambda) %b
+        : (f64, f64, f64, !quake.ref) -> ()
+    quake.x [%a] %b : (!quake.ref, !quake.ref) -> ()
+    quake.y [%b] %a : (!quake.ref, !quake.ref) -> ()
+    quake.swap %a, %b : (!quake.ref, !quake.ref) -> ()
+    return
+  }
+}
+
+//--- negated-y.qke
+module {
+  func.func @negated_y(%control: !quake.ref, %target: !quake.ref) {
+    quake.y [%control neg [true]] %target
+        : (!quake.ref, !quake.ref) -> ()
+    return
+  }
+}
+// NEGATED-Y: LQCloud does not support negated controls
+
+//--- controlled-swap.qke
+module {
+  func.func @controlled_swap(%control: !quake.ref, %a: !quake.ref,
+                             %b: !quake.ref) {
+    quake.swap [%control] %a, %b
+        : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    return
+  }
+}
+// CONTROLLED-SWAP: LQCloud does not support controlled SWAP

@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
+#include "cudaq/Optimizer/CodeGen/LQCloudJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -73,7 +74,7 @@ static llvm::cl::opt<std::string> convertTo(
     llvm::cl::value_desc(
         "Target transport layer format, <name[:version[:suboptions]]>. Valid "
         "names: \"qir\", \"qir-full\", \"qir-adaptive\", \"qir-base\", "
-        "\"openqasm2\", \"iqm\"."),
+        "\"openqasm2\", \"iqm\", \"lqcloud\"."),
     llvm::cl::init("qir:0.1"));
 
 static llvm::cl::opt<bool> emitLLVM(
@@ -172,6 +173,12 @@ int main(int argc, char **argv) {
       std::exit(1);
     }
   };
+  auto lqcloudAction = [&]() {
+    if (failed(cudaq::translateToLQCloudJson(modOp, out.os()))) {
+      cudaq::emitFatalError(modLoc, "translation failed");
+      std::exit(1);
+    }
+  };
   auto qasmAction = [&]() {
     if (failed(cudaq::translateToOpenQASM(modOp, out.os()))) {
       cudaq::emitFatalError(modLoc, "translation failed");
@@ -207,6 +214,13 @@ int main(int argc, char **argv) {
               cudaq::opt::createTargetFinalizePipeline(pm);
               cudaq::opt::addPipelineTranslateToIQMJson(pm);
               targetAction = iqmAction;
+            })
+      .Case("lqcloud",
+            [&]() {
+              targetUsesLlvm = false;
+              cudaq::opt::createTargetFinalizePipeline(pm);
+              cudaq::opt::addPipelineTranslateToLQCloudJson(pm);
+              targetAction = lqcloudAction;
             })
       .Default([&]() {
         cudaq::emitFatalError(

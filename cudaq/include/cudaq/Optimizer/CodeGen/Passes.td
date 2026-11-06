@@ -15,6 +15,11 @@
 
 include "mlir/Pass/PassBase.td"
 
+def LQCloudGateDecomposition : Pass<"lqcloud-gate-decomposition", "mlir::ModuleOp"> {
+  let summary = "Validate LQCloud inputs and lower scalar Z to Rz";
+  let dependentDialects = ["mlir::arith::ArithDialect", "cudaq::quake::QuakeDialect"];
+}
+
 def CCToLLVM : Pass<"cc-to-llvm", "mlir::ModuleOp"> {
   let summary = "Convert CC dialect (and others) to LLVM-IR.";
   let description = [{

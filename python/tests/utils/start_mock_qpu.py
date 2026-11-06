@@ -34,6 +34,10 @@ def start_server(backend: str):
             from mock_qpu.ionq import app
         case "iqm":
             from mock_qpu.iqm import app
+        case "lqcloud":
+            from mock_qpu.lqcloud import startServer
+            startServer(port)
+            return
         case "oqc":
             from mock_qpu.oqc import app
         case "quantinuum":

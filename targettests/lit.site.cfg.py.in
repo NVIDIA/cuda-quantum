@@ -73,6 +73,12 @@ if cmake_boolvar_to_bool(config.cudaq_backends_iqm):
   config.substitutions.append(('%iqm_avail', 'true'))
 else:
   config.substitutions.append(('%iqm_avail', 'false'))
+config.cudaq_backends_lqcloud = "@CUDAQ_ENABLE_LQCLOUD_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_lqcloud):
+  config.available_features.add('lqcloud')
+  config.substitutions.append(('%lqcloud_avail', 'true'))
+else:
+  config.substitutions.append(('%lqcloud_avail', 'false'))
 
 config.cudaq_backends_oqc = "@CUDAQ_ENABLE_OQC_BACKEND@"
 if cmake_boolvar_to_bool(config.cudaq_backends_oqc):

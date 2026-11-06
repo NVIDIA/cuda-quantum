@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+export LQCLOUD_API_KEY="test-only-fake-lqcloud-key"
+export PYTHONPATH="@CMAKE_BINARY_DIR@/python${PYTHONPATH:+:${PYTHONPATH}}"
+"@Python_EXECUTABLE@" "@CMAKE_SOURCE_DIR@/python/tests/utils/start_mock_qpu.py" lqcloud &
+pid=$!
+trap 'kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null' EXIT
+
+checkServerConnection() {
+  "@Python_EXECUTABLE@" - <<'PY'
+import socket
+try:
+    with socket.create_connection(("localhost", 62453), timeout=1):
+        pass
+except OSError:
+    raise SystemExit(1)
+PY
+}
+
+for attempt in {1..20}; do
+  if checkServerConnection; then
+    "$@"
+    exit $?
+  fi
+  kill -0 "$pid" 2>/dev/null || exit 1
+  sleep 1
+done
+exit 99
