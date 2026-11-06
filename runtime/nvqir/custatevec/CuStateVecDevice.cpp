@@ -11,6 +11,7 @@
 #include "CuStateVecError.h"
 
 #include <cuda_runtime_api.h>
+#include <custatevec.h>
 
 #include <algorithm>
 #include <bit>
@@ -54,6 +55,34 @@ std::optional<std::size_t> systemMemAvailableBytes() {
       return kibibytes * std::size_t{1024};
   }
   return std::nullopt;
+}
+
+std::optional<int32_t> recommendedDenseFusionQubits(
+    int32_t computeCapabilityMajor, int32_t computeCapabilityMinor,
+    bool doublePrecision, std::size_t cuStateVecVersion) {
+  if (cuStateVecVersion >= unmeasuredCuStateVecVersion)
+    return std::nullopt;
+  if (computeCapabilityMajor == 10 && computeCapabilityMinor == 7)
+    return doublePrecision ? 3 : 4;
+  return std::nullopt;
+}
+
+std::optional<int32_t> recommendedDenseFusionQubits(bool doublePrecision) {
+  // A failed query must not stop the simulator from running with the library
+  // default, so report no recommendation instead of throwing.
+  int32_t device = 0;
+  int32_t major = 0;
+  int32_t minor = 0;
+  if (cudaGetDevice(&device) != cudaSuccess ||
+      cudaDeviceGetAttribute(&major, cudaDevAttrComputeCapabilityMajor,
+                             device) != cudaSuccess ||
+      cudaDeviceGetAttribute(&minor, cudaDevAttrComputeCapabilityMinor,
+                             device) != cudaSuccess) {
+    cudaGetLastError();
+    return std::nullopt;
+  }
+  return recommendedDenseFusionQubits(major, minor, doublePrecision,
+                                      custatevecGetVersion());
 }
 
 DeviceMemoryCapacity queryDeviceMemoryCapacity() {
