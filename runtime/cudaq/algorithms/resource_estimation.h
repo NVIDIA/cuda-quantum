@@ -27,12 +27,8 @@ estimate_result run_estimate_resources(KernelFunctor &&wrappedKernel,
                                        std::function<bool()> choice) {
   estimate_policy policy{.kernelName = kernelName, .choice = std::move(choice)};
 
-  // Create the execution context.
-  ExecutionContext ctx(estimate_policy::name, 1);
-  ctx.kernelName = kernelName;
-
   CUDAQ_INFO("Launching kernel with estimate policy");
-  return detail::launch(policy, /*qpu_id=*/0, ctx, platform,
+  return detail::launch(policy, /*qpu_id=*/0, platform,
                         std::forward<KernelFunctor>(wrappedKernel));
 }
 } // namespace detail

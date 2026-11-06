@@ -64,6 +64,10 @@ protected:
   /// @brief The number of shots to execute
   std::size_t shots = 100;
 
+  /// @brief The kind of execution the jobs are created for
+  cudaq::detail::ExecutionContextType executionType =
+      cudaq::detail::ExecutionContextType::sample;
+
   /// @brief Parse a `config` for common parameters in a server helper (i.e.
   /// `outputNames` and `reorderIdx`)
   void parseConfigForCommonParams(const BackendConfig &config);
@@ -84,6 +88,11 @@ public:
 
   /// @brief Set the number of shots to execute
   void setShots(std::size_t s) { shots = s; }
+
+  /// @brief Set the kind of execution the next jobs are created for
+  void setExecutionType(cudaq::detail::ExecutionContextType type) {
+    executionType = type;
+  }
 
   /// @brief Set the server configuration.
   virtual void initialize(BackendConfig config) = 0;

@@ -8,13 +8,12 @@
 
 #include "py_testing_utils.h"
 #include "LinkedLibraryHolder.h"
-#include "common/ExecutionContext.h"
 #include "cudaq.h"
 #include "nvqir/CircuitSimulator.h"
 #include "cudaq/algorithms/run/policy.h"
 #include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/nvqir_launch.h"
 #include "cudaq/platform.h"
-#include "cudaq/qis/execution_manager.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/string.h>
@@ -56,10 +55,9 @@ void bindTestUtils(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
 
   // Run a mock-QPU kernel under a sampling policy and return the sample_result
   // directly. This mirrors the C++ emulation path in BaseRemoteRESTQPU (via
-  // detail::with_policy_and_ctx + ExecutionManager::with_default_em), so the
-  // result flows through the policy return value rather than the execution
-  // context. Qubits are preallocated because mock bitcode references qubits by
-  // static index without allocating them itself.
+  // nvqir::launch), so the result flows through the policy return value rather
+  // than the execution context. Qubits are preallocated because mock bitcode
+  // references qubits by static index without allocating them itself.
   testingSubmodule.def(
       "sampleKernel",
       [&](std::size_t numQubits, std::size_t numShots,
@@ -70,11 +68,7 @@ void bindTestUtils(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
         auto qubits = sim->allocateQubits(numQubits);
         cudaq::sample_policy policy;
         policy.options.shots = numShots;
-        cudaq::ExecutionContext ctx(cudaq::sample_policy::name, numShots);
-        auto result = cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
-          return cudaq::ExecutionManager::with_default_em(policy,
-                                                          [&]() { kernel(); });
-        });
+        auto result = nvqir::launch(policy, {}, [&]() { kernel(); });
         nvqir::toggleDynamicQubitManagement();
         sim->deallocateQubits(qubits);
         return result;
@@ -94,14 +88,7 @@ void bindTestUtils(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
         auto qubits = sim->allocateQubits(numQubits);
         cudaq::run_policy policy;
         policy.shots = 1;
-        // The context name must stay "run" so NVQIR's result_record_output
-        // records outputs; the result is returned via run_result, not read from
-        // the context.
-        cudaq::ExecutionContext ctx(cudaq::run_policy::name, 1);
-        auto result = cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
-          return cudaq::ExecutionManager::with_default_em(policy,
-                                                          [&]() { kernel(); });
-        });
+        auto result = nvqir::launch(policy, {}, [&]() { kernel(); });
         nvqir::toggleDynamicQubitManagement();
         sim->deallocateQubits(qubits);
         return result.outputLog;

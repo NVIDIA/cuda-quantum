@@ -10,7 +10,6 @@
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
 #include "common/Timing.h"
-#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <cstring>
 
@@ -39,28 +38,10 @@ struct InKernelLaunchScope {
 
 using namespace cudaq;
 
-KernelThunkResultType cudaq::executeCompiledModule(const CompiledModule &module,
-                                                   KernelArgs args) {
-  auto rawFn = module.getFunctionPtr();
-  if (rawFn)
-    return executeFunctionPtrBinary(*rawFn, args);
-  return executeJitBinary(module, args);
-}
-
 KernelThunkResultType cudaq::executeJitBinary(const CompiledModule &module,
                                               KernelArgs args) {
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "executeJitBinary",
                          module.getName());
-
-  // Propagate metadata from the compiled artifact to the execution context.
-  if (auto ctx = getExecutionContext()) {
-    ctx->hasConditionalsOnMeasureResults =
-        module.getMetadata().hasConditionalsOnMeasureResults;
-
-    if (ctx->name == "resource-count" && module.getResources()) {
-      nvqir::resource_counter::prepopulate(*module.getResources());
-    }
-  }
 
   auto rawArgs = args.getTypeErased().value_or(std::span<void *const>{});
   auto funcPtr = module.getJit()->getFn();

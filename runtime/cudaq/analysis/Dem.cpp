@@ -15,7 +15,6 @@
 namespace cudaq::detail {
 
 cudaq::dem_result launchDemPolicy(const cudaq::dem_policy &policy,
-                                  cudaq::ExecutionContext &ctx,
                                   const dem_policy_launcher &launchPolicy,
                                   const std::string &plugin_name) {
   if (cudaq::kernelHasConditionalFeedback(policy.kernelName))
@@ -27,7 +26,7 @@ cudaq::dem_result launchDemPolicy(const cudaq::dem_policy &policy,
   // @p plugin_name plugin. The scope starts from a clean simulator and
   // releases the override on every exit path.
   auto demScope = nvqir::dem::make_scope(plugin_name);
-  return launchPolicy(policy, ctx);
+  return launchPolicy(policy);
 }
 
 } // namespace cudaq::detail

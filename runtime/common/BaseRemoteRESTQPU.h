@@ -16,9 +16,9 @@
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
 #include "common/ServerHelper.h"
-#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/nvqir_launch.h"
 #include "cudaq/platform/platform_iface.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/qpu_utils.h"
@@ -234,12 +234,7 @@ public:
           "Remote QPU could not produce the local JIT artifact required for "
           "resource estimation.");
 
-    // RAII: the scope is released (and the resource-counter state cleared) on
-    // every exit path, including exceptions thrown from the kernel.
-    auto rcScope = nvqir::resource_counter::make_scope(policy.choice);
-    return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
-      [[maybe_unused]] auto kernelResult = executeJitBinary(module, args);
-    });
+    return nvqir::launch(policy, module, args, qpu_id);
   }
 
   /// Generate the DEM locally while preserving the selected remote target.
@@ -252,9 +247,7 @@ public:
           "Remote QPU could not produce the local JIT artifact required for "
           "detector error model generation.");
 
-    return cudaq::ExecutionManager::with_default_em(policy, [&] {
-      [[maybe_unused]] auto kernelResult = executeJitBinary(module, args);
-    });
+    return nvqir::launch(policy, module, args, qpu_id);
   }
 
   void completeLaunchKernel(const std::string &kernelName,
@@ -300,10 +293,15 @@ public:
     // invoke once per shot and let the execution manager collect the QIR
     // output log.
     assert(codes.size() == 1 && codes[0].jit);
-    return cudaq::ExecutionManager::with_default_em(policy, [&] {
-      for (std::size_t shot = 0; shot < policy.shots; shot++)
-        codes[0].jit->run(kernelName);
-    });
+    return nvqir::launch(policy,
+                         {.qpuId = qpu_id,
+                          .hasConditionalsOnMeasureResults =
+                              codes[0].hasConditionalsOnMeasureResults},
+                         [&] {
+                           for (std::size_t shot = 0; shot < policy.shots;
+                                shot++)
+                             codes[0].jit->run(kernelName);
+                         });
   }
 
   async_run_result
@@ -381,18 +379,17 @@ public:
     // We run the kernel(s) (multiple kernels if this is a multi-term
     // observe) one time each.
     for (std::size_t i = 0; i < codes.size(); i++) {
-      cudaq::ExecutionContext context("sample", localShots);
-      context.hasConditionalsOnMeasureResults =
-          codes[i].hasConditionalsOnMeasureResults;
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
-      localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);
       localPolicy.kernelName = kernelName;
       assert(codes[i].jit);
-      auto result = detail::with_policy_and_ctx(localPolicy, context, [&]() {
-        return cudaq::ExecutionManager::with_default_em(
-            localPolicy, [&]() { codes[i].jit->run(kernelName); });
-      });
+      auto result =
+          nvqir::launch(localPolicy,
+                        {.qpuId = qpu_id,
+                         .hasConditionalsOnMeasureResults =
+                             codes[i].hasConditionalsOnMeasureResults,
+                         .reorderIdx = std::move(codes[i].mapping_reorder_idx)},
+                        [&] { codes[i].jit->run(kernelName); });
 
       // For each register, add the context results into result.
       for (auto &regName : result.register_names()) {
@@ -438,18 +435,17 @@ public:
 
     std::vector<cudaq::ExecutionResult> results;
     for (std::size_t i = 0; i < codes.size(); i++) {
-      cudaq::ExecutionContext context("sample", localShots);
-      context.hasConditionalsOnMeasureResults =
-          codes[i].hasConditionalsOnMeasureResults;
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
-      localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);
       localPolicy.kernelName = kernelName;
       assert(codes[i].jit);
-      auto result = detail::with_policy_and_ctx(localPolicy, context, [&]() {
-        return cudaq::ExecutionManager::with_default_em(
-            localPolicy, [&]() { codes[i].jit->run(kernelName); });
-      });
+      auto result =
+          nvqir::launch(localPolicy,
+                        {.qpuId = qpu_id,
+                         .hasConditionalsOnMeasureResults =
+                             codes[i].hasConditionalsOnMeasureResults,
+                         .reorderIdx = std::move(codes[i].mapping_reorder_idx)},
+                        [&] { codes[i].jit->run(kernelName); });
 
       // Use the code name instead of the global register.
       results.emplace_back(result.to_map(), codes[i].name);

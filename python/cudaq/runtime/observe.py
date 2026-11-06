@@ -37,20 +37,19 @@ def __broadcastObserve(kernel,
     N = len(argSet)
     results = []
     kernel_name = kernel.name if hasattr(kernel, 'name') else ''
-    ctx_shots = shots_count if shots_count > 0 else 0
-    ctx = cudaq_runtime.ExecutionContext('observe', ctx_shots, qpu_id)
-    ctx.totalIterations = N
-    ctx.setSpinOperator(spin_operator)
-    ctx.kernelName = kernel_name
+    policy_shots = shots_count if shots_count > 0 else 0
     has_vector_args = isa_kernel_decorator(kernel) and any(
         hasattr(a, 'shape') and len(a.shape) == 2 for a in args)
-    policy = cudaq_runtime.ObservePolicy(ctx, kernel_name, spin_operator)
     for i, a in enumerate(argSet):
-        ctx.batchIteration = i
+        policy = cudaq_runtime.ObservePolicy(kernel_name,
+                                             spin_operator,
+                                             policy_shots,
+                                             qpu_id=qpu_id,
+                                             batch_iteration=i,
+                                             total_iterations=N)
         results.append(
             cudaq_runtime.launch_observe(
-                policy,
-                ctx,
+                policy, qpu_id,
                 lambda a=a: kernel(*a, optimization_level=optimization_level)))
     return results
 
@@ -175,21 +174,18 @@ def observe(kernel,
             ]
                        for p in results]
     else:
-        if shots_count > 0:
-            ctx = cudaq_runtime.ExecutionContext('observe', shots_count, qpu_id)
-        else:
-            ctx = cudaq_runtime.ExecutionContext('observe', 0, qpu_id)
-        ctx.setSpinOperator(localOp)
-        if num_trajectories is not None:
-            if noise_model is None:
-                raise RuntimeError(
-                    "num_trajectories is provided without a noise_model.")
-            ctx.numberTrajectories = num_trajectories
+        if num_trajectories is not None and noise_model is None:
+            raise RuntimeError(
+                "num_trajectories is provided without a noise_model.")
         kernel_name = kernel.name if hasattr(kernel, 'name') else ''
-        policy = cudaq_runtime.ObservePolicy(ctx, kernel_name, localOp)
+        policy = cudaq_runtime.ObservePolicy(
+            kernel_name,
+            localOp,
+            shots_count if shots_count > 0 else 0,
+            qpu_id=qpu_id,
+            num_trajectories=num_trajectories)
         observeResult = cudaq_runtime.launch_observe(
-            policy,
-            ctx,
+            policy, qpu_id,
             lambda args=args: kernel(*args,
                                      optimization_level=optimization_level))
         if not isinstance(spin_operator, list):

@@ -14,39 +14,40 @@
 
 using namespace cudaq;
 
-static void construct_sample_policy(sample_policy *self, ExecutionContext &ctx,
-                                    const std::string &kernelName,
-                                    bool explicitMeasurements) {
+static void
+construct_sample_policy(sample_policy *self, const std::string &kernelName,
+                        std::size_t shots, bool explicitMeasurements,
+                        std::size_t qpuId, std::size_t batchIteration,
+                        std::size_t totalIterations) {
   new (self) sample_policy();
   self->kernelName = kernelName;
-  self->options.shots = ctx.shots;
+  self->options.shots = shots;
   self->options.explicit_measurements = explicitMeasurements;
-  self->noiseModel = get_platform().get_noise(ctx.qpuId);
-  // For now the noise model has to be duplicated on the policy unfortunately.
-  // get_noise() still expects it on the execution context.
-  // TODO: Store the noise on the platform or QPU instead.
-  ctx.noiseModel = self->noiseModel;
+  self->noiseModel = get_platform().get_noise(qpuId);
+  self->batchIteration = batchIteration;
+  self->totalIterations = totalIterations;
 }
 
 static sample_result launch_sample(const sample_policy &policy,
-                                   ExecutionContext &ctx,
+                                   std::size_t qpuId,
                                    nanobind::callable callable) {
   auto &platform = get_platform();
   if (platform.is_remote()) {
     async_sample_policy async_policy;
     async_policy.inner = policy;
-    auto res = detail::launch(async_policy, ctx.qpuId, ctx, platform,
-                              [&]() { callable(); });
+    auto res =
+        detail::launch(async_policy, qpuId, platform, [&]() { callable(); });
     return res.get();
   }
-  return detail::launch(policy, ctx.qpuId, ctx, get_platform(),
-                        [&]() { callable(); });
+  return detail::launch(policy, qpuId, platform, [&]() { callable(); });
 }
 
 void cudaq::bindPySample(nanobind::module_ &mod) {
   nanobind::class_<sample_policy>(mod, "SamplePolicy")
-      .def("__init__", construct_sample_policy, nanobind::arg("ctx"),
-           nanobind::arg("kernel_name"), nanobind::arg("explicit_measurements"))
+      .def("__init__", construct_sample_policy, nanobind::arg("kernel_name"),
+           nanobind::arg("shots"), nanobind::arg("explicit_measurements"),
+           nanobind::arg("qpu_id") = 0, nanobind::arg("batch_iteration") = 0,
+           nanobind::arg("total_iterations") = 0)
       .def_prop_ro(
           "kernel_name",
           [](const sample_policy &policy) { return policy.kernelName; },
@@ -67,6 +68,6 @@ void cudaq::bindPySample(nanobind::module_ &mod) {
       });
 
   mod.def("launch_sample", launch_sample, "Policy based sample launch.",
-          nanobind::arg("policy"), nanobind::arg("ctx"),
+          nanobind::arg("policy"), nanobind::arg("qpu_id"),
           nanobind::arg("callable"));
 }

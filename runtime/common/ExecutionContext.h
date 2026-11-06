@@ -153,41 +153,14 @@ void rethrowDeferredKernelException();
 namespace detail {
 /// Set the execution context for the current thread.
 ///
-/// Use `quantum_platform::with_execution_context` instead of setting/resetting
-/// the execution context manually.
+/// Use `quantum_platform::with_execution_context` or `nvqir::launch` instead of
+/// setting/resetting the execution context manually.
 void setExecutionContext(ExecutionContext *ctx);
 
 /// Reset the execution context for the current thread.
 ///
-/// Use `quantum_platform::with_execution_context` instead of setting/resetting
-/// the execution context manually.
+/// Use `quantum_platform::with_execution_context` or `nvqir::launch` instead of
+/// setting/resetting the execution context manually.
 void resetExecutionContext();
-
-/// @brief Execute the given function within the given policy and execution
-/// context.
-template <typename Policy, typename Callable, typename... Args>
-auto with_policy_and_ctx(const Policy &policy, ExecutionContext &ctx,
-                         Callable &&f, Args &&...args)
-    -> std::invoke_result_t<Callable, Args...> {
-
-  // Save the outer execution context (if any) so we can restore it after.
-  auto *outerContext = getExecutionContext();
-  detail::setExecutionContext(&ctx);
-
-  // Cleanup runs after the kernel returns or throws.
-  auto cleanup = [&outerContext]() {
-    detail::resetExecutionContext();
-    if (outerContext)
-      detail::setExecutionContext(outerContext);
-  };
-
-  if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>) {
-    try_finally([&] { f(std::forward<Args>(args)...); }, cleanup);
-    return;
-  }
-
-  return try_finally([&] { return f(std::forward<Args>(args)...); }, cleanup);
-}
-
 } // namespace detail
 } // namespace cudaq

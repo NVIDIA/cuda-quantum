@@ -19,6 +19,7 @@ detail::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
                                  std::vector<char> *rawOutput) {
 
   serverHelper->setShots(shots);
+  serverHelper->setExecutionType(execType);
 
   CUDAQ_INFO("Executor creating {} jobs to execute with the {} helper.",
              codesToExecute.size(), serverHelper->name());

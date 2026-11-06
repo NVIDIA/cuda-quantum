@@ -81,31 +81,21 @@ inline run_result launchRun(std::function<void()> kernel,
   policy.kernelName = kernel_name;
   policy.noiseModel = platform.get_noise(qpu_id);
   if (platform.is_remote()) {
-    cudaq::ExecutionContext ctx("run", shots, qpu_id);
-    ctx.kernelName = kernel_name;
-    ctx.noiseModel = policy.noiseModel;
     policy.shots = shots;
     async_run_policy asyncPolicy;
     asyncPolicy.inner = policy;
     result =
-        detail::launch(asyncPolicy, qpu_id, ctx, platform, std::move(kernel))
-            .get();
+        detail::launch(asyncPolicy, qpu_id, platform, std::move(kernel)).get();
   } else if (platform.is_emulated()) {
-    // In a remote simulator execution or hardware emulation environment, set
-    // the `run` context name and number of iterations (shots)
-    cudaq::ExecutionContext ctx("run", shots, qpu_id);
-    ctx.kernelName = kernel_name;
-    ctx.noiseModel = policy.noiseModel;
+    // In a remote simulator execution or hardware emulation environment, all
+    // shots are run by a single launch.
     policy.shots = shots;
     // Launch the kernel a single time to post the 'run' request to the remote
     // server or emulation executor.
-    result = detail::launch(policy, qpu_id, ctx, platform, std::move(kernel));
+    result = detail::launch(policy, qpu_id, platform, std::move(kernel));
   } else {
-    cudaq::ExecutionContext ctx("run", 1, qpu_id);
-    ctx.kernelName = kernel_name;
-    ctx.noiseModel = policy.noiseModel;
     for (std::size_t i = 0; i < shots; ++i) {
-      auto shotResult = detail::launch(policy, qpu_id, ctx, platform, kernel);
+      auto shotResult = detail::launch(policy, qpu_id, platform, kernel);
       result.outputLog += shotResult.outputLog;
     }
   }
@@ -196,7 +186,6 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   std::vector<ResultTy> results;
   auto &platform = get_platform();
 #ifdef CUDAQ_LIBRARY_MODE
-  cudaq::ExecutionContext ctx("run", 1);
   run_policy policy;
   policy.kernelName = detail::getKernelName(kernel);
   policy.noiseModel = platform.get_noise();
@@ -204,7 +193,7 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i) {
     std::optional<ResultTy> result;
-    detail::launch(policy, 0, ctx, platform, [&] {
+    detail::launch(policy, 0, platform, [&] {
       result.emplace(std::invoke(std::forward<QuantumKernel>(kernel),
                                  std::forward<ARGS>(args)...));
     });
@@ -257,14 +246,13 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
   // Direct kernel invocation loop for library mode
   platform.set_noise(&noise_model);
-  cudaq::ExecutionContext ctx("run", 1);
   run_policy policy;
   policy.kernelName = detail::getKernelName(kernel);
   policy.noiseModel = &noise_model;
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i) {
     std::optional<ResultTy> result;
-    detail::launch(policy, 0, ctx, platform, [&] {
+    detail::launch(policy, 0, platform, [&] {
       result.emplace(std::invoke(std::forward<QuantumKernel>(kernel),
                                  std::forward<ARGS>(args)...));
     });
@@ -332,14 +320,13 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         std::vector<ResultTy> res;
-        cudaq::ExecutionContext ctx("run", 1, qpu_id);
         run_policy policy;
         policy.kernelName = detail::getKernelName(kernel);
         policy.noiseModel = platform.get_noise(qpu_id);
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
           std::optional<ResultTy> result;
-          detail::launch(policy, qpu_id, ctx, platform, [&] {
+          detail::launch(policy, qpu_id, platform, [&] {
             result.emplace(std::invoke(std::forward<QuantumKernel>(kernel),
                                        std::forward<ARGS>(args)...));
           });
@@ -409,7 +396,6 @@ run_async(std::size_t qpu_id, std::size_t shots,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         platform.set_noise(&noise_model, qpu_id);
-        cudaq::ExecutionContext ctx("run", 1, qpu_id);
         run_policy policy;
         policy.kernelName = detail::getKernelName(kernel);
         policy.noiseModel = &noise_model;
@@ -417,7 +403,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
           std::optional<ResultTy> result;
-          detail::launch(policy, qpu_id, ctx, platform, [&] {
+          detail::launch(policy, qpu_id, platform, [&] {
             result.emplace(std::invoke(std::forward<QuantumKernel>(kernel),
                                        std::forward<ARGS>(args)...));
           });

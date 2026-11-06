@@ -125,6 +125,10 @@ protected:
   /// should be emitted.
   bool warnAboutNamedMeasurements = false;
 
+  /// @brief Whether the current observe launch computes <psi | H | psi>
+  /// directly (see `canHandleObserve`) rather than by measuring each term.
+  bool observeDirectly = false;
+
   /// @brief Record a fatal kernel error. Inside a kernel frame
   /// (`ExecutionContext::inKernelLaunch`) the exception is stashed for the
   /// launcher to re-throw above the JIT boundary, since exceptions cannot
@@ -368,7 +372,7 @@ public:
   virtual void configureExecutionContext(const cudaq::observe_policy &policy) {
     configureExecutionContextImpl(policy);
     executionContextType = cudaq::detail::ExecutionContextType::observe;
-    policy.canHandleObserve = canHandleObserve();
+    observeDirectly = canHandleObserve();
   }
 
   /// @brief Set the execution context
@@ -1254,7 +1258,7 @@ protected:
     const cudaq::spin_op &H = policy.spin;
     assert(cudaq::spin_op::canonicalize(H) == H);
 
-    if (policy.canHandleObserve) {
+    if (observeDirectly) {
       auto [exp, data] = measureSpinOp(H);
       return cudaq::observe_result(exp, H, data);
     }
@@ -1313,14 +1317,6 @@ protected:
         }
       }
       internalResult.append(std::move(counts));
-    }
-
-    // Reorder the global register (if necessary). This might be necessary if
-    // the mapping pass had run and we want to undo the shuffle that occurred
-    // during mapping.
-    if (!policy.reorderIdx.empty()) {
-      internalResult.reorder(policy.reorderIdx);
-      policy.reorderIdx.clear();
     }
 
     // Clear the sample bits for the next run

@@ -13,11 +13,11 @@
 #include "common/BaseRemoteRESTQPU.h"
 #include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
-#include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
 #include "common/LaunchContext.h"
 #include "cudaq/algorithms/msm/policy.h"
 #include "cudaq/algorithms/policy_cpos.h"
+#include "cudaq/nvqir_launch.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/qis/execution_manager.h"
@@ -43,11 +43,10 @@ namespace detail {
 /// @brief Call \p f, which launches a kernel, under \p policy.
 ///
 /// The kernel's launch entry point claims the launch context handed over here.
-/// Its `launch` compiles the kernel if needed and runs it on QPU \p qpu_id
-/// within \p ctx. In library mode, \p f runs the kernel directly, within
-/// \p ctx.
+/// Its `launch` compiles the kernel if needed and runs it on QPU \p qpu_id.
+/// In library mode, \p f runs the kernel directly on the simulator.
 template <typename Policy, typename Callable, typename... Args>
-auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
+auto launch(const Policy &policy, std::size_t qpu_id,
             quantum_platform &platform, Callable &&f, Args &&...args)
     -> Policy::result_type {
 
@@ -67,10 +66,8 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
     else {
       CUDAQ_INFO("Launching kernel in library mode with policy {}",
                  policy.name);
-      return detail::with_policy_and_ctx(policy, ctx, [&]() {
-        return cudaq::ExecutionManager::with_default_em(
-            policy, [&]() { f(std::forward<Args>(args)...); });
-      });
+      return nvqir::launch(policy, {.qpuId = qpu_id},
+                           [&] { f(std::forward<Args>(args)...); });
     }
   }
 
@@ -82,7 +79,7 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
                         .options = platform.getCompileOptions(
                             policy, cudaq::get_random_seed(), qpu_id)},
       .launch = {}};
-  launchCtx.launch = [&qpu, &result, &policy, &ctx,
+  launchCtx.launch = [&qpu, &result, &policy,
                       &config = std::as_const(launchCtx.compileConfig)](
                          const AnyModule &module, const KernelArgs &args) {
     CompiledModule compiled;
@@ -103,11 +100,7 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       compiled = std::get<CompiledModule>(module);
     }
     CUDAQ_INFO("Launching kernel.");
-    // The execution context only exists while the kernel runs: it is how the
-    // QPU, execution manager, and simulator see the launch.
-    detail::with_policy_and_ctx(policy, ctx, [&] {
-      result = qpu.launchKernel(policy, compiled, args);
-    });
+    result = qpu.launchKernel(policy, compiled, args);
   };
 
   if constexpr (requires { policy.inner; })
@@ -122,8 +115,7 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
           "Invalid kernel launch within an active AnalysisScope");
     }
   }
-  // `f` calls the kernel, whose launch entry point claims `launchCtx`. The
-  // execution context is not installed here, but by `launchCtx.launch`.
+  // `f` calls the kernel, whose launch entry point claims `launchCtx`.
   LaunchContextHandoff handoff{launchCtx};
   std::invoke(std::forward<Callable>(f), std::forward<Args>(args)...);
   return result;
@@ -134,30 +126,22 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
 template <typename Callable, typename... Args>
 msm_dimensions launch(msm_size_policy policy, Callable &&f, Args &&...args) {
   auto &platform = get_platform();
-  ExecutionContext ctx(msm_size_policy::name);
   const size_t qpu_id = 0;
-  ctx.qpuId = qpu_id;
   policy.kernelName = cudaq::getKernelName(f);
-  ctx.kernelName = policy.kernelName;
   policy.noiseModel = platform.get_noise(qpu_id);
-  ctx.noiseModel = policy.noiseModel;
-  return detail::launch(policy, qpu_id, ctx, platform,
-                        std::forward<Callable>(f), std::forward<Args>(args)...);
+  return detail::launch(policy, qpu_id, platform, std::forward<Callable>(f),
+                        std::forward<Args>(args)...);
 }
 
 /// @brief Execute the given function with an MSM policy.
 template <typename Callable, typename... Args>
 msm_result launch(msm_policy policy, Callable &&f, Args &&...args) {
   auto &platform = get_platform();
-  ExecutionContext ctx(msm_policy::name);
   const size_t qpu_id = 0;
-  ctx.qpuId = qpu_id;
   policy.kernelName = cudaq::getKernelName(f);
-  ctx.kernelName = policy.kernelName;
   policy.noiseModel = platform.get_noise(qpu_id);
-  ctx.noiseModel = policy.noiseModel;
-  return detail::launch(policy, qpu_id, ctx, platform,
-                        std::forward<Callable>(f), std::forward<Args>(args)...);
+  return detail::launch(policy, qpu_id, platform, std::forward<Callable>(f),
+                        std::forward<Args>(args)...);
 }
 
 } // namespace cudaq

@@ -36,13 +36,13 @@ struct observe_policy {
   /// @brief The spin operator being observed.
   spin_op spin;
 
-  /// @brief A vector containing information about how to reorder the global
-  /// register after execution. Empty means no reordering.
-  mutable std::vector<std::size_t> reorderIdx;
+  const noise_model *noiseModel = nullptr;
 
-  mutable const noise_model *noiseModel = nullptr;
-
-  mutable bool canHandleObserve = false;
+  /// @brief For a broadcast over a set of arguments, the index of this launch
+  /// and the total number of launches. Lets the simulator reuse its state
+  /// between launches. Both are 0 outside of a broadcast.
+  std::size_t batchIteration = 0;
+  std::size_t totalIterations = 0;
 
   friend observe_result
   finalize_execution_manager_impl(ExecutionManager &mgr,

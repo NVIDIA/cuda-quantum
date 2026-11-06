@@ -21,7 +21,6 @@
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
 namespace detail {
-bool isKernelGenerated(const std::string &);
 
 /// @brief Check whether a kernel uses conditional feedback (measurement-
 /// dependent branching). Checks MLIR metadata first, then optionally checks
@@ -50,19 +49,13 @@ concept SampleCallValid =
 
 namespace detail {
 
-/// @brief Validate sampling arguments, populate the given execution context
-/// and sample policy, and (in library mode) trace the kernel to detect any
-/// mid-circuit conditional feedback.
-/// @param ctx The execution context to populate (must already be constructed
-/// with name "sample").
+/// @brief Validate sampling arguments and populate the given sample policy.
 /// @param policy The sample policy to populate.
-template <typename KernelFunctor>
-void samplePreamble(ExecutionContext &ctx, sample_policy &policy,
-                    KernelFunctor &&wrappedKernel, quantum_platform &platform,
-                    const std::string &kernelName, int shots,
-                    bool explicitMeasurements, std::size_t qpu_id,
-                    std::size_t batchIteration = 0,
-                    std::size_t totalBatchIters = 0) {
+inline void samplePreamble(sample_policy &policy, quantum_platform &platform,
+                           const std::string &kernelName, int shots,
+                           bool explicitMeasurements, std::size_t qpu_id,
+                           std::size_t batchIteration = 0,
+                           std::size_t totalBatchIters = 0) {
   if (cudaq::detail::hasConditionalFeedback(kernelName))
     throw std::runtime_error(
         "`cudaq::sample` and `cudaq::sample_async` no longer support kernels "
@@ -75,47 +68,12 @@ void samplePreamble(ExecutionContext &ctx, sample_policy &policy,
     throw std::runtime_error("The sampling option `explicit_measurements` is "
                              "not supported on this target.");
 
-  ctx.kernelName = kernelName;
-  ctx.batchIteration = batchIteration;
-  ctx.totalIterations = totalBatchIters;
-  ctx.explicitMeasurements = explicitMeasurements;
-
   policy.kernelName = kernelName;
   policy.options.shots = shots;
   policy.options.explicit_measurements = explicitMeasurements;
   policy.noiseModel = platform.get_noise(qpu_id);
-
-  // For now the noise model has to be duplicated on the policy unfortunately.
-  // get_noise() still expects it on the execution context.
-  // TODO: Store the noise on the platform or QPU instead.
-  ctx.noiseModel = policy.noiseModel;
-
-#ifdef CUDAQ_LIBRARY_MODE
-  // If we have a kernel that has its quake code registered, we
-  // won't check for if statements with the tracer.
-  auto isRegistered = detail::isKernelGenerated(kernelName);
-
-  // One extra check to see if we have mid-circuit
-  // measures in library mode
-  if (!isRegistered && !ctx.hasConditionalsOnMeasureResults) {
-    // Trace the kernel function
-    ExecutionContext context("tracer");
-    context.qpuId = qpu_id;
-    auto &platform = get_platform();
-    platform.with_execution_context(context,
-                                    std::forward<KernelFunctor>(wrappedKernel));
-    // In trace mode, if we have a measure result
-    // that is passed to an if statement, then
-    // we'll have collected registernames
-    if (!context.registerNames.empty()) {
-      // append new register names to the main sample context
-      for (std::size_t i = 0; i < context.registerNames.size(); ++i)
-        ctx.registerNames.emplace_back("auto_register_" + std::to_string(i));
-
-      ctx.hasConditionalsOnMeasureResults = true;
-    }
-  }
-#endif
+  policy.batchIteration = batchIteration;
+  policy.totalIterations = totalBatchIters;
 }
 
 template <typename KernelFunctor>
@@ -142,12 +100,9 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     return result.get();
   }
 
-  // Create the execution context.
-  ExecutionContext ctx("sample", shots, qpu_id);
   sample_policy policy;
-  samplePreamble(ctx, policy, std::forward<KernelFunctor>(wrappedKernel),
-                 platform, kernelName, shots, explicitMeasurements, qpu_id,
-                 batchIteration, totalBatchIters);
+  samplePreamble(policy, platform, kernelName, shots, explicitMeasurements,
+                 qpu_id, batchIteration, totalBatchIters);
 
   auto isQuantumDevice = platform.is_emulated(qpu_id);
 
@@ -155,7 +110,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   cudaq::sample_result counts;
 
   while (counts.get_total_shots() < static_cast<std::size_t>(shots)) {
-    auto result = detail::launch(policy, qpu_id, ctx, platform,
+    auto result = detail::launch(policy, qpu_id, platform,
                                  std::forward<KernelFunctor>(wrappedKernel));
 
     // If target is hardware backend, need to launch only once, hence exit
@@ -218,13 +173,10 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       throw std::runtime_error(
           "Noise model is not supported on remote platforms.");
 
-    // Create the execution context.
-    ExecutionContext ctx("sample", shots, qpu_id);
     async_sample_policy async_policy;
-    samplePreamble(ctx, async_policy.inner,
-                   std::forward<KernelFunctor>(wrappedKernel), platform,
-                   kernelName, shots, explicitMeasurements, qpu_id);
-    return detail::launch(async_policy, qpu_id, ctx, platform,
+    samplePreamble(async_policy.inner, platform, kernelName, shots,
+                   explicitMeasurements, qpu_id);
+    return detail::launch(async_policy, qpu_id, platform,
                           std::forward<KernelFunctor>(wrappedKernel));
   }
 #endif

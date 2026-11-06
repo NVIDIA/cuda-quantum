@@ -281,8 +281,7 @@ inline sample_result launchAnalogKernel(const std::string &kernel_name,
   sample_policy policy;
   policy.options.shots = shots_count;
   policy.kernelName = kernel_name;
-  ExecutionContext ctx(sample_policy::name, shots_count, qpu_id);
-  return detail::launch(policy, qpu_id, ctx, platform, [&]() {
+  return detail::launch(policy, qpu_id, platform, [&]() {
     [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
         kernel_name.c_str(), KernelThunkType(nullptr),
         const_cast<char *>(program.c_str()), program.size(), 0,
@@ -315,8 +314,7 @@ launchAnalogKernelAsync(const std::string &kernel_name,
   async_sample_policy policy;
   policy.inner.options.shots = shots_count;
   policy.inner.kernelName = kernel_name;
-  ExecutionContext ctx(sample_policy::name, shots_count, qpu_id);
-  return detail::launch(policy, qpu_id, ctx, platform, [&]() {
+  return detail::launch(policy, qpu_id, platform, [&]() {
     [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
         kernel_name.c_str(), KernelThunkType(nullptr),
         const_cast<char *>(program.c_str()), program.size(), 0,

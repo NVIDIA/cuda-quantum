@@ -41,7 +41,7 @@ struct run_policy {
   /// @brief The number of kernel executions requested.
   std::size_t shots = 1;
 
-  mutable const noise_model *noiseModel = nullptr;
+  const noise_model *noiseModel = nullptr;
 
   friend run_result finalize_execution_manager_impl(ExecutionManager &mgr,
                                                     const run_policy &policy,

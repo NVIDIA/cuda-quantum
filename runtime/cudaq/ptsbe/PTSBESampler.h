@@ -12,8 +12,8 @@
 #include "PTSBEExecutionData.h"
 #include "PTSBESampleResult.h"
 #include "common/ExecutionContext.h"
+#include "cudaq/nvqir_launch.h"
 #include "cudaq/ptsbe/policy.h"
-#include "cudaq/qis/execution_manager.h"
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -83,15 +83,13 @@ ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy);
 /// @return Per-trajectory sample results
 inline std::vector<cudaq::sample_result>
 executeBatch(const cudaq::ptsbe::sample_policy &policy, const PTSBatch &batch) {
-  cudaq::ExecutionContext ctx(cudaq::ptsbe::sample_policy::name,
-                              batch.totalShots());
-  ctx.kernelName = policy.kernelName;
+  // The simulator sizes its sampling batch from the shots the batch allocated.
+  auto batchPolicy = policy;
+  batchPolicy.shots = batch.totalShots();
 
   std::vector<cudaq::sample_result> perTrajectoryResults;
-  cudaq::detail::with_policy_and_ctx(policy, ctx, [&] {
-    cudaq::ExecutionManager::with_default_em(
-        policy, [&] { perTrajectoryResults = samplePTSBE(batch); });
-  });
+  nvqir::launch(batchPolicy, {},
+                [&] { perTrajectoryResults = samplePTSBE(batch); });
   return perTrajectoryResults;
 }
 

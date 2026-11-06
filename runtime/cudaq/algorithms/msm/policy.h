@@ -43,7 +43,7 @@ struct msm_size_policy {
   /// @brief The name of the kernel being executed.
   std::string kernelName;
 
-  mutable const noise_model *noiseModel = nullptr;
+  const noise_model *noiseModel = nullptr;
 
   friend msm_dimensions
   finalize_execution_manager_impl(ExecutionManager &mgr,
@@ -67,7 +67,7 @@ struct msm_policy {
 
   std::optional<msm_dimensions> dimensions;
 
-  mutable const noise_model *noiseModel = nullptr;
+  const noise_model *noiseModel = nullptr;
 
   friend msm_result finalize_execution_manager_impl(ExecutionManager &mgr,
                                                     const msm_policy &policy,

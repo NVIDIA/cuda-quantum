@@ -25,39 +25,29 @@ class noise_model;
 
 namespace cudaq::detail {
 
-using dem_policy_launcher = std::function<cudaq::dem_result(
-    const cudaq::dem_policy &, cudaq::ExecutionContext &)>;
+using dem_policy_launcher =
+    std::function<cudaq::dem_result(const cudaq::dem_policy &)>;
 
 /// @brief Shared DEM core: conditional-feedback check + Stim analysis scope,
 /// then delegates to @p launchPolicy. Reached through `launchDem`, the shared
 /// helper behind both DEM entry points (C++ `runDemFromKernel`, Python
 /// `launch_dem`).
 cudaq::dem_result launchDemPolicy(const cudaq::dem_policy &policy,
-                                  cudaq::ExecutionContext &ctx,
                                   const dem_policy_launcher &launchPolicy,
                                   const std::string &plugin_name = "stim");
 
-/// @brief Shared launch core for C++ and Python DEM entry points: builds the
-/// execution context, then runs the policy through `launchDemPolicy` +
-/// `detail::launch`. `detail::launch` stays inline so JIT compiler references
-/// remain in the caller TU.
+/// @brief Shared launch core for C++ and Python DEM entry points: runs the
+/// policy through `launchDemPolicy` + `detail::launch`. `detail::launch` stays
+/// inline so JIT compiler references remain in the caller TU.
 inline cudaq::dem_result launchDem(const cudaq::dem_policy &policy,
                                    cudaq::quantum_platform &platform,
                                    const std::function<void()> &kernel,
                                    const std::string &plugin_name = "stim") {
-  cudaq::ExecutionContext ctx(policy.name);
-  ctx.qpuId = cudaq::getCurrentQpuId();
-  // Mirror the noise model onto the `ExecutionContext`: the local kernel-launch
-  // path reconfigures the simulator from the context, which would otherwise
-  // overwrite the policy-derived model with null and silence in-kernel
-  // `apply_noise` (dropping every error mechanism from the DEM).
-  ctx.noiseModel = policy.noiseModel;
+  const std::size_t qpuId = cudaq::getCurrentQpuId();
   return launchDemPolicy(
-      policy, ctx,
-      [&](const cudaq::dem_policy &activePolicy,
-          cudaq::ExecutionContext &activeCtx) {
-        return cudaq::detail::launch(activePolicy, activeCtx.qpuId, activeCtx,
-                                     platform, kernel);
+      policy,
+      [&](const cudaq::dem_policy &activePolicy) {
+        return cudaq::detail::launch(activePolicy, qpuId, platform, kernel);
       },
       plugin_name);
 }

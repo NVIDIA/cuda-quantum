@@ -52,36 +52,20 @@ concept ObserveCallValid =
 
 namespace detail {
 
-/// @brief Validate observe arguments and populate the execution context and
-/// observe policy.
-inline void observePreamble(ExecutionContext &ctx, observe_policy &policy,
-                            quantum_platform &platform,
+/// @brief Validate observe arguments and populate the observe policy.
+inline void observePreamble(observe_policy &policy, quantum_platform &platform,
                             const std::string &kernelName, int shots,
                             const cudaq::spin_op &H, std::size_t qpu_id,
                             std::size_t batchIteration = 0,
                             std::size_t totalBatchIters = 0,
                             std::optional<std::size_t> numTrajectories = {}) {
-  ctx.kernelName = kernelName;
-  ctx.spin = cudaq::spin_op::canonicalize(H);
-  if (shots > 0)
-    ctx.shots = shots;
-
-  if (numTrajectories.has_value())
-    ctx.numberTrajectories = *numTrajectories;
-
-  ctx.batchIteration = batchIteration;
-  ctx.totalIterations = totalBatchIters;
-
   policy.kernelName = kernelName;
-  policy.spin = ctx.spin.value();
+  policy.spin = cudaq::spin_op::canonicalize(H);
   policy.options.shots = shots;
   policy.options.num_trajectories = numTrajectories;
   policy.noiseModel = platform.get_noise(qpu_id);
-
-  // For now the noise model has to be duplicated on the policy unfortunately.
-  // get_noise() still expects it on the execution context.
-  // TODO: Store the noise on the platform or QPU instead.
-  ctx.noiseModel = policy.noiseModel;
+  policy.batchIteration = batchIteration;
+  policy.totalIterations = totalBatchIters;
 }
 
 template <typename KernelFunctor>
@@ -106,12 +90,11 @@ runObservation(KernelFunctor &&k, const cudaq::spin_op &H,
     return result.get();
   }
 
-  ExecutionContext ctx("observe", shots, qpu_id);
   observe_policy policy;
-  observePreamble(ctx, policy, platform, kernelName, shots, H, qpu_id,
+  observePreamble(policy, platform, kernelName, shots, H, qpu_id,
                   batchIteration, totalBatchIters, numTrajectories);
 
-  return detail::launch(policy, qpu_id, ctx, platform,
+  return detail::launch(policy, qpu_id, platform,
                         std::forward<KernelFunctor>(k));
 }
 
@@ -133,11 +116,9 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, const spin_op &H,
   // remotely hosted, if so, we can't do asynchronous execution with a
   // separate thread, the separate thread is the remote server invocation
   if (platform.is_remote(qpu_id)) {
-    ExecutionContext ctx("observe", shots, qpu_id);
     async_observe_policy async_policy;
-    observePreamble(ctx, async_policy.inner, platform, kernelName, shots, H,
-                    qpu_id);
-    return detail::launch(async_policy, qpu_id, ctx, platform,
+    observePreamble(async_policy.inner, platform, kernelName, shots, H, qpu_id);
+    return detail::launch(async_policy, qpu_id, platform,
                           std::forward<KernelFunctor>(wrappedKernel));
   }
 

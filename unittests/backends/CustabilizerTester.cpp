@@ -284,43 +284,46 @@ CUDAQ_TEST(CustabilizerSimulator, MultiShotSamplingExecutesOnGpu) {
 
   constexpr int shots = 65;
   cudaq::ExecutionContext context("sample", shots);
-  cudaq::detail::with_policy_and_ctx(cudaq::sample_policy{}, context, [&] {
-    Simulator sim;
-    sim.configureExecutionContext(context);
-    sim.setRandomSeed(13);
-    auto q0 = sim.allocateQubit();
-    auto q1 = sim.allocateQubit();
-    sim.x(q0);
-    sim.flushGateQueue();
-    sim.applyNoise(cudaq::x_error(1.0),
-                   std::vector<std::uint32_t>{static_cast<std::uint32_t>(q1)});
+  cudaq::detail::setExecutionContext(&context);
+  // Reset on every exit path, including failed assertions.
+  struct ResetContext {
+    ~ResetContext() { cudaq::detail::resetExecutionContext(); }
+  } resetContext;
+  Simulator sim;
+  sim.configureExecutionContext(context);
+  sim.setRandomSeed(13);
+  auto q0 = sim.allocateQubit();
+  auto q1 = sim.allocateQubit();
+  sim.x(q0);
+  sim.flushGateQueue();
+  sim.applyNoise(cudaq::x_error(1.0),
+                 std::vector<std::uint32_t>{static_cast<std::uint32_t>(q1)});
 
-    ASSERT_NE(sim.gpuRunner(), nullptr);
-    EXPECT_FALSE(sim.gpuRunner()->cache_executed);
-    const auto result = sim.sample({q0, q1}, shots);
-    const auto &runner = *sim.gpuRunner();
-    EXPECT_TRUE(runner.cache_executed);
-    EXPECT_EQ(runner.allocated_shots, shots);
-    ASSERT_NE(runner.frame_simulator, nullptr);
-    ASSERT_NE(runner.m_table_d, nullptr);
+  ASSERT_NE(sim.gpuRunner(), nullptr);
+  EXPECT_FALSE(sim.gpuRunner()->cache_executed);
+  const auto result = sim.sample({q0, q1}, shots);
+  const auto &runner = *sim.gpuRunner();
+  EXPECT_TRUE(runner.cache_executed);
+  EXPECT_EQ(runner.allocated_shots, shots);
+  ASSERT_NE(runner.frame_simulator, nullptr);
+  ASSERT_NE(runner.m_table_d, nullptr);
 
-    // Verify that sampling wrote measurement flips to actual device memory.
-    // X on q0 belongs to the tableau reference; X_ERROR on q1 flips its frame.
-    cudaPointerAttributes attributes{};
-    ASSERT_EQ(cudaPointerGetAttributes(&attributes, runner.m_table_d),
-              cudaSuccess);
-    EXPECT_EQ(attributes.type, cudaMemoryTypeDevice);
-    std::vector<std::uint32_t> flips(6);
-    ASSERT_EQ(cudaMemcpy(flips.data(), runner.m_table_d,
-                         flips.size() * sizeof(std::uint32_t),
-                         cudaMemcpyDeviceToHost),
-              cudaSuccess);
-    for (int shot = 0; shot < shots; ++shot) {
-      EXPECT_EQ((flips[shot / 32] >> (shot % 32)) & 1u, 0u);
-      EXPECT_EQ((flips[3 + shot / 32] >> (shot % 32)) & 1u, 1u);
-    }
-    ASSERT_EQ(result.counts.size(), 1);
-    EXPECT_EQ(result.counts.at("11"), shots);
-    EXPECT_EQ(result.sequentialData, std::vector<std::string>(shots, "11"));
-  });
+  // Verify that sampling wrote measurement flips to actual device memory.
+  // X on q0 belongs to the tableau reference; X_ERROR on q1 flips its frame.
+  cudaPointerAttributes attributes{};
+  ASSERT_EQ(cudaPointerGetAttributes(&attributes, runner.m_table_d),
+            cudaSuccess);
+  EXPECT_EQ(attributes.type, cudaMemoryTypeDevice);
+  std::vector<std::uint32_t> flips(6);
+  ASSERT_EQ(cudaMemcpy(flips.data(), runner.m_table_d,
+                       flips.size() * sizeof(std::uint32_t),
+                       cudaMemcpyDeviceToHost),
+            cudaSuccess);
+  for (int shot = 0; shot < shots; ++shot) {
+    EXPECT_EQ((flips[shot / 32] >> (shot % 32)) & 1u, 0u);
+    EXPECT_EQ((flips[3 + shot / 32] >> (shot % 32)) & 1u, 1u);
+  }
+  ASSERT_EQ(result.counts.size(), 1);
+  EXPECT_EQ(result.counts.at("11"), shots);
+  EXPECT_EQ(result.sequentialData, std::vector<std::string>(shots, "11"));
 }

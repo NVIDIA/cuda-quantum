@@ -27,9 +27,6 @@ estimate_impl(const std::string &kernelName, MlirModule kernelMod,
   auto &platform = cudaq::get_platform();
   args = simplifiedValidateInputArguments(args);
 
-  ExecutionContext ctx("resource-count", 1);
-  ctx.kernelName = kernelName;
-
   // Set the choice function for the simulator
   if (!choice) {
     auto seed = cudaq::get_random_seed();
@@ -44,7 +41,7 @@ estimate_impl(const std::string &kernelName, MlirModule kernelMod,
       .kernelName = kernelName,
       .choice = *std::move(choice),
   };
-  return detail::launch(policy, 0, ctx, platform, [&]() {
+  return detail::launch(policy, 0, platform, [&]() {
     // Pass nullptr for the compiled slot to disable JIT-artifact caching:
     // the resource-counter hooks are installed in the scope above and only
     // fire while the kernel is freshly JIT-compiled. A cached binary would

@@ -353,13 +353,6 @@ private:
 
 using AnyModule = std::variant<SourceModule, CompiledModule>;
 
-/// @brief Execute the compiled binary stored in @p module.
-///
-/// Dispatches to `executeFunctionPtrBinary` when an AOT function-pointer
-/// artifact is present, otherwise to `executeJitBinary`.
-[[nodiscard]] KernelThunkResultType
-executeCompiledModule(const CompiledModule &module, KernelArgs args);
-
 /// @brief Execute the JIT-compiled binary artifact stored in @p module.
 [[nodiscard]] KernelThunkResultType
 executeJitBinary(const CompiledModule &module, KernelArgs args);

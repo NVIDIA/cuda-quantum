@@ -71,16 +71,13 @@ def __broadcastSample(kernel,
     results = []
     for i, a in enumerate(argSet):
         kernel_name = kernel.name if hasattr(kernel, 'name') else ''
-        ctx = cudaq_runtime.ExecutionContext('sample', shots_count)
-        ctx.kernelName = kernel_name
-        ctx.totalIterations = N
-        ctx.batchIteration = i
-        ctx.explicitMeasurements = explicit_measurements
-        policy = cudaq_runtime.SamplePolicy(ctx, kernel_name,
-                                            explicit_measurements)
+        policy = cudaq_runtime.SamplePolicy(kernel_name,
+                                            shots_count,
+                                            explicit_measurements,
+                                            batch_iteration=i,
+                                            total_iterations=N)
         res = cudaq_runtime.launch_sample(
-            policy, ctx,
-            lambda: kernel(*a, optimization_level=optimization_level))
+            policy, 0, lambda: kernel(*a, optimization_level=optimization_level))
         results.append(res)
 
     return results
@@ -171,16 +168,13 @@ def sample(kernel,
                 optimization_level=optimization_level)
 
         kernel_name = kernel.name if hasattr(kernel, 'name') else ''
-        ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
-        ctx.kernelName = kernel_name
-        ctx.explicitMeasurements = explicit_measurements
-        policy = cudaq_runtime.SamplePolicy(ctx, kernel_name,
+        policy = cudaq_runtime.SamplePolicy(kernel_name, shots_count,
                                             explicit_measurements)
 
         counts = cudaq_runtime.SampleResult()
         while counts.get_total_shots() < shots_count:
             result = cudaq_runtime.launch_sample(
-                policy, ctx,
+                policy, 0,
                 lambda: kernel(*args, optimization_level=optimization_level))
             # If the platform is a hardware QPU, launch only once
             countsTotalIsZero = counts.get_total_shots() == 0

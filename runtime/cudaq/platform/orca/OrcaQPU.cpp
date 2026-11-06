@@ -18,9 +18,8 @@ namespace cudaq::orca {
 cudaq::sample_result runSampling(TBIParameters &parameters,
                                  std::size_t qpu_id = 0) {
   orca::sample_policy policy;
-  ExecutionContext ctx(orca::sample_policy::name, parameters.n_samples, qpu_id);
   auto &platform = cudaq::get_platform();
-  return detail::launch(policy, qpu_id, ctx, platform, [&]() {
+  return detail::launch(policy, qpu_id, platform, [&]() {
     [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
         orca::sample_policy::kernelName, nullptr, &parameters,
         sizeof(TBIParameters), 0, cudaq::detail::claimLaunchContext());
@@ -32,9 +31,8 @@ async_sample_result runAsyncSampling(TBIParameters &parameters,
   // Indicate that this is an async exec
   orca::async_sample_policy policy{orca::sample_policy{}};
   async_sample_result futureResult;
-  ExecutionContext ctx(orca::sample_policy::name, parameters.n_samples, qpu_id);
   auto &platform = cudaq::get_platform();
-  return detail::launch(policy, qpu_id, ctx, platform, [&]() {
+  return detail::launch(policy, qpu_id, platform, [&]() {
     [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
         orca::sample_policy::kernelName, nullptr, &parameters,
         sizeof(TBIParameters), 0, cudaq::detail::claimLaunchContext());

@@ -167,10 +167,8 @@ public:
   createJob(std::vector<KernelExecution> &circuitCodes) override {
     CUDAQ_INFO("In createJob. code: {}",
                kernelExecutionToString(circuitCodes[0]));
-    auto *executionContext = cudaq::getExecutionContext();
-    const std::string requestType =
-        executionContext ? executionContext->name : "unknown";
-    const bool isRunRequest = requestType == "run";
+    const bool isRunRequest =
+        executionType == cudaq::detail::ExecutionContextType::run;
     ServerMessage job;
     std::vector<char> decodedContent;
     if (auto error = llvm::decodeBase64(circuitCodes[0].code, decodedContent))

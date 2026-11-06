@@ -10,8 +10,8 @@
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/Timing.h"
-#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/algorithms/policies.h"
+#include "cudaq/nvqir_launch.h"
 #include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
 
@@ -59,7 +59,14 @@ cudaq::KernelThunkResultType cudaq::DefaultQPU::compileAndLaunchKernel(
   }
 
   auto &compiled = std::get<CompiledModule>(module);
-  return executeCompiledModule(compiled, args);
+  // Callers of this context-based path install the execution context
+  // themselves; forward the module metadata the simulator reads from it.
+  if (auto *ctx = getExecutionContext())
+    ctx->hasConditionalsOnMeasureResults =
+        compiled.getMetadata().hasConditionalsOnMeasureResults;
+  if (auto rawFn = compiled.getFunctionPtr())
+    return executeFunctionPtrBinary(*rawFn, args);
+  return executeJitBinary(compiled, args);
 }
 
 cudaq::sample_result
@@ -67,14 +74,7 @@ cudaq::DefaultQPU::launchKernel(const cudaq::sample_policy &policy,
                                 const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
-  // Put routed results back in the kernel's qubit order, as
-  // `BaseRemoteRESTQPU` does. Explicit measurements are already in execution
-  // order.
-  if (!policy.options.explicit_measurements)
-    policy.reorderIdx = module.getMetadata().reorderIdx;
-  return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
-    [[maybe_unused]] auto res = executeCompiledModule(module, args);
-  });
+  return nvqir::launch(policy, module, args, qpu_id);
 }
 
 cudaq::async_sample_result
@@ -90,9 +90,7 @@ cudaq::DefaultQPU::launchKernel(const cudaq::observe_policy &policy,
                                 const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
-  return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
-    [[maybe_unused]] auto res = executeCompiledModule(module, args);
-  });
+  return nvqir::launch(policy, module, args, qpu_id);
 }
 
 cudaq::run_result
@@ -100,9 +98,7 @@ cudaq::DefaultQPU::launchKernel(const cudaq::run_policy &policy,
                                 const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
-  return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
-    [[maybe_unused]] auto res = executeCompiledModule(module, args);
-  });
+  return nvqir::launch(policy, module, args, qpu_id);
 }
 
 cudaq::async_run_policy::result_type
@@ -118,9 +114,7 @@ cudaq::DefaultQPU::launchKernel(const cudaq::msm_size_policy &policy,
                                 const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
-  return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
-    [[maybe_unused]] auto res = executeCompiledModule(module, args);
-  });
+  return nvqir::launch(policy, module, args, qpu_id);
 }
 
 cudaq::msm_result
@@ -128,9 +122,7 @@ cudaq::DefaultQPU::launchKernel(const cudaq::msm_policy &policy,
                                 const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
-  return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
-    [[maybe_unused]] auto res = executeCompiledModule(module, args);
-  });
+  return nvqir::launch(policy, module, args, qpu_id);
 }
 
 cudaq::async_observe_result
@@ -146,9 +138,7 @@ cudaq::DefaultQPU::launchKernel(const cudaq::dem_policy &policy,
                                 const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
-  return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
-    [[maybe_unused]] auto res = executeCompiledModule(module, args);
-  });
+  return nvqir::launch(policy, module, args, qpu_id);
 }
 
 cudaq::estimate_result
@@ -156,12 +146,7 @@ cudaq::DefaultQPU::launchKernel(const cudaq::estimate_policy &policy,
                                 const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
-  // RAII: the scope is released (and the resource-counter state cleared) on
-  // every exit path, including exceptions thrown from the kernel.
-  auto rcScope = nvqir::resource_counter::make_scope(policy.choice);
-  return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
-    [[maybe_unused]] auto res = executeCompiledModule(module, args);
-  });
+  return nvqir::launch(policy, module, args, qpu_id);
 }
 
 cudaq::ptsbe::sample_policy::result_type
@@ -169,9 +154,7 @@ cudaq::DefaultQPU::launchKernel(const cudaq::ptsbe::sample_policy &policy,
                                 const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
-  return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
-    [[maybe_unused]] auto res = executeCompiledModule(module, args);
-  });
+  return nvqir::launch(policy, module, args, qpu_id);
 }
 
 cudaq::CompileTarget
