@@ -8,6 +8,7 @@
 
 // clang-format off
 // RUN: cudaq-quake %s | cudaq-opt --canonicalize --cse | cudaq-translate --convert-to=qir | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --pass-pipeline='builtin.module(jit-deploy-pipeline,decomposition{basis=h,rx,ry,rz,x,y,z,x(1)})' | FileCheck --check-prefix=DEPLOY --implicit-check-not='neg [' %s
 // clang-format on
 
 #include "cudaq/qis/qubit_qis.h"
@@ -36,4 +37,25 @@ struct Stuart {
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_4]])
 // CHECK:         ret void
 // CHECK:       }
+// clang-format on
+
+// Hardware targets run their mid-level pipeline after `jit-deploy-pipeline`.
+// The `braket` basis decomposition accepts a one-control X with a negated
+// control, so the deploy stage must expand negated controls before it.
+struct OpenCNot {
+  void operator()() __qpu__ {
+    cudaq::qubit control, target;
+    x<cudaq::ctrl>(!control, target);
+  }
+};
+
+// clang-format off
+// DEPLOY-LABEL:   func.func @__nvqpp__mlirgen__OpenCNot() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// DEPLOY:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// DEPLOY:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// DEPLOY:           quake.x %[[ALLOCA_0]] : (!quake.ref) -> ()
+// DEPLOY:           quake.x {{\[}}%[[ALLOCA_0]]] %[[ALLOCA_1]] : (!quake.ref, !quake.ref) -> ()
+// DEPLOY:           quake.x %[[ALLOCA_0]] : (!quake.ref) -> ()
+// DEPLOY:           return
+// DEPLOY:         }
 // clang-format on

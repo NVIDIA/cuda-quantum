@@ -1230,25 +1230,85 @@ struct UnwrapOpErase : public OpConversionPattern<cudaq::quake::UnwrapOp> {
 // Custom handing of irregular quantum gates.
 //===----------------------------------------------------------------------===//
 
-// Custom operations keep their controls in operand order, as the positive
-// path's concatenation does. NVQIR therefore takes each control as (kind,
-// operand, required state): kind 1 is an Array*, whose size NVQIR reads, and
-// kind 0 is a Qubit*.
-static void appendControlOperands(cudaq::quake::OperatorInterface gate,
-                                  ValueRange controls, Type pointerType,
-                                  SmallVectorImpl<Value> &arguments,
-                                  ConversionPatternRewriter &rewriter) {
-  const auto loc = gate.getLoc();
+// The control-value invokers take one control-polarity mask word per this many
+// control operands. `NVQIR.cpp` decodes the same width.
+static constexpr unsigned invokeMaskWordBits = 64;
+
+static bool isaVeqArgument(Type ty) {
+  // TODO: Need a way to identify arrays when using the opaque pointer
+  // variant. (In Python, the arguments may already be converted.)
+  auto alreadyConverted = [](Type ty) {
+    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(ty))
+      if (auto strTy = dyn_cast<LLVM::LLVMStructType>(ptrTy.getElementType()))
+        return strTy.isIdentified() && strTy.getName() == "Array";
+    return false;
+  };
+  return isa<cudaq::quake::VeqType>(ty) || alreadyConverted(ty);
+}
+
+namespace {
+/// The controls of a gate in the order the generalized invokers take them:
+/// registers as (length, Array *) pairs, then qubits as Qubit *.
+struct PartitionedControls {
+  std::size_t numArrays = 0;
+  std::size_t numQubits = 0;
+  SmallVector<Value> operands;
+  /// Whether each control operand, in partitioned order, requires |0>.
+  SmallVector<bool> open;
+};
+} // namespace
+
+static PartitionedControls
+partitionControls(cudaq::quake::OperatorInterface gate, ValueRange controls,
+                  Type ptrNoneTy, ConversionPatternRewriter &rewriter) {
+  auto loc = gate.getLoc();
+  Type i64Ty = rewriter.getI64Type();
   const auto negations = gate.getNegatedControls();
-  for (auto [index, control] : llvm::enumerate(controls)) {
-    Type origTy = getInitialType(gate, gate.getParameters().size() + index);
-    arguments.append(
-        {arith::ConstantIntOp::create(rewriter, loc,
-                                      isa<cudaq::quake::VeqType>(origTy), 64),
-         cudaq::cc::CastOp::create(rewriter, loc, pointerType, control),
-         arith::ConstantIntOp::create(
-             rewriter, loc, !(negations && (*negations)[index]), 64)});
+  PartitionedControls partitioned;
+  SmallVector<Value> opQubitCtrls;
+
+  // Process the controls, partitioning them by type. Using the original
+  // type recorded before conversion, since opaque pointers
+  // make Array* and Qubit* indistinguishable on the live operand.
+  for (auto [i, val] : llvm::enumerate(controls)) {
+    Type origCtrlTy = getInitialType(gate, gate.getParameters().size() + i);
+    const bool isOpen = negations && (*negations)[i];
+    if (isaVeqArgument(origCtrlTy)) {
+      partitioned.open.insert(partitioned.open.begin() + partitioned.numArrays,
+                              isOpen);
+      partitioned.numArrays++;
+      auto sizeCall = func::CallOp::create(
+          rewriter, loc, i64Ty, cudaq::opt::QIRArrayGetSize, ValueRange{val});
+      // Arrays are encoded as pairs of arguments: length and Array*
+      partitioned.operands.push_back(sizeCall.getResult(0));
+      partitioned.operands.push_back(
+          cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, val));
+    } else {
+      partitioned.open.push_back(isOpen);
+      partitioned.numQubits++;
+      // Qubits are simply the Qubit**
+      opQubitCtrls.emplace_back(
+          cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, val));
+    }
   }
+  partitioned.operands.append(opQubitCtrls.begin(), opQubitCtrls.end());
+  return partitioned;
+}
+
+// The control-value invokers take these mask words before their other varargs.
+// Bit k marks partitioned control operand k as open.
+static void appendControlMask(ArrayRef<bool> open, SmallVectorImpl<Value> &args,
+                              Location loc,
+                              ConversionPatternRewriter &rewriter) {
+  SmallVector<std::uint64_t> openMask(
+      llvm::divideCeil(open.size(), invokeMaskWordBits));
+  for (auto [k, isOpen] : llvm::enumerate(open))
+    if (isOpen)
+      openMask[k / invokeMaskWordBits] |= std::uint64_t{1}
+                                          << (k % invokeMaskWordBits);
+  for (std::uint64_t word : openMask)
+    args.emplace_back(arith::ConstantIntOp::create(
+        rewriter, loc, static_cast<std::int64_t>(word), 64));
 }
 
 template <typename M>
@@ -1262,7 +1322,7 @@ struct CustomUnitaryOpPattern : public QubitHelperConversionPattern<
   matchAndRewrite(cudaq::quake::CustomUnitaryConstantOp unitary,
                   Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    if (!M::isFullQIR && hasNegatedControls(unitary))
+    if (!M::supportNegatedControls && hasNegatedControls(unitary))
       return unitary.emitOpError("negated control qubits not allowed.");
     if (!unitary.getParameters().empty())
       return unitary.emitOpError(
@@ -1350,16 +1410,21 @@ struct CustomUnitaryOpPattern : public QubitHelperConversionPattern<
         return unitary.emitError("cannot find QIR function");
       auto callbackValue = func::ConstantOp::create(
           rewriter, loc, callback.getFunctionType(), functionName);
+      auto partitioned = partitionControls(unitary, adaptor.getControls(),
+                                           pointerType, rewriter);
       SmallVector<Value> arguments{
-          arith::ConstantIntOp::create(rewriter, loc,
-                                       adaptor.getControls().size(), 64),
+          arith::ConstantIntOp::create(rewriter, loc, partitioned.numArrays,
+                                       64),
+          arith::ConstantIntOp::create(rewriter, loc, partitioned.numQubits,
+                                       64),
           cudaq::cc::CastOp::create(rewriter, loc, pointerType, unitaryData),
           cudaq::cc::CastOp::create(rewriter, loc, pointerType, targetArray),
           cudaq::cc::CastOp::create(rewriter, loc, pointerType, nameOp),
           cudaq::cc::FuncToPtrOp::create(rewriter, loc, pointerType,
                                          callbackValue)};
-      appendControlOperands(unitary, adaptor.getControls(), pointerType,
-                            arguments, rewriter);
+      appendControlMask(partitioned.open, arguments, loc, rewriter);
+      arguments.append(partitioned.operands.begin(),
+                       partitioned.operands.end());
       cudaq::cc::VarargCallOp::create(
           rewriter, loc, TypeRange{},
           cudaq::opt::NVQIRInvokeCustomControlValues, arguments);
@@ -1396,9 +1461,8 @@ struct ExpPauliOpPattern
   matchAndRewrite(cudaq::quake::ExpPauliOp pauli, Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = pauli.getLoc();
-    // Make sure that `expand-control-negations` pass was run on the
-    // non-full-QIR targets.
-    if (!M::isFullQIR && hasNegatedControls(pauli))
+    // Make sure that expand-control-negations pass was run.
+    if (!M::supportNegatedControls && hasNegatedControls(pauli))
       return pauli->emitOpError("negated control qubits not allowed.");
     SmallVector<Value> controls;
     const auto firstControlIndex = adaptor.getParameters().size();
@@ -1494,16 +1558,21 @@ struct ExpPauliOpPattern
     auto emitPauliCall = [&]() {
       if (hasNegatedControls(pauli)) {
         auto pointerType = M::getLLVMPointerType(rewriter.getContext());
+        auto partitioned = partitionControls(pauli, adaptor.getControls(),
+                                             pointerType, rewriter);
         SmallVector<Value> arguments{
-            arith::ConstantIntOp::create(rewriter, loc,
-                                         adaptor.getControls().size(), 64),
+            arith::ConstantIntOp::create(rewriter, loc, partitioned.numArrays,
+                                         64),
+            arith::ConstantIntOp::create(rewriter, loc, partitioned.numQubits,
+                                         64),
             operands.front(),
             cudaq::cc::CastOp::create(rewriter, loc, pointerType,
                                       targets.front()),
             cudaq::cc::CastOp::create(rewriter, loc, pointerType,
                                       operands.back())};
-        appendControlOperands(pauli, adaptor.getControls(), pointerType,
-                              arguments, rewriter);
+        appendControlMask(partitioned.open, arguments, loc, rewriter);
+        arguments.append(partitioned.operands.begin(),
+                         partitioned.operands.end());
         cudaq::cc::VarargCallOp::create(
             rewriter, loc, TypeRange{},
             cudaq::opt::NVQIRInvokeExpPauliControlValues, arguments);
@@ -1970,10 +2039,6 @@ struct AnnotateKernelsWithMeasurementStringsPattern
 // Generic handling of regular quantum gates.
 //===----------------------------------------------------------------------===//
 
-// `generalizedInvokeWithRotationsControlsTargets_v2` takes one control-polarity
-// mask word per this many control operands. `NVQIR.cpp` decodes the same width.
-static constexpr unsigned invokeMaskWordBits = 64;
-
 template <typename M, typename OP>
 struct QuantumGatePattern : public OpConversionPattern<OP> {
   using Base = OpConversionPattern<OP>;
@@ -1988,7 +2053,7 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     };
     auto qirFunctionName = M::quakeToFuncName(op);
 
-    if (!M::isFullQIR && hasNegatedControls(op))
+    if (!M::supportNegatedControls && hasNegatedControls(op))
       return op.emitOpError("negated control qubits not allowed.");
 
     // Prepare any floating-point parameters.
@@ -2026,7 +2091,7 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
 
     // U2 and controlled PhasedRx have no standard QIR entry points.
     const bool withControlValues =
-        M::isFullQIR &&
+        M::supportNegatedControls &&
         (hasNegatedControls(op) || isa<cudaq::quake::U2Op>(op) ||
          (isa<cudaq::quake::PhasedRxOp>(op) && !op.getControls().empty()));
     if (withControlValues) {
@@ -2060,39 +2125,9 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     // arguments being used. This function's signature is tuned so as to
     // reduce or eliminate the creation of auxiliary temporaries needs to make
     // the call to the helper.
-    std::size_t numArrayCtrls = 0;
-    SmallVector<Value> opArrCtrls;
-    std::size_t numQubitCtrls = 0;
-    SmallVector<Value> opQubitCtrls;
-    // Open controls in the invoker's operand order: arrays, then qubits.
-    SmallVector<bool> openCtrls;
-    Type i64Ty = rewriter.getI64Type();
     auto ptrNoneTy = M::getLLVMPointerType(rewriter.getContext());
-    const auto negations = op.getNegatedQubitControls();
-
-    // Process the controls, sorting them by type. Using the original
-    // type recorded before conversion, since opaque pointers
-    // make Array* and Qubit* indistinguishable on the live operand.
-    for (auto [i, val] : llvm::enumerate(adaptor.getControls())) {
-      Type origCtrlTy = getInitialType(op, opParams.size() + i);
-      const bool isOpen = negations && (*negations)[i];
-      if (isaVeqArgument(origCtrlTy)) {
-        openCtrls.insert(openCtrls.begin() + numArrayCtrls, isOpen);
-        numArrayCtrls++;
-        auto sizeCall = func::CallOp::create(
-            rewriter, loc, i64Ty, cudaq::opt::QIRArrayGetSize, ValueRange{val});
-        // Arrays are encoded as pairs of arguments: length and Array*
-        opArrCtrls.push_back(sizeCall.getResult(0));
-        opArrCtrls.push_back(
-            cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, val));
-      } else {
-        openCtrls.push_back(isOpen);
-        numQubitCtrls++;
-        // Qubits are simply the Qubit**
-        opQubitCtrls.emplace_back(
-            cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, val));
-      }
-    }
+    auto partitioned =
+        partitionControls(op, adaptor.getControls(), ptrNoneTy, rewriter);
 
     // Lookup and process the gate operation we're invoking.
     auto module = op->template getParentOfType<ModuleOp>();
@@ -2121,31 +2156,20 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     args.emplace_back(
         arith::ConstantIntOp::create(rewriter, loc, opParams.size(), 64));
     args.emplace_back(
-        arith::ConstantIntOp::create(rewriter, loc, numArrayCtrls, 64));
+        arith::ConstantIntOp::create(rewriter, loc, partitioned.numArrays, 64));
     args.emplace_back(
-        arith::ConstantIntOp::create(rewriter, loc, numQubitCtrls, 64));
+        arith::ConstantIntOp::create(rewriter, loc, partitioned.numQubits, 64));
     args.emplace_back(
         arith::ConstantIntOp::create(rewriter, loc, numTargets, 64));
     args.emplace_back(funPtr);
 
-    // With control values, the varargs start with the mask words. Bit k marks
-    // the k-th entry of openCtrls.
-    if (withControlValues) {
-      SmallVector<std::uint64_t> openMask(
-          llvm::divideCeil(openCtrls.size(), invokeMaskWordBits));
-      for (auto [k, isOpen] : llvm::enumerate(openCtrls))
-        if (isOpen)
-          openMask[k / invokeMaskWordBits] |= std::uint64_t{1}
-                                              << (k % invokeMaskWordBits);
-      for (std::uint64_t word : openMask)
-        args.emplace_back(arith::ConstantIntOp::create(
-            rewriter, loc, static_cast<std::int64_t>(word), 64));
-    }
+    // With control values, the varargs start with the mask words.
+    if (withControlValues)
+      appendControlMask(partitioned.open, args, loc, rewriter);
 
     // Finally, append the varargs to the end of the argument list.
     args.append(opParams.begin(), opParams.end());
-    args.append(opArrCtrls.begin(), opArrCtrls.end());
-    args.append(opQubitCtrls.begin(), opQubitCtrls.end());
+    args.append(partitioned.operands.begin(), partitioned.operands.end());
     args.append(opTargs.begin(), opTargs.end());
 
     // Call the generalized version of the gate invocation. Version 2 adds the
@@ -2156,18 +2180,6 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
                                         : cudaq::opt::NVQIRGeneralizedInvokeAny,
                                     args);
     return forwardOrEraseOp();
-  }
-
-  static bool isaVeqArgument(Type ty) {
-    // TODO: Need a way to identify arrays when using the opaque pointer
-    // variant. (In Python, the arguments may already be converted.)
-    auto alreadyConverted = [](Type ty) {
-      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(ty))
-        if (auto strTy = dyn_cast<LLVM::LLVMStructType>(ptrTy.getElementType()))
-          return strTy.isIdentified() && strTy.getName() == "Array";
-      return false;
-    };
-    return isa<cudaq::quake::VeqType>(ty) || alreadyConverted(ty);
   }
 
   static bool conformsToIntendedCall(std::size_t numControls, Type ctrlTy,
@@ -2689,7 +2701,6 @@ Type GetLLVMPointerType(MLIRContext *ctx) {
 template <bool opaquePtr>
 struct FullQIR {
   using Self = FullQIR;
-  static constexpr bool isFullQIR = true;
 
   template <typename QuakeOp>
   static std::string quakeToFuncName(QuakeOp op) {
@@ -2739,6 +2750,7 @@ struct FullQIR {
   static constexpr bool mzReturnsResultType = true;
   static constexpr bool convertToCNot = false;
   static constexpr bool convertToCZ = false;
+  static constexpr bool supportNegatedControls = true;
 
   static Type getQubitType(MLIRContext *ctx) {
     return cudaq::cg::getQubitType(ctx, opaquePtr);
@@ -2761,7 +2773,6 @@ struct FullQIR {
 template <bool opaquePtr>
 struct AnyProfileQIR {
   using Self = AnyProfileQIR;
-  static constexpr bool isFullQIR = false;
 
   template <typename QuakeOp>
   static std::string quakeToFuncName(QuakeOp op) {
@@ -2810,6 +2821,7 @@ struct AnyProfileQIR {
   static constexpr bool mzReturnsResultType = false;
   static constexpr bool convertToCNot = true;
   static constexpr bool convertToCZ = true;
+  static constexpr bool supportNegatedControls = false;
 
   static Type getQubitType(MLIRContext *ctx) {
     return cudaq::cg::getQubitType(ctx, opaquePtr);

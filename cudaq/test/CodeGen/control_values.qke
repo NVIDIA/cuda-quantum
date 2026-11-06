@@ -136,11 +136,10 @@ func.func @custom_register(%closed: !quake.ref, %open: !quake.veq<?>,
 // CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) attributes {"qir-api"} {
 // CHECK-NEXT:           %[[MLIR_0:.*]] = llvm.mlir.addressof @phase_matrix : !llvm.ptr
 // CHECK-NEXT:           %[[MLIR_1:.*]] = llvm.mlir.constant(1 : i64) : i64
-// CHECK-NEXT:           %[[MLIR_2:.*]] = llvm.mlir.constant(0 : i64) : i64
-// CHECK-NEXT:           %[[MLIR_3:.*]] = llvm.mlir.constant(2 : i64) : i64
-// CHECK-NEXT:           %[[MLIR_4:.*]] = llvm.mlir.addressof @__nvqir__qis__custom_unitary__ctl_values : !llvm.ptr
-// CHECK-NEXT:           %[[MLIR_5:.*]] = llvm.mlir.addressof @cstr.00 : !llvm.ptr
-// CHECK-NEXT:           llvm.call @invokeCustomUnitaryWithControlValues(%[[MLIR_3]], %[[MLIR_0]], %[[ARG2]], %[[MLIR_5]], %[[MLIR_4]], %[[MLIR_2]], %[[ARG0]], %[[MLIR_1]], %[[MLIR_1]], %[[ARG1]], %[[MLIR_2]]) vararg(!llvm.func<void (i64, ptr, ptr, ptr, ptr, ...)>) : (i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, i64, i64, !llvm.ptr, i64) -> ()
+// CHECK-NEXT:           %[[MLIR_2:.*]] = llvm.mlir.addressof @__nvqir__qis__custom_unitary__ctl_values : !llvm.ptr
+// CHECK-NEXT:           %[[MLIR_3:.*]] = llvm.mlir.addressof @cstr.00 : !llvm.ptr
+// CHECK-NEXT:           %[[CALL_0:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[ARG1]]) : (!llvm.ptr) -> i64
+// CHECK-NEXT:           llvm.call @invokeCustomUnitaryWithControlValues(%[[MLIR_1]], %[[MLIR_1]], %[[MLIR_0]], %[[ARG2]], %[[MLIR_3]], %[[MLIR_2]], %[[MLIR_1]], %[[CALL_0]], %[[ARG1]], %[[ARG0]]) vararg(!llvm.func<void (i64, i64, ptr, ptr, ptr, ptr, ...)>) : (i64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr, i64, i64, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK-NEXT:           llvm.return
 // CHECK-NEXT:         }
 
@@ -157,16 +156,15 @@ func.func @pauli_register(%theta: f64, %open: !quake.veq<?>,
 // CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
 // CHECK-SAME:      %[[ARG3:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) attributes {"qir-api"} {
 // CHECK-NEXT:           %[[MLIR_0:.*]] = llvm.mlir.addressof @cstr.5900 : !llvm.ptr
-// CHECK-NEXT:           %[[MLIR_1:.*]] = llvm.mlir.constant(0 : i64) : i64
-// CHECK-NEXT:           %[[MLIR_2:.*]] = llvm.mlir.constant(2 : i64) : i64
-// CHECK-NEXT:           %[[MLIR_3:.*]] = llvm.mlir.constant(1 : i64) : i64
-// CHECK-NEXT:           %[[MLIR_4:.*]] = llvm.mlir.constant(1 : i32) : i32
-// CHECK-NEXT:           %[[ALLOCA_0:.*]] = llvm.alloca %[[MLIR_4]] x !llvm.array<1 x struct<(ptr, i64)>> : (i32) -> !llvm.ptr
+// CHECK-NEXT:           %[[MLIR_1:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK-NEXT:           %[[MLIR_2:.*]] = llvm.mlir.constant(1 : i32) : i32
+// CHECK-NEXT:           %[[ALLOCA_0:.*]] = llvm.alloca %[[MLIR_2]] x !llvm.array<1 x struct<(ptr, i64)>> : (i32) -> !llvm.ptr
 // CHECK-NEXT:           %[[FNEG_0:.*]] = llvm.fneg %[[ARG0]] : f64
 // CHECK-NEXT:           llvm.store %[[MLIR_0]], %[[ALLOCA_0]] : !llvm.ptr, !llvm.ptr
 // CHECK-NEXT:           %[[GETELEMENTPTR_0:.*]] = llvm.getelementptr %[[ALLOCA_0]][0, 0, 1] : (!llvm.ptr) -> !llvm.ptr, !llvm.array<1 x struct<(ptr, i64)>>
-// CHECK-NEXT:           llvm.store %[[MLIR_3]], %[[GETELEMENTPTR_0]] : i64, !llvm.ptr
-// CHECK-NEXT:           llvm.call @invokeExpPauliWithControlValues(%[[MLIR_2]], %[[FNEG_0]], %[[ARG3]], %[[ALLOCA_0]], %[[MLIR_3]], %[[ARG1]], %[[MLIR_1]], %[[MLIR_1]], %[[ARG2]], %[[MLIR_3]]) vararg(!llvm.func<void (i64, f64, ptr, ptr, ...)>) : (i64, f64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, i64, i64, !llvm.ptr, i64) -> ()
+// CHECK-NEXT:           llvm.store %[[MLIR_1]], %[[GETELEMENTPTR_0]] : i64, !llvm.ptr
+// CHECK-NEXT:           %[[CALL_0:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[ARG1]]) : (!llvm.ptr) -> i64
+// CHECK-NEXT:           llvm.call @invokeExpPauliWithControlValues(%[[MLIR_1]], %[[MLIR_1]], %[[FNEG_0]], %[[ARG3]], %[[ALLOCA_0]], %[[MLIR_1]], %[[CALL_0]], %[[ARG1]], %[[ARG2]]) vararg(!llvm.func<void (i64, i64, f64, ptr, ptr, ...)>) : (i64, i64, f64, !llvm.ptr, !llvm.ptr, i64, i64, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK-NEXT:           llvm.return
 // CHECK-NEXT:         }
 
@@ -198,14 +196,14 @@ func.func @wire_results(%theta: f64, %control: !quake.wire,
 // CHECK-NEXT:           %[[CALL_0:.*]] = llvm.call @__quantum__rt__array_create_1d(%[[MLIR_4]], %[[MLIR_7]]) : (i32, i64) -> !llvm.ptr
 // CHECK-NEXT:           %[[CALL_1:.*]] = llvm.call @__quantum__rt__array_get_element_ptr_1d(%[[CALL_0]], %[[MLIR_6]]) : (!llvm.ptr, i64) -> !llvm.ptr
 // CHECK-NEXT:           llvm.store %[[ARG2]], %[[CALL_1]] : !llvm.ptr, !llvm.ptr
-// CHECK-NEXT:           llvm.call @invokeCustomUnitaryWithControlValues(%[[MLIR_7]], %[[MLIR_2]], %[[CALL_0]], %[[MLIR_3]], %[[MLIR_5]], %[[MLIR_6]], %[[ARG1]], %[[MLIR_6]]) vararg(!llvm.func<void (i64, ptr, ptr, ptr, ptr, ...)>) : (i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, i64) -> ()
+// CHECK-NEXT:           llvm.call @invokeCustomUnitaryWithControlValues(%[[MLIR_6]], %[[MLIR_7]], %[[MLIR_2]], %[[CALL_0]], %[[MLIR_3]], %[[MLIR_5]], %[[MLIR_7]], %[[ARG1]]) vararg(!llvm.func<void (i64, i64, ptr, ptr, ptr, ptr, ...)>) : (i64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr) -> ()
 // CHECK-NEXT:           %[[CALL_2:.*]] = llvm.call @__quantum__rt__array_create_1d(%[[MLIR_4]], %[[MLIR_7]]) : (i32, i64) -> !llvm.ptr
 // CHECK-NEXT:           %[[CALL_3:.*]] = llvm.call @__quantum__rt__array_get_element_ptr_1d(%[[CALL_2]], %[[MLIR_6]]) : (!llvm.ptr, i64) -> !llvm.ptr
 // CHECK-NEXT:           llvm.store %[[ARG2]], %[[CALL_3]] : !llvm.ptr, !llvm.ptr
 // CHECK-NEXT:           llvm.store %[[MLIR_1]], %[[ALLOCA_0]] : !llvm.ptr, !llvm.ptr
 // CHECK-NEXT:           %[[GETELEMENTPTR_0:.*]] = llvm.getelementptr %[[ALLOCA_0]][0, 0, 1] : (!llvm.ptr) -> !llvm.ptr, !llvm.array<1 x struct<(ptr, i64)>>
 // CHECK-NEXT:           llvm.store %[[MLIR_7]], %[[GETELEMENTPTR_0]] : i64, !llvm.ptr
-// CHECK-NEXT:           llvm.call @invokeExpPauliWithControlValues(%[[MLIR_7]], %[[ARG0]], %[[CALL_2]], %[[ALLOCA_0]], %[[MLIR_6]], %[[ARG1]], %[[MLIR_6]]) vararg(!llvm.func<void (i64, f64, ptr, ptr, ...)>) : (i64, f64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, i64) -> ()
+// CHECK-NEXT:           llvm.call @invokeExpPauliWithControlValues(%[[MLIR_6]], %[[MLIR_7]], %[[ARG0]], %[[CALL_2]], %[[ALLOCA_0]], %[[MLIR_7]], %[[ARG1]]) vararg(!llvm.func<void (i64, i64, f64, ptr, ptr, ...)>) : (i64, i64, f64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr) -> ()
 // CHECK-NEXT:           %[[INSERTVALUE_0:.*]] = llvm.insertvalue %[[ARG1]], %[[MLIR_0]][0] : !llvm.struct<(ptr, ptr)>
 // CHECK-NEXT:           %[[INSERTVALUE_1:.*]] = llvm.insertvalue %[[ARG2]], %[[INSERTVALUE_0]][1] : !llvm.struct<(ptr, ptr)>
 // CHECK-NEXT:           llvm.return %[[INSERTVALUE_1]] : !llvm.struct<(ptr, ptr)>

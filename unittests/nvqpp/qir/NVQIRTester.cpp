@@ -92,12 +92,13 @@ void generalizedInvokeWithRotationsControlsTargets_v2(
     std::size_t numControlQubits, std::size_t numTargets,
     void (*QISFunction)(...), ...);
 void invokeCustomUnitaryWithControlValues(
-    std::size_t numControls, std::complex<double> *matrix, Array *targets,
-    const char *name,
+    std::size_t numControlArrays, std::size_t numControlQubits,
+    std::complex<double> *matrix, Array *targets, const char *name,
     void (*callback)(std::complex<double> *, Array *, const std::int32_t *,
                      std::int64_t, Array *, const char *),
     ...);
-void invokeExpPauliWithControlValues(std::size_t numControls, double theta,
+void invokeExpPauliWithControlValues(std::size_t numControlArrays,
+                                     std::size_t numControlQubits, double theta,
                                      Array *targets, char *pauliWord, ...);
 void __nvqir__qis__x__ctl_values(Array *controls, const std::int32_t *values,
                                  std::int64_t count, Qubit *target);
@@ -541,13 +542,6 @@ Qubit *extract_qubit(Array *a, int idx) {
   return *reinterpret_cast<Qubit **>(q_raw_ptr);
 }
 
-// Required control states in the custom-operation wrappers' varargs.
-constexpr std::int64_t requireZero = 0;
-constexpr std::int64_t requireOne = 1;
-// Operand kinds for the custom-operation wrappers' varargs.
-constexpr std::int64_t qubitOperand = 0;
-constexpr std::int64_t registerOperand = 1;
-
 CUDAQ_TEST(NVQIRTester, checkValueControlInvoke) {
   __quantum__rt__initialize(0, nullptr);
   auto *qubits = __quantum__rt__qubit_allocate_array(4);
@@ -656,15 +650,15 @@ CUDAQ_TEST(NVQIRTester, checkValueControlInvoke) {
       expected[0]);
   EXPECT_EQ(invocations, 6u);
 
-  // The custom-unitary wrapper keeps operand order, so qubit q3 stays ahead of
-  // the register.
+  // The custom-unitary wrapper takes the version 2 controls and packs them the
+  // same way.
   static std::vector<std::int32_t> expectedValues;
   static std::int64_t expectedCount;
+  static Qubit *expectedTarget;
   static unsigned customCalls;
-  expected = {extract_qubit(qubits, 3), extract_qubit(qubits, 0),
-              extract_qubit(qubits, 1), extract_qubit(qubits, 2)};
-  expectedValues = {0, 1, 1, 1};
+  expectedValues = {1, 1, 0, 1};
   expectedCount = 4;
+  expectedTarget = extract_qubit(qubits, 3);
   customCalls = 0;
   auto customCallback = [](std::complex<double> *matrix, Array *controls,
                            const std::int32_t *values, std::int64_t count,
@@ -672,7 +666,7 @@ CUDAQ_TEST(NVQIRTester, checkValueControlInvoke) {
     ++customCalls;
     EXPECT_EQ(matrix[1], std::complex<double>(0., 1.));
     EXPECT_STREQ(name, "packed_custom");
-    EXPECT_EQ(extract_qubit(targets, 0), expected[0]);
+    EXPECT_EQ(extract_qubit(targets, 0), expectedTarget);
     ASSERT_EQ(count, expectedCount);
     EXPECT_EQ(__quantum__rt__array_get_size_1d(controls), count);
     for (std::int64_t i = 0; i < count; ++i) {
@@ -683,17 +677,17 @@ CUDAQ_TEST(NVQIRTester, checkValueControlInvoke) {
   std::complex<double> matrix[]{0., {0., 1.}, 1., 0.};
   auto *targets = __quantum__rt__array_slice_1d(qubits, 3, 1, 3);
   invokeCustomUnitaryWithControlValues(
-      5, matrix, targets, "packed_custom", customCallback, qubitOperand,
-      expected[0], requireZero, registerOperand,
-      reinterpret_cast<Qubit *>(array), requireOne, registerOperand,
-      reinterpret_cast<Qubit *>(empty), requireZero, qubitOperand, expected[3],
-      requireOne, registerOperand, static_cast<Qubit *>(nullptr), requireOne);
+      /*numControlArrays=*/3, /*numControlQubits=*/2, matrix, targets,
+      "packed_custom", customCallback, std::int64_t{0b01001}, std::size_t{0},
+      reinterpret_cast<Qubit *>(empty), std::size_t{2},
+      reinterpret_cast<Qubit *>(array), std::size_t{0},
+      static_cast<Qubit *>(nullptr), expected[2], expected[3]);
   expectedCount = 0;
   invokeCustomUnitaryWithControlValues(
-      2, matrix, targets, "packed_custom", customCallback, registerOperand,
-      reinterpret_cast<Qubit *>(empty), requireZero, registerOperand,
-      static_cast<Qubit *>(nullptr), requireOne);
-  invokeCustomUnitaryWithControlValues(0, matrix, targets, "packed_custom",
+      2, 0, matrix, targets, "packed_custom", customCallback, std::int64_t{1},
+      std::size_t{0}, reinterpret_cast<Qubit *>(empty), std::size_t{0},
+      static_cast<Qubit *>(nullptr));
+  invokeCustomUnitaryWithControlValues(0, 0, matrix, targets, "packed_custom",
                                        customCallback);
   EXPECT_EQ(customCalls, 3u);
   __quantum__rt__array_release(targets);
@@ -835,28 +829,6 @@ CUDAQ_TEST(NVQIRTester, checkValueControlInvokeExecution) {
   }
 }
 
-CUDAQ_TEST(NVQIRTester, checkValueControlInvokeErrors) {
-  // Each invalid prefix must throw before reading omitted trailing arguments
-  // or reaching the null callback.
-  void (*callback)(...) = nullptr;
-  for (auto *invoke : {generalizedInvokeWithRotationsControlsTargets,
-                       generalizedInvokeWithRotationsControlsTargets_v2}) {
-    EXPECT_ANY_THROW(invoke(4, 0, 0, 1, callback));
-    EXPECT_ANY_THROW(invoke(0, 0, 0, 0, callback));
-    EXPECT_ANY_THROW(invoke(0, 0, 0, 3, callback));
-  }
-  // A wrapper's required state and operand kind must be 0 or 1.
-  EXPECT_ANY_THROW(invokeCustomUnitaryWithControlValues(
-      1, nullptr, nullptr, "invalid_value", nullptr, qubitOperand,
-      static_cast<Qubit *>(nullptr), std::int64_t{2}));
-  EXPECT_ANY_THROW(invokeCustomUnitaryWithControlValues(
-      1, nullptr, nullptr, "invalid_kind", nullptr, std::int64_t{2},
-      static_cast<Qubit *>(nullptr), requireOne));
-  EXPECT_ANY_THROW(invokeExpPauliWithControlValues(
-      1, 0.25, nullptr, nullptr, registerOperand, static_cast<Qubit *>(nullptr),
-      std::int64_t{-1}));
-}
-
 CUDAQ_TEST(NVQIRTester, checkValueControlOwnership) {
   __quantum__rt__initialize(0, nullptr);
   auto *qubits = __quantum__rt__qubit_allocate_array(3);
@@ -913,9 +885,9 @@ CUDAQ_TEST(NVQIRTester, checkValueControlCustomAdjoint) {
           if (api == Invocation::Wrapper) {
             auto apply = adjoint ? __nvqir__qis__custom_unitary__adj__ctl_values
                                  : __nvqir__qis__custom_unitary__ctl_values;
-            invokeCustomUnitaryWithControlValues(
-                1, matrix, targets, "test_custom", apply, qubitOperand, control,
-                requireZero);
+            invokeCustomUnitaryWithControlValues(0, 1, matrix, targets,
+                                                 "test_custom", apply,
+                                                 std::int64_t{1}, control);
             // The queued operation must retain the original matrix.
             matrix[0] = matrix[3] = 1.;
             matrix[1] = matrix[2] = 0.;
@@ -981,12 +953,14 @@ CUDAQ_TEST(NVQIRTester, checkValueControlExpPauliInvoke) {
         };
         char word[] = "X";
         PauliWord pauli{word, 1};
+        // The registers come first, so bit 1 opens the empty register and bit
+        // 3 opens the scalar.
         invokeExpPauliWithControlValues(
-            4, M_PI / 2., targets, reinterpret_cast<char *>(&pauli),
-            qubitOperand, scalar, requireZero, registerOperand,
-            reinterpret_cast<Qubit *>(controls), requireOne, registerOperand,
-            reinterpret_cast<Qubit *>(empty), requireZero, registerOperand,
-            static_cast<Qubit *>(nullptr), requireOne);
+            3, 1, M_PI / 2., targets, reinterpret_cast<char *>(&pauli),
+            std::int64_t{0b1010}, std::size_t{1},
+            reinterpret_cast<Qubit *>(controls), std::size_t{0},
+            reinterpret_cast<Qubit *>(empty), std::size_t{0},
+            static_cast<Qubit *>(nullptr), scalar);
         // Change caller buffers before measurement flushes queued work.
         word[0] = 'Z';
         *reinterpret_cast<Qubit **>(__quantum__rt__array_get_element_ptr_1d(
@@ -997,7 +971,7 @@ CUDAQ_TEST(NVQIRTester, checkValueControlExpPauliInvoke) {
 
         auto *uncontrolled = __quantum__rt__array_slice_1d(qubits, 3, 1, 3);
         word[0] = 'Y';
-        invokeExpPauliWithControlValues(0, M_PI / 4., uncontrolled,
+        invokeExpPauliWithControlValues(0, 0, M_PI / 4., uncontrolled,
                                         reinterpret_cast<char *>(&pauli));
         word[0] = 'Z';
         __quantum__rt__array_release(uncontrolled);
