@@ -8,7 +8,7 @@
 
 // REQUIRES: qlx-opt, cudaq-quake
 // RUN: qlx-opt --prepare-quake-for-qlx %s | FileCheck %s
-// RUN: not qlx-opt --prepare-quake-for-qlx --convert-quake-to-qlx %s 2>&1 | FileCheck %s --check-prefix=ERROR
+// RUN: not qlx-opt --convert-quake-to-qlx %s 2>&1 | FileCheck %s --check-prefix=ERROR
 
 // A predicate phase is physical and must never be erased as a global phase.
 module {
@@ -29,4 +29,4 @@ module {
 // CHECK: %[[P:.*]]:2 = quake.phase (%{{.*}}) [%[[C]]] %[[Q]]
 // CHECK: quake.sink %[[P]]#0
 // CHECK: quake.sink %[[P]]#1
-// ERROR: 'quake.phase' op is outside the typed Quake-to-P0 conversion contract
+// ERROR: 'quake.phase' op controlled phases are outside the Quake-to-P0 contract; lower upstream

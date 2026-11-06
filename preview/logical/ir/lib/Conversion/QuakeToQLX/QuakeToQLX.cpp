@@ -1277,6 +1277,37 @@ private:
                 "wrapped wire is not the current reference-slot wire");
           return success();
         })
+        .Case<cudaq::quake::PhaseOp>([&](auto phase) -> LogicalResult {
+          // P0 ignores global phase, but a controlled phase is relative and
+          // must be lowered upstream. The anchor still carries wire ownership.
+          if (!phase.getControls().empty())
+            return phase.emitOpError(
+                "controlled phases are outside the Quake-to-P0 contract; "
+                "lower upstream");
+          if (!isa<cudaq::quake::WireType>(phase.getTarget().getType()) ||
+              phase.getWires().size() != 1)
+            return phase.emitOpError("requires a value-semantics anchor wire");
+          Value input = phase.getTarget();
+          Value result = phase.getWires().front();
+          if (failed(hydrateReferenceWires(phase, ValueRange{input}, state)))
+            return failure();
+          auto owner = state.wireOwners.find(input);
+          if (owner == state.wireOwners.end()) {
+            if (!state.measuredWires.erase(input))
+              return phase.emitOpError(
+                  "uses a wire with no live or measured P0 owner");
+            state.measuredWires.insert(result);
+            return success();
+          }
+          if (state.measuredWires.contains(input))
+            return phase.emitOpError(
+                "wire lifetime state is both live and measured");
+          Value logicalOwner = owner->second;
+          state.wireOwners.erase(owner);
+          state.wireOwners[result] = logicalOwner;
+          return commitReferenceWireResults(phase, ValueRange{input},
+                                            phase.getWires(), state);
+        })
         .Case<cudaq::quake::R1Op>([&](auto g) -> LogicalResult {
           // On one uncontrolled target, R1(theta) and Rz(theta) differ only
           // by an unobservable global phase. Controlled R1 is rejected by
