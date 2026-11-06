@@ -8,6 +8,7 @@
 
 #include "CuStateVecGateEngine.h"
 
+#include "CuStateVecDevice.h"
 #include "CuStateVecError.h"
 
 #include <cuda_runtime_api.h>
@@ -218,9 +219,15 @@ FusedGateEngine<Scalar>::FusedGateEngine(const CuStateVecConfig &config) {
   std::vector<custatevecExSVUpdaterConfigItem_t> items;
   items.push_back({CUSTATEVEC_EX_SVUPDATER_CONFIG_MAX_NUM_HOST_THREADS,
                    {config.hostThreads}});
-  if (config.denseFusionQubits)
+  // An explicit size wins. Otherwise use the per-device recommendation, which
+  // is empty on devices where the cuStateVecEx default is already best.
+  auto denseFusionQubits = config.denseFusionQubits;
+  if (!denseFusionQubits)
+    denseFusionQubits =
+        recommendedDenseFusionQubits(std::is_same_v<Scalar, double>);
+  if (denseFusionQubits)
     items.push_back({CUSTATEVEC_EX_SVUPDATER_CONFIG_DENSE_FUSION_SIZE,
-                     {*config.denseFusionQubits}});
+                     {*denseFusionQubits}});
   if (config.diagonalFusionQubits >= 0)
     items.push_back({CUSTATEVEC_EX_SVUPDATER_CONFIG_DIAGONAL_FUSION_SIZE,
                      {config.diagonalFusionQubits}});
