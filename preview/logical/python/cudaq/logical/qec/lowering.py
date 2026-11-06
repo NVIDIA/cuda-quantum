@@ -225,7 +225,7 @@ class QECNetworkCompiler(QECCompiler):
         """Re-authenticate provider-private plan content from typed input.
 
         Generic request/plan validation owns the public envelope. Providers
-        must implement this hook to rederive their opaque artifact's semantic
+        must implement this hook to derive their opaque artifact's semantic
         facts from the canonical request during construction and every
         device-backed replay.
         """

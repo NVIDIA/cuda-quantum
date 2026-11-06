@@ -387,7 +387,7 @@ def _matches_fixed(candidate, site: ActionSiteHandle, operation,
     # High-rate blocks may realize an objective over several placed logical
     # values. The Python boundary owns one patch per distinct block, while P1
     # still has one value per logical port. This covers both a same-block
-    # objective and productized multi-block gadgets such as paired_cx.
+    # objective and multi-block gadgets such as paired_cx.
     parameter_annotations = [
         hints.get(name, parameter.annotation)
         for name, parameter in candidate.signature.parameters.items()
@@ -1647,8 +1647,8 @@ class _P1ToP2:
             for result in operation.results:
                 binding = self._binding_for_value(result)
                 if binding is not None:
-                    self.value_map[result] = live_by_block[
-                        self._block_key(binding.placement)]
+                    self.value_map[result] = live_by_block[self._block_key(
+                        binding.placement)]
                 else:
                     self.value_map[result] = record_results[
                         selected.handle.symbol]
@@ -4616,8 +4616,8 @@ def lower_qec(source,
                 ("" if not details else f": {details}"))
         plan = network.compiler.plan_network(request, context)
         lattice_surgery.validate_network_plan(request, plan)
-        lattice_surgery.validate_provider_plan_artifact(
-            network.compiler, request, plan)
+        lattice_surgery.validate_provider_plan_artifact(network.compiler,
+                                                        request, plan)
         compiler = _P1ToP2(
             source,
             device,

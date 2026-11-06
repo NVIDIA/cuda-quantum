@@ -611,7 +611,6 @@ class LatticeSurgeryProgram:
 
 LatticeSurgeryOperation = ProductMeasurement | EncodedYInjection
 
-
 _VERIFIED_PLACED_PROGRAM = object()
 
 
@@ -1649,7 +1648,7 @@ class QECNetworkEpoch:
     """One encoded-space planning batch, with claims held for the whole batch.
 
     An epoch is not a promise that all actions execute simultaneously. The
-    ``commuting_products`` mode may list ordered, commuting substeps on one
+    ``commuting_products`` mode may list ordered, commuting steps on one
     block; an internal ``after`` dependency must point to an earlier listed
     action. Other modes require dependencies in earlier epochs. P3 owns the
     physical timing. This differs from ``LatticeSurgeryPlan`` schedule epochs,
@@ -1885,7 +1884,8 @@ def _validate_replayed_network_plan(
     """Apply the same plan rules after device-free request authentication."""
 
     if len(payload["actions"]) != len(measurements):
-        raise ValueError("network replay plan has an incomplete action inventory")
+        raise ValueError(
+            "network replay plan has an incomplete action inventory")
     actions = tuple(
         _DetachedPlanAction(
             site=_DetachedPlanSite(
@@ -1894,22 +1894,24 @@ def _validate_replayed_network_plan(
                 input_arity=raw["site"]["input_arity"],
             ),
             blocks=tuple(raw["blocks"]),
-            owners=tuple(_DetachedPlanOwner(owner["logical_index"])
-                         for owner in raw["owners"]),
+            owners=tuple(
+                _DetachedPlanOwner(owner["logical_index"])
+                for owner in raw["owners"]),
             measurement=measurement,
             after=tuple(raw["after"]),
-        ) for raw, measurement in zip(payload["actions"], measurements)
-    )
+        )
+        for raw, measurement in zip(payload["actions"], measurements))
     request = _DetachedPlanRequest(
         digest=_digest(payload),
         lowering_manifest_sha256=payload["lowering_manifest_sha256"],
         device_architecture_sha256=payload["device_architecture_sha256"],
         policy_sha256=_digest(payload["policy"]),
         actions=actions,
-        regions=tuple(QECNetworkRegion.from_dict(value)
-                      for value in payload["regions"]),
-        resources=tuple(TemporalResource.from_dict(value)
-                        for value in payload["resources"]),
+        regions=tuple(
+            QECNetworkRegion.from_dict(value) for value in payload["regions"]),
+        resources=tuple(
+            TemporalResource.from_dict(value)
+            for value in payload["resources"]),
     )
     _validate_network_plan_contents(request, plan)
 
@@ -1977,13 +1979,11 @@ def _validate_network_plan_contents(request, plan: QECNetworkPlan) -> None:
             batch = tuple(actions[name] for name in epoch.actions)
             block_sets = tuple(set(action.blocks) for action in batch)
             if any(len(blocks) != 1 for blocks in block_sets):
-                raise ValueError(
-                    f"{sharing} actions must each stay "
-                    "wholly within one encoded block")
+                raise ValueError(f"{sharing} actions must each stay "
+                                 "wholly within one encoded block")
             if len({next(iter(blocks)) for blocks in block_sets}) != 1:
-                raise ValueError(
-                    f"{sharing} actions must share the "
-                    "same encoded block")
+                raise ValueError(f"{sharing} actions must share the "
+                                 "same encoded block")
             occupied_ports: set[tuple[str, int]] = set()
             symplectic_supports = []
             for action in batch:
@@ -2010,11 +2010,10 @@ def _validate_network_plan_contents(request, plan: QECNetworkPlan) -> None:
                 if (action.site.input_arity != owner_count or
                         len(action.measurement.terms) != owner_count or
                         any(bits not in pauli_by_bits
-                            for bits in placement_bits) or sorted(
-                                pauli_by_bits[bits]
-                                for bits in placement_bits) != sorted(
-                                    term.pauli
-                                    for term in action.measurement.terms)):
+                            for bits in placement_bits) or
+                        sorted(pauli_by_bits[bits] for bits in placement_bits)
+                        != sorted(
+                            term.pauli for term in action.measurement.terms)):
                     raise ValueError(
                         f"{sharing} action has inconsistent Pauli ownership")
                 # Commutation is a property of the actual typed measurement
@@ -2032,10 +2031,10 @@ def _validate_network_plan_contents(request, plan: QECNetworkPlan) -> None:
                     dependency_epoch = epoch_of[dependency]
                     action_epoch = epoch_of[action.site.symbol]
                     if (dependency_epoch > action_epoch or
-                            (dependency_epoch == action_epoch and
-                             (sharing != "commuting_products" or
-                              position_in_epoch[dependency] >=
-                              position_in_epoch[action.site.symbol]))):
+                        (dependency_epoch == action_epoch and
+                         (sharing != "commuting_products" or
+                          position_in_epoch[dependency]
+                          >= position_in_epoch[action.site.symbol]))):
                         raise ValueError(
                             "network plan reverses or co-schedules an action dependency"
                         )
@@ -2046,8 +2045,7 @@ def _validate_network_plan_contents(request, plan: QECNetworkPlan) -> None:
                         for key in left.keys() & right.keys():
                             left_x, left_z = left[key]
                             right_x, right_z = right[key]
-                            parity ^= ((left_x & right_z) ^
-                                       (left_z & right_x))
+                            parity ^= ((left_x & right_z) ^ (left_z & right_x))
                         if parity:
                             raise ValueError(
                                 "commuting_products actions anticommute on "
@@ -2119,10 +2117,8 @@ def _provider_replay_validator(provider_key: str):
         module = getattr(function, "__module__", None)
         qualname = getattr(function, "__qualname__", None)
         if not module or not qualname or "<locals>" in qualname:
-            raise TypeError(
-                "network replay validator must be an importable "
-                "module-scope callable"
-            )
+            raise TypeError("network replay validator must be an importable "
+                            "module-scope callable")
         setattr(function, _REPLAY_VALIDATOR_PROVIDER_KEY, provider_key)
         return function
 
@@ -2146,11 +2142,13 @@ def _replay_validator_identity(compiler) -> str | None:
     if not callable(validator):
         raise TypeError("network replay validator must be callable")
     if getattr(validator, _REPLAY_VALIDATOR_PROVIDER_KEY, None) != compiler.key:
-        raise ValueError("network replay validator is not bound to its provider")
+        raise ValueError(
+            "network replay validator is not bound to its provider")
     module = getattr(validator, "__module__", None)
     qualname = getattr(validator, "__qualname__", None)
     if not module or not qualname or "<locals>" in qualname:
-        raise TypeError("network replay validator must be importable at module scope")
+        raise TypeError(
+            "network replay validator must be importable at module scope")
     return f"python:{module}:{qualname}"
 
 
@@ -2179,23 +2177,18 @@ def validate_replayed_provider_plan(
     """
 
     if not isinstance(identity, str) or not identity.startswith("python:"):
-        raise ValueError(
-            "network replay validator identity must be "
-            "python:<module>:<qualname>"
-        )
+        raise ValueError("network replay validator identity must be "
+                         "python:<module>:<qualname>")
     reference = identity[len("python:"):]
     module_name, separator, qualname = reference.partition(":")
     if not separator or not module_name or not qualname:
-        raise ValueError(
-            "network replay validator identity must be "
-            "python:<module>:<qualname>"
-        )
+        raise ValueError("network replay validator identity must be "
+                         "python:<module>:<qualname>")
     try:
         value = importlib.import_module(module_name)
     except ImportError as exc:
         raise ValueError(
-            f"network replay validator {identity!r} is unavailable"
-        ) from exc
+            f"network replay validator {identity!r} is unavailable") from exc
     for part in qualname.split("."):
         try:
             value = getattr(value, part)
@@ -2205,23 +2198,18 @@ def validate_replayed_provider_plan(
             ) from exc
     if not callable(value):
         raise TypeError(
-            f"network replay validator {identity!r} is not callable"
-        )
-    resolved_identity = (
-        f"python:{getattr(value, '__module__', '')}:"
-        f"{getattr(value, '__qualname__', '')}"
-    )
+            f"network replay validator {identity!r} is not callable")
+    resolved_identity = (f"python:{getattr(value, '__module__', '')}:"
+                         f"{getattr(value, '__qualname__', '')}")
     if resolved_identity != identity:
         raise ValueError(
             f"network replay validator {identity!r} resolved to a different "
-            "module-scope identity"
-        )
+            "module-scope identity")
     bound_provider = getattr(value, _REPLAY_VALIDATOR_PROVIDER_KEY, None)
     if bound_provider != provider_key:
         raise ValueError(
             f"network replay validator {identity!r} is not bound to provider "
-            f"{provider_key!r}"
-        )
+            f"{provider_key!r}")
     result = value(
         QECNetworkReplayContext(
             module=module,
@@ -2230,12 +2218,10 @@ def validate_replayed_provider_plan(
             plan=plan,
             selection=selection,
             placement=placement,
-        )
-    )
+        ))
     if result is not None:
         raise TypeError(
-            f"network replay validator {identity!r} must return None"
-        )
+            f"network replay validator {identity!r} must return None")
 
 
 def _validate_replayed_network_request(
@@ -2257,8 +2243,7 @@ def _validate_replayed_network_request(
 
     if selection is None or placement is None:
         raise ValueError(
-            "canonical network replay requires QEC selection and placement"
-        )
+            "canonical network replay requires QEC selection and placement")
     raw_actions = request_payload.get("actions")
     if not isinstance(raw_actions, list):
         raise TypeError("network replay request actions must be a list")
@@ -2270,30 +2255,25 @@ def _validate_replayed_network_request(
     measurement_by_site = dict(zip(expected_names, measurements))
     if set(dependencies) != set(expected_names):
         raise ValueError(
-            "network replay dependency inventory differs from retained P0"
-        )
+            "network replay dependency inventory differs from retained P0")
     selected_actions = {
         value.site: value
         for value in selection.actions
         if value.manifest_sha256 == selection.network_manifest_sha256
     }
-    if set(selected_actions) != set(expected_names) or len(expected_names) != len(
-        selected_actions
-    ):
+    if set(selected_actions) != set(expected_names) or len(
+            expected_names) != len(selected_actions):
         raise ValueError(
-            "network replay selected actions differ from retained P1 regions"
-        )
+            "network replay selected actions differ from retained P1 regions")
     owners_by_placement = {
-        owner.placement: (block.block, owner)
-        for block in selection.blocks
+        owner.placement: (block.block, owner) for block in selection.blocks
         for owner in block.owners
     }
     placement_rows = {
         binding.placement: binding for binding in placement.bindings
     }
     region_by_action = {
-        name: f"region{index}"
-        for index, run in enumerate(normalized_runs)
+        name: f"region{index}" for index, run in enumerate(normalized_runs)
         for name in run
     }
     observed_names = []
@@ -2337,62 +2317,46 @@ def _validate_replayed_network_request(
             ) from exc
         placements = tuple(site["placements"])
         channel_capability = site["channel_capability"]
-        if (
-            site["kind"] != selected.kind
-            or site["objective_family"] != objective_family
-            or site["objective"] != selected.objective
-            or placements != selected.placements
-            or site["channel"] != selected.channel
-            or channel_capability != selected.channel_capability
-            or tuple(site["endpoints"]) != selected.endpoints
-            or site["direction"] != selected.direction
-            or site["input_arity"] != len(placements)
-            or site["result_arity"] != len(placements) + 1
-        ):
+        if (site["kind"] != selected.kind or
+                site["objective_family"] != objective_family or
+                site["objective"] != selected.objective or
+                placements != selected.placements or
+                site["channel"] != selected.channel or
+                channel_capability != selected.channel_capability or
+                tuple(site["endpoints"]) != selected.endpoints or
+                site["direction"] != selected.direction or
+                site["input_arity"] != len(placements) or
+                site["result_arity"] != len(placements) + 1):
             raise ValueError(
-                f"network replay action {name!r} differs from its selection"
-            )
+                f"network replay action {name!r} differs from its selection")
         after = tuple(raw["after"])
         measurement_after = tuple(measurement["after"])
-        if (
-            after != measurement_after
-            or after != tuple(dependencies.get(name, ()))
-            or len(set(after)) != len(after)
-            or any(value not in known_names for value in after)
-            or measurement["kind"] != "product_measurement"
-            or measurement["name"] != name
-            or raw["region"] != region_by_action[name]
-        ):
+        if (after != measurement_after or
+                after != tuple(dependencies.get(name, ())) or
+                len(set(after)) != len(after) or
+                any(value not in known_names for value in after) or
+                measurement["kind"] != "product_measurement" or
+                measurement["name"] != name or
+                raw["region"] != region_by_action[name]):
             raise ValueError(
                 f"network replay action {name!r} has invalid dependencies or region"
             )
         terms = measurement["terms"]
         parameters = site["parameters"]
-        if (
-            not isinstance(terms, list)
-            or len(terms) != len(placements)
-            or not isinstance(parameters, dict)
-        ):
+        if (not isinstance(terms, list) or len(terms) != len(placements) or
+                not isinstance(parameters, dict)):
             raise TypeError(
-                f"network replay action {name!r} has an invalid measurement"
-            )
+                f"network replay action {name!r} has an invalid measurement")
         x_mask = parameters.get("x_mask")
         z_mask = parameters.get("z_mask")
         sign = parameters.get("sign")
-        if (
-            set(parameters) != {"x_mask", "z_mask", "sign"}
-            or not all(
+        if (set(parameters) != {"x_mask", "z_mask", "sign"} or not all(
                 isinstance(value, int) and not isinstance(value, bool)
-                for value in (x_mask, z_mask, sign)
-            )
-            or x_mask < 0
-            or z_mask < 0
-            or (x_mask | z_mask) >= (1 << len(placements))
-            or sign != 1
-        ):
+                for value in (x_mask, z_mask, sign)) or x_mask < 0 or
+                z_mask < 0 or (x_mask | z_mask) >= (1 << len(placements)) or
+                sign != 1):
             raise ValueError(
-                f"network replay action {name!r} has invalid Pauli parameters"
-            )
+                f"network replay action {name!r} has invalid Pauli parameters")
         expected_support = []
         for index, placement_name in enumerate(placements):
             bits = ((x_mask >> index) & 1, (z_mask >> index) & 1)
@@ -2424,19 +2388,16 @@ def _validate_replayed_network_request(
                 raise TypeError(
                     f"network replay action {name!r} has a malformed Pauli term"
                 )
-            actual_support.append(
-                (term["space"], term["index"], term["pauli"]))
+            actual_support.append((term["space"], term["index"], term["pauli"]))
         if sorted(actual_support) != sorted(expected_support):
             raise ValueError(
                 f"network replay action {name!r} differs from retained P1")
         retained_support = tuple(
             (term.slot.space.name, term.slot.index, term.pauli)
-            for term in measurement_by_site[name].terms
-        )
+            for term in measurement_by_site[name].terms)
         if sorted(actual_support) != sorted(retained_support):
             raise ValueError(
-                f"network replay action {name!r} differs from retained P0"
-            )
+                f"network replay action {name!r} differs from retained P0")
         try:
             expected = tuple(owners_by_placement[value] for value in placements)
         except KeyError as exc:
@@ -2459,76 +2420,57 @@ def _validate_replayed_network_request(
                     "source_path",
                 ),
             )
-            owner_rows.append(
-                (
-                    owner["placement"],
-                    owner["logical_index"],
-                    owner["source_allocation"],
-                    owner["source_group"],
-                    tuple(owner["source_path"]),
-                )
-            )
-        expected_owner_rows = tuple(
-            (
-                owner.placement,
-                owner.logical_index,
-                owner.source_allocation,
-                owner.source_group,
-                tuple(owner.source_path),
-            )
-            for _block, owner in expected
-        )
-        if (
-            tuple(owner_rows) != expected_owner_rows
-            or tuple(raw["blocks"]) != tuple(block for block, _owner in expected)
-        ):
+            owner_rows.append((
+                owner["placement"],
+                owner["logical_index"],
+                owner["source_allocation"],
+                owner["source_group"],
+                tuple(owner["source_path"]),
+            ))
+        expected_owner_rows = tuple((
+            owner.placement,
+            owner.logical_index,
+            owner.source_allocation,
+            owner.source_group,
+            tuple(owner.source_path),
+        ) for _block, owner in expected)
+        if (tuple(owner_rows) != expected_owner_rows or tuple(raw["blocks"])
+                != tuple(block for block, _owner in expected)):
             raise ValueError(
-                f"network replay action {name!r} has different block ownership"
-            )
+                f"network replay action {name!r} has different block ownership")
         known_names.add(name)
     if tuple(observed_names) != expected_names:
         raise ValueError(
-            "network replay action order differs from retained P1 regions"
-        )
+            "network replay action order differs from retained P1 regions")
 
     expected_regions = []
     for index, run in enumerate(normalized_runs):
         region_id = f"region{index}"
         placements = tuple(
             dict.fromkeys(
-                placement_name
-                for name in run
-                for placement_name in selected_actions[name].placements
-            )
-        )
-        expected_regions.append(
-            {
-                "id": region_id,
-                "actions": list(run),
-                "live_inputs": [
-                    {
-                        "name": f"{region_id}.in.{placement_name}",
-                        "placement": placement_name,
-                        "generation": index,
-                        "kind": "patch",
-                    }
-                    for placement_name in placements
-                ],
-                "live_outputs": [
-                    {
-                        "name": f"{region_id}.out.{placement_name}",
-                        "placement": placement_name,
-                        "generation": index + 1,
-                        "kind": "patch",
-                    }
-                    for placement_name in placements
-                ],
-            }
-        )
+                placement_name for name in run
+                for placement_name in selected_actions[name].placements))
+        expected_regions.append({
+            "id":
+                region_id,
+            "actions":
+                list(run),
+            "live_inputs": [{
+                "name": f"{region_id}.in.{placement_name}",
+                "placement": placement_name,
+                "generation": index,
+                "kind": "patch",
+            } for placement_name in placements],
+            "live_outputs": [{
+                "name": f"{region_id}.out.{placement_name}",
+                "placement": placement_name,
+                "generation": index + 1,
+                "kind": "patch",
+            } for placement_name in placements],
+        })
     if request_payload.get("regions") != expected_regions:
         raise ValueError(
-            "network replay replacement regions differ from retained P1"
-        )
+            "network replay replacement regions differ from retained P1")
 
 
 def _validate_network_request_selection(
@@ -4141,9 +4083,8 @@ def _placed_program_from_build(
             raise TypeError(
                 "authenticated placed-program extraction requires a Device")
         cache_key = ("authenticated_qec_network_replay", id(device))
-        authenticated = (
-            build._cache.get(cache_key) is _authenticated_network_replay
-        )
+        authenticated = (build._cache.get(cache_key)
+                         is _authenticated_network_replay)
         if not authenticated:
             raise ValueError(
                 "placed-program authentication receipt does not belong to "
@@ -4151,7 +4092,7 @@ def _placed_program_from_build(
     if (build.stage not in {P1, P2} and
             not (build.stage is P3 and _skip_canonical_roundtrip) or
             build.placement is None or
-            (not authenticated and not build.verify())):
+        (not authenticated and not build.verify())):
         raise ValueError(
             "placed lattice-surgery program extraction requires a verified "
             "P1/P2 build with an exact placement witness")
