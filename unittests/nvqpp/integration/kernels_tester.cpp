@@ -224,9 +224,16 @@ CUDAQ_TEST(KernelsTester, checkFromStateBasis) {
 }
 
 CUDAQ_TEST(KernelsTester, checkFromStateMultiControl) {
+#ifdef CUDAQ_SIMULATION_SCALAR_FP32
+  constexpr double normTolerance = 1e-5;
+#else
+  constexpr double normTolerance = 1e-6;
+#endif
   for (std::size_t numQubits = 3; numQubits <= 5; numQubits++)
     for (std::complex<double> last :
          {std::complex<double>(0.8, 0.0), std::complex<double>(0.0, 0.8)}) {
+      SCOPED_TRACE(::testing::Message()
+                   << "numQubits = " << numQubits << ", last = " << last);
       std::vector<std::complex<double>> state(1ULL << numQubits, 0.0);
       state.front() = 0.6;
       state.back() = last;
@@ -235,10 +242,15 @@ CUDAQ_TEST(KernelsTester, checkFromStateMultiControl) {
       cudaq::from_state(kernel, qubits, state);
       auto ss = cudaq::get_state(kernel);
       std::complex<double> overlap = 0.0;
-      for (std::size_t i = 0; i < state.size(); i++)
+      double stateNorm = 0.0;
+      for (std::size_t i = 0; i < state.size(); i++) {
         overlap += std::conj(state[i]) * ss[i];
-      EXPECT_NEAR(std::norm(overlap), 1.0, 1e-6)
-          << "numQubits = " << numQubits << ", last = " << last;
+        stateNorm += std::norm(ss[i]);
+      }
+      // Allow FP32 norm drift while checking normalized fidelity separately.
+      ASSERT_GT(stateNorm, 0.0);
+      EXPECT_NEAR(stateNorm, 1.0, normTolerance);
+      EXPECT_NEAR(std::norm(overlap) / stateNorm, 1.0, 1e-6);
     }
 }
 
