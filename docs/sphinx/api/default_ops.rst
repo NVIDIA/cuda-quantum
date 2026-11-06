@@ -515,6 +515,51 @@ Adjoint and Controlled Operations
         ry<cudaq::ctrl>(M_PI_4, ctrl_1, target);
         rz<cudaq::ctrl>(M_PI / 8, ctrl_1, target);
 
+The adjoint and controlled versions are not limited to the built-in gates; they
+can also be applied to a user-defined quantum kernel from within another kernel.
+Use :code:`cudaq.adjoint` and :code:`cudaq.control` in Python, or
+:code:`cudaq::adjoint` and :code:`cudaq::control` in C++. Both take the kernel as
+their first argument. For :code:`control`, the control qubit(s) come next. The
+remaining arguments are passed on to the kernel itself.
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        @cudaq.kernel
+        def rotate_and_flip(qubit: cudaq.qubit, theta: float):
+            ry(theta, qubit)
+            x(qubit)
+
+        @cudaq.kernel
+        def caller(theta: float):
+            ctrl, target = cudaq.qubit(), cudaq.qubit()
+            h(ctrl)
+            # Apply `rotate_and_flip` to `target` only if `ctrl` is in a |1> state.
+            cudaq.control(rotate_and_flip, ctrl, target, theta)
+            # Apply the adjoint of `rotate_and_flip`, that is, `x` followed by `ry(-theta)`.
+            cudaq.adjoint(rotate_and_flip, target, theta)
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        __qpu__ void rotate_and_flip(cudaq::qubit &qubit, double theta) {
+          ry(theta, qubit);
+          x(qubit);
+        }
+
+        __qpu__ void caller(double theta) {
+          cudaq::qubit ctrl, target;
+          h(ctrl);
+          // Apply `rotate_and_flip` to `target` only if `ctrl` is in a |1> state.
+          cudaq::control(rotate_and_flip, ctrl, target, theta);
+          // Apply the adjoint of `rotate_and_flip`, that is, `x` followed by `ry(-theta)`.
+          cudaq::adjoint(rotate_and_flip, target, theta);
+        }
+
+For more examples, see :doc:`../using/examples/building_kernels`.
+
 
 Following common convention, by default the transformation is applied to the target qubit(s)
 if all control qubits are in a :code:`|1>` state. 
