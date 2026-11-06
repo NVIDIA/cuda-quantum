@@ -1996,42 +1996,68 @@ private:
     emitDirectionCompliantCX(builder, location, control, target);
   }
 
-  /// Extend `scope` with results for mapper-introduced wires that must cross
-  /// its lexical boundary. Moving the existing region keeps routed operation
-  /// and block identities stable for the recorded routing events.
-  cudaq::cc::ScopeOp addScopePassthroughs(cudaq::cc::ScopeOp scope,
-                                          const RoutingResult &scopeResult) {
-    SmallVector<bool> returned(scopeResult.exitLayout.size(), false);
-    for (Value result : scope->getResults())
-      if (isa<cudaq::quake::WireType>(result.getType()))
-        returned[requireVirtualQ(wireToVirtualQ, result).index] = true;
+  /// Add a passthrough argument of type `type` to `block` and forward it as
+  /// an operand to the block's terminator.
+  static void appendBlockPassthrough(Block *block, Type type, Location loc) {
+    Value arg = block->addArgument(type, loc);
+    Operation *terminator = block->getTerminator();
+    terminator->insertOperands(terminator->getNumOperands(), arg);
+  }
 
-    SmallVector<Value> passthroughWires;
-    SmallVector<cudaq::Placement::VirtualQ> passthroughVQs;
-    for (unsigned v = 0; v < scopeResult.exitLayout.size(); ++v) {
-      if (returned[v])
-        continue;
-      Value wire = phyToWire[scopeResult.exitLayout[v]];
-      if (!scope.getInitRegion().isAncestor(wire.getParentRegion()))
-        continue;
-      passthroughWires.push_back(wire);
-      passthroughVQs.emplace_back(v);
-    }
-    if (passthroughWires.empty())
-      return scope;
-
-    // Snapshot the mappings before erasing their keys. MLIR may reuse an
-    // erased `Value` identity for a later result.
+  /// Snapshot the virtual qubits assigned to `op`'s results before erasing
+  /// the old operation (MLIR may reuse memory addresses for new Value objects).
+  SmallVector<std::optional<cudaq::Placement::VirtualQ>>
+  snapshotResultVQs(Operation *op) {
     SmallVector<std::optional<cudaq::Placement::VirtualQ>> oldResultVQs;
-    oldResultVQs.reserve(scope->getNumResults());
-    for (Value result : scope->getResults()) {
+    oldResultVQs.reserve(op->getNumResults());
+    for (Value result : op->getResults()) {
       oldResultVQs.push_back(lookupVirtualQ(wireToVirtualQ, result));
       wireToVirtualQ.erase(result);
     }
+    return oldResultVQs;
+  }
+
+  /// Replace `oldOp` with `replacement`, transferring all result uses and
+  /// updating `wireToVirtualQ` for both the preserved results and the new
+  /// passthrough wire results.
+  void replaceWithExpandedOp(
+      Operation *oldOp, Operation *replacement,
+      ArrayRef<std::optional<cudaq::Placement::VirtualQ>> oldResultVQs,
+      ArrayRef<cudaq::Placement::VirtualQ> extraVQs) {
+    for (auto [oldResult, newResult, oldVQ] : llvm::zip_equal(
+             oldOp->getResults(),
+             replacement->getResults().take_front(oldOp->getNumResults()),
+             oldResultVQs)) {
+      if (oldVQ)
+        wireToVirtualQ[newResult] = *oldVQ;
+      oldResult.replaceAllUsesWith(newResult);
+    }
+    for (auto [result, vq] : llvm::zip_equal(
+             replacement->getResults().take_back(extraVQs.size()), extraVQs))
+      wireToVirtualQ[result] = vq;
+    oldOp->erase();
+  }
+
+  /// Rebuild `scope` so that it also returns wires for uncarried physical
+  /// qubits touched by routing inside its region. Moving the existing region
+  /// keeps routed operation and block identities stable for the recorded
+  /// routing events.
+  cudaq::cc::ScopeOp addPassthroughs(cudaq::cc::ScopeOp scope,
+                                     ArrayRef<unsigned> extraPhys) {
+    Block &scopeBlock = scope.getInitRegion().front();
+    const RoutingResult &scopeResult = blockResults.at(&scopeBlock);
 
     SmallVector<Type> resultTypes(scope.getResultTypes());
-    for (Value wire : passthroughWires)
+    SmallVector<cudaq::Placement::VirtualQ> extraVQs;
+    Operation *terminator = scopeBlock.getTerminator();
+    for (unsigned phy : extraPhys) {
+      Value wire = phyToWire[phy];
       resultTypes.push_back(wire.getType());
+      extraVQs.push_back(virtualQubitOn(scopeResult, phy));
+      terminator->insertOperands(terminator->getNumOperands(), wire);
+    }
+
+    auto oldResultVQs = snapshotResultVQs(scope);
     OpBuilder builder(scope);
     OperationState state(scope.getLoc(),
                          cudaq::cc::ScopeOp::getOperationName());
@@ -2041,24 +2067,159 @@ private:
     auto replacement = cast<cudaq::cc::ScopeOp>(builder.create(state));
     replacement.getInitRegion().takeBody(scope.getInitRegion());
 
-    for (auto [oldResult, newResult, oldVQ] : llvm::zip_equal(
-             scope->getResults(),
-             replacement->getResults().take_front(scope->getNumResults()),
-             oldResultVQs)) {
-      if (oldVQ)
-        wireToVirtualQ[newResult] = *oldVQ;
-      oldResult.replaceAllUsesWith(newResult);
+    replaceWithExpandedOp(scope, replacement, oldResultVQs, extraVQs);
+    return replacement;
+  }
+
+  /// The virtual qubit that sits on physical qubit `phy` at the entry of the
+  /// block routed as `result`.
+  static cudaq::Placement::VirtualQ virtualQubitOn(const RoutingResult &result,
+                                                   unsigned phy) {
+    for (auto [v, p] : llvm::enumerate(result.initialLayout))
+      if (p == phy)
+        return cudaq::Placement::VirtualQ(static_cast<unsigned>(v));
+    llvm::report_fatal_error(
+        "mapper invariant violated: physical qubit has no virtual qubit");
+  }
+
+  /// Mark every physical qubit whose wire `result` reads or rewrites, including
+  /// the qubits used by nested structured regions and by the restoration swaps
+  /// that run before each region's terminator.
+  void markTouchedPhysicals(const RoutingResult &result,
+                            SmallVectorImpl<bool> &touched) const {
+    auto mark = [&](ArrayRef<cudaq::Placement::DeviceQ> qubits) {
+      for (auto qubit : qubits)
+        touched[qubit.index] = true;
+    };
+    for (const RoutingEvent &ev : result.trace) {
+      mark(ev.phys);
+      if (!ev.op ||
+          !isa<cudaq::cc::IfOp, cudaq::cc::LoopOp, cudaq::cc::ScopeOp>(ev.op))
+        continue;
+      for (Region &region : ev.op->getRegions())
+        for (Block &block : region)
+          if (auto it = blockResults.find(&block); it != blockResults.end())
+            markTouchedPhysicals(it->second, touched);
+    }
+    for (const RoutingEvent &ev : result.cleanUpTrace)
+      mark(ev.phys);
+  }
+
+  /// Physical qubits that routing inside the regions of `op` touches but that
+  /// `op` does not carry (`carried`), in ascending order. The router routes a
+  /// region against the whole device, so it can swap through a qubit whose
+  /// wire was never passed into the region.
+  SmallVector<unsigned>
+  findUncarriedPhysicals(Operation *op,
+                         ArrayRef<cudaq::Placement::DeviceQ> carried) const {
+    SmallVector<bool> touched(phyToWire.size(), false);
+    for (Region &region : op->getRegions())
+      for (Block &block : region)
+        if (auto it = blockResults.find(&block); it != blockResults.end())
+          markTouchedPhysicals(it->second, touched);
+    for (auto qubit : carried)
+      touched[qubit.index] = false;
+    SmallVector<unsigned> extra;
+    for (auto [phy, isTouched] : llvm::enumerate(touched))
+      if (isTouched)
+        extra.push_back(phy);
+    return extra;
+  }
+
+  /// Rebuild `loop` so that it also carries the wires currently on `extraPhys`.
+  /// A loop body runs many times, so a wire that routing consumes inside it has
+  /// to be loop-carried: each extra wire becomes an initial argument, an
+  /// argument of the while, body and step blocks, an operand forwarded by
+  /// `cc.condition`, a back-edge operand and a loop result. The extra values
+  /// are appended after the existing ones and pass through unchanged until the
+  /// emitter rewires the terminators. Moving the existing regions keeps routed
+  /// operation and block identities stable for the recorded routing events.
+  cudaq::cc::LoopOp addPassthroughs(cudaq::cc::LoopOp loop,
+                                    ArrayRef<unsigned> extraPhys) {
+    Block *whileBlock = loop.getWhileBlock();
+    Block *bodyBlock = loop.getDoEntryBlock();
+    Block *stepBlock = loop.hasStep() ? loop.getStepBlock() : nullptr;
+    const RoutingResult &bodyResult = blockResults.at(bodyBlock);
+
+    SmallVector<Value> initialArgs(loop.getInitialArgs());
+    SmallVector<Type> resultTypes(loop.getResultTypes());
+    SmallVector<cudaq::Placement::VirtualQ> extraVQs;
+    const Location loc = loop.getLoc();
+    for (unsigned phy : extraPhys) {
+      Value wire = phyToWire[phy];
+      initialArgs.push_back(wire);
+      resultTypes.push_back(wire.getType());
+      extraVQs.push_back(virtualQubitOn(bodyResult, phy));
+      appendBlockPassthrough(whileBlock, wire.getType(), loc);
+      appendBlockPassthrough(bodyBlock, wire.getType(), loc);
+      if (stepBlock)
+        appendBlockPassthrough(stepBlock, wire.getType(), loc);
     }
 
-    auto cont = cast<cudaq::cc::ContinueOp>(
-        replacement.getInitRegion().front().getTerminator());
-    cont->insertOperands(cont->getNumOperands(), passthroughWires);
-    for (auto [result, vq] : llvm::zip_equal(
-             replacement->getResults().take_back(passthroughVQs.size()),
-             passthroughVQs))
-      wireToVirtualQ[result] = vq;
-    scope.erase();
+    auto oldResultVQs = snapshotResultVQs(loop);
+    OpBuilder builder(loop);
+    auto replacement = cudaq::cc::LoopOp::create(
+        builder, loc, resultTypes, initialArgs, loop.isPostConditional(),
+        [](OpBuilder &, Location, Region &) {},
+        [](OpBuilder &, Location, Region &) {},
+        /*stepBuilder=*/nullptr);
+    replacement->setDiscardableAttrs(loop->getDiscardableAttrDictionary());
+    replacement.getWhileRegion().takeBody(loop.getWhileRegion());
+    replacement.getBodyRegion().takeBody(loop.getBodyRegion());
+    replacement.getStepRegion().takeBody(loop.getStepRegion());
+    replacement.getElseRegion().takeBody(loop.getElseRegion());
+
+    replaceWithExpandedOp(loop, replacement, oldResultVQs, extraVQs);
     return replacement;
+  }
+
+  /// Rebuild `ifOp` so that it also carries the wires currently on `extraPhys`.
+  /// Each extra wire becomes a linear argument, an argument of both branches
+  /// that the branch passes through to its `cc.continue`, and a result. See
+  /// `addPassthroughs(cudaq::cc::LoopOp, ...)` for why the regions are moved.
+  cudaq::cc::IfOp addPassthroughs(cudaq::cc::IfOp ifOp,
+                                  ArrayRef<unsigned> extraPhys) {
+    // An if that returns wires always has an else region, and routing in either
+    // branch can require the extra wires.
+    assert(ifOp.hasElse() && "an if that returns wires must have an else");
+    const RoutingResult &thenResult = blockResults.at(ifOp.getThenEntryBlock());
+
+    SmallVector<Value> operands(ifOp->getOperands());
+    SmallVector<Type> resultTypes(ifOp.getResultTypes());
+    SmallVector<cudaq::Placement::VirtualQ> extraVQs;
+    const Location loc = ifOp.getLoc();
+    for (unsigned phy : extraPhys) {
+      Value wire = phyToWire[phy];
+      operands.push_back(wire);
+      resultTypes.push_back(wire.getType());
+      extraVQs.push_back(virtualQubitOn(thenResult, phy));
+      for (Region *region : ifOp.getRegions())
+        appendBlockPassthrough(&region->front(), wire.getType(), loc);
+    }
+
+    auto oldResultVQs = snapshotResultVQs(ifOp);
+    OpBuilder builder(ifOp);
+    auto replacement =
+        cudaq::cc::IfOp::create(builder, loc, resultTypes, operands);
+    replacement->setDiscardableAttrs(ifOp->getDiscardableAttrDictionary());
+    replacement.getThenRegion().takeBody(ifOp.getThenRegion());
+    replacement.getElseRegion().takeBody(ifOp.getElseRegion());
+
+    replaceWithExpandedOp(ifOp, replacement, oldResultVQs, extraVQs);
+    return replacement;
+  }
+
+  /// Add passthrough wires for all uncarried physical qubits touched by
+  /// `op`'s regions to `op`, appending the extra physicals to `phys`.
+  template <typename OpT>
+  OpT prepareRegionOp(OpT op,
+                      SmallVectorImpl<cudaq::Placement::DeviceQ> &phys) {
+    SmallVector<unsigned> extraPhys = findUncarriedPhysicals(op, phys);
+    if (extraPhys.empty())
+      return op;
+    for (unsigned phy : extraPhys)
+      phys.emplace_back(phy);
+    return addPassthroughs(op, extraPhys);
   }
 
   /// Emit the swaps and rewire one block, recursing into supported regions.
@@ -2089,8 +2250,14 @@ private:
         rewireMappedOperation(ev.op, ev.phys);
       } else if (ev.kind == RoutingEvent::Kind::If) {
         auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
+        // Routing inside a branch can swap through qubits whose wires the if
+        // does not carry. Thread those wires through the if so that every
+        // wire the branches consume is an argument of the if.
+        SmallVector<cudaq::Placement::DeviceQ> ifPhys(ev.phys.begin(),
+                                                      ev.phys.end());
+        ifOp = prepareRegionOp(ifOp, ifPhys);
         SmallVector<Value> entryWires;
-        for (auto phy : ev.phys)
+        for (auto phy : ifPhys)
           entryWires.push_back(phyToWire[phy.index]);
         (void)cudaq::quake::setQuantumOperands(ifOp, entryWires);
 
@@ -2098,9 +2265,11 @@ private:
           const RoutingResult &branchResult = blockResults.at(&region.front());
           unsigned phyIdx = 0;
           for (auto [i, linArg] : llvm::enumerate(ifOp.getLinearArgs())) {
-            if (!wireToVirtualQ.count(linArg))
+            // Match wires by type: the rewired operand may be a mapper-emitted
+            // swap result, which has no entry in `wireToVirtualQ`.
+            if (!isa<cudaq::quake::WireType>(linArg.getType()))
               continue;
-            phyToWire[ev.phys[phyIdx++].index] = region.front().getArgument(i);
+            phyToWire[ifPhys[phyIdx++].index] = region.front().getArgument(i);
           }
           emitBlock(region.front());
           // Rewire the branch's cc.continue to the wires left on each physical
@@ -2112,7 +2281,7 @@ private:
             auto vq = wireToVirtualQ.find(ifOp->getResult(k))->second;
             contOp->setOperand(k, phyToWire[branchResult.exitLayout[vq.index]]);
           }
-          for (auto [i, phy] : llvm::enumerate(ev.phys))
+          for (auto [i, phy] : llvm::enumerate(ifPhys))
             phyToWire[phy.index] = entryWires[i];
           return branchResult;
         };
@@ -2128,20 +2297,26 @@ private:
           }
       } else if (ev.kind == RoutingEvent::Kind::Loop) {
         auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
+        // Routing inside the body can swap through qubits whose wires the loop
+        // does not carry. Make each of them a loop-carried wire, otherwise the
+        // body would consume an outer wire on every iteration.
+        SmallVector<cudaq::Placement::DeviceQ> loopPhys(ev.phys.begin(),
+                                                        ev.phys.end());
+        loopOp = prepareRegionOp(loopOp, loopPhys);
         auto *bodyBlock = loopOp.getDoEntryBlock();
         // Rewire each wire initialArg to the current physical wire.
         unsigned phyIdx = 0;
         for (auto [i, initArg] : llvm::enumerate(loopOp.getInitialArgs())) {
           if (!isa<cudaq::quake::WireType>(initArg.getType()))
             continue;
-          loopOp->setOperand(i, phyToWire[ev.phys[phyIdx++].index]);
+          loopOp->setOperand(i, phyToWire[loopPhys[phyIdx++].index]);
         }
         // Thread body block args into phyToWire and emit the body.
         phyIdx = 0;
         for (auto bodyArg : bodyBlock->getArguments()) {
           if (!isa<cudaq::quake::WireType>(bodyArg.getType()))
             continue;
-          phyToWire[ev.phys[phyIdx++].index] = bodyArg;
+          phyToWire[loopPhys[phyIdx++].index] = bodyArg;
         }
         emitBlock(*bodyBlock);
         // Update body cc.continue operands to use the restored wires.
@@ -2151,7 +2326,7 @@ private:
           if (!isa<cudaq::quake::WireType>(
                   loopOp.getInitialArgs()[j].getType()))
             continue;
-          contOp->setOperand(j, phyToWire[ev.phys[phyIdx++].index]);
+          contOp->setOperand(j, phyToWire[loopPhys[phyIdx++].index]);
         }
         // For for-loops: emit the step block and update its cc.continue.
         if (loopOp.hasStep()) {
@@ -2160,7 +2335,7 @@ private:
           for (auto stepArg : stepBlock->getArguments()) {
             if (!isa<cudaq::quake::WireType>(stepArg.getType()))
               continue;
-            phyToWire[ev.phys[phyIdx++].index] = stepArg;
+            phyToWire[loopPhys[phyIdx++].index] = stepArg;
           }
           emitBlock(*stepBlock);
           auto *stepContOp = stepBlock->getTerminator();
@@ -2169,14 +2344,14 @@ private:
             if (!isa<cudaq::quake::WireType>(
                     loopOp.getInitialArgs()[j].getType()))
               continue;
-            stepContOp->setOperand(j, phyToWire[ev.phys[phyIdx++].index]);
+            stepContOp->setOperand(j, phyToWire[loopPhys[phyIdx++].index]);
           }
         }
         phyIdx = 0;
         for (Value res : loopOp->getResults()) {
           if (!isa<cudaq::quake::WireType>(res.getType()))
             continue;
-          phyToWire[ev.phys[phyIdx++].index] = res;
+          phyToWire[loopPhys[phyIdx++].index] = res;
         }
       } else if (ev.kind == RoutingEvent::Kind::Scope) {
         auto scope = cast<cudaq::cc::ScopeOp>(ev.op);
@@ -2185,10 +2360,15 @@ private:
             blkBuilder.getInsertionPoint() == scope->getIterator();
         Block &scopeBlock = scope.getInitRegion().front();
         const RoutingResult &scopeResult = blockResults.at(&scopeBlock);
-        emitBlock(scopeBlock);
-        scope = addScopePassthroughs(scope, scopeResult);
+        SmallVector<cudaq::Placement::DeviceQ> scopePhys;
+        for (Value res : scope->getResults())
+          if (isa<cudaq::quake::WireType>(res.getType()))
+            if (auto vq = lookupVirtualQ(wireToVirtualQ, res))
+              scopePhys.emplace_back(scopeResult.initialLayout[vq->index]);
+        scope = prepareRegionOp(scope, scopePhys);
         if (scopeAnchorsBuilder)
           blkBuilder.setInsertionPoint(scope);
+        emitBlock(scopeBlock);
         auto contOp = cast<cudaq::cc::ContinueOp>(scopeBlock.getTerminator());
         for (auto [index, result] : llvm::enumerate(scope->getResults())) {
           if (!isa<cudaq::quake::WireType>(result.getType()))
