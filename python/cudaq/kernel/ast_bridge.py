@@ -5946,12 +5946,19 @@ class PyASTBridge(ast.NodeVisitor):
             # `arith::CmpIPredicate` and `arith::CmpFPredicate`.
             iTy = self.getIntegerType()
             if IntegerType.isinstance(left.type):
+                width = IntegerType(left.type).width
+                if width == 1:
+                    # Two `bool` operands stay `i1`. Their values are 0 or 1,
+                    # for which the unsigned remainder already is Python's
+                    # result, and `arith.remsi` would turn `True % True` into
+                    # the one-bit `INT_MIN % -1` overflow.
+                    self.pushValue(arith.RemUIOp(left, right).result)
+                    return
                 # `arith.remsi` truncates toward zero, so add the divisor back
                 # when the remainder is non-zero and its sign differs from the
                 # divisor's. (`arith.remui` would read every negative operand
                 # as a large unsigned value.)
-                zero = self.getConstantInt(0,
-                                           width=IntegerType(left.type).width)
+                zero = self.getConstantInt(0, width=width)
                 remainder = arith.RemSIOp(left, right).result
                 nonZero = arith.CmpIOp(self.getIntegerAttr(iTy, 1), remainder,
                                        zero).result

@@ -306,6 +306,27 @@ def test_integer_modulo_augmented_assignment():
         assert kernel_mod_assign(left, right) == left % right
 
 
+def test_boolean_modulo_matches_python():
+
+    @cudaq.kernel
+    def kernel_mod(left: bool, right: bool) -> bool:
+        return left % right
+
+    @cudaq.kernel
+    def kernel_mod_mixed(left: bool, right: int) -> int:
+        return left % right
+
+    # Two `bool` operands stay one bit wide; `True % True` must be `0`, not
+    # a signed one-bit overflow.
+    for left in [False, True]:
+        assert kernel_mod(left, True) == left % True
+
+    # A `bool` promoted next to an `int` is zero-extended, so it behaves as
+    # `0` or `1`.
+    for left, right in [(True, 3), (True, -3), (False, 3), (False, -3)]:
+        assert kernel_mod_mixed(left, right) == left % right
+
+
 def test_float_floor_division_error():
     error = ("floor division with floating-point operands is not supported; "
              "use integer operands or math.floor(...), numpy.floor(...), or "
@@ -341,19 +362,21 @@ def test_float_modulo_matches_python():
         return left % right
 
     # `fmod` keeps the sign of the dividend; Python's `%` takes the sign of
-    # the divisor.
+    # the divisor. Compare with a relative tolerance only: the last case
+    # cancels down to about 5.6e-17, which an absolute tolerance would not
+    # distinguish from a wrong `0.0`.
     cases = [(9.0, 2.0), (-9.0, 2.0), (9.0, -2.0), (-9.0, -2.0), (-0.5, 2.0),
              (0.5, -2.0), (7.5, 2.0), (-7.5, 2.0), (-1.0, 0.1)]
     for left, right in cases:
         expected = left % right
         actual = kernel_mod(left, right)
-        assert is_close(expected, actual)
+        assert math.isclose(expected, actual, rel_tol=1e-12, abs_tol=0.0)
         assert math.copysign(1.0, expected) == math.copysign(1.0, actual)
 
-    for left, right in cases[:-1]:
-        expected = np.float32(left) % np.float32(right)
-        actual = kernel_mod_float32(np.float32(left), np.float32(right))
-        assert is_close(expected, actual)
+    for left, right in cases:
+        expected = float(np.float32(left) % np.float32(right))
+        actual = float(kernel_mod_float32(np.float32(left), np.float32(right)))
+        assert math.isclose(expected, actual, rel_tol=1e-6, abs_tol=0.0)
         assert math.copysign(1.0, expected) == math.copysign(1.0, actual)
 
 
