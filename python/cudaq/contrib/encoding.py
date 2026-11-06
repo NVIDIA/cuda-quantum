@@ -52,7 +52,10 @@ def _as_amplitude_vector(data, dtype):
                           "Install cupy-cuda13x or pass a NumPy array/list.")
 
     if isinstance(data, (list, tuple)):
-        return np, np.asarray(data, dtype=dtype).ravel()
+        arr = np.asarray(data, dtype=dtype)
+        if arr.ndim != 1:
+            raise ValueError("amplitude_encode: expected a 1D vector.")
+        return np, arr.ravel()
 
     if isinstance(data, np.ndarray):
         if data.ndim != 1:
