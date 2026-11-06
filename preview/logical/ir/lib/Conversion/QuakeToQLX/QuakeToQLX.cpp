@@ -28,6 +28,7 @@
 #include <string>
 
 #ifdef QLX_HAS_CUDAQ_QUAKE
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -52,6 +53,10 @@ struct ImportState {
   DenseMap<Value, Value> wireOwners;    // quake wire -> qlx logical owner
   DenseMap<Value, Value> classicalBits; // quake measure-handle/i1 -> qlx i1
   DenseSet<Value> measuredWires;        // post-measurement wires (no discard)
+  // The Python frontend returns `tuple[bool, ...]` as one `!cc.struct` built
+  // from `cc.undef` by `cc.insert_value`. One qlx i1 per member, null until
+  // inserted.
+  DenseMap<Value, SmallVector<Value>> classicalTuples;
   DenseMap<Value, SmallVector<Value>> cableOwners;
   // CUDA-Q reference helpers may unwrap the same ref/veq slot repeatedly.
   // Every such wire is an alias handle for one mutable source slot, not an
@@ -265,6 +270,84 @@ static FailureOr<qlx::BuiltinAction> actionForGate(GateOp gate) {
   return failure();
 }
 
+// CUDA-Q's `kernel-execution` pass registers an entry point `<kernel>` with
+// the host runtime from a load-time constructor, `<kernel>.kernelRegFunc`,
+// listed in `llvm.mlir.global_ctors`. The constructor passes the constant
+// string `<kernel>.kernelName` and the kernel's `.argsCreator` to the
+// runtime's registration functions. P0 has no host side, so the conversion
+// drops a registration whose constructor does nothing else.
+
+static bool namesKernelSymbol(StringRef symbol, StringRef kernel,
+                              StringRef suffix) {
+  return symbol.consume_back(suffix) && symbol == kernel;
+}
+
+/// Whether `op`, in the registration constructor of `kernel`, takes the
+/// address of the kernel's `.kernelName` string or `.argsCreator`, casts it,
+/// passes it to a runtime registration function, or returns.
+static bool isRegistrationStep(Operation &op, StringRef kernel) {
+  StringRef name = op.getName().getStringRef();
+  if (name == "llvm.mlir.addressof") {
+    auto global = op.getAttrOfType<FlatSymbolRefAttr>("global_name");
+    return global &&
+           namesKernelSymbol(global.getValue(), kernel, ".kernelName");
+  }
+  if (auto constant = dyn_cast<func::ConstantOp>(op))
+    return namesKernelSymbol(constant.getValue(), kernel, ".argsCreator");
+  if (auto call = dyn_cast<func::CallOp>(op))
+    return call.getCallee() == cudaq::runtime::CudaqRegisterKernelName ||
+           call.getCallee() == cudaq::runtime::CudaqRegisterArgsCreator;
+  return name == "llvm.return" ||
+         isa<cudaq::cc::CastOp, cudaq::cc::FuncToPtrOp>(op);
+}
+
+/// Whether `op` is the registration constructor of an entry kernel in
+/// `kernels`.
+static bool isRegistrationConstructor(Operation &op,
+                                      const DenseSet<StringRef> &kernels) {
+  auto symbol = op.getAttrOfType<StringAttr>(SymbolTable::getSymbolAttrName());
+  if (op.getName().getStringRef() != "llvm.func" || !symbol ||
+      op.getNumRegions() != 1 || !op.getRegion(0).hasOneBlock())
+    return false;
+  StringRef kernel = symbol.getValue();
+  return kernel.consume_back(".kernelRegFunc") && kernels.contains(kernel) &&
+         llvm::all_of(op.getRegion(0).front(), [&](Operation &step) {
+           return isRegistrationStep(step, kernel);
+         });
+}
+
+/// Whether `op` is the constant `<kernel>.kernelName` string, which holds
+/// `<kernel>`, of an entry kernel in `kernels`.
+static bool isKernelNameString(Operation &op,
+                               const DenseSet<StringRef> &kernels) {
+  auto symbol = op.getAttrOfType<StringAttr>(SymbolTable::getSymbolAttrName());
+  auto value = op.getAttrOfType<StringAttr>("value");
+  if (op.getName().getStringRef() != "llvm.mlir.global" || !symbol || !value ||
+      !op.hasAttr("constant"))
+    return false;
+  StringRef kernel = symbol.getValue();
+  StringRef text = value.getValue();
+  return kernel.consume_back(".kernelName") && kernels.contains(kernel) &&
+         text.consume_back(StringRef("\0", 1)) && text == kernel;
+}
+
+/// Whether `op` belongs to the host registration of an entry kernel in
+/// `kernels`, given the module's registration `constructors`.
+static bool isHostKernelRegistration(Operation &op,
+                                     const DenseSet<StringRef> &kernels,
+                                     const DenseSet<StringRef> &constructors) {
+  if (op.getName().getStringRef() == "llvm.mlir.global_ctors") {
+    auto ctors = op.getAttrOfType<ArrayAttr>("ctors");
+    return ctors && llvm::all_of(ctors, [&](Attribute ctor) {
+             auto symbol = dyn_cast<FlatSymbolRefAttr>(ctor);
+             return symbol && constructors.contains(symbol.getValue());
+           });
+  }
+  auto symbol = op.getAttrOfType<StringAttr>(SymbolTable::getSymbolAttrName());
+  return (symbol && constructors.contains(symbol.getValue())) ||
+         isKernelNameString(op, kernels);
+}
+
 class ConvertQuakeToQLXPass
     : public qlx::impl::ConvertQuakeToQLXBase<ConvertQuakeToQLXPass> {
 public:
@@ -326,9 +409,21 @@ public:
       return;
     }
 
+    DenseSet<StringRef> kernels;
+    for (func::FuncOp entry : entries) {
+      StringRef kernel = entry.getSymName();
+      kernel.consume_front("__nvqpp__mlirgen__");
+      kernels.insert(kernel);
+    }
+    DenseSet<StringRef> constructors;
+    for (Operation &op : module.getBody()->getOperations())
+      if (isRegistrationConstructor(op, kernels))
+        constructors.insert(SymbolTable::getSymbolName(&op).getValue());
+
     // Reject top-level facts that this conversion neither preserves nor
     // deliberately removes. In particular, do not treat later cleanup as a
     // legalization mechanism for arbitrary input operations.
+    SmallVector<Operation *> hostRegistrations;
     for (Operation &op : module.getBody()->getOperations()) {
       if (isa<func::FuncOp>(op))
         continue;
@@ -347,10 +442,16 @@ public:
       if (op.getName().getStringRef() == "llvm.func" &&
           op.getNumRegions() == 1 && op.getRegion(0).empty())
         continue;
+      if (isHostKernelRegistration(op, kernels, constructors)) {
+        hostRegistrations.push_back(&op);
+        continue;
+      }
       op.emitError("unexpected top-level operation at the Quake-to-P0 "
                    "boundary; preserve or lower it explicitly");
       return signalPassFailure();
     }
+    for (Operation *op : hostRegistrations)
+      op->erase();
 
     // Declare retained logical objectives before converting any caller.  The
     // dialect verifier resolves qlx.apply symbols as each converted entry is
@@ -1346,6 +1447,27 @@ private:
                   cudaq::quake::VeqType>(undef.getInputType().getType()))
             return undef.emitOpError(
                 "quantum cc.undef is outside the Quake-to-P0 contract");
+          if (auto tuple = dyn_cast<cudaq::cc::StructType>(
+                  undef.getInputType().getType()))
+            state.classicalTuples[undef.getInputType()] =
+                SmallVector<Value>(tuple.getNumMembers());
+          return success();
+        })
+        .Case<cudaq::cc::InsertValueOp>([&](auto insert) -> LogicalResult {
+          auto tuple = state.classicalTuples.find(insert.getContainer());
+          if (tuple == state.classicalTuples.end())
+            return insert.emitOpError("Quake-to-P0 supports cc.insert_value "
+                                      "only into a struct built from cc.undef");
+          if (insert.getPosition().size() != 1)
+            return insert.emitOpError("Quake-to-P0 supports cc.insert_value "
+                                      "only at a top-level struct member");
+          auto bit = state.classicalBits.find(insert.getValue());
+          if (bit == state.classicalBits.end())
+            return insert.emitOpError("Quake-to-P0 supports cc.insert_value "
+                                      "only of a discriminated measurement");
+          SmallVector<Value> members = tuple->second;
+          members[insert.getPosition().front()] = bit->second;
+          state.classicalTuples[insert.getResult()] = std::move(members);
           return success();
         })
         .Case<cudaq::quake::MzOp>([&](auto m) -> LogicalResult {
@@ -1430,11 +1552,18 @@ private:
           }
           SmallVector<Value> results;
           for (Value value : sourceReturn.getOperands()) {
-            auto found = state.classicalBits.find(value);
-            if (found == state.classicalBits.end())
+            if (auto found = state.classicalBits.find(value);
+                found != state.classicalBits.end()) {
+              results.push_back(found->second);
+              continue;
+            }
+            auto tuple = state.classicalTuples.find(value);
+            if (tuple == state.classicalTuples.end() ||
+                llvm::is_contained(tuple->second, Value()))
               return sourceReturn.emitOpError(
-                  "returns a value that is not a discriminated measurement");
-            results.push_back(found->second);
+                  "returns a value that is not a discriminated measurement or "
+                  "a struct of them");
+            llvm::append_range(results, tuple->second);
           }
           qlx::ReturnOp::create(builder, sourceReturn.getLoc(), results);
           return success();
@@ -1722,10 +1851,16 @@ private:
             "Quake-to-P0 requires every specialized classical argument to be "
             "constant-folded or unused");
     }
-    for (Type type : function.getResultTypes())
-      if (!type.isInteger(1))
-        return function.emitOpError(
-            "Quake-to-P0 currently supports only i1 entry-point results");
+    SmallVector<Type> resultTypes;
+    for (Type type : function.getResultTypes()) {
+      auto tuple = dyn_cast<cudaq::cc::StructType>(type);
+      ArrayRef<Type> members = tuple ? tuple.getMembers() : ArrayRef(type);
+      if (!llvm::all_of(members,
+                        [](Type member) { return member.isInteger(1); }))
+        return function.emitOpError("Quake-to-P0 currently supports only i1 "
+                                    "entry-point results and structs of i1");
+      llvm::append_range(resultTypes, members);
+    }
     if (failed(requireWireSemantics(function)))
       return failure();
 
@@ -1736,7 +1871,7 @@ private:
     if (failed(sourceName))
       return failure();
     auto functionType =
-        FunctionType::get(function.getContext(), {}, function.getResultTypes());
+        FunctionType::get(function.getContext(), {}, resultTypes);
     auto program = qlx::ProgramOp::create(builder, function.getLoc(),
                                           *sourceName, functionType,
                                           /*estimateOnly=*/nullptr,
