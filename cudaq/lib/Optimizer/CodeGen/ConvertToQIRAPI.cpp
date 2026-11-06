@@ -1970,6 +1970,10 @@ struct AnnotateKernelsWithMeasurementStringsPattern
 // Generic handling of regular quantum gates.
 //===----------------------------------------------------------------------===//
 
+// `generalizedInvokeWithRotationsControlsTargets_v2` takes one control-polarity
+// mask word per this many control operands. `NVQIR.cpp` decodes the same width.
+static constexpr unsigned invokeMaskWordBits = 64;
+
 template <typename M, typename OP>
 struct QuantumGatePattern : public OpConversionPattern<OP> {
   using Base = OpConversionPattern<OP>;
@@ -2060,6 +2064,8 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     SmallVector<Value> opArrCtrls;
     std::size_t numQubitCtrls = 0;
     SmallVector<Value> opQubitCtrls;
+    // Open controls in the invoker's operand order: arrays, then qubits.
+    SmallVector<bool> openCtrls;
     Type i64Ty = rewriter.getI64Type();
     auto ptrNoneTy = M::getLLVMPointerType(rewriter.getContext());
     const auto negations = op.getNegatedQubitControls();
@@ -2069,8 +2075,9 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     // make Array* and Qubit* indistinguishable on the live operand.
     for (auto [i, val] : llvm::enumerate(adaptor.getControls())) {
       Type origCtrlTy = getInitialType(op, opParams.size() + i);
-      auto &ctrls = isaVeqArgument(origCtrlTy) ? opArrCtrls : opQubitCtrls;
+      const bool isOpen = negations && (*negations)[i];
       if (isaVeqArgument(origCtrlTy)) {
+        openCtrls.insert(openCtrls.begin() + numArrayCtrls, isOpen);
         numArrayCtrls++;
         auto sizeCall = func::CallOp::create(
             rewriter, loc, i64Ty, cudaq::opt::QIRArrayGetSize, ValueRange{val});
@@ -2079,16 +2086,12 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
         opArrCtrls.push_back(
             cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, val));
       } else {
+        openCtrls.push_back(isOpen);
         numQubitCtrls++;
         // Qubits are simply the Qubit**
         opQubitCtrls.emplace_back(
             cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, val));
       }
-      // Each control is followed by the state it requires, which applies to
-      // every qubit of an array.
-      if (withControlValues)
-        ctrls.push_back(arith::ConstantIntOp::create(
-            rewriter, loc, !(negations && (*negations)[i]), 64));
     }
 
     // Lookup and process the gate operation we're invoking.
@@ -2125,19 +2128,33 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
         arith::ConstantIntOp::create(rewriter, loc, numTargets, 64));
     args.emplace_back(funPtr);
 
+    // With control values, the varargs start with the mask words. Bit k marks
+    // the k-th entry of openCtrls.
+    if (withControlValues) {
+      SmallVector<std::uint64_t> openMask(
+          llvm::divideCeil(openCtrls.size(), invokeMaskWordBits));
+      for (auto [k, isOpen] : llvm::enumerate(openCtrls))
+        if (isOpen)
+          openMask[k / invokeMaskWordBits] |= std::uint64_t{1}
+                                              << (k % invokeMaskWordBits);
+      for (std::uint64_t word : openMask)
+        args.emplace_back(arith::ConstantIntOp::create(
+            rewriter, loc, static_cast<std::int64_t>(word), 64));
+    }
+
     // Finally, append the varargs to the end of the argument list.
     args.append(opParams.begin(), opParams.end());
     args.append(opArrCtrls.begin(), opArrCtrls.end());
     args.append(opQubitCtrls.begin(), opQubitCtrls.end());
     args.append(opTargs.begin(), opTargs.end());
 
-    // Call the generalized version of the gate invocation. The control-value
-    // version takes the same arguments plus each control's required state.
-    cudaq::cc::VarargCallOp::create(
-        rewriter, loc, TypeRange{},
-        withControlValues ? cudaq::opt::NVQIRGeneralizedInvokeControlValues
-                          : cudaq::opt::NVQIRGeneralizedInvokeAny,
-        args);
+    // Call the generalized version of the gate invocation. Version 2 adds the
+    // mask words.
+    cudaq::cc::VarargCallOp::create(rewriter, loc, TypeRange{},
+                                    withControlValues
+                                        ? cudaq::opt::NVQIRGeneralizedInvokeV2
+                                        : cudaq::opt::NVQIRGeneralizedInvokeAny,
+                                    args);
     return forwardOrEraseOp();
   }
 

@@ -13,11 +13,13 @@
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/platform.h"
 #include "cudaq/qis/execution_manager.h"
+#include <array>
 #include <cmath>
 #include <complex>
 #include <cstdint>
 #include <limits>
 #include <thread>
+#include <utility>
 #include <vector>
 
 extern "C" {
@@ -85,7 +87,7 @@ void generalizedInvokeWithRotationsControlsTargets(std::size_t numRotations,
                                                    std::size_t numTargets,
                                                    void (*QISFunction)(...),
                                                    ...);
-void generalizedInvokeWithRotationsControlValuesTargets(
+void generalizedInvokeWithRotationsControlsTargets_v2(
     std::size_t numRotations, std::size_t numControlArrays,
     std::size_t numControlQubits, std::size_t numTargets,
     void (*QISFunction)(...), ...);
@@ -539,7 +541,7 @@ Qubit *extract_qubit(Array *a, int idx) {
   return *reinterpret_cast<Qubit **>(q_raw_ptr);
 }
 
-// Required control states in the control-value invoke helpers' varargs.
+// Required control states in the custom-operation wrappers' varargs.
 constexpr std::int64_t requireZero = 0;
 constexpr std::int64_t requireOne = 1;
 // Operand kinds for the custom-operation wrappers' varargs.
@@ -579,19 +581,21 @@ CUDAQ_TEST(NVQIRTester, checkValueControlInvoke) {
     EXPECT_EQ(first, expected[0]);
     EXPECT_EQ(second, expected[1]);
   };
-  generalizedInvokeWithRotationsControlValuesTargets(
+  generalizedInvokeWithRotationsControlsTargets_v2(
       /*numRotationOperands=*/3, /*numControlArrayOperands=*/3,
       /*numControlQubitOperands=*/2, /*numTargetOperands=*/2,
       reinterpret_cast<void (*)(...)>(callback),
+      // Bit k marks control operand k as open: the empty register (bit 0) and
+      // q3 (bit 3). A register's bit applies to each of its qubits.
+      std::int64_t{0b01001},
       // Rotation parameters.
       0.25, -0.5, 0.75,
-      // Registers are (length, Array *, state). A register's state applies to
-      // each of its qubits.
-      std::size_t{0}, reinterpret_cast<Qubit *>(empty), requireZero,
-      std::size_t{2}, reinterpret_cast<Qubit *>(array), requireOne,
-      std::size_t{0}, static_cast<Qubit *>(nullptr), requireOne,
-      // Qubits are (Qubit *, state): q3 == 0 and q2 == 1.
-      expected[2], requireZero, expected[3], requireOne,
+      // Registers are (length, Array *).
+      std::size_t{0}, reinterpret_cast<Qubit *>(empty), std::size_t{2},
+      reinterpret_cast<Qubit *>(array), std::size_t{0},
+      static_cast<Qubit *>(nullptr),
+      // Qubits q3 and q2.
+      expected[2], expected[3],
       // Targets q0 and q1.
       expected[0], expected[1]);
 
@@ -611,9 +615,9 @@ CUDAQ_TEST(NVQIRTester, checkValueControlInvoke) {
     EXPECT_EQ(first, expected[0]);
     EXPECT_EQ(second, expected[1]);
   };
-  // The same operands without states produce the same control order. Code
-  // compiled before control values existed calls this entry point with this
-  // layout, so these calls also pin it.
+  // The same operands without the mask produce the same control order. Code
+  // compiled before control values existed uses this layout, so these calls
+  // also pin it.
   generalizedInvokeWithRotationsControlsTargets(
       3, 3, 2, 2, reinterpret_cast<void (*)(...)>(positiveCallback), 0.25, -0.5,
       0.75, std::size_t{0}, reinterpret_cast<Qubit *>(empty), std::size_t{2},
@@ -630,11 +634,12 @@ CUDAQ_TEST(NVQIRTester, checkValueControlInvoke) {
     EXPECT_EQ(count, 0);
     EXPECT_EQ(target, expected[0]);
   };
-  generalizedInvokeWithRotationsControlValuesTargets(
+  generalizedInvokeWithRotationsControlsTargets_v2(
       0, 1, 0, 1, reinterpret_cast<void (*)(...)>(emptyCallback),
-      std::size_t{0}, reinterpret_cast<Qubit *>(empty), requireZero,
+      std::int64_t{1}, std::size_t{0}, reinterpret_cast<Qubit *>(empty),
       expected[0]);
-  generalizedInvokeWithRotationsControlValuesTargets(
+  // Without control operands, no mask word follows the gate function.
+  generalizedInvokeWithRotationsControlsTargets_v2(
       0, 0, 0, 1, reinterpret_cast<void (*)(...)>(emptyCallback), expected[0]);
   void (*positiveEmptyCallback)(Array *, Qubit *) = [](Array *controls,
                                                        Qubit *target) {
@@ -698,6 +703,49 @@ CUDAQ_TEST(NVQIRTester, checkValueControlInvoke) {
   __quantum__rt__finalize();
 }
 
+// Expands the scalar controls into the varargs of one version 2 call.
+template <std::size_t... I>
+static void
+invokeV2WithScalarControls(void (*callback)(...), std::int64_t lowMask,
+                           std::int64_t highMask,
+                           const std::array<Qubit *, sizeof...(I)> &controls,
+                           Qubit *target, std::index_sequence<I...>) {
+  generalizedInvokeWithRotationsControlsTargets_v2(0, 0, sizeof...(I), 1,
+                                                   callback, lowMask, highMask,
+                                                   controls[I]..., target);
+}
+
+CUDAQ_TEST(NVQIRTester, checkValueControlInvokeMaskWords) {
+  // 65 controls need two mask words. The callback only compares pointers, so
+  // the controls need not be allocated qubits.
+  constexpr std::size_t numControls = 65;
+  static std::array<std::size_t, numControls + 1> storage;
+  static std::array<Qubit *, numControls> controls;
+  for (std::size_t i = 0; i < numControls; ++i)
+    controls[i] = reinterpret_cast<Qubit *>(&storage[i]);
+  static unsigned invocations;
+  invocations = 0;
+  using Callback =
+      void (*)(Array *, const std::int32_t *, std::int64_t, Qubit *);
+  Callback callback = [](Array *packed, const std::int32_t *values,
+                         std::int64_t count, Qubit *target) {
+    ++invocations;
+    ASSERT_EQ(count, static_cast<std::int64_t>(numControls));
+    for (std::size_t i = 0; i < numControls; ++i) {
+      EXPECT_EQ(extract_qubit(packed, i), controls[i]);
+      // Bits 0, 63 (the first word's sign bit), and 64 are open.
+      EXPECT_EQ(values[i], (i == 0 || i == 63 || i == 64) ? 0 : 1) << i;
+    }
+    EXPECT_EQ(target, reinterpret_cast<Qubit *>(&storage[numControls]));
+  };
+  invokeV2WithScalarControls(reinterpret_cast<void (*)(...)>(callback),
+                             std::numeric_limits<std::int64_t>::min() | 1, 1,
+                             controls,
+                             reinterpret_cast<Qubit *>(&storage[numControls]),
+                             std::make_index_sequence<numControls>{});
+  EXPECT_EQ(invocations, 1u);
+}
+
 CUDAQ_TEST(NVQIRTester, checkValueControlInvokeExecution) {
   for (bool withControlValues : {false, true}) {
     SCOPED_TRACE(withControlValues);
@@ -719,28 +767,29 @@ CUDAQ_TEST(NVQIRTester, checkValueControlInvokeExecution) {
       // Every gate requires q0 == 0 and q1 == 1 (input 2). The callbacks cover
       // zero through three parameters and both target counts.
       if (withControlValues) {
-        generalizedInvokeWithRotationsControlValuesTargets(
+        // The mask opens the empty register (bit 1) and the scalar (bit 2).
+        constexpr std::int64_t openMask = 0b110;
+        generalizedInvokeWithRotationsControlsTargets_v2(
             1, 2, 1, 1,
-            reinterpret_cast<void (*)(...)>(__nvqir__qis__ry__ctl_values), M_PI,
-            std::size_t{1}, array, requireOne, std::size_t{0}, empty,
-            requireZero, scalar, requireZero, extract_qubit(qubits, 2));
-        generalizedInvokeWithRotationsControlValuesTargets(
+            reinterpret_cast<void (*)(...)>(__nvqir__qis__ry__ctl_values),
+            openMask, M_PI, std::size_t{1}, array, std::size_t{0}, empty,
+            scalar, extract_qubit(qubits, 2));
+        generalizedInvokeWithRotationsControlsTargets_v2(
             2, 2, 1, 1,
             reinterpret_cast<void (*)(...)>(
                 __nvqir__qis__phased_rx__ctl_values),
-            M_PI, 0.37, std::size_t{1}, array, requireOne, std::size_t{0},
-            empty, requireZero, scalar, requireZero, extract_qubit(qubits, 3));
-        generalizedInvokeWithRotationsControlValuesTargets(
+            openMask, M_PI, 0.37, std::size_t{1}, array, std::size_t{0}, empty,
+            scalar, extract_qubit(qubits, 3));
+        generalizedInvokeWithRotationsControlsTargets_v2(
             3, 2, 1, 1,
-            reinterpret_cast<void (*)(...)>(__nvqir__qis__u3__ctl_values), M_PI,
-            0.31, -0.53, std::size_t{1}, array, requireOne, std::size_t{0},
-            empty, requireZero, scalar, requireZero, extract_qubit(qubits, 4));
-        generalizedInvokeWithRotationsControlValuesTargets(
+            reinterpret_cast<void (*)(...)>(__nvqir__qis__u3__ctl_values),
+            openMask, M_PI, 0.31, -0.53, std::size_t{1}, array, std::size_t{0},
+            empty, scalar, extract_qubit(qubits, 4));
+        generalizedInvokeWithRotationsControlsTargets_v2(
             0, 2, 1, 2,
             reinterpret_cast<void (*)(...)>(__nvqir__qis__swap__ctl_values),
-            std::size_t{1}, array, requireOne, std::size_t{0}, empty,
-            requireZero, scalar, requireZero, extract_qubit(qubits, 5),
-            extract_qubit(qubits, 6));
+            openMask, std::size_t{1}, array, std::size_t{0}, empty, scalar,
+            extract_qubit(qubits, 5), extract_qubit(qubits, 6));
       } else {
         void (*twoParameterCallback)(double, double, Array *, Qubit *) =
             [](double theta, double phi, Array *controls, Qubit *target) {
@@ -791,18 +840,12 @@ CUDAQ_TEST(NVQIRTester, checkValueControlInvokeErrors) {
   // or reaching the null callback.
   void (*callback)(...) = nullptr;
   for (auto *invoke : {generalizedInvokeWithRotationsControlsTargets,
-                       generalizedInvokeWithRotationsControlValuesTargets}) {
+                       generalizedInvokeWithRotationsControlsTargets_v2}) {
     EXPECT_ANY_THROW(invoke(4, 0, 0, 1, callback));
     EXPECT_ANY_THROW(invoke(0, 0, 0, 0, callback));
     EXPECT_ANY_THROW(invoke(0, 0, 0, 3, callback));
   }
-  // A required state must be 0 or 1, for registers and qubits alike. A
-  // wrapper's operand kind must be 0 or 1 too.
-  EXPECT_ANY_THROW(generalizedInvokeWithRotationsControlValuesTargets(
-      0, 1, 0, 1, callback, std::size_t{0}, static_cast<Qubit *>(nullptr),
-      std::int64_t{2}));
-  EXPECT_ANY_THROW(generalizedInvokeWithRotationsControlValuesTargets(
-      0, 0, 1, 1, callback, static_cast<Qubit *>(nullptr), std::int64_t{-1}));
+  // A wrapper's required state and operand kind must be 0 or 1.
   EXPECT_ANY_THROW(invokeCustomUnitaryWithControlValues(
       1, nullptr, nullptr, "invalid_value", nullptr, qubitOperand,
       static_cast<Qubit *>(nullptr), std::int64_t{2}));

@@ -26,18 +26,18 @@ func.func @ordered_controls(%theta: f64, %closed: !quake.ref,
 // CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
 // CHECK-SAME:      %[[ARG3:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
 // CHECK-SAME:      %[[ARG4:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) attributes {"qir-api"} {
-// CHECK:           %[[MLIR_0:.*]] = llvm.mlir.constant(2 : i64) : i64
-// CHECK:           %[[MLIR_1:.*]] = llvm.mlir.addressof @__nvqir__qis__rx__ctl_values : !llvm.ptr
-// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.constant(0 : i64) : i64
-// CHECK:           %[[MLIR_3:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           %[[MLIR_0:.*]] = llvm.mlir.constant(5 : i64) : i64
+// CHECK:           %[[MLIR_1:.*]] = llvm.mlir.constant(2 : i64) : i64
+// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           %[[MLIR_3:.*]] = llvm.mlir.addressof @__nvqir__qis__rx__ctl_values : !llvm.ptr
 // CHECK:           %[[FNEG_0:.*]] = llvm.fneg %[[ARG0]] : f64
 // CHECK:           %[[CALL_0:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[ARG2]]) : (!llvm.ptr) -> i64
-// CHECK:           llvm.call @generalizedInvokeWithRotationsControlValuesTargets(%[[MLIR_3]], %[[MLIR_3]], %[[MLIR_0]], %[[MLIR_3]], %[[MLIR_1]], %[[FNEG_0]], %[[CALL_0]], %[[ARG2]], %[[MLIR_2]], %[[ARG1]], %[[MLIR_3]], %[[ARG3]], %[[MLIR_2]], %[[ARG4]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, f64, i64, !llvm.ptr, i64, !llvm.ptr, i64, !llvm.ptr, i64, !llvm.ptr) -> ()
+// CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets_v2(%[[MLIR_2]], %[[MLIR_2]], %[[MLIR_1]], %[[MLIR_2]], %[[MLIR_3]], %[[MLIR_0]], %[[FNEG_0]], %[[CALL_0]], %[[ARG2]], %[[ARG1]], %[[ARG3]], %[[ARG4]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, i64, f64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK:           llvm.return
 // CHECK:         }
 
 // Mixed register and qubit controls keep the same grouping with and without
-// control values. Each required state stays with its operand.
+// control values. The mask bits follow that grouping.
 func.func @grouped_controls(%control: !quake.ref, %register: !quake.veq<?>,
                             %first: !quake.ref, %second: !quake.ref) {
   quake.x [%control, %register] %first
@@ -60,7 +60,7 @@ func.func @grouped_controls(%control: !quake.ref, %register: !quake.veq<?>,
 // CHECK:           %[[CALL_0:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[ARG1]]) : (!llvm.ptr) -> i64
 // CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets(%[[MLIR_3]], %[[MLIR_2]], %[[MLIR_2]], %[[MLIR_2]], %[[MLIR_4]], %[[CALL_0]], %[[ARG1]], %[[ARG0]], %[[ARG2]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK:           %[[CALL_1:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[ARG1]]) : (!llvm.ptr) -> i64
-// CHECK:           llvm.call @generalizedInvokeWithRotationsControlValuesTargets(%[[MLIR_3]], %[[MLIR_2]], %[[MLIR_2]], %[[MLIR_0]], %[[MLIR_1]], %[[CALL_1]], %[[ARG1]], %[[MLIR_2]], %[[ARG0]], %[[MLIR_3]], %[[ARG2]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, i64, !llvm.ptr, i64, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets_v2(%[[MLIR_3]], %[[MLIR_2]], %[[MLIR_2]], %[[MLIR_0]], %[[MLIR_1]], %[[MLIR_0]], %[[CALL_1]], %[[ARG1]], %[[ARG0]], %[[ARG2]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, i64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK:           llvm.return
 // CHECK:         }
 
@@ -76,10 +76,10 @@ func.func @adjoint_phase_gates(%control: !quake.ref, %target: !quake.ref) {
 // CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) attributes {"qir-api"} {
 // CHECK:           %[[MLIR_0:.*]] = llvm.mlir.addressof @__nvqir__qis__tdg__ctl_values : !llvm.ptr
 // CHECK:           %[[MLIR_1:.*]] = llvm.mlir.constant(1 : i64) : i64
-// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.addressof @__nvqir__qis__sdg__ctl_values : !llvm.ptr
-// CHECK:           %[[MLIR_3:.*]] = llvm.mlir.constant(0 : i64) : i64
-// CHECK:           llvm.call @generalizedInvokeWithRotationsControlValuesTargets(%[[MLIR_3]], %[[MLIR_3]], %[[MLIR_1]], %[[MLIR_1]], %[[MLIR_2]], %[[ARG0]], %[[MLIR_3]], %[[ARG1]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr) -> ()
-// CHECK:           llvm.call @generalizedInvokeWithRotationsControlValuesTargets(%[[MLIR_3]], %[[MLIR_3]], %[[MLIR_1]], %[[MLIR_1]], %[[MLIR_0]], %[[ARG0]], %[[MLIR_3]], %[[ARG1]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr) -> ()
+// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[MLIR_3:.*]] = llvm.mlir.addressof @__nvqir__qis__sdg__ctl_values : !llvm.ptr
+// CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets_v2(%[[MLIR_2]], %[[MLIR_2]], %[[MLIR_1]], %[[MLIR_1]], %[[MLIR_3]], %[[MLIR_1]], %[[ARG0]], %[[ARG1]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets_v2(%[[MLIR_2]], %[[MLIR_2]], %[[MLIR_1]], %[[MLIR_1]], %[[MLIR_0]], %[[MLIR_1]], %[[ARG0]], %[[ARG1]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK:           llvm.return
 // CHECK:         }
 
@@ -107,15 +107,15 @@ func.func @two_parameter_gates(%theta: f64, %phi: f64,
 // CHECK:           %[[MLIR_3:.*]] = llvm.mlir.constant(0 : i64) : i64
 // CHECK:           %[[MLIR_4:.*]] = llvm.mlir.constant(2 : i64) : i64
 // CHECK:           %[[MLIR_5:.*]] = llvm.mlir.addressof @__nvqir__qis__u2__ctl_values : !llvm.ptr
-// CHECK:           llvm.call @generalizedInvokeWithRotationsControlValuesTargets(%[[MLIR_4]], %[[MLIR_3]], %[[MLIR_3]], %[[MLIR_2]], %[[MLIR_5]], %[[ARG0]], %[[ARG1]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, f64, f64, !llvm.ptr) -> ()
+// CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets_v2(%[[MLIR_4]], %[[MLIR_3]], %[[MLIR_3]], %[[MLIR_2]], %[[MLIR_5]], %[[ARG0]], %[[ARG1]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, f64, f64, !llvm.ptr) -> ()
 // CHECK:           %[[FNEG_0:.*]] = llvm.fneg %[[ARG0]] : f64
 // CHECK:           %[[FNEG_1:.*]] = llvm.fneg %[[ARG1]] : f64
 // CHECK:           %[[FSUB_0:.*]] = llvm.fsub %[[FNEG_1]], %[[MLIR_1]] : f64
 // CHECK:           %[[FADD_0:.*]] = llvm.fadd %[[FNEG_0]], %[[MLIR_1]] : f64
-// CHECK:           llvm.call @generalizedInvokeWithRotationsControlValuesTargets(%[[MLIR_4]], %[[MLIR_3]], %[[MLIR_2]], %[[MLIR_2]], %[[MLIR_5]], %[[FSUB_0]], %[[FADD_0]], %[[ARG2]], %[[MLIR_3]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, f64, f64, !llvm.ptr, i64, !llvm.ptr) -> ()
-// CHECK:           llvm.call @generalizedInvokeWithRotationsControlValuesTargets(%[[MLIR_4]], %[[MLIR_3]], %[[MLIR_2]], %[[MLIR_2]], %[[MLIR_0]], %[[ARG0]], %[[ARG1]], %[[ARG2]], %[[MLIR_2]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, f64, f64, !llvm.ptr, i64, !llvm.ptr) -> ()
+// CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets_v2(%[[MLIR_4]], %[[MLIR_3]], %[[MLIR_2]], %[[MLIR_2]], %[[MLIR_5]], %[[MLIR_2]], %[[FSUB_0]], %[[FADD_0]], %[[ARG2]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, i64, f64, f64, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets_v2(%[[MLIR_4]], %[[MLIR_3]], %[[MLIR_2]], %[[MLIR_2]], %[[MLIR_0]], %[[MLIR_3]], %[[ARG0]], %[[ARG1]], %[[ARG2]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, i64, f64, f64, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK:           %[[FNEG_2:.*]] = llvm.fneg %[[ARG0]] : f64
-// CHECK:           llvm.call @generalizedInvokeWithRotationsControlValuesTargets(%[[MLIR_4]], %[[MLIR_3]], %[[MLIR_2]], %[[MLIR_2]], %[[MLIR_0]], %[[FNEG_2]], %[[ARG1]], %[[ARG2]], %[[MLIR_3]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, f64, f64, !llvm.ptr, i64, !llvm.ptr) -> ()
+// CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets_v2(%[[MLIR_4]], %[[MLIR_3]], %[[MLIR_2]], %[[MLIR_2]], %[[MLIR_0]], %[[MLIR_2]], %[[FNEG_2]], %[[ARG1]], %[[ARG2]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, i64, f64, f64, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK:           llvm.return
 // CHECK:         }
 
@@ -226,9 +226,70 @@ func.func @reusable_control(%control: !quake.control, %reference: !quake.ref,
 // CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
 // CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) -> !llvm.ptr attributes {"qir-api"} {
 // CHECK:           %[[MLIR_0:.*]] = llvm.mlir.constant(1 : i64) : i64
-// CHECK:           %[[MLIR_1:.*]] = llvm.mlir.addressof @__nvqir__qis__x__ctl_values : !llvm.ptr
-// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.constant(0 : i64) : i64
-// CHECK:           llvm.call @generalizedInvokeWithRotationsControlValuesTargets(%[[MLIR_2]], %[[MLIR_2]], %[[MLIR_0]], %[[MLIR_0]], %[[MLIR_1]], %[[ARG0]], %[[MLIR_2]], %[[ARG1]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr) -> ()
-// CHECK:           llvm.call @generalizedInvokeWithRotationsControlValuesTargets(%[[MLIR_2]], %[[MLIR_2]], %[[MLIR_0]], %[[MLIR_0]], %[[MLIR_1]], %[[ARG0]], %[[MLIR_2]], %[[ARG2]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr) -> ()
+// CHECK:           %[[MLIR_1:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.addressof @__nvqir__qis__x__ctl_values : !llvm.ptr
+// CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets_v2(%[[MLIR_1]], %[[MLIR_1]], %[[MLIR_0]], %[[MLIR_0]], %[[MLIR_2]], %[[MLIR_0]], %[[ARG0]], %[[ARG1]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets_v2(%[[MLIR_1]], %[[MLIR_1]], %[[MLIR_0]], %[[MLIR_0]], %[[MLIR_2]], %[[MLIR_0]], %[[ARG0]], %[[ARG2]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK:           llvm.return %[[ARG2]] : !llvm.ptr
 // CHECK:         }
+
+// More than 64 control operands take a second mask word. Controls 63 and 64
+// are open, so the first word holds only its sign bit.
+func.func @wide_controls(
+    %c0: !quake.ref, %c1: !quake.ref, %c2: !quake.ref, %c3: !quake.ref,
+    %c4: !quake.ref, %c5: !quake.ref, %c6: !quake.ref, %c7: !quake.ref,
+    %c8: !quake.ref, %c9: !quake.ref, %c10: !quake.ref, %c11: !quake.ref,
+    %c12: !quake.ref, %c13: !quake.ref, %c14: !quake.ref, %c15: !quake.ref,
+    %c16: !quake.ref, %c17: !quake.ref, %c18: !quake.ref, %c19: !quake.ref,
+    %c20: !quake.ref, %c21: !quake.ref, %c22: !quake.ref, %c23: !quake.ref,
+    %c24: !quake.ref, %c25: !quake.ref, %c26: !quake.ref, %c27: !quake.ref,
+    %c28: !quake.ref, %c29: !quake.ref, %c30: !quake.ref, %c31: !quake.ref,
+    %c32: !quake.ref, %c33: !quake.ref, %c34: !quake.ref, %c35: !quake.ref,
+    %c36: !quake.ref, %c37: !quake.ref, %c38: !quake.ref, %c39: !quake.ref,
+    %c40: !quake.ref, %c41: !quake.ref, %c42: !quake.ref, %c43: !quake.ref,
+    %c44: !quake.ref, %c45: !quake.ref, %c46: !quake.ref, %c47: !quake.ref,
+    %c48: !quake.ref, %c49: !quake.ref, %c50: !quake.ref, %c51: !quake.ref,
+    %c52: !quake.ref, %c53: !quake.ref, %c54: !quake.ref, %c55: !quake.ref,
+    %c56: !quake.ref, %c57: !quake.ref, %c58: !quake.ref, %c59: !quake.ref,
+    %c60: !quake.ref, %c61: !quake.ref, %c62: !quake.ref, %c63: !quake.ref,
+    %c64: !quake.ref, %t: !quake.ref) {
+  quake.x [%c0, %c1, %c2, %c3, %c4, %c5, %c6, %c7, %c8, %c9,
+           %c10, %c11, %c12, %c13, %c14, %c15, %c16, %c17, %c18, %c19,
+           %c20, %c21, %c22, %c23, %c24, %c25, %c26, %c27, %c28, %c29,
+           %c30, %c31, %c32, %c33, %c34, %c35, %c36, %c37, %c38, %c39,
+           %c40, %c41, %c42, %c43, %c44, %c45, %c46, %c47, %c48, %c49,
+           %c50, %c51, %c52, %c53, %c54, %c55, %c56, %c57, %c58, %c59,
+           %c60, %c61, %c62, %c63, %c64
+           neg [false, false, false, false, false, false, false, false,
+                false, false, false, false, false, false, false, false,
+                false, false, false, false, false, false, false, false,
+                false, false, false, false, false, false, false, false,
+                false, false, false, false, false, false, false, false,
+                false, false, false, false, false, false, false, false,
+                false, false, false, false, false, false, false, false,
+                false, false, false, false, false, false, false, true,
+                true]] %t
+      : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref,
+         !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   llvm.func @wide_controls(
+// CHECK:           %[[SIGN_BIT:.*]] = llvm.mlir.constant(-9223372036854775808 : i64) : i64
+// CHECK:           %[[ONE:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           %[[COUNT:.*]] = llvm.mlir.constant(65 : i64) : i64
+// CHECK:           %[[ZERO:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[CALLEE:.*]] = llvm.mlir.addressof @__nvqir__qis__x__ctl_values : !llvm.ptr
+// CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets_v2(%[[ZERO]], %[[ZERO]], %[[COUNT]], %[[ONE]], %[[CALLEE]], %[[SIGN_BIT]], %[[ONE]], %{{.*}})

@@ -1416,6 +1416,10 @@ void __quantum__rt__clear_result_maps() {
 
 static constexpr std::size_t maxInvokeRotationOperands = 3;
 static constexpr std::size_t maxInvokeTargetOperands = 2;
+// `generalizedInvokeWithRotationsControlsTargets_v2` takes one control-polarity
+// mask word per this many control operands. `ConvertToQIRAPI.cpp` emits the
+// same width.
+static constexpr std::size_t invokeMaskWordBits = 64;
 
 static void validateInvokeOperandCounts(std::size_t numRotationOperands,
                                         std::size_t numTargetOperands) {
@@ -1452,16 +1456,13 @@ static std::int32_t readRequiredValue(va_list &args) {
   return static_cast<std::int32_t>(value);
 }
 
-// The generalized invokers group their controls. A register operand is
-// (std::size_t length, Array *) and a qubit operand is a Qubit *. With control
-// values, each operand is followed by the std::int64_t state it requires,
-// which applies to every qubit of a register.
+// The generalized invoker groups its controls. A register operand is
+// (std::size_t length, Array *) and a qubit operand is a Qubit *. A register's
+// required value applies to every qubit of the register.
 static ControlOperand readGroupedControlOperand(va_list &args, bool isArray,
-                                                bool withControlValues) {
+                                                std::int32_t requiredValue) {
   const std::size_t numQubits = isArray ? va_arg(args, std::size_t) : 1;
   auto *operand = va_arg(args, Qubit *);
-  const std::int32_t requiredValue =
-      withControlValues ? readRequiredValue(args) : 1;
   return {operand, numQubits, requiredValue, isArray};
 }
 
@@ -1539,14 +1540,26 @@ static InvokeOperands readInvokeOperands(std::size_t numRotationOperands,
                                          bool withControlValues,
                                          va_list &args) {
   validateInvokeOperandCounts(numRotationOperands, numTargetOperands);
+  const std::size_t numControlOperands = numControlArrays + numControlQubits;
+  // Bit k marks control operand k, counting arrays first, as requiring |0>.
+  std::vector<std::uint64_t> openMask;
+  if (withControlValues) {
+    openMask.resize((numControlOperands + invokeMaskWordBits - 1) /
+                    invokeMaskWordBits);
+    for (auto &word : openMask)
+      word = static_cast<std::uint64_t>(va_arg(args, std::int64_t));
+  }
   InvokeOperands operands;
   for (std::size_t i = 0; i < numRotationOperands; ++i)
     operands.parameters[i] = va_arg(args, double);
   operands.controls = packVariadicControls(
-      numControlArrays + numControlQubits, withControlValues, args,
+      numControlOperands, withControlValues, args,
       [&](va_list &list, std::size_t i) {
+        const std::uint64_t word =
+            withControlValues ? openMask[i / invokeMaskWordBits] : 0;
+        const bool isOpen = (word >> (i % invokeMaskWordBits)) & 1;
         return readGroupedControlOperand(list, i < numControlArrays,
-                                         withControlValues);
+                                         isOpen ? 0 : 1);
       });
   for (std::size_t i = 0; i < numTargetOperands; ++i)
     operands.targets[i] = va_arg(args, Qubit *);
@@ -1660,13 +1673,15 @@ void generalizedInvokeWithRotationsControlsTargets(
                            reinterpret_cast<void (*)()>(QISFunction));
 }
 
-/// The layout of generalizedInvokeWithRotationsControlsTargets, with each
-/// control operand followed by the std::int64_t state, 0 or 1, that it
-/// requires. \p QISFunction is a `__nvqir__qis__<gate>__ctl_values` function.
-/// It receives the packed controls, their std::int32_t required values, and
-/// their std::int64_t count between its rotations and targets, and it must
-/// copy these buffers if it defers execution.
-void generalizedInvokeWithRotationsControlValuesTargets(
+/// Version 2 of generalizedInvokeWithRotationsControlsTargets adds control
+/// values. One std::int64_t mask word per 64 control operands precedes the
+/// rotations. Bit k marks control operand k, counting arrays first, as
+/// requiring |0> on every qubit it holds. \p QISFunction is a
+/// `__nvqir__qis__<gate>__ctl_values` function. It receives the packed
+/// controls, their std::int32_t required values, and their std::int64_t count
+/// between its rotations and targets, and it must copy these buffers if it
+/// defers execution.
+void generalizedInvokeWithRotationsControlsTargets_v2(
     std::size_t numRotationOperands, std::size_t numControlArrayOperands,
     std::size_t numControlQubitOperands, std::size_t numTargetOperands,
     void (*QISFunction)(...), ...) {
