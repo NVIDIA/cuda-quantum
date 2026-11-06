@@ -225,6 +225,27 @@ def test_clifford_t_target_estimates_multi_controlled_gates(kernel, level):
     assert result.annotations
 
 
+@cudaq.kernel
+def h_rz_ctrl_r1():
+    q = cudaq.qvector(2)
+    h(q[0])
+    rz(0.3, q[0])
+    r1.ctrl(0.7, q[0], q[1])
+    mz(q)
+
+
+@pytest.mark.parametrize("level", [1, 2])
+def test_clifford_t_target_imports_optimizer_global_phase(level):
+    # The level-2 T-count optimizer factors out a quake.phase for this kernel.
+    try:
+        cudaq.set_target(cudaq.logical.targets.clifford_t_target())
+        result = cudaq.estimate(h_rz_ctrl_r1, optimization_level=level)
+    finally:
+        cudaq.reset_target()
+
+    assert result.annotations["LOGICAL"]
+
+
 def test_estimator_target_estimates_a_doubly_controlled_ry():
     try:
         cudaq.set_target(cudaq.logical.targets.estimator)
