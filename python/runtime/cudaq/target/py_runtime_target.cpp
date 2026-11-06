@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "py_runtime_target.h"
+#include "CompileTargetCaster.h"
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
 #include "runtime/cudaq/platform/PyRuntimeEndpoint.h"

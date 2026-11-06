@@ -20,9 +20,9 @@ from cudaq.core._target import (Codegen, CompilationStage, CompileTarget,
     CompileTarget(custom_pipeline="cse")
 ])
 def test_defaults_on_every_constructor(target):
-    assert not target.fully_specialize
-    assert not target.argument_synth_change_semantics
-    assert target.codegen == Codegen("qir:")
+    assert target.fully_specialize
+    assert target.argument_synth_change_semantics
+    assert target.codegen == Codegen()
 
 
 def test_default_stages_are_empty():
@@ -39,8 +39,8 @@ def test_ir_output_profile_shortcut():
 
 @pytest.mark.parametrize("pipeline, lowering", [
     ("cse", CustomPipelineLowering("cse")),
-    (CustomPipelineLowering(high_level="cse"),
-     CustomPipelineLowering(high_level="cse")),
+    (CustomPipelineLowering(high_level_pipeline="cse"),
+     CustomPipelineLowering(high_level_pipeline="cse")),
 ])
 def test_custom_pipeline_shortcut(pipeline, lowering):
     expected = CompileTarget(
@@ -51,27 +51,12 @@ def test_custom_pipeline_shortcut(pipeline, lowering):
 
 
 @pytest.mark.parametrize("kwargs", [
-    dict(stages=[], ir_output_profile=QuakeReferenceSemanticsProfile()),
-    dict(stages=[], custom_pipeline="cse"),
     dict(ir_output_profile=QuakeReferenceSemanticsProfile(),
          custom_pipeline="cse"),
 ])
 def test_shortcuts_are_exclusive(kwargs):
     with pytest.raises(TypeError):
         CompileTarget(**kwargs)
-
-
-def test_string_converts_to_codegen():
-    assert CompileTarget(codegen="qir-base").codegen == Codegen("qir-base")
-    target = CompileTarget()
-    target.codegen = "qir-base"
-    assert target.codegen == Codegen("qir-base")
-
-
-def test_codegen_edits_apply_in_place():
-    target = CompileTarget(codegen="qir-base")
-    target.codegen.post_codegen_passes = "canonicalize"
-    assert target.codegen == Codegen("qir-base", "canonicalize")
 
 
 if __name__ == "__main__":

@@ -6,18 +6,20 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-find_package(Python 3 REQUIRED COMPONENTS Interpreter Development.Module)
-find_package(nanobind CONFIG REQUIRED)
-nanobind_add_module(CUDAQTargetPython NB_STATIC NB_DOMAIN cudaq
-  py_target.cpp py_profiles.cpp py_compile_target.cpp)
-target_link_libraries(CUDAQTargetPython PRIVATE CUDAQTargetConfig)
-target_compile_options(CUDAQTargetPython PRIVATE -fexceptions -frtti -Wno-cast-qual)
-set_target_properties(CUDAQTargetPython PROPERTIES
-  OUTPUT_NAME _target
-  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/cudaq/core")
-set_target_properties(nanobind-static PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
-install(TARGETS CUDAQTargetPython
-  LIBRARY DESTINATION cudaq/core COMPONENT CUDAQCorePythonModules)
+find_package(Python 3 REQUIRED COMPONENTS Interpreter)
+
+# The compile target types are pure Python dataclasses; the nanobind casters
+# that convert them are compiled into the main Python extension.
+set(_target_py "${CMAKE_BINARY_DIR}/python/cudaq/core/_target.py")
+add_custom_command(
+  OUTPUT "${_target_py}"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/_target.py"
+  COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/python/cudaq/core"
+  COMMAND "${CMAKE_COMMAND}" -E create_symlink
+    "${CMAKE_CURRENT_SOURCE_DIR}/_target.py" "${_target_py}")
+add_custom_target(CUDAQTargetPython ALL DEPENDS "${_target_py}")
+install(FILES _target.py
+  DESTINATION cudaq/core COMPONENT CUDAQCorePythonModules)
 
 if(CUDAQ_BUILD_TESTS)
   if(CUDAQ_TARGET_STANDALONE_BUILD)
