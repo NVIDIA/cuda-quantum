@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import json
 import os
 from multiprocessing import Process
 from urllib.request import Request, urlopen
@@ -24,6 +25,7 @@ port = 62454
 # Default machine for tests. Mirrors the real qBraid device string format.
 TEST_MACHINE = "qbraid:qbraid:sim:qir-sv"
 TEST_API_KEY = "00000000000000000000000000000000"
+TEST_ACCESS_TOKEN = "test-access-token"
 
 # The qbraid mock server in python/tests/utils/mock_qpu/qbraid/__init__.py doesn't simulate
 # quantum mechanics - it only inspects the QASM for `h` and `measure` ops and
@@ -45,6 +47,8 @@ def _set_qbraid_target(**overrides):
         "api_key": TEST_API_KEY,
     }
     kwargs.update(overrides)
+    # An override of None drops that argument entirely.
+    kwargs = {k: v for k, v in kwargs.items() if v is not None}
     cudaq.set_target("qbraid", **kwargs)
 
 
@@ -181,6 +185,78 @@ def test_qbraid_api_key_via_target_arg_without_env_var():
     finally:
         if saved is not None:
             os.environ["QBRAID_API_KEY"] = saved
+
+
+def _last_auth_scheme():
+    """Auth scheme ("api_key" or "bearer") of the mock's latest request."""
+    url = f"http://localhost:{port}/test/last_auth"
+    return json.loads(urlopen(url, timeout=5).read())["scheme"]
+
+
+def _sample_one_qubit():
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.h(qubit)
+    kernel.mz(qubit)
+    return cudaq.sample(kernel)
+
+
+class _CredentialEnv:
+    """Temporarily replace QBRAID_API_KEY / QBRAID_ACCESS_TOKEN."""
+
+    def __init__(self, **values):
+        self.values = values
+
+    def __enter__(self):
+        names = ("QBRAID_API_KEY", "QBRAID_ACCESS_TOKEN")
+        self.saved = {name: os.environ.pop(name, None) for name in names}
+        os.environ.update(self.values)
+
+    def __exit__(self, *exc):
+        for name, value in self.saved.items():
+            os.environ.pop(name, None)
+            if value is not None:
+                os.environ[name] = value
+
+
+def test_qbraid_access_token_via_target_arg():
+    """access_token kwarg authenticates with an Authorization: Bearer header."""
+    with _CredentialEnv():
+        _set_qbraid_target(api_key=None, access_token=TEST_ACCESS_TOKEN)
+        assert len(_sample_one_qubit()) >= 1
+        assert _last_auth_scheme() == "bearer"
+
+
+def test_qbraid_access_token_via_env_var():
+    """QBRAID_ACCESS_TOKEN alone (as exported in qBraid Lab) is enough."""
+    with _CredentialEnv(QBRAID_ACCESS_TOKEN=TEST_ACCESS_TOKEN):
+        _set_qbraid_target(api_key=None)
+        assert len(_sample_one_qubit()) >= 1
+        assert _last_auth_scheme() == "bearer"
+
+
+def test_qbraid_api_key_env_preferred_over_access_token_env():
+    """With both env vars set, the API key is used."""
+    with _CredentialEnv(QBRAID_API_KEY=TEST_API_KEY,
+                        QBRAID_ACCESS_TOKEN=TEST_ACCESS_TOKEN):
+        _set_qbraid_target(api_key=None)
+        assert len(_sample_one_qubit()) >= 1
+        assert _last_auth_scheme() == "api_key"
+
+
+def test_qbraid_access_token_arg_preferred_over_api_key_env():
+    """An explicit target argument beats any environment variable."""
+    with _CredentialEnv(QBRAID_API_KEY=TEST_API_KEY):
+        _set_qbraid_target(api_key=None, access_token=TEST_ACCESS_TOKEN)
+        assert len(_sample_one_qubit()) >= 1
+        assert _last_auth_scheme() == "bearer"
+
+
+def test_qbraid_missing_credentials():
+    """No API key or access token anywhere -> actionable error."""
+    with _CredentialEnv():
+        with pytest.raises(RuntimeError, match="QBRAID_ACCESS_TOKEN"):
+            _set_qbraid_target(api_key=None)
 
 
 def test_qbraid_machine_alternative_device():
