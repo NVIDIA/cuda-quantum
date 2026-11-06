@@ -330,6 +330,63 @@ def test_float_floor_division_error():
     assert error in str(e.value)
 
 
+def test_float_modulo_matches_python():
+
+    @cudaq.kernel
+    def kernel_mod(left: float, right: float) -> float:
+        return left % right
+
+    @cudaq.kernel
+    def kernel_mod_float32(left: np.float32, right: np.float32) -> np.float32:
+        return left % right
+
+    # `fmod` keeps the sign of the dividend; Python's `%` takes the sign of
+    # the divisor.
+    cases = [(9.0, 2.0), (-9.0, 2.0), (9.0, -2.0), (-9.0, -2.0), (-0.5, 2.0),
+             (0.5, -2.0), (7.5, 2.0), (-7.5, 2.0), (-1.0, 0.1)]
+    for left, right in cases:
+        expected = left % right
+        actual = kernel_mod(left, right)
+        assert is_close(expected, actual)
+        assert math.copysign(1.0, expected) == math.copysign(1.0, actual)
+
+    for left, right in cases[:-1]:
+        expected = np.float32(left) % np.float32(right)
+        actual = kernel_mod_float32(np.float32(left), np.float32(right))
+        assert is_close(expected, actual)
+        assert math.copysign(1.0, expected) == math.copysign(1.0, actual)
+
+
+def test_float_modulo_zero_remainder_takes_sign_of_divisor():
+
+    @cudaq.kernel
+    def kernel_mod(left: float, right: float) -> float:
+        return left % right
+
+    # `-0.0 == 0.0`, so compare the signs explicitly.
+    for left, right in [(4.0, 2.0), (-4.0, 2.0), (4.0, -2.0), (-4.0, -2.0),
+                        (0.0, -2.0), (-0.0, 2.0)]:
+        expected = left % right
+        actual = kernel_mod(left, right)
+        assert actual == 0.0
+        assert math.copysign(1.0, expected) == math.copysign(1.0, actual)
+
+
+def test_float_modulo_non_finite_operands():
+
+    @cudaq.kernel
+    def kernel_mod(left: float, right: float) -> float:
+        return left % right
+
+    for left, right in [(5.0, math.inf), (-5.0, math.inf), (5.0, -math.inf),
+                        (-5.0, -math.inf)]:
+        assert kernel_mod(left, right) == left % right
+
+    for left, right in [(math.inf, 2.0), (math.nan, 2.0), (2.0, math.nan)]:
+        assert math.isnan(left % right)
+        assert math.isnan(kernel_mod(left, right))
+
+
 # np.float64
 
 
