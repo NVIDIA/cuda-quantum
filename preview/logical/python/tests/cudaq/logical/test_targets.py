@@ -732,6 +732,29 @@ def test_estimate_resources_report_the_logical_profile():
     assert resources.count() == resources.depth
 
 
+@cudaq.kernel
+def estimate_bell_bits() -> tuple[bool, bool]:
+    qubits = cudaq.qvector(2)
+    h(qubits[0])
+    x.ctrl(qubits[0], qubits[1])
+    return mz(qubits[0]), mz(qubits[1])
+
+
+def test_estimate_accepts_a_kernel_that_returns_measured_bits():
+    # A kernel with a result reaches the importer with CUDA-Q's host launch
+    # code, and with its tuple as one struct.
+    try:
+        cudaq.set_target(cudaq.logical.targets.estimator)
+        result = cudaq.estimate(estimate_bell_bits)
+    finally:
+        cudaq.reset_target()
+
+    assert result.resources.num_qubits == 2
+    assert result.resources.count("h") == 1
+    assert result.resources.count_controls("x", 1) == 1
+    assert result.resources.count("mz") == 2
+
+
 def test_estimate_resources_stay_logical_on_a_full_stack():
     target = cudaq.logical.targets.surface_physical_target(logical_capacity=1)
     try:
