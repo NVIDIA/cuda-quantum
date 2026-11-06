@@ -8,14 +8,10 @@
 
 #pragma once
 
-/// Generic nanobind type casters between C++ structs and enums and Python
-/// dataclasses and enums. Describe a struct with a `Dataclass` specialization
+/// Generic nanobind type casters between C++ structs and Python dataclasses.
+/// Describe a struct with a `Dataclass` specialization
 /// and an enum with an `Enum` specialization; values are deep-copied when
 /// converted.
-///
-/// The casters take a `Module` class whose static `get()` returns the Python
-/// module defining the types, with `isInstance`, `create`, `enumMemberName`
-/// and `enumMember` methods.
 
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/optional.h>
