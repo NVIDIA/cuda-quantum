@@ -18,7 +18,7 @@
 // Shared mutex to guard concurrent access to global kernel data (e.g.,
 // `quakeRegistry`, `kernelRegistry`, `argsCreators`, `lambdaNames`).
 // These global variables might be accessed (write or read) concurrently, e.g.,
-// async. execution of kernels or via CUDA Quantum API (e.g.,
+// async. execution of kernels or via CUDA-Q API (e.g.,
 // `get_quake_by_name`). Note: currently, we use a single mutex for all static
 // global variables for simplicity since these containers are small and not
 // frequently accessed.
