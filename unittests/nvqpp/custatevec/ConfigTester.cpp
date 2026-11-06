@@ -64,6 +64,26 @@ TEST(CuStateVecConfigTester, ClampsCuStateVecExUpdaterLimits) {
 
 } // namespace
 
+TEST(CuStateVecDeviceTester,
+     RecommendsDenseFusionOnRubinWithMeasuredCuStateVec) {
+  using cudaq::cusv::recommendedDenseFusionQubits;
+  EXPECT_EQ(recommendedDenseFusionQubits(10, 7, true, 11500), 3);
+  EXPECT_EQ(recommendedDenseFusionQubits(10, 7, false, 11500), 4);
+  EXPECT_EQ(recommendedDenseFusionQubits(10, 7, true, 11599), 3);
+}
+
+TEST(CuStateVecDeviceTester, DefersDenseFusionToCuStateVecElsewhere) {
+  using cudaq::cusv::recommendedDenseFusionQubits;
+  // Other architectures keep the cuStateVecEx default.
+  EXPECT_FALSE(recommendedDenseFusionQubits(10, 0, true, 11500));
+  EXPECT_FALSE(recommendedDenseFusionQubits(10, 3, false, 11500));
+  EXPECT_FALSE(recommendedDenseFusionQubits(9, 0, true, 11500));
+  EXPECT_FALSE(recommendedDenseFusionQubits(11, 7, true, 11500));
+  // The sizes were not measured on cuStateVec 1.16 or later.
+  EXPECT_FALSE(recommendedDenseFusionQubits(10, 7, true, 11600));
+  EXPECT_FALSE(recommendedDenseFusionQubits(10, 7, false, 12000));
+}
+
 TEST(CuStateVecDeviceTester, AccountsForReusableMemoryPoolBytes) {
   cudaq::cusv::DeviceMemoryCapacity capacity;
   capacity.cudaFreeBytes = 4;

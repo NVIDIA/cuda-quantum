@@ -39,6 +39,25 @@ DeviceMemoryCapacity queryDeviceMemoryCapacity();
 /// non-Linux).
 std::optional<std::size_t> systemMemAvailableBytes();
 
+/// Returns the dense gate-fusion size to use on a device when the user has not
+/// set one, or `nullopt` to leave the choice to `cuStateVecEx`.
+///
+/// `cuStateVecEx` 1.15 selects a dense fusion size of 2 on compute capability
+/// 10.7 (Rubin), where 3 (FP64) and 4 (FP32) measured fastest. The sizes were
+/// not measured on newer releases, so a `cuStateVecVersion`
+/// (`custatevecGetVersion()`) at or above `unmeasuredCuStateVecVersion`
+/// always defers to the library.
+std::optional<int32_t> recommendedDenseFusionQubits(
+    int32_t computeCapabilityMajor, int32_t computeCapabilityMinor,
+    bool doublePrecision, std::size_t cuStateVecVersion);
+
+/// First `cuStateVec` version (1.16.0) the sizes above were not measured on.
+inline constexpr std::size_t unmeasuredCuStateVecVersion = 11600;
+
+/// Applies `recommendedDenseFusionQubits` to the active CUDA device and the
+/// loaded `cuStateVec`. Returns `nullopt` if the device cannot be queried.
+std::optional<int32_t> recommendedDenseFusionQubits(bool doublePrecision);
+
 /// Returns the number of host-migration wires supported by the memory ratio,
 /// capped at the three migration wires accepted by cuStateVecEx.
 int32_t migrationWireCapacity(std::size_t hostBytes, std::size_t deviceBytes);
