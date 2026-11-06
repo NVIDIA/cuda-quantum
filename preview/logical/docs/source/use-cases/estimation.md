@@ -241,3 +241,39 @@ assert static.patches_peak == 1
 assert logical.logical_qubits_peak == 1
 assert estimates.resources.num_qubits == logical.logical_qubits_peak
 ```
+
+### Inspect the builds behind an estimate
+
+The annotations report numbers, but the target compiled the kernel through each
+of its stages to get them. Pass a directory as `save_temps` to keep every build
+the target produced. Each stage is saved twice: as `<kernel>.<stage>.<digest>.mlir`
+to read, and as `<kernel>.<stage>.<digest>.build`, which `cql.load_build` reads
+back into an identical build. The digest is the first 12 hexadecimal digits of
+the build's `content_sha256`. The `BUILDS` annotation locates the files, keyed
+by the stage that produced them (`p0`, `clifford_t`, `p1`, `p2`, `p3`; a target
+saves the stages it has):
+
+```python
+import tempfile
+import cudaq.logical as cql
+
+with tempfile.TemporaryDirectory() as directory:
+    estimates = cudaq.estimate(kernel, kernel_args, save_temps=directory)
+    saved = sorted(estimates.annotations["BUILDS"])
+    p0 = cql.load_build(estimates, stage="p0")
+    last = cql.load_build(estimates)
+
+assert "p0" in saved
+assert p0.stage == cql.stages.P0
+assert "qlx.program" in p0.to_mlir()
+```
+
+`load_build` returns the last stage by default. A loaded build does not retain
+its device, so give the calibration (`p_phys`, `failure_budget`, `cycle_time`)
+when you estimate a loaded schedule.
+
+To compile a kernel for a target without estimating it, call
+`cudaq.compile(kernel, target=target)`. Pass `str(module.mlir_module)` of the
+result to `cql.compiler.import_quake` to get its P0 build. The
+[walkthrough](../getting-started/cudaq-logical-in-practice.md) follows both
+calls for the Steane Bell pair.

@@ -270,7 +270,9 @@ def import_quake(
 ) -> Build:
     """Import ``!quake.wire`` CUDA-Q Quake as a verified P0 ``Build``.
 
-    ``source`` may be Quake MLIR text or a :class:`pathlib.Path`.
+    ``source`` may be Quake MLIR text or a :class:`pathlib.Path`. To import a
+    CUDA-Q kernel, compile it for a Logical target first and pass the result:
+    ``import_quake(str(cudaq.compile(kernel, target=target).mlir_module))``.
     ``root`` selects the source entry before conversion and is required when
     the source contains more than one CUDA-Q entry point. An abbreviated name
     is accepted only when it identifies exactly one source entry.
@@ -291,43 +293,3 @@ def import_quake(
         assumptions=("preparation:pre-normalized",),
         source_modules=source_modules,
     )
-
-
-def import_cudaq(
-    kernel,
-    *arguments,
-    source_modules: tuple[str, ...] = (),
-    optimization_level: int | None = None,
-) -> Build:
-    """Compile a ``@cudaq.kernel`` for Logical and import it as P0.
-
-    CUDA-Q compiles the kernel with a Logical target's compile target, never
-    with the target installed with ``cudaq.set_target``, and substitutes
-    ``arguments``. :func:`import_quake` then imports the result.
-    ``optimization_level`` defaults to CUDA-Q's default level.
-    """
-
-    from cudaq.kernel.kernel_decorator import isa_kernel_decorator
-    from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-
-    from ..targets import Target
-
-    if not isa_kernel_decorator(kernel):
-        raise TypeError("kernel must be a standard @cudaq.kernel object")
-    # Compile exactly as a launch on a Logical target does, so both paths give
-    # the same counts. Logical's endpoint is local, never emulated, and reads
-    # the MLIR, so no JIT engine is built.
-    processed, module = kernel.prepare_call(*arguments)
-    compiled = cudaq_runtime.compile_module(
-        kernel.uniqName,
-        module,
-        *processed,
-        compile_target=Target._new_compile_target(),
-        is_remote=False,
-        is_emulated=False,
-        supports_jit=False,
-        optimization_level=optimization_level,
-    )
-    return import_quake(str(compiled.mlir_module),
-                        root=kernel.name,
-                        source_modules=source_modules)

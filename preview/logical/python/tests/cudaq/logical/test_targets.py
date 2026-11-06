@@ -64,6 +64,22 @@ def test_target_define_exposes_a_one_level_backend_endpoint():
     assert cudaq.logical.emit(bell_pair, target=target).startswith("module")
 
 
+def test_program_backend_compiles_a_compiled_module():
+    compiled = cudaq.compile(logical_zero_readout,
+                             target=cudaq.logical.targets.estimator)
+
+    build = cudaq.logical.targets.estimator.runtime_endpoint.compile(compiled)
+
+    assert build.profile == "p0"
+
+
+def test_program_backend_rejects_a_kernel():
+    endpoint = cudaq.logical.targets.estimator.runtime_endpoint
+
+    with pytest.raises(TypeError, match=r"cudaq\.compile"):
+        endpoint.compile(logical_zero_readout)
+
+
 def test_target_print_stack_reports_its_runtime_backends(capsys):
     assert cudaq.logical.targets.mlir.print_stack() is None
 
@@ -291,15 +307,18 @@ def test_optimization_levels_merge_rotations(level, rotations):
     assert resources.count("pauli_rotation") == rotations
 
 
-def test_import_cudaq_compiles_at_the_given_level():
+def test_compile_import_compiles_at_the_given_level():
     # The build hash covers the module text, whose symbol names vary between
     # compiles, so compare everything else.
     def without_hash(estimate):
         return {k: v for k, v in estimate.items() if k != "build_sha256"}
 
     def imported(level):
-        build = cudaq.logical.compiler.import_cudaq(ising_trotter_steps,
-                                                    optimization_level=level)
+        build = cudaq.logical.compiler.import_quake(
+            str(
+                cudaq.compile(ising_trotter_steps,
+                              target=cudaq.logical.targets.estimator,
+                              optimization_level=level).mlir_module))
         return without_hash(
             cudaq.logical.analysis.estimate(
                 build, tier=cudaq.logical.analysis.Tier.LOGICAL).to_dict())

@@ -18,6 +18,18 @@ import pytest
 ROOT = Path(__file__).resolve().parents[4]
 
 
+def _import_kernel(kernel, *args, optimization_level=None):
+    """Compile a CUDA-Q kernel for the estimation target and import it as P0."""
+    import cudaq
+    import cudaq.logical as cql
+
+    compiled = cudaq.compile(kernel,
+                             *args,
+                             target=cql.targets.estimator,
+                             optimization_level=optimization_level)
+    return cql.compiler.import_quake(str(compiled.mlir_module))
+
+
 def test_device_timing_units_and_operating_point():
     import cudaq.logical as cql
 
@@ -138,7 +150,7 @@ def test_cudaq_kernel_can_define_a_gadget_objective_and_declaration():
         right = cudaq.qubit()
         declaration(left, right)
 
-    imported = cql.compiler.import_cudaq(paired_h_caller)
+    imported = _import_kernel(paired_h_caller)
     assert "qlx.action @paired_h" in imported.to_mlir()
     assert "qlx.apply @paired_h" in imported.to_mlir()
 
@@ -170,11 +182,11 @@ def test_native_logical_objective_exports_a_kernel_through_its_gadget():
         right = cudaq.qubit()
         paired_x_call(left, right)
 
-    imported = cql.compiler.import_cudaq(paired_x_caller)
+    imported = _import_kernel(paired_x_caller)
     assert "qlx.apply @paired_x" in imported.to_mlir()
 
 
-def test_import_cudaq_accepts_a_qvector_kernel():
+def test_kernel_import_accepts_a_qvector_kernel():
     import cudaq
     import cudaq.logical as cql
 
@@ -185,13 +197,13 @@ def test_import_cudaq_accepts_a_qvector_kernel():
         x.ctrl(q[0], q[1])
         mz(q)
 
-    p0 = cql.compiler.import_cudaq(bell_qvector).to_mlir()
+    p0 = _import_kernel(bell_qvector).to_mlir()
     assert p0.count("#qlx.action<h>") == 1
     assert p0.count("#qlx.action<cx>") == 1
     assert p0.count("qlx.measure <Z>") == 2
 
 
-def test_import_cudaq_accepts_a_scalar_qubit_kernel():
+def test_kernel_import_accepts_a_scalar_qubit_kernel():
     import cudaq
     import cudaq.logical as cql
 
@@ -204,13 +216,13 @@ def test_import_cudaq_accepts_a_scalar_qubit_kernel():
         mz(left)
         mz(right)
 
-    p0 = cql.compiler.import_cudaq(bell_qubits).to_mlir()
+    p0 = _import_kernel(bell_qubits).to_mlir()
     assert p0.count("#qlx.action<h>") == 1
     assert p0.count("#qlx.action<cx>") == 1
     assert p0.count("qlx.measure <Z>") == 2
 
 
-def test_import_cudaq_accepts_an_unmeasured_qvector_kernel():
+def test_kernel_import_accepts_an_unmeasured_qvector_kernel():
     import cudaq
     import cudaq.logical as cql
 
@@ -220,13 +232,13 @@ def test_import_cudaq_accepts_an_unmeasured_qvector_kernel():
         h(q[0])
         x.ctrl(q[0], q[1])
 
-    p0 = cql.compiler.import_cudaq(unmeasured).to_mlir()
+    p0 = _import_kernel(unmeasured).to_mlir()
     assert p0.count("#qlx.action<h>") == 1
     assert p0.count("#qlx.action<cx>") == 1
     assert "qlx.measure" not in p0
 
 
-def test_import_cudaq_accepts_a_multicontrolled_gate():
+def test_kernel_import_accepts_a_multicontrolled_gate():
     import cudaq
     import cudaq.logical as cql
 
@@ -236,12 +248,12 @@ def test_import_cudaq_accepts_a_multicontrolled_gate():
         x.ctrl(q[0], q[1], q[2])
         mz(q)
 
-    p0 = cql.compiler.import_cudaq(toffoli).to_mlir()
+    p0 = _import_kernel(toffoli).to_mlir()
     assert p0.count("#qlx.action<ccx>") == 1
     assert p0.count("qlx.measure <Z>") == 3
 
 
-def test_import_cudaq_unrolls_only_loops_that_use_their_index():
+def test_compile_import_unrolls_only_loops_that_use_their_index():
     import cudaq
     import cudaq.logical as cql
 
@@ -260,7 +272,7 @@ def test_import_cudaq_unrolls_only_loops_that_use_their_index():
     # The repeat loop stays folded, with the index loop inside it unrolled.
     # The 1100-iteration loop and the angle loop unroll, so they leave no
     # second `cflow.repeat`.
-    build = cql.compiler.import_cudaq(loops)
+    build = _import_kernel(loops)
     assert build.to_mlir().count("cflow.repeat") == 1
     actions = cql.analysis.estimate(build,
                                     tier=cql.analysis.Tier.LOGICAL).actions
@@ -268,7 +280,7 @@ def test_import_cudaq_unrolls_only_loops_that_use_their_index():
     assert actions["qlx_standard_h"] == 1100
 
 
-def test_import_cudaq_matches_the_target_whatever_target_is_installed():
+def test_compile_import_matches_the_target_whatever_target_is_installed():
     import cudaq
     import cudaq.logical as cql
 
@@ -283,18 +295,18 @@ def test_import_cudaq_matches_the_target_whatever_target_is_installed():
         through_target = cudaq.estimate(ccrx).annotations["LOGICAL"]
     finally:
         cudaq.reset_target()
-    # `import_cudaq` compiles with a Logical target's compile target, never
-    # with the installed one, even when that target is emulated.
+    # An explicit Logical target controls compilation even when the installed
+    # target is emulated.
     cudaq.set_target("quantinuum", emulate=True)
     try:
-        direct = cql.compiler.import_cudaq(ccrx)
+        direct = _import_kernel(ccrx)
     finally:
         cudaq.reset_target()
     assert cql.analysis.estimate(
         direct, tier=cql.analysis.Tier.LOGICAL).to_dict() == through_target
 
 
-def test_import_cudaq_rejects_a_noisy_kernel(capfd):
+def test_compile_import_rejects_a_noisy_kernel(capfd):
     import cudaq
     import cudaq.logical as cql
 
@@ -307,7 +319,7 @@ def test_import_cudaq_rejects_a_noisy_kernel(capfd):
 
     # The compiler reports the reason on `stderr`, not in the exception.
     with pytest.raises(RuntimeError, match="Quake lowering failed"):
-        cql.compiler.import_cudaq(noisy)
+        _import_kernel(noisy)
     assert "the target does not support noise" in capfd.readouterr().err
 
 
@@ -323,7 +335,7 @@ def test_cudaq_qvector_and_scalar_import_as_zero_preparation():
         mz(register)
         mz(scalar)
 
-    imported = cql.compiler.import_cudaq(qvector_entry)
+    imported = _import_kernel(qvector_entry)
     text = imported.to_mlir()
 
     assert text.count('qlx.prepare "zero"') == 4
