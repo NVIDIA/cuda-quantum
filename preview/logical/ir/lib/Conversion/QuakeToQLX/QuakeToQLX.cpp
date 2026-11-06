@@ -1284,10 +1284,10 @@ private:
             return phase.emitOpError(
                 "controlled phases are outside the Quake-to-P0 contract; "
                 "lower upstream");
-          if (!isa<cudaq::quake::WireType>(phase.getTarget().getType()) ||
-              phase.getWires().size() != 1)
-            return phase.emitOpError("requires a value-semantics anchor wire");
           Value input = phase.getTarget();
+          if (!isa<cudaq::quake::WireType>(input.getType()) ||
+              phase.getWires().size() != 1)
+            return phase.emitOpError("requires an anchor wire");
           Value result = phase.getWires().front();
           if (failed(hydrateReferenceWires(phase, ValueRange{input}, state)))
             return failure();
