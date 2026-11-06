@@ -75,7 +75,7 @@ Start from the result you want:
 | If you want to…                                                            | Go to                                                                         |
 | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | **Install and run a first estimate**                                       | [Getting started](getting-started/quickstart.md)                              |
-| **Build, place, and estimate a logical program**                           | [The logical programming stack](getting-started/cudaq-logical-in-practice.md) |
+| **Compile, place, estimate, and run a CUDA-Q kernel**                      | [The logical programming stack](getting-started/cudaq-logical-in-practice.md) |
 | **Do a specific job** (define a code, place, distill, estimate, emit Stim) | [Use cases](use-cases/define-a-code.md)                                       |
 | **Browse runnable end-to-end examples**                                    | [Examples](use-cases/examples/index.md)                                       |
 | **Inspect advanced internals or build against CUDA-Q**                     | [Reference](reference/architecture.md)                                        |
