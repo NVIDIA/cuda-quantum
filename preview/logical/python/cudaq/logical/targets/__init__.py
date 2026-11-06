@@ -448,6 +448,7 @@ def _cudaq_estimate_result(estimates, builds=None):
 
     ``resources`` reports the logical program (only when a LOGICAL estimate is
     available); every tier, including LOGICAL, is also kept in ``annotations``.
+    ``builds`` locates the saved builds.
     """
 
     from cudaq.core.results import EstimateResult
