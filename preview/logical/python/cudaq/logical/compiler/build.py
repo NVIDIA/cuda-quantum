@@ -1425,9 +1425,9 @@ def _verify_communication_selection(module, root, placement, qec_selection,
                 compiler, request, plan)
             expected_validator = lattice_surgery._replay_validator_identity(
                 compiler)
-            actual_validator = (
-                _attr_text(metadata["network_replay_validator"])
-                if "network_replay_validator" in metadata else None)
+            actual_validator = (_attr_text(metadata["network_replay_validator"])
+                                if "network_replay_validator" in metadata else
+                                None)
             if actual_validator != expected_validator:
                 raise ValueError(
                     f"{prefix}: network replay validator differs from the "
@@ -3347,13 +3347,16 @@ class Build:
                 operation = result.definitions[result.root.symbol].op
                 if result.profile == "p3":
                     if (result.qec_selection is not None and
-                            result.qec_selection.network_manifest_sha256 is not None):
+                            result.qec_selection.network_manifest_sha256
+                            is not None):
                         if "source_protocol" not in operation.attributes:
                             raise ValueError(
-                                "network P3 replay requires its retained P2 source")
+                                "network P3 replay requires its retained P2 source"
+                            )
                         source_symbol = _attr_text(
                             operation.attributes["source_protocol"])
-                        source_definition = result.definitions.get(source_symbol)
+                        source_definition = result.definitions.get(
+                            source_symbol)
                         if (source_definition is None or
                                 source_definition.op.name != "fabric.protocol"):
                             raise ValueError(
@@ -3362,24 +3365,27 @@ class Build:
                 if ("qlx.qec_network_request" in operation.attributes or
                         "qlx.qec_network_plan" in operation.attributes):
                     if ("qlx.qec_network_request" not in operation.attributes or
-                            "qlx.qec_network_plan" not in operation.attributes or
-                            "metadata" not in operation.attributes or
-                            "network_replay_validator" not in
-                            operation.attributes["metadata"]):
+                            "qlx.qec_network_plan" not in operation.attributes
+                            or "metadata" not in operation.attributes or
+                            "network_replay_validator"
+                            not in operation.attributes["metadata"]):
                         raise ValueError(
                             "device-free network P2 replay requires an "
                             "importable provider replay validator")
                     metadata = operation.attributes["metadata"]
                     request_payload = lattice_surgery._network_request_payload(
-                        _attr_text(operation.attributes["qlx.qec_network_request"]))
+                        _attr_text(
+                            operation.attributes["qlx.qec_network_request"]))
                     plan = lattice_surgery.QECNetworkPlan.from_json(
-                        _attr_text(operation.attributes["qlx.qec_network_plan"]))
+                        _attr_text(
+                            operation.attributes["qlx.qec_network_plan"]))
                     if result.profile == "p3":
                         graph = result.definitions[result.root.symbol].op
                         graph_commitments = {
                             "qlx.qec_network_request_sha256":
                                 lattice_surgery._digest(request_payload),
-                            "qlx.qec_network_plan_sha256": plan.digest,
+                            "qlx.qec_network_plan_sha256":
+                                plan.digest,
                             "qlx.qec_network_artifact_sha256":
                                 plan.artifact.sha256,
                             "qlx.qec_network_projector":
@@ -3391,12 +3397,15 @@ class Build:
                                _attr_text(graph.attributes[name]) != expected
                                for name, expected in graph_commitments.items()):
                             raise ValueError(
-                                "network P3 replay projection commitments differ")
+                                "network P3 replay projection commitments differ"
+                            )
                     if result.qec_selection is None or result.placement is None:
                         raise ValueError(
-                            "network P2 replay requires QEC selection and placement")
+                            "network P2 replay requires QEC selection and placement"
+                        )
                     selected_sites = tuple(
-                        action.site for action in result.qec_selection.actions
+                        action.site
+                        for action in result.qec_selection.actions
                         if action.manifest_sha256 ==
                         request_payload["lowering_manifest_sha256"])
                     runs = _qec_network_region_runs(
@@ -3417,13 +3426,15 @@ class Build:
                     }
                     try:
                         dependencies = {
-                            name: tuple(name_by_measurement[dependency]
-                                        for dependency in measurement.after)
+                            name:
+                                tuple(name_by_measurement[dependency]
+                                      for dependency in measurement.after)
                             for name, measurement in zip(names, measurements)
                         }
                     except KeyError as exc:
                         raise ValueError(
-                            "network replay has an unknown P0 dependency") from exc
+                            "network replay has an unknown P0 dependency"
+                        ) from exc
                     lattice_surgery._validate_replayed_network_request(
                         request_payload,
                         result.qec_selection,

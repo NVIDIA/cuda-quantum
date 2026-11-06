@@ -247,10 +247,10 @@ class PhysicalProjectionBuilder:
         )
 
     def project_source(
-        self,
-        *,
-        experiment=None,
-        evidence=(),
+            self,
+            *,
+            experiment=None,
+            evidence=(),
     ) -> PhysicalProjectionEmission:
         """Project the retained P2 source with CUDA-Q Logical's native engine.
 
@@ -260,8 +260,7 @@ class PhysicalProjectionBuilder:
         """
 
         if self._root is not None:
-            raise RuntimeError(
-                "physical projection graph is already sealed")
+            raise RuntimeError("physical projection graph is already sealed")
         projected = _P2ToP3(self._projection.source, self._device).project(
             pipeline=self._pipeline,
             experiment=experiment,

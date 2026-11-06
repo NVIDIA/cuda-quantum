@@ -67,13 +67,16 @@ def _action(
         objective="test.logical_product",
         placements=placements,
         parameters={
-            "x_mask": sum(
-                1 << index for index, pauli in enumerate(paulis)
-                if pauli in {"X", "Y"}),
-            "z_mask": sum(
-                1 << index for index, pauli in enumerate(paulis)
-                if pauli in {"Z", "Y"}),
-            "sign": 1,
+            "x_mask":
+                sum(1 << index
+                    for index, pauli in enumerate(paulis)
+                    if pauli in {"X", "Y"}),
+            "z_mask":
+                sum(1 << index
+                    for index, pauli in enumerate(paulis)
+                    if pauli in {"Z", "Y"}),
+            "sign":
+                1,
         },
         input_arity=len(logical_indices),
         result_arity=len(logical_indices) + 1,
@@ -322,7 +325,7 @@ def test_commuting_products_rejects_anticommuting_overlap() -> None:
 
 
 def test_commuting_products_uses_measurements_even_if_site_masks_are_swapped(
-        ) -> None:
+) -> None:
     mixed = _action(
         "measure01_mixed",
         (0, 1),
@@ -337,10 +340,15 @@ def test_commuting_products_uses_measurements_even_if_site_masks_are_swapped(
     )
     # The multiset of mask letters still matches, but the assignment to
     # owners no longer matches the actual X0 Z1 measurement.
-    swapped = replace(mixed, site=replace(
-        mixed.site,
-        parameters={"x_mask": 2, "z_mask": 1, "sign": 1},
-    ))
+    swapped = replace(mixed,
+                      site=replace(
+                          mixed.site,
+                          parameters={
+                              "x_mask": 2,
+                              "z_mask": 1,
+                              "sign": 1
+                          },
+                      ))
     request, plan = _request_and_plan(
         (swapped, overlap),
         block_sharing="commuting_products",

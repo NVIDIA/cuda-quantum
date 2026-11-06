@@ -230,7 +230,6 @@ def device_for(compiler):
     return builder.build()
 '''
 
-
 _COMPILE = r'''
 from pathlib import Path
 import sys
@@ -295,7 +294,6 @@ except NotImplementedError as error:
 else:
     raise AssertionError("unchecked provider artifact reached P2")
 '''
-
 
 _REPLAY = r'''
 import json
@@ -471,7 +469,8 @@ def _run_phase(code: str, *, directory: Path, bundle: Path) -> None:
     import cudaq.logical as qlx
 
     package_root = Path(qlx.__file__).resolve().parents[2]
-    paths = (str(directory), str(package_root), os.environ.get("PYTHONPATH", ""))
+    paths = (str(directory), str(package_root),
+             os.environ.get("PYTHONPATH", ""))
     environment = os.environ.copy()
     environment["PYTHONPATH"] = os.pathsep.join(path for path in paths if path)
     result = subprocess.run(
