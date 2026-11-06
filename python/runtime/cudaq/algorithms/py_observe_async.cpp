@@ -72,7 +72,8 @@ pyObserveAsync(const std::string &shortName, mlir::ModuleOp mod,
   auto &platform = get_platform();
   args = simplifiedValidateInputArguments(args);
   auto fnOp = getKernelFuncOp(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, args, fnOp);
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, args, fnOp, launchSpecializesArguments(qpu_id));
 
   // Launch the asynchronous execution.
   nanobind::gil_scoped_release release;
@@ -167,9 +168,7 @@ static observe_result pyObservePar(
       localH, nQpus);
 
   // combine all the data via an all_reduce
-  auto exp_val = localRankResult.expectation();
-  auto globalExpVal = mpi::all_reduce(exp_val, std::plus<double>());
-  return observe_result{globalExpVal, spin_operator};
+  return detail::allReduceObserveResult(localRankResult, spin_operator);
 }
 
 /// Observe can be a single observe call, a parallel observe call, or a observe

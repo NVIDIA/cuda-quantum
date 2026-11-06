@@ -36,7 +36,9 @@ if (TARGET cudaq-realtime-bridge-cpu-roce AND
   # The server is exec'd, not linked.
   add_dependencies(test_cpu_roce_two_process cudaq-realtime-test-server)
 
-  cudaq_gtest_discover_tests(test_cpu_roce_two_process DISCOVERY_TIMEOUT 120)
+  # Each case takes seconds. A hung case must not wait for the 1500 s default.
+  cudaq_gtest_discover_tests(test_cpu_roce_two_process DISCOVERY_TIMEOUT 120
+    PROPERTIES TIMEOUT 120)
   message(STATUS
     "  - test_cpu_roce_two_process (cpu_roce dispatch, two processes)")
 endif()

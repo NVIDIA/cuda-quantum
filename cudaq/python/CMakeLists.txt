@@ -55,7 +55,6 @@ declare_mlir_python_extension(CUDAQCorePythonSources.Backends
   ADD_TO_PARENT CUDAQCorePythonSources
   SOURCES
     py_core_backends.cpp
-    ../../python/runtime/cudaq/target/py_compile_target.cpp
     ../../python/runtime/common/py_Resources.cpp
     ../../python/runtime/common/py_EstimateResult.cpp
     ../../python/runtime/cudaq/trace/py_trace.cpp
@@ -184,14 +183,19 @@ if(CUDAQ_BUILD_SPLIT_WHEELS)
     INTERFACE_SOURCES "${_mlir_sources}")
 endif()
 
+add_dependencies(CUDAQCorePythonModules CUDAQTargetPython)
+
 # Shared backend values are available without the frontend package.
 cudaq_stage_python_sources(CUDAQCorePythonPackageStaging
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
   OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python/cudaq"
-  SOURCES core/__init__.py core/backends.py)
+  SOURCES core/__init__.py core/results.py
+    core/_experimental/__init__.py)
 add_dependencies(CUDAQCorePythonModules CUDAQCorePythonPackageStaging)
-install(FILES core/__init__.py core/backends.py
+install(FILES core/__init__.py core/results.py
   DESTINATION cudaq/core COMPONENT CUDAQCorePythonModules)
+install(FILES core/_experimental/__init__.py
+  DESTINATION cudaq/core/_experimental COMPONENT CUDAQCorePythonModules)
 
 # Logical compilation uses the shared logger's tracing API without the frontend.
 # Keep its public Python path and source location; core stages and installs it.

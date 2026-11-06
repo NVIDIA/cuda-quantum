@@ -23,32 +23,10 @@ from .context import CompilationContext
 from .linearity import verify_linearity
 from .pipeline import pipelines
 
-# This is the CUDA-Q compile-target pipeline advertised by Target. It is the only
-# preparation Quake receives before the typed Quake-to-P0 boundary, so it must
-# leave no !quake.ref values behind; reordering it changes the allocation
-# normalization order and does.
-# Passes bracketing `prepare-for-wireset` are QLX-specific and deliberately live
-# here rather than in the shared CUDA-Q pipeline. The decomposition basis is the
-# gate set Quake-to-P0 accepts. Its patterns cover at most one control, so
-# `multicontrol-decomposition` first reduces every other multi-controlled gate
-# to Toffolis plus a singly-controlled gate; it needs reference semantics and
-# therefore runs before `prepare-for-wireset` converts to wires.
-CUDAQ_TARGET_PREPARATION_PIPELINE = ",".join((
-    "expand-measurements",
-    "canonicalize",
-    "globalize-array-values",
-    "canonicalize",
-    "func.func(multicontrol-decomposition)",
-    "canonicalize",
-    "prepare-for-wireset{unroll-only-index-use-loops=true maximum-iterations=2048000}",
-    "decomposition{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}",
-    "canonicalize",
-    "func.func(normalize-phase-placement)",
-    "func.func(lower-phase)",
-    "func.func(expand-control-negations)",
-    "canonicalize",
-    "cse",
-))
+# The gates `import_quake` maps to Logical actions, in the `basis-conversion`
+# grammar: `x(2)` is an `x` with two controls.
+IMPORT_BASIS_GATES = ("h", "s", "t", "x", "y", "z", "x(1)", "z(1)", "x(2)",
+                      "z(2)", "swap", "rx", "ry", "rz", "r1")
 
 
 def _text(source) -> tuple[str, str]:
@@ -151,10 +129,8 @@ def convert_quake_to_p0(module, *, root: str | None = None):
 def _run_quake_to_p0_pass(module, *, root: str | None = None):
     """Convert a live module, deferring linearity to the owning caller.
 
-    This private seam exists so the closed ``import_quake`` path can run one
-    authoritative linearity check while constructing its immutable
-    :class:`Build`. The public low-level conversion API above remains
-    independently checked.
+    ``import_quake`` checks linearity once, while it builds the immutable
+    :class:`Build`. :func:`convert_quake_to_p0` checks linearity itself.
     """
 
     if not hasattr(module, "operation"):
@@ -295,7 +271,7 @@ def import_quake(
     """Import ``!quake.wire`` CUDA-Q Quake as a verified P0 ``Build``.
 
     ``source`` may be Quake MLIR text or a :class:`pathlib.Path`. To import a
-    CUDA-Q kernel, compile it for a logical target first and pass the result:
+    CUDA-Q kernel, compile it for a Logical target first and pass the result:
     ``import_quake(str(cudaq.compile(kernel, target=target).mlir_module))``.
     ``root`` selects the source entry before conversion and is required when
     the source contains more than one CUDA-Q entry point. An abbreviated name

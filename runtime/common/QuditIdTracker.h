@@ -9,6 +9,7 @@
 #pragma once
 
 #include <algorithm>
+#include <functional>
 #include <vector>
 
 namespace cudaq {
@@ -21,7 +22,7 @@ private:
   /// @brief The current identifier.
   std::size_t currentId = 0;
 
-  /// @brief The queue of recycled qubits.
+  /// @brief Min-heap of recycled qubits, reusing the smallest index first.
   std::vector<std::size_t> recycledQudits;
 
 public:
@@ -42,6 +43,8 @@ public:
       return ret;
     }
 
+    std::pop_heap(recycledQudits.begin(), recycledQudits.end(),
+                  std::greater<std::size_t>());
     auto next = recycledQudits.back();
     recycledQudits.pop_back();
     return next;
@@ -52,8 +55,8 @@ public:
   /// tracker.
   void returnIndex(std::size_t idx) {
     recycledQudits.push_back(idx);
-    std::sort(recycledQudits.begin(), recycledQudits.end(),
-              std::greater<std::size_t>());
+    std::push_heap(recycledQudits.begin(), recycledQudits.end(),
+                   std::greater<std::size_t>());
     if (recycledQudits.size() == currentId) {
       currentId = 0;
       recycledQudits.clear();

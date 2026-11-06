@@ -17,7 +17,7 @@
 #                                 install time).
 #
 # The RoCE artifacts above are gated on TARGET cudaq-realtime-cpu-roce-transport
-# (skipped when neither selected backend is available). The UDP tests below run
+# (skipped when HololinkRoce is not found). The UDP tests below run
 # BEFORE that gate -- they depend only on the always-built UDP target, so
 # RoCE-only setup must stay below the return() guard.
 # ==============================================================================
@@ -50,19 +50,17 @@ if (NOT TARGET cudaq-realtime-cpu-roce-transport)
   return()
 endif()
 
-if(CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK)
-  add_executable(test_cpu_roce_hololink_wrapper
-    test_cpu_roce_hololink_wrapper.cpp)
-  target_include_directories(test_cpu_roce_hololink_wrapper PRIVATE
-    ${CUDAQ_REALTIME_INCLUDE_DIR})
-  target_link_libraries(test_cpu_roce_hololink_wrapper PRIVATE
-    GTest::gtest_main
-    cudaq-realtime-cpu-roce-transport)
-  cudaq_gtest_discover_tests(test_cpu_roce_hololink_wrapper
-    TEST_PREFIX "test_cpu_roce_hololink_wrapper.")
-  message(STATUS
-    "  - test_cpu_roce_hololink_wrapper (Hololink adapter contract)")
-endif()
+add_executable(test_cpu_roce_hololink_wrapper
+  test_cpu_roce_hololink_wrapper.cpp)
+target_include_directories(test_cpu_roce_hololink_wrapper PRIVATE
+  ${CUDAQ_REALTIME_INCLUDE_DIR})
+target_link_libraries(test_cpu_roce_hololink_wrapper PRIVATE
+  GTest::gtest_main
+  cudaq-realtime-cpu-roce-transport)
+cudaq_gtest_discover_tests(test_cpu_roce_hololink_wrapper
+  TEST_PREFIX "test_cpu_roce_hololink_wrapper.")
+message(STATUS
+  "  - test_cpu_roce_hololink_wrapper (Hololink adapter contract)")
 
 # The contract cases run anywhere. The service cases probe the RoCE transport
 # and skip (or fail, under CUDAQ_REALTIME_REQUIRE_ROCE_TESTS) when it is
@@ -101,7 +99,8 @@ target_include_directories(hsb_bridge_cpu PRIVATE
 
 target_link_libraries(hsb_bridge_cpu PRIVATE
   cudaq-realtime-cpu-roce-transport     # CpuRoceTransceiver + C wrapper
-  cudaq-realtime-host-dispatch     # cudaq_host_ring_dispatch_loop (HOST_CALL path)
+  cudaq-realtime-host-dispatch     # cudaq_host_ring_dispatch_loop /
+                                   # cudaq_host_unified_loop (plain C++, no CUDA)
   Threads::Threads
 )
 

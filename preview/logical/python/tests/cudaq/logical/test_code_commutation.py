@@ -11,7 +11,9 @@ import re
 
 import pytest
 
+import cudaq.mlir.ir as mlir_ir
 from cudaq.logical.codes import Code
+from cudaq.logical.compiler import CompilationContext
 
 
 def _row(paulis):
@@ -40,6 +42,19 @@ def test_commuting_subsystem_code_preserves_general_pauli_rows(n):
     assert code.gauge_z_basis.rows == (gauge[1],)
     assert code.anti_stabilizers.rows == anti
     assert code.encoding_clifford.rank == 2 * n
+
+    # Check the native verifier too, including rows spanning machine words.
+    context = CompilationContext()
+    handle = context.materialize(code)
+    operation = context.find_symbol(handle.symbol)
+    assert operation.verify()
+
+    # Y/Y is not a canonical gauge pair: its two contributions cancel.
+    operation.attributes["gauge_z_basis"] = operation.attributes[
+        "gauge_x_basis"]
+    with pytest.raises(mlir_ir.MLIRError,
+                       match="gauge pairs violates canonical commutation"):
+        operation.verify()
 
 
 @pytest.mark.parametrize("n,k,r,stabilizers,logicals,gauges,anti,error", [

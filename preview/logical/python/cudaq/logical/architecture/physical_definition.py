@@ -962,24 +962,27 @@ class PatchTopology:
             neighbors[edge.source].add(edge.target)
             neighbors[edge.target].add(edge.source)
         coarse_edges = []
-        for left in range(self.capacity):
-            for right in range(left + 1, self.capacity):
-                targets = set(self.carrier_groups[right])
-                frontier = list(self.carrier_groups[left])
-                visited = set(frontier)
-                connected = False
-                while frontier and not connected:
-                    node = frontier.pop(0)
-                    for neighbor in sorted(neighbors[node]):
-                        if neighbor in targets:
-                            connected = True
-                            break
-                        if neighbor in visited or neighbor in owner:
-                            continue
-                        visited.add(neighbor)
-                        frontier.append(neighbor)
-                if connected:
-                    coarse_edges.append((left, right))
+        for left in range(self.capacity - 1):
+            # Search outward from this patch through `unowned`` carriers. A
+            # carrier owned by another patch ends the route there. It links
+            # the two patches if that patch comes later, and is never expanded,
+            # so a route never passes through a third patch.
+            frontier = deque(self.carrier_groups[left])
+            visited = set(frontier)
+            connected = set()
+            while frontier and len(connected) < self.capacity - left - 1:
+                node = frontier.popleft()
+                for neighbor in neighbors[node]:
+                    right = owner.get(neighbor)
+                    if right is not None:
+                        if right > left:
+                            connected.add(right)
+                        continue
+                    if neighbor in visited:
+                        continue
+                    visited.add(neighbor)
+                    frontier.append(neighbor)
+            coarse_edges.extend((left, right) for right in sorted(connected))
         result = PatchTopology(
             self.carrier_groups,
             categories={

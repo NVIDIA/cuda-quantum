@@ -36,7 +36,8 @@ from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
                     getMLIRContext, is_recovered_value_ok,
                     recover_annotation_of_or_none, recover_value_of_or_none,
-                    cudaq__unique_attr_name, mlirTryCreateStructType)
+                    cudaq__unique_attr_name, mlirTryCreateStructType,
+                    set_optimization_level_attr)
 
 State = cudaq_runtime.State
 
@@ -4339,9 +4340,19 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitWarning(
                 "produced elements in list comprehension contain None - "
                 "expression will be evaluated but no list is generated", node)
+            body = [node.elt]
+            if hasFilter:
+                # Apply the `if` clauses so only the selected elements are
+                # evaluated, matching Python semantics.
+                test = (if_clauses[0] if len(if_clauses) == 1 else ast.BoolOp(
+                    op=ast.And(), values=list(if_clauses)))
+                ifNode = ast.If(test=test, body=body, orelse=[])
+                ast.copy_location(ifNode, node.elt)
+                ast.fix_missing_locations(ifNode)
+                body = [ifNode]
             forNode = ast.For(target=node.generators[0].target,
                               iter=node.generators[0].iter,
-                              body=[node.elt],
+                              body=body,
                               orelse=[])
             forNode.lineno = node.lineno
             # This loop could be marked as invariant if we didn't use
@@ -6208,8 +6219,7 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
         cudaq__unique_attr_name, StringAttr.get(bridge.name,
                                                 context=bridge.ctx))
     if disable_quantum_optimization:
-        bridge.module.operation.attributes.__setitem__(
-            'quake.noOptimization', UnitAttr.get(context=bridge.ctx))
+        set_optimization_level_attr(bridge.module, bridge.name, level=0)
     if verbose:
         print(bridge.module)
     # Clear the live operations cache. This avoids python crashing with

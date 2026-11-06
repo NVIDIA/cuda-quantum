@@ -23,7 +23,6 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel.cuh"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
-#include "cudaq/realtime/daemon/dispatcher/kernel_types.h"
 
 // Helper macro for CUDA error checking
 #define CUDA_CHECK(call)                                                       \
@@ -90,10 +89,14 @@ __device__ int rpc_increment_handler(const void *rx_slot, void *tx_slot,
   const std::uint32_t arg_len = header->arg_len;
   const std::uint32_t max_result_len =
       slot_size - sizeof(cudaq::realtime::RPCResponse);
-  for (std::uint32_t i = 0; i < arg_len && i < max_result_len; ++i) {
+  // Every thread of the dispatch block runs this; each increments its own
+  // bytes.
+  for (std::uint32_t i = threadIdx.x; i < arg_len && i < max_result_len;
+       i += blockDim.x) {
     out_data[i] = static_cast<std::uint8_t>(in_data[i] + 1);
   }
-  response->result_len = arg_len;
+  if (threadIdx.x == 0)
+    response->result_len = arg_len;
   return 0;
 }
 

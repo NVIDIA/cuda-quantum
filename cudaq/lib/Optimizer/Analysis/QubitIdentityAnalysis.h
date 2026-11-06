@@ -36,7 +36,7 @@ namespace cudaq::quake::detail {
 /// with memory effects also invalidate active reference bindings because the
 /// analysis has no summary of captured reference effects. The analysis
 /// propagates identities through operators whose controls and targets are all
-/// scalar wires, and through scalar-wire results of measurement instruments and
+/// wires, and through wire results of measurement instruments and
 /// reset channels.
 ///
 /// Block arguments remain unidentified because valid IR does not guarantee
@@ -64,7 +64,7 @@ public:
   bool haveSameOrderedQubitIdentities(mlir::ValueRange lhs,
                                       mlir::ValueRange rhs) const;
 
-  /// Register a supported scalar-wire operation only when every input identity
+  /// Register a supported wire operation only when every input identity
   /// is known. A classical-only insertion succeeds without changing identity
   /// state only when it is not call-like, owns no regions, and is
   /// memory-effect-free. Return false for every other insertion.

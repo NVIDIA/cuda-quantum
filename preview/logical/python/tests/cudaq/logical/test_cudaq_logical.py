@@ -18,12 +18,15 @@ import pytest
 ROOT = Path(__file__).resolve().parents[4]
 
 
-def _import_kernel(kernel):
+def _import_kernel(kernel, *args, optimization_level=None):
     """Compile a CUDA-Q kernel for the estimation target and import it as P0."""
     import cudaq
     import cudaq.logical as cql
 
-    compiled = cudaq.compile(kernel, target=cql.targets.estimator)
+    compiled = cudaq.compile(kernel,
+                             *args,
+                             target=cql.targets.estimator,
+                             optimization_level=optimization_level)
     return cql.compiler.import_quake(str(compiled.mlir_module))
 
 
@@ -82,9 +85,13 @@ def test_product_stage_estimation_and_target_surface():
     )
     assert hasattr(fabric_dialect, "ResourceRequestOp")
     assert {name for name in vars(_qlx_ops_gen) if name.endswith("Op")
-           } == {name for name in vars(qlx_dialect) if name.endswith("Op")}
+           } | {"ActionBodyOp"} == {
+               name for name in vars(qlx_dialect) if name.endswith("Op")
+           }
     assert {name for name in vars(_fabric_ops_gen) if name.endswith("Op")
-           } == {name for name in vars(fabric_dialect) if name.endswith("Op")}
+           } | {"ActionOp"} == {
+               name for name in vars(fabric_dialect) if name.endswith("Op")
+           }
     assert "resource" in cql.types.__all__
     authoring_verbs = {
         "allocate_patch",
@@ -244,6 +251,97 @@ def test_kernel_import_accepts_a_multicontrolled_gate():
     p0 = _import_kernel(toffoli).to_mlir()
     assert p0.count("#qlx.action<ccx>") == 1
     assert p0.count("qlx.measure <Z>") == 3
+
+
+def test_compile_import_unrolls_only_loops_that_use_their_index():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def loops():
+        q = cudaq.qvector(1100)
+        for _ in range(50):
+            for i in range(4):
+                x.ctrl(q[i], q[i + 1])
+        for i in range(1100):
+            h(q[i])
+        for i in range(4):
+            rz(0.1 * (i + 1), q[0])
+        mz(q)
+
+    # The repeat loop stays folded, with the index loop inside it unrolled.
+    # The 1100-iteration loop and the angle loop unroll, so they leave no
+    # second `cflow.repeat`.
+    build = _import_kernel(loops)
+    assert build.to_mlir().count("cflow.repeat") == 1
+    actions = cql.analysis.estimate(build,
+                                    tier=cql.analysis.Tier.LOGICAL).actions
+    assert actions["qlx_standard_cx"] == 50 * 4
+    assert actions["qlx_standard_h"] == 1100
+
+
+def test_compile_import_matches_the_target_whatever_target_is_installed():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def ccrx():
+        q = cudaq.qvector(3)
+        rx.ctrl(0.7, q[0], q[1], q[2])
+        mz(q)
+
+    cudaq.set_target(cql.targets.estimator)
+    try:
+        through_target = cudaq.estimate(ccrx).annotations["LOGICAL"]
+    finally:
+        cudaq.reset_target()
+    # An explicit Logical target controls compilation even when the installed
+    # target is emulated.
+    cudaq.set_target("quantinuum", emulate=True)
+    try:
+        direct = _import_kernel(ccrx)
+    finally:
+        cudaq.reset_target()
+    assert cql.analysis.estimate(
+        direct, tier=cql.analysis.Tier.LOGICAL).to_dict() == through_target
+
+
+def test_compile_import_rejects_a_noisy_kernel(capfd):
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def noisy():
+        q = cudaq.qvector(2)
+        h(q[0])
+        cudaq.apply_noise(cudaq.DepolarizationChannel, 0.1, q[0])
+        mz(q)
+
+    # The compiler reports the reason on `stderr`, not in the exception.
+    with pytest.raises(RuntimeError, match="Quake lowering failed"):
+        _import_kernel(noisy)
+    assert "the target does not support noise" in capfd.readouterr().err
+
+
+def test_cudaq_qvector_and_scalar_import_as_zero_preparation():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def qvector_entry():
+        register = cudaq.qvector(3)
+        scalar = cudaq.qubit()
+        h(register)
+        mz(register)
+        mz(scalar)
+
+    imported = _import_kernel(qvector_entry)
+    text = imported.to_mlir()
+
+    assert text.count('qlx.prepare "zero"') == 4
+    assert text.count("#qlx.action<h>") == 3
+    assert text.count("qlx.measure <Z>") == 4
+    assert imported.module.operation.verify()
 
 
 def test_logical_estimate_is_invariant_under_cached_view_mutation():

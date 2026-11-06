@@ -186,9 +186,7 @@ private:
     if (state.fireAndForgetPending) {
       const std::uint64_t rxFlag =
           ringBuffer.ringbuffer()->rx_flags_host[state.slot];
-      const cudaq_tx_status_t txStatus = cudaq_host_ringbuffer_poll_tx_flag(
-          ringBuffer.ringbuffer(), state.slot, nullptr);
-      if (rxFlag != 0 || txStatus == CUDAQ_TX_IN_FLIGHT)
+      if (rxFlag != 0)
         return false;
       ringBuffer.clearDeviceSlot(state.slot);
       state.fireAndForgetPending = false;

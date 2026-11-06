@@ -37,8 +37,13 @@ def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
     the kernel.
 
   }];
-  
-  let dependentDialects = ["cudaq::quake::QuakeDialect",
+
+  let options = [
+    Option<"useEvince", "use-evince", "bool", /*default=*/"false",
+           "Add the measurements in front of the quake.evince ops.">
+  ];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect",
     "mlir::cf::ControlFlowDialect"];
 }
 
@@ -304,7 +309,7 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
 
     Only `quake.rz` is handled. `quake.rx`, `quake.ry`, and `quake.r1` must be
     reduced to Rz first via the `RxToRz`, `RyToRz`, and `R1ToRz` decomposition
-    patterns; the `cudaq-fault-tolerant-target` pipeline runs that reduction
+    patterns; `clifford-t-synthesis-pipeline` runs that reduction
     ahead of this pass. Any other rotation left in the IR is passed through
     untouched.
 
@@ -328,7 +333,7 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     The omega global phase of each synthesized word is emitted as an
     uncontrolled `quake.phase` in the helper body, so the helper is exactly
     equal to the rotation it replaces. Run `lower-phase` afterwards to
-    complete the phase lifecycle; the `cudaq-fault-tolerant-target` pipeline
+    complete the phase lifecycle; `clifford-t-synthesis-pipeline`
     does.
 
     Gridsynth is probabilistic. Unseeded, it may return a different (equally
@@ -336,8 +341,8 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     the pass reproducible. Its cost grows sharply as `epsilon` tightens.
     Roughly 2 ms per distinct rotation at the default 1e-10, but orders of
     magnitude more below 1e-30. Repeated angles are cached, so the cost is per
-    distinct angle rather than per operation. This pass is opt-in via the
-    `cudaq-fault-tolerant-target` pipeline only. It is not added to the default
+    distinct angle rather than per operation. This pass is opt-in, and
+    `clifford-t-synthesis-pipeline` runs it. It is not added to the default
     target-prep pipeline.
 
     The work-budget options below cap the search work gridsynth may spend on
@@ -558,7 +563,8 @@ def ConvertToCFG : Pass<"convert-to-cfg"> {
            "factor-quantum-alloc, as in the quake_fake mid-level pipeline.">
   ];
 
-  let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
+  let dependentDialects = [
+    "mlir::cf::ControlFlowDialect", "mlir::LLVM::LLVMDialect"];
 }
 
 def ConvertToCFGPrep : Pass<"convert-to-cfg-prep", "mlir::ModuleOp"> {
@@ -566,6 +572,8 @@ def ConvertToCFGPrep : Pass<"convert-to-cfg-prep", "mlir::ModuleOp"> {
   let description = [{
     This pass must be run before the ConvertToCFG pass.
   }];
+
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
 }
 
 def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
@@ -897,6 +905,62 @@ def FactorQuantumAllocations :
     Option<"enableFailures", "enable-failures", "bool", /*default=*/"false",
       "Enable pass to raise errors when factoring fails (default=false).">
   ];
+}
+
+def FuseSingleQubitChainsForCliffordT
+    : Pass<"fuse-1q-chains-for-clifford-t", "mlir::func::FuncOp"> {
+  let summary = "Fuse constant one-qubit gate sequences into a form that "
+                "heuristically minimizes the rotations needing approximate "
+                "Clifford+T synthesis.";
+  let description = [{
+    Consumes and produces the linear SSA `!quake.wire` form created by
+    `convert-to-linear-values`.
+
+    Clifford+T synthesis approximates each rotation separately unless its
+    angle is within `epsilon` of a multiple of pi/4, and every approximation
+    adds T gates. Any one-qubit unitary can be written with three rotations,
+    but a sequence of one-qubit gates often has more than three rotations that
+    need approximation. Two decomposed `U3` gates in a row can have six, for
+    example. This pass replaces such a sequence with at most three rotations,
+    so the unitary is approximated fewer times.
+
+    The pass looks at each longest sequence of uncontrolled `h`, `s`, `t`, `x`,
+    `y`, `z`, `phase`, `r1`, `rx`, `ry`, and `rz` gates on one wire whose
+    angles are constants. Any other operation, including a controlled or
+    multi-qubit gate or a gate whose angle is not a constant, ends the
+    sequence. A sequence continues through a single-block `cc.scope` that is
+    not an atomic quantum region, so gates inside and outside the scope fuse.
+    Any other operation with regions, such as `cc.if` or `cc.loop`, ends the
+    sequence, and the pass handles each block inside it on its own.
+
+    The pass combines the sequence into a single unitary and rewrites that
+    unitary in two ways, as `rz`-`rx`-`rz` and as `rx`-`rz`-`rx`. It keeps
+    whichever form needs the fewest approximations, using the total number
+    of rotations to break ties, but only if that form is strictly better
+    than the original sequence. A `quake.phase` gate keeps the global phase
+    exact. Sequences that need no approximation, or that have only one
+    rotation, are left alone. Angles that come out within rounding error of
+    a multiple of pi/4 are snapped to that value, so they need no
+    approximation even when `epsilon` is zero.
+
+    The pass does not try forms with `ry` on the outside, such as
+    `ry`-`rx`-`ry`. They sometimes save one rotation in the sequence, but
+    `ry` commutes with neither the control nor the target of a controlled
+    `quake.x`, so `quake-simplify` can no longer merge those rotations with
+    their neighbors.
+
+    The pass creates a new constant for each angle it emits, so run
+    `canonicalize` after it. Functions marked `quake.optimizationLevel = 0`
+    are skipped.
+  }];
+  let options = [
+    Option<"epsilon", "epsilon", "double", /*default=*/"0.0",
+      "Operator-norm distance within which a rotation counts as a quarter "
+      "turn. Use the epsilon of the downstream Clifford+T legalization. Zero "
+      "counts only exact quarter turns.">,
+  ];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "cudaq::quake::QuakeDialect"];
 }
 
 def GenerateDeviceCodeLoader : Pass<"device-code-loader", "mlir::ModuleOp"> {
@@ -1424,6 +1488,14 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     - multi-block scopes, or scopes containing quantum allocations, borrows, or
       terminal wire operations.
     - more than one block at the function's top level.
+
+    Only functions that borrow wires are mapped. An entry point that applies a
+    gate or measures but borrows no wires still holds qubits that were never
+    put in the wire set, for example on `!quake.ref` because a loop was too
+    long to unroll. Under `raise-fatal-errors` that is an error; otherwise the
+    entry point is left unmapped. Any other function without borrows is
+    skipped, such as a callee kernel that takes its qubits as arguments, which
+    is mapped through the entry point it is inlined into.
   }];
 
   let options = [
@@ -1591,28 +1663,15 @@ def NormalizePhasePlacement :
                            "cudaq::quake::QuakeDialect"];
 }
 
-def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
- let summary = "Given spin_op input, append measures to the FuncOp";
-  let description = [{
-    Given an unmeasured Quake representation (i.e. a state prep ansatz), append
-    measures based on the given spin_op specified in binary symplectic form.
-  }];
-  let options = [
-    ListOption<"termBSF", "term-bsf", "unsigned",
-      "The measurement bases as a Pauli tensor product represented in binary "
-      "symplectic form.">
-  ];
-}
-
-def OptimizeSingleQubitCliffordT
-    : Pass<"optimize-1q-clifford-t", "mlir::ModuleOp"> {
+def NormalizeSingleQubitCliffordT
+    : Pass<"normalize-1q-clifford-t", "mlir::func::FuncOp"> {
   let summary =
     "Rewrite exact one-qubit Clifford+T chains to Matsumoto-Amano normal form.";
   let description = [{
-    Consumes and produces the scalar linear SSA `!quake.wire` form created by
+    Consumes and produces the linear SSA `!quake.wire` form created by
     `convert-to-linear-values`.
 
-    Rewrites exact one-qubit Clifford+T chains on scalar `!quake.wire` values
+    Rewrites exact one-qubit Clifford+T chains on `!quake.wire` values
     into Matsumoto-Amano normal form while preserving the exact unitary.
     Controlled chains are supported when their controls and polarities remain
     unchanged, including through single-block `cc.scope` operations. The pass
@@ -1626,6 +1685,19 @@ def OptimizeSingleQubitCliffordT
   }];
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "quake::QuakeDialect"];
+}
+
+def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
+ let summary = "Given spin_op input, append measures to the FuncOp";
+  let description = [{
+    Given an unmeasured Quake representation (i.e. a state prep ansatz), append
+    measures based on the given spin_op specified in binary symplectic form.
+  }];
+  let options = [
+    ListOption<"termBSF", "term-bsf", "unsigned",
+      "The measurement bases as a Pauli tensor product represented in binary "
+      "symplectic form.">
+  ];
 }
 
 def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
@@ -1826,6 +1898,9 @@ def QuakeSimplify : Pass<"quake-simplify"> {
     A rotation is erased when its folded angle has magnitude at or below
     `threshold`.
 
+    When two constant rotations merge, a sum within floating-point roundoff of
+    a multiple of `pi/4`, zero included, is replaced by that exact multiple.
+
     The optional `rotations-to-clifford-t` pattern family recognizes constant
     `r1`, `rx`, `ry`, and `rz` angles at multiples of `pi/4` and replaces them
     with named-gate sequences instead of leaving them for approximate synthesis.
@@ -1929,9 +2004,9 @@ def RealtimeDeviceCall : Pass<"realtime-device-call", "mlir::ModuleOp"> {
   // marshaling, `func` calls/declarations for the runtime ABI, and may
   // materialize `quake.discriminate` (within the loaded packing intrinsics)
   // when converting measurement-handle vectors to boolean payload bytes.
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
-                           "mlir::func::FuncDialect",
-                           "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+    "mlir::func::FuncDialect", "mlir::LLVM::LLVMDialect",
+    "cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
 }
 
 def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
@@ -1956,24 +2031,6 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
   }];
   let dependentDialects = ["cudaq::cc::CCDialect",
     "cudaq::quake::QuakeDialect"];
-}
-
-def RepairLinearType : Pass<"repair-linear-type", "mlir::func::FuncOp"> {
-  let summary = "Repair linear type constraints.";
-  let description = [{
-    The desired linear type constraint is that a value of linear type must be
-    used exactly once. That is \e not SSA. Unfortunately, MLIR assumes SSA
-    semantics at a very deep level and can and will destroy the linear type
-    constraints in its own default optimizations.
-
-    Running this pass will repair the damage in such a way that the linear type
-    value is lifted to a reference type, which is a valid SSA value.
-  }];
-  let dependentDialects = ["cudaq::quake::QuakeDialect"];
-  let statistics = [
-    Statistic<"numRepairs", "repairs",
-              "Number of linear type violations repaired with wrap/unwrap">,
-  ];
 }
 
 def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",
@@ -2104,9 +2161,12 @@ def RunSemanticsHackery : Pass<"run-semantics-hackery", "mlir::ModuleOp"> {
     through the host ABI. After the `kernel-execution` pass creates the `.run`
     wrapper, this pass finds wrappers that call kernels returning `!cc.sequence`,
     clones those kernels, removes calls to `__nvqpp_vectorCopyCtor` from the
-    clones, and redirects the wrappers to call the clones. It must run after
-    `kernel-execution`, while both the generated wrapper and original kernel are
-    present.
+    clones, and inlines the clones into the wrappers. The inlining is part of
+    the transformation and does not depend on any later inlining pipeline: with
+    the copy to the heap removed, the result of a clone refers to the stack
+    frame of the clone, which must therefore be the frame of the wrapper. This
+    pass must run after `kernel-execution`, while both the generated wrapper and
+    original kernel are present.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
@@ -2372,6 +2432,65 @@ def VerifyAtomicQuantumRegions :
     Run the pass before the conversion to value semantics, where a qubit
     allocation stops being a `quake.alloca`.
   }];
+}
+
+def VerifyNoNoise : Pass<"verify-no-noise"> {
+  let summary = "Fail on any `quake.apply_noise`.";
+  let description = [{
+    A target that cannot apply noise runs this pass so that a kernel that
+    applies noise fails to compile instead of running without it.
+  }];
+}
+
+def VerifyProfileQuakeReferenceSemantics : Pass<"verify-profile-quake-reference-semantics", "mlir::ModuleOp"> {
+  let summary = "Verify quake-reference-semantics profile conformance (read-only)";
+  let description = [{
+    This pass verifies that the IR conforms to the quake-reference-semantics IR profile:
+     - uses reference semantics (no `!quake.wire`/`!quake.control`/`!quake.cable`
+       values)
+     - every quake operation is a member of the requested target basis
+     - with `measurement-type=single-qubit`, every measurement operates on
+       exactly one `!quake.ref`
+
+    The pass never modifies the IR; any violation fails the pass. The `basis`
+    option uses the same grammar and legality machinery as
+    `basis-conversion`; an empty basis (the default) imposes no gate-basis
+    restriction.
+
+    The `reset-after-measure` option is accepted but not yet validated: the
+    pass emits a warning when it is set.
+
+    This verification pass is conservative: if a required property could not
+    be verified (e.g. due to opaque calls), verification will fail with a
+    diagnostic.
+  }];
+  let options = [
+    ListOption<"basis", "basis", "std::string",
+               "Set of allowed basis operations (empty = unrestricted)">,
+    Option<"measurementType", "measurement-type", "std::string",
+           /*default=*/"\"any\"",
+           "Measurement form: 'any' or 'single-qubit'">,
+    Option<"resetAfterMeasure", "reset-after-measure", "bool",
+           /*default=*/"false",
+           "Require reset after measurement before quantum reuse">,
+  ];
+}
+
+def VerifyQuakeUnmappedProfile : Pass<"verify-quake-unmapped-profile", "mlir::ModuleOp"> {
+  let summary = "Verify quake-unmapped profile conformance (read-only)";
+  let description = [{
+    Fails if a qubit is borrowed from a `quake.wire_set`, or if a Quake
+    operation in a kernel is not in `basis`. A kernel is an entry point or a
+    function that takes qubits, which are the functions `basis-conversion`
+    converts. The profile describes Quake before qubit mapping, and only
+    mapping introduces a wire set. References and wires are both accepted.
+    `basis` uses the `basis-conversion` grammar, and an empty basis imposes no
+    gate restriction.
+  }];
+  let options = [
+    ListOption<"basis", "basis", "std::string",
+               "Set of allowed basis operations (empty = unrestricted)">,
+  ];
 }
 
 def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {

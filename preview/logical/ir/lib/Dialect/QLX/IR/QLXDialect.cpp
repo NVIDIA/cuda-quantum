@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // This is the single translation unit for the QLX dialect. It includes all
 // generated .cpp.inc files for types, attributes, enums, and ops (logical
@@ -386,11 +386,11 @@ LogicalResult DeviceOp::verify() {
           objectiveType.getNumResults() != 1 ||
           !matchesResource(objectiveType.getResult(0), resource))
         return emitOpError("resource binding producer must implement the "
-                           "stream production objective");
+                           "stream production action");
       auto objectiveKind = objectiveTarget->getAttrOfType<StringAttr>("kind");
       if (!objectiveKind ||
           objectiveKind.getValue() != ("produce_" + resource.getValue()).str())
-        return emitOpError("resource binding producer objective kind must name "
+        return emitOpError("resource binding producer action kind must name "
                            "stream production");
       if (auto factory =
               dyn_cast_or_null<SymbolRefAttr>(binding.get("factory"))) {
@@ -842,7 +842,7 @@ LogicalResult QECLoweringOp::verify() {
   auto objective = dyn_cast_or_null<BuiltinInstrumentAttr>(getObjectiveAttr());
   if (!objective || objective.getValue() != BuiltinInstrument::mpp)
     return emitOpError(
-        "observable_remote lowering objective must be the built-in MPP");
+        "observable_remote lowering action must be the built-in MPP");
   return success();
 }
 
@@ -1025,13 +1025,12 @@ static LogicalResult verifyCallSignature(Operation *call, FunctionType type,
   if (inputs.size() != type.getNumInputs() ||
       !llvm::equal(inputs.getTypes(), type.getInputs()))
     return call->emitOpError("operand types ")
-           << inputs.getTypes() << " do not match objective inputs "
+           << inputs.getTypes() << " do not match action inputs "
            << type.getInputs();
   if (results.size() != type.getNumResults() ||
       !llvm::equal(results, type.getResults()))
     return call->emitOpError("result types ")
-           << results << " do not match objective results "
-           << type.getResults();
+           << results << " do not match action results " << type.getResults();
   return success();
 }
 
@@ -1147,11 +1146,41 @@ LogicalResult ObjectiveBodyOp::verify() {
     }
     if (forbidden.contains(op->getName().getStringRef())) {
       op->emitError("runtime and resource orchestration is not legal inside "
-                    "a closed logical objective");
+                    "a closed logical action");
       legality = failure();
     }
   });
   return legality;
+}
+
+namespace {
+
+LogicalResult verifyOperandNames(Operation *operation, FunctionType type,
+                                 ArrayAttr names) {
+  if (!names)
+    return success();
+  if (names.size() != type.getNumInputs())
+    return operation->emitOpError(
+        "operand_names must cover every signature input");
+  llvm::StringSet<> seen;
+  for (Attribute item : names) {
+    StringRef name = cast<StringAttr>(item).getValue();
+    if (name.empty())
+      return operation->emitOpError("operand_names entries must be nonempty");
+    if (!seen.insert(name).second)
+      return operation->emitOpError("operand_names entries must be unique");
+  }
+  return success();
+}
+
+} // namespace
+
+LogicalResult ActionOp::verify() {
+  return verifyOperandNames(*this, getFunctionType(), getOperandNamesAttr());
+}
+
+LogicalResult InstrumentDeclOp::verify() {
+  return verifyOperandNames(*this, getFunctionType(), getOperandNamesAttr());
 }
 
 LogicalResult ApplyOp::verify() {
@@ -1182,6 +1211,21 @@ LogicalResult ApplyOp::verify() {
   default:
     break;
   }
+  if (builtin.getValue() != BuiltinAction::pauli_rotation) {
+    if (getParameters() && !getParameters()->empty())
+      return emitOpError(
+          "fixed built-in actions do not accept parameter bindings");
+    if (getInputs().size() != expectedArity ||
+        getNumResults() != expectedArity ||
+        !llvm::all_of(getInputs().getTypes(),
+                      [](Type type) { return isa<LogicalQubitType>(type); }) ||
+        !llvm::all_of(getResultTypes(),
+                      [](Type type) { return isa<LogicalQubitType>(type); }))
+      return emitOpError()
+             << "fixed built-in action requires exactly " << expectedArity
+             << " logical-qubit inputs and results and no classical payloads";
+    return success();
+  }
   unsigned quantumInputs =
       llvm::count_if(getInputs().getTypes(),
                      [](Type type) { return isa<LogicalQubitType>(type); });
@@ -1189,12 +1233,9 @@ LogicalResult ApplyOp::verify() {
       getResultTypes(), [](Type type) { return isa<LogicalQubitType>(type); });
   if (quantumInputs == 0 || quantumInputs != quantumResults)
     return emitOpError(
-        "built-in actions must preserve at least one logical-qubit owner");
-  if (expectedArity && quantumInputs != expectedArity)
-    return emitOpError("built-in action has the wrong logical arity");
-  if (builtin.getValue() == BuiltinAction::pauli_rotation &&
-      (getInputs().size() != quantumInputs + 1 ||
-       !getInputs().back().getType().isF64()))
+        "built-in actions must preserve at least one logical-qubit value");
+  if (getInputs().size() != quantumInputs + 1 ||
+      !getInputs().back().getType().isF64())
     return emitOpError(
         "Pauli rotation requires one trailing f64 angle operand");
   return success();
@@ -1225,7 +1266,7 @@ LogicalResult InstrumentOp::verify() {
        classicalResults != 1 ||
        !getResult(getNumResults() - 1).getType().isInteger(1)))
     return emitOpError(
-        "MPP must preserve its logical owners and return one i1 outcome");
+        "MPP must preserve its logical-qubit values and return one i1 outcome");
   return success();
 }
 

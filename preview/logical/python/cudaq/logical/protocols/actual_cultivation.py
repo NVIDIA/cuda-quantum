@@ -51,7 +51,7 @@ from cudaq.logical.codes import (
     PatchTransform,
 )
 from cudaq.logical.gadgets import (
-    GadgetProfile,
+    GadgetContract,
     ProfileParity,
     SuccessPredicate,
     gadget,
@@ -264,7 +264,7 @@ def _cultivation_analysis(gadget):
                 gadget.record(f"cultivation_m{index}.data0")
                 for index in support)))
         for support in _CULTIVATION_SUCCESS_RECORDS)
-    analysis = GadgetProfile(
+    analysis = GadgetContract(
         gadget,
         success=success,
         name="cultivated_t_production_analysis",

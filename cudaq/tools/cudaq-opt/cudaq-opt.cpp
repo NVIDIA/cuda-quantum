@@ -101,7 +101,8 @@ static void registerTargetPassPipeline(const std::string &pipelineName,
 // TODO: it seems inconsistent that we only register named pipelines (and nvq++
 // executes them) when the YAML uses 'target-pass-pipeline' to specify them.
 // Alternatives pipeline declarations such as 'jit-*-level-pipeline' options are
-// currently ignored.
+// currently ignored. When this gets resolved, also add support for multi-stage
+// compilation sequences.
 static void
 registerAllTargetPassPipelines(llvm::ArrayRef<std::string> configPaths = {}) {
   cudaq::config::TargetCatalog registry;
@@ -122,7 +123,7 @@ registerAllTargetPassPipelines(llvm::ArrayRef<std::string> configPaths = {}) {
   };
   const auto overridePipeline =
       [](const cudaq::config::BackendEndConfigEntry &backend) -> std::string {
-    if (backend.CompileTarget.stages.empty())
+    if (backend.CompileTarget.stages.size() != 1)
       return std::string{};
     const auto *overridePassPipeline =
         backend.CompileTarget.getOverridePassPipeline();

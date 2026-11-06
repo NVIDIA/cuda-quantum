@@ -12,7 +12,7 @@
 # mapping form: neither variant alternative accepts the other alternative's
 # keys.
 
-version: 2
+version: 2-alpha
 name: lit-v2-mixed
 description: "Mixed override and staged pipelines rejected"
 config:

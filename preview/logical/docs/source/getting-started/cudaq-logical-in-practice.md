@@ -86,7 +86,7 @@ replace the class definition with `Steane = cql.codes.Steane`.
 Supply [gadgets](concepts.md#codes-and-operation-implementations) for the Bell
 program's Hadamard and controlled-X operations. Each `implements=` clause
 names the ideal logical
-[objective](concepts.md#codes-and-operation-implementations); the body
+[action](concepts.md#codes-and-operation-implementations); the body
 describes its implementation on encoded patches. For Steane, these operations
 can be applied across the data qubits:
 
@@ -142,7 +142,7 @@ results describe these assumptions. See
 [Devices and placement](../use-cases/devices-and-placement.md) for other device
 configurations.
 
-## 4. Place and realize the Bell program
+## 4. Place and realize the program
 
 Use [`cql.compiler.place`](concepts.md#devices-and-placement) to assign the P0
 program's logical values to the device's logical machine. The constraint keeps
@@ -297,6 +297,12 @@ A loaded build does not retain its device, so give the calibration
 
 ## Where to go next
 
+- Execute an encoded program with `cudaq.run` in the
+  [Steane Bernstein–Vazirani example](../use-cases/examples/steane-bernstein-vazirani.md).
+  It supplies an encoding circuit and returns measurement bits per shot.
+  The [T-state distillation example](../use-cases/examples/t-factory-evaluation.md)
+  runs on distance-1 `BareQubit` patches and adds non-Clifford gates,
+  measurement feedback, and noise.
 - Read [Core concepts](concepts.md) for definitions of programs, machines,
   codes, gadgets, devices, and targets.
 - Work through the guides for [defining a code](../use-cases/define-a-code.md),

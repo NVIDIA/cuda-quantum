@@ -57,7 +57,7 @@ using UnitaryOpGroups = mlir::SmallVector<UnitaryOpGroup>;
 /// excluded from groups, and groups never cross it or a block boundary.
 ///
 /// A segment uses wire-dataflow ordering only when every operation has
-/// supported scalar-wire flow and every quantum input has a known logical
+/// supported wire flow and every quantum input has a known logical
 /// identity. Otherwise, the entire segment preserves textual order. The
 /// analysis computes only virtual orders and does not mutate the IR.
 struct UnitaryOpGroupingAnalysis {

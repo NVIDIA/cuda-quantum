@@ -67,7 +67,7 @@ NUM_PAGES=128
 CONTROL_PORT=8193
 FORWARD=false
 UNIFIED=false
-HOST_DISPATCH=false
+THREADS=32
 # Build parallelism
 JOBS=$(nproc 2>/dev/null || echo 8)
 
@@ -110,6 +110,8 @@ Run options:
   --payload-size N       Bytes per RPC payload (default: 16)
   --page-size N          Ring buffer slot size in bytes (default: 384)
   --num-pages N          Number of ring buffer slots (default: 128)
+  --threads N            Dispatch block size; every DEVICE_CALL handler runs
+                         on it, in both dispatch modes (default: 32)
   --control-port N       UDP control port for emulator (default: 8193)
   --bin-dir DIR          Binary directory containing executables (default: None)
   --help, -h             Show this help
@@ -135,7 +137,7 @@ while [[ $# -gt 0 ]]; do
         --gpu)              GPU_ID="$2"; shift ;;
         --forward)          FORWARD=true ;;
         --unified)          UNIFIED=true ;;
-        --cpu)              HOST_DISPATCH=true ;;
+        --threads)          THREADS="$2"; shift ;;
         --timeout)          TIMEOUT="$2"; shift ;;
         --num-messages)     NUM_MESSAGES="$2"; shift ;;
         --payload-size)     PAYLOAD_SIZE="$2"; shift ;;
@@ -253,7 +255,7 @@ do_build() {
         -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR="$HSB_DIR" \
         -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR="$hsb_build"
     cmake --build "$realtime_build" -j"$JOBS" \
-        --target gpu_roce_bridge hsb_fpga_emulator hsb_fpga_playback
+        --target gpu_roce_bridge gpu_roce_app hsb_fpga_emulator hsb_fpga_playback
 
     echo "=== Build complete ==="
 }
@@ -386,10 +388,26 @@ do_run() {
         local bridge_bin="$BIN_DIR/gpu_roce_bridge"
         local emulator_bin="$BIN_DIR/hsb_fpga_emulator"
         local playback_bin="$BIN_DIR/hsb_fpga_playback"
+        local app_bin="$BIN_DIR/gpu_roce_app"
+        if [[ ! -x "$app_bin" ]]; then
+            app_bin="$BIN_DIR/../bridge_interface/gpu_roce/gpu_roce_app"
+        fi
     else
         local bridge_bin="$utils_dir/gpu_roce_bridge"
         local emulator_bin="$utils_dir/hsb_fpga_emulator"
         local playback_bin="$utils_dir/hsb_fpga_playback"
+        local app_bin="$build_dir/unittests/bridge_interface/gpu_roce/gpu_roce_app"
+    fi
+
+    # gpu_roce_bridge (bridge_run) has no unified mode: the unified kernel is
+    # linked at run time from the bridge's device code, which only the bridge
+    # interface hands over, so --unified runs gpu_roce_app instead.  That one
+    # prints "Bridge Ready" from connect(), before the dispatcher starts, so
+    # wait for the line it prints after cudaq_bridge_launch instead.
+    local ready_marker="Bridge Ready"
+    if $UNIFIED; then
+        bridge_bin="$app_bin"
+        ready_marker="=== App Ready ==="
     fi
 
     # Verify binaries exist
@@ -458,9 +476,7 @@ do_run() {
     if $UNIFIED; then
         bridge_args+=(--unified)
     fi
-    if $HOST_DISPATCH; then
-        bridge_args+=(--cpu)
-    fi
+    bridge_args+=(--threads="$THREADS")
     CUDA_MODULE_LOADING=EAGER "$bridge_bin" "${bridge_args[@]}" > /tmp/bridge.log 2>&1 &
     BRIDGE_PID=$!
     PIDS+=($BRIDGE_PID)
@@ -469,7 +485,7 @@ do_run() {
 
     # Wait for bridge to print "Bridge Ready" (CUDA/DOCA init can take 5-15s)
     local wait_elapsed=0
-    while ! grep -q "Bridge Ready" /tmp/bridge.log 2>/dev/null; do
+    while ! grep -q "$ready_marker" /tmp/bridge.log 2>/dev/null; do
         if ! kill -0 "$BRIDGE_PID" 2>/dev/null; then
             echo "ERROR: Bridge process died during startup" >&2
             cat /tmp/bridge.log >&2

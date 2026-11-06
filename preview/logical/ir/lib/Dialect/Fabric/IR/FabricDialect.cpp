@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Dialect/Fabric/IR/FabricDialect.h"
 #include "qlx/Dialect/Cflow/IR/CflowOps.h"
@@ -47,6 +47,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <utility>
 
 using namespace mlir;
 using namespace qlx::fabric;
@@ -556,12 +557,10 @@ ParseResult GadgetOp::parse(OpAsmParser &parser, OperationState &result) {
     return failure();
 
   // Optional {entry} on @device
-  bool isEntry = false;
   if (succeeded(parser.parseOptionalLBrace())) {
     if (parser.parseKeyword("entry") || parser.parseRBrace())
       return failure();
     result.addAttribute("entry", parser.getBuilder().getUnitAttr());
-    isEntry = true;
     if (parser.parseKeyword("on"))
       return failure();
     FlatSymbolRefAttr devRef;
@@ -892,11 +891,11 @@ LogicalResult InterconnectOp::verify() {
                         StringRef attribute) -> LogicalResult {
     if (port < 0)
       return emitOpError() << attribute << " must be nonnegative";
-    if (auto capacity = region.getBlockCapacity())
-      if (port >= *capacity)
-        return emitOpError()
-               << attribute << " must be less than region @"
-               << region.getSymName() << " block_capacity " << *capacity;
+    if (auto capacity = region.getBlockCapacityAttr())
+      if (port >= capacity.getInt())
+        return emitOpError() << attribute << " must be less than region @"
+                             << region.getSymName() << " block_capacity "
+                             << capacity.getInt();
     return success();
   };
   if (failed(verifyPort(*regionA, getPortA(), "port_a")) ||
@@ -932,15 +931,15 @@ LogicalResult InterconnectOp::verify() {
   }
   if (!getDirection() || getDirection()->empty())
     return emitOpError("direction must be nonempty");
-  if (!getConcurrency() || *getConcurrency() <= 0)
+  if (!getConcurrencyAttr() || getConcurrencyAttr().getInt() <= 0)
     return emitOpError("concurrency must be positive");
   if (!getProvider() || getProvider()->empty())
     return emitOpError("provider must be nonempty");
   if (!getPortAName() || getPortAName()->empty() || !getPortBName() ||
       getPortBName()->empty())
     return emitOpError("selected P2 channel requires nonempty port names");
-  if (!getPortAConcurrency() || *getPortAConcurrency() <= 0 ||
-      !getPortBConcurrency() || *getPortBConcurrency() <= 0)
+  if (!getPortAConcurrencyAttr() || getPortAConcurrencyAttr().getInt() <= 0 ||
+      !getPortBConcurrencyAttr() || getPortBConcurrencyAttr().getInt() <= 0)
     return emitOpError("channel-port concurrency must be positive");
   if (*getConcurrency() > *getPortAConcurrency() ||
       *getConcurrency() > *getPortBConcurrency())
@@ -1051,7 +1050,7 @@ LogicalResult InterconnectOp::verify() {
   if (*getDirection() != logicalDirection)
     return emitOpError("direction must match the P1 logical channel");
   if (auto logicalCapacity = logicalChannel.getCapacityAttr())
-    if (*getConcurrency() > logicalCapacity.getInt())
+    if (getConcurrencyAttr().getInt() > logicalCapacity.getInt())
       return emitOpError("concurrency exceeds the P1 logical channel capacity");
 
   bool resourceTransfer = llvm::any_of(*getCapabilities(), [](Attribute value) {
@@ -1207,9 +1206,9 @@ LogicalResult InterconnectOp::verify() {
 }
 
 LogicalResult EncodingHierarchyOp::verify() {
-  if (getMultiplicity() <= 0)
+  if (getMultiplicityAttr().getInt() <= 0)
     return emitOpError("multiplicity must be positive");
-  if (getDepth() <= 0)
+  if (getDepthAttr().getInt() <= 0)
     return emitOpError("depth must be positive");
 
   auto parsePort = [&](StringRef value, int64_t &child,
@@ -1247,7 +1246,7 @@ LogicalResult EncodingHierarchyOp::verify() {
       return emitOpError("carrier_map repeats child logical port ") << key;
     maxChild = std::max(maxChild, child);
   }
-  if (maxChild >= getMultiplicity())
+  if (maxChild >= getMultiplicityAttr().getInt())
     return emitOpError("carrier_map child index exceeds multiplicity");
 
   llvm::StringSet<> dispositions;
@@ -1267,7 +1266,7 @@ LogicalResult EncodingHierarchyOp::verify() {
       if (!dispositions.insert(key).second)
         return emitOpError("child logical port ")
                << key << " has more than one unmapped disposition";
-      if (child >= getMultiplicity())
+      if (child >= getMultiplicityAttr().getInt())
         return emitOpError(label) << " child index exceeds multiplicity";
     }
     return success();
@@ -1288,7 +1287,8 @@ LogicalResult EncodingHierarchyOp::verify() {
       auto evidence =
           entry ? entry.getAs<StringAttr>("evidence") : StringAttr{};
       if (!child || !port || !basis || !eigenvalue || !evidence ||
-          child.getInt() < 0 || child.getInt() >= getMultiplicity() ||
+          child.getInt() < 0 ||
+          child.getInt() >= getMultiplicityAttr().getInt() ||
           port.getInt() < 0 ||
           (basis.getValue() != "x" && basis.getValue() != "z") ||
           (eigenvalue.getInt() != -1 && eigenvalue.getInt() != 1) ||
@@ -1343,7 +1343,7 @@ LogicalResult EncodingHierarchyOp::verify() {
   int64_t childN = childCode.getN().value_or(0);
   int64_t childK = childCode.getK().value_or(1);
   int64_t expectedPorts = getMultiplicity() * childK;
-  if (static_cast<int64_t>(outerCarriers.size()) != outerN)
+  if (std::cmp_not_equal(outerCarriers.size(), outerN))
     return emitOpError(
         "carrier_map must map every outer code carrier exactly once");
   for (int64_t index = 0; index < outerN; ++index)
@@ -1359,8 +1359,8 @@ LogicalResult EncodingHierarchyOp::verify() {
     if (failed(parsePort(entry.getKey(), c, p)) || p >= childK)
       return emitOpError("unmapped logical port exceeds child k");
   }
-  if (static_cast<int64_t>(mappedPorts.size() + dispositions.size()) !=
-      expectedPorts)
+  if (std::cmp_not_equal(mappedPorts.size() + dispositions.size(),
+                         expectedPorts))
     return emitOpError(
         "every child logical port must be mapped, exposed, gauged, or fixed");
   if (code.getN().value_or(0) != getMultiplicity() * childN)
@@ -1679,7 +1679,7 @@ LogicalResult EncodingEpochOp::verify() {
     if (!found)
       return emitOpError("phase must belong to the referenced epoch schema");
   }
-  if (getIndex() < 0)
+  if (getIndexAttr().getInt() < 0)
     return emitOpError("index must be nonnegative");
   Operation *encodingTarget =
       SymbolTable::lookupNearestSymbolFrom(*this, getEncodingAttr());
@@ -1708,7 +1708,7 @@ static std::optional<int64_t> frameSize(DictionaryAttr partitions) {
 static LogicalResult verifySupport(Operation *op, ArrayRef<int64_t> support,
                                    int64_t width, int64_t expected,
                                    StringRef label) {
-  if (static_cast<int64_t>(support.size()) != expected)
+  if (std::cmp_not_equal(support.size(), expected))
     return op->emitOpError(label)
            << " width must equal the referenced code n (" << expected << ")";
   llvm::SmallDenseSet<int64_t, 32> seen;
@@ -1823,7 +1823,7 @@ LogicalResult PatchTransformOp::verify() {
   int64_t sourceK = sourceCode ? sourceCode.getK().value_or(1) : 1;
   int64_t destinationK =
       destinationCode ? destinationCode.getK().value_or(1) : 1;
-  if (static_cast<int64_t>(getLogicalMap().size()) != sourceK)
+  if (std::cmp_not_equal(getLogicalMap().size(), sourceK))
     return emitOpError("logical_map width must equal source code k (")
            << sourceK << ")";
   llvm::SmallDenseSet<int64_t, 16> logicalTargets;
@@ -2005,10 +2005,10 @@ static LogicalResult verifyGeneratedRemoteProvenance(Operation *owner) {
   if (!generatorObjective || !protocol.getObjectiveAttr() ||
       protocol.getObjectiveAttr() != generatorObjective)
     return owner->emitOpError(
-        "generated protocol objective must equal its generator objective");
+        "generated protocol action must equal its generator action");
   if (site && site->getAttr("objective") != generatorObjective)
     return owner->emitOpError(
-        "generated protocol objective must equal its action-site objective");
+        "generated protocol action must equal its action-site declaration");
   if (!family || family.getValue() != "pauli_product_measurement")
     return owner->emitOpError("remote observable generator must select "
                               "pauli_product_measurement");
@@ -2209,7 +2209,8 @@ LogicalResult ObjectiveOp::verify() {
     if (!patches || !kinds || !indices || !paulis || !sign)
       return emitOpError("subsystem_fragment step ")
              << stepIndex << " is missing typed Pauli support";
-    if (patches.size() != kinds.size() || kinds.size() != indices.size() ||
+    if (std::cmp_not_equal(patches.size(), kinds.size()) ||
+        std::cmp_not_equal(kinds.size(), indices.size()) ||
         paulis.getValue().size() != kinds.size() || kinds.empty())
       return emitOpError("subsystem_fragment step ")
              << stepIndex << " has inconsistent support widths";
@@ -2341,15 +2342,15 @@ LogicalResult GadgetSpecOp::verify() {
           SymbolTable::lookupNearestSymbolFrom(*this, getObjectiveAttr())) {
     objective = dyn_cast<ObjectiveOp>(target);
     if (!objective)
-      return emitOpError("objective must resolve to fabric.objective");
+      return emitOpError("action must resolve to fabric.objective");
   }
   bool isEntrypoint = static_cast<bool>(getEntrypoint());
   if (isEntrypoint) {
     if (!objective)
       return emitOpError(
-          "entrypoint GadgetSpec objective must resolve to fabric.objective");
+          "entrypoint GadgetSpec action must resolve to fabric.objective");
     if (objective.getFunctionType() != getFunctionType())
-      return emitOpError("entrypoint GadgetSpec objective and realization "
+      return emitOpError("entrypoint GadgetSpec action and realization "
                          "function types must match exactly");
   }
 
@@ -2432,14 +2433,14 @@ LogicalResult GadgetSpecOp::verify() {
       return emitOpError(
           "outcome_map requires records, rank-2 i1 rows, and constants");
     auto shape = rows.getType().getShape();
-    if (shape[1] != static_cast<int64_t>(records.size()) ||
-        shape[0] != static_cast<int64_t>(constants.size()))
+    if (std::cmp_not_equal(shape[1], records.size()) ||
+        std::cmp_not_equal(shape[0], constants.size()))
       return emitOpError(
           "outcome_map dimensions must match its records and constants");
     if ((realizationOutcomes != 0 && shape[0] != realizationOutcomes) ||
         (objectiveOutcomes && shape[0] != *objectiveOutcomes))
       return emitOpError(
-          "outcome_map rows must exactly cover objective and realization "
+          "outcome_map rows must exactly cover action and realization "
           "Boolean outcomes");
     if (llvm::any_of(constants.asArrayRef(),
                      [](int64_t value) { return value != 0 && value != 1; }))
@@ -2454,8 +2455,8 @@ LogicalResult GadgetSpecOp::verify() {
       return emitOpError(
           "outcome_map input_syndromes and roles must be present together");
     if (inputSyndromes) {
-      if (static_cast<int64_t>(inputSyndromes.size()) != shape[0] ||
-          static_cast<int64_t>(roles.size()) != shape[0])
+      if (std::cmp_not_equal(inputSyndromes.size(), shape[0]) ||
+          std::cmp_not_equal(roles.size(), shape[0]))
         return emitOpError(
             "outcome_map input_syndromes and roles must contain one array per "
             "outcome row");
@@ -2523,7 +2524,7 @@ LogicalResult GadgetSpecOp::verify() {
           parsedTerms.emplace_back(port.getInt(), index.getInt());
         }
         for (auto [port, index] : parsedTerms) {
-          if (port >= static_cast<int64_t>(inputWidths.size()))
+          if (std::cmp_greater_equal(port, inputWidths.size()))
             return emitOpError(
                        "outcome_map input-syndrome term names absent input "
                        "endpoint ")
@@ -2558,7 +2559,7 @@ LogicalResult GadgetSpecOp::verify() {
   } else if (!isEntrypoint &&
              (realizationOutcomes != 0 ||
               (objectiveOutcomes && *objectiveOutcomes != 0))) {
-    return emitOpError("Boolean objective and realization results require a "
+    return emitOpError("Boolean action and realization results require a "
                        "total outcome_map");
   }
 
@@ -2577,15 +2578,15 @@ LogicalResult GadgetSpecOp::verify() {
       if (auto objective = dyn_cast<StringAttr>(entry.getValue());
           !objective || objective.empty())
         return emitOpError(
-            "parameter_map values must be nonempty objective parameter names");
+            "parameter_map values must be nonempty action parameter names");
       else if (!objectiveNames.insert(objective.getValue()).second)
         return emitOpError(
             "parameter_map must be a bijection onto objective parameters");
-    if (static_cast<int64_t>(parameters->size()) != realizationParameters ||
+    if (std::cmp_not_equal(parameters->size(), realizationParameters) ||
         (objectiveParameters &&
-         static_cast<int64_t>(parameters->size()) != *objectiveParameters))
+         std::cmp_not_equal(parameters->size(), *objectiveParameters)))
       return emitOpError(
-          "parameter_map must be total over objective and realization runtime "
+          "parameter_map must be total over action and realization runtime "
           "parameters");
   }
 
@@ -2890,7 +2891,8 @@ collectRecursiveRecordManifest(GadgetOp root, bool requireMeasurementRecords,
         return collectRegion(repeat.getBody(), nestedPath);
       };
       if (requireMeasurementRecords) {
-        for (int64_t iteration = 0; iteration < repeat.getCount(); ++iteration)
+        for (int64_t iteration = 0; iteration < repeat.getCountAttr().getInt();
+             ++iteration)
           if (failed(collectIteration(iteration)))
             return failure();
         return success();
@@ -2905,7 +2907,7 @@ collectRecursiveRecordManifest(GadgetOp root, bool requireMeasurementRecords,
       repeatPrefix +=
           (Twine("__qlx_repeat") + Twine(operationOrdinal) + "_").str();
       std::set<int64_t> selectedIterations;
-      if (repeat.getCount() > 0)
+      if (repeat.getCountAttr().getInt() > 0)
         selectedIterations.insert(0);
       for (const std::string &path : demandedPaths) {
         StringRef remainder(path);
@@ -2916,7 +2918,7 @@ collectRecursiveRecordManifest(GadgetOp root, bool requireMeasurementRecords,
           continue;
         int64_t iteration = -1;
         if (remainder.take_front(separator).getAsInteger(10, iteration) ||
-            iteration < 0 || iteration >= repeat.getCount())
+            iteration < 0 || iteration >= repeat.getCountAttr().getInt())
           continue;
         selectedIterations.insert(iteration);
       }
@@ -3252,6 +3254,21 @@ resolveTypedRecordExpression(Value value) {
       return result;
     }
 
+    if (auto allZero = current.getDefiningOp<AllZeroOp>()) {
+      auto tensor = dyn_cast<RankedTensorType>(allZero.getBits().getType());
+      // For one bit, all_zero(b) = 1 XOR b. Wider bundles
+      // require a nonlinear conjunction and have no affine record expression.
+      if (!tensor || tensor.getRank() != 1 || tensor.isDynamicDim(0) ||
+          tensor.getDimSize(0) != 1)
+        return failure();
+      auto bundle = resolveTypedRecordBundle(allZero.getBits());
+      if (failed(bundle) || bundle->size() != 1)
+        return failure();
+      RecordAffineExpression result = bundle->front();
+      result.constant = !result.constant;
+      return result;
+    }
+
     return failure();
   };
   return resolve(value);
@@ -3435,7 +3452,7 @@ static LogicalResult verifyDerivedCSSCX(GadgetOp gadget, GadgetSpecOp spec) {
     return success();
   if (gadgetLogicalAction(gadget) != std::optional<StringRef>("cx"))
     return gadget.emitOpError(
-        "derived CSS transversal CX requires the typed logical CX objective");
+        "derived CSS transversal CX requires the typed logical CX action");
   auto semantic = straightLineBody(gadget);
   if (semantic.size() != 1)
     return gadget.emitOpError(
@@ -3463,6 +3480,29 @@ static LogicalResult verifyDerivedCSSCX(GadgetOp gadget, GadgetSpecOp spec) {
   return success();
 }
 
+/// GF(2) row rank of equal-width bit rows. Shared by the gadget, permutation,
+/// code, and code-profile verifiers below.
+static int64_t gf2RowRank(ArrayRef<llvm::SmallBitVector> source) {
+  SmallVector<llvm::SmallBitVector> rows(source.begin(), source.end());
+  size_t result = 0;
+  int64_t width = rows.empty() ? 0 : rows.front().size();
+  for (int64_t column = width - 1; column >= 0; --column) {
+    auto pivot =
+        llvm::find_if(llvm::drop_begin(rows, result),
+                      [&](const auto &row) { return row.test(column); });
+    if (pivot == rows.end())
+      continue;
+    std::iter_swap(rows.begin() + result, pivot);
+    for (size_t index = 0; index < rows.size(); ++index)
+      if (index != result && rows[index].test(column))
+        rows[index] ^= rows[result];
+    ++result;
+    if (result == rows.size())
+      break;
+  }
+  return result;
+}
+
 static LogicalResult verifyDerivedCSSHPermutation(GadgetOp gadget,
                                                   GadgetSpecOp spec) {
   auto equivalence = spec ? spec.getActionEquivalence() : std::nullopt;
@@ -3471,7 +3511,7 @@ static LogicalResult verifyDerivedCSSHPermutation(GadgetOp gadget,
     return success();
   if (gadgetLogicalAction(gadget) != std::optional<StringRef>("h"))
     return gadget.emitOpError(
-        "derived CSS H-permutation requires the typed logical H objective");
+        "derived CSS H-permutation requires the typed logical H action");
   auto semantic = straightLineBody(gadget);
   auto h = semantic.empty() ? HOp{} : dyn_cast<HOp>(semantic.front());
   Block &entry = gadget.getBody().front();
@@ -3501,17 +3541,18 @@ static LogicalResult verifyDerivedCSSHPermutation(GadgetOp gadget,
         "derived CSS H-permutation requires a bare qubit or one-logical CSS "
         "stabilizer code");
 
-  auto parsePair =
-      [](StringRef relation) -> std::optional<std::pair<int64_t, int64_t>> {
+  auto parsePair = [](StringRef relation,
+                      std::pair<int64_t, int64_t> &parsed) -> bool {
     if (relation.contains(','))
-      return std::nullopt;
+      return false;
     auto [leftText, rightText] = relation.split(':');
     int64_t left = -1;
     int64_t right = -1;
     if (leftText.empty() || rightText.empty() || rightText.contains(':') ||
         leftText.getAsInteger(10, left) || rightText.getAsInteger(10, right))
-      return std::nullopt;
-    return std::pair<int64_t, int64_t>{left, right};
+      return false;
+    parsed = {left, right};
+    return true;
   };
 
   Value current = h.getResult();
@@ -3530,15 +3571,16 @@ static LogicalResult verifyDerivedCSSHPermutation(GadgetOp gadget,
     std::array<std::pair<int64_t, int64_t>, 3> pairs;
     for (auto [index, cx] : llvm::enumerate(group)) {
       auto relation = cx.getPairs();
-      auto parsed = relation ? parsePair(*relation) : std::nullopt;
+      std::pair<int64_t, int64_t> parsed{-1, -1};
       if (cx.getPatches().size() != 1 || cx.getPatches().front() != current ||
           cx.getNumResults() != 1 || cx.getCtrl() != Partition::data ||
-          cx.getTarg() != Partition::data || !parsed || parsed->first < 0 ||
-          parsed->second < 0 || parsed->first >= n || parsed->second >= n ||
-          parsed->first == parsed->second)
+          cx.getTarg() != Partition::data || !relation ||
+          !parsePair(*relation, parsed) || parsed.first < 0 ||
+          parsed.second < 0 || parsed.first >= n || parsed.second >= n ||
+          parsed.first == parsed.second)
         return gadget.emitOpError(
             "derived CSS H-permutation has an invalid SWAP carrier relation");
-      pairs[index] = *parsed;
+      pairs[index] = parsed;
       current = cx.getResult(0);
     }
     if (pairs[1] !=
@@ -3593,26 +3635,6 @@ static LogicalResult verifyDerivedCSSHPermutation(GadgetOp gadget,
     return gadget.emitOpError(
         "derived CSS H-permutation requires canonical code symplectic bases");
 
-  auto rank = [](ArrayRef<llvm::SmallBitVector> source) {
-    SmallVector<llvm::SmallBitVector> rows(source.begin(), source.end());
-    int64_t value = 0;
-    int64_t width = rows.empty() ? 0 : rows.front().size();
-    for (int64_t column = width - 1; column >= 0; --column) {
-      auto pivot =
-          llvm::find_if(llvm::drop_begin(rows, value),
-                        [&](const auto &row) { return row.test(column); });
-      if (pivot == rows.end())
-        continue;
-      std::iter_swap(rows.begin() + value, pivot);
-      for (int64_t index = 0; index < static_cast<int64_t>(rows.size());
-           ++index)
-        if (index != value && rows[index].test(column))
-          rows[index] ^= rows[value];
-      if (++value == static_cast<int64_t>(rows.size()))
-        break;
-    }
-    return value;
-  };
   auto transform = [&](const llvm::SmallBitVector &row) {
     llvm::SmallBitVector result(2 * n);
     for (int64_t source = 0; source < n; ++source) {
@@ -3624,12 +3646,12 @@ static LogicalResult verifyDerivedCSSHPermutation(GadgetOp gadget,
     }
     return result;
   };
-  int64_t stabilizerRank = rank(*stabilizers);
+  int64_t stabilizerRank = gf2RowRank(*stabilizers);
   auto rowsInStabilizerSpan = [&](ArrayRef<llvm::SmallBitVector> rows) {
     SmallVector<llvm::SmallBitVector> extended(stabilizers->begin(),
                                                stabilizers->end());
     llvm::append_range(extended, rows);
-    return rank(extended) == stabilizerRank;
+    return gf2RowRank(extended) == stabilizerRank;
   };
   SmallVector<llvm::SmallBitVector> transformedStabilizers;
   transformedStabilizers.reserve(stabilizers->size());
@@ -3656,7 +3678,7 @@ static LogicalResult verifyDerivedBareCZ(GadgetOp gadget, GadgetSpecOp spec) {
     return success();
   if (gadgetLogicalAction(gadget) != std::optional<StringRef>("cz"))
     return gadget.emitOpError(
-        "derived bare physical CZ requires the typed logical CZ objective");
+        "derived bare physical CZ requires the typed logical CZ action");
   auto semantic = straightLineBody(gadget);
   auto cz = semantic.size() == 1 ? dyn_cast<CZOp>(semantic.front()) : CZOp{};
   auto returnOp = dyn_cast<ReturnOp>(gadget.getBody().front().getTerminator());
@@ -3732,7 +3754,7 @@ static LogicalResult verifyDerivedCZCallComposition(GadgetOp gadget,
       returnOp.getOperand(0) != cx.getResult(0) ||
       returnOp.getOperand(1) != secondH.getResult(0))
     return gadget.emitOpError(
-        "derived logical CZ H-CX-H calls have incorrect owner wiring");
+        "derived logical CZ H-CX-H calls have incorrect qubit wiring");
   return success();
 }
 
@@ -3762,7 +3784,7 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
   if (permutations.size() != 1)
     return fail("automorphism realization must contain exactly one "
                 "fabric.permute; compose permutations before declaring "
-                "objective equivalence");
+                "action equivalence");
   // A partially linked or legacy gadget without a spec is still checked by
   // PermuteOp's local canonical-code verifier.  Objective equivalence remains
   // a link-time obligation until a GadgetSpec is present.
@@ -3789,7 +3811,7 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
       SymbolTable::lookupNearestSymbolFrom(spec, spec.getObjectiveAttr());
   auto objective = dyn_cast_or_null<ObjectiveOp>(objectiveTarget);
   if (!objective || !objective.getLogicalAttr())
-    return fail("automorphism GadgetSpec objective must resolve through "
+    return fail("automorphism GadgetSpec action must resolve through "
                 "fabric.objective to a typed logical action");
   auto *logicalTarget = SymbolTable::lookupNearestSymbolFrom(
       objective, objective.getLogicalAttr());
@@ -3799,12 +3821,12 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
                             "clifford_action")
                       : ::qlx::CliffordActionAttr{};
   if (!logicalAction || !clifford)
-    return fail("automorphism objective must carry a typed independently "
+    return fail("automorphism action must carry a typed independently "
                 "derived #qlx.clifford_action");
 
   auto patch = cast<PatchType>(permutation.getPatch().getType());
   if (!patch.getEncoding())
-    return fail("automorphism objective verification requires an "
+    return fail("automorphism action verification requires an "
                 "encoding-qualified patch");
   auto *encodingTarget =
       SymbolTable::lookupNearestSymbolFrom(permutation, patch.getEncoding());
@@ -3823,7 +3845,7 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
   const int64_t protectedCount = protectedAttr.getInt();
   const int64_t gaugeCount = gaugeAttr.getInt();
   const int64_t totalCount = protectedCount + gaugeCount;
-  if (static_cast<int64_t>(encoding.getLogicalPorts().size()) != protectedCount)
+  if (std::cmp_not_equal(encoding.getLogicalPorts().size(), protectedCount))
     return fail("encoding logical-port count contradicts the permutation's "
                 "protected logical count");
 
@@ -3832,7 +3854,7 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
   const int64_t objectiveWidth = 2 * arity;
   ArrayRef<int64_t> objectiveMatrix = clifford.getMatrix().asArrayRef();
   ArrayRef<int64_t> phases = clifford.getPhases().asArrayRef();
-  if (static_cast<int64_t>(binding.size()) != arity)
+  if (std::cmp_not_equal(binding.size(), arity))
     return fail("objective_binding must cover every typed objective port "
                 "exactly once");
 
@@ -3841,10 +3863,10 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
   for (auto [objectiveIndex, rawPort] : llvm::enumerate(objectivePorts)) {
     auto objectivePort = dyn_cast<StringAttr>(rawPort);
     if (!objectivePort)
-      return fail("typed Clifford objective ports must be strings");
+      return fail("typed Clifford action ports must be strings");
     auto boundPort = binding.getAs<StringAttr>(objectivePort.getValue());
     if (!boundPort)
-      return fail("objective_binding is missing typed objective port '" +
+      return fail("objective_binding is missing typed action port '" +
                   objectivePort.getValue() + "'");
     int64_t codeIndex = -1;
     for (auto [index, rawEncodingPort] :
@@ -3914,7 +3936,7 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
           basis == 0 ? expectedZ : expectedX;
       if (expectedPhase != 0 || mixedBasis.any() || *actual != sameBasis)
         return fail("fabric.permute action does not implement the typed "
-                    "objective's exact signed-symplectic action");
+                    "action's exact signed-symplectic action");
     }
   }
   for (int64_t gauge = protectedCount; gauge < totalCount; ++gauge) {
@@ -4123,11 +4145,11 @@ static LogicalResult verifyRetainedStreamProtocols(ProtocolOp protocol) {
       dyn_cast_or_null<qlx::BuiltinActionAttr>(objectiveAttr);
   if (!objective && !builtinObjective)
     return protocol.emitOpError(
-        "a retained stream protocol requires a typed action objective");
+        "a retained stream protocol requires a typed unitary action");
   if (objective && objective.getFunctionType() != protocol.getFunctionType())
     return protocol.emitOpError(
         "a retained stream protocol function type must exactly match its "
-        "qlx.action objective");
+        "qlx.action declaration");
 
   auto verifyRole = [&](qlx::lvm::StreamOp stream, StringRef role,
                         bool producer) -> LogicalResult {
@@ -4156,7 +4178,7 @@ static LogicalResult verifyRetainedStreamProtocols(ProtocolOp protocol) {
                                  stream.getProducesAttr().getValue().str();
       if (objective.getKind() != expectedKind)
         return protocol.emitOpError()
-               << "retained stream " << role << " objective must be the exact '"
+               << "retained stream " << role << " action must be the exact '"
                << expectedKind << "' qlx.action";
       return success();
     }
@@ -4200,7 +4222,7 @@ static LogicalResult verifyRetainedStreamProtocols(ProtocolOp protocol) {
     });
     if (failed(exactObjective))
       return protocol.emitOpError(
-          "retained stream transfer objective must exactly equal its P1 "
+          "retained stream transfer action must exactly equal its P1 "
           "resource-consume action");
     return success();
   };
@@ -4253,7 +4275,7 @@ static LogicalResult verifyRetainedStreamProtocols(ProtocolOp protocol) {
 static LogicalResult verifySelectedPredicateSemantics(
     Operation *owner, Value predicate, ValueRange carries,
     FlatSymbolRefAttr attemptAttr, FlatSymbolRefAttr profileAttr,
-    GadgetOp gadget, GadgetProfileOp profile, GadgetSpecOp spec,
+    GadgetOp gadget, GadgetContractOp profile, GadgetSpecOp spec,
     StringRef operation);
 static LogicalResult verifyEmbeddedSelections(Operation *protocolBody);
 static LogicalResult verifyLocalGeneratedRPPProtocol(ProtocolOp protocol);
@@ -4286,7 +4308,7 @@ LogicalResult ProtocolOp::verify() {
     unsigned matches = 0;
     qlx::lvm::CallOp matchedCall;
     kernel.getBody().walk([&](qlx::lvm::CallOp call) {
-      if (call.getScope() == getInputP1ScopeAttr().getInt() &&
+      if (call.getScopeAttr().getInt() == getInputP1ScopeAttr().getInt() &&
           call.getCalleeAttr() == getInputP1CalleeAttr()) {
         ++matches;
         matchedCall = call;
@@ -4315,8 +4337,7 @@ LogicalResult ProtocolOp::verify() {
           isa<ResourceStateType>(objectiveType.getResult(0));
       if (producesResource) {
         if (functionType.getResults() != objectiveType.getResults())
-          return emitOpError(
-              "result types must match the production objective");
+          return emitOpError("result types must match the production action");
       }
     }
   }
@@ -4376,7 +4397,7 @@ LogicalResult ProtocolOp::verify() {
       return emitOpError("predicate_result must name an i1 protocol result");
     auto gadget = dyn_cast_or_null<GadgetOp>(
         SymbolTable::lookupNearestSymbolFrom(*this, getPredicateGadgetAttr()));
-    auto profile = dyn_cast_or_null<GadgetProfileOp>(
+    auto profile = dyn_cast_or_null<GadgetContractOp>(
         SymbolTable::lookupNearestSymbolFrom(*this, getPredicateProfileAttr()));
     if (!gadget || !profile ||
         profile.getGadgetAttr() != getPredicateGadgetAttr())
@@ -4458,7 +4479,7 @@ static FailureOr<BooleanAffineExpression> normalizeBooleanAffine(Value value) {
 static LogicalResult verifySelectedPredicateSemantics(
     Operation *owner, Value predicate, ValueRange carries,
     FlatSymbolRefAttr attemptAttr, FlatSymbolRefAttr profileAttr,
-    GadgetOp gadget, GadgetProfileOp profile, GadgetSpecOp spec,
+    GadgetOp gadget, GadgetContractOp profile, GadgetSpecOp spec,
     StringRef operation) {
   SmallVector<SuccessOp> successes;
   profile.getBody().walk(
@@ -4533,9 +4554,11 @@ static LogicalResult verifySelectedPredicateSemantics(
       if (!authoritativeSuccessRows.empty() &&
           !outcomeRowHasRole(*outcome, row, "success"))
         continue;
-      if (authoritativeSuccessRows.empty() &&
-          outcomeRowHasRole(*outcome, row, "result"))
-        continue;
+      // An inferred returned Boolean is a result row.  A selected profile may
+      // still give that same row success semantics for a bounded retry.  When
+      // no OutcomeMap row is explicitly authoritative for success, allow the
+      // exact profile row below to bind to a result row; the ordered record,
+      // syndrome, and constant checks continue to make the match fail closed.
       SmallVector<StringRef> rowRecords;
       for (int64_t column = 0; column < shape[1]; ++column)
         if (!values[row * shape[1] + column].isZero())
@@ -4664,7 +4687,7 @@ static LogicalResult verifySelectedPredicateSemantics(
                  << " must carry every linear patch result from the selected "
                     "attempt; sibling cleanup is not a closed replay boundary";
       }
-    if (patchResultCount != static_cast<int64_t>(carries.size()))
+    if (std::cmp_not_equal(patchResultCount, carries.size()))
       return owner->emitOpError(operation)
              << " carries must exactly equal the selected attempt patch "
                 "results";
@@ -4673,7 +4696,7 @@ static LogicalResult verifySelectedPredicateSemantics(
 }
 
 LogicalResult RetryOp::verify() {
-  if (getMaxAttempts() <= 0)
+  if (getMaxAttemptsAttr().getInt() <= 0)
     return emitOpError("max_attempts must be positive");
   if (getExhaustion() != "report_failure" && getExhaustion() != "abort" &&
       getExhaustion() != "return_last")
@@ -4713,12 +4736,12 @@ LogicalResult RetryOp::verify() {
         "typed selection and predicate-provenance contract");
 
   if (!getProfileAttr())
-    return emitOpError("requires an explicit selected gadget profile");
+    return emitOpError("requires an explicit selected gadget contract");
   Operation *profileTarget =
       SymbolTable::lookupNearestSymbolFrom(*this, getProfileAttr());
-  auto profile = dyn_cast_or_null<GadgetProfileOp>(profileTarget);
+  auto profile = dyn_cast_or_null<GadgetContractOp>(profileTarget);
   if (!profile)
-    return emitOpError("profile must resolve to fabric.gadget_profile");
+    return emitOpError("profile must resolve to fabric.gadget_contract");
   if (protocol) {
     if (protocol.getPredicateProfileAttr() != getProfileAttr())
       return emitOpError(
@@ -4914,27 +4937,6 @@ LogicalResult PermuteOp::verify() {
       failed(gaugeX) || failed(gaugeZ))
     return failure();
 
-  auto rowRank = [](ArrayRef<llvm::SmallBitVector> source) {
-    SmallVector<llvm::SmallBitVector> rows(source.begin(), source.end());
-    int64_t rank = 0;
-    const int64_t width = rows.empty() ? 0 : rows.front().size();
-    for (int64_t column = width - 1; column >= 0; --column) {
-      auto pivot =
-          llvm::find_if(llvm::drop_begin(rows, rank),
-                        [&](const auto &row) { return row.test(column); });
-      if (pivot == rows.end())
-        continue;
-      std::iter_swap(rows.begin() + rank, pivot);
-      for (int64_t index = 0; index < static_cast<int64_t>(rows.size());
-           ++index)
-        if (index != rank && rows[index].test(column))
-          rows[index] ^= rows[rank];
-      ++rank;
-      if (rank == static_cast<int64_t>(rows.size()))
-        break;
-    }
-    return rank;
-  };
   auto transform = [&](const llvm::SmallBitVector &row) {
     llvm::SmallBitVector result(2 * n);
     for (int64_t carrier = 0; carrier < n; ++carrier) {
@@ -4948,10 +4950,10 @@ LogicalResult PermuteOp::verify() {
   };
   auto preservesSpan = [&](ArrayRef<llvm::SmallBitVector> span,
                            ArrayRef<llvm::SmallBitVector> rows) {
-    const int64_t originalRank = rowRank(span);
+    const int64_t originalRank = gf2RowRank(span);
     SmallVector<llvm::SmallBitVector> extended(span.begin(), span.end());
     llvm::append_range(extended, rows);
-    return rowRank(extended) == originalRank;
+    return gf2RowRank(extended) == originalRank;
   };
 
   SmallVector<llvm::SmallBitVector> transformedStabilizers;
@@ -5250,37 +5252,12 @@ requireGF2Matrix(Operation *op, Attribute value, StringRef label) {
   return matrix;
 }
 
-static SmallVector<llvm::SmallBitVector>
-denseGF2Rows(DenseIntElementsAttr matrix) {
-  auto shape = matrix.getType().getShape();
-  SmallVector<llvm::SmallBitVector> rows;
-  auto values = matrix.getValues<APInt>();
-  auto iterator = values.begin();
-  for (int64_t row = 0; row < shape[0]; ++row) {
-    llvm::SmallBitVector bits(shape[1]);
-    for (int64_t column = 0; column < shape[1]; ++column, ++iterator)
-      if (!(*iterator).isZero())
-        bits.set(column);
-    rows.push_back(std::move(bits));
-  }
-  return rows;
-}
-
-static llvm::SmallBitVector
-combineGF2Rows(ArrayRef<llvm::SmallBitVector> source,
-               const llvm::SmallBitVector &coefficients, int64_t width) {
-  llvm::SmallBitVector result(width);
-  for (int index : coefficients.set_bits())
-    result ^= source[index];
-  return result;
-}
-
 LogicalResult MeasureGaugesOp::verify() {
   auto patch = cast<PatchType>(getPatch().getType());
   auto output = cast<PatchType>(getPatchOut().getType());
   auto records = cast<GaugeRecordsType>(getRecords().getType());
   if (patch != output)
-    return emitOpError("must preserve patch ownership type");
+    return emitOpError("must preserve patch value type");
   if (!patch.getEncoding() || !patch.getEpoch())
     return emitOpError("requires an encoding- and epoch-qualified patch");
   if (patch.getCodeType() != records.getCodeType() ||
@@ -5667,7 +5644,7 @@ static LogicalResult verifyCommunicationObligation(CallOp op) {
   Attribute siteObjective = actionSite->getAttr("objective");
   if (!siteObjective || lowering->getAttr("objective") != siteObjective)
     return op.emitOpError(
-        "generated_by objective does not match action_site provenance");
+        "generated_by action does not match action_site provenance");
 
   Operation *callee = SymbolTable::lookupNearestSymbolFrom(op.getOperation(),
                                                            op.getCalleeAttr());
@@ -5681,14 +5658,14 @@ static LogicalResult verifyCommunicationObligation(CallOp op) {
   if (!protocol.getObjectiveAttr() ||
       protocol.getObjectiveAttr() != siteObjective)
     return op.emitOpError(
-        "callee objective does not match action_site provenance");
+        "callee action does not match action_site provenance");
 
   SmallVector<Type> inputOwners;
   SmallVector<Type> resultOwners;
   for (Type type : op.getOperandTypes()) {
     if (!isa<PatchType>(type))
       return op.emitOpError(
-          "remote-observable call operands must all be patch owners");
+          "remote-observable call operands must all be patch values");
     inputOwners.push_back(type);
   }
   for (Type type : op.getResultTypes())
@@ -5696,16 +5673,16 @@ static LogicalResult verifyCommunicationObligation(CallOp op) {
       resultOwners.push_back(type);
   if (inputOwners.size() != 2)
     return op.emitOpError(
-        "remote-observable call requires exactly two patch owners");
+        "remote-observable call requires exactly two patch values");
   if (inputOwners != resultOwners)
     return op.emitOpError(
-        "remote-observable call must preserve owner types and order");
+        "remote-observable call must preserve operand types and order");
   auto leftOwner = cast<PatchType>(inputOwners[0]);
   auto rightOwner = cast<PatchType>(inputOwners[1]);
   if (leftOwner.getCodeType() != rightOwner.getCodeType() ||
       leftOwner.getEncoding() != rightOwner.getEncoding())
     return op.emitOpError(
-        "remote-observable owners must use the same code and encoding");
+        "remote-observable patches must use the same code and encoding");
   auto acceptedCodes = lowering->getAttrOfType<ArrayAttr>("codes");
   for (Type type : inputOwners) {
     auto patch = cast<PatchType>(type);
@@ -5715,19 +5692,19 @@ static LogicalResult verifyCommunicationObligation(CallOp op) {
                       llvm::is_contained(acceptedCodes, patch.getEncoding())));
     if (!accepted)
       return op.emitOpError(
-          "remote-observable owner code is not accepted by generated_by");
+          "remote-observable patch code is not accepted by generated_by");
   }
   OwnerLineageAnalysis ownerLineage;
   for (unsigned owner = 0; owner < 2; ++owner) {
     OwnerOrigin origin = ownerLineage.traceCallableResult(protocol, owner);
     if (origin.kind != OwnerOriginKind::boundary || origin.boundary != owner)
       return op.emitOpError(
-          "remote-observable protocol must preserve ordered boundary owner "
+          "remote-observable protocol must preserve ordered boundary patch "
           "identity");
   }
   if (op.getNumResults() == resultOwners.size())
     return op.emitOpError(
-        "remote-observable call requires at least one non-owner outcome");
+        "remote-observable call requires at least one classical outcome");
   return success();
 }
 
@@ -5772,7 +5749,7 @@ verifyLocalGeneratedRPPProvenance(Operation *owner, Operation *callee,
   Attribute loweringObjective = lowering->getAttr("objective");
   if (loweringObjective && loweringObjective != siteObjective)
     return owner->emitOpError(
-        "local generated RPP lowering objective must match action_site "
+        "local generated RPP lowering action must match action_site "
         "pauli_rotation");
 
   auto calleeName = callee->getAttrOfType<StringAttr>("sym_name");
@@ -5937,7 +5914,7 @@ verifyLocalGeneratedRPPProvenance(Operation *owner, Operation *callee,
   if (!protocol.getObjectiveAttr() ||
       protocol.getObjectiveAttr() != siteObjective)
     return owner->emitOpError(
-        "local generated RPP protocol objective must match action_site "
+        "local generated RPP protocol action must match action_site "
         "pauli_rotation");
   return success();
 }
@@ -5997,10 +5974,10 @@ static LogicalResult verifyLocalGeneratedRPPInvocations(ProtocolOp protocol) {
       Operation *profileTarget =
           symbolTables.lookupNearestSymbolFrom(call, profileRef);
       if (profileTarget) {
-        auto profile = dyn_cast<GadgetProfileOp>(profileTarget);
+        auto profile = dyn_cast<GadgetContractOp>(profileTarget);
         if (!profile) {
-          result =
-              call.emitOpError("profile must resolve to fabric.gadget_profile");
+          result = call.emitOpError(
+              "profile must resolve to fabric.gadget_contract");
           return;
         }
         if (auto gadget = dyn_cast<GadgetOp>(target)) {
@@ -6082,9 +6059,9 @@ LogicalResult CallOp::verify() {
     Operation *profileTarget =
         SymbolTable::lookupNearestSymbolFrom(*this, profileRef);
     if (profileTarget) {
-      auto profile = dyn_cast<GadgetProfileOp>(profileTarget);
+      auto profile = dyn_cast<GadgetContractOp>(profileTarget);
       if (!profile)
-        return emitOpError("profile must resolve to fabric.gadget_profile");
+        return emitOpError("profile must resolve to fabric.gadget_contract");
       if (auto gadget = dyn_cast<GadgetOp>(target)) {
         if (profile.getGadgetAttr() != getCalleeAttr())
           return emitOpError("profile must analyze the called gadget");
@@ -6221,7 +6198,7 @@ LogicalResult EstablishTopologicalRecordOp::verify() {
 // event.selection's shared verifier (EventDialect.cpp) only checks mode/
 // accept_when and that attempt/profile resolve to some symbol, since the
 // shared `event` dialect cannot depend on `fabric` to check that attempt is
-// specifically a fabric.gadget, that profile is its fabric.gadget_profile,
+// specifically a fabric.gadget, that profile is its fabric.gadget_contract,
 // or the outcome-map contract verifySelectedPredicateSemantics enforces.
 // Walking every embedded event.selection in a protocol body from here
 // restores those checks for the one dialect whose selections carry them.
@@ -6244,10 +6221,10 @@ static LogicalResult verifyEmbeddedSelections(Operation *protocolBody) {
     auto profileAttr = selection.getProfileAttr();
     if (!profileAttr)
       return;
-    auto profile = dyn_cast_or_null<GadgetProfileOp>(
+    auto profile = dyn_cast_or_null<GadgetContractOp>(
         SymbolTable::lookupNearestSymbolFrom(selection, profileAttr));
     if (!profile) {
-      selection.emitOpError("profile must resolve to fabric.gadget_profile");
+      selection.emitOpError("profile must resolve to fabric.gadget_contract");
       result = failure();
       return;
     }
@@ -6371,7 +6348,8 @@ LogicalResult UnpackResourceOp::verify() {
           "selected three-qubit magic-state handoff requires exact QEC block "
           "identities");
   }
-  if (blockIDs && (!blocks || blockIDs.size() != blocks.size()))
+  if (blockIDs &&
+      (!blocks || std::cmp_not_equal(blockIDs.size(), blocks.size())))
     return emitOpError(
         "payload logical block identities must exactly cover the logical map");
   if (!blocks)
@@ -6390,7 +6368,7 @@ LogicalResult UnpackResourceOp::verify() {
             protocol.getObjectiveAttr());
         objective && objective != action)
       return emitOpError(
-          "payload_action must match the enclosing protocol objective");
+          "payload_action must match the enclosing protocol action");
   }
   llvm::SmallDenseSet<std::pair<int64_t, int64_t>, 8> mappings;
   llvm::SmallDenseSet<int64_t, 8> coveredBlocks;
@@ -6400,7 +6378,7 @@ LogicalResult UnpackResourceOp::verify() {
   for (auto [ordinal, pair] :
        llvm::enumerate(llvm::zip(blocks.asArrayRef(), ports.asArrayRef()))) {
     auto [block, port] = pair;
-    if (block < 0 || block >= static_cast<int64_t>(count))
+    if (block < 0 || std::cmp_greater_equal(block, count))
       return emitOpError("payload logical block index is out of range");
     if (port < 0)
       return emitOpError("payload logical port index must be nonnegative");
@@ -6431,7 +6409,7 @@ LogicalResult UnpackResourceOp::verify() {
     if (!encoding)
       return emitOpError(
           "mapped payload encoding must resolve to fabric.encoding");
-    if (port >= static_cast<int64_t>(encoding.getLogicalPorts().size()))
+    if (std::cmp_greater_equal(port, encoding.getLogicalPorts().size()))
       return emitOpError(
           "payload logical port index exceeds the encoding logical capacity");
   }
@@ -6439,7 +6417,7 @@ LogicalResult UnpackResourceOp::verify() {
     return emitOpError("payload logical maps must cover every payload block");
   if (blockIDs && indexByBlockID.size() != coveredBlocks.size())
     return emitOpError("payload logical block identities must exactly name "
-                       "the action-bearing payload owners");
+                       "the action-bearing payload values");
   return verifyRegisteredResourceUnpack(*this);
 }
 
@@ -7023,7 +7001,7 @@ static LogicalResult verifyProductTermEncoding(Operation *op,
            << pauliProduct.size();
   }
   for (auto [i, idx] : llvm::enumerate(patchIdx)) {
-    if (idx < 0 || idx >= static_cast<int64_t>(patches.size()))
+    if (idx < 0 || std::cmp_greater_equal(idx, patches.size()))
       return op->emitOpError("patch_indices[")
              << i << "] = " << idx << " out of range for " << patches.size()
              << " patch operand(s)";
@@ -7079,7 +7057,7 @@ static LogicalResult verifyProductTermEncoding(Operation *op,
           "subsystem_kinds must be a string array and subsystem_indices must "
           "be a dense i64 array");
     if (subsystemKinds.size() != logicalIdx.size() ||
-        subsystemIndices.size() != logicalIdx.size())
+        std::cmp_not_equal(subsystemIndices.size(), logicalIdx.size()))
       return op->emitOpError(
                  "subsystem_kinds and subsystem_indices must match the product "
                  "term count; got ")
@@ -7151,33 +7129,10 @@ LogicalResult RotateProductOp::verify() {
 LogicalResult ResourceRotateProductOp::verify() {
   auto resource = dyn_cast<ResourceStateType>(getResource().getType());
   if (!resource)
-    return emitOpError("requires one typed resource owner");
+    return emitOpError("requires one typed resource value");
   return verifyProductTermEncoding(*this, getPatches(), getPatchResults(),
                                    getPatchIndices(), getLogicalIndices(),
                                    getPauliProduct());
-}
-
-/// GF(2) row rank of equal-width bit rows. Shared by the canonical
-/// symplectic checks and the CSS support-array checks below.
-static int64_t gf2RowRank(ArrayRef<llvm::SmallBitVector> source) {
-  SmallVector<llvm::SmallBitVector> rows(source.begin(), source.end());
-  int64_t result = 0;
-  int64_t width = rows.empty() ? 0 : rows.front().size();
-  for (int64_t column = width - 1; column >= 0; --column) {
-    auto pivot =
-        llvm::find_if(llvm::drop_begin(rows, result),
-                      [&](const auto &row) { return row.test(column); });
-    if (pivot == rows.end())
-      continue;
-    std::iter_swap(rows.begin() + result, pivot);
-    for (int64_t index = 0; index < static_cast<int64_t>(rows.size()); ++index)
-      if (index != result && rows[index].test(column))
-        rows[index] ^= rows[result];
-    ++result;
-    if (result == static_cast<int64_t>(rows.size()))
-      break;
-  }
-  return result;
 }
 
 /// Verify the CSS support-array adapter form of a fabric.code that carries
@@ -7306,10 +7261,10 @@ static LogicalResult verifyCssSupportAlgebra(CodeOp op, int64_t k,
 
   // Row counts and ranks must stay consistent with the declared n/k/r.
   if (auto declaredR = op.getR()) {
-    if (gx && static_cast<int64_t>(gxRows->size()) != *declaredR)
+    if (gx && gxRows->size() != *declaredR)
       return op.emitOpError("gx must declare exactly r = ")
              << *declaredR << " gauge rows, got " << gxRows->size();
-    if (gz && static_cast<int64_t>(gzRows->size()) != *declaredR)
+    if (gz && gzRows->size() != *declaredR)
       return op.emitOpError("gz must declare exactly r = ")
              << *declaredR << " gauge rows, got " << gzRows->size();
   }
@@ -7445,9 +7400,9 @@ LogicalResult CodeOp::verify() {
   auto symplectic = [n](const llvm::SmallBitVector &left,
                         const llvm::SmallBitVector &right) {
     bool value = false;
-    for (int64_t index = 0; index < n; ++index)
-      value ^= (left.test(index) && right.test(n + index)) ^
-               (left.test(n + index) && right.test(index));
+    // Zero coefficients contribute nothing to x_left.z_right + z_left.x_right.
+    for (int index : left.set_bits())
+      value ^= right.test(index < n ? n + index : index - n);
     return value;
   };
   auto sRows = rowsOf(*stabilizers);
@@ -7541,33 +7496,12 @@ LogicalResult CodeProfileOp::verify() {
     }
     return rows;
   };
-  auto rankRows = [](ArrayRef<llvm::SmallBitVector> source) {
-    SmallVector<llvm::SmallBitVector> rows(source.begin(), source.end());
-    int64_t result = 0;
-    int64_t width = rows.empty() ? 0 : rows.front().size();
-    for (int64_t column = width - 1; column >= 0; --column) {
-      auto pivot =
-          llvm::find_if(llvm::drop_begin(rows, result),
-                        [&](const auto &row) { return row.test(column); });
-      if (pivot == rows.end())
-        continue;
-      std::iter_swap(rows.begin() + result, pivot);
-      for (int64_t index = 0; index < static_cast<int64_t>(rows.size());
-           ++index)
-        if (index != result && rows[index].test(column))
-          rows[index] ^= rows[result];
-      ++result;
-      if (result == static_cast<int64_t>(rows.size()))
-        break;
-    }
-    return result;
-  };
   auto inSpan = [&](const llvm::SmallBitVector &row,
                     ArrayRef<llvm::SmallBitVector> basis) {
     SmallVector<llvm::SmallBitVector> extended(basis.begin(), basis.end());
-    int64_t basisRank = rankRows(extended);
+    int64_t basisRank = gf2RowRank(extended);
     extended.push_back(row);
-    return rankRows(extended) == basisRank;
+    return gf2RowRank(extended) == basisRank;
   };
   auto combineSelected = [](ArrayRef<llvm::SmallBitVector> source,
                             const llvm::SmallBitVector &coefficients,
@@ -7621,14 +7555,14 @@ LogicalResult CodeProfileOp::verify() {
         result ^= source[index];
       return result;
     };
-    if (rankRows(effectiveRows) != keptShape[0])
+    if (gf2RowRank(effectiveRows) != keptShape[0])
       return emitOpError(
           "effective stabilizers must span the complete kept stabilizer basis");
     for (auto [index, coefficients] : llvm::enumerate(decompositionRows))
       if (combine(keptRows, coefficients, 2 * carriers) != effectiveRows[index])
         return emitOpError("decomposition row ")
                << index << " does not reproduce its effective generator";
-    if (rankRows(relationRows) != relationShape[0] ||
+    if (gf2RowRank(relationRows) != relationShape[0] ||
         relationShape[0] != effectiveShape[0] - keptShape[0])
       return emitOpError("effective metachecks must be an independent complete "
                          "relation basis");
@@ -7661,7 +7595,7 @@ LogicalResult CodeProfileOp::verify() {
       [&](StringRef family, DenseIntElementsAttr matrix,
           ArrayRef<llvm::SmallBitVector> checks) -> LogicalResult {
     auto shape = matrix.getType().getShape();
-    if (shape[1] != static_cast<int64_t>(checks.size()))
+    if (std::cmp_not_equal(shape[1], checks.size()))
       return emitOpError(family)
              << " metacheck width must equal effective check count = "
              << checks.size();
@@ -7802,7 +7736,8 @@ LogicalResult CodeProfileOp::verify() {
         return emitOpError(
             "stabilizer-code record logicals may not select gauge pairs");
     } else {
-      if (!gaugePairIndices || gaugePairIndices.size() != protectedNames.size())
+      if (!gaugePairIndices ||
+          std::cmp_not_equal(gaugePairIndices.size(), protectedNames.size()))
         return emitOpError(
             "a k=0 dynamic profile must bind every record logical to a "
             "distinct canonical gauge pair");
@@ -8011,7 +7946,7 @@ LogicalResult CodeProfileOp::verify() {
     }
 
     int64_t protectedCount = static_cast<int64_t>(protectedNames.size());
-    if (static_cast<int64_t>(protectedRows.size()) != 2 * protectedCount)
+    if (std::cmp_not_equal(protectedRows.size(), 2 * protectedCount))
       return emitOpError("protected periodic representatives do not match the "
                          "bound paired basis");
     for (int64_t left = 0; left < 2 * protectedCount; ++left)
@@ -8151,8 +8086,8 @@ LogicalResult CodeProfileOp::verify() {
         return failure();
       auto xShape = x->getType().getShape();
       auto zShape = z->getType().getShape();
-      if (xShape[0] != static_cast<int64_t>(protectedNames.size()) ||
-          zShape[0] != static_cast<int64_t>(protectedNames.size()) ||
+      if (std::cmp_not_equal(xShape[0], protectedNames.size()) ||
+          std::cmp_not_equal(zShape[0], protectedNames.size()) ||
           xShape[1] != phaseRecordCount || zShape[1] != phaseRecordCount)
         return emitOpError(
             "record_logicals X/Z maps must align the paired protected basis "
@@ -8165,9 +8100,9 @@ LogicalResult CodeProfileOp::verify() {
                codeStabilizers, phaseIsg)) {
         SmallVector<llvm::SmallBitVector> extended(boundary.begin(),
                                                    boundary.end());
-        int64_t before = rankRows(extended);
+        int64_t before = gf2RowRank(extended);
         extended.push_back(candidate);
-        if (rankRows(extended) != before)
+        if (gf2RowRank(extended) != before)
           boundary.push_back(candidate);
       }
       return boundary;
@@ -8196,7 +8131,7 @@ LogicalResult CodeProfileOp::verify() {
       SmallVector<llvm::SmallBitVector> quotient(representatives.begin(),
                                                  representatives.end());
       llvm::append_range(quotient, boundary);
-      if (rankRows(quotient) != static_cast<int64_t>(quotient.size()))
+      if (std::cmp_not_equal(gf2RowRank(quotient), quotient.size()))
         return emitOpError(label)
                << " protected representatives are not independent modulo "
                   "the kept/next-phase ISG basis";
@@ -8212,7 +8147,7 @@ LogicalResult CodeProfileOp::verify() {
     SmallVector<llvm::SmallBitVector> quotientBasis(protectedRows.begin(),
                                                     protectedRows.end());
     llvm::append_range(quotientBasis, initialIsg);
-    if (rankRows(quotientBasis) != static_cast<int64_t>(quotientBasis.size()))
+    if (std::cmp_not_equal(gf2RowRank(quotientBasis), quotientBasis.size()))
       return emitOpError("protected periodic representatives must be "
                          "independent modulo the initial kept/ISG basis");
 
@@ -8240,8 +8175,8 @@ LogicalResult CodeProfileOp::verify() {
                       "active measured_gauges";
       for (auto [transported, updates] :
            llvm::zip(transportedRows, recordUpdates))
-        for (int64_t local = 0;
-             local < static_cast<int64_t>(measurements.size()); ++local)
+        for (int64_t local = 0; std::cmp_less(local, measurements.size());
+             ++local)
           if (updates.test(recordOffset + local))
             transported ^= measurements[local];
       recordOffset += static_cast<int64_t>(measurements.size());
@@ -8303,7 +8238,7 @@ LogicalResult CodeProfileOp::verify() {
         row[column] = (*coordinates)[column];
       derivedClosure.push_back(std::move(row));
     }
-    if (rankRows(derivedClosure) != 2 * protectedCount)
+    if (gf2RowRank(derivedClosure) != 2 * protectedCount)
       return emitOpError("derived period_closure must be full rank");
     auto closureSymplectic =
         [protectedCount](const llvm::SmallBitVector &left,
@@ -8362,7 +8297,7 @@ LogicalResult CodeProfileOp::verify() {
     auto recoveryShape = recovery->getType().getShape();
     auto targetShape = targets->getType().getShape();
     if (targetShape[0] != recoveryShape[0] ||
-        targetShape[1] != static_cast<int64_t>(codeStabilizers.size()))
+        std::cmp_not_equal(targetShape[1], codeStabilizers.size()))
       return emitOpError(
           "temporal recovery targets must map every recovery row into the "
           "linked code's kept stabilizer basis");
@@ -8413,8 +8348,8 @@ LogicalResult TransportOp::verify() {
 }
 
 LogicalResult SuccessOp::verify() {
-  if (!(*this)->getParentOfType<GadgetProfileOp>())
-    return emitOpError("must be nested in a fabric.gadget_profile");
+  if (!isa_and_nonnull<GadgetContractOp>((*this)->getParentOp()))
+    return emitOpError("must be a direct child of a fabric.gadget_contract");
   if ((*this)->hasAttr("expected") || (*this)->hasAttr("scope") ||
       (*this)->hasAttr("label"))
     return emitOpError(
@@ -8427,15 +8362,31 @@ LogicalResult SuccessOp::verify() {
   return success();
 }
 
+LogicalResult DetectorOp::verify() {
+  if (!isa_and_nonnull<GadgetContractOp>((*this)->getParentOp()))
+    return emitOpError("must be a direct child of a fabric.gadget_contract");
+  return success();
+}
+
+LogicalResult ObservableOp::verify() {
+  if (!isa_and_nonnull<GadgetContractOp>((*this)->getParentOp()))
+    return emitOpError("must be a direct child of a fabric.gadget_contract");
+  if (getIdxAttr().getInt() < 0)
+    return emitOpError("observable index must be nonnegative");
+  if (getInputSyndromes() && !getInputSyndromes()->empty())
+    return emitOpError("observable rows cannot use input virtual syndromes");
+  return success();
+}
+
 LogicalResult OutputSyndromeOp::verify() {
-  if (!(*this)->getParentOfType<GadgetProfileOp>())
-    return emitOpError("must be nested in a fabric.gadget_profile");
-  if (getPortIndex() < 0 || getIndex() < 0)
+  if (!isa_and_nonnull<GadgetContractOp>((*this)->getParentOp()))
+    return emitOpError("must be a direct child of a fabric.gadget_contract");
+  if (getPortIndexAttr().getInt() < 0 || getIndexAttr().getInt() < 0)
     return emitOpError("requires nonnegative port_index and index");
   return success();
 }
 
-LogicalResult GadgetProfileOp::verify() {
+LogicalResult GadgetContractOp::verify() {
   if ((*this)->hasAttr("selection"))
     return emitOpError(
         "selection policy belongs to fabric.retry or event.selection, not "
@@ -8526,8 +8477,7 @@ LogicalResult GadgetProfileOp::verify() {
           entry ? entry.getAs<IntegerAttr>("endpoint") : IntegerAttr{};
       auto reference = entry ? entry.getAs<FlatSymbolRefAttr>("profile")
                              : FlatSymbolRefAttr{};
-      if (!endpoint ||
-          endpoint.getInt() != static_cast<int64_t>(widths.size()) ||
+      if (!endpoint || std::cmp_not_equal(endpoint.getInt(), widths.size()) ||
           !reference)
         return emitOpError(label)
                << " entries require contiguous endpoint ordinals from zero "
@@ -8559,7 +8509,8 @@ LogicalResult GadgetProfileOp::verify() {
   StringRef gadgetName = gadget.getSymName();
   SmallVector<std::string> demandedPaths;
   getBody().walk([&](Operation *declaration) {
-    if (!isa<SuccessOp, OutputSyndromeOp>(declaration))
+    if (!isa<DetectorOp, ObservableOp, SuccessOp, OutputSyndromeOp>(
+            declaration))
       return;
     auto records = declaration->getAttrOfType<ArrayAttr>("records");
     if (!records)
@@ -8645,7 +8596,7 @@ LogicalResult GadgetProfileOp::verify() {
       terms.emplace_back(port.getInt(), index.getInt());
     }
     for (auto [port, index] : terms)
-      if (port < 0 || port >= static_cast<int64_t>(inputWidths.size()) ||
+      if (port < 0 || std::cmp_greater_equal(port, inputWidths.size()) ||
           index < 0 || index >= inputWidths[port])
         return declaration->emitOpError("invalid input syndrome term ")
                << port << "[" << index << "]";
@@ -8663,11 +8614,12 @@ LogicalResult GadgetProfileOp::verify() {
     expectedOutputAssignments += width;
   }
   auto checkOutputSyndrome = [&](OutputSyndromeOp assignment) -> LogicalResult {
-    if (assignment.getPortIndex() < 0 ||
-        assignment.getPortIndex() >=
-            static_cast<int64_t>(outputWidths.size()) ||
-        assignment.getIndex() < 0 ||
-        assignment.getIndex() >= outputWidths[assignment.getPortIndex()])
+    if (assignment.getPortIndexAttr().getInt() < 0 ||
+        std::cmp_greater_equal(assignment.getPortIndexAttr().getInt(),
+                               outputWidths.size()) ||
+        assignment.getIndexAttr().getInt() < 0 ||
+        assignment.getIndexAttr().getInt() >=
+            outputWidths[assignment.getPortIndex()])
       return assignment.emitOpError("invalid output syndrome target ")
              << assignment.getPortIndex() << "[" << assignment.getIndex()
              << "]";
@@ -8681,7 +8633,19 @@ LogicalResult GadgetProfileOp::verify() {
   };
 
   WalkResult result = getBody().walk([&](Operation *op) -> WalkResult {
-    if (isa<SuccessOp, OutputSyndromeOp>(op)) {
+    if (isa<ObservableOp>(op)) {
+      auto index = op->getAttrOfType<IntegerAttr>("idx");
+      if (!index || index.getInt() < 0) {
+        op->emitOpError("observable index must be nonnegative");
+        return WalkResult::interrupt();
+      }
+      auto inputs = op->getAttrOfType<ArrayAttr>("input_syndromes");
+      if (inputs && !inputs.empty()) {
+        op->emitOpError("observable rows cannot use input virtual syndromes");
+        return WalkResult::interrupt();
+      }
+    }
+    if (isa<DetectorOp, ObservableOp, SuccessOp, OutputSyndromeOp>(op)) {
       if (failed(checkRecords(op)) || failed(checkInputSyndromes(op)))
         return WalkResult::interrupt();
     }
@@ -8693,9 +8657,17 @@ LogicalResult GadgetProfileOp::verify() {
   if (result.wasInterrupted())
     return failure();
 
-  // A canonical role-tagged OutcomeMap is the affine authority for success
-  // rows. If a profile authors them, its complete ordered support, input
-  // terms, and constants must agree with the linked GadgetSpec.
+  int64_t expectedObservableIndex = 0;
+  for (Operation &declaration : getBody().front())
+    if (auto observable = dyn_cast<ObservableOp>(&declaration)) {
+      if (!std::cmp_equal(observable.getIdx(), expectedObservableIndex))
+        return observable.emitOpError(
+            "observable indices must be contiguous in profile order from zero");
+      ++expectedObservableIndex;
+    }
+
+  // The gadget's OutcomeMap owns both result and success rows. A profile
+  // cannot assign a different affine meaning to the same action outcomes.
   if (spec && spec.getOutcomeMap()) {
     DictionaryAttr outcome = *spec.getOutcomeMap();
     auto roleRows = outcome.getAs<ArrayAttr>("roles");
@@ -8772,11 +8744,17 @@ LogicalResult GadgetProfileOp::verify() {
         successDeclarations.push_back(success.getOperation());
       if (failed(verifyRole(successDeclarations, "success")))
         return failure();
+      SmallVector<Operation *> observableDeclarations;
+      for (Operation &declaration : getBody().front())
+        if (isa<ObservableOp>(declaration))
+          observableDeclarations.push_back(&declaration);
+      if (failed(verifyRole(observableDeclarations, "result")))
+        return failure();
     }
   }
 
-  if (getBoundaryComplete() && static_cast<int64_t>(outputAssignments.size()) !=
-                                   expectedOutputAssignments)
+  if (getBoundaryComplete() &&
+      std::cmp_not_equal(outputAssignments.size(), expectedOutputAssignments))
     return emitOpError("boundary_complete profile assigns ")
            << outputAssignments.size() << " of " << expectedOutputAssignments
            << " output syndrome components";

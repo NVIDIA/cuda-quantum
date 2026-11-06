@@ -78,10 +78,6 @@ option(CUDAQ_REALTIME_ENABLE_HSB_TOOLS
 option(CUDAQ_REALTIME_ENABLE_SANITIZERS
        "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)."
        OFF)
-option(CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK
-       "Link CPU RoCE against Hololink's CpuRoceTransceiver (default: CUDA-Q's legacy ibverbs backend)."
-       OFF)
-
 option(CUDAQ_REALTIME_REQUIRE_ROCE_TESTS
        "Treat an unavailable RoCE transport as a failure of the cpu_roce RDMA tests instead of a skip (for hosts that must have one). When OFF, CUDAQ_REALTIME_REQUIRE_ROCE=1 raises it for one run; when ON, CUDAQ_REALTIME_REQUIRE_ROCE=0 is an error."
        OFF)
@@ -168,6 +164,10 @@ endif()
 
 add_subdirectory(lib)
 
+# cudaq_realtime_add_dispatch_kernel, for applications that bring their own
+# dispatch kernel; installed with the package config, and used by the tests.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CudaqRealtimeDispatchKernel.cmake)
+
 # Install the export set and package config unconditionally: members of
 # cudaq-realtime-targets exist on CUDA-less configures too (the UDP transport
 # is always built), and CMake silently installs an orphaned archive if a
@@ -187,6 +187,8 @@ install(EXPORT cudaq-realtime-targets
 
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CudaqRealtimeDispatchKernel.cmake
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cudaq_realtime_dispatch_kernel_image.cpp.in
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime
   COMPONENT Development)
 

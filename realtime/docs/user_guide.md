@@ -20,9 +20,9 @@ may not have all the required capabilities.
 
 - CUDA-Q Realtime installer.
 
-- CUDA Runtime (12+)
+- CUDA Runtime (12.6+ and 13.0+)
 
-- [`DOCA` 3.3.0 installation](https://developer.nvidia.com/doca-downloads)
+- [`DOCA` 3.4.0 installation](https://developer.nvidia.com/doca-downloads)
 with `gpunetio` support.
 
 > **_NOTE:_** `DOCA` is required to run the end-to-end validation with FPGA
@@ -97,6 +97,8 @@ Please refer to this [section](#using-docker) for instructions.
     > - `--bridge-ip` is the IP address of the NIC on the host machine.
     > - `--page-size` is the ring buffer slot size in bytes.
     > - `--unified` is the flag to enable the unified dispatch mode.
+    > - `--threads N` is the block size (threads per block) that every
+    >   DEVICE_CALL handler runs on, in both dispatch modes (default: 32).
     The other option is `--forward`, which skips the RPC callback.
     Without either of these flags, we will run the test in
     the three-kernel mode with the RPC handler.
@@ -197,6 +199,13 @@ after processing it (e.g., with the RPC handler).
 Using the Integrated Logic Analyzer (`ILA`) timestamp when the FPGA receives
 the response from the GPU, we can compute the round-trip latency,
 i.e., the elapsed time from the timestamp in the header to the `ILA` receive timestamp.
+
+The software `hsb_fpga_emulator` uses its host's monotonic clock for both the
+outgoing request timestamp and the response capture. It encodes both as
+`{seconds[31:0], nanoseconds[31:0]}`, matching the playback reader's FPGA format.
+Request timestamp insertion follows the player's `ptp_bram_ena` enable bit.
+Software FPGA latency includes software transport and host scheduling overhead.
+The emulator logs its capture clock when playback starts.
 
 Please refer to `hsb_fpga_playback.cpp` code in the [CUDA-Q repository](https://github.com/NVIDIA/cuda-quantum)
 for a sample of data generation tools.

@@ -30,10 +30,9 @@ public:
 
   void initialize(DeviceCallChannelCreateArgs &&args) override {
     CUDAQ_INFO("[device-call] host channel initialize functionCount={} "
-               "device={} hasMailbox={} slots={} slotSize={} timeoutMs={}",
-               args.functionCount, args.deviceId, args.mailbox != nullptr,
-               args.channelConfig.numSlots, args.channelConfig.slotSize,
-               args.channelConfig.timeoutMs);
+               "device={} slots={} slotSize={} timeoutMs={}",
+               args.functionCount, args.deviceId, args.channelConfig.numSlots,
+               args.channelConfig.slotSize, args.channelConfig.timeoutMs);
     if (!args.functionTable || args.functionCount == 0)
       throw DeviceCallError(DeviceCallStatus::InvalidArgument,
                             "device_call function table is empty");
@@ -41,22 +40,11 @@ public:
     functionCount = args.functionCount;
     deviceId = args.deviceId;
     channelConfig = args.channelConfig;
-    mailbox = args.mailbox;
 
     if (!hasSupportedEntry())
       throw DeviceCallError(
           DeviceCallStatus::InvalidArgument,
-          "host device_call dispatch requires a HOST_CALL or graph-launch "
-          "table entry");
-
-    // Graph-launch workers require a pinned, mapped mailbox. HOST_CALL
-    // handlers execute inline on the host dispatcher thread and do not use it.
-    if (hasGraphLaunchEntry() && !mailbox)
-      throw DeviceCallError(
-          DeviceCallStatus::InvalidArgument,
-          "host device_call graph-launch entries require a pinned, mapped "
-          "mailbox (cudaHostAlloc with cudaHostAllocMapped) sized for the "
-          "GRAPH_LAUNCH worker count");
+          "host device_call dispatch requires a HOST_CALL table entry");
   }
 
   void acquireFrame(std::uint32_t functionId, std::uint64_t requestBytes,
@@ -73,7 +61,7 @@ public:
       if (state.fireAndForgetPending) {
         const cudaq_tx_status_t txStatus = cudaq_host_ringbuffer_poll_tx_flag(
             ringBuffer.ringbuffer(), state.slot, nullptr);
-        if (txStatus == CUDAQ_TX_EMPTY || txStatus == CUDAQ_TX_IN_FLIGHT)
+        if (txStatus == CUDAQ_TX_EMPTY)
           return false;
         ringBuffer.clearSlot(state.slot);
         state.fireAndForgetPending = false;
@@ -91,8 +79,7 @@ public:
       if (!entry || !isSupportedEntry(*entry))
         throw DeviceCallError(
             DeviceCallStatus::InvalidArgument,
-            "host device_call dispatch requires a HOST_CALL or graph-launch "
-            "table entry");
+            "host device_call dispatch requires a HOST_CALL table entry");
       ensureDispatcherStarted();
       if (requiredBytes > ringBuffer.slotSize())
         throw DeviceCallError(
@@ -163,16 +150,16 @@ public:
 
     const auto responseBytes = [&]() -> std::uint64_t {
       try {
-        return ringBuffer.waitForResponseAndValidate(*state, frame, true);
+        return ringBuffer.waitForResponseAndValidate(*state, frame);
       } catch (const DeviceCallError &err) {
         // Slot cleanup is the caller's responsibility via releaseFrame, so
-        // for recoverable errors (ResponseTooLarge, RemoteError, ...) leave
-        // the frame intact and let releaseFrame reclaim the slot for reuse.
-        // For Timeout/CudaError we tear the dispatcher down, which frees the
-        // ring buffer's FrameState storage — null out channelPrivate so the
-        // caller's releaseFrame doesn't dereference a dangling pointer.
-        if (err.status() == DeviceCallStatus::Timeout ||
-            err.status() == DeviceCallStatus::CudaError) {
+        // for recoverable errors (ResponseTooLarge, RemoteError, CudaError
+        // reported in-band by the handler, ...) leave the frame intact and
+        // let releaseFrame reclaim the slot for reuse. On Timeout we tear the
+        // dispatcher down, which frees the ring buffer's FrameState storage —
+        // null out channelPrivate so the caller's releaseFrame doesn't
+        // dereference a dangling pointer.
+        if (err.status() == DeviceCallStatus::Timeout) {
           std::lock_guard<std::mutex> lock(mutex);
           frame.channelPrivate = nullptr;
           stopDispatcher();
@@ -214,11 +201,8 @@ public:
 
 private:
   static bool isSupportedEntry(const cudaq_function_entry_t &entry) {
-    if (entry.dispatch_mode == CUDAQ_DISPATCH_HOST_CALL)
-      return entry.handler.host_fn != nullptr;
-    if (entry.dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH)
-      return entry.handler.graph_exec != nullptr;
-    return false;
+    return entry.dispatch_mode == CUDAQ_DISPATCH_HOST_CALL &&
+           entry.handler.host_fn != nullptr;
   }
 
   const cudaq_function_entry_t *lookup(std::uint32_t functionId) const {
@@ -226,14 +210,6 @@ private:
       if (functionTable[i].function_id == functionId)
         return &functionTable[i];
     return nullptr;
-  }
-
-  bool hasGraphLaunchEntry() const {
-    for (std::uint32_t i = 0; i < functionCount; ++i)
-      if (functionTable[i].dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH &&
-          functionTable[i].handler.graph_exec)
-        return true;
-    return false;
   }
 
   bool hasSupportedEntry() const {
@@ -251,12 +227,10 @@ private:
     try {
       ringBuffer.configure("host", deviceId, channelConfig);
 
-      const bool usesGraphLaunch = hasGraphLaunchEntry();
-
       CUDAQ_DBG("[device-call] host dispatcher starting device={} "
-                "slots={} slotSize={} functions={} hasMailbox={}",
+                "slots={} slotSize={} functions={}",
                 deviceId, ringBuffer.numSlots(), ringBuffer.slotSize(),
-                functionCount, mailbox != nullptr);
+                functionCount);
 
       const cudaq_dispatcher_config_t dispatchConfig = [&] {
         cudaq_dispatcher_config_t result{};
@@ -264,8 +238,7 @@ private:
         result.num_slots = ringBuffer.numSlots();
         result.slot_size = static_cast<std::uint32_t>(ringBuffer.slotSize());
         result.kernel_type = CUDAQ_KERNEL_REGULAR;
-        result.dispatch_mode = usesGraphLaunch ? CUDAQ_DISPATCH_GRAPH_LAUNCH
-                                               : CUDAQ_DISPATCH_HOST_CALL;
+        result.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
         result.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
         return result;
       }();
@@ -273,9 +246,9 @@ private:
       CUDAQ_CHECK_DISPATCHER_STATUS(
           cudaq_dispatch_manager_create(&dispatchManager));
       CUDAQ_CHECK_DISPATCHER_STATUS(cudaq_dispatcher_create(
-          dispatchManager, &dispatchConfig, &graphDispatcher));
+          dispatchManager, &dispatchConfig, &hostDispatcher));
       CUDAQ_CHECK_DISPATCHER_STATUS(cudaq_dispatcher_set_ringbuffer(
-          graphDispatcher, ringBuffer.ringbuffer()));
+          hostDispatcher, ringBuffer.ringbuffer()));
 
       const cudaq_function_table_t table = [&] {
         cudaq_function_table_t result{};
@@ -284,16 +257,13 @@ private:
         return result;
       }();
       CUDAQ_CHECK_DISPATCHER_STATUS(
-          cudaq_dispatcher_set_function_table(graphDispatcher, &table));
+          cudaq_dispatcher_set_function_table(hostDispatcher, &table));
 
       shutdownFlag = 0;
       stats = 0;
       CUDAQ_CHECK_DISPATCHER_STATUS(
-          cudaq_dispatcher_set_control(graphDispatcher, &shutdownFlag, &stats));
-      if (mailbox)
-        CUDAQ_CHECK_DISPATCHER_STATUS(
-            cudaq_dispatcher_set_mailbox(graphDispatcher, mailbox));
-      CUDAQ_CHECK_DISPATCHER_STATUS(cudaq_dispatcher_start(graphDispatcher));
+          cudaq_dispatcher_set_control(hostDispatcher, &shutdownFlag, &stats));
+      CUDAQ_CHECK_DISPATCHER_STATUS(cudaq_dispatcher_start(hostDispatcher));
 
       dispatcherStarted = true;
       CUDAQ_DBG("[device-call] host dispatcher started device={} "
@@ -306,17 +276,17 @@ private:
   }
 
   void stopDispatcher() {
-    const bool hasResources = dispatcherStarted || graphDispatcher ||
+    const bool hasResources = dispatcherStarted || hostDispatcher ||
                               dispatchManager || ringBuffer.configured();
     if (!hasResources)
       return;
     CUDAQ_DBG("[device-call] host dispatcher stop started={}",
               dispatcherStarted);
-    if (dispatcherStarted && graphDispatcher)
-      cudaq_dispatcher_stop(graphDispatcher);
-    if (graphDispatcher) {
-      cudaq_dispatcher_destroy(graphDispatcher);
-      graphDispatcher = nullptr;
+    if (dispatcherStarted && hostDispatcher)
+      cudaq_dispatcher_stop(hostDispatcher);
+    if (hostDispatcher) {
+      cudaq_dispatcher_destroy(hostDispatcher);
+      hostDispatcher = nullptr;
     }
     if (dispatchManager) {
       cudaq_dispatch_manager_destroy(dispatchManager);
@@ -332,11 +302,10 @@ private:
   std::uint32_t functionCount = 0;
   int deviceId = 0;
   DeviceCallChannelConfig channelConfig;
-  void **mailbox = nullptr;
   RingBufferWrapper ringBuffer;
   bool dispatcherStarted = false;
   cudaq_dispatch_manager_t *dispatchManager = nullptr;
-  cudaq_dispatcher_t *graphDispatcher = nullptr;
+  cudaq_dispatcher_t *hostDispatcher = nullptr;
   volatile int shutdownFlag = 0;
   std::uint64_t stats = 0;
   mutable std::mutex mutex;

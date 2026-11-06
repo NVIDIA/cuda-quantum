@@ -13,3 +13,7 @@ add_public_tablegen_target(MLIRQLXConversionPassesIncGen)
 set(LLVM_TARGET_DEFINITIONS QuakeToQLXPasses.td)
 mlir_tablegen(QuakeToQLXPasses.h.inc -gen-pass-decls -name QuakeToQLX)
 add_public_tablegen_target(MLIRQuakeToQLXPassesIncGen)
+
+set(LLVM_TARGET_DEFINITIONS PhysToQuakePasses.td)
+mlir_tablegen(PhysToQuakePasses.h.inc -gen-pass-decls -name PhysToQuake)
+add_public_tablegen_target(MLIRPhysToQuakePassesIncGen)

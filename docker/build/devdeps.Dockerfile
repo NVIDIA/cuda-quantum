@@ -103,14 +103,13 @@ RUN if [ "$(uname -m)" == "x86_64" ]; then \
     fi
 
 ## [Source Dependencies]
-ADD scripts/bootstrap_prerequisites.sh /cuda-quantum/scripts/bootstrap_prerequisites.sh
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 ADD scripts/prereqs_common.sh /cuda-quantum/scripts/prereqs_common.sh
 ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
 RUN if [ "$toolchain" = "llvm" ]; then \
     export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \
     apt-get update && apt-get install -y --no-install-recommends clang lld && \
-    CC=clang CXX=clang++ bash /cuda-quantum/scripts/bootstrap_prerequisites.sh && \
+    CC=clang CXX=clang++ bash /cuda-quantum/scripts/install_prerequisites.sh -b && \
     (apt-get remove -y clang lld || true); \
     else \
     export LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' && \
@@ -185,6 +184,7 @@ ENV PATH="${PATH}:/usr/local/cmake-4.0/bin"
 COPY requirements.txt /cuda-quantum/requirements.txt
 COPY requirements-dev.txt /cuda-quantum/requirements-dev.txt
 COPY requirements-mock-qpu.txt /cuda-quantum/requirements-mock-qpu.txt
+COPY requirements-tests.txt /cuda-quantum/requirements-tests.txt
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git gdb ninja-build file lldb ccache libatomic1 \
     libstdc++-13-dev \

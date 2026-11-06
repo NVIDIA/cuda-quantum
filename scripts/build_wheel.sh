@@ -508,6 +508,7 @@ else
     mkdir -p "$auditwheel_tmp"
     auditwheel_args="repair $wheel_file -w $auditwheel_tmp"
     auditwheel_args="$auditwheel_args --exclude libcustatevec.so.1"
+    auditwheel_args="$auditwheel_args --exclude libcustabilizer.so.0"
     auditwheel_args="$auditwheel_args --exclude libcutensornet.so.2"
     auditwheel_args="$auditwheel_args --exclude libcudensitymat.so.0"
     auditwheel_args="$auditwheel_args --exclude libcublas.so.$cuda_major"

@@ -83,7 +83,7 @@ def test_compile_uses_the_pipeline_of_the_given_target():
     endpoint = RecordingEndpoint()
     target = CustomTarget(
         runtime_endpoint=endpoint,
-        compile_target=CompileTarget(lowering=SWAP_TO_CX_PIPELINE),
+        compile_target=CompileTarget(custom_pipeline=SWAP_TO_CX_PIPELINE),
     )
 
     compiled = cudaq.compile(swap_kernel, target=target)
@@ -120,3 +120,9 @@ def test_compile_does_not_install_the_target():
 def test_compile_rejects_a_bare_compile_target():
     with pytest.raises(TypeError, match="CustomTarget"):
         cudaq.compile(swap_kernel, target=CompileTarget())
+
+
+@pytest.mark.parametrize("level", [-1, 4])
+def test_compile_rejects_invalid_optimization_level(level):
+    with pytest.raises(ValueError, match="optimization_level"):
+        cudaq.compile(swap_kernel, optimization_level=level)

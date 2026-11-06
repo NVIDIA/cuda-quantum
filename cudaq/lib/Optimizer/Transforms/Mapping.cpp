@@ -7,9 +7,11 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/Characteristics.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Device.h"
@@ -2875,7 +2877,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
     if (!highestIdentity) {
-      if (nonComposable) {
+      // Only an entry point that applies a gate or measures has to be mapped.
+      // A callee kernel whose qubits are its arguments is mapped through the
+      // entry point it is inlined into, so it is left alone.
+      if (nonComposable && func->hasAttr(cudaq::entryPointAttrName) &&
+          (cudaq::opt::hasQuantum(*func) || cudaq::opt::hasMeasureOp(*func))) {
         func.emitOpError("no borrow_wire ops found in " + func.getName());
         signalPassFailure();
       }
@@ -3221,29 +3227,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     auto wireTy = builder.getType<cudaq::quake::WireType>();
     auto unknownLoc = builder.getUnknownLoc();
 
-    // Add implicit measurements if necessary
-    if (userQubitsMeasured.empty()) {
-      builder.setInsertionPoint(block.getTerminator());
-      auto measTy = cudaq::quake::MeasureType::get(builder.getContext());
-      Type resTy = builder.getI1Type();
-      for (unsigned i = 0; i < sources.size(); i++) {
-        if (sources[i] != nullptr) {
-          auto measureOp = cudaq::quake::MzOp::create(
-              builder, finalQubitWire[i].getLoc(), TypeRange{measTy, wireTy},
-              finalQubitWire[i]);
-          cudaq::quake::DiscriminateOp::create(builder,
-                                               finalQubitWire[i].getLoc(),
-                                               resTy, measureOp.getMeasOut());
-
-          wireToVirtualQ.insert(
-              {measureOp.getWires()[0],
-               requireVirtualQ(wireToVirtualQ, finalQubitWire[i])});
-
-          userQubitsMeasured.push_back(i);
-        }
-      }
-    }
-
     // Save the order of the measurements. They are not allowed to change. For
     // `run` this ordering does not matter (results are recorded by index), and
     // the measurements may live inside branch/loop regions where moving them
@@ -3297,6 +3280,18 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         block.getOperations().splice(std::prev(block.end()),
                                      block.getOperations(), op->getIterator());
     }
+
+    // The result of a `cudaq::run` kernel is published by `quake.evince`. It
+    // reads the measurement results through memory, so it is not a user of
+    // the measurements and was not moved with them above. It must stay behind
+    // the stores that it reads.
+    SmallVector<Operation *> evinces;
+    for (Operation &op : block)
+      if (isa<cudaq::quake::EvinceOp>(op))
+        evinces.push_back(&op);
+    for (Operation *op : evinces)
+      block.getOperations().splice(std::prev(block.end()),
+                                   block.getOperations(), op->getIterator());
 
     // Remove any unused BorrowWireOps and add ReturnWireOp's where needed. Each
     // source starts on physical qubit `initialLayout[i]`, so its final wire is

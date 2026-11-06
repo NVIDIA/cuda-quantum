@@ -58,6 +58,8 @@ class _Allocator:
         self.relaxed_preferences: list[str] = []
         self._relaxed_preference_set: set[str] = set()
         self.used_slots: dict[str, set[int]] = defaultdict(set)
+        # Slots are never released, so searches can resume where they left off.
+        self._next_slot: dict[str, int] = defaultdict(int)
 
     @staticmethod
     def _reference_key(reference):
@@ -160,14 +162,12 @@ class _Allocator:
                 return candidate, slot
             if candidate.capacity is not None:
                 available = candidate.capacity - len(occupied)
-                if available < minimum_remaining:
+                if available < max(minimum_remaining, 1):
                     continue
-                selected = next(index for index in range(candidate.capacity)
-                                if index not in occupied)
-            else:
-                selected = 0
-                while selected in occupied:
-                    selected += 1
+            selected = self._next_slot[candidate.name]
+            while selected in occupied:
+                selected += 1
+            self._next_slot[candidate.name] = selected + 1
             occupied.add(selected)
             self._record_relaxations(candidate, value_keys)
             return candidate, selected

@@ -9,7 +9,6 @@
 #pragma once
 
 #include "cudaq/Target/TargetConfig.h"
-#include <algorithm>
 #include <rfl.hpp>
 #include <stdexcept>
 #include <string>
@@ -25,35 +24,26 @@ using YamlProcessors =
 
 namespace detail {
 
-/// Matches a YAML enum name against the reflected enumerator names with
-/// underscores replaced by dashes (e.g. `dep_analysis` -> `dep-analysis`).
-/// Unmatched (including numeric) spellings are rejected.
+/// Matches a YAML enum name against the names that `rfl::Reflector<E>::from`
+/// gives each enumerator. Unmatched (including numeric) spellings are
+/// rejected.
 template <typename E>
   requires std::is_enum_v<E>
 E enumFromYamlName(const std::string &name) {
   std::string allowed;
-  for (const auto &[enumName, value] : rfl::get_enumerator_array<E>()) {
-    std::string dashed{enumName};
-    std::replace(dashed.begin(), dashed.end(), '_', '-');
-    if (dashed == name)
-      return value;
+  for (const auto &enumerator : rfl::get_enumerator_array<E>()) {
+    const std::string yamlName = rfl::Reflector<E>::from(enumerator.second);
+    if (yamlName == name)
+      return enumerator.second;
     if (!allowed.empty())
       allowed += ", ";
-    allowed += dashed;
+    allowed += yamlName;
   }
   throw std::runtime_error("unknown value '" + name + "' (allowed: " + allowed +
                            ")");
 }
 
-template <typename E>
-  requires std::is_enum_v<E>
-std::string enumToYamlName(E value) {
-  for (const auto &[enumName, enumerator] : rfl::get_enumerator_array<E>())
-    if (enumerator == value) {
-      std::string dashed{enumName};
-      std::replace(dashed.begin(), dashed.end(), '_', '-');
-      return dashed;
-    }
+[[noreturn]] inline void unknownEnumerator() {
   throw std::runtime_error("cannot serialize unknown enumerator value");
 }
 
@@ -61,6 +51,8 @@ std::string enumToYamlName(E value) {
 
 } // namespace cudaq::config
 
+// Each `from` spells the YAML names, so that renaming an enumerator does not
+// change the YAML. A missing case is a `-Wswitch` warning.
 namespace rfl {
 
 template <>
@@ -71,7 +63,22 @@ struct Reflector<cudaq::config::TargetFeatureFlag> {
         cudaq::config::TargetFeatureFlag>(name);
   }
   static std::string from(const cudaq::config::TargetFeatureFlag &value) {
-    return cudaq::config::detail::enumToYamlName(value);
+    using Flag = cudaq::config::TargetFeatureFlag;
+    switch (value) {
+    case Flag::fp32:
+      return "fp32";
+    case Flag::fp64:
+      return "fp64";
+    case Flag::mgpu:
+      return "mgpu";
+    case Flag::mqpu:
+      return "mqpu";
+    case Flag::dep_analysis:
+      return "dep-analysis";
+    case Flag::qpp:
+      return "qpp";
+    }
+    cudaq::config::detail::unknownEnumerator();
   }
 };
 
@@ -83,7 +90,20 @@ struct Reflector<cudaq::config::ArgumentType> {
         name);
   }
   static std::string from(const cudaq::config::ArgumentType &value) {
-    return cudaq::config::detail::enumToYamlName(value);
+    using Type = cudaq::config::ArgumentType;
+    switch (value) {
+    case Type::string:
+      return "string";
+    case Type::integer:
+      return "integer";
+    case Type::uuid:
+      return "uuid";
+    case Type::option_flags:
+      return "option-flags";
+    case Type::machine_config:
+      return "machine-config";
+    }
+    cudaq::config::detail::unknownEnumerator();
   }
 };
 

@@ -47,6 +47,9 @@ from .projection import (
     ProjectedMeasurement,
     ProjectedPort,
 )
+from .clifford import CliffordInstruction, CliffordProjection, project_clifford
+from .noise import Depolarize1Placement, StandardDepolarizingNoise
+from .stim import emit_stim
 from .topology_view import (
     CarrierGraphView,
     DeviceStackGraphView,
@@ -72,7 +75,6 @@ from cudaq.logical.compiler.authoring import (
     ActionBuilder,
     CodeBuilder,
     GadgetBuilder,
-    GadgetProfileBuilder,
     PhysicalBuilder,
     PlacedBuilder,
     ProtocolBuilder,
@@ -121,6 +123,12 @@ __all__ = [
     "to_pbc",
     "absorb_clifford_frame",
     "materialize",
+    "CliffordInstruction",
+    "CliffordProjection",
+    "project_clifford",
+    "StandardDepolarizingNoise",
+    "Depolarize1Placement",
+    "emit_stim",
     "lower",
     "passes",
     "pipelines",
@@ -161,7 +169,6 @@ __all__ = [
     "ActionBuilder",
     "CodeBuilder",
     "GadgetBuilder",
-    "GadgetProfileBuilder",
     "PhysicalBuilder",
     "PlacedBuilder",
     "UnplacedBuilder",

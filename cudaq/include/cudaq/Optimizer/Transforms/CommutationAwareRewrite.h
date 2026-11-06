@@ -32,7 +32,7 @@ struct CommutationAwareRewriteStatistics {
 /// Backward block-local search owned by a rewrite driver.
 ///
 /// Starting at the later `anchor`, the search follows defining operations from
-/// its scalar-wire inputs and returns the nearest earlier endpoint accepted by
+/// its wire inputs and returns the nearest earlier endpoint accepted by
 /// the consumer. This direction aligns consumers with MLIR's bottom-up greedy
 /// schedule. No operation is moved.
 ///
@@ -51,12 +51,12 @@ struct CommutationAwareRewriteStatistics {
 /// wire has a known identity. Otherwise it continues the block-order scan. A
 /// frontier head that the consumer declines must have a pairwise commutation
 /// proof with the anchor before the frontier advances.
-/// Every other enumerated scalar-wire operation requires either that pairwise
+/// Every other enumerated wire operation requires either that pairwise
 /// proof or a disjoint-support proof. Fresh local identity sources may be
 /// crossed structurally because they cannot alias an existing logical qubit.
 /// Other identity boundaries require a disjoint-support proof.
 ///
-/// An ordinary single-block scope may be crossed when its captured scalar wires
+/// An ordinary single-block scope may be crossed when its captured wires
 /// have disjoint logical support. Marked atomic scopes, calls, unsupported
 /// region owners, unsupported reference or aggregate quantum flow, unresolved
 /// identity, multiple use, and incomplete frontiers end the search. Pass
@@ -82,20 +82,20 @@ public:
   /// Find the nearest compatible earlier quantum endpoint. The later anchor
   /// aligns the query with bottom-up greedy rewriting. The predicate is called
   /// only for an `OperatorInterface` candidate with
-  /// supported scalar-wire flow, and before checking complete frontier
+  /// supported wire flow, and before checking complete frontier
   /// alignment or deciding whether it may be crossed.
   mlir::Operation *
   find_nearest(mlir::Operation *anchor,
                llvm::function_ref<bool(mlir::Operation *)> isEndpoint);
 
-  /// Return whether a supported scalar-wire operator uses a distinct logical
+  /// Return whether a supported wire operator uses a distinct logical
   /// qubit in every control and target role. Unary operators establish this
   /// structurally. Multi-wire operators require a known identity for every
   /// role and reject duplicate identities.
   bool has_distinct_quantum_operands(mlir::Operation *operation);
 
   /// Return whether controls and targets carry the same ordered qubit
-  /// identities and occupy the same roles. Direct scalar-wire consumers are
+  /// identities and occupy the same roles. Direct wire consumers are
   /// decided from exact ordered def-use threading; non-direct queries fall back
   /// to the block-local commutation analysis.
   bool have_same_ordered_quantum_operands(mlir::Operation *lhs,

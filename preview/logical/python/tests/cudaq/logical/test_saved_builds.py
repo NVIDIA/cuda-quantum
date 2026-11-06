@@ -175,3 +175,37 @@ def test_load_build_rejects_a_stage_with_a_path(estimator_target, tmp_path):
 def test_load_build_rejects_other_sources():
     with pytest.raises(TypeError, match="EstimateResult"):
         cql.load_build(42)
+
+
+def test_saving_builds_preserves_resources_and_consumes_output_options(
+        estimator_target, tmp_path, monkeypatch):
+    endpoint = estimator_target.runtime_endpoint
+    compile_program = endpoint.compile
+    estimate_stage = cql.targets._stage_estimate
+    seen_compile = []
+    seen_estimate = []
+
+    def compile_without_output_options(build, **options):
+        assert "save_temps" not in options
+        assert "_saver" not in options
+        seen_compile.append(options)
+        return compile_program(build, **options)
+
+    def estimate_without_output_options(build, **options):
+        assert "save_temps" not in options
+        assert "_saver" not in options
+        seen_estimate.append(options)
+        return estimate_stage(build, **options)
+
+    monkeypatch.setattr(endpoint, "compile", compile_without_output_options)
+    monkeypatch.setattr(cql.targets, "_stage_estimate",
+                        estimate_without_output_options)
+    ordinary = cudaq.estimate(readout)
+    saved = cudaq.estimate(readout, save_temps=tmp_path)
+
+    assert seen_compile and seen_estimate
+    assert saved.resources.to_dict() == ordinary.resources.to_dict()
+    assert saved.resources.num_qubits == ordinary.resources.num_qubits
+    assert saved.resources.depth == ordinary.resources.depth
+    assert saved.annotations["LOGICAL"] == ordinary.annotations["LOGICAL"]
+    assert set(saved.annotations["BUILDS"]) == {"p0"}

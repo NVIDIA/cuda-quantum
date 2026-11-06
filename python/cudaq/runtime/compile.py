@@ -14,7 +14,7 @@ CompiledModule = cudaq_runtime.CompiledModule
 
 
 @trace.traced
-def compile(kernel, *args, target=None):
+def compile(kernel, *args, target=None, optimization_level=None):
     """
     Compiles the given quantum kernel for a target without launching it, and
     returns the result as a :class:`CompiledModule`.
@@ -36,6 +36,9 @@ def compile(kernel, *args, target=None):
       target (Optional[:class:`CustomTarget`]): The target to compile for.
           Defaults to the target currently installed with
           :func:`cudaq.set_target`.
+      optimization_level (Optional[int]): The quantum optimization level,
+          an integer between 0 and 3. A level declared on the kernel takes
+          precedence. Defaults to CUDA-Q's default level.
 
     Returns:
       :class:`CompiledModule`: The compiled kernel.
@@ -61,7 +64,7 @@ def compile(kernel, *args, target=None):
     compile_target = None
     endpoint_traits = {}
     if target is not None:
-        from cudaq.core.backends import CustomTarget
+        from cudaq.core._experimental import CustomTarget
         if not isinstance(target, CustomTarget):
             raise TypeError(
                 "target must be a CustomTarget, which pairs a compile target "
@@ -76,10 +79,11 @@ def compile(kernel, *args, target=None):
             supports_jit=getattr(endpoint, "supports_jit", True),
         )
 
-    processed_args, module = decorator.prepare_call(*args)
+    processed_args, module = decorator.prepare_call(
+        *args, optimization_level=optimization_level)
     return cudaq_runtime.compile_module(decorator.uniqName,
                                         module,
-                                        True,
+                                        *processed_args,
+                                        is_entry_point=True,
                                         compile_target=compile_target,
-                                        args=tuple(processed_args),
                                         **endpoint_traits)

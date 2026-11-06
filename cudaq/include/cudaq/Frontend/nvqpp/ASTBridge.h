@@ -610,6 +610,18 @@ public:
                                    const clang::FunctionDecl *x);
   bool doSyntaxChecks(const clang::FunctionDecl *x, mlir::FunctionType funcTy);
 
+  /// The data members of the kernel class of \p x, in declaration order, if
+  /// \p x is the call operator of a kernel class. The values of these members
+  /// are passed to the kernel as its leading arguments.
+  static llvm::SmallVector<const clang::FieldDecl *>
+  getKernelClassMembers(const clang::FunctionDecl *x);
+
+  /// The type of kernel \p x, which is \p funcTy with the data members of its
+  /// class prepended to the arguments. Returns null if the type of a data
+  /// member cannot be converted.
+  mlir::FunctionType addMemberArguments(const clang::FunctionDecl *x,
+                                        mlir::FunctionType funcTy);
+
   bool isItaniumCXXABI();
 
 private:
@@ -621,8 +633,10 @@ private:
   llvm::StringRef getSymbolName(const clang::NamedDecl *x);
 
   /// Map the block arguments to the names of the function parameters.
+  /// The first \p firstArg block arguments are not parameters.
   void addArgumentSymbols(mlir::Block *entryBlock,
-                          mlir::ArrayRef<clang::ParmVarDecl *> parameters);
+                          mlir::ArrayRef<clang::ParmVarDecl *> parameters,
+                          unsigned firstArg = 0);
 
   /// Get the current function's name.
   std::string getCurrentFunctionName() { return loweredFuncName; }
@@ -714,6 +728,10 @@ private:
   clang::ItaniumMangleContext *mangler;
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
+  /// The stack slot of each data member of the kernel class being lowered.
+  llvm::DenseMap<const clang::FieldDecl *, mlir::Value> memberSlots;
+  /// The kernel class being lowered, if it has data members.
+  const clang::CXXRecordDecl *memberClass = nullptr;
   std::unordered_map<std::string, std::string> &customOperationNames;
   /// Allocator for dynamically generated symbol names, referenced by the symbol
   /// table.

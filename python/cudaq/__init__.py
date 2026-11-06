@@ -32,7 +32,8 @@ if _core_lib.is_dir():
     _ctypes.CDLL(
         str(_core_lib /
             ("libnvqir.dylib" if sys.platform == "darwin" else "libnvqir.so")),
-        mode=_ctypes.RTLD_GLOBAL)
+        mode=_ctypes.RTLD_GLOBAL
+        if sys.platform == "darwin" else _ctypes.RTLD_LOCAL)
 
 # ============================================================================ #
 # Enable logging to match the CUDAQ_LOG_LEVEL environment variable.
@@ -92,6 +93,7 @@ def _configure_cuda_library_paths() -> None:
     common_libs: Dict[str, Tuple[str, str]] = {
         'cutensor': ('cutensor-cu{cuda_major}', 'libcutensor.so.2'),
         'custatevec': ('custatevec-cu{cuda_major}', 'libcustatevec.so.1'),
+        'custabilizer': ('custabilizer-cu{cuda_major}', 'libcustabilizer.so.0'),
         'cutensornet': ('cutensornet-cu{cuda_major}', 'libcutensornet.so.2'),
         'cudensitymat': ('cudensitymat-cu{cuda_major}', 'libcudensitymat.so.0'),
     }
@@ -127,7 +129,7 @@ def _configure_cuda_library_paths() -> None:
     load_order: List[str] = [
         'cudart', 'curand', 'nvrtc', 'nvrtc_builtins', 'cublaslt', 'cublas',
         'cusolver', 'cusolvermg', 'cutensor', 'custatevec', 'cutensornet',
-        'cudensitymat'
+        'cudensitymat', 'custabilizer'
     ]
 
     # Select library configuration based on CUDA version
@@ -344,15 +346,21 @@ __version__ = cudaq_runtime.__version__
 initialize_cudaq = cudaq_runtime.initialize_cudaq
 
 
-def set_target(target, **extra_config):
+def set_target(target, *, compile_target=None, **extra_config):
     """Set the backend used for CUDA-Q kernel execution.
 
     Can provide optional, target-specific configuration data via Python `kwargs`.
 
     Args:
-      target: The CUDA-Q target, specified as a recognized target name (``str``)
-        or a :class:`cudaq.Target` instance. Support for
-        instances of ``cudaq._experimental.CustomTarget`` is experimental.
+      target: The CUDA-Q target that kernels run on at runtime, specified as a
+        recognized target name (``str``) or a :class:`cudaq.Target` instance.
+        Support for instances of ``cudaq._experimental.CustomTarget`` is
+        experimental.
+      compile_target: The ``cudaq._experimental.CompileTarget`` that kernels
+        are compiled against before running on ``target``. If omitted, the
+        target's default compile target is used. Not supported when
+        ``target`` is a ``CustomTarget``, which carries its own compile
+        target. This argument is experimental.
       **extra_config: Target-specific configuration for the named-target
         overload.
 
@@ -364,12 +372,14 @@ def set_target(target, **extra_config):
         # ever importing cudaq._experimental, so that module being
         # unavailable (e.g. not staged into an incremental build) can't
         # break ordinary target selection.
-        return cudaq_runtime.set_target(target, **extra_config)
+        return cudaq_runtime.set_target(target,
+                                        compile_target=compile_target,
+                                        **extra_config)
 
     from cudaq._experimental import CustomTarget
 
     if isinstance(target, CustomTarget):
-        if extra_config:
+        if compile_target is not None or extra_config:
             raise TypeError(
                 "cudaq.set_target() does not accept keyword arguments when "
                 "target is a cudaq._experimental.CustomTarget.")
@@ -558,6 +568,10 @@ _DEFERRED_STAR_MODULES = [
 
 
 def __getattr__(name):
+    # Fail fast for `dunder` attributes, which get probed by tools such as pytest
+    if name.startswith('__') and name.endswith('__'):
+        raise AttributeError(f"module 'cudaq' has no attribute {name!r}")
+
     import importlib
 
     if name in _LAZY_ATTRS:

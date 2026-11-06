@@ -112,6 +112,13 @@ def qrom_access_step(
 
 
 # %%
+# Compile at level 1 so the Toffoli count matches the paper's model of
+# `2 * piece_length - 1` per carry piece. Level 2 also works and saves a few
+# gates.
+PAPER_OPTIMIZATION_LEVEL = 1
+
+
+# %%
 # Build the folded RSA kernel for one operating point.
 def build_resource_kernel(point: factory.OperatingPoint):
     pieces = point.carry_pieces
@@ -252,7 +259,11 @@ def estimate_using_kernel_profile(modulus_bits: int = 2048) -> AnalyticalResult:
 
     point = factory.OPERATING_POINTS[modulus_bits]
     cudaq.set_target(cql.targets.estimator)
-    estimate = cudaq.estimate(build_resource_kernel(point))
+    estimate = cudaq.estimate(build_resource_kernel(point),
+                              optimization_level=PAPER_OPTIMIZATION_LEVEL)
+    # The closed-form model consumes the full logical profile (for example its
+    # action-depth bound and synthesis demand), which `estimate.resources` only
+    # partly carries, so rehydrate the LOGICAL annotation.
     logical = cql.estimate.LogicalEstimate.from_annotations(
         estimate.annotations)
     result = calculate_analytical_metrics(logical, point)
@@ -278,7 +289,6 @@ def build_physical_target(point: factory.OperatingPoint = factory.RSA_2048):
     target = cql.targets.Target.from_device(
         "gidney_ekera_physical",
         device,
-        runtime_backend=cql.targets.estimator,
         estimate_options={
             "failure_budget": APPLICATION_FAILURE_BUDGET,
             "tier": "SCHEDULE",
@@ -296,7 +306,8 @@ def estimate_physically(modulus_bits: int = 2048) -> PhysicalResult:
 
     point = factory.OPERATING_POINTS[modulus_bits]
     cudaq.set_target(build_physical_target(point))
-    estimate = cudaq.estimate(build_resource_kernel(point))
+    estimate = cudaq.estimate(build_resource_kernel(point),
+                              optimization_level=PAPER_OPTIMIZATION_LEVEL)
     schedule = estimate.annotations["SCHEDULE"]
     result = PhysicalResult(
         physical_qubits=schedule["physical_qubits"],

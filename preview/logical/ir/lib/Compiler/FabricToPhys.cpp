@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Compiler/SpacetimeProviders.h"
 #include "qlx/Dialect/Cflow/IR/CflowOps.h"
@@ -37,6 +37,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <functional>
 #include <initializer_list>
 #include <map>
 #include <memory>
@@ -44,6 +45,7 @@
 #include <set>
 #include <string>
 #include <tuple>
+#include <utility>
 
 namespace qlx {
 namespace fabric {
@@ -169,7 +171,7 @@ public:
   void set(size_t index, Value value) {
     ensureUniqueStorage();
     assert((*storage)[index].getType() == value.getType() &&
-           "owner-threading operation changed physical layout");
+           "linear-value-threading operation changed physical layout");
     (*storage)[index] = value;
   }
 
@@ -207,20 +209,6 @@ static StringRef symbolName(Operation *operation) {
           SymbolTable::getSymbolAttrName()))
     return symbol.getValue();
   return {};
-}
-
-static Operation *createGeneric(OpBuilder &builder, Location location,
-                                StringRef name, ValueRange operands = {},
-                                TypeRange results = {},
-                                ArrayRef<NamedAttribute> attributes = {},
-                                unsigned regions = 0) {
-  OperationState state(location, name);
-  state.addOperands(operands);
-  state.addTypes(results);
-  state.addAttributes(attributes);
-  for (unsigned i = 0; i < regions; ++i)
-    state.addRegion();
-  return builder.create(state);
 }
 
 static StringAttr stringAttr(MLIRContext *context, StringRef value) {
@@ -277,6 +265,7 @@ struct AllocationPlanStep {
 
 struct CanonicalCallTemplate {
   Operation *sourceCall = nullptr;
+  Operation *physicalCall = nullptr;
   FlatSymbolRefAttr callee;
   FlatSymbolRefAttr profile;
   // A call whose result directly seeds fabric.retry must retain its complete
@@ -306,14 +295,25 @@ struct CanonicalCallTemplate {
 
 struct StateAliasCacheKey {
   size_t templateIndex = 0;
-  SmallVector<uintptr_t, 4> layouts;
+  size_t inputCount = 0;
+  // Keep the control block for every layout token alive without increasing
+  // its strong reference count. A raw pointee address is not a durable
+  // identity here: once a temporary PhysicalGroup releases its token, the
+  // allocator may reuse that address for an unrelated layout and turn a
+  // cache miss into a false hit. Weak ownership preserves identity across
+  // such reuse while leaving PhysicalGroup's copy-on-write use_count intact.
+  SmallVector<std::weak_ptr<const char>, 4> layouts;
 
   bool operator<(const StateAliasCacheKey &other) const {
     if (templateIndex != other.templateIndex)
       return templateIndex < other.templateIndex;
-    return std::lexicographical_compare(layouts.begin(), layouts.end(),
-                                        other.layouts.begin(),
-                                        other.layouts.end());
+    if (inputCount != other.inputCount)
+      return inputCount < other.inputCount;
+    std::owner_less<std::weak_ptr<const char>> less;
+    return std::lexicographical_compare(
+        layouts.begin(), layouts.end(), other.layouts.begin(),
+        other.layouts.end(),
+        [&](const auto &left, const auto &right) { return less(left, right); });
   }
 };
 
@@ -454,7 +454,7 @@ public:
       return failure();
     if (preflightOnly)
       return success();
-    if (SymbolTable::lookupSymbolIn(module, graphName))
+    if (hasModuleSymbol(graphName))
       return module.emitError("fabric-to-phys output symbol @")
              << graphName << " already exists";
     if (profile)
@@ -464,6 +464,29 @@ public:
   }
 
 private:
+  bool hasModuleSymbol(StringRef name) const {
+    return symbols.lookup(name) || generatedSymbols.contains(name);
+  }
+
+  Operation *createGeneric(OpBuilder &builder, Location location,
+                           StringRef name, ValueRange operands = {},
+                           TypeRange results = {},
+                           ArrayRef<NamedAttribute> attributes = {},
+                           unsigned regions = 0) {
+    OperationState state(location, name);
+    state.addOperands(operands);
+    state.addTypes(results);
+    state.addAttributes(attributes);
+    for (unsigned i = 0; i < regions; ++i)
+      state.addRegion();
+    Operation *operation = builder.create(state);
+    if (operation->getParentOp() == module)
+      if (auto symbol = operation->getAttrOfType<StringAttr>(
+              SymbolTable::getSymbolAttrName()))
+        generatedSymbols.insert(symbol.getValue());
+    return operation;
+  }
+
   LogicalResult resolveClosure() {
     root = symbols.lookup(rootName);
     if (!root || !isa<qlx::fabric::ProtocolOp, qlx::fabric::GadgetOp>(root)) {
@@ -1079,7 +1102,7 @@ private:
               qlx::fabric::ResourceRequestOp, qlx::event::AwaitOp,
               qlx::fabric::UnpackResourceOp, qlx::fabric::PackResourceOp,
               qlx::fabric::DiscardResourceOp, qlx::fabric::MeasureProductOp,
-              qlx::fabric::RotateProductOp,
+              qlx::fabric::MppOp, qlx::fabric::RotateProductOp,
               qlx::fabric::ResourceRotateProductOp, qlx::fabric::RetryOp,
               qlx::fabric::SuccessOp>(operation))
         continue;
@@ -1223,7 +1246,7 @@ private:
     auto code = selected ? dyn_cast_or_null<qlx::fabric::CodeOp>(symbols.lookup(
                                selected.getCodeAttr().getValue()))
                          : qlx::fabric::CodeOp{};
-    if (!selected || !code || code.getDistance() <= 0) {
+    if (!selected || !code || code.getDistanceAttr().getInt() <= 0) {
       emitError(location) << "QEC region @" << region
                           << " must resolve to a positive code distance";
       return failure();
@@ -1484,7 +1507,7 @@ private:
   FailureOr<qlx::phys::FactoryModelOp>
   factoryModelFor(qlx::fabric::ResourceRequestOp request) {
     qlx::phys::FactoryModelOp selected;
-    for (auto candidate : module.getOps<qlx::phys::FactoryModelOp>()) {
+    for (auto candidate : factoryModels) {
       if (candidate.getStreamAttr() != request.getStreamAttr() ||
           candidate.getResourceKindAttr().getValue() != request.getKind())
         continue;
@@ -1541,10 +1564,10 @@ private:
         return success();
       auto code = dyn_cast_or_null<qlx::fabric::CodeOp>(
           symbols.lookup(patch.getCodeType().getValue()));
-      if (!code || code.getDistance() <= 0)
+      if (!code || code.getDistanceAttr().getInt() <= 0)
         return owner->emitOpError(
             "spacetime-plan patch code must resolve with positive distance");
-      if (selected && *selected != code.getDistance())
+      if (selected && *selected != code.getDistanceAttr().getInt())
         return owner->emitOpError(
             "spacetime plan requires one selected code distance across its "
             "callable closure");
@@ -1588,7 +1611,7 @@ private:
         return success();
       auto code = dyn_cast_or_null<qlx::fabric::CodeOp>(
           symbols.lookup(patch.getCodeType().getValue()));
-      if (!code || code.getDistance() <= 0)
+      if (!code || code.getDistanceAttr().getInt() <= 0)
         return owner->emitOpError(
             "factory-model patch code must resolve with positive distance");
       selected.insert(code.getDistance());
@@ -1725,7 +1748,7 @@ private:
         auto code = dyn_cast_or_null<qlx::fabric::CodeOp>(
             symbols.lookup(allocation.getCodeAttr().getValue()));
         auto binding = regionBindings.find(allocation.getRegion());
-        if (!code || code.getDistance() <= 0 ||
+        if (!code || code.getDistanceAttr().getInt() <= 0 ||
             binding == regionBindings.end()) {
           allocation.emitOpError(
               "surface factory recurrence requires every allocation to "
@@ -1750,17 +1773,18 @@ private:
                                 .lookup<qlx::fabric::RegionOp>(
                                     qecReference.getLeafReference().getValue())
                           : qlx::fabric::RegionOp{};
-        auto capacity = region ? region.getBlockCapacity() : std::nullopt;
-        if (!region || !capacity || *capacity <= 0) {
+        IntegerAttr capacity =
+            region ? region.getBlockCapacityAttr() : IntegerAttr{};
+        if (!region || !capacity || capacity.getInt() <= 0) {
           allocation.emitOpError(
               "surface factory recurrence requires positive QEC-region "
               "block capacities for every selected code distance");
           failedAllocation = true;
           return WalkResult::interrupt();
         }
-        auto [capacityEntry, capacityInserted] =
-            capacityByDistance.try_emplace(code.getDistance(), *capacity);
-        if (!capacityInserted && capacityEntry->second != *capacity) {
+        auto [capacityEntry, capacityInserted] = capacityByDistance.try_emplace(
+            code.getDistanceAttr().getInt(), capacity.getInt());
+        if (!capacityInserted && capacityEntry->second != capacity.getInt()) {
           allocation.emitOpError(
               "surface factory recurrence has inconsistent QEC-region "
               "capacity for one code distance");
@@ -1788,7 +1812,7 @@ private:
           resource ? resource->getAttrOfType<StringAttr>("granularity")
                    : StringAttr{};
       return resource && granularity && granularity.getValue() == "patch" &&
-             resource.getCount() > 0;
+             resource.getCountAttr().getInt() > 0;
     };
     if (level1 == resourceClasses.end() || level2 == resourceClasses.end() ||
         !validPatchClass(level1->second) || !validPatchClass(level2->second))
@@ -1921,9 +1945,9 @@ private:
       auto spec = dyn_cast_or_null<qlx::fabric::GadgetSpecOp>(
           symbols.lookup(candidate.getSpecAttr().getValue()));
       auto objective =
-          spec ? dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+          spec ? dyn_cast_or_null<qlx::fabric::ActionOp>(
                      symbols.lookup(spec.getObjectiveAttr().getValue()))
-               : qlx::fabric::ObjectiveOp{};
+               : qlx::fabric::ActionOp{};
       auto logical = objective && objective.getLogicalAttr()
                          ? dyn_cast_or_null<qlx::ActionOp>(symbols.lookup(
                                objective.getLogicalAttr().getValue()))
@@ -1996,7 +2020,7 @@ private:
       return failure();
 
     std::string name = (protocol.getSymName() + "_recurrence_plan").str();
-    if (SymbolTable::lookupSymbolIn(module, name))
+    if (hasModuleSymbol(name))
       return protocol.emitOpError(
                  "derived surface-factory recurrence symbol already exists @")
              << name;
@@ -2226,7 +2250,7 @@ private:
                                factoryInterval);
 
     std::string name = (protocol.getSymName() + "_application_plan").str();
-    if (SymbolTable::lookupSymbolIn(module, name))
+    if (hasModuleSymbol(name))
       return protocol.emitOpError(
                  "derived surface-AutoCCZ application symbol already exists @")
              << name;
@@ -2351,8 +2375,7 @@ private:
                               allocations.front().getRegion();
                      }) ||
         binding->second.granularity != "patch" ||
-        binding->second.capacity <
-            static_cast<int64_t>(6 * shape.peakReactionWidth))
+        std::cmp_less(binding->second.capacity, 6 * shape.peakReactionWidth))
       return protocol.emitOpError(
           "surface spacelike callable requires one patch-granularity "
           "routing binding with capacity six per concurrent AutoCCZ "
@@ -2391,7 +2414,7 @@ private:
     }
 
     std::string name = (protocol.getSymName() + "_spacelike_plan").str();
-    if (SymbolTable::lookupSymbolIn(module, name))
+    if (hasModuleSymbol(name))
       return protocol.emitOpError(
                  "derived surface spacelike symbol already exists @")
              << name;
@@ -2703,6 +2726,122 @@ private:
     return values;
   }
 
+  FailureOr<PhysicalGroup> prepareEncoded(PhysicalGroup values,
+                                          qlx::fabric::PatchType patchType,
+                                          StringRef state, Location location,
+                                          OpBuilder &builder) {
+    auto positions = wholePartitionPositions(patchType, "data");
+    if (failed(positions) || positions->empty())
+      return failure();
+    auto granularity = patchResourceGranularity(patchType);
+    if (failed(granularity))
+      return failure();
+    if (*granularity == "patch")
+      return prepareSelected(std::move(values), *positions, state, location,
+                             builder);
+
+    auto code = dyn_cast_or_null<qlx::fabric::CodeOp>(
+        symbols.lookup(patchType.getCodeType().getValue()));
+    if (state != "zero" && state != "plus")
+      return failure();
+    // An omitted HX family is the empty stabilizer family. It is still a CSS
+    // presentation and may need a logical-X encoder for |+_L>. Do not turn an
+    // unsupported encoding into independent physical preparation: that state
+    // need not lie in the code space.
+    if (!code)
+      return failure();
+    // A one-carrier patch with no stabilizer or logical presentation is the
+    // existing identity encoding. Independent preparation is exact there.
+    const bool identityEncoding =
+        positions->size() == 1 && !code.getHx() && !code.getHz() &&
+        !code.getLx() && !code.getLz() && (!code.getR() || *code.getR() == 0);
+    if (identityEncoding)
+      return prepareSelected(std::move(values), *positions, state, location,
+                             builder);
+    if ((state == "plus" && !code.getLx()) ||
+        (code.getR() && *code.getR() != 0))
+      return failure();
+
+    // Starting from |0>^n, synthesize the uniform superposition over the
+    // X-stabilizer row space for |0_L>. Adding every canonical logical-X row
+    // fixes logical X to +1 and therefore prepares |+_L>. RREF chooses one
+    // control per independent generator and produces a direct H/CX encoder.
+    const int64_t width = positions->size();
+    SmallVector<llvm::BitVector> rows;
+    auto appendSupports = [&](ArrayAttr family) -> LogicalResult {
+      for (Attribute raw : family) {
+        auto support = dyn_cast<DenseI64ArrayAttr>(raw);
+        if (!support)
+          return failure();
+        llvm::BitVector row(width);
+        for (int64_t index : support.asArrayRef()) {
+          if (index < 0 || index >= width || row.test(index))
+            return failure();
+          row.set(index);
+        }
+        if (row.any())
+          rows.push_back(std::move(row));
+      }
+      return success();
+    };
+    if ((code.getHx() && failed(appendSupports(*code.getHx()))) ||
+        (state == "plus" && failed(appendSupports(*code.getLx()))))
+      return failure();
+
+    auto prepared = prepareSelected(std::move(values), *positions, "zero",
+                                    location, builder);
+    if (failed(prepared))
+      return failure();
+    SmallVector<int64_t> columns;
+    columns.reserve(width);
+    for (int64_t column = 0; column < width; ++column)
+      columns.push_back(column);
+    llvm::sort(columns, [&](int64_t left, int64_t right) {
+      auto weight = [&](int64_t column) {
+        return llvm::count_if(
+            rows, [&](const llvm::BitVector &row) { return row.test(column); });
+      };
+      return std::pair{weight(left), left} < std::pair{weight(right), right};
+    });
+
+    SmallVector<int64_t> pivots;
+    size_t rank = 0;
+    for (int64_t column : columns) {
+      size_t selected = rank;
+      while (selected < rows.size() && !rows[selected].test(column))
+        ++selected;
+      if (selected == rows.size())
+        continue;
+      std::swap(rows[rank], rows[selected]);
+      for (size_t row = 0; row < rows.size(); ++row)
+        if (row != rank && rows[row].test(column))
+          rows[row] ^= rows[rank];
+      pivots.push_back(column);
+      if (++rank == rows.size())
+        break;
+    }
+    for (int64_t pivot : pivots) {
+      prepared = applyAction(std::move(*prepared), {(*positions)[pivot]}, "h",
+                             location, builder);
+      if (failed(prepared))
+        return failure();
+    }
+    for (auto [pivot, row] :
+         llvm::zip(ArrayRef<int64_t>(pivots).take_front(rank),
+                   ArrayRef<llvm::BitVector>(rows).take_front(rank))) {
+      for (int64_t target = 0; target < width; ++target) {
+        if (target == pivot || !row.test(target))
+          continue;
+        prepared = applyAction(std::move(*prepared),
+                               {(*positions)[pivot], (*positions)[target]},
+                               "cx", location, builder);
+        if (failed(prepared))
+          return failure();
+      }
+    }
+    return prepared;
+  }
+
   FailureOr<PhysicalGroup> resetSelected(PhysicalGroup values,
                                          ArrayRef<int64_t> positions,
                                          Location location,
@@ -2959,7 +3098,7 @@ private:
 
   FlatSymbolRefAttr ensureMeasureZInstrument(Location location) {
     constexpr StringLiteral name = "measure_z_instrument";
-    if (!SymbolTable::lookupSymbolIn(module, name)) {
+    if (!hasModuleSymbol(name)) {
       OpBuilder topBuilder(module.getBodyRegion());
       topBuilder.setInsertionPoint(graph);
       createGeneric(
@@ -3013,7 +3152,7 @@ private:
                                                recordBase, lanePrefix, ordinal)
                                      .str();
       // Stable-record projection is consumed only by a selected detached
-      // gadget profile. Retaining every unprofiled helper invocation here
+      // gadget contract. Retaining every unprofiled helper invocation here
       // creates millions of unreachable provenance strings without adding
       // P3 evidence.
       if (currentProfile)
@@ -3411,7 +3550,7 @@ private:
     if (word.consume_front("-"))
       phase = 2;
     if (patchIndices.size() != logicalIndices.size() ||
-        patchIndices.size() != word.size())
+        std::cmp_not_equal(patchIndices.size(), word.size()))
       return failure();
 
     std::map<std::pair<unsigned, int64_t>, char> factors;
@@ -3570,6 +3709,67 @@ private:
     return success();
   }
 
+  LogicalResult measurePhysicalProduct(qlx::fabric::MppOp measurement,
+                                       ProjectedValues &projected,
+                                       OpBuilder &builder) {
+    PhysicalGroup patch =
+        takeProjected(projected, measurement.getPatch(), measurement);
+    auto positions =
+        selectedPositions(measurement, measurement.getPatch().getType());
+    if (failed(positions) || positions->empty())
+      return failure();
+    StringRef labels = measurement.getPaulis();
+    bool invert = labels.consume_front("-");
+    if (labels.size() != positions->size())
+      return failure();
+    SmallVector<Value> inputs;
+    SmallVector<Type> resultTypes;
+    SmallVector<Attribute> paulis;
+    DenseSet<int64_t> selected;
+    for (auto [position, label] : llvm::zip(*positions, labels)) {
+      if (position < 0 || size_t(position) >= patch.size() ||
+          !selected.insert(position).second)
+        return failure();
+      inputs.push_back(patch[position]);
+      resultTypes.push_back(patch[position].getType());
+      paulis.push_back(stringAttr(context, StringRef(&label, 1)));
+    }
+    auto instrument = sharedNativeInstrument(inputs, "measure_product");
+    if (failed(instrument))
+      return failure();
+    resultTypes.push_back(qlx::phys::RecordType::get(
+        context, symbolAttr(context, instrument->getRecordSchema())));
+    std::string record = measurement.getRecord().value_or("mpp").str();
+    std::string recordId = llvm::formatv("{0}.{1}.{2}", currentInstance, record,
+                                         measurementRecord++)
+                               .str();
+    SmallVector<NamedAttribute> attrs{
+        builder.getNamedAttr("instrument",
+                             symbolAttr(context, instrument->getSymName())),
+        builder.getNamedAttr("paulis", builder.getArrayAttr(paulis)),
+        builder.getNamedAttr("record_id", stringAttr(context, recordId)),
+        builder.getNamedAttr("event_id", nextEvent("mpp")),
+    };
+    if (invert)
+      attrs.push_back(builder.getNamedAttr("invert", UnitAttr::get(context)));
+    Operation *physical =
+        createGeneric(builder, measurement.getLoc(), "phys.measure_product",
+                      inputs, resultTypes, attrs);
+    for (auto [position, replacement] :
+         llvm::zip(*positions, physical->getResults().drop_back()))
+      patch.set(position, replacement);
+    projected[measurement.getPatchOut()] = std::move(patch);
+    projected[measurement.getBits()] =
+        PhysicalGroup{physical->getResults().back()};
+    if (currentProfile) {
+      std::string qualified = currentCallable + "." + record;
+      mutateRecordProjection({currentInstance, qualified}).push_back(recordId);
+      mutateRecordProjection({currentInstance, qualified + ".outcome"})
+          .push_back(recordId);
+    }
+    return success();
+  }
+
   LogicalResult measureProduct(qlx::fabric::MeasureProductOp measurement,
                                ProjectedValues &projected, OpBuilder &builder) {
     actionFailure.clear();
@@ -3689,7 +3889,7 @@ private:
             currentByResource.try_emplace(state.getResource(), value);
         if (!inserted && entry->second != value)
           return emitError(location)
-                 << "fabric.tick has multiple live physical SSA owners for "
+                 << "fabric.tick has multiple live physical SSI values for "
                  << state.getResource();
       }
     }
@@ -3762,9 +3962,9 @@ private:
                           symbols.lookup(gadget.getSpecAttr().getValue()))
                     : qlx::fabric::GadgetSpecOp{};
     auto objective =
-        spec ? dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+        spec ? dyn_cast_or_null<qlx::fabric::ActionOp>(
                    symbols.lookup(spec.getObjectiveAttr().getValue()))
-             : qlx::fabric::ObjectiveOp{};
+             : qlx::fabric::ActionOp{};
     Operation *logical =
         objective && objective.getLogicalAttr()
             ? symbols.lookup(objective.getLogicalAttr().getValue())
@@ -3792,7 +3992,7 @@ private:
       return failure();
     auto semanticsRef =
         dyn_cast<FlatSymbolRefAttr>(instrument.getSemanticsAttr());
-    auto semantics = dyn_cast_or_null<qlx::ObjectiveBodyOp>(
+    auto semantics = dyn_cast_or_null<qlx::ActionBodyOp>(
         semanticsRef ? symbols.lookup(semanticsRef.getValue()) : nullptr);
     if (!semantics || semantics.getBody().empty())
       return failure();
@@ -3932,7 +4132,7 @@ private:
     auto cached = profileSidecarDeclarationCache.find(profileRef);
     if (cached != profileSidecarDeclarationCache.end())
       return &cached->second;
-    auto profile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto profile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         symbols.lookup(profileRef.getValue()));
     if (!profile)
       return failure();
@@ -3951,7 +4151,7 @@ private:
     auto declarations = profileSidecarDeclarations(profileRef);
     if (failed(declarations))
       return emitError(UnknownLoc::get(context))
-             << "physical call references missing gadget profile @"
+             << "physical call references missing gadget contract @"
              << profileRef.getValue();
     std::map<std::string, int64_t> rowOrdinals;
     for (Operation *declarationPointer : **declarations) {
@@ -4018,9 +4218,9 @@ private:
       return true;
     if (!left || !right)
       return false;
-    auto leftProfile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto leftProfile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         symbols.lookup(left.getValue()));
-    auto rightProfile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto rightProfile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         symbols.lookup(right.getValue()));
     if (!leftProfile || !rightProfile ||
         leftProfile.getGadgetAttr() != leftCallee ||
@@ -4046,6 +4246,48 @@ private:
     if (inputP1Callee)
       return inputP1Callee.getValue();
     return generatedBy ? generatedBy.getValue() : calleeRef.getValue();
+  }
+
+  static bool hasInvocationVariantRPPProvenance(Operation *callable) {
+    if (!callable || !callable->hasAttr("generated_by"))
+      return false;
+    auto specialization =
+        callable->getAttrOfType<DictionaryAttr>("specialization");
+    return specialization && specialization.getAs<StringAttr>("rpp_strategy");
+  }
+
+  void classifyCallTemplateEligibility() {
+    if (callTemplateEligibilityClassified)
+      return;
+    callTemplateEligibilityClassified = true;
+
+    // A physical template may omit only provenance that cannot affect its
+    // body or boundary. Generated RPP adapters carry a typed rpp_strategy
+    // implementation-selection witness, so the adapter itself always fails
+    // that test. With an action_site, the directly selected implementation is
+    // site-specific as well and must also remain explicit. Without an
+    // action_site (as in synthesized injection and RUS adapters), the selected
+    // implementation is a fixed-body callable that may still be shared; its
+    // adapter retains the invocation-specific specialization boundary. Generic
+    // generated callables without an RPP specialization (including AutoCCZ)
+    // remain eligible for intentional fixed-body sharing. A compiler-name
+    // metadata string is not semantic evidence.
+    for (Operation &candidate : module.getBody()->getOperations()) {
+      if (!hasInvocationVariantRPPProvenance(&candidate))
+        continue;
+      callTemplateIneligible.insert(&candidate);
+      if (!candidate.hasAttr("action_site"))
+        continue;
+      candidate.walk([&](qlx::fabric::CallOp call) {
+        if (Operation *implementation = symbols.lookup(call.getCallee()))
+          callTemplateIneligible.insert(implementation);
+      });
+    }
+  }
+
+  bool isCallTemplateEligible(Operation *callee) {
+    classifyCallTemplateEligibility();
+    return !callTemplateIneligible.contains(callee);
   }
 
   uint64_t physicalTemplateFingerprint(Operation *callable) {
@@ -4195,9 +4437,10 @@ private:
 
   static bool
   supportsElidedStateBoundary(const CanonicalCallTemplate &candidate) {
-    return !candidate.retainedInputTypes.empty() &&
-           candidate.retainedInputTypes == candidate.retainedOutputTypes &&
-           llvm::all_of(candidate.retainedInputTypes, [](Type type) {
+    auto call = dyn_cast_or_null<qlx::phys::CallOp>(candidate.physicalCall);
+    return call && !call.getInputs().empty() &&
+           call.getInputs().getTypes() == call.getOutputs().getTypes() &&
+           llvm::all_of(call.getInputs().getTypes(), [](Type type) {
              return isa<qlx::phys::StateType>(type);
            });
   }
@@ -4222,13 +4465,12 @@ private:
       ArrayRef<PhysicalGroup::LayoutIdentity> outputGroupLayouts) {
     StateAliasCacheKey key;
     key.templateIndex = templateIndex;
-    key.layouts.reserve(inputGroups.size() + outputGroupLayouts.size() + 1);
-    key.layouts.push_back(inputGroups.size());
+    key.inputCount = inputGroups.size();
+    key.layouts.reserve(inputGroups.size() + outputGroupLayouts.size());
     for (const PhysicalGroup &group : inputGroups)
-      key.layouts.push_back(
-          reinterpret_cast<uintptr_t>(group.getLayoutIdentity().get()));
+      key.layouts.push_back(group.getLayoutIdentity());
     for (const PhysicalGroup::LayoutIdentity &layout : outputGroupLayouts)
-      key.layouts.push_back(reinterpret_cast<uintptr_t>(layout.get()));
+      key.layouts.push_back(layout);
     return key;
   }
 
@@ -4244,7 +4486,7 @@ private:
       std::set<std::string> selectedRecordSources;
       auto declarations = profileSidecarDeclarations(profileRef);
       if (failed(declarations)) {
-        emitError(location) << "references an unresolved gadget profile";
+        emitError(location) << "references an unresolved gadget contract";
         return failure();
       }
       for (Operation *declaration : **declarations) {
@@ -5213,6 +5455,13 @@ private:
             {builder.getNamedAttr("event_id", nextEvent("discard_resource"))});
         continue;
       }
+      if (auto measurement = dyn_cast<qlx::fabric::MppOp>(operation)) {
+        if (failed(measurePhysicalProduct(measurement, projected, builder)))
+          return measurement.emitOpError(
+              "requires distinct physical carriers and a native "
+              "measure_product instrument");
+        continue;
+      }
       if (auto measurement =
               dyn_cast<qlx::fabric::MeasureProductOp>(operation)) {
         if (failed(measureProduct(measurement, projected, builder)))
@@ -5249,28 +5498,28 @@ private:
         continue;
       }
       if (auto prep = dyn_cast<qlx::fabric::PrepZOp>(operation)) {
-        auto positions =
-            wholePartitionPositions(prep.getPatch().getType(), "data");
-        if (failed(positions))
-          return prep.emitOpError("has no data partition");
+        auto patchType =
+            dyn_cast<qlx::fabric::PatchType>(prep.getPatch().getType());
         auto prepared =
-            prepareSelected(takeProjected(projected, prep.getPatch(), prep),
-                            *positions, "zero", prep.getLoc(), builder);
+            patchType ? prepareEncoded(
+                            takeProjected(projected, prep.getPatch(), prep),
+                            patchType, "zero", prep.getLoc(), builder)
+                      : FailureOr<PhysicalGroup>(failure());
         if (failed(prepared))
-          return prep.emitOpError("failed physical data preparation");
+          return prep.emitOpError("failed physical encoded-zero preparation");
         projected[prep.getResult()] = *prepared;
         continue;
       }
       if (auto prep = dyn_cast<qlx::fabric::PrepXOp>(operation)) {
-        auto positions =
-            wholePartitionPositions(prep.getPatch().getType(), "data");
-        if (failed(positions))
-          return prep.emitOpError("has no data partition");
+        auto patchType =
+            dyn_cast<qlx::fabric::PatchType>(prep.getPatch().getType());
         auto prepared =
-            prepareSelected(takeProjected(projected, prep.getPatch(), prep),
-                            *positions, "plus", prep.getLoc(), builder);
+            patchType ? prepareEncoded(
+                            takeProjected(projected, prep.getPatch(), prep),
+                            patchType, "plus", prep.getLoc(), builder)
+                      : FailureOr<PhysicalGroup>(failure());
         if (failed(prepared))
-          return prep.emitOpError("failed physical data preparation");
+          return prep.emitOpError("failed physical encoded-plus preparation");
         projected[prep.getResult()] = *prepared;
         continue;
       }
@@ -5568,7 +5817,7 @@ private:
         // enumerating the repeat's dynamic extent.
         std::set<std::string> selectedProfileRecords;
         if (currentProfile) {
-          auto profile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+          auto profile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
               symbols.lookup(currentProfile.getValue()));
           if (!profile)
             return repeat.emitOpError(
@@ -5724,6 +5973,7 @@ private:
       FlatSymbolRefAttr callProfile = call.getProfileAttr();
       auto callProvider = spacetimeProviderFor(callee);
       auto componentPlan = componentSpacetimePlans.find(call.getCallee());
+      bool templateEligible = isCallTemplateEligible(callee);
       bool closesRetryBoundary =
           llvm::any_of(call.getResults(), [](Value result) {
             return llvm::any_of(result.getUsers(), [](Operation *user) {
@@ -5759,7 +6009,7 @@ private:
         CanonicalCallTemplate *compatible = nullptr;
         ArrayAttr stateAliases;
         auto indexedTemplates = callTemplateIndices.find(templateBucket);
-        if (indexedTemplates != callTemplateIndices.end()) {
+        if (templateEligible && indexedTemplates != callTemplateIndices.end()) {
           auto fingerprintedTemplates =
               indexedTemplates->second.find(templateFingerprint);
           if (fingerprintedTemplates != indexedTemplates->second.end())
@@ -6008,7 +6258,7 @@ private:
                 resultTypes))
           return call.emitOpError(
               "surface spacetime call must preserve its complete physical "
-              "owner boundary");
+              "value boundary");
         Operation *physicalCall =
             createGeneric(builder, call.getLoc(), "phys.spacetime_call",
                           flattenedInputs, resultTypes,
@@ -6036,7 +6286,7 @@ private:
       CanonicalCallTemplate *compatible = nullptr;
       ArrayAttr stateAliases;
       auto indexedTemplates = callTemplateIndices.find(templateBucket);
-      if (indexedTemplates != callTemplateIndices.end()) {
+      if (templateEligible && indexedTemplates != callTemplateIndices.end()) {
         auto fingerprintedTemplates =
             indexedTemplates->second.find(templateFingerprint);
         if (fingerprintedTemplates != indexedTemplates->second.end())
@@ -6319,21 +6569,37 @@ private:
       SmallVector<AllocationPlanStep> canonicalAllocationPlan(
           allocationPlanTrace.begin() + allocationPlanStart,
           allocationPlanTrace.end());
-      callTemplates.push_back(CanonicalCallTemplate{
-          call.getOperation(), call.getCalleeAttr(), callProfile,
-          closesRetryBoundary, inputTypes.size(), resultTypes.size(),
-          std::move(retainedInputs), std::move(retainedOutputs),
-          std::move(retainedInputTypes), std::move(retainedOutputTypes),
-          std::move(inputGroupLayouts), resultGroupLayouts, callEvent,
-          instance.getValue().str(), std::move(canonicalRecords),
-          std::move(canonicalAllocationPlan)});
-      if (!callTemplates.back().allocationPlan.empty())
-        sourceDataDependencySources.try_emplace(
-            call.getOperation(), sourceDataDependencySources.size());
-      callTemplateIndices[templateBucket][templateFingerprint].push_back(
-          callTemplates.size() - 1);
-      if (std::getenv("QLX_PROFILE_P2_TO_P3") &&
-          callTemplates.size() % 50 == 0) {
+      // A fully erased physical boundary and an empty physical body have no
+      // state, record, or event identity that can authenticate an elided
+      // invocation. Keep that no-op explicit. Boundary-free fixed bodies that
+      // still contain physical work (for example a reusable scratch
+      // allocation) remain eligible, as do stateful inner RUS bodies.
+      bool hasPhysicalTemplateIdentity = physicalCall->getNumOperands() != 0 ||
+                                         physicalCall->getNumResults() != 0;
+      if (templateEligible && !hasPhysicalTemplateIdentity) {
+        Block &body = cast<qlx::phys::CallOp>(physicalCall).getBody().front();
+        hasPhysicalTemplateIdentity = llvm::any_of(body, [](Operation &nested) {
+          return !isa<qlx::phys::YieldOp>(nested);
+        });
+      }
+      if (templateEligible && hasPhysicalTemplateIdentity) {
+        callTemplates.push_back(CanonicalCallTemplate{
+            call.getOperation(), physicalCall, call.getCalleeAttr(),
+            callProfile, closesRetryBoundary, inputTypes.size(),
+            resultTypes.size(), std::move(retainedInputs),
+            std::move(retainedOutputs), std::move(retainedInputTypes),
+            std::move(retainedOutputTypes), std::move(inputGroupLayouts),
+            resultGroupLayouts, callEvent, instance.getValue().str(),
+            std::move(canonicalRecords), std::move(canonicalAllocationPlan)});
+        if (!callTemplates.back().allocationPlan.empty())
+          sourceDataDependencySources.try_emplace(
+              call.getOperation(), sourceDataDependencySources.size());
+        callTemplateIndices[templateBucket][templateFingerprint].push_back(
+            callTemplates.size() - 1);
+      }
+      if (templateEligible && hasPhysicalTemplateIdentity &&
+          callTemplates.size() % 50 == 0 &&
+          std::getenv("QLX_PROFILE_P2_TO_P3")) {
         llvm::StringMap<int64_t> specializations;
         int64_t maximumSpecializations = 0;
         for (const CanonicalCallTemplate &candidate : callTemplates)
@@ -6801,6 +7067,12 @@ private:
   ModuleOp module;
   MLIRContext *context;
   SymbolTable symbols;
+  // Projection only adds declarations; track their names alongside the
+  // immutable input symbol table to avoid rescanning the growing module.
+  llvm::StringSet<> generatedSymbols;
+  // Factory declarations are read-only throughout projection.
+  SmallVector<qlx::phys::FactoryModelOp> factoryModels =
+      llvm::to_vector(module.getOps<qlx::phys::FactoryModelOp>());
   std::string rootName;
   std::string deviceName;
   std::string graphName;
@@ -6834,6 +7106,8 @@ private:
   DenseMap<Operation *, uint64_t> physicalTemplateFingerprints;
   DenseMap<std::pair<Operation *, Operation *>, bool>
       physicalTemplateEquivalenceCache;
+  bool callTemplateEligibilityClassified = false;
+  DenseSet<Operation *> callTemplateIneligible;
   std::map<StateAliasCacheKey, ArrayAttr> stateAliasCache;
   DenseMap<Operation *, unsigned> sourceDataDependencySources;
   DenseMap<Value, SmallVector<uint64_t, 1>> sourceDataDependencies;

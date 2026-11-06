@@ -2280,7 +2280,6 @@ struct CallOpInterfacePattern : public OpConversionPattern<CALLOP> {
 using CallOpPattern = CallOpInterfacePattern<func::CallOp>;
 using CallIndirectOpPattern = CallOpInterfacePattern<func::CallIndirectOp>;
 using CallVarargOpPattern = CallOpInterfacePattern<cudaq::cc::VarargCallOp>;
-using CallNoInlineOpPattern = CallOpInterfacePattern<cudaq::cc::NoInlineCallOp>;
 using CallCallableOpPattern = CallOpInterfacePattern<cudaq::cc::CallCallableOp>;
 using CallIndirectCallableOpPattern =
     CallOpInterfacePattern<cudaq::cc::CallIndirectCallableOp>;
@@ -2338,10 +2337,9 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
   patterns.insert<AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
                   CallableFuncPattern, CallCallableOpPattern,
                   CallIndirectCallableOpPattern, CallIndirectOpPattern,
-                  CallOpPattern, CallNoInlineOpPattern, CallVarargOpPattern,
-                  CastOpPattern, CondBranchOpPattern, ComputePtrOpPattern,
-                  CreateLambdaPattern, FuncConstantPattern,
-                  FuncSignaturePattern, FuncToPtrPattern,
+                  CallOpPattern, CallVarargOpPattern, CastOpPattern,
+                  CondBranchOpPattern, ComputePtrOpPattern, CreateLambdaPattern,
+                  FuncConstantPattern, FuncSignaturePattern, FuncToPtrPattern,
                   InstantiateCallablePattern, LoadOpPattern, PoisonOpPattern,
                   SelectOpPattern, SequenceDataOpPattern, SequenceInitOpPattern,
                   SequenceSizeOpPattern, StoreOpPattern, UndefOpPattern>(
@@ -2827,20 +2825,19 @@ struct QuakeToQIRAPIPass
         });
     target.addDynamicallyLegalOp<
         func::CallOp, func::CallIndirectOp, func::ReturnOp,
-        cudaq::cc::NoInlineCallOp, cudaq::cc::VarargCallOp,
-        cudaq::cc::CallCallableOp, cudaq::cc::CallIndirectCallableOp,
-        cudaq::cc::CastOp, cudaq::cc::ComputePtrOp, cudaq::cc::FuncToPtrOp,
-        cudaq::cc::StoreOp, cudaq::cc::LoadOp, cudaq::cc::SequenceDataOp,
-        cudaq::cc::SequenceInitOp, cudaq::cc::SequenceSizeOp>(
-        [&](Operation *op) {
-          for (auto opnd : op->getOperands())
-            if (needsTypeConversion(opnd.getType()))
-              return false;
-          for (auto res : op->getResults())
-            if (needsTypeConversion(res.getType()))
-              return false;
-          return true;
-        });
+        cudaq::cc::VarargCallOp, cudaq::cc::CallCallableOp,
+        cudaq::cc::CallIndirectCallableOp, cudaq::cc::CastOp,
+        cudaq::cc::ComputePtrOp, cudaq::cc::FuncToPtrOp, cudaq::cc::StoreOp,
+        cudaq::cc::LoadOp, cudaq::cc::SequenceDataOp, cudaq::cc::SequenceInitOp,
+        cudaq::cc::SequenceSizeOp>([&](Operation *op) {
+      for (auto opnd : op->getOperands())
+        if (needsTypeConversion(opnd.getType()))
+          return false;
+      for (auto res : op->getResults())
+        if (needsTypeConversion(res.getType()))
+          return false;
+      return true;
+    });
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();

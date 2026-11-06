@@ -14,6 +14,10 @@
 #   bash scripts/validate_installation.sh              # Full validation
 #   bash scripts/validate_installation.sh default      # Test specific backend(s)
 #
+# Environment variables to split the validation across several jobs:
+#   CUDAQ_VALIDATION_EXCLUDE="nvidia tensornet"   # Leave out these backends
+#   CUDAQ_VALIDATION_TARGET_TESTS_ONLY=true       # Only run the per-backend C++ examples
+#
 # In Docker container:
 #   Launch the NVIDIA CUDA-Q Docker container,
 #   and run this script from the home directory.
@@ -122,11 +126,12 @@ installed_backends=`\
     echo "default"
     "$target_resolve" --list-targets --include-unavailable "${target_resolve_args[@]}"`
 
-# Run the notebooks on all available simulators other than stim and benchmark targets
+# Run on all simulators except benchmark targets. The Clifford-only simulators
+# in clifford_backends run only the examples in clifford_examples below.
 available_backends=`\
     echo "default"
     "$target_resolve" --list-simulators "${target_resolve_args[@]}" \
-        | grep -vxE "stim|compiler-bench-ftqc-clifford-t"`
+        | grep -vxE "compiler-bench-ftqc-clifford-t"`
 
 missing_backend=false
 if [ $# -eq 0 ]
@@ -147,6 +152,11 @@ fi
 # Temporary solution until we stop reading backends names from configuration file.
 # This avoids duplicate testing during container validation in the publishing task.
 for backend_to_remove in nvidia-fp64 nvidia-mgpu nvidia-mqpu-fp64 nvidia-mqpu-mps nvidia-mqpu
+do
+    requested_backends=$(echo "$requested_backends" | grep -vx "$backend_to_remove")
+done
+
+for backend_to_remove in $CUDAQ_VALIDATION_EXCLUDE
 do
     requested_backends=$(echo "$requested_backends" | grep -vx "$backend_to_remove")
 done
@@ -175,8 +185,10 @@ echo "============================="
 # GMP and MPFR are redistributed with CUDA-Q under the LGPL v3; verify the
 # properties the redistribution relies on (license texts shipped, dynamic
 # linking only, libraries replaceable).
-let "samples+=1"
-if [ -f "$this_file_dir/validate_license_compliance.sh" ]; then
+if [ "$CUDAQ_VALIDATION_TARGET_TESTS_ONLY" == "true" ]; then
+    echo "Skipping license compliance: only per-backend tests were requested."
+elif [ -f "$this_file_dir/validate_license_compliance.sh" ]; then
+    let "samples+=1"
     if bash "$this_file_dir/validate_license_compliance.sh"; then
         let "passed+=1"
     else
@@ -184,6 +196,7 @@ if [ -f "$this_file_dir/validate_license_compliance.sh" ]; then
     fi
 else
     echo -e "\e[01;31mError: validate_license_compliance.sh not found in $this_file_dir.\e[0m" >&2
+    let "samples+=1"
     let "failed+=1"
 fi
 
@@ -196,14 +209,44 @@ tensornet_backend_skipped_tests=(\
     examples/cpp/other/builder/builder.cpp \
     applications/cpp/amplitude_estimation.cpp)
 
+# Examples the Clifford-only simulators can run: main() executes only Clifford
+# kernels and calls neither get_state nor observe.
+clifford_backends="stim custabilizer"
+clifford_examples=(\
+    examples/cpp/basics/bernstein_vazirani.cpp \
+    examples/cpp/basics/mid_circuit_measurement.cpp \
+    examples/cpp/basics/static_kernel.cpp \
+    examples/cpp/building_kernels.cpp \
+    examples/cpp/executing_kernels_run.cpp \
+    examples/cpp/executing_kernels_run_custom.cpp \
+    examples/cpp/executing_kernels_sample.cpp \
+    examples/cpp/executing_kernels_sample_async.cpp \
+    examples/cpp/measuring_kernels.cpp \
+    examples/cpp/sample_to_run_migration.cpp)
+
 echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
+tmpFile=$(mktemp)
+
+# A renamed or deleted entry must fail rather than silently test less.
+for t in $clifford_backends; do
+    echo $requested_backends | grep -w -q $t || continue
+    for ex in "${clifford_examples[@]}"; do
+        if [ ! -f "$ex" ]; then
+            echo -e "\e[01;31mError: Clifford example $ex not found.\e[0m" >&2
+            echo ":x: $ex: Listed in clifford_examples but not found." >> "${tmpFile}_$(echo $t | tr - _)"
+            let "samples+=1"
+            let "failed+=1"
+        fi
+    done
+    break
+done
+
 # Plugin sources are libraries or test infrastructure rather than standalone
 # examples; each plugin validates them through its dedicated test target.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
-tmpFile=$(mktemp)
 for ex in `find examples/ applications/ targets/ -name '*.cpp' \
     -not -path '*/mpi/*' -not -path '*/plugins/*' | sort`;
 do
@@ -247,6 +290,11 @@ do
             let "skipped+=1"
             echo "Skipping $t target."
             echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
+        elif [[ " $clifford_backends " == *" $t "* ]] && [[ ! " ${clifford_examples[*]} " =~ " $ex " ]]; then
+            let "skipped+=1"
+            echo "Skipping $t target."
+            echo ":white_flag: $filename: Not in clifford_examples. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
             continue
         # Skip long-running tests, not suitable for cutensornet-based backends.
         elif [[ "$t" == "tensornet" || "$t" == "tensornet-mps" || "$t" == "nvidia-mqpu-mps" ]] && [[ " ${tensornet_backend_skipped_tests[*]} " =~ " $ex " ]]; then
@@ -318,6 +366,9 @@ do
 done
 
 # Run MPI C++ examples (requires MPI and at least 4 GPUs)
+if [ "$CUDAQ_VALIDATION_TARGET_TESTS_ONLY" == "true" ]; then
+    echo "Only the per-backend C++ examples were requested; skipping the other tests."
+else
 if ! $mpi_available; then
     echo "Skipping MPI C++ examples: MPI not available."
 else
@@ -413,7 +464,7 @@ dynamics_backend_skipped_examples=(\
     examples/python/dynamics/silicon_spin_qubit.py)
 
 # Note divisive_clustering_src is not currently in the Published container under
-# the "examples" folder, but the Publishing workflow moves all examples from
+# the "examples" folder, but the Validation workflow moves all examples from
 # docs/sphinx/examples, docs/sphinx/targets into the examples directory for the
 # purposes of the container validation. The divisive_clustering_src Python
 # files are used by the Divisive_clustering.ipynb notebook, so they are tested
@@ -621,6 +672,8 @@ then
         fi
     done
 fi
+
+fi # CUDAQ_VALIDATION_TARGET_TESTS_ONLY
 
 if [ -f "$GITHUB_STEP_SUMMARY" ]; 
 then

@@ -8,17 +8,17 @@
 
 # RUN: not %target-catalog-driver parse %s 2>&1 | FileCheck %s
 
-# A `compile-target` must currently declare exactly one stage.
+# An empty `stages` list is accepted, but the key itself remains required:
+# omitting it is a schema error.
 
-version: 2
+version: 2-alpha
 name: lit-v2-empty-stages
-description: "Empty compile-target stages rejected"
+description: "Missing compile-target stages key rejected"
 config:
   library-mode: false
 
 compile-target:
-  stages: []
   codegen: nop
 
 # CHECK: error: Failed to parse target configuration YAML
-# CHECK: 'compile-target.stages' must currently contain exactly one stage.
+# CHECK: Field named 'stages' not found

@@ -195,7 +195,7 @@ def test_live_module_conversion_rolls_back_when_owner_closure_fails():
     module = mlir_ir.Module.parse(ENTRY_OWNER_LEAK, mlir_ir.Context())
     before = str(module)
 
-    with pytest.raises(RuntimeError, match="leaves 1 live quantum owner"):
+    with pytest.raises(RuntimeError, match="leaves 1 live quantum value"):
         cql.compiler.convert_quake_to_p0(module)
 
     assert str(module) == before

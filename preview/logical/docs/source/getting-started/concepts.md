@@ -15,7 +15,7 @@ For a runnable introduction to this workflow, see the
 A **logical program** specifies operations on logical qubits independently of
 a QEC code or device. Logical qubits represent the computation's quantum
 information; a QEC implementation protects it using physical qubits.
-Operations include unitary **actions**, such as Hadamard and controlled-X,
+Logical **actions** include unitary gates, such as Hadamard and controlled-X,
 and **instruments**, such as preparation and measurement.
 Measurements produce classical results; the Bell program returns two Boolean
 Z-basis outcomes. You can author the workload as a CUDA-Q kernel or directly
@@ -54,7 +54,7 @@ Compilation adds information through four **stages**:
 | Stage | Information added |
 | --- | --- |
 | **P0: logical program** | Logical operations, values, and measurement results. |
-| **P1: placement** | Assignments of logical values to machine regions and slots. |
+| **P1: logical placement** | Assignments of logical values to logical machine regions and slots. |
 | **P2: QEC realization** | Selected codes, encodings, and operation implementations. |
 | **P3: physical events** | Physical allocations, native operations, and dependencies; scheduling adds event times. |
 
@@ -118,12 +118,12 @@ An **encoding** defines the interface to a code's logical qubits.
 encoded block; `cql.patch[Steane]` uses the default encoding, and `block.data`
 selects its data qubits.
 
-An **objective** states ideal logical behavior. A **gadget** implements that
-behavior on encoded patches, with `implements=` identifying the objective:
+An **action** states ideal logical behavior. A **gadget** implements that
+behavior on encoded patches, with `implements=` identifying the action:
 
 ```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
 :language: python
-:start-at: @cql.gadget(implements=cql.standard.h)
+:start-at: "@cql.gadget(implements=cql.standard.h)"
 :end-at:     return cql.h(block.data)
 ```
 
@@ -131,6 +131,21 @@ Here, `cql.standard.h` is the ideal logical Hadamard. The body applies Hadamard
 to each Steane data qubit, a **transversal** implementation. Construction and
 compilation check code algebra and gadget boundaries; logical-action
 verification depends on the supported realization class.
+
+A **gadget contract** declares detector relations, logical observables, and
+output-syndrome assignments using the realization's measurement records and
+encoded boundaries. `cql.gadgets.verify_gadget` checks detector contracts and
+supported Clifford unitary actions, single-logical signed X/Z preparations,
+and destructive or preserving X/Z measurements. A default call returns only
+when both checks pass; unsupported objectives raise with an inspection receipt. See
+[Gadgets and verification](../use-cases/gadgets-and-verification.md).
+
+`cql.analysis.edem_from_gadget` derives an extended detector error model from a
+gadget, its declared contract, and explicit faults or a standard noise policy.
+Library gadgets provide default contracts; custom gadgets can declare a
+default or pass `contract=`. EDEMs retain encoded boundaries for composition;
+a closed chain can be projected to a DEM. See
+[Derive an error model from gadgets](../use-cases/gadget-edems.md).
 
 A **QEC architecture** assembles an encoding and its available implementations.
 `QECArchitecture.link_roots` supplies the Bell program's preparation, gate,
@@ -146,7 +161,7 @@ interfaces and verification details.
 A **logical machine** describes where logical state can reside and which
 operations are supported. A **region** is a pool of logical capacity with
 capabilities such as computation or measurement. A **slot** holds one logical
-qubit; the Bell device's compute region has two slots.
+qubit. For example, the Bell device's compute region has two slots.
 
 A **physical machine** describes resources, connectivity, native operations,
 and timing assumptions. A **carrier** is a physical qubit resource. Native
@@ -191,7 +206,7 @@ quantities to report and which inputs are required:
 
 | Tier | Required input | Reports |
 | --- | --- | --- |
-| **LOGICAL** | P0 program | Logical-qubit peak and action/instrument counts. |
+| LOGICAL | P0 program | Logical-qubit peak and action/instrument counts. |
 | **STATIC** | Selected P2 realization | Encoded-patch peak and gadget/operation counts. |
 | **ANALYTICAL** | Selected P2 realization and physical-model assumptions | Modeled physical cost, error, acceptance, and runtime. |
 | **SCHEDULE** | Scheduled P3 graph | Physical resources, events, runtime, and utilization. |
@@ -222,6 +237,14 @@ CUDA-Q kernel through the configured stages. The result's **annotations**
 contain per-tier resource estimates. Typed views such as `LogicalEstimate`
 and `FabricCounts` expose logical and static fields; the walkthrough reads
 physical schedule results from the `SCHEDULE` annotation.
+
+Physical builds also run on CUDA-Q simulators. When the program returns
+Booleans, `cudaq.run(build)` executes its P3 build on a simulator target, such
+as `stim` or `nvidia`. Each shot returns a `bool` for one result or a
+`list[bool]` for several, the same types `cudaq.run` returns for a kernel.
+Unsupported P3 forms raise an error.
+[Execution boundaries](../reference/capabilities.md#execution-and-documented-boundaries)
+lists the main ones.
 
 Use kernels with CUDA-Q's libraries and infrastructure, or author directly
 with `cudaq.logical` when integrating another frontend. Both routes use the

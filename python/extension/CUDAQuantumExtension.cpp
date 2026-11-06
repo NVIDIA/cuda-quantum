@@ -55,6 +55,7 @@
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
+#include <algorithm>
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
@@ -62,6 +63,7 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
+#include <type_traits>
 
 using namespace cudaq;
 
@@ -101,6 +103,37 @@ static void reexportBindings(nanobind::module_ source,
   }
 }
 
+// `cudaq.mpi.all_gather` has an `int` and a `float` overload. On its own rank,
+// an empty list matches the first one (`float`), and a rank with integers
+// picks `int` while a rank with floats picks `float`. So that every rank
+// gathers the same MPI datatype, the ranks first agree on the element type:
+// `float` if any rank has floats, else `int` if any rank has integers.
+template <typename T>
+static nanobind::object pyAllGather(std::size_t globalVectorSize,
+                                    const std::vector<T> &local) {
+  static_assert(std::is_same_v<T, int> || std::is_same_v<T, double>,
+                "pyAllGather supports only int and double elements");
+  // Element kind of each rank: 0 = empty, 1 = int, 2 = float.
+  constexpr int ownKind = std::is_same_v<T, int> ? 1 : 2;
+  std::vector<int> kinds(mpi::num_ranks());
+  mpi::all_gather(kinds, std::vector<int>{local.empty() ? 0 : ownKind});
+  if (*std::max_element(kinds.begin(), kinds.end()) == 1) {
+    // Every non-empty rank has integers. With `T = double`, `local` is empty.
+    std::vector<int> global(globalVectorSize);
+    if constexpr (std::is_same_v<T, int>)
+      mpi::all_gather(global, local);
+    else
+      mpi::all_gather(global, std::vector<int>{});
+    return nanobind::cast(std::move(global));
+  }
+  std::vector<double> global(globalVectorSize);
+  if constexpr (std::is_same_v<T, double>)
+    mpi::all_gather(global, local);
+  else
+    mpi::all_gather(global, std::vector<double>(local.begin(), local.end()));
+  return nanobind::cast(std::move(global));
+}
+
 NB_MODULE(_quakeDialects, m) {
   cudaq_internal::compiler::installPythonMLIRHooks();
   cudaq_internal::compiler::initializeMLIR();
@@ -111,6 +144,7 @@ NB_MODULE(_quakeDialects, m) {
   auto dialects =
       nanobind::module_::import_("cudaq.mlir._mlir_libs._quakeDialectsCore");
   auto backends = nanobind::module_::import_("cudaq.mlir._mlir_libs._backends");
+  nanobind::module_::import_("cudaq.core._target");
 
   auto cudaqRuntime = m.def_submodule("cudaq_runtime");
   cudaqRuntime.def(
@@ -208,23 +242,23 @@ NB_MODULE(_quakeDialects, m) {
   mpiSubmodule.def(
       "all_gather",
       [](std::size_t globalVectorSize, std::vector<double> &local) {
-        std::vector<double> global(globalVectorSize);
-        mpi::all_gather(global, local);
-        return global;
+        return pyAllGather(globalVectorSize, local);
       },
       "Gather and scatter the `local` list of floating-point numbers, "
       "returning a concatenation of all "
-      "lists across all ranks. The total global list size must be provided.");
+      "lists across all ranks. The total global list size must be provided. "
+      "The lists may differ in size, and a list may be empty. If any rank "
+      "has floating-point numbers, the result holds floating-point numbers.");
   mpiSubmodule.def(
       "all_gather",
       [](std::size_t globalVectorSize, std::vector<int> &local) {
-        std::vector<int> global(globalVectorSize);
-        mpi::all_gather(global, local);
-        return global;
+        return pyAllGather(globalVectorSize, local);
       },
       "Gather and scatter the `local` list of integers, returning a "
       "concatenation of all "
-      "lists across all ranks. The total global list size must be provided.");
+      "lists across all ranks. The total global list size must be provided. "
+      "The lists may differ in size, and a list may be empty. If any rank "
+      "has floating-point numbers, the result holds floating-point numbers.");
   mpiSubmodule.def(
       "broadcast",
       [](std::vector<double> &data, std::size_t bcastSize, int rootRank) {

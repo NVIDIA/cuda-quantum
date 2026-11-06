@@ -19,6 +19,16 @@ class TargetConfig;
 
 namespace cudaq {
 
+/// What a target does with the noise a kernel applies with `apply_noise`.
+enum class NoiseSupport {
+  /// Prep erases the noise, and the kernel runs without it.
+  erase,
+  /// Prep keeps the noise for the target to apply.
+  supported,
+  /// Prep fails on a kernel that applies noise.
+  unsupported,
+};
+
 /// Target properties used to define the compilation pipeline.
 struct CompileTarget {
   /// Whether to recompile the kernel in the presence of an AOT-compiled module.
@@ -72,6 +82,16 @@ struct CompileTarget {
   /// Whether to fully specialize the kernel.
   bool fullySpecialize = true;
 
+  /// Whether prep and deploy leave every loop rolled, so that the stages decide
+  /// which loops to unroll.
+  bool preserveLoops = false;
+
+  /// What prep does with `quake.apply_noise`.
+  NoiseSupport noiseSupport = NoiseSupport::erase;
+
+  /// Whether prep erases the QEC detector and observable operations.
+  bool eraseQEC = true;
+
   /// Set the `changeSemantics` flag for the argument synthesis pass.
   bool argumentSynthChangeSemantics = true;
 
@@ -84,18 +104,17 @@ struct CompileTarget {
   /// to emulate its behavior by inserting the corresponding kernel calls.
   bool replaceStateWithKernel = false;
 
-  /// Access the custom pipeline lowering of the single compilation stage.
-  ///
-  /// Prints an error and aborts the process if there isn't exactly one
-  /// stage or its lowering is not a custom pipeline.
-  // TODO: Temporary utility function used while there is only one
-  // custom-pipeline stage, to be replaced with more general stage handling
-  const config::CustomPipelineLowering &getCustomPipelineLowering() const;
-  config::CustomPipelineLowering &getCustomPipelineLowering();
+  /// Whether this compile target must be rebuilt from the QPU instance when
+  /// the random seed changes.
+  // TODO: ideally compile targets would be fixed and this could be removed.
+  bool resetOnRandomSeedSet = false;
 
   /// If the entire compilation is given by a single custom pipeline, return a
   /// pointer to it. Otherwise return `nullptr`.
   const std::string *getOverridePassPipeline() const;
+
+  /// Whether any of the compilation stages have a non-empty lowering pipeline.
+  bool hasPassPipeline() const;
 
   /// Construct a CompileTarget from static and runtime backend configurations.
   static CompileTarget createFromConfig(
@@ -109,14 +128,14 @@ struct CompileTarget {
 } // namespace cudaq
 
 template <>
-struct std::hash<cudaq::config::UncheckedProfile> {
-  std::size_t
-  operator()(const cudaq::config::UncheckedProfile &profile) const noexcept;
-};
-template <>
 struct std::hash<cudaq::config::CustomPipelineLowering> {
   std::size_t operator()(
       const cudaq::config::CustomPipelineLowering &lowering) const noexcept;
+};
+template <>
+struct std::hash<cudaq::config::InferredLowering> {
+  std::size_t
+  operator()(const cudaq::config::InferredLowering &lowering) const noexcept;
 };
 template <>
 struct std::hash<cudaq::config::Codegen> {

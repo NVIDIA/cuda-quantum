@@ -13,7 +13,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from cudaq.core.backends import CompileTarget, CustomTarget
+from cudaq.core._experimental import (CompilationStage, CompileTarget,
+                                      CostModel, CustomTarget, LoopUnrolling,
+                                      NoiseSupport, QuakeUnmappedProfile)
 from cudaq.util import trace
 
 from ..compiler.saved_builds import BUILDS_ANNOTATION, BuildSaver
@@ -76,10 +78,17 @@ class Backend:
     def compile(self, build, **_options):
         return build
 
-    def _traced_compile(self, build, **options):
+    def _preflight(self, build):
+        """Reject builds that later stages cannot handle."""
+
+    def _traced_compile(self, build, *, _preflight_checked=False, **options):
         if self._trace_tag is None:
+            if not _preflight_checked:
+                self._preflight(build)
             return self.compile(build, **options)
         with trace.span(f"cudaq.logical.target.{self._trace_tag}"):
+            if not _preflight_checked:
+                self._preflight(build)
             return self.compile(build, **options)
 
     def _launch(self, build, operation, **kwargs):
@@ -133,8 +142,13 @@ class Backend:
         compile_options.setdefault("arguments", args)
 
         if tier is None:
+            # Fail before counting a large program we cannot compile.
+            self._preflight(build)
             own = _stage_estimate(build, **estimate_options)
-            prepared = self._compile_stage(build, _saver, **compile_options)
+            prepared = self._compile_stage(build,
+                                           _saver,
+                                           _preflight_checked=True,
+                                           **compile_options)
             if self.next_backend is None:
                 return own
             downstream = self.next_backend._estimate(prepared,
@@ -244,7 +258,13 @@ class ProgramBackend(Backend):
                                       produced_stage="p0"),
                          next_backend=next_backend)
 
-    def estimate(self, build, args=(), *, tier=None, **estimate_options):
+    def estimate(self,
+                 build,
+                 args=(),
+                 *,
+                 tier=None,
+                 save_temps=None,
+                 **estimate_options):
         options = {**self.estimate_options, **estimate_options}
         # An explicit tier overrides the target's.
         target_tier = options.pop("tier", None)
@@ -252,6 +272,7 @@ class ProgramBackend(Backend):
             build,
             args,
             tier=tier if tier is not None else target_tier,
+            save_temps=save_temps,
             **options,
         )
 
@@ -423,14 +444,25 @@ def _merge_estimates(own, downstream):
 
 
 def _cudaq_estimate_result(estimates, builds=None):
-    """Wrap estimates as an ``EstimateResult``; ``builds`` locates saved builds."""
+    """Wrap estimates as an ``EstimateResult``.
 
-    from cudaq.core.backends import EstimateResult
+    ``resources`` reports the logical program (only when a LOGICAL estimate is
+    available); every tier, including LOGICAL, is also kept in ``annotations``.
+    """
+
+    from cudaq.core.results import EstimateResult
+    from .. import estimate
+    from ..estimate.logical import logical_instruction_counts
 
     annotations = {name: value.to_dict() for name, value in estimates.items()}
     if builds:
         annotations[BUILDS_ANNOTATION] = builds
-    return EstimateResult(annotations=annotations)
+    logical = estimates.get(estimate.Tier.LOGICAL.name)
+    if logical is None:
+        return EstimateResult(annotations=annotations)
+    return EstimateResult(annotations=annotations,
+                          instructions=logical_instruction_counts(logical),
+                          num_qubits=logical.logical_qubits_peak)
 
 
 class LogicalMachineBackend(Backend):
@@ -443,6 +475,15 @@ class LogicalMachineBackend(Backend):
                                       produced_stage="p1"),
                          next_backend=next_backend)
         self.architecture = architecture
+
+    def _preflight(self, build):
+        # Only when continuing to QEC, check for missing gadgets early.
+        if (_profile_rank(build) == 0 and
+                isinstance(self.next_backend, QECMachineBackend)):
+            from ..compiler.qec_lower import _check_p0_qec_coverage
+
+            with trace.span("cudaq.logical.preflight.p2"):
+                _check_p0_qec_coverage(build, self.next_backend.machine)
 
     def compile(self, build, **options):
         if _profile_rank(build) >= 1:
@@ -542,15 +583,38 @@ class Target(CustomTarget):
 
     @staticmethod
     def _new_compile_target():
-        """Create the CUDA-Q compile configuration owned by one target."""
+        """Create the CUDA-Q compile target owned by one Logical target.
 
-        from ..compiler.quake import CUDAQ_TARGET_PREPARATION_PIPELINE
+        CUDA-Q compiles each kernel through one inferred ``quake-unmapped``
+        stage to the Quake that :func:`import_quake` accepts. The target
+        preserves loops through prep, and the stage unrolls only loops whose
+        index is used, because the import folds the rest. The stage leaves
+        rotation synthesis to Logical. A kernel that applies noise fails
+        to compile, and prep keeps QEC operations so that the import rejects
+        them, instead of Logical estimating the kernel without either.
 
-        target = CompileTarget()
+        TODO: Expose the settings a user may want to change, such as the unroll
+        limit and the approximation tolerance, which would let CUDA-Q
+        synthesize rotations before import.
+        """
+
+        from ..compiler.quake import IMPORT_BASIS_GATES
+
+        profile = QuakeUnmappedProfile(
+            basis_gates=list(IMPORT_BASIS_GATES),
+            approximation_tolerance=0.0,
+            cost_model=CostModel.t_count,
+            unroll_loops=LoopUnrolling.index_use,
+            # Example 05's RSA-4096 kernel needs more than 4096 iterations.
+            max_unroll_iterations=2_048_000)
+        stage = CompilationStage(profile)
+        target = CompileTarget(stages=[stage])
         target.fully_specialize = True
+        target.preserve_loops = True
+        target.noise_support = NoiseSupport.unsupported
+        target.erase_qec = False
         target.support_resource_counts = False
         target.support_conditionals_on_measure_results = False
-        target.lowering = CUDAQ_TARGET_PREPARATION_PIPELINE
         return target
 
     @classmethod
@@ -687,9 +751,16 @@ class Target(CustomTarget):
         return target
 
     @classmethod
-    def from_device(cls, name, device, *, clifford_t_precision=None, **kwargs):
+    def from_device(cls,
+                    name,
+                    device,
+                    *,
+                    runtime_backend=None,
+                    clifford_t_precision=None,
+                    **kwargs):
         """Create a target that lowers through the device's configured layers.
 
+        ``runtime_backend`` defaults to ``estimator`` when omitted or ``None``.
         A non-``None`` ``clifford_t_precision`` inserts Clifford+T synthesis
         before device lowering. ``None`` leaves the synthesis layer out.
         """
@@ -699,9 +770,12 @@ class Target(CustomTarget):
         if not isinstance(device, Device):
             raise TypeError(
                 "Target device must be a cudaq.logical.devices.Device")
+        if runtime_backend is None:
+            runtime_backend = estimator
         return cls._from_stack(name,
                                architecture=device.logical,
                                device=device,
+                               runtime_backend=runtime_backend,
                                clifford_t_precision=clifford_t_precision,
                                **kwargs)
 
@@ -710,17 +784,22 @@ class Target(CustomTarget):
                           name,
                           architecture,
                           *,
+                          runtime_backend=None,
                           clifford_t_precision=None,
                           **kwargs):
         """Create a target that lowers through a logical architecture.
 
+        ``runtime_backend`` defaults to ``estimator`` when omitted or ``None``.
         A non-``None`` ``clifford_t_precision`` inserts Clifford+T synthesis
         before architecture lowering. ``None`` leaves the synthesis layer out.
         """
 
+        if runtime_backend is None:
+            runtime_backend = estimator
         return cls._from_stack(name,
                                architecture=architecture,
                                device=None,
+                               runtime_backend=runtime_backend,
                                clifford_t_precision=clifford_t_precision,
                                **kwargs)
 
@@ -1046,11 +1125,11 @@ def surface_target(*,
                    next_backend=None):
     """Build a surface-code target, optionally legalizing to Clifford+T."""
 
-    from . import recipes
+    from ..architectures import surface
 
     return qec_target(
         "surface",
-        architecture=recipes.surface_architecture(distance),
+        architecture=surface.architecture(distance),
         logical_capacity=logical_capacity,
         next_backend=next_backend,
         clifford_t_precision=clifford_t_precision,
@@ -1075,9 +1154,9 @@ def surface_physical_target(*,
 
     from .. import devices
     from ..architecture import physical_actions, physical_instruments
-    from . import recipes
+    from ..architectures import surface
 
-    architecture = recipes.surface_architecture(distance)
+    architecture = surface.architecture(distance)
     builder = devices.DeviceBuilder("surfacePhysicalDevice", source_module=None)
     compute = builder.logical.add_compute(capacity=logical_capacity)
     encoded = builder.qec.bind(compute, architecture=architecture)
@@ -1098,7 +1177,6 @@ def surface_physical_target(*,
     return Target.from_device(
         "surface_physical",
         builder.build(),
-        runtime_backend=estimator,
         estimate_options={"failure_budget": failure_budget},
         clifford_t_precision=clifford_t_precision,
     )
@@ -1107,11 +1185,11 @@ def surface_physical_target(*,
 def steane_target(*, logical_capacity=3, next_backend=None):
     """Build a Steane-code QEC target with an estimation-only terminal."""
 
-    from . import recipes
+    from ..architectures import steane
 
     return qec_target(
         "steane",
-        architecture=recipes.steane_architecture(),
+        architecture=steane.architecture(),
         logical_capacity=logical_capacity,
         next_backend=next_backend,
     )

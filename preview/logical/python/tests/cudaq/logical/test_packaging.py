@@ -57,6 +57,23 @@ def test_base_dependencies_exclude_the_cudaq_runtime():
     assert "cudaq-core" in dependencies
 
 
+def test_edem_is_a_required_build_and_runtime_dependency():
+    from packaging.requirements import Requirement
+
+    configuration = _load_pyproject()
+    runtime = {
+        requirement.name: requirement for requirement in map(
+            Requirement, configuration["project"]["dependencies"])
+    }
+    build = {
+        requirement.name: requirement for requirement in map(
+            Requirement, configuration["build-system"]["requires"])
+    }
+    assert runtime["cudaq-edem"].specifier == build["cudaq-edem"].specifier
+    assert "0.1.0" in runtime["cudaq-edem"].specifier
+    assert "0.2.0" not in runtime["cudaq-edem"].specifier
+
+
 def test_runtime_extras_map_to_the_cudaq_runtime_wheels():
     extras = _load_pyproject()["project"]["optional-dependencies"]
     assert extras["cu12"] == ["cuda-quantum-cu12"]
@@ -141,7 +158,8 @@ sys.meta_path.insert(0, CoreOnly())
 import cudaq.logical as logical
 from dataclasses import fields
 from typing import get_type_hints
-from cudaq.core.backends import CompileTarget, CustomTarget, EstimateResult, RuntimeEndpoint
+from cudaq.core._experimental import CompileTarget, CustomTarget, RuntimeEndpoint
+from cudaq.core.results import EstimateResult
 from cudaq.util import trace
 
 expected = {"runtime_endpoint": RuntimeEndpoint, "compile_target": CompileTarget}

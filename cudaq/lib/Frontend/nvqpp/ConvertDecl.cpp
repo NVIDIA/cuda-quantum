@@ -92,10 +92,41 @@ llvm::StringRef QuakeBridgeVisitor::getSymbolName(const clang::NamedDecl *x) {
   return x->getName();
 }
 
+llvm::SmallVector<const clang::FieldDecl *>
+QuakeBridgeVisitor::getKernelClassMembers(const clang::FunctionDecl *x) {
+  llvm::SmallVector<const clang::FieldDecl *> members;
+  auto *method = dyn_cast<clang::CXXMethodDecl>(x);
+  if (!method || method->isStatic() || method->getParent()->isLambda() ||
+      method->getOverloadedOperator() != clang::OO_Call ||
+      !cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(method))
+    return members;
+  for (auto *field : method->getParent()->fields())
+    members.push_back(field);
+  return members;
+}
+
+FunctionType
+QuakeBridgeVisitor::addMemberArguments(const clang::FunctionDecl *x,
+                                       FunctionType funcTy) {
+  auto members = getKernelClassMembers(x);
+  if (members.empty())
+    return funcTy;
+  SmallVector<Type> inputs;
+  for (auto *field : members) {
+    auto ty = convertType(field->getType());
+    if (!ty)
+      return {};
+    inputs.push_back(*ty);
+  }
+  inputs.append(funcTy.getInputs().begin(), funcTy.getInputs().end());
+  return FunctionType::get(funcTy.getContext(), inputs, funcTy.getResults());
+}
+
 void QuakeBridgeVisitor::addArgumentSymbols(
-    Block *entryBlock, ArrayRef<clang::ParmVarDecl *> parameters) {
+    Block *entryBlock, ArrayRef<clang::ParmVarDecl *> parameters,
+    unsigned firstArg) {
   for (auto arg : llvm::enumerate(parameters)) {
-    auto index = arg.index();
+    auto index = arg.index() + firstArg;
     auto *argVal = arg.value();
     auto name = getSymbolName(argVal);
     if (isa<OpaqueType>(entryBlock->getArgument(index).getType())) {
@@ -127,7 +158,21 @@ void QuakeBridgeVisitor::createEntryBlock(func::FuncOp func,
     return;
   auto *entryBlock = func.addEntryBlock();
   builder.setInsertionPointToEnd(entryBlock);
-  addArgumentSymbols(entryBlock, x->parameters());
+  // The data members of a kernel class are the leading arguments. As for any
+  // pass-by-value argument, each is saved in a stack slot, and the references
+  // to the member in the body of the kernel are the references to the slot.
+  memberSlots.clear();
+  auto members = getKernelClassMembers(x);
+  memberClass =
+      members.empty() ? nullptr : cast<clang::CXXMethodDecl>(x)->getParent();
+  for (auto [i, field] : llvm::enumerate(members)) {
+    auto loc = toLocation(field);
+    Value arg = entryBlock->getArgument(i);
+    auto stackSlot = cc::AllocaOp::create(builder, loc, arg.getType());
+    cc::StoreOp::create(builder, loc, arg, stackSlot);
+    memberSlots[field] = stackSlot;
+  }
+  addArgumentSymbols(entryBlock, x->parameters(), members.size());
 }
 
 std::pair<func::FuncOp, bool>
@@ -198,7 +243,9 @@ QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::FunctionDecl *x) {
 
   resetCurrentFunctionName();
   // At present, the bridge only lowers kernels.
-  auto funcTy = cast<FunctionType>(*funcType);
+  auto funcTy = addMemberArguments(x, cast<FunctionType>(*funcType));
+  if (!funcTy)
+    return fail();
   auto [func, alreadyDefined] = getOrAddFunc(loc, funcName, funcTy);
   if (alreadyDefined)
     return std::nullopt;

@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Dialect/Cflow/IR/CflowOps.h"
 #include "qlx/Dialect/Event/IR/EventOps.h"
@@ -1023,7 +1023,7 @@ private:
     if (result) {
       auto state = operationResultStates.find(result.getOwner());
       if (state != operationResultStates.end())
-        return {state->second.ready, state->second.producer};
+        return {state->second.ready, state->second.producer, {}, {}};
       return {};
     }
     ScheduledResourceState state;

@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
 
 class Stage(str, Enum):
@@ -69,7 +68,7 @@ _legacy_products = {
 
 
 def stage_and_facets(
-    value: str | Stage,) -> tuple[Optional[Stage], tuple[Facet, ...]]:
+    value: str | Stage,) -> tuple[Stage | None, tuple[Facet, ...]]:
     """Normalize an implementation product spelling to stage plus facets."""
 
     if isinstance(value, Stage):

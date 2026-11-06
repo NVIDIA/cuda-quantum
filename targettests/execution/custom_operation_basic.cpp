@@ -15,7 +15,7 @@
 // RUN: if %infleqtion_avail; then nvq++ --target infleqtion --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
-// RUN: if %quantum_machines_avail; then nvq++ --target quantum_machines --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %quantum_machines_avail; then nvq++ --target quantum_machines --quantum_machines-qubit_mapping_mode backend --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>

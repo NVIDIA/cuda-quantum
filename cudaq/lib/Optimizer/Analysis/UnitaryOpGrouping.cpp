@@ -32,7 +32,7 @@ enum class OrderingMode {
   /// Preserve the order in which segment operations appear in the block.
   Textual,
 
-  /// Topologically order scalar-wire operations using intra-segment SSA
+  /// Topologically order wire operations using intra-segment SSA
   /// def-use and known-logical-qubit dependencies. Among dependency-ready
   /// operations, prefer a unitary over a measurement/reset delimiter; within
   /// either class, prefer original segment order.
@@ -117,13 +117,13 @@ static void addNode(SegmentDependencyGraph &sdg, Operation *op,
   sdg.predecessorCountByOp.try_emplace(op, 0);
 }
 
-/// Use wire-dataflow ordering only when every segment operation has scalar wire
+/// Use wire-dataflow ordering only when every segment operation has wire
 /// flow and every quantum input has a known logical identity; otherwise use
 /// textual order.
 static OrderingMode determineOrderingMode(QuantumOpSegment &segment,
                                           QubitIdentityAnalysis &qia) {
   for (auto &op : segment.opsInBlockOrder) {
-    std::optional<ScalarWireFlow> flow = getScalarWireFlow(op);
+    std::optional<WireFlow> flow = getWireFlow(op);
     if (!flow)
       return OrderingMode::Textual;
 
@@ -173,8 +173,8 @@ static void addQubitIdentityEdges(SegmentDependencyGraph &sdg,
   mlir::DenseMap<QubitIdentityAnalysis::QubitId, Operation *>
       lastTouchByQubitId;
   for (Operation *consumer : sdg.nodesInBlockOrder) {
-    std::optional<ScalarWireFlow> flow = getScalarWireFlow(consumer);
-    assert(flow && "requires valid scalar wire data flow");
+    std::optional<WireFlow> flow = getWireFlow(consumer);
+    assert(flow && "requires valid wire data flow");
 
     // Deduplicate identities within one operation to avoid a self-edge.
     llvm::SmallDenseSet<QubitIdentityAnalysis::QubitId, 4> touchedByThisOp;

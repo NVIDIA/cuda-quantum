@@ -16,9 +16,13 @@
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <cstdlib>
 #include <exception>
+#include <mutex>
 #include <string>
+#include <unordered_set>
 
 using namespace cudaq_internal::compiler;
 
@@ -32,6 +36,52 @@ extern "C" void cudaq_add_qpu_node(void *node_ptr) {
 }
 
 namespace cudaq {
+
+namespace detail {
+/// Track live platforms so their QPUs can be released before plugin shutdown.
+class PlatformRegistry {
+public:
+  void add(quantum_platform &platform) {
+    std::lock_guard lock(mutex);
+    platforms.insert(&platform);
+  }
+
+  void remove(quantum_platform &platform) {
+    std::lock_guard lock(mutex);
+    platforms.erase(&platform);
+  }
+
+  void clearQPUs() {
+    std::lock_guard lock(mutex);
+    for (auto *platform : platforms)
+      platform->clearQPUs();
+  }
+
+private:
+  std::mutex mutex;
+  std::unordered_set<quantum_platform *> platforms;
+};
+} // namespace detail
+
+namespace {
+detail::PlatformRegistry &platformRegistry() {
+  // Keep the registry alive through static destruction.
+  static auto *registry = new detail::PlatformRegistry;
+  return *registry;
+}
+} // namespace
+
+quantum_platform::quantum_platform() { platformRegistry().add(*this); }
+
+quantum_platform::~quantum_platform() { platformRegistry().remove(*this); }
+
+void detail::registerPlatformCleanup() {
+  if (std::atexit([] {
+        detail::shutdownExecutionQueues();
+        platformRegistry().clearQPUs();
+      }) != 0)
+    throw std::runtime_error("Unable to register platform cleanup.");
+}
 
 // These functions are defined elsewhere, but
 // we are going to use them here.
@@ -120,7 +170,6 @@ cudaq::CompileTarget createDefaultCompileTarget(const RuntimeTarget *rt) {
 
   ct.supportDeviceCalls = true;
   ct.argumentSynthChangeSemantics = false;
-  ct.codegen.emissionFormat = "qir:";
   ct.overrideAOTCompilation = false;
   return ct;
 }
@@ -198,6 +247,7 @@ void quantum_platform::reset_exec_ctx() {
 void quantum_platform::configureExecutionContext(ExecutionContext &ctx) const {
   std::size_t qid = ctx.qpuId;
   validateQpuId(qid);
+  prepareExecution(qid);
   auto platformQPU = runtimeEndpoints[qid].getQPU();
   if (platformQPU == nullptr)
     throw std::runtime_error(
@@ -264,14 +314,33 @@ bool quantum_platform::supports_explicit_measurements(
   return getCompileTarget(qpu_id).supportExplicitMeasurements;
 }
 
+void quantum_platform::resolveCompileOptions(cudaq::CompileOptions &options,
+                                             const RuntimeEndpoint &endpoint) {
+  options.emulate = endpoint.isEmulated;
+  options.emitJit |= !endpoint.isRemote;
+  if (!endpoint.supportsJit)
+    options.emitJit = false;
+  // Only remote QPUs (and their emulators) submit target code.
+  options.emitTargetCode &= endpoint.isRemote || endpoint.isEmulated;
+  options.boolVecBitPacked = !endpoint.isRemote && !endpoint.isEmulated;
+}
+
 KernelThunkResultType
-quantum_platform::unifiedLaunchModule(const AnyModule &module, KernelArgs args,
-                                      std::size_t qpu_id) {
+quantum_platform::compileAndLaunchKernel(const AnyModule &module,
+                                         KernelArgs args, std::size_t qpu_id) {
   validateQpuId(qpu_id);
   auto qpu = runtimeEndpoints[qpu_id].getQPU();
   if (qpu == nullptr)
-    throw std::runtime_error("This QPU does not support unifiedLaunchModule");
-  return qpu->unifiedLaunchModule(module, args);
+    throw std::runtime_error(
+        "This QPU does not support compileAndLaunchKernel");
+  // TODO: Ideally at this point someone would have called `compile(kernel)` and
+  // we'd have a `CompiledModule` to launch. However, kernel launches coming
+  // straight from C++ have not been compiled at this point and
+  // `quantum_platform` cannot drive the compilation as it does not link in the
+  // JIT compiler.
+  return qpu->compileAndLaunchKernel(
+      module, args, compileTargets[qpu_id],
+      getCompileOptions(other_policies{}, qpu_id));
 }
 
 QPU &quantum_platform::addQPU(std::unique_ptr<QPU> qpu) {
@@ -306,10 +375,8 @@ void quantum_platform::onRandomSeedSet(std::size_t seed) {
     if (!qpu)
       continue;
     qpu->onRandomSeedSet(seed);
-    // Some targets use the seed to randomize the compilation pipeline, so
-    // rebuild the compile target
-    // TODO: clean this up
-    compileTargets[qpuId] = qpu->getCompileTarget(runtimeTarget.get());
+    if (compileTargets[qpuId].resetOnRandomSeedSet)
+      compileTargets[qpuId] = qpu->getCompileTarget(runtimeTarget.get());
   }
 }
 
@@ -370,7 +437,7 @@ cudaq::altLaunchKernel(const char *kernelName,
     return {};
   }
   std::size_t qpu_id = cudaq::getCurrentQpuId();
-  return platform.unifiedLaunchModule(src, args, qpu_id);
+  return platform.compileAndLaunchKernel(src, args, qpu_id);
 }
 
 cudaq::KernelThunkResultType
@@ -388,7 +455,7 @@ cudaq::streamlinedLaunchKernel(const char *kernelName,
   }
   auto &platform = *getQuantumPlatformInternal();
   std::size_t qpu_id = cudaq::getCurrentQpuId();
-  [[maybe_unused]] auto r = platform.unifiedLaunchModule(src, args, qpu_id);
+  [[maybe_unused]] auto r = platform.compileAndLaunchKernel(src, args, qpu_id);
   // NB: The streamlined launch will never return results. Use alt or hybrid if
   // the kernel returns results.
   return {};
@@ -407,7 +474,7 @@ cudaq::streamlinedLaunchModule(const CompiledModule &compiled,
   }
   auto &platform = *getQuantumPlatformInternal();
   std::size_t qpu_id = getCurrentQpuId();
-  return platform.unifiedLaunchModule(compiled, {rawArgs}, qpu_id);
+  return platform.compileAndLaunchKernel(compiled, {rawArgs}, qpu_id);
 }
 
 cudaq::KernelThunkResultType
@@ -433,8 +500,9 @@ cudaq::hybridLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
 
   if (platform.is_remote(qpu_id)) {
     // This path should never call a kernel that returns results.
-    [[maybe_unused]] auto r = platform.unifiedLaunchModule(src, kargs, qpu_id);
+    [[maybe_unused]] auto r =
+        platform.compileAndLaunchKernel(src, kargs, qpu_id);
     return {};
   }
-  return platform.unifiedLaunchModule(src, kargs, qpu_id);
+  return platform.compileAndLaunchKernel(src, kargs, qpu_id);
 }

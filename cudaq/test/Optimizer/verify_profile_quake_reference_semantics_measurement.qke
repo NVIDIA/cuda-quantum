@@ -1,0 +1,37 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// With measurement-type=single-qubit, multi-qubit measurements are rejected.
+
+// RUN: cudaq-opt --verify-profile-quake-reference-semantics='measurement-type=single-qubit' --split-input-file --verify-diagnostics %s
+// RUN: not cudaq-opt --verify-profile-quake-reference-semantics='measurement-type=bogus' %s 2>&1 | FileCheck %s --check-prefix=BADOPT
+
+// BADOPT: error: invalid value 'bogus' for option 'measurement-type' (expected 'any' or 'single-qubit')
+
+func.func @measure_single_qubit(%q0: !quake.ref, %q1: !quake.ref) {
+  %mz = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  %mx = quake.mx %q1 : (!quake.ref) -> !quake.measure
+  return
+}
+
+// -----
+
+func.func @measure_two_refs(%q0: !quake.ref, %q1: !quake.ref) {
+  // expected-error@+1 {{single-qubit measurement form requires exactly one !quake.ref target (got 2 targets)}}
+  %mz = quake.mz %q0, %q1 : (!quake.ref, !quake.ref) -> !cc.sequence<!quake.measure>
+  return
+}
+
+// -----
+
+// Measuring a qvector is a vector measurement, not the single-qubit form.
+func.func @measure_veq(%v: !quake.veq<?>) {
+  // expected-error@+1 {{single-qubit measurement form requires a !quake.ref target (got '!quake.veq<?>')}}
+  %m = quake.mx %v : (!quake.veq<?>) -> !cc.sequence<!quake.measure>
+  return
+}

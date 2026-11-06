@@ -75,7 +75,7 @@ enum class commutation_reason {
   different_blocks,
   /// At least one operation has no supported analysis operation view.
   unsupported_operation_kind,
-  /// A quantum operand is not a supported scalar wire value.
+  /// A quantum operand is not a supported wire value.
   unsupported_quantum_operand_type,
   /// A quantum operand has no analysis-local qubit identifier.
   unmapped_qubit_id,
@@ -113,7 +113,7 @@ struct CommutationResult {
 /// channels, or sinks. Identity can be established by `quake.null_wire`,
 /// `quake.borrow_wire`, direct scalar allocation followed by unwrap, and
 /// `quake.wrap_new` from a known wire. A matching wrap and unwrap preserves the
-/// allocation binding. Supported scalar-wire operations propagate identity.
+/// allocation binding. Supported wire operations propagate identity.
 ///
 /// Operations on disjoint qubits commute regardless of their supported
 /// operation kind. For overlapping qubits, the analysis applies structural
@@ -177,7 +177,7 @@ private:
   /// Return true when every control and target role has a distinct known
   /// analysis-local identity.
   bool hasDistinctQuantumOperands(mlir::Operation *operation) const;
-  /// Return true when every value is a known scalar wire outside the
+  /// Return true when every value is a known wire outside the
   /// operation's quantum support.
   bool hasDisjointQuantumSupport(mlir::Operation *operation,
                                  mlir::ValueRange values) const;
@@ -189,9 +189,9 @@ private:
   /// Return true only when the operation's types, structure, and effects prove
   /// that it cannot access or redirect an indexed qubit.
   static bool isIgnorableNonQuantumOperation(mlir::Operation *operation);
-  /// Return the scalar wire established by a supported identity boundary.
+  /// Return the wire established by a supported identity boundary.
   static mlir::Value getIdentityBoundaryWire(mlir::Operation *operation);
-  /// Collect complete scalar-wire captures for a supported ordinary scope.
+  /// Collect complete wire captures for a supported ordinary scope.
   /// Return false when every search whose anchor wires have known identities
   /// must stop at the scope.
   static bool
@@ -207,7 +207,7 @@ private:
   tryWalkPriorOperations(mlir::Operation *anchor,
                          mlir::Operation *inclusiveUpperBound,
                          llvm::function_ref<bool(mlir::Operation *)> visitor);
-  /// Register a newly inserted scalar-wire operation only when every input
+  /// Register a newly inserted wire operation only when every input
   /// identity is known. A classical-only insertion succeeds without changing
   /// identity state only when it is not call-like, owns no regions, and is
   /// memory-effect-free. Return false for every other insertion.
