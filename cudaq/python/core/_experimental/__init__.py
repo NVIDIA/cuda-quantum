@@ -22,10 +22,11 @@ paths.
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
-from .target import (Codegen, CompilationStage, CompileTarget, CostModel,
-                     CustomPipelineLowering, LoopUnrolling, NoiseSupport,
-                     QuakeMappedProfile, QuakeReferenceSemanticsProfile,
-                     QuakeUnmappedProfile, UncheckedProfile)
+from cudaq.core._target import (Codegen, CompilationStage, CompileTarget,
+                                CostModel, CustomPipelineLowering,
+                                LoopUnrolling, NoiseSupport, QuakeMappedProfile,
+                                QuakeReferenceSemanticsProfile,
+                                QuakeUnmappedProfile, UncheckedProfile)
 
 __all__ = [
     "Codegen",

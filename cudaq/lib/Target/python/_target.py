@@ -109,12 +109,13 @@ class CustomPipelineLowering:
     """An explicit MLIR pass pipeline.
 
     `override_pass_pipeline` replaces the whole compilation pipeline and cannot
-    be combined with the `high_level`, `mid_level` and `low_level` fragments.
+    be combined with the `high_level_pipeline`, `mid_level_pipeline` and
+    `low_level_pipeline` fragments.
     """
     override_pass_pipeline: str = ""
-    high_level: str = ""
-    mid_level: str = ""
-    low_level: str = ""
+    high_level_pipeline: str = ""
+    mid_level_pipeline: str = ""
+    low_level_pipeline: str = ""
 
 
 @dataclass
@@ -143,8 +144,7 @@ class CompileTarget:
     `CustomPipelineLowering`). A `codegen` string is the emission format.
     """
     stages: list[CompilationStage] = field(default_factory=list)
-    codegen: Union[Codegen,
-                   str] = field(default_factory=lambda: Codegen("qir:"))
+    codegen: Union[Codegen, str] = field(default_factory=Codegen)
     ir_output_profile: InitVar[Optional[Profile]] = None
     custom_pipeline: InitVar[Union[CustomPipelineLowering, str, None]] = None
     override_aot_compilation: bool = False
@@ -154,11 +154,11 @@ class CompileTarget:
     support_explicit_measurements: bool = True
     support_observable_measurements: bool = True
     support_sample_without_measurements: bool = True
-    fully_specialize: bool = False
+    fully_specialize: bool = True
     preserve_loops: bool = False
     noise_support: NoiseSupport = NoiseSupport.erase
     erase_qec: bool = True
-    argument_synth_change_semantics: bool = False
+    argument_synth_change_semantics: bool = True
     disable_qubit_mapping: bool = False
     replace_state_with_kernel: bool = False
 
