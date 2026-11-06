@@ -25,7 +25,8 @@ The [compilation stages](concepts.md#definitions-builds-and-compilation) are
 P0: logical program → P1: placement → P2: QEC realization → P3: physical schedule
 ```
 
-Each stage adds the information needed for more detailed resource estimates.
+A *logical program* describes the computation on logical qubits, independent of
+the QEC code and device. Each stage adds the information needed for more detailed resource estimates.
 
 ## 1. Write the kernel
 
