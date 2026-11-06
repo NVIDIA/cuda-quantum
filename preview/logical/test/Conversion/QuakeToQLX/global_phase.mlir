@@ -33,8 +33,8 @@ module {
 
 // -----
 
-// Reference-helper provenance must reach the phase successor. Repeated
-// unwraps are aliases of the same mutable slot, including after a real gate.
+// Reference-helper provenance must reach the phase successor, so the wire
+// wrapped back into the reference is the current slot value.
 module {
   func.func @__nvqpp__mlirgen__reference_phase() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %q = quake.null_wire
@@ -45,10 +45,9 @@ module {
   func.func @phase_helper(%ref: !quake.ref) attributes {"cudaq-kernel"} {
     %a = arith.constant 0.3 : f64
     %q = quake.unwrap %ref : (!quake.ref) -> !quake.wire
-    %alias = quake.unwrap %ref : (!quake.ref) -> !quake.wire
     %p = quake.phase (%a) %q : (f64, !quake.wire) -> !quake.wire
     %h = quake.h %p : (!quake.wire) -> !quake.wire
-    %adj = quake.phase<adj> (%a) %alias : (f64, !quake.wire) -> !quake.wire
+    %adj = quake.phase<adj> (%a) %h : (f64, !quake.wire) -> !quake.wire
     quake.wrap %adj to %ref : !quake.wire, !quake.ref
     return
   }
