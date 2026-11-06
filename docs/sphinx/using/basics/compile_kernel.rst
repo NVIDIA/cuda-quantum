@@ -6,7 +6,7 @@ Defining targets and customizing compilation
   This page is currently Python only.
 
   The last sections of this page, from
-  :ref:`compile-kernel-custom-targets` onwards, rely on experimental APIs to
+  :ref:`compile-kernel-custom-targets` onward, rely on experimental APIs to
   control the compilation. These APIs are likely to change significantly in
   upcoming releases. Please do not hesitate to open an issue on
   `our GitHub repository <https://github.com/NVIDIA/cuda-quantum/issues>`__ if

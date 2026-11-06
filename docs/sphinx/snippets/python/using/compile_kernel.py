@@ -88,10 +88,12 @@ from cudaq._experimental import get_compile_target
 
 cudaq.set_target(CLIFFORD_T_TARGET)
 clifford_t_target = get_compile_target()
+# ```
 # CompileTarget(stages=[CompilationStage(ir_output_profile=QuakeUnmappedProfile(
 #     basis_gates=['h', 's', 't', 'x', 'y', 'z', 'swap', 'x(1)', 'y(1)', 'z(1)'],
 #     approximation_tolerance=1e-10, cost_model=CostModel.t_count, ...),
 #     lowering=inferred)], ...)
+# ```
 print(clifford_t_target)
 # [End GetCompileTarget]
 
