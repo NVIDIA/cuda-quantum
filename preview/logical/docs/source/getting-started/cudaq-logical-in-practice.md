@@ -145,10 +145,9 @@ explicit estimates below share:
 :end-before: END_CUDA_Q_TARGET
 ```
 
-## 4. Import the kernel as P0
+## 4. Compile the kernel for CUDA-Q Logical
 
-`cql.compiler.import_cudaq` compiles the kernel for CUDA-Q Logical and imports
-the resulting Quake as a P0
+`cql.compiler.import_cudaq` compiles the kernel to a logical program, a P0
 [build](concepts.md#definitions-builds-and-compilation). The P0 program returns
 one result per measurement, in the kernel's return order:
 
