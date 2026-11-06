@@ -104,14 +104,20 @@ def test_range_break_continue():
 # CHECK:           ^bb1:
 # CHECK:             cc.break %[[VAL_5]], %[[VAL_6]] : i64, i64
 # CHECK:           ^bb2:
-# CHECK:             %[[VAL_9:.*]] = arith.remui %[[VAL_5]], %{{.*}} : i64
-# CHECK:             %[[VAL_10:.*]] = arith.cmpi eq, %[[VAL_9]], %{{.*}} : i64
-# CHECK:             cf.cond_br %[[VAL_10]], ^bb3, ^bb4
+# CHECK:             %[[VAL_9:.*]] = arith.remsi %[[VAL_5]], %{{.*}} : i64
+# CHECK:             %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_9]], %{{.*}} : i64
+# CHECK:             %[[VAL_11:.*]] = arith.xori %[[VAL_9]], %{{.*}} : i64
+# CHECK:             %[[VAL_12:.*]] = arith.cmpi slt, %[[VAL_11]], %{{.*}} : i64
+# CHECK:             %[[VAL_13:.*]] = arith.andi %[[VAL_10]], %[[VAL_12]] : i1
+# CHECK:             %[[VAL_14:.*]] = arith.addi %[[VAL_9]], %{{.*}} : i64
+# CHECK:             %[[VAL_15:.*]] = arith.select %[[VAL_13]], %[[VAL_14]], %[[VAL_9]] : i64
+# CHECK:             %[[VAL_16:.*]] = arith.cmpi eq, %[[VAL_15]], %{{.*}} : i64
+# CHECK:             cf.cond_br %[[VAL_16]], ^bb3, ^bb4
 # CHECK:           ^bb3:
 # CHECK:             cc.continue %[[VAL_5]], %[[VAL_6]] : i64, i64
 # CHECK:           ^bb4:
-# CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_6]], %[[VAL_5]] : i64
-# CHECK:             cc.continue %[[VAL_5]], %[[VAL_11]] : i64, i64
+# CHECK:             %[[VAL_17:.*]] = arith.addi %[[VAL_6]], %[[VAL_5]] : i64
+# CHECK:             cc.continue %[[VAL_5]], %[[VAL_17]] : i64, i64
 # CHECK:           } step {
 # CHECK:           }
 # CHECK:           return %{{.*}} : i64

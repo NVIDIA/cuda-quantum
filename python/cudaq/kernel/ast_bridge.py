@@ -5939,8 +5939,32 @@ class PyASTBridge(ast.NodeVisitor):
                                     self.currentNode)
 
         if issubclass(nodeType, ast.Mod):
+            # Python's `%` is a floored modulo: the result takes the sign of
+            # the divisor, so that `a == (a // b) * b + a % b` holds together
+            # with the `arith.floordivsi` emitted for `//` above. The integer
+            # attributes passed as predicates are documented in
+            # `arith::CmpIPredicate` and `arith::CmpFPredicate`.
+            iTy = self.getIntegerType()
             if IntegerType.isinstance(left.type):
-                self.pushValue(arith.RemUIOp(left, right).result)
+                # `arith.remsi` truncates toward zero, so add the divisor back
+                # when the remainder is non-zero and its sign differs from the
+                # divisor's. (`arith.remui` would read every negative operand
+                # as a large unsigned value.)
+                zero = self.getConstantInt(0,
+                                           width=IntegerType(left.type).width)
+                remainder = arith.RemSIOp(left, right).result
+                nonZero = arith.CmpIOp(self.getIntegerAttr(iTy, 1), remainder,
+                                       zero).result
+                # The sign bit of `remainder ^ divisor` is set exactly when
+                # the two signs differ.
+                signsDiffer = arith.CmpIOp(
+                    self.getIntegerAttr(iTy, 2),
+                    arith.XOrIOp(remainder, right).result, zero).result
+                needsCorrection = arith.AndIOp(nonZero, signsDiffer).result
+                corrected = arith.AddIOp(remainder, right).result
+                self.pushValue(
+                    arith.SelectOp(needsCorrection, corrected,
+                                   remainder).result)
                 return
             if (F64Type.isinstance(left.type) or F32Type.isinstance(left.type)):
                 self.pushValue(arith.RemFOp(left, right).result)

@@ -264,6 +264,48 @@ def test_integer_floor_division_matches_python():
         assert python_floor_div(left, right) == kernel_floor_div(left, right)
 
 
+def test_integer_modulo_matches_python():
+
+    @cudaq.kernel
+    def kernel_mod(left: int, right: int) -> int:
+        return left % right
+
+    @cudaq.kernel
+    def kernel_mod_int32(left: np.int32, right: np.int32) -> np.int32:
+        return left % right
+
+    # The result takes the sign of the divisor, as in Python; the integer
+    # remainder used to be unsigned, so every negative operand was wrong.
+    cases = [(7, 3), (-7, 3), (7, -3), (-7, -3), (-1, 3), (-1, 5), (-6, 3),
+             (6, -3), (5, -3), (0, 3), (0, -3), (1, 1)]
+    for left, right in cases:
+        assert kernel_mod(left, right) == left % right
+        assert kernel_mod_int32(np.int32(left), np.int32(right)) == left % right
+
+
+def test_integer_floor_division_modulo_identity():
+
+    @cudaq.kernel
+    def kernel_identity(left: int, right: int) -> int:
+        return (left // right) * right + left % right
+
+    for left in range(-7, 8):
+        for right in [-3, -2, -1, 1, 2, 3]:
+            assert kernel_identity(left, right) == left
+
+
+def test_integer_modulo_augmented_assignment():
+
+    @cudaq.kernel
+    def kernel_mod_assign(left: int, right: int) -> int:
+        value = left
+        value %= right
+        return value
+
+    for left, right in [(7, 3), (-7, 3), (7, -3), (-7, -3)]:
+        assert kernel_mod_assign(left, right) == left % right
+
+
 def test_float_floor_division_error():
     error = ("floor division with floating-point operands is not supported; "
              "use integer operands or math.floor(...), numpy.floor(...), or "
