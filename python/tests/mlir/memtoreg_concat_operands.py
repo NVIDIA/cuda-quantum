@@ -34,7 +34,8 @@ def test_concat_operands_stay_in_memory():
     # allocations and joins them with a `quake.concat` for the run-time indexed
     # access. The loop writes the qubits through the concat, so `memtoreg` must
     # not promote the allocations to wires: a wire taken before the loop would
-    # never see the writes made in the loop.
+    # never see the writes made in the loop. A qubit that stays in memory form is
+    # left alone: no unwrap, wrap or sink is added for it.
     print("CONCAT_OPERANDS")
     print(
         run_passes(
@@ -47,15 +48,13 @@ def test_concat_operands_stay_in_memory():
 # CHECK:         %[[A:.*]] = quake.alloca !quake.ref
 # CHECK-NEXT:    %[[B:.*]] = quake.alloca !quake.ref
 # CHECK-NEXT:    %[[Q:.*]] = quake.concat %[[A]], %[[B]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
-# CHECK-NOT:     quake.unwrap %[[A]]
-# CHECK-NOT:     quake.unwrap %[[B]]
+# CHECK-NOT:     quake.unwrap
 # CHECK:         cc.loop while
 # CHECK:           %[[R:.*]] = quake.extract_ref %[[Q]][%{{.*}}]
-# CHECK:           %[[W:.*]] = quake.unwrap %[[R]]
-# CHECK:           %[[X:.*]] = quake.x %[[W]]
-# CHECK:           quake.wrap %[[X]] to %[[R]]
+# CHECK-NEXT:      quake.x %[[R]] : (!quake.ref) -> ()
 # CHECK:         quake.mz %[[Q]]
-# CHECK:         %[[WA:.*]] = quake.unwrap %[[A]]
-# CHECK:         quake.sink %[[WA]]
-# CHECK:         %[[WB:.*]] = quake.unwrap %[[B]]
-# CHECK:         quake.sink %[[WB]]
+# CHECK-NOT:     quake.unwrap
+# CHECK-NOT:     quake.wrap
+# CHECK-NOT:     quake.sink
+# CHECK:         quake.dealloc %[[A]] : !quake.ref
+# CHECK-NEXT:    quake.dealloc %[[B]] : !quake.ref
