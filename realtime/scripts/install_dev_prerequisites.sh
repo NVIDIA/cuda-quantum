@@ -51,7 +51,10 @@ if [ -x "$(command -v apt-get)" ]; then
 
   # [DOCA Host]
   cudaq_realtime_add_doca_repo
-  DEBIAN_FRONTEND=noninteractive retry apt-get -y install doca-all libdoca-sdk-gpunetio-dev
+  DEBIAN_FRONTEND=noninteractive retry apt-get -y install doca-all
+
+  # [Build packages]
+  cudaq_realtime_install_build_packages
 
   # [Holoscan SDK]
   cudaq_realtime_install_holoscan

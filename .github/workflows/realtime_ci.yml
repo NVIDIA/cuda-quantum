@@ -115,6 +115,13 @@ jobs:
         with:
           name: install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }} 
           path: ./installers
+
+      # Only the install requirements, which the build scripts extend with the
+      # build-only packages; apt only, hence ubuntu.
+      - name: Install the install requirements
+        if: matrix.distro == 'ubuntu24.04'
+        shell: bash
+        run: bash realtime/scripts/install_prerequisites.sh
       
       - name: Install CUDA Quantum Realtime using installer
         shell: bash
@@ -126,6 +133,18 @@ jobs:
           # Make the installer executable and run it
           chmod +x "$installer_file"
           ./"$installer_file" --accept
+
+      - name: Check that the installed libraries load
+        if: matrix.distro == 'ubuntu24.04'
+        shell: bash
+        run: |
+          # With only the install requirements present, every library the
+          # installer ships must find what it links against.
+          export LD_LIBRARY_PATH=/opt/nvidia/cudaq/realtime/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+          if ldd /opt/nvidia/cudaq/realtime/lib/*.so* | grep 'not found'; then
+            echo "ERROR: install_prerequisites.sh does not cover what the installed libraries load" >&2
+            exit 1
+          fi
 
       - name: Test CUDA Quantum Realtime installation
         shell: bash
