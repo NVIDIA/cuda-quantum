@@ -841,6 +841,65 @@ def test_observe():
     assert abs(res.expectation() - expected_energy) < energy_tol
 
 
+@pytest.mark.parametrize("call_mode", ["scalar", "broadcast", "arity_error"])
+@pytest.mark.parametrize("operator_list", [False, True])
+@pytest.mark.parametrize("has_global_noise", [False, True])
+@pytest.mark.parametrize("per_call_noise", [False, True])
+def test_observe_preserves_noise_state(call_mode, operator_list,
+                                       has_global_noise, per_call_noise):
+    cudaq.set_target("density-matrix-cpu")
+    try:
+        cudaq.unset_noise()
+        probe = cudaq.make_kernel()
+        probe_qubit = probe.qalloc()
+        probe.x(probe_qubit)
+
+        kernel, angle = cudaq.make_kernel(float)
+        qubit = kernel.qalloc()
+        kernel.x(qubit)
+
+        global_noise = cudaq.NoiseModel()
+        global_noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(1.0))
+        if has_global_noise:
+            cudaq.set_noise(global_noise)
+        expected_counts = {"0" if has_global_noise else "1": 10}
+        assert dict(cudaq.sample(probe,
+                                 shots_count=10).items()) == expected_counts
+
+        call_noise = None
+        if per_call_noise:
+            call_noise = cudaq.NoiseModel()
+            call_noise.add_all_qubit_channel(
+                "x", cudaq.BitFlipChannel(0.0 if has_global_noise else 1.0))
+        operator = [spin.z(0)] if operator_list else spin.z(0)
+
+        if call_mode == "arity_error":
+            with pytest.raises(RuntimeError,
+                               match="Invalid number of arguments"):
+                cudaq.observe(kernel, operator, noise_model=call_noise)
+        else:
+            argument = [0.0, 0.0] if call_mode == "broadcast" else 0.0
+            result = cudaq.observe(kernel,
+                                   operator,
+                                   argument,
+                                   noise_model=call_noise)
+            results = result if call_mode == "broadcast" else [result]
+            assert len(results) == (2 if call_mode == "broadcast" else 1)
+            expected = 1.0 if has_global_noise else -1.0
+            if per_call_noise:
+                expected = -expected
+            for per_argument_result in results:
+                observed = per_argument_result[
+                    0] if operator_list else per_argument_result
+                assert observed.expectation() == pytest.approx(expected)
+
+        assert dict(cudaq.sample(probe,
+                                 shots_count=10).items()) == expected_counts
+    finally:
+        cudaq.unset_noise()
+        cudaq.reset_target()
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
