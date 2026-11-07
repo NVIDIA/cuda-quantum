@@ -1171,14 +1171,14 @@ class PyKernel(object):
     def mz(self, target, regName=None):
         """
         Measure the given qubit or qubits in the Z-basis. The optional
-        `register_name` may be used to retrieve results of this measurement
+        `regName` may be used to retrieve results of this measurement
         after execution on the QPU. If the measurement call is saved as a
         variable, it will return a :class:`QuakeValue` handle to the measurement
         instruction.
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the
+        `regName` (Optional[:obj:`str`]): The optional name to provide the
             results of the measurement. Defaults to ``None``, in which case
             no register name is attached to the measurement op.
 
@@ -1204,14 +1204,14 @@ class PyKernel(object):
     def mx(self, target, regName=None):
         """
         Measure the given qubit or qubits in the X-basis. The optional
-        `register_name` may be used to retrieve results of this measurement
+        `regName` may be used to retrieve results of this measurement
         after execution on the QPU. If the measurement call is saved as a
         variable, it will return a :class:`QuakeValue` handle to the measurement
         instruction.
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the
+        `regName` (Optional[:obj:`str`]): The optional name to provide the
             results of the measurement. Defaults to ``None``, in which case
             no register name is attached to the measurement op.
 
@@ -1236,14 +1236,14 @@ class PyKernel(object):
     def my(self, target, regName=None):
         """
         Measure the given qubit or qubits in the Y-basis. The optional
-        `register_name` may be used to retrieve results of this measurement
+        `regName` may be used to retrieve results of this measurement
         after execution on the QPU. If the measurement call is saved as a
         variable, it will return a :class:`QuakeValue` handle to the measurement
         instruction.
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the
+        `regName` (Optional[:obj:`str`]): The optional name to provide the
             results of the measurement. Defaults to ``None``, in which case
             no register name is attached to the measurement op.
 

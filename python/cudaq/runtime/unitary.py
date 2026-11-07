@@ -30,9 +30,9 @@ def get_unitary(kernel, *args, optimization_level=None):
       import cudaq
       @cudaq.kernel
       def bell():
-        `q = cudaq.qvector(2)`
+        q = cudaq.qvector(2)
         h(q[0])
-        `cx(q[0], q[1])`
+        cx(q[0], q[1])
       U = cudaq.get_unitary(bell)
       print(U)
     """
