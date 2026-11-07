@@ -794,8 +794,7 @@ CUDAQ_TEST(TrajectoryNoiseTest,
       cudaq::sample(cudaq::sample_options{.shots = shots, .noise = noise},
                     nonConditionalMeasurement{}));
 
-  const cudaq::sample_options options{
-      .shots = shots, .noise = noise, .explicit_measurements = true};
+  const cudaq::sample_options options{.shots = shots, .noise = noise};
 
   const auto explicitCounts =
       cudaq::sample(options, nonConditionalMeasurement{});

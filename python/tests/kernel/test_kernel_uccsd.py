@@ -542,6 +542,7 @@ def test_cudaq_uccsd1():
         for i in range(num_electrons):
             x(qubits[i])
         uccsd1(qubits, thetas, num_electrons, num_qubits)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel, shots_count=1000)
 

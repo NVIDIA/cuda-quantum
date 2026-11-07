@@ -51,7 +51,6 @@ public:
                                  .lowering = std::move(lowering)});
     ct.fullySpecialize = false;
     ct.overrideAOTCompilation = true;
-    ct.supportExplicitMeasurements = true;
     ct.resetOnRandomSeedSet = true;
     return ct;
   }
@@ -236,17 +235,6 @@ TEST(QuantumPlatformCompileTargetTester, usesPlatformOverrideWhenSet) {
   EXPECT_TRUE(ct.fullySpecialize);
   EXPECT_FALSE(ct.overrideAOTCompilation);
   EXPECT_TRUE(ct.supportDeviceCalls);
-}
-
-TEST(QuantumPlatformCompileTargetTester,
-     capabilityQueriesReportCompileTargetFlags) {
-  TestPlatform platform;
-  EXPECT_TRUE(platform.supports_explicit_measurements());
-
-  platform.setEndpoint(CompileTarget{.supportExplicitMeasurements = false},
-                       RuntimeEndpoint{.impl = 0});
-
-  EXPECT_FALSE(platform.supports_explicit_measurements());
 }
 
 TEST(QuantumPlatformCompileTargetTester, otherPoliciesFallsBackToQpuWhenUnset) {
@@ -512,7 +500,6 @@ TEST(QuantumPlatformCustomEndpointTester,
   EXPECT_TRUE(platform.is_simulator());
   EXPECT_FALSE(platform.is_remote());
   EXPECT_FALSE(platform.is_emulated());
-  EXPECT_TRUE(platform.supports_explicit_measurements());
   EXPECT_EQ(platform.get_noise(), nullptr);
 }
 

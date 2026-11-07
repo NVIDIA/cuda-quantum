@@ -42,7 +42,7 @@ __qpu__ void grover() {
   oracle(qubits, ancilla);
   reflect_uniform(qubits);
 
-  mz(qubits);
+  cudaq::record(qubits);
 };
 
 int main() {

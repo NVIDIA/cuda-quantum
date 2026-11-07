@@ -16,6 +16,7 @@
 struct prepare_from_state {
   void operator()(cudaq::state *initialState) __qpu__ {
     cudaq::qvector qubits(initialState);
+    cudaq::record(qubits);
   }
 };
 

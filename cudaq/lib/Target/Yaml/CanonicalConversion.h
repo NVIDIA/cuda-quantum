@@ -57,7 +57,7 @@ void toCanonicalEntryBase(const BackendEndConfigEntryV &cfg,
   out.LibraryMode = cfg.libraryMode.value();
   out.SupportResourceCounts = cfg.supportResourceCounts.value();
   out.NeedsReorderIdx = cfg.needsReorderIdx.value();
-  out.NeedsImplicitMeasurements = cfg.needsImplicitMeasurements.value();
+  out.SupportExplicitMeasurements = cfg.supportExplicitMeasurements.value();
   out.PlatformLibrary = cfg.platformLibrary.value();
   out.LibraryModeExecutionManager = cfg.libraryModeExecutionManager.value();
   out.PlatformQpu = cfg.platformQpu.value();

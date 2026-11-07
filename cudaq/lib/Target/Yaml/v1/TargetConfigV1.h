@@ -58,10 +58,9 @@ struct BackendEndConfigEntryV1 {
   // `sample` needs the permutation back to allocation order? True for targets
   // whose pipeline routes onto a coupling graph.
   rfl::DefaultVal<bool> needsReorderIdx = false;
-  // Should the compiler synthesize measurements for a `sample` kernel that
-  // does not measure for itself? False once the backend expects the kernel to
-  // carry its own measurements.
-  rfl::DefaultVal<bool> needsImplicitMeasurements = true;
+  // May the caller ask for every measurement in execution order? Only for
+  // backends that can replay mid-circuit measurements.
+  rfl::DefaultVal<bool> supportExplicitMeasurements = false;
   rfl::DefaultVal<std::string> jitHighLevelPipeline;
   rfl::DefaultVal<std::string> jitMidLevelPipeline;
   rfl::DefaultVal<std::string> jitLowLevelPipeline;

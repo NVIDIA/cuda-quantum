@@ -25,6 +25,7 @@ struct test_state_param {
   void operator()(cudaq::state *state) __qpu__ {
     cudaq::qvector q(state);
     x(q);
+    cudaq::record(q);
   }
 };
 

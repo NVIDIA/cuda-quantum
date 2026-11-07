@@ -18,7 +18,7 @@ def test_qir_profile():
     def my_kernel():
         q = cudaq.qubit()
         x(q)
-        mz(q)
+        cudaq.record(q)
 
     # This device requires qir:0.1
     cudaq.set_target('quantinuum', emulate=True, machine='H2-2E')
@@ -31,7 +31,7 @@ def test_ng_qir_profile():
     def my_kernel():
         q = cudaq.qubit()
         x(q)
-        mz(q)
+        cudaq.record(q)
 
     # This device requires qir:1.0
     cudaq.set_target('quantinuum', emulate=True, machine='Helios-1E')

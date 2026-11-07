@@ -32,6 +32,7 @@ def test_argument_int():
     @cudaq.kernel
     def kernel(n: int):
         qubits = cudaq.qvector(n)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel, 2)
     assert len(counts) == 1
@@ -39,6 +40,7 @@ def test_argument_int():
     @cudaq.kernel
     def kernel(n: np.int8):
         qubits = cudaq.qvector(n)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel, 2)
     assert len(counts) == 1
@@ -46,6 +48,7 @@ def test_argument_int():
     @cudaq.kernel
     def kernel(n: np.int16):
         qubits = cudaq.qvector(n)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel, 2)
     assert len(counts) == 1
@@ -53,6 +56,7 @@ def test_argument_int():
     @cudaq.kernel
     def kernel(n: np.int32):
         qubits = cudaq.qvector(n)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel, 2)
     assert len(counts) == 1
@@ -60,6 +64,7 @@ def test_argument_int():
     @cudaq.kernel
     def kernel(n: np.int64):
         qubits = cudaq.qvector(n)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel, 2)
     assert len(counts) == 1
@@ -67,6 +72,7 @@ def test_argument_int():
     @cudaq.kernel
     def kernel(n: np.int64):
         qubits = cudaq.qvector(n)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel, 2)
     assert len(counts) == 1
@@ -80,6 +86,7 @@ def test_adjoint():
         q = cudaq.qubit()
         t(q)
         t.adj(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(single_adjoint_test)
     assert len(counts) == 1
@@ -89,6 +96,7 @@ def test_adjoint():
         q = cudaq.qvector(2)
         t(q)
         t.adj(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(qvector_adjoint_test)
     assert len(counts) == 1
@@ -101,6 +109,7 @@ def test_adjoint():
 
         ry(1.1, q)
         ry.adj(1.1, q)
+        cudaq.record(q)
 
     counts = cudaq.sample(rotation_adjoint_test)
     assert len(counts) == 1
@@ -118,6 +127,7 @@ def test_adjoint():
         x(q[2])
         test_kernel_adjoint(q)
         cudaq.adjoint(test_kernel_adjoint, q)
+        cudaq.record(q)
 
     counts = cudaq.sample(test_caller)
     assert len(counts) == 1
@@ -148,6 +158,7 @@ def test_adjoint():
         if withAdj:
             cudaq.adjoint(cudaq.kernels.uccsd, qubits, thetas, num_electrons,
                           num_qubits)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel, False, shots_count=1000)
     assert len(counts) == 6
@@ -175,6 +186,7 @@ def test_uccsd_odd_electrons():
         for i in range(ne):
             x(qubits[i])
         cudaq.kernels.uccsd(qubits, parameters, ne, qn)
+        cudaq.record(qubits)
 
     expectation = cudaq.observe(kernel, spin.z(0), num_qubits, num_electrons,
                                 thetas).expectation()
@@ -195,6 +207,7 @@ def test_control():
         # without a control, apply x to all
         x(ctrl, q[2])
         cudaq.control(fancyCnot, [ctrl], q[1], q[2])
+        cudaq.record(q)
 
     counts = cudaq.sample(toffoli)
     assert len(counts) == 1
@@ -205,6 +218,7 @@ def test_control():
         q, r, s = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
         x(q, s)
         swap.ctrl(q, r, s)
+        cudaq.record(q, r, s)
 
     counts = cudaq.sample(test)
     assert len(counts) == 1
@@ -240,6 +254,7 @@ def test_control():
                 cx(c, qubits[i])
             cudaq.control(cudaq.kernels.uccsd, c, qubits, thetas, num_electrons,
                           num_qubits)
+        cudaq.record(qubits)
 
     cudaq.set_random_seed(13)
 
@@ -248,7 +263,7 @@ def test_control():
     counts = cudaq.sample(kernel, 1, shots_count=1000)
     assert len(counts) == 6
     counts = cudaq.sample(kernel, 2, shots_count=1000)
-    assert len(counts) == 1 and '000000000' in counts
+    assert len(counts) == 1 and '00000000' in counts
 
 
 def test_multi_control_gates():
@@ -261,7 +276,7 @@ def test_multi_control_gates():
         x(q[0])
         x(q[1])
         x.ctrl([q[0], q[1]], q[2])
-        mz(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(mcx_kernel)
     assert len(counts) == 1
@@ -273,7 +288,7 @@ def test_multi_control_gates():
         # State |100>
         x(q[0])
         x.ctrl([q[0], q[1]], q[2])
-        mz(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(mcx_kernel_neg)
     assert len(counts) == 1
@@ -304,7 +319,7 @@ def test_grover():
         for i in range(M):
             oracle(q)
             reflect(q)
-        mz(q)
+        cudaq.record(q)
 
     print(grover)
     print(oracle)
@@ -347,7 +362,7 @@ def test_2grover_compute_action():
         for i in range(M):
             oracle(q)
             reflect2(q)
-        mz(q)
+        cudaq.record(q)
 
     # print(grover)
 
@@ -413,17 +428,20 @@ def test_control_and_adjoint_of_callable_kernel_arg():
         c = cudaq.qubit()
         x(c)
         apply_control(x_gate, q, c)
+        cudaq.record(q, c)
 
     @cudaq.kernel
     def control_off():
         q = cudaq.qubit()
         c = cudaq.qubit()
         apply_control(x_gate, q, c)
+        cudaq.record(q, c)
 
     @cudaq.kernel
     def adjoint():
         q = cudaq.qubit()
         apply_adjoint(x_gate, q)
+        cudaq.record(q)
 
     assert '11' in cudaq.sample(control_fires)
     assert '00' in cudaq.sample(control_off)
@@ -450,6 +468,7 @@ def test_control_then_adjoint_of_callable_kernel_arg():
         c = cudaq.qubit()
         x(c)
         apply_control_then_adjoint(ry_pi, q, c)
+        cudaq.record(q, c)
 
     # Control is off: only the adjoint rotation runs, flipping the target.
     @cudaq.kernel
@@ -457,6 +476,7 @@ def test_control_then_adjoint_of_callable_kernel_arg():
         q = cudaq.qubit()
         c = cudaq.qubit()
         apply_control_then_adjoint(ry_pi, q, c)
+        cudaq.record(q, c)
 
     counts = cudaq.sample(control_fires)
     assert len(counts) == 1 and '01' in counts
@@ -491,6 +511,7 @@ def test_control_of_adjoint_of_callable_kernel_arg():
         x(c)
         ry_half(q)
         apply_control_adjoint(ry_half, q, c)
+        cudaq.record(q, c)
 
     # Control is off: two rotations of pi/2 flip the target.
     @cudaq.kernel
@@ -500,6 +521,7 @@ def test_control_of_adjoint_of_callable_kernel_arg():
         ry_half(q)
         apply_control_adjoint(ry_half, q, c)
         ry_half(q)
+        cudaq.record(q, c)
 
     counts = cudaq.sample(control_fires)
     assert len(counts) == 1 and '01' in counts
@@ -513,6 +535,7 @@ def test_observe():
     @cudaq.kernel(disable_quantum_optimization=True)
     def ansatz():
         q = cudaq.qvector(1)
+        cudaq.record(q)
 
     molecule = 5.0 - 1.0 * spin.x(0)
     res = cudaq.observe(ansatz, molecule, shots_count=10000)
@@ -529,6 +552,7 @@ def test_pauli_word_input():
         x(q[0])
         x(q[1])
         exp_pauli(theta, q, var)
+        cudaq.record(q)
 
     print(kernel)
     kernel(.11, 'XXXY')
@@ -547,6 +571,7 @@ def test_pauli_word_input():
         x(q[1])
         for p in paulis:
             exp_pauli(theta, q, p)
+        cudaq.record(q)
 
     print(test)
     want_exp = cudaq.observe(test, h, .11, ['XXXY']).expectation()
@@ -569,6 +594,7 @@ def test_exp_pauli():
         x(q[0])
         x(q[1])
         exp_pauli(theta, q, 'XXXY')
+        cudaq.record(q)
 
     print(kernel)
     want_exp = cudaq.observe(kernel, h, .11).expectation()
@@ -585,7 +611,7 @@ def test_exp_pauli_zz():
         exp_pauli(theta, q, "ZZ")
         h(q[0])
         h(q[1])
-        mz(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, np.pi / 2)
     assert len(counts) == 1
@@ -685,6 +711,7 @@ def test_transitive_dependencies():
     def callMe():
         q = cudaq.qubit()
         func2(q)
+        cudaq.record(q)
 
     print(callMe)
 
@@ -700,7 +727,7 @@ def test_transitive_dependencies():
         qubit = cudaq.qvector(2)
         h(qubit[0])
         x.ctrl(qubit[0], qubit[1])
-        mz(qubit)
+        cudaq.record(qubit)
 
     result = cudaq.sample(kernel)
     print(result)
@@ -713,7 +740,7 @@ def test_transitive_dependencies():
         h(qubit[0])
         x.ctrl(qubit[0], qubit[1])
 
-        mz(qubit)
+        cudaq.record(qubit)
 
     print(vqe_kernel)
     result = cudaq.sample(vqe_kernel, 2)
@@ -729,6 +756,7 @@ def test_decrementing_range():
         for k in range(q, p, -1):
             cudaq.dbg.ast.print_i64(k)
             x(qubits[k])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(test, 2, 0)
     counts.dump()
@@ -740,6 +768,7 @@ def test_decrementing_range():
         for i in range(0, len(myList), 2):
             cudaq.dbg.ast.print_i64(i)
             x(q[i])
+        cudaq.record(q)
 
     counts = cudaq.sample(test2, [0, 1, 2, 3])
     assert len(counts) == 1
@@ -762,7 +791,7 @@ def test_dbg_ast_strict_path():
         h(q[0])
         cudaq.dbg.ast.print_i64(n)
         cudaq.dbg.ast.print_f64(f)
-        mz(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(valid_kernel, 2, 2.0)
     assert len(counts) > 0
@@ -978,6 +1007,7 @@ def test_list_creation():
         q = cudaq.qvector(N)
         for i in myList:
             x(q[i])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel3, 5)
     assert len(counts) == 1
@@ -989,6 +1019,7 @@ def test_list_creation():
         casted = list(myList)
         for i in casted:
             x(q[i])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel4, list(range(5)))
     assert len(counts) == 1
@@ -1042,6 +1073,7 @@ def test_broadcast():
         for inner in l:
             for i in inner:
                 x(q[i])
+        cudaq.record(q)
 
     # list[list[int]] is a single argument, not a broadcast — verify it runs.
     counts = cudaq.sample(kernel, [[0, 1]])
@@ -1071,6 +1103,7 @@ def test_list_creation_with_cast():
         casted = list(myList)
         for i in casted:
             x(q[i])
+        cudaq.record(q)
 
     print(kernel)
     counts = cudaq.sample(kernel, list(range(5)))
@@ -1086,6 +1119,7 @@ def test_list_boundaries():
         r = range(0, 0)
         for i in r:
             x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel1)
     assert len(counts) == 1
@@ -1097,6 +1131,7 @@ def test_list_boundaries():
         r = range(1, 0)
         for i in r:
             x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel2)
     assert len(counts) == 1
@@ -1107,6 +1142,7 @@ def test_list_boundaries():
         qubits = cudaq.qvector(2)
         for i in range(-1):
             x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel3)
     assert len(counts) == 1
@@ -1118,6 +1154,7 @@ def test_list_boundaries():
         r = [i * 2 + 1 for i in range(1)]
         for i in r:
             x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel4)
     assert len(counts) == 1
@@ -1129,6 +1166,7 @@ def test_list_boundaries():
         r = [i * 2 + 1 for i in range(0)]
         for i in r:
             x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel5)
     assert len(counts) == 1
@@ -1140,6 +1178,7 @@ def test_list_boundaries():
         r = [i * 2 + 1 for i in range(2)]
         for i in r:
             x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel6)
     assert len(counts) == 1
@@ -1151,6 +1190,7 @@ def test_list_boundaries():
         r = [i for i in range(2, 5)]
         for i in r:
             x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel7)
     assert len(counts) == 1
@@ -1162,6 +1202,7 @@ def test_list_boundaries():
         r = [i for i in range(2, 6, 2)]
         for i in r:
             x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel8)
     assert len(counts) == 1
@@ -1173,6 +1214,7 @@ def test_list_boundaries():
         r = [i for i in range(6, 2, 2)]
         for i in r:
             x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel9)
     assert len(counts) == 1
@@ -1184,6 +1226,7 @@ def test_list_boundaries():
         r = [i for i in range(3, 0, -2)]
         for i in r:
             x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel10)
     assert len(counts) == 1
@@ -1195,6 +1238,7 @@ def test_list_boundaries():
         r = [i for i in range(-5, -2, -2)]
         for i in r:
             x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel11)
     assert len(counts) == 1
@@ -1206,6 +1250,7 @@ def test_list_boundaries():
         r = [i for i in range(-1, -5, -2)]
         for i in r:
             x(qubits[-i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel12)
     assert len(counts) == 1
@@ -1220,6 +1265,7 @@ def test_list_boundaries():
                 x(qubits[-i])
             else:
                 x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel13)
     assert len(counts) == 1
@@ -1234,6 +1280,7 @@ def test_list_boundaries():
                 x(qubits[-i])
             else:
                 x(qubits[i])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel14)
     assert len(counts) == 1
@@ -1247,6 +1294,7 @@ def test_list_boundaries():
             r = [i for i in range(1, 4, 0)]
             for i in r:
                 x(qubits[i])
+            cudaq.record(qubits)
 
         cudaq.sample(kernel15)
     assert "range step value must be non-zero" in str(e.value)
@@ -1260,6 +1308,7 @@ def test_list_boundaries():
             r = [i for i in range(1, 4, v)]
             for i in r:
                 x(qubits[i])
+            cudaq.record(qubits)
 
         cudaq.sample(kernel16)
     assert "range step value must be a constant" in str(e.value)
@@ -1280,6 +1329,7 @@ def test_array_value_assignment():
             x(q0)
         if (b[1]):
             x(q1)
+        cudaq.record(q0, q1)
 
     counts = cudaq.sample(foo)
     assert "11" in counts
@@ -1292,6 +1342,7 @@ def test_control_operations_1():
         q = cudaq.qvector(4)
         x.ctrl(q[0], q[1])
         cx(q[0], q[1])
+        cudaq.record(q)
 
     print(test)
     counts = cudaq.sample(test)
@@ -1306,6 +1357,7 @@ def test_control_operations_2():
         cx(q[0], q[1])
         rx.ctrl(angle, q[0], q[1])
         crx(angle, q[0], q[1])
+        cudaq.record(q)
 
     print(test)
     counts = cudaq.sample(test, 0.785398)
@@ -1336,6 +1388,7 @@ def test_sample_async_issue_args_processed():
         x(q[0])
         ry(params[0], q[1])
         x.ctrl(q[1], q[0])
+        cudaq.record(q)
 
     params = np.array([.59])
     result = cudaq.sample_async(kernel, params, qpu_id=0)
@@ -1357,6 +1410,7 @@ def test_capture_vars():
         cudaq.dbg.ast.print_f64(f)
         for qb in q:
             rx(f, qb)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     counts.dump()
@@ -1397,6 +1451,7 @@ def test_capture_vars():
         q = cudaq.qubit()
         if b:
             x(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(canCaptureBool)
     counts.dump()
@@ -1418,6 +1473,7 @@ def test_capture_vars():
         x(q[firstIdx])
         ry(l[firstIdx], q[secondIdx])
         x.ctrl(q[secondIdx], q[firstIdx])
+        cudaq.record(q)
 
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
@@ -1436,6 +1492,7 @@ def test_inner_function_capture():
         @cudaq.kernel(disable_quantum_optimization=True)
         def foo():
             q = cudaq.qvector(n)
+            cudaq.record(q)
 
         def innerInnerClassical():
 
@@ -1443,6 +1500,7 @@ def test_inner_function_capture():
             def bar():
                 q = cudaq.qvector(m)
                 x(q)
+                cudaq.record(q)
 
             return cudaq.sample(bar)
 
@@ -1576,6 +1634,7 @@ def test_bool_list_elements():
         x(q)
         if var[0]:
             x(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, [False], shots_count=100)
     assert '1' in counts and len(counts) == 1
@@ -1592,6 +1651,7 @@ def test_list_float_pass_list_int():
         cudaq.dbg.ast.print_f64(var[0])
         x(q[int(var[0])])
         x(q[int(var[1])])
+        cudaq.record(q)
 
     var = [0, 1]
     counts = cudaq.sample(test, var)
@@ -2118,7 +2178,7 @@ def test_measure_variadic_qubits():
     def test():
         q = cudaq.qvector(5)
         x(q[2])
-        mz(q[0], q[1], q[2])
+        cudaq.record(q[0], q[1], q[2])
 
     counts = cudaq.sample(test)
     assert len(counts) == 1 and '001' in counts
@@ -2127,7 +2187,7 @@ def test_measure_variadic_qubits():
     def test():
         q = cudaq.qvector(5)
         x(q[0], q[2])
-        mz([q[0], *q[1:3]])
+        cudaq.record([q[0], *q[1:3]])
 
     counts = cudaq.sample(test)
     assert len(counts) == 1 and '101' in counts
@@ -2151,6 +2211,7 @@ def test_u3_op():
         q = cudaq.qubit()
         # implement Pauli-X gate with U3
         u3(np.pi, np.pi, np.pi / 2, q)
+        cudaq.record(q)
 
     print(check_x)
     counts = cudaq.sample(check_x)
@@ -2162,6 +2223,7 @@ def test_u3_op():
         # implement Hadamard gate with U3
         u3(np.pi / 2, 0, np.pi, qubits[0])
         cx(qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(bell_pair)
     assert (len(counts) == 2)
@@ -2176,6 +2238,7 @@ def test_u3_ctrl():
         qubits = cudaq.qvector(2)
         u3(np.pi / 2, 0, np.pi, qubits[0])
         u3.ctrl(np.pi, np.pi, np.pi / 2, qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     print(another_bell_pair)
     counts = cudaq.sample(another_bell_pair)
@@ -2198,6 +2261,7 @@ def test_u3_adj():
         # implement Ry gate with U3
         u3(1.1, 0, 0, q)
         u3.adj(1.1, 0, 0, q)
+        cudaq.record(q)
 
     print(rotation_adjoint_test)
 
@@ -2212,6 +2276,7 @@ def test_u3_parameterized():
     def param_kernel(theta: float, phi: float, lambda_: float):
         q = cudaq.qubit()
         u3(theta, phi, lambda_, q)
+        cudaq.record(q)
 
     counts = cudaq.sample(param_kernel, np.pi, np.pi, np.pi / 2)
     assert counts["1"] == 1000
@@ -2224,6 +2289,7 @@ def test_reset():
         q = cudaq.qubit()
         x(q)
         reset(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(single_qubit)
     assert counts['0'] == 1000
@@ -2359,7 +2425,7 @@ def test_subtract():
         mu = 0.7951
         sigma = 0.6065
         rz(1.0 - (mu / sigma), qubits[1])
-        mz(qubits)
+        cudaq.record(qubits)
 
     cudaq.sample(bug_subtract)
 
@@ -2369,8 +2435,7 @@ def test_rebind_symbol_to_distinct_decorator():
     def retFunc():
 
         @cudaq.kernel
-        def bell(i: int):
-            q = cudaq.qvector(i)
+        def bell(q: cudaq.qview):
             h(q[0])
             x.ctrl(q[0], q[1])
 
@@ -2379,8 +2444,7 @@ def test_rebind_symbol_to_distinct_decorator():
     def retFunc2():
 
         @cudaq.kernel
-        def super():
-            q = cudaq.qubit()
+        def super(q: cudaq.qubit):
             h(q)
 
         return super
@@ -2389,7 +2453,9 @@ def test_rebind_symbol_to_distinct_decorator():
 
     @cudaq.kernel
     def k():
-        b(2)
+        q = cudaq.qvector(2)
+        b(q)
+        cudaq.record(q)
 
     print(k)
     counts = cudaq.sample(k)
@@ -2401,7 +2467,9 @@ def test_rebind_symbol_to_distinct_decorator():
 
     @cudaq.kernel
     def kd():
-        b()
+        q = cudaq.qubit()
+        b(q)
+        cudaq.record(q)
 
     print(kd)
     counts = cudaq.sample(kd)
@@ -2425,6 +2493,7 @@ def test_custom_classical_kernel_type():
         ry(input.floatingPoint, qubits[0])
         rx(input.floatingPoint * 2, qubits[0])
         x.ctrl(qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     instance = CustomIntAndFloatType(2, np.pi / 2.)
     counts = cudaq.sample(test, instance)
@@ -2441,6 +2510,7 @@ def test_custom_classical_kernel_type():
         ry(input.array[0], qubits[0])
         ry(input.array[1], qubits[2])
         x.ctrl(qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     instance = CustomIntAndListFloat(3, [np.pi, np.pi])
     counts = cudaq.sample(test, instance)
@@ -2452,6 +2522,7 @@ def test_custom_classical_kernel_type():
         ry(input.array[1], qubits[0])
         ry(input.array[3], qubits[2])
         x.ctrl(qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     instance = CustomIntAndListFloat(3, [0, np.pi, 0, np.pi])
     counts = cudaq.sample(test, instance)
@@ -2468,6 +2539,7 @@ def test_custom_classical_kernel_type():
         ry(input.array[1], qubits[0])
         ry(input.array[3], qubits[2])
         x.ctrl(qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     instance = CustomIntAndListFloat([0, np.pi, 0, np.pi], 3)
     counts = cudaq.sample(test, instance)
@@ -2741,6 +2813,7 @@ def test_control_then_adjoint():
         h(ancilla)
         cudaq.control(my_func, ancilla, q, theta)
         cudaq.adjoint(my_func, q, theta)
+        cudaq.record(ancilla, q)
 
     theta = 1.5
     # test here is that this compiles and runs
@@ -2756,6 +2829,7 @@ def test_numpy_functions():
         rx(np.pi, q[0])
         ry(np.e, q[1])
         rz(np.euler_gamma, q[2])
+        cudaq.record(q)
 
     # test here is that this compiles and runs
     cudaq.sample(kernel).dump()
@@ -2788,6 +2862,7 @@ def test_in_comparator():
         q = cudaq.qubit()
         if ind in [6, 13, 20, 27, 34]:
             x(q)
+        cudaq.record(q)
 
     c = cudaq.sample(kernel, 1)
     assert len(c) == 1 and '0' in c
@@ -2811,6 +2886,7 @@ def test_in_comparator():
         q = cudaq.qubit()
         if ind not in [6, 13, 20, 27, 34]:
             x(q)
+        cudaq.record(q)
 
     c = cudaq.sample(kernel, 1)
     assert len(c) == 1 and '1' in c
@@ -2828,6 +2904,7 @@ def test_negative_indices_for_a_slice():
         target = qubits[-1]
 
         x.ctrl(controls, target)
+        cudaq.record(qubits)
 
     # test here is that it compiles and runs
     cudaq.sample(kernel)
@@ -3047,43 +3124,11 @@ def test_struct_list_int_member():
     def kernel_alloc_from_int(config: QubitConfig):
         qubits = cudaq.qvector(config.num_qubits[0])
         ry(config.angles[0], qubits[0])
+        cudaq.record(qubits)
 
     instance = QubitConfig(num_qubits=[2], angles=[np.pi])
     counts = cudaq.sample(kernel_alloc_from_int, instance)
     assert len(counts) == 1 and '10' in counts
-
-
-def test_named_reg_in_sample(capfd):
-
-    @cudaq.kernel
-    def foo():
-        q = cudaq.qubit()
-        x(q)
-        var = mz(q)
-
-    cudaq.sample(foo)
-    captured = capfd.readouterr()
-    assert "WARNING" in captured.err
-
-    @cudaq.kernel
-    def bar():
-        q = cudaq.qubit()
-        x(q)
-        mz(q)
-
-    cudaq.sample(bar)
-    captured = capfd.readouterr()
-    assert "WARNING" not in captured.err
-
-    @cudaq.kernel
-    def baz():
-        q = cudaq.qvector(2)
-        x(q[0])
-        mz(q, register_name="my_register")
-
-    cudaq.sample(baz)
-    captured = capfd.readouterr()
-    assert "WARNING" in captured.err
 
 
 # TODO: Update when `ApplyOpSpecialization` can handle multi-argument loops
@@ -3114,6 +3159,7 @@ def test_adjoint_bug():
         if withAdj:
             cudaq.adjoint(cudaq.kernels.uccsd, qubits, thetas, num_electrons,
                           num_qubits)
+        cudaq.record(qubits)
 
     cudaq.sample(kernel, True, shots_count=1000)
 
@@ -3143,6 +3189,7 @@ def test_trap_fail():
         q = cudaq.qvector(2)
         ctrl = q.front()
         x.ctrl(ctrl, q[1])
+        cudaq.record(q)
 
     counts = cudaq.sample(simple)
     print(counts)

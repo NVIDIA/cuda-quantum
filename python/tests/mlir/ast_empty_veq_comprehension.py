@@ -72,6 +72,7 @@ def test_empty_comprehension_broadcast_target():
     def kernel2():
         qs = cudaq.qvector(4)
         x([qs[i] for i in range(4) if i > 10])
+        cudaq.record(qs)
 
     # broadcasting a gate over zero targets must be a no-op
     counts = cudaq.sample(kernel2)
@@ -109,6 +110,7 @@ def test_empty_comprehension_controls():
         qs = cudaq.qvector(4)
         target = cudaq.qubit()
         x.ctrl([qs[i] for i in range(4) if i > 10], target)
+        cudaq.record(qs, target)
 
     # a gate controlled by zero qubits must act unconditionally
     counts = cudaq.sample(kernel3)

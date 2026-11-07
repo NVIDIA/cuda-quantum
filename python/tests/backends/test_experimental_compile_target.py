@@ -45,7 +45,7 @@ def make_swap_kernel():
         q = cudaq.qvector(2)
         x(q[0])
         swap(q[0], q[1])
-        mz(q)
+        cudaq.record(q)
 
     return swap_kernel
 
@@ -209,18 +209,18 @@ def test_support_explicit_measurements():
 
 def test_named_target_with_compile_target():
     ct = CompileTarget()
-    ct.support_explicit_measurements = False
+    ct.support_explicit_measurements = True
     cudaq.set_target("qpp-cpu", compile_target=ct)
     assert cudaq.get_target().name == "qpp-cpu"
-    assert cudaq_runtime.supportsExplicitMeasurements() is False
+    assert cudaq_runtime.supportsExplicitMeasurements() is True
 
     # A new seed must not rebuild the compile target from the target config.
     cudaq.set_random_seed(13)
-    assert cudaq_runtime.supportsExplicitMeasurements() is False
+    assert cudaq_runtime.supportsExplicitMeasurements() is True
 
     # Without compile_target, the target's default compile target is used.
     cudaq.set_target("qpp-cpu")
-    assert cudaq_runtime.supportsExplicitMeasurements() is True
+    assert cudaq_runtime.supportsExplicitMeasurements() is False
 
 
 def test_named_target_compiles_against_given_compile_target():
@@ -355,7 +355,7 @@ def make_static_bell_kernel():
         q = cudaq.qvector(2)
         h(q[0])
         x.ctrl(q[0], q[1])
-        mz(q)
+        cudaq.record(q)
 
     return bell
 

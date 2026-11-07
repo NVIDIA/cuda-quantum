@@ -57,7 +57,7 @@ struct bernstein_vazirani {
 
     oracle<nrOfBits>{}(bitvector, qs, aux);
     h(qs);
-    mz(qs);
+    cudaq::record(qs);
   }
 };
 

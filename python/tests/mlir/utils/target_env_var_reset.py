@@ -30,7 +30,7 @@ def test_env_var_update():
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
+    kernel.record(qubits)
 
     result = cudaq.sample(kernel)
     result.dump()
@@ -49,7 +49,7 @@ def test_env_var_update_kernel():
         qubits = cudaq.qvector(2)
         h(qubits[0])
         x.ctrl(qubits[0], qubits[1])
-        mz(qubits)
+        cudaq.record(qubits)
 
     os.environ["CUDAQ_DEFAULT_SIMULATOR"] = "qpp-cpu"
     assert ("qpp-cpu" != cudaq.get_target().name)

@@ -85,7 +85,7 @@ def grover(theta: float):
     oracle(qubits, ancilla)
     reflect_uniform(qubits, theta)
 
-    mz(qubits)
+    cudaq.record(qubits)
 
 
 theta = 2. * np.arccos(1. / np.sqrt(3.))

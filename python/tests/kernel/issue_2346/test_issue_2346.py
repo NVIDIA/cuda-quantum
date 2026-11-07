@@ -38,8 +38,8 @@ def test_kernel_call_via_partial_module_path():
     def test0():
         gates.qft_ops.qft_kernel()
 
-    counts = cudaq.sample(test0)
-    assert '0' in counts
+    state = cudaq.get_state(test0)
+    assert state[0] == pytest.approx(1.)
 
 
 def test_repeated_kernel_call_via_partial_module_path(monkeypatch):
@@ -78,12 +78,12 @@ def test_repeated_kernel_call_via_partial_module_path(monkeypatch):
 
     monkeypatch.setattr(ast_bridge, "recover_value_of_or_none",
                         counting_recover)
-    counts = cudaq.sample(test0)
-    assert '00' in counts
+    state = cudaq.get_state(test0)
+    assert state[0] == pytest.approx(1.)
     assert qft_alias.accesses == 1
     assert qualified_recovery_calls == 1
 
-    counts = cudaq.sample(test1)
-    assert '00' in counts
+    state = cudaq.get_state(test1)
+    assert state[0] == pytest.approx(1.)
     assert qft_alias.accesses == 2
     assert qualified_recovery_calls == 2

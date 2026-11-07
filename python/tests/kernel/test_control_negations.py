@@ -24,6 +24,7 @@ def test_builtin_controlled_gates():
         c, q = cudaq.qubit(), cudaq.qubit()
         cx(~c, q)
         cx(c, q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(control_simple_gate)
     assert counts["01"] == 1000
@@ -33,6 +34,7 @@ def test_builtin_controlled_gates():
         c, q = cudaq.qvector(4), cudaq.qubit()
         x(c[0], c[3])
         cx(c[0], ~c[1], ~c[2], c[3], q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(multi_control_simple_gate)
     assert counts["10011"] == 1000
@@ -42,6 +44,7 @@ def test_builtin_controlled_gates():
         c, q = cudaq.qubit(), cudaq.qubit()
         cry(np.pi, ~c, q)
         cry(np.pi, c, q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(control_rotation_gate)
     assert counts["01"] == 1000
@@ -51,6 +54,7 @@ def test_builtin_controlled_gates():
         c, q = cudaq.qvector(4), cudaq.qubit()
         x(c[0], c[3])
         cry(np.pi, c[0], ~c[1], ~c[2], c[3], q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(multi_control_rotation_gate)
     assert counts["10011"] == 1000
@@ -66,6 +70,7 @@ def test_ctrl_attribute():
         c, q = cudaq.qubit(), cudaq.qubit()
         x.ctrl(~c, q)
         x.ctrl(c, q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(control_simple_gate)
     assert counts["01"] == 1000
@@ -75,6 +80,7 @@ def test_ctrl_attribute():
         c, q = cudaq.qvector(4), cudaq.qubit()
         x(c[0], c[3])
         x.ctrl(c[0], ~c[1], ~c[2], c[3], q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(multi_control_simple_gate)
     assert counts["10011"] == 1000
@@ -84,6 +90,7 @@ def test_ctrl_attribute():
         c, q = cudaq.qubit(), cudaq.qubit()
         ry.ctrl(np.pi, ~c, q)
         ry.ctrl(np.pi, c, q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(control_rotation_gate)
     assert counts["01"] == 1000
@@ -93,6 +100,7 @@ def test_ctrl_attribute():
         c, q = cudaq.qvector(4), cudaq.qubit()
         x(c[0], c[3])
         ry.ctrl(np.pi, c[0], ~c[1], ~c[2], c[3], q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(multi_control_rotation_gate)
     assert counts["10011"] == 1000
@@ -103,6 +111,7 @@ def test_ctrl_attribute():
         x(q1)
         swap.ctrl(~c, q1, q2)
         swap.ctrl(c, q1, q2)
+        cudaq.record(c, q1, q2)
 
     counts = cudaq.sample(control_swap_gate)
     assert counts["001"] == 1000
@@ -113,6 +122,7 @@ def test_ctrl_attribute():
         x(q1)
         x(c[0], c[3])
         swap.ctrl(c[0], ~c[1], ~c[2], c[3], q1, q2)
+        cudaq.record(c, q1, q2)
 
     counts = cudaq.sample(multi_control_swap_gate)
     assert counts["100101"] == 1000
@@ -123,6 +133,7 @@ def test_ctrl_attribute():
         t, p, l = np.pi, 0., 0.
         u3.ctrl(t, p, l, ~c, q)
         u3.ctrl(t, p, l, c, q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(control_u3_gate)
     assert counts["01"] == 1000
@@ -133,6 +144,7 @@ def test_ctrl_attribute():
         x(c[0], c[2])
         t, p, l = np.pi, 0., 0.
         u3.ctrl(t, p, l, c[0], ~c[1], c[2], ~c[3], q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(multi_control_u3_gate)
     assert counts["10101"] == 1000
@@ -144,6 +156,7 @@ def test_ctrl_attribute():
         c, q = cudaq.qubit(), cudaq.qubit()
         custom_x.ctrl(~c, q)
         custom_x.ctrl(c, q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(control_registered_operation)
     assert counts["01"] == 1000
@@ -153,6 +166,7 @@ def test_ctrl_attribute():
         c, q = cudaq.qvector(4), cudaq.qubit()
         x(c[0], c[2])
         custom_x.ctrl(c[0], ~c[1], c[2], ~c[3], q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(multi_control_registered_operation)
     assert counts["10101"] == 1000
@@ -169,6 +183,7 @@ def test_cudaq_control():
         c, q = cudaq.qubit(), cudaq.qubit()
         cudaq.control(custom_x, ~c, q)
         cudaq.control(custom_x, c, q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(control_kernel)
     assert counts["01"] == 1000
@@ -178,6 +193,7 @@ def test_cudaq_control():
         c, q = cudaq.qvector(4), cudaq.qubit()
         x(c[0], c[3])
         cudaq.control(custom_x, c[0], ~c[1], ~c[2], c[3], q)
+        cudaq.record(c, q)
 
     counts = cudaq.sample(multi_control_kernel)
     assert counts["10011"] == 1000
@@ -281,6 +297,7 @@ def test_control_float_list_complex_real_access():
         qreg = cudaq.qvector(2)
         h(ancilla)
         cudaq.control(sub_kernel, ancilla, qreg, dt, values)
+        cudaq.record(ancilla, qreg)
 
     result = cudaq.sample(main_kernel, 0.1, [0.5 + 0j, 0.25 + 0j])
     assert len(result) > 0
@@ -303,6 +320,7 @@ def test_control_list_complex_real_access_no_float():
         qreg = cudaq.qvector(2)
         h(ancilla)
         cudaq.control(sub_kernel, ancilla, qreg, values)
+        cudaq.record(ancilla, qreg)
 
     # This should work
     result = cudaq.sample(main_kernel, [0.5 + 0j, 0.25 + 0j])
@@ -325,6 +343,7 @@ def test_control_float_list_complex_no_real_access():
         qreg = cudaq.qvector(2)
         h(ancilla)
         cudaq.control(sub_kernel, ancilla, qreg, dt, values)
+        cudaq.record(ancilla, qreg)
 
     result = cudaq.sample(main_kernel, 0.1, [0.5 + 0j, 0.25 + 0j])
     assert len(result) > 0

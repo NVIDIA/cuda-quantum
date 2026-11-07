@@ -21,7 +21,8 @@ def qpp_cpu_target():
 def test_amplitude_encode_builder_qalloc():
     state = cudaq.contrib.amplitude_encode([0.5, 0.5, 0.5], pad=0)
     kernel = cudaq.make_kernel()
-    kernel.qalloc(state)
+    q = kernel.qalloc(state)
+    kernel.record(q)
     counts = cudaq.sample(kernel, shots_count=1000)
     assert '00' in counts
     assert '01' in counts
@@ -32,7 +33,8 @@ def test_amplitude_encode_builder_qalloc():
 def test_amplitude_encode_builder_parameterized_state():
     encoded = cudaq.contrib.amplitude_encode([1.0, 0.0], pad=0)
     kernel, state_arg = cudaq.make_kernel(cudaq.State)
-    kernel.qalloc(state_arg)
+    q = kernel.qalloc(state_arg)
+    kernel.record(q)
     counts = cudaq.sample(kernel, encoded, shots_count=1000)
     assert counts['0'] > 900
 

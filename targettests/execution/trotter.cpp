@@ -91,6 +91,7 @@ struct trotter {
     for (std::size_t i = 0; i < coefficients.size(); ++i) {
       cudaq::exp_pauli(coefficients[i] * dt, q, words[i]);
     }
+    cudaq::record(q);
   }
 };
 

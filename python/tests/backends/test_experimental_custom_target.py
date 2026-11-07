@@ -33,7 +33,7 @@ def swap_kernel():
     q = cudaq.qvector(2)
     x(q[0])
     swap(q[0], q[1])
-    mz(q)
+    cudaq.record(q)
 
 
 class DemoEndpoint(RuntimeEndpoint):
@@ -82,10 +82,7 @@ def test_set_target_accepts_custom_target_subclass():
 
     assert result["00"] == 7
     assert len(target.runtime_endpoint.calls) == 1
-    assert target.runtime_endpoint.calls[0] == ("sample", {
-        "shots_count": 7,
-        "explicit_measurements": False
-    })
+    assert target.runtime_endpoint.calls[0] == ("sample", {"shots_count": 7})
 
 
 def test_set_target_accepts_direct_custom_target_instance():

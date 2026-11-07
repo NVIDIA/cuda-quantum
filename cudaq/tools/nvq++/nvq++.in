@@ -128,12 +128,6 @@ function f_option_handling {
 	-fkernel-execution)
 		ENABLE_KERNEL_EXECUTION=true
 		;;
-	-fno-inject-implicit-output)
-		ENABLE_INJECT_IMPLICIT_OUTPUT=false
-		;;
-	-finject-implicit-output)
-		ENABLE_INJECT_IMPLICIT_OUTPUT=true
-		;;
 	-fno-add-dealloc)
 		ENABLE_ADD_DEALLOC=false
 		;;
@@ -317,9 +311,6 @@ function show_help {
 
 -f[no-]kernel-execution
 	Enable/disable kernel execution pass.
-
--f[no-]inject-implicit-output
-	Enable/disable injection of implicit quake.log_output operations.
 
 -f[no-]add-dealloc
 	Enable/disable insertion of quantum deallocation operations.
@@ -538,7 +529,6 @@ ENABLE_AGGRESSIVE_INLINE=true
 ENABLE_EXPAND_MEASUREMENTS=true
 ENABLE_LOWER_TO_CFG=false
 ENABLE_APPLY_SPECIALIZATION=true
-ENABLE_INJECT_IMPLICIT_OUTPUT=true
 ENABLE_LAMBDA_LIFTING=true
 ENABLE_QUANTUM_OPTIMIZATION=true
 ENABLE_MLIR_LIB_LINKING=true
@@ -962,6 +952,12 @@ if ${ENABLE_REALTIME_LOWERING}; then
     LINKLIBS="${LINKLIBS} @CUDAQ_DEVICE_CALL_RUNTIME_LINK_LIBS@"
 fi
 
+# A simulator JIT-compiles every kernel at launch. Export the program's symbols
+# so a kernel can call code defined in it, e.g. `cudaq::apply_noise<...>`.
+if [ -z "${PLATFORM_QPU:-}" ]; then
+	LINKER_FLAGS="${LINKER_FLAGS} ${EXPORT_DYNAMIC_FLAG}"
+fi
+
 # Set the execution manager and the platform
 LINKLIBS="${LINKLIBS} -lcudaq-em-${LIBRARY_MODE_EXECUTION_MANAGER}"
 LINKLIBS="${LINKLIBS} -lcudaq-platform-${PLATFORM_LIBRARY}"
@@ -1009,20 +1005,9 @@ if ${ENABLE_UNWIND_LOWERING}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(unwind-lowering)")
 fi
-if ${ENABLE_INJECT_IMPLICIT_OUTPUT}; then
-	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(inject-implicit-output)")
-fi
 if ${ENABLE_ADD_DEALLOC}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(add-dealloc)")
-fi
-# Materialize `cudaq::record` as measurements here: a simulator runs the
-# AOT-compiled kernel directly and never invokes the compiler again.
-if ${ENABLE_INJECT_IMPLICIT_OUTPUT}; then
-	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" \
-		"func.func(add-measurements{use-evince=1 user-record-only=1})")
 fi
 if ${ENABLE_LAMBDA_LIFTING}; then
 	RUN_OPT=true

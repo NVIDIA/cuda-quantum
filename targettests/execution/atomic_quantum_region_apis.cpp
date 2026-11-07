@@ -40,6 +40,7 @@ struct atomic_round_trip {
     cudaq::qarray<3> q;
     atomic_workload{}(q);
     cudaq::adjoint(atomic_workload{}, q);
+    cudaq::record(q);
   }
 };
 
@@ -48,6 +49,7 @@ struct plain_round_trip {
     cudaq::qarray<3> q;
     plain_workload{}(q);
     cudaq::adjoint(plain_workload{}, q);
+    cudaq::record(q);
   }
 };
 

@@ -16,6 +16,7 @@
 __qpu__ void kernel() {
   cudaq::qubit qubit;
   h(qubit);
+  cudaq::record(qubit);
 }
 
 int main() {

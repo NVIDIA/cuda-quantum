@@ -150,6 +150,7 @@ func.func @__nvqpp__mlirgen__phaseResources() attributes {"cudaq-entrypoint", "c
   %q2 = quake.alloca !quake.ref
   quake.r1 (%angle) %q0 : (f64, !quake.ref) -> ()
   quake.r1 (%angle) [%q1 neg [true]] %q2 : (f64, !quake.ref, !quake.ref) -> ()
+  quake.evince %q0, %q1, %q2 : (!quake.ref, !quake.ref, !quake.ref) -> () {userRecord}
   return
 }
 )#";

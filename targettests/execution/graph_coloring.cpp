@@ -108,7 +108,7 @@ __qpu__ void grover(double theta) {
   oracle(qubits, ancilla);
   reflect_uniform(qubits, theta);
 
-  mz(qubits);
+  cudaq::record(qubits);
 };
 
 int main() {

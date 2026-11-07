@@ -840,6 +840,17 @@ qecOperandValues(const std::vector<QuakeValue> &operands) {
   return values;
 }
 
+void record(ImplicitLocOpBuilder &builder,
+            const std::vector<QuakeValue> &qubits) {
+  std::vector<Value> values;
+  values.reserve(qubits.size());
+  for (auto &q : qubits)
+    values.push_back(q.getValue());
+  auto evince = cudaq::quake::EvinceOp::create(builder, values,
+                                               /*compilerGenerated=*/false);
+  evince.setUserRecord(true);
+}
+
 void detector(ImplicitLocOpBuilder &builder,
               const std::vector<QuakeValue> &measurements) {
   cudaq::qec::DetectorOp::create(builder, qecOperandValues(measurements));
@@ -1092,7 +1103,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 }
 
 void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
-                std::string kernelName, void **argsArray,
+                std::string kernelName, void **argsArray, std::size_t numArgs,
                 std::vector<std::string> extraLibPaths,
                 StateVectorStorage &storage) {
 
@@ -1136,8 +1147,11 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   // Invoke and free the args memory.
   auto resultOffset = reinterpret_cast<std::uint64_t>(*roPtr);
 
-  [[maybe_unused]] auto uncheckedResult =
-      altLaunchKernel(properName.data(), thunk, rawArgs, size, resultOffset);
+  // Hand over the arguments in both forms, as for a `__qpu__` kernel, so the
+  // launch can synthesize or keep each one as the target requires.
+  std::vector<void *> typeErased(argsArray, argsArray + numArgs);
+  [[maybe_unused]] auto uncheckedResult = hybridLaunchKernel(
+      properName.data(), thunk, rawArgs, size, resultOffset, typeErased);
   std::free(rawArgs);
   // TODO: any return values are dropped on the floor here.
 }

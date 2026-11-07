@@ -24,7 +24,7 @@ def test_sdg_0_state():
         sdg(qubit)
         # Apply another hadamard.
         h(qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(sdg_0_state)
     print(counts)
@@ -50,7 +50,7 @@ def test_sdg_1_state():
         sdg(qubit)
         # Apply another hadamard.
         h(qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(sdg_1_state)
     print(counts)
@@ -78,7 +78,7 @@ def test_sdg_0_state_negate():
         s(qubit)
         # Apply another hadamard.
         h(qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(sdg_0_state_negate)
     print(counts)
@@ -105,7 +105,7 @@ def test_sdg_1_state_negate():
         z(qubit)
         # Apply another hadamard.
         h(qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(sdg_1_state_negate)
     print(counts)
@@ -130,7 +130,7 @@ def test_tdg_0_state():
         tdg(qubit)
         # Apply another hadamard.
         h(qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(tdg_0_state)
     print(counts)
@@ -158,7 +158,7 @@ def test_tdg_1_state():
         tdg(qubit)
         # Apply another hadamard.
         h(qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(tdg_1_state)
     print(counts)
@@ -186,7 +186,7 @@ def test_tdg_0_state_negate():
         z(qubit)
         # Apply another hadamard.
         h(qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(tdg_0_state_negate)
     print(counts)
@@ -218,7 +218,7 @@ def test_tdg_1_state_negate():
         t(qubit)
         # Apply another hadamard.
         h(qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(tdg_1_state_negate)
     print(counts)

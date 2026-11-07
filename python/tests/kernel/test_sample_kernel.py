@@ -31,6 +31,7 @@ def test_simple_sampling_ghz():
         h(qubits.front())
         for i, qubit in enumerate(qubits.front(numQubits - 1)):
             x.ctrl(qubit, qubits[i + 1])
+        cudaq.record(qubits)
 
     print(simple)
     counts = cudaq.sample(simple, 10)
@@ -75,7 +76,7 @@ def test_simple_sampling_qpe():
             for j in range(2**i):
                 cudaq.control(oracle, [countingQubits[i]], stateRegister)
         iqft(countingQubits)
-        mz(countingQubits)
+        cudaq.record(countingQubits)
 
     cudaq.set_random_seed(13)
     counts = cudaq.sample(qpe, 3, 1, xGate, tGate)
@@ -108,6 +109,7 @@ def test_broadcast():
         h(qubits[0])
         for i in range(inSize - 1):
             x.ctrl(qubits[i], qubits[i + 1])
+        cudaq.record(qubits)
 
     cudaq.set_random_seed(13)
     allCounts = cudaq.sample(circuit, [3, 4, 5, 6, 7])
@@ -133,6 +135,7 @@ def test_broadcast():
         rx(angles[0], q[0])
         ry(angles[1], q[0])
         x.ctrl(q[0], q[1])
+        cudaq.record(q)
 
     runtimeAngles = np.array([[1.41075134, 1.16822118], [1.4269374, 1.61847813],
                               [2.67020804,
@@ -156,6 +159,7 @@ def test_broadcastPy39Plus():
         rx(angles[0], q[0])
         ry(angles[1], q[0])
         x.ctrl(q[0], q[1])
+        cudaq.record(q)
 
     runtimeAngles = np.array([[1.41075134, 1.16822118], [1.4269374, 1.61847813],
                               [2.67020804,
@@ -184,6 +188,7 @@ def test_list_pauli_word_not_broadcast():
     def kernel_pauli_list(words: list[cudaq.pauli_word]):
         qreg = cudaq.qvector(2)
         exp_pauli(0.1, qreg, words[0])
+        cudaq.record(qreg)
 
     # Test with list of pauli_word objects
     words_obj = [cudaq.pauli_word("ZZ"), cudaq.pauli_word("XX")]
@@ -202,6 +207,7 @@ def test_sample_async():
     def kernel0(i: int):
         q = cudaq.qubit()
         x(q)
+        cudaq.record(q)
 
     future = cudaq.sample_async(kernel0, 5, qpu_id=0)
     sample_result = future.get()
@@ -217,6 +223,7 @@ def test_conditional_bare_return():
         if skip:
             return
         x(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, True, shots_count=100)
     assert '0' in counts and len(counts) == 1
@@ -233,6 +240,7 @@ def test_composite_conditional_bare_return():
         if value != 1 and value != 2:
             return
         x(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, 0, shots_count=100)
     assert '0' in counts and len(counts) == 1
@@ -251,6 +259,7 @@ def test_bare_return_in_loop():
             if i == 2:
                 return
             x(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, 1, shots_count=100)
     assert '1' in counts and len(counts) == 1
@@ -264,6 +273,7 @@ def test_function_scope_bare_return():
     @cudaq.kernel
     def kernel():
         q = cudaq.qubit()
+        cudaq.record(q)
 
         return
         x(q)

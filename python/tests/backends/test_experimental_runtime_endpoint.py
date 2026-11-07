@@ -40,6 +40,7 @@ def reset():
 def kernel(n_qubits: int, array: list[int]):
     qbs = cudaq.qvector(n_qubits)
     h(qbs[0])
+    cudaq.record(qbs)
 
 
 @cudaq.kernel
@@ -138,7 +139,6 @@ def test_sample_launch():
     # The first argument is a scalar and decodes; the vector does not.
     assert args == "KernelArgs([1, <instance of !cc.sequence<i64>>])"
     assert kwargs["shots_count"] == 12
-    assert kwargs["explicit_measurements"] is False
 
     # The counts produced by the endpoint reach the caller.
     assert result["00"] == 12

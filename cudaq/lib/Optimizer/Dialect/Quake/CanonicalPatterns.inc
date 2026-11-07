@@ -302,13 +302,18 @@ struct DropEmptyVeqEvinceArgsPattern
     if (keep.size() == args.size())
       return failure();
 
-    if (keep.empty()) {
+    // A `cudaq::record` of empty registers stays: it records nothing.
+    if (keep.empty() && !evin.getUserRecord()) {
       rewriter.eraseOp(evin);
       return success();
     }
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
+    SmallVector<NamedAttribute> attrs(evin->getAttrs());
+    auto newOp = rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
         evin, keep, evin.getCompilerGenerated());
+    // Carry every attribute across
+    for (auto namedAttr : attrs)
+      newOp->setAttr(namedAttr.getName(), namedAttr.getValue());
     return success();
   }
 };

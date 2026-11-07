@@ -54,6 +54,9 @@ detail::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
     nlohmann::json jReorder = codesToExecute[i].mapping_reorder_idx;
     config["reorderIdx." + task_id] = jReorder.dump();
 
+    nlohmann::json jRecorded = codesToExecute[i].recordedQubits;
+    config["recordedQubits." + task_id] = jRecorded.dump();
+
     i++;
   }
 

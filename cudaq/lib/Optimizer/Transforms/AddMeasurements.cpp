@@ -9,7 +9,6 @@
 #include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "llvm/ADT/SetVector.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -44,8 +43,8 @@ struct Analysis {
             op = user;
         }
         allocations.emplace_back(op);
-      } else if (isa<cudaq::quake::NullWireOp, cudaq::quake::NullCableOp,
-                     cudaq::quake::BorrowWireOp>(op)) {
+      } else if (isa<cudaq::quake::BorrowWireOp, cudaq::quake::NullWireOp,
+                     cudaq::quake::NullCableOp>(op)) {
         allocations.emplace_back(op);
       } else if (isa<cudaq::quake::SinkOp, cudaq::quake::DeallocOp>(op)) {
         // Record deallocations. These supercede return ops in precedence.
@@ -162,63 +161,6 @@ addReturnMeasurements(func::FuncOp funcOp,
   return success();
 }
 
-/// Populate the `mapping_reorder_idx` attribute on \p funcOp.
-///
-/// The mapping pass places virtual qubit `v` on physical qubit
-/// `mapping_v2p[v]`, and a backend returns the global register sorted by
-/// physical qubit. This attribute records the permutation that puts those bits
-/// back into qubit allocation order; it is handed to
-/// `sample_result::reorder()` after execution.
-///
-/// The operands of the evince ops are in allocation order, so operand `i`
-/// identifies virtual qubit `i`. Only call this when every evinced qubit was
-/// measured: the attribute must have exactly one entry per bit in the global
-/// register.
-void setMappingReorderIdx(func::FuncOp funcOp,
-                          const SmallVector<Operation *> &evinces) {
-  auto mappingAttr =
-      dyn_cast_if_present<ArrayAttr>(funcOp->getAttr("mapping_v2p"));
-  if (!mappingAttr)
-    return;
-
-  // Flatten the evince operands into allocation order. A qubit can be evinced
-  // more than once when the returns do not share an exit block, so keep only
-  // the first occurrence of each.
-  SetVector<Value> qubits;
-  for (Operation *op : evinces)
-    for (Value opnd : op->getOperands())
-      if (cudaq::quake::isQuantumType(opnd.getType()))
-        qubits.insert(opnd);
-  if (qubits.empty() || qubits.size() > mappingAttr.size())
-    return;
-
-  // pair is <first=virtual, second=physical>
-  using VirtPhyPairType = std::pair<std::size_t, std::size_t>;
-  SmallVector<VirtPhyPairType> measuredQubits;
-  measuredQubits.reserve(qubits.size());
-  for (std::size_t v = 0; v < qubits.size(); ++v)
-    measuredQubits.emplace_back(v, cast<IntegerAttr>(mappingAttr[v]).getInt());
-
-  // Sort by physical qubit, which is the order the backend reports, then find
-  // the permutation that restores virtual (allocation) order.
-  llvm::sort(measuredQubits,
-             [](const VirtPhyPairType &a, const VirtPhyPairType &b) {
-               return a.second < b.second;
-             });
-  SmallVector<std::size_t> reorderIdx(measuredQubits.size());
-  for (std::size_t ix = 0; auto &element : reorderIdx)
-    element = ix++;
-  llvm::sort(reorderIdx, [&](const std::size_t &i1, const std::size_t &i2) {
-    return measuredQubits[i1].first < measuredQubits[i2].first;
-  });
-
-  OpBuilder builder(funcOp.getContext());
-  SmallVector<Attribute> attrs(reorderIdx.size());
-  for (std::size_t ix = 0; auto &element : attrs)
-    element = IntegerAttr::get(builder.getIntegerType(64), reorderIdx[ix++]);
-  funcOp->setAttr("mapping_reorder_idx", builder.getArrayAttr(attrs));
-}
-
 struct AddMeasurementsPass
     : public cudaq::opt::impl::AddMeasurementsBase<AddMeasurementsPass> {
   using AddMeasurementsBase::AddMeasurementsBase;
@@ -249,37 +191,10 @@ struct AddMeasurementsPass
     if (analysis.hasMeasurement || !analysis.hasQubitAlloca())
       return;
 
-    // When asked, act only on a kernel that named its qubits with
-    // `cudaq::record`. `inject-implicit-output` does not inject when a record
-    // is present, so such a kernel's evinces are exactly its record.
-    if (userRecordOnly &&
-        llvm::none_of(analysis.evinces, [](mlir::Operation *op) {
-          return cast<cudaq::quake::EvinceOp>(op).getUserRecord();
-        }))
-      return;
-
     LLVM_DEBUG(llvm::dbgs() << "Before adding measurements:\n" << *func);
     if (useEvince && analysis.hasEvinces()) {
       if (failed(addMeasurementsBefore(func, analysis.evinces)))
         signalPassFailure();
-      else if (userRecordOnly) {
-        // Consume the record here. Left in place it keeps using the measured
-        // qubit, which makes the measurement look mid-circuit to the passes
-        // that follow and gets it lowered to measure/reset/restore. Record the
-        // fact on the function so later stages still know the kernel used
-        // `cudaq::record`.
-        func->setAttr("cudaq.user_record",
-                      mlir::UnitAttr::get(func.getContext()));
-        for (Operation *op : analysis.evinces) {
-          auto evince = cast<cudaq::quake::EvinceOp>(op);
-          unsigned resultIdx = 0;
-          for (Value arg : evince.getArgs())
-            if (cudaq::quake::isLinearType(arg.getType()))
-              evince.getOuts()[resultIdx++].replaceAllUsesWith(arg);
-          op->erase();
-        }
-      } else
-        setMappingReorderIdx(func, analysis.evinces);
     } else if (analysis.hasQubitDeallocs()) {
       if (failed(addMeasurementsBefore(func, analysis.deallocations)))
         signalPassFailure();

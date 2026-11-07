@@ -56,6 +56,7 @@ int main() {
     ansatz.x(q[0]);
     ansatz.ry(theta, q[1]);
     ansatz.x<cudaq::ctrl>(q[1], q[0]); // Need to get rid of ::
+    ansatz.record(q);
 
     // The buildable kernel can be passed to CUDA-Q functions
     // just like a declared kernel type.
@@ -94,6 +95,7 @@ int main() {
     // -or- `ansatz_builder.ry(-1 * thetas[0], q[1]);`
     ansatz.x<cudaq::ctrl>(q[0], q[1]);
     ansatz.x<cudaq::ctrl>(q[1], q[0]);
+    ansatz.record(q);
 
     // You now have a callable kernel, use it with the VQE algorithm
     cudaq::gradients::central_difference gradient(ansatz);
@@ -115,7 +117,7 @@ int main() {
     for (int i = 0; i < n_qubits - 1; i++) {
       ghz_builder.x<cudaq::ctrl>(q[i], q[i + 1]);
     }
-    ghz_builder.mz(q);
+    ghz_builder.record(q);
 
     // You can get the MLIR representation
     auto mlir_code = ghz_builder.to_quake();
@@ -136,7 +138,7 @@ int main() {
     std::vector<cudaq::complex> init_state;
     auto qubits = sim_builder.qalloc(init_state);
     // Build the quantum circuit template here.
-    sim_builder.mz(qubits);
+    sim_builder.record(qubits);
 
     // Now we are ready to instantiate the kernel and invoke it. So we can set
     // the `init_state` to a vector with 2 complex values (1 qubit) and
@@ -165,7 +167,7 @@ int main() {
     ccnot_builder.x(q);
     ccnot_builder.x(q[1]);
     ccnot_builder.x<cudaq::ctrl>(q[0], q[1], q[2]);
-    ccnot_builder.mz(q);
+    ccnot_builder.record(q);
 
     auto mlir_code = ccnot_builder.to_quake();
     printf("%s\n", mlir_code.c_str());

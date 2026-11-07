@@ -20,7 +20,7 @@ def foo(value: bool):
     if value:
         x(q)
 
-    result = mz(q)
+    cudaq.record(q)
 
 
 result = cudaq.sample(foo, True, shots_count=100)

@@ -14,9 +14,6 @@ config:
   platform-qpu: remote_rest
   # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
-  # This target uses the explicit-record contract: the kernel names the qubits
-  # to report with `cudaq::record(...)` and does not measure for itself.
-  needs-implicit-measurements: false
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Add the rest-qpu library to the link list

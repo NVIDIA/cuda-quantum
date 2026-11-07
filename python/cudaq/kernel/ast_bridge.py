@@ -1742,6 +1742,25 @@ class PyASTBridge(ast.NodeVisitor):
             groupedVals = *frontVals, values, *backVals
         return groupedVals[0] if len(groupedVals) == 1 else groupedVals
 
+    def _lowerRecord(self, node):
+        """Lower ``cudaq.record(...)`` to a user-written ``quake.evince``.
+
+        The arguments, in order, name the qubits whose measurements form the
+        sampling histogram. The compiler materializes them as measurements and
+        consumes the marker.
+        """
+        if not node.args:
+            self.emitFatalError(
+                "cudaq.record requires at least one qubit argument", node)
+
+        n = len(node.args)
+        if n == 1:
+            values = [self.__groupValues(node.args, [1])]
+        else:
+            values = list(self.__groupValues(node.args, [n]))
+
+        quake.EvinceOp([], values, userRecord=True)
+
     def _lowerQECOp(self, node):
         """Lower ``cudaq.detector(...)``, ``cudaq.logical_observable(...)``,
         and ``cudaq.detectors(prev, curr)`` to the matching ``qec.*`` MLIR op.
@@ -3897,6 +3916,9 @@ class PyASTBridge(ast.NodeVisitor):
                         self.pushValue(
                             quake.DiscriminateOp(resTy, handle).result)
                         return
+
+                    if node.func.attr == "record":
+                        return self._lowerRecord(node)
 
                     if node.func.attr in ("detector", "logical_observable",
                                           "detectors"):

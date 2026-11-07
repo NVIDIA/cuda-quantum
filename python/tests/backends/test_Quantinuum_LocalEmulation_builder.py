@@ -36,7 +36,7 @@ def test_quantinuum_sample():
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
+    kernel.record(qubits)
     print(kernel)
 
     # Run sample synchronously, this is fine
@@ -67,6 +67,7 @@ def test_quantinuum_observe():
     kernel.x(qreg[0])
     kernel.ry(theta, qreg[1])
     kernel.cx(qreg[1], qreg[0])
+    kernel.record(qreg)
 
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -90,6 +91,7 @@ def test_quantinuum_exp_pauli():
     qreg = kernel.qalloc(2)
     kernel.x(qreg[0])
     kernel.exp_pauli(theta / -2.0, qreg, "XY")
+    kernel.record(qreg)
     print(kernel)
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -116,6 +118,7 @@ def test_quantinuum_state_synthesis():
     kernel, state = cudaq.make_kernel(cudaq.State)
     qubits = kernel.qalloc(state)
     kernel.x(qubits[1])
+    kernel.record(qubits)
 
     s = cudaq.get_state(kernel, s)
     counts = cudaq.sample(kernel, s)
@@ -127,6 +130,7 @@ def test_exp_pauli():
     test = cudaq.make_kernel()
     q = test.qalloc(2)
     test.exp_pauli(1.0, q, "XX")
+    test.record(q)
 
     counts = cudaq.sample(test)
     print(test, counts)
@@ -140,6 +144,7 @@ def test_exp_pauli_param():
     test, w = cudaq.make_kernel(cudaq.pauli_word)
     q = test.qalloc(2)
     test.exp_pauli(1.0, q, w)
+    test.record(q)
 
     counts = cudaq.sample(test, cudaq.pauli_word("XX"))
     print(test, counts)

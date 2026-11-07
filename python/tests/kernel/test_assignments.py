@@ -1464,6 +1464,7 @@ def test_inner_functions():
             ry(angle, q)
 
         apply_ry()
+        cudaq.record(q)
 
     out = cudaq.sample(test4a)
     assert len(out) == 1 and '1' in out

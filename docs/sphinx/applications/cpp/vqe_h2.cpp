@@ -70,6 +70,7 @@ struct so4_fabric {
         counter += 6;
       }
     }
+    cudaq::record(q);
   }
 };
 

@@ -169,6 +169,7 @@ def test_QuakeValueInForLoop():
     # `QuakeValue` as start index
     kernel.for_loop(start, 1, foo)
     kernel.for_loop(start, stop - 1, foo)
+    kernel.record(qubits)
     print(kernel)
 
     # Execute the kernel, passing along concrete values for the

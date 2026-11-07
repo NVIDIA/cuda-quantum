@@ -14,14 +14,7 @@
 // RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=identity search=none' --delay-measurements %s | FileCheck --check-prefix STAR52 %s
 
 module {
-  // This kernel measures explicitly, which `sample` and `observe` no longer
-// support: they add their own measurements after mapping, keyed off the
-// `quake.evince` ops. It is kept in this form to cover mapping a measurement
-// for `cudaq::run`, which does support them. No `mapping_reorder_idx` is
-// expected below: that attribute comes from `add-measurements`, which bails
-// out when the kernel already has measurements of its own.
-
-quake.wire_set @wires[2147483647]
+  quake.wire_set @wires[2147483647]
   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %0 = quake.borrow_wire @wires[0] : !quake.wire
     %1 = quake.borrow_wire @wires[1] : !quake.wire
@@ -77,116 +70,86 @@ quake.wire_set @wires[2147483647]
     %51 = quake.t %50#1 : (!quake.wire) -> !quake.wire
     %52 = quake.t %50#0 : (!quake.wire) -> !quake.wire
     %53 = quake.h %47 : (!quake.wire) -> !quake.wire
-    %54 = cc.alloca !cc.array<i1 x 4>
-    %bit, %wires = quake.mz %52 name "result%0" : (!quake.wire) -> (!quake.measure, !quake.wire)
-    %bits = quake.discriminate %bit : (!quake.measure) -> i1
-    %55 = cc.compute_ptr %54[0] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-    cc.store %bits, %55 : !cc.ptr<i1>
-    %bit_0, %wires_1 = quake.mz %51 name "result%1" : (!quake.wire) -> (!quake.measure, !quake.wire)
-    %bits_0 = quake.discriminate %bit_0 : (!quake.measure) -> i1
-    %56 = cc.compute_ptr %54[1] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-    cc.store %bits_0, %56 : !cc.ptr<i1>
-    %bit_2, %wires_3 = quake.mz %37 name "result%2" : (!quake.wire) -> (!quake.measure, !quake.wire)
-    %bits_2 = quake.discriminate %bit_2 : (!quake.measure) -> i1
-    %57 = cc.compute_ptr %54[2] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-    cc.store %bits_2, %57 : !cc.ptr<i1>
-    %bit_4, %wires_5 = quake.mz %38 name "result%3" : (!quake.wire) -> (!quake.measure, !quake.wire)
-    %bits_4 = quake.discriminate %bit_4 : (!quake.measure) -> i1
-    %58 = cc.compute_ptr %54[3] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-    cc.store %bits_4, %58 : !cc.ptr<i1>
+    %54:4 = quake.evince %52, %51, %37, %38 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire) {userRecord}
     quake.return_wire %53 : !quake.wire
-    quake.return_wire %wires : !quake.wire
-    quake.return_wire %wires_1 : !quake.wire
-    quake.return_wire %wires_3 : !quake.wire
-    quake.return_wire %wires_5 : !quake.wire
+    quake.return_wire %54#0 : !quake.wire
+    quake.return_wire %54#1 : !quake.wire
+    quake.return_wire %54#2 : !quake.wire
+    quake.return_wire %54#3 : !quake.wire
     return
   }
 }
 
+// CHECK-LABEL:   quake.wire_set @mapped_wireset[5] adjacency sparse<{{\[\[}}0, 1], [1, 2], [1, 0], [2, 3], [2, 1], [3, 4], [3, 2], [4, 3]], true> : tensor<5x5xi1> attributes {sym_visibility = "private"}
+// CHECK:         quake.wire_set @wires[2147483647]
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_v2p = [2, 1, 0, 3, 4], no_this} {
-// CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @mapped_wireset
-// CHECK:           %[[VAL_1:.*]] = quake.borrow_wire @mapped_wireset
-// CHECK:           %[[VAL_2:.*]] = quake.borrow_wire @mapped_wireset
-// CHECK:           %[[VAL_3:.*]] = quake.borrow_wire @mapped_wireset
-// CHECK:           %[[VAL_4:.*]] = quake.borrow_wire @mapped_wireset
-// CHECK:           %[[VAL_5:.*]] = quake.x %[[VAL_1]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_6:.*]] = quake.x %[[VAL_2]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_7:.*]] = quake.x %[[VAL_3]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_8:.*]] = quake.x %[[VAL_4]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_9:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_10:.*]] = quake.h %[[VAL_8]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_11:.*]] = cc.alloca !cc.array<i1 x 4>
-// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]][0] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_11]][1] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_11]][2] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_11]][3] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_16:.*]]:2 = quake.swap %[[VAL_9]], %[[VAL_5]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_17:.*]]:2 = quake.swap %[[VAL_10]], %[[VAL_7]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_18:.*]]:2 = quake.x {{\[}}%[[VAL_6]]] %[[VAL_16]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_19:.*]] = quake.t<adj> %[[VAL_18]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_20:.*]]:2 = quake.x {{\[}}%[[VAL_16]]#0] %[[VAL_19]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_21:.*]] = quake.t %[[VAL_20]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_22:.*]]:2 = quake.x {{\[}}%[[VAL_18]]#0] %[[VAL_21]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_23:.*]] = quake.t<adj> %[[VAL_22]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_24:.*]]:2 = quake.x {{\[}}%[[VAL_20]]#0] %[[VAL_23]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_25:.*]] = quake.t %[[VAL_24]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_26:.*]] = quake.h %[[VAL_25]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_27:.*]]:2 = quake.swap %[[VAL_22]]#0, %[[VAL_26]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_28:.*]]:2 = quake.x {{\[}}%[[VAL_24]]#0] %[[VAL_27]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_29:.*]] = quake.t<adj> %[[VAL_28]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_30:.*]]:2 = quake.x {{\[}}%[[VAL_28]]#0] %[[VAL_29]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_31:.*]] = quake.t %[[VAL_30]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_32:.*]] = quake.t %[[VAL_30]]#0 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_33:.*]]:2 = quake.x {{\[}}%[[VAL_27]]#0] %[[VAL_17]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_34:.*]] = quake.t<adj> %[[VAL_33]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_35:.*]]:2 = quake.x {{\[}}%[[VAL_17]]#0] %[[VAL_34]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_36:.*]] = quake.t %[[VAL_35]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_37:.*]]:2 = quake.x {{\[}}%[[VAL_33]]#0] %[[VAL_36]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_38:.*]] = quake.t<adj> %[[VAL_37]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_39:.*]]:2 = quake.x {{\[}}%[[VAL_35]]#0] %[[VAL_38]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_40:.*]] = quake.t %[[VAL_39]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_41:.*]] = quake.h %[[VAL_40]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_42:.*]]:2 = quake.swap %[[VAL_39]]#0, %[[VAL_41]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_43:.*]]:2 = quake.x {{\[}}%[[VAL_42]]#1] %[[VAL_37]]#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_44:.*]] = quake.t<adj> %[[VAL_43]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_45:.*]]:2 = quake.x {{\[}}%[[VAL_43]]#0] %[[VAL_44]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_46:.*]] = quake.t %[[VAL_45]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_47:.*]] = quake.t %[[VAL_45]]#0 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_48:.*]] = quake.h %[[VAL_46]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_49:.*]]:2 = quake.x {{\[}}%[[VAL_31]]] %[[VAL_48]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_50:.*]] = quake.t<adj> %[[VAL_49]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_51:.*]]:2 = quake.swap %[[VAL_32]], %[[VAL_49]]#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_52:.*]]:2 = quake.x {{\[}}%[[VAL_51]]#1] %[[VAL_50]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_53:.*]] = quake.t %[[VAL_52]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_54:.*]]:2 = quake.swap %[[VAL_51]]#0, %[[VAL_52]]#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_55:.*]]:2 = quake.x {{\[}}%[[VAL_54]]#1] %[[VAL_53]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_56:.*]] = quake.t<adj> %[[VAL_55]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_57:.*]]:2 = quake.swap %[[VAL_54]]#0, %[[VAL_55]]#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_58:.*]]:2 = quake.x {{\[}}%[[VAL_57]]#1] %[[VAL_56]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_59:.*]] = quake.t %[[VAL_58]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_60:.*]]:2 = quake.x {{\[}}%[[VAL_58]]#0] %[[VAL_57]]#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_61:.*]] = quake.t<adj> %[[VAL_60]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_62:.*]]:2 = quake.x {{\[}}%[[VAL_60]]#0] %[[VAL_61]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_63:.*]] = quake.t %[[VAL_62]]#1 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_64:.*]] = quake.t %[[VAL_62]]#0 : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_65:.*]] = quake.h %[[VAL_59]] : (!quake.wire) -> !quake.wire
-// CHECK:           quake.return_wire %[[VAL_65]] : !quake.wire
-// CHECK:           %[[VAL_66:.*]], %[[VAL_67:.*]] = quake.mz %[[VAL_64]] name "result%[[VAL_0]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_68:.*]] = quake.discriminate %[[VAL_66]] : (!quake.measure) -> i1
-// CHECK:           cc.store %[[VAL_68]], %[[VAL_12]] : !cc.ptr<i1>
-// CHECK:           quake.return_wire %[[VAL_67]] : !quake.wire
-// CHECK:           %[[VAL_69:.*]], %[[VAL_70:.*]] = quake.mz %[[VAL_63]] name "result%[[VAL_1]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_71:.*]] = quake.discriminate %[[VAL_69]] : (!quake.measure) -> i1
-// CHECK:           cc.store %[[VAL_71]], %[[VAL_13]] : !cc.ptr<i1>
-// CHECK:           quake.return_wire %[[VAL_70]] : !quake.wire
-// CHECK:           %[[VAL_72:.*]], %[[VAL_73:.*]] = quake.mz %[[VAL_47]] name "result%[[VAL_2]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_74:.*]] = quake.discriminate %[[VAL_72]] : (!quake.measure) -> i1
-// CHECK:           cc.store %[[VAL_74]], %[[VAL_14]] : !cc.ptr<i1>
-// CHECK:           quake.return_wire %[[VAL_73]] : !quake.wire
-// CHECK:           %[[VAL_75:.*]], %[[VAL_76:.*]] = quake.mz %[[VAL_42]]#0 name "result%[[VAL_3]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_77:.*]] = quake.discriminate %[[VAL_75]] : (!quake.measure) -> i1
-// CHECK:           cc.store %[[VAL_77]], %[[VAL_15]] : !cc.ptr<i1>
-// CHECK:           quake.return_wire %[[VAL_76]] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[2] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_3:.*]] = quake.borrow_wire @mapped_wireset[3] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_4:.*]] = quake.borrow_wire @mapped_wireset[4] : !quake.wire
+// CHECK:           %[[X_0:.*]] = quake.x %[[BORROW_WIRE_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_1:.*]] = quake.x %[[BORROW_WIRE_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_2:.*]] = quake.x %[[BORROW_WIRE_3]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_3:.*]] = quake.x %[[BORROW_WIRE_4]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[H_0:.*]] = quake.h %[[BORROW_WIRE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[H_1:.*]] = quake.h %[[X_3]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[SWAP_0:.*]]:2 = quake.swap %[[H_0]], %[[X_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[SWAP_1:.*]]:2 = quake.swap %[[H_1]], %[[X_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_4:.*]]:2 = quake.x {{\[}}%[[X_1]]] %[[SWAP_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_0:.*]] = quake.t<adj> %[[X_4]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_5:.*]]:2 = quake.x {{\[}}%[[SWAP_0]]#0] %[[T_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_1:.*]] = quake.t %[[X_5]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_6:.*]]:2 = quake.x {{\[}}%[[X_4]]#0] %[[T_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_2:.*]] = quake.t<adj> %[[X_6]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_7:.*]]:2 = quake.x {{\[}}%[[X_5]]#0] %[[T_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_3:.*]] = quake.t %[[X_7]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[H_2:.*]] = quake.h %[[T_3]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[SWAP_2:.*]]:2 = quake.swap %[[X_6]]#0, %[[H_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_8:.*]]:2 = quake.x {{\[}}%[[X_7]]#0] %[[SWAP_2]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_4:.*]] = quake.t<adj> %[[X_8]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_9:.*]]:2 = quake.x {{\[}}%[[X_8]]#0] %[[T_4]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_5:.*]] = quake.t %[[X_9]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[T_6:.*]] = quake.t %[[X_9]]#0 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_10:.*]]:2 = quake.x {{\[}}%[[SWAP_2]]#0] %[[SWAP_1]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_7:.*]] = quake.t<adj> %[[X_10]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_11:.*]]:2 = quake.x {{\[}}%[[SWAP_1]]#0] %[[T_7]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_8:.*]] = quake.t %[[X_11]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_12:.*]]:2 = quake.x {{\[}}%[[X_10]]#0] %[[T_8]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_9:.*]] = quake.t<adj> %[[X_12]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_13:.*]]:2 = quake.x {{\[}}%[[X_11]]#0] %[[T_9]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_10:.*]] = quake.t %[[X_13]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[H_3:.*]] = quake.h %[[T_10]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[SWAP_3:.*]]:2 = quake.swap %[[X_13]]#0, %[[H_3]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_14:.*]]:2 = quake.x {{\[}}%[[SWAP_3]]#1] %[[X_12]]#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_11:.*]] = quake.t<adj> %[[X_14]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_15:.*]]:2 = quake.x {{\[}}%[[X_14]]#0] %[[T_11]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_12:.*]] = quake.t %[[X_15]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[T_13:.*]] = quake.t %[[X_15]]#0 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[H_4:.*]] = quake.h %[[T_12]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_16:.*]]:2 = quake.x {{\[}}%[[T_5]]] %[[H_4]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_14:.*]] = quake.t<adj> %[[X_16]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[SWAP_4:.*]]:2 = quake.swap %[[T_6]], %[[X_16]]#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_17:.*]]:2 = quake.x {{\[}}%[[SWAP_4]]#1] %[[T_14]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_15:.*]] = quake.t %[[X_17]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[SWAP_5:.*]]:2 = quake.swap %[[SWAP_4]]#0, %[[X_17]]#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_18:.*]]:2 = quake.x {{\[}}%[[SWAP_5]]#1] %[[T_15]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_16:.*]] = quake.t<adj> %[[X_18]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[SWAP_6:.*]]:2 = quake.swap %[[SWAP_5]]#0, %[[X_18]]#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_19:.*]]:2 = quake.x {{\[}}%[[SWAP_6]]#1] %[[T_16]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_17:.*]] = quake.t %[[X_19]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_20:.*]]:2 = quake.x {{\[}}%[[X_19]]#0] %[[SWAP_6]]#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_18:.*]] = quake.t<adj> %[[X_20]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_21:.*]]:2 = quake.x {{\[}}%[[X_20]]#0] %[[T_18]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[T_19:.*]] = quake.t %[[X_21]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[T_20:.*]] = quake.t %[[X_21]]#0 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[H_5:.*]] = quake.h %[[T_17]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[EVINCE_0:.*]]:4 = quake.evince %[[T_20]], %[[T_19]], %[[T_13]], %[[SWAP_3]]#0 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire) {userRecord}
+// CHECK:           quake.return_wire %[[EVINCE_0]]#1 : !quake.wire
+// CHECK:           quake.return_wire %[[EVINCE_0]]#0 : !quake.wire
+// CHECK:           quake.return_wire %[[H_5]] : !quake.wire
+// CHECK:           quake.return_wire %[[EVINCE_0]]#2 : !quake.wire
+// CHECK:           quake.return_wire %[[EVINCE_0]]#3 : !quake.wire
 // CHECK:           return
 // CHECK:         }
 

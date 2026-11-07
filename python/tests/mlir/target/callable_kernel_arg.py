@@ -24,6 +24,7 @@ def bar(q: cudaq.qubit):
 def foo1(func: Callable[[cudaq.qubit], None], size: int):
     q = cudaq.qvector(size)
     func(q[0])
+    cudaq.record(q)
 
 
 @cudaq.kernel
@@ -41,6 +42,7 @@ def foo2(adj: list[bool], set_controls: bool):
     if set_controls:
         x(controls)
     cudaq.control(baz, controls, targets, 1, adj)
+    cudaq.record(controls, targets)
 
 
 @cudaq.kernel
@@ -49,6 +51,7 @@ def foo3(adj: list[bool], uncompute: bool):
     cudaq.adjoint(baz, targets, 1, adj)
     if uncompute:
         baz(targets, 1, adj)
+    cudaq.record(targets)
 
 
 @cudaq.kernel
@@ -58,6 +61,7 @@ def foo4(func: Callable[[cudaq.qvector, float, list[bool]], None],
     if set_controls:
         x(controls)
     cudaq.control(func, controls, targets, 1, adj)
+    cudaq.record(controls, targets)
 
 
 @cudaq.kernel
@@ -67,6 +71,7 @@ def foo5(func: Callable[[cudaq.qvector, float, list[bool]], None],
     cudaq.adjoint(func, targets, 1, adj)
     if uncompute:
         func(targets, 1, adj)
+    cudaq.record(targets)
 
 
 out = cudaq.sample(foo1, bar, 1)

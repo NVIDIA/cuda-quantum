@@ -62,6 +62,11 @@ struct CompileOptions {
   /// the `add-measurements` pass.
   bool addSampleMeasurements = false;
 
+  /// Whether the caller asked `sample` to report every measurement the kernel
+  /// makes, in execution order. Such a kernel supplies its own histogram, so
+  /// the `cudaq::record` contract does not apply to it.
+  bool explicitMeasurements = false;
+
   /// Throw a compilation error if the kernel uses conditionals on measurement
   /// results.
   bool failOnConditionalsOnMeasureResults = false;
@@ -98,8 +103,8 @@ struct std::hash<cudaq::CompileOptions> {
     return cudaq::detail::hashVal(
         o.warnNamedMeasurements, o.storeReorderIdx, o.emitResourceCounts,
         o.emitJit, o.emitTargetCode, o.skipTargetLoweringPipeline,
-        o.addSampleMeasurements, o.failOnConditionalsOnMeasureResults,
-        o.emulate, o.disableQuantumOpts, o.boolVecBitPacked, pauliStr,
-        o.optimizationLevel);
+        o.addSampleMeasurements, o.explicitMeasurements,
+        o.failOnConditionalsOnMeasureResults, o.emulate, o.disableQuantumOpts,
+        o.boolVecBitPacked, pauliStr, o.optimizationLevel);
   }
 };

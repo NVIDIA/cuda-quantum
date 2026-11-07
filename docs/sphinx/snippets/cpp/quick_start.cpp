@@ -16,7 +16,7 @@ __qpu__ void kernel(int qubit_count) {
   for (auto i = 1; i < qubit_count; ++i) {
     cx(qubits[0], qubits[i]);
   }
-  mz(qubits);
+  cudaq::record(qubits);
 }
 
 int main(int argc, char *argv[]) {

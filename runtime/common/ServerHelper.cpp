@@ -39,6 +39,9 @@ void ServerHelper::parseConfigForCommonParams(const BackendConfig &config) {
     } else if (key.starts_with("reorderIdx.")) {
       nlohmann::json tmp = nlohmann::json::parse(val);
       this->reorderIdx[newKey] = tmp.get<std::vector<std::size_t>>();
+    } else if (key.starts_with("recordedQubits.")) {
+      nlohmann::json tmp = nlohmann::json::parse(val);
+      this->recordedQubits[newKey] = tmp.get<std::vector<std::size_t>>();
     }
   }
 }

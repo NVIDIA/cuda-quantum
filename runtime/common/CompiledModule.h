@@ -195,6 +195,10 @@ public:
     /// Whether the kernel named the qubits to report with `cudaq::record`.
     /// Their order is the histogram's bit order.
     bool hasUserRecord = false;
+    /// For each qubit the kernel recorded, in record order, the qubit index
+    /// the backend reports it under. A backend that measures every qubit uses
+    /// this to slice its readout down to the record.
+    std::vector<std::size_t> recordedQubits;
   };
 
   // --- Queries ---

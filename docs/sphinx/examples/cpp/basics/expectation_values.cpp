@@ -15,6 +15,7 @@ struct ansatz {
     x(q[0]);
     ry(theta, q[1]);
     x<cudaq::ctrl>(q[1], q[0]);
+    cudaq::record(q);
   }
 };
 

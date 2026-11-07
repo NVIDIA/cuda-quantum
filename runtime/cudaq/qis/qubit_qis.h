@@ -642,6 +642,8 @@ template <std::size_t Levels>
 struct is_recordable<qvector<Levels>> : std::true_type {};
 template <std::size_t Levels>
 struct is_recordable<qview<Levels>> : std::true_type {};
+template <std::size_t N, std::size_t Levels>
+struct is_recordable<qarray<N, Levels>> : std::true_type {};
 
 template <typename T>
 concept recordable = is_recordable<std::remove_cvref_t<T>>::value;
@@ -655,8 +657,7 @@ concept recordable = is_recordable<std::remove_cvref_t<T>>::value;
 /// the kernel, and shall not record the same qubit twice. Kernels that need
 /// their own measurements should use `cudaq::run` instead.
 template <typename... QubitArgs>
-  requires(sizeof...(QubitArgs) >= 1) &&
-          (detail::recordable<QubitArgs> && ...)
+  requires(sizeof...(QubitArgs) >= 1) && (detail::recordable<QubitArgs> && ...)
 void record(QubitArgs &&...qs) {
   ((void)qs, ...);
   throw std::runtime_error(detail::kQpuOnlyHostScopeError);

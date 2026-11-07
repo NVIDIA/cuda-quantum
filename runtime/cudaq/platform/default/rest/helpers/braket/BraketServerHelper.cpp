@@ -97,14 +97,14 @@ BraketServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
                                                  std::string &jobID) {
 
-  if (outputNames.find(jobID) == outputNames.end())
-    throw std::runtime_error("Could not find output names for job " + jobID);
-
-  auto &output_names = outputNames[jobID];
-  for (auto &[result, info] : output_names) {
-    CUDAQ_INFO("Qubit {} Result {} Name {}", info.qubitNum, result,
-               info.registerName);
-  }
+  // The kernel said what to report with `cudaq::record`; the compiler handed
+  // us those qubits in record order. The payload measures the whole register,
+  // so the job is to slice that readout down to the record.
+  auto recordedIt = recordedQubits.find(jobID);
+  if (recordedIt == recordedQubits.end())
+    throw std::runtime_error("Could not find recorded qubits for job " + jobID);
+  auto &recorded = recordedIt->second;
+  CUDAQ_INFO("Recorded qubits for job {}: {}", jobID, recorded);
 
   CountsDictionary counts;
 
@@ -152,22 +152,12 @@ sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
 
   std::vector<ExecutionResult> execResults;
 
-  // Get a reduced list of qubit numbers that were in the original program
-  // so that we can slice the output data and extract the bits that the user
-  // was interested in. Sort by OpenQasm2 qubit number.
-  std::vector<std::size_t> qubitNumbers;
-  qubitNumbers.reserve(output_names.size());
-  for (auto &[result, info] : output_names) {
-    qubitNumbers.push_back(info.qubitNum);
-  }
-
-  // For each original counts entry in the full sample results, reduce it
-  // down to the user component and add to userGlobal. If qubitNumbers is empty,
-  // that means all qubits were measured.
-  if (qubitNumbers.empty()) {
+  // Slice the readout down to the recorded qubits, in record order. An empty
+  // record means there is nothing to narrow to.
+  if (recorded.empty()) {
     execResults.emplace_back(ExecutionResult{fullSampleResults.to_map()});
   } else {
-    auto subset = fullSampleResults.get_marginal(qubitNumbers);
+    auto subset = fullSampleResults.get_marginal(recorded);
     execResults.emplace_back(ExecutionResult{subset.to_map()});
   }
 
@@ -177,8 +167,9 @@ sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
   return ret;
 }
 
-void BraketServerHelper::setOutputNames(const std::string &taskId,
-                                        const std::string &output_names) {
+void BraketServerHelper::setOutputNames(
+    const std::string &taskId, const std::string &output_names,
+    const std::vector<std::size_t> &recorded) {
   // Parse `output_names` into jobOutputNames.
   // Note: See `ExtendMeasurePattern` of `CombineMeasurements.cpp
   // for an example of how this was populated.
@@ -192,6 +183,7 @@ void BraketServerHelper::setOutputNames(const std::string &taskId,
   }
 
   outputNames[taskId] = jobOutputNames;
+  recordedQubits[taskId] = recorded;
 }
 
 } // namespace cudaq

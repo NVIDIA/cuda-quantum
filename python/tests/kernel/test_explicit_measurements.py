@@ -19,7 +19,9 @@ skipIfBraketNotInstalled = pytest.mark.skipif(
 
 @pytest.fixture(autouse=True)
 def reset_run_clear():
-    cudaq.reset_target()
+    # Stim is the one target that supports `explicit_measurements`; tests of
+    # other targets set their own.
+    cudaq.set_target("stim")
     yield
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()
@@ -89,17 +91,15 @@ def test_sample_async():
     num_shots = 100
 
     @cudaq.kernel
-    def kernel(theta: float, phi: float):
+    def kernel():
         qubits = cudaq.qvector(2)
         for round in range(10):
-            rx(theta, qubits[0])
-            ry(phi, qubits[0])
+            # Stim is Clifford-only, so `h` stands in for a rotation.
+            h(qubits[0])
             x.ctrl(qubits[0], qubits[1])
             mz(qubits)
 
     future = cudaq.sample_async(kernel,
-                                np.pi,
-                                np.pi / 2.,
                                 shots_count=num_shots,
                                 explicit_measurements=True)
     counts = future.get()
@@ -121,10 +121,6 @@ def test_named_measurement():
         x(q[0])
         val = mz(q[1])
 
-    counts = cudaq.sample(kernel)
-    assert '__global__' in counts.register_names
-    assert 'val' in counts.register_names
-
     counts = cudaq.sample(kernel, explicit_measurements=True)
     assert '__global__' in counts.register_names
     assert 'val' not in counts.register_names
@@ -143,9 +139,6 @@ def test_measurement_order():
         mz(q[0])
         mz(q[2])
 
-    counts = cudaq.sample(kernel)
-    assert counts["100"] == 1000
-
     counts = cudaq.sample(kernel, explicit_measurements=True)
     assert counts["010"] == 1000
 
@@ -158,10 +151,9 @@ def test_measurement_order():
             mz(q[0])
             mz(q[2])
             reset(q)
-        ry(12 * np.pi, q)
-
-    counts = cudaq.sample(kernel_with_loop)
-    assert counts["000"] == 1000  # due to reset
+        # Identity after the measurements; Stim rejects rotation gates.
+        x(q)
+        x(q)
 
     counts = cudaq.sample(kernel_with_loop, explicit_measurements=True)
     assert counts["010010010"] == 1000
@@ -175,9 +167,6 @@ def test_multiple_measurements():
         x(q)
         mz(q)
         mz(q)
-
-    counts = cudaq.sample(measure_twice)
-    assert counts["1"] == 1000
 
     counts = cudaq.sample(measure_twice, explicit_measurements=True)
     assert counts["11"] == 1000
@@ -221,21 +210,6 @@ def test_mixed_basis_measurement_order_and_preservation():
         mz(q[6])
         mz(q[1])
 
-    counts = cudaq.sample(mixed_basis_kernel, shots_count=100)
-
-    total_counts = 0
-    for bits in counts:
-        assert len(bits) == 7
-        assert bits[0] == '0'
-        assert bits[1] == '1'
-        assert bits[2] == '1'
-        assert bits[4] == '0'
-        assert bits[5] == '0'
-        assert bits[6] == '1'
-        total_counts += counts[bits]
-
-    assert total_counts == 100
-
     counts = cudaq.sample(mixed_basis_kernel,
                           explicit_measurements=True,
                           shots_count=100)
@@ -261,10 +235,9 @@ _skip_stim_p1 = pytest.mark.skipif(
 
 
 # NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
-@pytest.mark.parametrize("target", [
-    "density-matrix-cpu", "nvidia", "qpp-cpu",
-    pytest.param('stim', marks=_skip_stim_p1)
-])
+# Only a target that can replay mid-circuit measurements allows
+# `explicit_measurements`; see `support-explicit-measurements` in stim.yml.
+@pytest.mark.parametrize("target", [pytest.param('stim', marks=_skip_stim_p1)])
 def test_simulators(target):
 
     def can_set_target(name):
@@ -285,7 +258,9 @@ def test_simulators(target):
 
 @pytest.mark.parametrize("target, env_var",
                          [("anyon", ""), ("infleqtion", "SUPERSTAQ_API_KEY"),
-                          ("ionq", "IONQ_API_KEY"), ("quantinuum", "")])
+                          ("ionq", "IONQ_API_KEY"), ("quantinuum", ""),
+                          ("density-matrix-cpu", ""), ("nvidia", ""),
+                          ("qpp-cpu", "")])
 def test_unsupported_targets(target, env_var):
     if env_var:
         os.environ[env_var] = "foobar"

@@ -47,7 +47,7 @@ def bell():
     q = cudaq.qvector(2)
     h(q[0])
     x.ctrl(q[0], q[1])
-    mz(q)
+    cudaq.record(q)
 
 
 @contextmanager

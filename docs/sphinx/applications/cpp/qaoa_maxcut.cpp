@@ -45,6 +45,7 @@ struct ansatz {
         rx(2.0 * theta[i + n_layers], q[j]);
       }
     }
+    cudaq::record(q);
   }
 };
 

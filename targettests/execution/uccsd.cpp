@@ -501,6 +501,7 @@ __qpu__ void test(std::size_t num_qubits, std::size_t num_electrons,
                   const std::vector<double> &thetas) {
   cudaq::qvector qubits(num_qubits);
   test_trial_state(qubits, num_electrons, thetas);
+  cudaq::record(qubits);
 }
 
 void printCounts(cudaq::sample_result &result) {

@@ -28,7 +28,7 @@ CUDAQ_TEST(TiiTester, checkSimpleCircuitSync) {
   auto qubits = kernel.qalloc(2);
   kernel.h(qubits[0]);
   kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
-  kernel.mz(qubits);
+  kernel.record(qubits);
 
   // Execute the circuit
   auto counts = cudaq::sample(kernel);
@@ -46,7 +46,7 @@ CUDAQ_TEST(TiiTester, checkSimpleCircuitAsync) {
   auto qubits = kernel.qalloc(2);
   kernel.h(qubits[0]);
   kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
-  kernel.mz(qubits);
+  kernel.record(qubits);
 
   // Execute the circuit
   auto counts = cudaq::sample_async(kernel).get();

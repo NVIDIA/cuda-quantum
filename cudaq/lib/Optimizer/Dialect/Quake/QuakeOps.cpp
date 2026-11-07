@@ -1774,8 +1774,8 @@ LogicalResult cudaq::quake::EvinceOp::verify() {
       if (extract.hasConstantIndex())
         key = {extract.getVeq(), extract.getConstantIndex()};
     for (auto &prior : seen)
-      if (prior.first == key.first &&
-          (prior.second == key.second || prior.second == -1 || key.second == -1))
+      if (prior.first == key.first && (prior.second == key.second ||
+                                       prior.second == -1 || key.second == -1))
         return emitOpError("`cudaq::record` records the same qubit twice");
     seen.push_back(key);
   }
@@ -1797,6 +1797,18 @@ void cudaq::quake::EvinceOp::getCanonicalizationPatterns(
 //===----------------------------------------------------------------------===//
 // Control and wire helpers
 //===----------------------------------------------------------------------===//
+
+void cudaq::quake::eraseUserRecords(Operation *op) {
+  op->walk([](EvinceOp evince) {
+    if (!evince.getUserRecord())
+      return;
+    unsigned resultIdx = 0;
+    for (Value arg : evince.getArgs())
+      if (isLinearType(arg.getType()))
+        evince.getOuts()[resultIdx++].replaceAllUsesWith(arg);
+    evince->erase();
+  });
+}
 
 bool cudaq::quake::isScalarQubitTarget(Value target) {
   return isa<cudaq::quake::RefType, cudaq::quake::WireType>(target.getType());

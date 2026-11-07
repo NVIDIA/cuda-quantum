@@ -58,6 +58,7 @@ def atomic_round_trip():
     q = cudaq.qubit()
     atomic_h(q)
     cudaq.adjoint(atomic_h, q)
+    cudaq.record(q)
 
 
 @cudaq.kernel(atomic_quantum_region=True)
@@ -211,12 +212,14 @@ def test_atomic_quantum_region_builder_preserves_entangling_workload():
         qubits = round_trip.qalloc(3)
         round_trip.apply_call(workload, qubits[0], qubits[1], qubits[2])
         round_trip.adjoint(workload, qubits[0], qubits[1], qubits[2])
+        round_trip.record(qubits)
         return round_trip
 
     ordinary = make_round_trip(make_workload(False))
     atomic = make_round_trip(make_workload(True))
 
-    assert cudaq.draw(ordinary) == ""
+    # The recorded qubits are drawn, but no gate survives the round trip.
+    assert "┤" not in cudaq.draw(ordinary)
     atomic_drawing = cudaq.draw(atomic)
     assert atomic_drawing.count("┤ h ├") == 2
     assert atomic_drawing.count("┤ x ├") == 4
@@ -309,7 +312,7 @@ def test_atomic_quantum_region_positive_controls():
     def caller():
         q = cudaq.qubit()
         unitary(q)
-        mz(q)
+        cudaq.record(q)
 
     empty.compile()
     counts = cudaq.sample(caller, shots_count=1)

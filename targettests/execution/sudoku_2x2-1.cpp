@@ -49,7 +49,7 @@ __qpu__ void grover() {
     reflect_uniform(qubits);
   }
 
-  mz(qubits);
+  cudaq::record(qubits);
 };
 
 int main() {

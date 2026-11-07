@@ -41,7 +41,7 @@ struct run_grover {
       oracle(target_state, qs);
       reflect_about_uniform(qs);
     }
-    mz(qs);
+    cudaq::record(qs);
   }
 };
 

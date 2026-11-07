@@ -21,6 +21,7 @@ CompileOptions get_compile_options_impl(const sample_policy &policy) {
   // `sample` does not support conditionals on measurement results.
   opts.failOnConditionalsOnMeasureResults = true;
   opts.addSampleMeasurements = true;
+  opts.explicitMeasurements = policy.options.explicit_measurements;
   return opts;
 }
 

@@ -165,7 +165,6 @@ struct PyProtocol<sample_policy> {
   static nanobind::dict kwargs(const sample_policy &policy) {
     nanobind::dict kw;
     kw["shots_count"] = policy.options.shots;
-    kw["explicit_measurements"] = policy.options.explicit_measurements;
     return kw;
   }
 };

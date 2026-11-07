@@ -74,6 +74,11 @@ protected:
   /// @brief Reordering indices indexed by jobID/taskID (used by mapping pass)
   std::map<std::string, std::vector<std::size_t>> reorderIdx;
 
+  /// @brief The qubits the kernel recorded, in record order, indexed by
+  /// jobID/taskID. A backend that measures every qubit slices its readout by
+  /// this to get the histogram the kernel asked for.
+  std::map<std::string, std::vector<std::size_t>> recordedQubits;
+
   /// @brief  Information about the runtime target managing this server helper.
   RuntimeTarget runtimeTarget;
 

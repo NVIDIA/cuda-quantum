@@ -55,7 +55,7 @@ def test_tii_sample():
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
+    kernel.record(qubits)
 
     # Run sample
     counts = cudaq.sample(kernel)

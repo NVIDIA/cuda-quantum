@@ -70,6 +70,7 @@ def scenario_sample():
         qubits = cudaq.qvector(3)
         for q in qubits:
             x(q)
+        cudaq.record(qubits)
 
     for _ in range(2):
         assert cudaq.sample(ones, shots_count=10).count("111") == 10
@@ -92,7 +93,7 @@ def scenario_fully_specialized():
             qubits = cudaq.qvector(n)
             for qubit in qubits:
                 x(qubit)
-            mz(qubits)
+            cudaq.record(qubits)
 
         assert cudaq.sample(all_ones, 1, shots_count=10).count("1") == 10
         assert cudaq.sample(all_ones, 3, shots_count=10).count("111") == 10
@@ -156,6 +157,7 @@ def scenario_dependencies():
     def outer():
         q = cudaq.qubit()
         middle(q)
+        cudaq.record(q)
 
     for _ in range(2):
         assert cudaq.observe(outer, observable).expectation() == -1.0
@@ -180,6 +182,7 @@ def scenario_dependencies():
     def rotate_outer():
         q = cudaq.qubit()
         rotate(q)
+        cudaq.record(q)
 
     for _ in range(2):
         expectation = cudaq.observe(rotate_outer, observable).expectation()
@@ -214,6 +217,7 @@ def scenario_runtime_inputs():
     def rotate(angle: float):
         q = cudaq.qubit()
         ry(angle, q)
+        cudaq.record(q)
 
     observable = cudaq.spin.z(0)
     assert cudaq.observe(rotate, observable, 0.0).expectation() == 1.0
@@ -228,6 +232,7 @@ def scenario_runtime_inputs():
     def noisy():
         q = cudaq.qubit()
         x(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(noisy, shots_count=10)
     assert counts.count("1") == 10, counts
@@ -435,6 +440,7 @@ def scenario_execution_failure():
     def failing(n: int):
         q = cudaq.qvector(n)
         exp_pauli(1.0, q, "XX")
+        cudaq.record(q)
 
     for _ in range(2):
         try:
@@ -459,6 +465,7 @@ def scenario_observe_async():
     def flipped():
         q = cudaq.qubit()
         x(q)
+        cudaq.record(q)
 
     observable = cudaq.spin.z(0)
     futures = [cudaq.observe_async(flipped, observable) for _ in range(4)]
@@ -483,6 +490,7 @@ def scenario_async_apis():
     def async_sample_ones():
         q = cudaq.qubit()
         x(q)
+        cudaq.record(q)
 
     futures = [
         cudaq.sample_async(async_sample_ones, shots_count=4) for _ in range(2)
@@ -513,6 +521,7 @@ def scenario_async_apis():
     def async_ptsbe_ones():
         q = cudaq.qubit()
         x(q)
+        cudaq.record(q)
 
     noise = cudaq.NoiseModel()
     noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(1.0))
@@ -559,6 +568,7 @@ def scenario_async_dependencies():
     def outer():
         q = cudaq.qubit()
         helper(q)
+        cudaq.record(q)
 
     observable = cudaq.spin.z(0)
     for dependency, expected in ((apply_x, -1.0), (apply_h, 0.0)):
@@ -585,6 +595,7 @@ def scenario_async_targets():
     def flipped():
         q = cudaq.qubit()
         x(q)
+        cudaq.record(q)
 
     observable = cudaq.spin.z(0)
     assert cudaq.observe_async(flipped, observable).get().expectation() == -1.0
@@ -616,6 +627,7 @@ def scenario_async_execution_failure():
     def failing(n: int):
         q = cudaq.qvector(n)
         exp_pauli(1.0, q, "XX")
+        cudaq.record(q)
 
     retained_modules = len(cudaq_async_sample_module_cache)
     futures = [cudaq.sample_async(failing, 1, shots_count=1) for _ in range(2)]

@@ -21,6 +21,7 @@ def test_call_with_callee_return_bool():
     def foo(n: int):
         qubits = cudaq.qvector(n)
         bar(qubits)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(foo, 3)
     assert "111" in counts and len(counts) == 1
@@ -103,6 +104,7 @@ def test_None_annotation():
     def kernel() -> None:
         qubit = cudaq.qubit()
         h(qubit)
+        cudaq.record(qubit)
 
     # Test here is that this compiles
     cudaq.sample(kernel)

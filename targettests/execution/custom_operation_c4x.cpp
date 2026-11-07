@@ -62,6 +62,7 @@ __qpu__ void kernel() {
   cudaq::qvector q(5);
   x(q);
   c4x(q[0], q[1], q[2], q[3], q[4]);
+  cudaq::record(q);
 }
 
 int main() {

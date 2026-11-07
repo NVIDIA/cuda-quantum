@@ -44,6 +44,7 @@ class TestCompilationModes:
         def k():
             q = cudaq.qubit()
             h(q)
+            cudaq.record(q)
 
         assert not k.is_compiled()
         cudaq.sample(k)
@@ -253,6 +254,7 @@ class TestKernelComposition:
         def caller(n: int):
             q = cudaq.qvector(n)
             callee(q)
+            cudaq.record(q)
 
         counts = cudaq.sample(caller, 3)
 
@@ -302,6 +304,7 @@ def _make_caller_callee_pair():
     def outer():
         q = cudaq.qubit()
         inner(q)
+        cudaq.record(q)
 
     return outer, inner
 
@@ -319,6 +322,7 @@ def _make_doubly_nested_pair():
         def outer():
             q = cudaq.qubit()
             inner(q)
+            cudaq.record(q)
 
         return outer, inner
 
@@ -338,6 +342,7 @@ def _make_nested_captured_pair():
         def outer():
             q = cudaq.qubit()
             inner(q)
+            cudaq.record(q)
 
         return outer
 
@@ -352,6 +357,7 @@ def _make_kernel_with_captured_int():
     def k():
         q = cudaq.qvector(n_qubits)
         h(q)
+        cudaq.record(q)
 
     return k
 

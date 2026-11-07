@@ -22,6 +22,7 @@ __qpu__ void test_init_state(int n) {
 __qpu__ void test_state_param(cudaq::state *state) {
   cudaq::qvector q(state);
   x(q);
+  cudaq::record(q);
 }
 
 void printCounts(cudaq::sample_result &result) {

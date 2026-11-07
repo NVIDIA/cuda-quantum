@@ -721,10 +721,6 @@ public:
     // Populate the correct name so it is printed correctly during
     // deconstructor.
     summaryData.name = name();
-    // Set supportsBufferedSample = true to tell the base class that this
-    // simulator knows how to buffer the results across multiple sample()
-    // invocations.
-    supportsBufferedSample = true;
   }
   virtual ~StimCircuitSimulator() = default;
 
@@ -743,25 +739,10 @@ public:
         "R", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
   }
 
-  /// @brief Sample the multi-qubit state. If \p qubits is empty and
-  /// explicitMeasurements is set, this returns all previously saved
-  /// measurements.
+  /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
                                 const int shots,
                                 bool includeSequentialData = true) override {
-    auto executionContext = getExecutionContext();
-
-    if (executionContext->explicitMeasurements && qubits.empty() &&
-        num_measurements == 0)
-      throw std::runtime_error(
-          "The sampling option `explicit_measurements` is not supported on a "
-          "kernel without any measurement operation.");
-
-    bool populateResult = [&]() {
-      if (executionContext->explicitMeasurements)
-        return qubits.empty();
-      return true;
-    }();
     if (!sampleSim)
       throw std::runtime_error("Stim simulator state is not initialized. "
                                "Cannot sample from uninitialized state.");
@@ -769,9 +750,6 @@ public:
     std::vector<std::uint32_t> stimTargetQubits(qubits.begin(), qubits.end());
     applyOpToSims("M", stimTargetQubits);
     num_measurements += stimTargetQubits.size();
-
-    if (!populateResult)
-      return cudaq::ExecutionResult();
 
     // Generate a reference sample
     const std::vector<bool> &v = tableau->measurement_record.storage;
@@ -798,9 +776,7 @@ public:
     // measurements were mid-circuit measurements that have been previously
     // accounted for and saved.
     assert(bits_per_sample >= qubits.size());
-    std::size_t first_bit_to_save = executionContext->explicitMeasurements
-                                        ? 0
-                                        : bits_per_sample - qubits.size();
+    std::size_t first_bit_to_save = bits_per_sample - qubits.size();
     CountsDictionary counts;
     if (includeSequentialData)
       sequentialData.reserve(shots);

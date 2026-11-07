@@ -108,6 +108,7 @@ int main() {
       p_counter += 6;
     }
   }
+  kernel.record(q);
 
   // Run the VQE algorithm from specific initial parameters.
   auto init_params =

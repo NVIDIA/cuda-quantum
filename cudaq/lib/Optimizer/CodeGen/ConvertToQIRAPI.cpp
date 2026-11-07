@@ -450,6 +450,34 @@ Type getInitialType(OP op, unsigned off) {
   return cast<TypeAttr>(initialArgs[off]).getValue();
 }
 
+/// Lower a `cudaq::record` to one runtime call per operand, in record order.
+struct RecordOpRewrite : public OpConversionPattern<cudaq::quake::EvinceOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::quake::EvinceOp evince, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    if (!evince.getUserRecord())
+      return failure();
+    auto loc = evince.getLoc();
+    SmallVector<Value> outs;
+    for (auto [i, val] : llvm::enumerate(adaptor.getOperands())) {
+      Type ty = getInitialType(evince, i);
+      if (!ty)
+        ty = evince->getOperand(i).getType();
+      if (!cudaq::quake::isQuantumType(ty))
+        continue;
+      auto fn = isa<cudaq::quake::VeqType>(ty) ? cudaq::opt::QIRRecordArray
+                                               : cudaq::opt::QIRRecord;
+      func::CallOp::create(rewriter, loc, TypeRange{}, fn, ValueRange{val});
+      if (cudaq::quake::isLinearType(ty))
+        outs.push_back(val);
+    }
+    rewriter.replaceOp(evince, outs);
+    return success();
+  }
+};
+
 template <typename M>
 struct ApplyNoiseOpRewrite
     : public OpConversionPattern<cudaq::quake::ApplyNoiseOp> {
@@ -2595,7 +2623,7 @@ struct FullQIR {
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
         MeasurementOpPattern<Self>, ResetOpPattern<Self>,
-        ApplyNoiseOpRewrite<Self>,
+        ApplyNoiseOpRewrite<Self>, RecordOpRewrite,
 
         /* Regular quantum operators. */
         QuantumGatePattern<Self, cudaq::quake::HOp>,
@@ -2774,7 +2802,9 @@ struct QuakeToQIRAPIPass
                              cudaq::qec::QECDialect>();
     // quake.evince is lowered by ReturnToOutputLog (which runs after this
     // pass), not by QuakeToQIRAPI, so mark it legal to pass through unchanged.
-    target.addLegalOp<cudaq::quake::EvinceOp>();
+    // A `cudaq::record` is the exception: full QIR lowers it to runtime calls.
+    target.addDynamicallyLegalOp<cudaq::quake::EvinceOp>(
+        [](cudaq::quake::EvinceOp op) { return !op.getUserRecord(); });
     target.addLegalOp<cudaq::codegen::MaterializeConstantArrayOp>();
     target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp fn) {
       return !needsTypeConversion(fn.getFunctionType()) &&

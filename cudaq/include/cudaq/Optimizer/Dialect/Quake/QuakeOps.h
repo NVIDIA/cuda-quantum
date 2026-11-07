@@ -137,6 +137,9 @@ inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
 /// vector.
 bool isScalarQubitTarget(mlir::Value target);
 
+/// Erase every `cudaq::record` (user-record `quake.evince`) in \p op.
+void eraseUserRecords(mlir::Operation *op);
+
 /// Returns true if and only if any quantum operand has type `!quake.ref`.
 inline bool hasNonVectorReference(mlir::Operation *op) {
   for (mlir::Value opnd : op->getOperands())

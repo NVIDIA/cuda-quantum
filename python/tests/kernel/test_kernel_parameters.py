@@ -37,6 +37,7 @@ def test_list_bool():
         for i, b in enumerate(myList):
             if b:
                 x(q[i])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel5, [True, False, True, False])
     assert len(counts) == 1
@@ -50,6 +51,7 @@ def test_list_pauli():
         qubits = cudaq.qvector(n)
         for term in words:
             exp_pauli(theta, qubits, term)
+        cudaq.record(qubits)
 
     words = [cudaq.pauli_word('YZXI'), cudaq.pauli_word('XZYI')]
     counts = cudaq.sample(kernel, 4, words, 0.5)
@@ -66,6 +68,7 @@ def test_list_pauli_str():
         qubits = cudaq.qvector(n)
         for term in words:
             exp_pauli(theta, qubits, term)
+        cudaq.record(qubits)
 
     words = ['YZXI', 'XZYI']
     counts = cudaq.sample(kernel, 4, words, 0.5)
@@ -88,6 +91,7 @@ def test_nested_list_bool():
                     cudaq.dbg.ast.print_i64(1)
                 else:
                     cudaq.dbg.ast.print_i64(0)
+        cudaq.record(q)
 
     counts = cudaq.sample(
         kernel5, 8, [[True, False, True, False], [False, True, False, True]])
@@ -104,6 +108,7 @@ def test_nested_list_int():
         for inner in myList:
             for i in inner:
                 x(q[i])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel6, 8, [[0, 1, 2, 3], [4, 5, 6, 7]])
     assert len(counts) == 1
@@ -119,6 +124,7 @@ def test_nested_list_float():
             for i in inner:
                 j = int(i)
                 x(q[j])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel7, 8, [[0., 1., 2., 3.], [4., 5., 6., 7.]])
     assert len(counts) == 1
@@ -135,6 +141,7 @@ def test_nested_list_pauli():
         for i in range(len(words)):
             for term in words[i]:
                 exp_pauli(theta[i], qubits, term)
+        cudaq.record(qubits)
 
     words = [[cudaq.pauli_word('YZXI'),
               cudaq.pauli_word('XZYI')],
@@ -158,6 +165,7 @@ def test_nested_list_pauli_str():
         for i in range(len(words)):
             for term in words[i]:
                 exp_pauli(theta[i], qubits, term)
+        cudaq.record(qubits)
 
     words = [['YZXI', 'XZYI'], ['IYZX', 'IXZY']]
     counts = cudaq.sample(kernel, 4, words, [0.5, 0.5])
@@ -184,6 +192,7 @@ def test_nested_list3_bool():
                         cudaq.dbg.ast.print_i64(1)
                     else:
                         cudaq.dbg.ast.print_i64(0)
+        cudaq.record(q)
 
     counts = cudaq.sample(
         kernel5, 16, [[[True, False, True, False], [False, True, False, True]],
@@ -203,6 +212,7 @@ def test_nested_list3_int():
             for inner2 in inner:
                 for i in inner2:
                     x(q[i])
+        cudaq.record(q)
 
     counts = cudaq.sample(
         kernel6, 16,
@@ -223,6 +233,7 @@ def test_nested_list4_int():
                     for i in inner3:
                         cudaq.dbg.ast.print_i64(i)
                         x(q[i])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel6, 16,
                           [[[[0, 1], [2, 3]], [[4, 5], [6, 7]]],
@@ -260,6 +271,7 @@ def test_struct_list_int_negative():
             x(q[0])
         if args.values[1] > 5:
             x(q[1])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, Args([-3, 10]))
     assert len(counts) == 1
@@ -283,6 +295,7 @@ def test_struct_list_bool():
             x(q[0])
         if args.flags[4]:
             x(q[1])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, Args([True, False, False, False, True]))
     assert len(counts) == 1

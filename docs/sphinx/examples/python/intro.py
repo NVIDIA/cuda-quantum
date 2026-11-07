@@ -23,7 +23,7 @@ def kernel():
 
     # Next, we add a measurement to the kernel so that we can sample
     # the measurement results on our simulator!
-    mz(qubit)
+    cudaq.record(qubit)
 
 
 # Finally, we can execute this kernel on the state vector simulator

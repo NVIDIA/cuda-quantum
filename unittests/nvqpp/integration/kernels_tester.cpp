@@ -237,7 +237,12 @@ CUDAQ_TEST(KernelsTester, checkFromStateMultiControl) {
       std::complex<double> overlap = 0.0;
       for (std::size_t i = 0; i < state.size(); i++)
         overlap += std::conj(state[i]) * ss[i];
-      EXPECT_NEAR(std::norm(overlap), 1.0, 1e-6)
+#ifdef CUDAQ_SIMULATION_SCALAR_FP32
+      constexpr double tolerance = 1e-5;
+#else
+      constexpr double tolerance = 1e-6;
+#endif
+      EXPECT_NEAR(std::norm(overlap), 1.0, tolerance)
           << "numQubits = " << numQubits << ", last = " << last;
     }
 }

@@ -36,6 +36,7 @@ def trotter():
         q = cudaq.qvector(state)
         for i in range(len(coefficients)):
             exp_pauli(coefficients[i].real * dt, q, words[i])
+        cudaq.record(q)
 
     def run_steps(steps: int, spins: int):
         g = 1.0

@@ -16,7 +16,7 @@
 #include <cstdio>
 #include <cudaq.h>
 
-// Kernel that measures 7 out of 9 qubits using mixed bases.
+// Kernel that records 7 out of 9 qubits in mixed bases.
 // Deterministic bits: q0=0(mz), q1=1(mz), q4=0(mz), q6=1(mz).
 // mx on |+> (q2) and |-> (q5) are deterministic: q2=0, q5=1.
 // my on |0> (q3) is non-deterministic.
@@ -29,13 +29,12 @@ __qpu__ void mixed_basis_kernel() {
   h(q[5]); // |-> so mx deterministically gives 1
   x(q[6]);
 
-  mz(q[4]);
-  mx(q[2]);
-  my(q[3]);
-  mz(q[0]);
-  mx(q[5]);
-  mz(q[6]);
-  mz(q[1]);
+  // Rotate the X- and Y-basis qubits onto Z, then record.
+  h(q[2]);
+  s<cudaq::adj>(q[3]);
+  h(q[3]);
+  h(q[5]);
+  cudaq::record(q[0], q[1], q[2], q[3], q[4], q[5], q[6]);
 }
 
 int main() {

@@ -175,6 +175,7 @@ def test_num_qubits_and_used_qubits():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(5)
     kernel.cx(q[0], q[4])
+    kernel.record(q)
 
     resources = cudaq.estimate_resources(kernel)
     assert resources.num_qubits == 5

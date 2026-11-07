@@ -39,6 +39,7 @@ def test_kernel_complex_synthesize():
     @cudaq.kernel
     def kernel(vec: list[complex]):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     synthesized = cudaq.synthesize(kernel, c)
     counts = cudaq.sample(synthesized)
@@ -54,6 +55,7 @@ def test_kernel_float_synthesize():
     @cudaq.kernel
     def kernel(vec: list[float]):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     synthesized = cudaq.synthesize(kernel, c)
     counts = cudaq.sample(synthesized)
@@ -72,6 +74,7 @@ def test_kernel_float_params():
     @cudaq.kernel
     def kernel(vec: list[float]):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, f)
     print(counts)
@@ -87,6 +90,7 @@ def test_kernel_float_capture():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(f)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -109,6 +113,7 @@ def test_kernel_float_np_array_from_capture():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(f)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -129,6 +134,7 @@ def test_kernel_float_definition():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -150,7 +156,7 @@ def test_kernel_complex_params_rotate():
         x(q.front())
         y(q.back())
         h(q)
-        mz(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(f'rotate: {counts}')
@@ -168,6 +174,7 @@ def test_kernel_complex_params():
     @cudaq.kernel
     def kernel(vec: list[complex]):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(counts)
@@ -183,6 +190,7 @@ def test_kernel_complex_capture():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(c)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -205,6 +213,7 @@ def test_kernel_complex_np_array_from_capture():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(c)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -225,6 +234,7 @@ def test_kernel_complex_definition():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -243,6 +253,7 @@ def test_kernel_dtype_complex_params():
     @cudaq.kernel
     def kernel(vec: list[complex]):
         q = cudaq.qvector(np.array(vec, dtype=complex))
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(counts)
@@ -258,6 +269,7 @@ def test_kernel_dtype_complex128_params():
     @cudaq.kernel
     def kernel(vec: list[complex]):
         q = cudaq.qvector(np.array(vec, dtype=np.complex128))
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(counts)
@@ -275,6 +287,7 @@ def test_kernel_dtype_complex64_params_f32():
     @cudaq.kernel
     def kernel(vec: list[complex]):
         q = cudaq.qvector(np.array(vec, dtype=np.complex64))
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(counts)
@@ -295,6 +308,7 @@ def test_kernel_simulation_dtype_complex_params_f64():
     @cudaq.kernel
     def kernel(vec: list[complex]):
         q = cudaq.qvector(np.array(vec, dtype=cudaq.complex()))
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(counts)
@@ -312,6 +326,7 @@ def test_kernel_simulation_dtype_complex_params_f32():
     @cudaq.kernel
     def kernel(vec: list[complex]):
         q = cudaq.qvector(np.array(vec, dtype=cudaq.complex()))
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(counts)
@@ -327,6 +342,7 @@ def test_kernel_amplitudes_complex_params():
     @cudaq.kernel
     def kernel(vec: list[complex]):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(counts)
@@ -342,6 +358,7 @@ def test_kernel_amplitudes_complex_from_capture():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(cudaq.amplitudes(c))
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -366,6 +383,7 @@ def test_kernel_simulation_dtype_np_array_from_capture_f64():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(np.array(c, dtype=cudaq.complex()))
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -390,6 +408,7 @@ def test_kernel_simulation_dtype_np_array_from_capture_f32():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(np.array(c, dtype=cudaq.complex()))
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -413,6 +432,7 @@ def test_kernel_simulation_dtype_np_array_capture():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(state)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -465,6 +485,7 @@ def test_kernel_qvector_init_from_param_int():
     @cudaq.kernel(disable_quantum_optimization=True)
     def kernel(n: int):
         q = cudaq.qvector(n)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, 2)
     print(counts)
@@ -482,6 +503,7 @@ def test_kernel_qvector_init_from_capture_int():
     @cudaq.kernel(disable_quantum_optimization=True)
     def kernel():
         q = cudaq.qvector(n)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -504,6 +526,7 @@ def test_kernel_qvector_init_from_int():
     @cudaq.kernel(disable_quantum_optimization=True)
     def kernel():
         q = cudaq.qvector(2)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -530,6 +553,7 @@ def ancilla_then_state_init(vec: list[complex]):
     ancilla = cudaq.qubit()
     qubits = cudaq.qvector(vec)
     h(ancilla)
+    cudaq.record(ancilla, qubits)
 
 
 @pytest.mark.parametrize('target', ['qpp-cpu', 'density-matrix-cpu'])

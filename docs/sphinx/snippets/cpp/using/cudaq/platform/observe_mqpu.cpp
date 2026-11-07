@@ -32,6 +32,7 @@ int main() {
     x(q);
     ry(theta, r);
     x<cudaq::ctrl>(r, q);
+    cudaq::record(q, r);
   };
 
   double result = cudaq::observe<cudaq::parallel::thread>(ansatz, h, 0.59);

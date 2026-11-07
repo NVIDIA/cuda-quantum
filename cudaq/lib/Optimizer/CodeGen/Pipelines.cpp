@@ -190,8 +190,6 @@ createTargetCodegenPipeline(OpPassManager &pm,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
   }
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createEraseCompilerGeneratedEvince());
 
   cudaq::opt::addPhaseLifecycle(pm);
   // LowerPhase can leave negative controls on the R1/Rz it creates, so we need

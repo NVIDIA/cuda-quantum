@@ -59,6 +59,7 @@ def test_minimal_3Hadamard():
     def minimal_3Hadamard():
         qubits = cudaq.qvector(3)
         h(qubits)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(minimal_3Hadamard)
     counts.dump()
@@ -72,6 +73,7 @@ def test_async_with_args():
     def minimal_Hadamard_with_args(num_qubits: int):
         qubits = cudaq.qvector(num_qubits)
         h(qubits)
+        cudaq.record(qubits)
 
     # NOTE: We can use only 3 qubits since mock server is sending hardcoded results
     results = cudaq.sample_async(minimal_Hadamard_with_args, 3)
@@ -94,7 +96,7 @@ def test_extern_kernel_ramsey():
         rx(np.pi / 2, qubit)
         wait(wait_duration, qubit)
         rx(np.pi / 2, qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(ramsey_single, 1.0)
     counts.dump()

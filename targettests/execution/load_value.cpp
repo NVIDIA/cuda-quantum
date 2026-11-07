@@ -28,7 +28,7 @@ __qpu__ void load_value(unsigned value) {
       x(qubits[3 - i]);
   }
 
-  mz(qubits);
+  cudaq::record(qubits);
 }
 
 int main() {

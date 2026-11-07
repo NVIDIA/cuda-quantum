@@ -1,0 +1,63 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Measurements are routed in place: a measurement inside a scope, a gate on a
+// measured wire, and single-block measurement feedback all map.
+
+// RUN: cudaq-opt --qubit-mapping='device=path(3) raise-fatal-errors=1' %s | FileCheck %s
+
+quake.wire_set @wires[10]
+
+// CHECK-LABEL: func.func @measure_in_scope()
+// CHECK:         cc.scope
+// CHECK-NEXT:      quake.mz
+// CHECK-NEXT:      cc.continue
+func.func @measure_in_scope() {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = cc.scope -> !quake.wire {
+    %result, %wire = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    cc.continue %wire : !quake.wire
+  }
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @gate_after_measure()
+// CHECK:         %{{.*}}, %[[W:.*]] = quake.mz
+// CHECK-NEXT:    quake.h %[[W]]
+func.func @gate_after_measure() {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %meas, %wire = quake.mz %2#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %3 = quake.h %wire : (!quake.wire) -> !quake.wire
+  quake.return_wire %3 : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @feedback_single_block()
+// CHECK:         quake.mz
+// CHECK:         quake.discriminate
+// CHECK:         cc.if
+func.func @feedback_single_block() {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %meas, %wire = quake.mz %2#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %b = quake.discriminate %meas : (!quake.measure) -> i1
+  %slot = cc.alloca i1
+  cc.store %b, %slot : !cc.ptr<i1>
+  %cond = cc.load %slot : !cc.ptr<i1>
+  cc.if(%cond) {
+    %tmp = cc.alloca i1
+  }
+  quake.return_wire %wire : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}

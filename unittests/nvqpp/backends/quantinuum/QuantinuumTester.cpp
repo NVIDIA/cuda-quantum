@@ -20,7 +20,7 @@ CUDAQ_TEST(QuantinuumTester, checkSampleSync) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   auto counts = cudaq::sample(kernel);
   counts.dump();
@@ -31,7 +31,7 @@ CUDAQ_TEST(QuantinuumTester, checkSampleAsync) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   auto future = cudaq::sample_async(kernel);
   auto counts = future.get();
@@ -42,7 +42,7 @@ CUDAQ_TEST(QuantinuumTester, checkSampleAsyncLoadFromFile) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   // Can sample asynchronously and get a future
   auto future = cudaq::sample_async(kernel);
@@ -71,6 +71,7 @@ CUDAQ_TEST(QuantinuumTester, checkObserveSync) {
   kernel.x(qubit[0]);
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+  kernel.record(qubit);
 
   cudaq::spin_op h =
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
@@ -89,6 +90,7 @@ CUDAQ_TEST(QuantinuumTester, checkObserveAsync) {
   kernel.x(qubit[0]);
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+  kernel.record(qubit);
 
   cudaq::spin_op h =
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
@@ -109,6 +111,7 @@ CUDAQ_TEST(QuantinuumTester, checkObserveAsyncLoadFromFile) {
   kernel.x(qubit[0]);
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+  kernel.record(qubit);
 
   cudaq::spin_op h =
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
@@ -151,6 +154,7 @@ CUDAQ_TEST(QuantinuumTester, checkControlledRotations) {
     kernel.x(control3);
 
     kernel.rx<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
+    kernel.record(controls1, controls2, control3, target);
 
     std::cout << kernel.to_quake() << "\n";
 
@@ -175,6 +179,7 @@ CUDAQ_TEST(QuantinuumTester, checkControlledRotations) {
     kernel.x(control3);
 
     kernel.rx<cudaq::ctrl>(0.0, controls1, controls2, control3, target);
+    kernel.record(controls1, controls2, control3, target);
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
@@ -197,6 +202,7 @@ CUDAQ_TEST(QuantinuumTester, checkControlledRotations) {
     kernel.x(control3);
 
     kernel.ry<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
+    kernel.record(controls1, controls2, control3, target);
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
@@ -221,6 +227,7 @@ CUDAQ_TEST(QuantinuumTester, checkControlledRotations) {
     kernel.x(control3);
 
     kernel.ry<cudaq::ctrl>(M_PI_2, controls1, controls2, control3, target);
+    kernel.record(controls1, controls2, control3, target);
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
@@ -244,6 +251,7 @@ CUDAQ_TEST(QuantinuumTester, checkControlledRotations) {
     kernel.x(controls2);
     // Should rotate `target`.
     kernel.rx<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
+    kernel.record(controls1, controls2, control3, target);
 
     auto counts = cudaq::sample(kernel);
     counts.dump();

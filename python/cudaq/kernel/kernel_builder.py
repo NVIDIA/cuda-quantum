@@ -1285,6 +1285,15 @@ class PyKernel(object):
                 f"cudaq.measure_handle or list[cudaq.measure_handle]")
         return qv.mlirValue
 
+    def record(self, *qubits):
+        """Record the given qubits in the sampling histogram, in argument
+        order. See :func:`cudaq.record`."""
+        if not qubits:
+            emitFatalError("kernel.record requires at least one qubit argument")
+        self.clearCache()
+        with self.ctx, self.insertPoint, self.loc:
+            quake.EvinceOp([], [q.mlirValue for q in qubits], userRecord=True)
+
     def detector(self, *measurements):
         """Define a detector over one or more measurement results.
 

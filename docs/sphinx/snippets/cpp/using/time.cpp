@@ -23,7 +23,7 @@ __qpu__ void kernel(int qubit_count) {
     x<cudaq::ctrl>(qvector[qubit], qvector[qubit + 1]);
   }
   // Measure the qubits.
-  mz(qvector);
+  cudaq::record(qvector);
 }
 
 // [Begin Time]

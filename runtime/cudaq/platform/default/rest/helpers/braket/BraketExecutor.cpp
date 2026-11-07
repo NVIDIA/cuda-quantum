@@ -136,7 +136,8 @@ void BraketExecutor::setOutputNames(const KernelExecution &codeToExecute,
   auto output_names = codeToExecute.output_names->dump();
   config["output_names." + taskId] = output_names;
 
-  braketServerHelper->setOutputNames(taskId, output_names);
+  braketServerHelper->setOutputNames(taskId, output_names,
+                                     codeToExecute.recordedQubits);
 }
 
 detail::future

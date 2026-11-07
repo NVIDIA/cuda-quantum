@@ -19,6 +19,7 @@ __qpu__ void init_state() {
   ry(theta, qubits[0]);
   h<cudaq::ctrl>(qubits[0], qubits[1]);
   x(qubits[1]);
+  cudaq::record(qubits);
 };
 
 int main() {

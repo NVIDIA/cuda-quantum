@@ -77,25 +77,28 @@ void timer_stop(int tag, int count) {
     g_cnotMatrix.back().push_back(avg_ms);
 }
 
-void kernel_h(int target) __qpu__ {
+void kernel_h(int target) __qpu__ __disable_quantum_optimization__ {
   cudaq::qvector q(NUM_QUBITS);
   h(q[0]); // warm-up operation
   timer_start(KERNEL_H);
   for (int j = 0; j < RUN_AVG; j++)
     h(q[target]);
   timer_stop(KERNEL_H, RUN_AVG);
+  cudaq::record(q);
 }
 
-void kernel_rx(int target) __qpu__ {
+void kernel_rx(int target) __qpu__ __disable_quantum_optimization__ {
   cudaq::qvector q(NUM_QUBITS);
   h(q[0]); // warm-up operation
   timer_start(KERNEL_RX);
   for (int j = 0; j < RUN_AVG; j++)
     rx(0.1, q[0]);
   timer_stop(KERNEL_RX, RUN_AVG);
+  cudaq::record(q);
 }
 
-void kernel_cnot(int control, int target) __qpu__ {
+void kernel_cnot(int control,
+                 int target) __qpu__ __disable_quantum_optimization__ {
   cudaq::qvector q(NUM_QUBITS);
   h(q[0]); // warm-up operation
   timer_start(KERNEL_CNOT);
@@ -103,6 +106,7 @@ void kernel_cnot(int control, int target) __qpu__ {
     cudaq::x<cudaq::ctrl>(q[control], q[target]);
 
   timer_stop(KERNEL_CNOT, RUN_AVG);
+  cudaq::record(q);
 }
 
 int main() {

@@ -224,7 +224,6 @@ public:
                                                   pipelineSubstitutions);
     target.replaceStateWithKernel = true;
     target.overrideAOTCompilation = true;
-    target.supportExplicitMeasurements = false;
     target.supportObservableMeasurements = false;
     target.supportSampleWithoutMeasurements = false;
     return target;

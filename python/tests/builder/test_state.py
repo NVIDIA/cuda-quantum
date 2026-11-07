@@ -184,6 +184,7 @@ def test_state_from_complex_density_matrix_observable():
         @cudaq.kernel
         def prepare_from_state(state: cudaq.State):
             qubits = cudaq.qvector(state)
+            cudaq.record(qubits)
 
         result = cudaq.observe(prepare_from_state, cudaq.spin.y(0),
                                initial_state)

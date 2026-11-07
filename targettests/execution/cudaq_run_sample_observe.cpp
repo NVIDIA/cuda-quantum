@@ -30,11 +30,13 @@ __qpu__ void sample_kernel() {
   cudaq::qvector v(2);
   h(v[0]);
   cx(v[0], v[1]);
+  cudaq::record(v);
 }
 
 __qpu__ void observe_kernel() {
   cudaq::qubit qubit;
   h(qubit);
+  cudaq::record(qubit);
 }
 
 int main() {

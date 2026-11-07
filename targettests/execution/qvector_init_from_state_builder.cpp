@@ -35,6 +35,7 @@ int main() {
   auto [test_state_param, s] = cudaq::make_kernel<cudaq::state *>();
   auto q1 = test_state_param.qalloc(s);
   test_state_param.x(q1);
+  test_state_param.record(q1);
 
   std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0., 0., 0., 0., 0.};
   std::vector<cudaq::complex> vec1{0., 0., 0.,        0.,

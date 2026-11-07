@@ -50,7 +50,8 @@ public:
                                       std::string &jobId) override;
 
   void setOutputNames(const std::string &taskId,
-                      const std::string &output_names);
+                      const std::string &output_names,
+                      const std::vector<std::size_t> &recorded);
 
 protected:
   /// @brief Return the headers required for the REST calls

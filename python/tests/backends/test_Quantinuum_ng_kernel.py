@@ -38,7 +38,7 @@ def test_quantinuum_sample():
         qubits = cudaq.qvector(2)
         h(qubits[0])
         x.ctrl(qubits[0], qubits[1])
-        mz(qubits)
+        cudaq.record(qubits)
 
     print(simple)
 
@@ -90,6 +90,7 @@ def test_quantinuum_observe():
         x(qreg[0])
         ry(theta, qreg[1])
         x.ctrl(qreg[1], qreg[0])
+        cudaq.record(qreg)
 
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -125,7 +126,7 @@ def test_quantinuum_u3_decomposition():
     def kernel():
         qubit = cudaq.qubit()
         u3(0.0, np.pi / 2, np.pi, qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     result = cudaq.sample(kernel)
 
@@ -137,8 +138,7 @@ def test_quantinuum_u3_ctrl_decomposition():
         control = cudaq.qubit()
         target = cudaq.qubit()
         u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
-        mz(control)
-        mz(target)
+        cudaq.record(control, target)
 
     result = cudaq.sample(kernel)
 
@@ -154,7 +154,7 @@ def test_quantinuum_state_synthesis():
     def kernel(s: cudaq.State):
         q = cudaq.qvector(s)
         x(q[1])
-        mz(q)
+        cudaq.record(q)
 
     s = cudaq.get_state(init, 2)
     counts = cudaq.sample(kernel, s)
@@ -169,7 +169,7 @@ def test_exp_pauli():
     def test():
         q = cudaq.qvector(2)
         exp_pauli(1.0, q, "XX")
-        mz(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(test)
     assert '00' in counts
@@ -238,7 +238,7 @@ def test_quantinuum_state_preparation():
     @cudaq.kernel
     def kernel(vec: List[complex]):
         qubits = cudaq.qvector(vec)
-        mz(qubits)
+        cudaq.record(qubits)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
     counts = cudaq.sample(kernel, state)

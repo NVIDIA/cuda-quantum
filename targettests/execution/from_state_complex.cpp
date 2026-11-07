@@ -12,6 +12,7 @@
 
 __qpu__ void test(std::vector<cudaq::complex> inState) {
   cudaq::qvector q{cudaq::state(inState)};
+  cudaq::record(q);
 }
 
 // CHECK: size 2

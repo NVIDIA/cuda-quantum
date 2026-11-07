@@ -21,8 +21,7 @@ CUDAQ_TEST(AnyonTester, checkSampleSyncEmulate) {
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
   kernel.x<cudaq::ctrl>(qubit[0], qubit[1]);
-  kernel.mz(qubit[0]);
-  kernel.mz(qubit[1]);
+  kernel.record(qubit[0], qubit[1]);
 
   auto counts = cudaq::sample(kernel);
   counts.dump();
@@ -33,7 +32,7 @@ CUDAQ_TEST(AnyonTester, checkSampleAsyncEmulate) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   auto future = cudaq::sample_async(kernel);
   auto counts = future.get();
@@ -47,6 +46,7 @@ CUDAQ_TEST(AnyonTester, checkObserveSyncEmulate) {
   kernel.x(qubit[0]);
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+  kernel.record(qubit);
 
   cudaq::spin_op h =
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
@@ -65,6 +65,7 @@ CUDAQ_TEST(AnyonTester, checkObserveAsyncEmulate) {
   kernel.x(qubit[0]);
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+  kernel.record(qubit);
 
   cudaq::spin_op h =
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -

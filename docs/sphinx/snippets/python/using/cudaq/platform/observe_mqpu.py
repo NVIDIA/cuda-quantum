@@ -22,6 +22,7 @@ def kernel(angle: float):
     x(qvector[0])
     ry(angle, qvector[1])
     x.ctrl(qvector[1], qvector[0])
+    cudaq.record(qvector)
 
 
 # Define spin Hamiltonian.

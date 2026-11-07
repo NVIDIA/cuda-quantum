@@ -25,6 +25,7 @@
 
 __qpu__ void test(std::vector<cudaq::complex> inState) {
   cudaq::qvector q1{inState};
+  cudaq::record(q1);
 }
 
 void printCounts(cudaq::sample_result &result) {

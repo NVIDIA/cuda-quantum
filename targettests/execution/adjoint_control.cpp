@@ -54,6 +54,7 @@ struct ctrl_adj_s {
     s(q);
     cudaq::control(s_adj{}, {ctrl}, q);
     h(q);
+    cudaq::record(ctrl, q);
   }
 };
 
@@ -68,6 +69,7 @@ struct adj_ctrl_s {
     s(q);
     cudaq::adjoint(s_ctrl{}, ctrl, q);
     h(q);
+    cudaq::record(ctrl, q);
   }
 };
 
@@ -87,6 +89,7 @@ struct runtime_controls {
       x(ancilla);
     // Specialization gives X both register and scalar controls.
     cudaq::control(cnot{}, qreg, ancilla, target);
+    cudaq::record(qreg, ancilla, target);
   }
 };
 

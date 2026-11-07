@@ -31,6 +31,7 @@ def test_kernel_float_params_f64():
 
     kernel, vec = cudaq.make_kernel(list[float])
     qubits = kernel.qalloc(vec)
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel, f)
     print(counts)
@@ -47,6 +48,7 @@ def test_kernel_float_params_f32():
 
     kernel, vec = cudaq.make_kernel(list[float])
     qubits = kernel.qalloc(vec)
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel, f)
     print(counts)
@@ -63,6 +65,7 @@ def test_kernel_float_capture_f64():
 
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(f)
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -79,6 +82,7 @@ def test_kernel_float_capture_f32():
 
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(f)
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -95,6 +99,7 @@ def test_kernel_float_np_array_from_capture_f64():
 
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(np.array(f))
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -111,6 +116,7 @@ def test_kernel_float_np_array_from_capture_f32():
 
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(np.array(f))
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -125,6 +131,7 @@ def test_kernel_float_definition_f64():
 
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -139,6 +146,7 @@ def test_kernel_float_definition_f32():
 
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -161,7 +169,7 @@ def test_kernel_complex_params_rotate_f64():
     kernel.x(q[0])
     kernel.y(q[1])
     kernel.h(q)
-    kernel.mz(q)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(f'rotate: {counts}')
@@ -182,8 +190,7 @@ def test_kernel_complex_force_kron():
     kernel, vec = cudaq.make_kernel(list[complex])
     p = kernel.qalloc(1)
     q = kernel.qalloc(vec)
-    kernel.mz(p)
-    kernel.mz(q)
+    kernel.record(p, q)
 
     counts = cudaq.sample(kernel, c)
     assert len(counts) == 1
@@ -202,7 +209,7 @@ def test_kernel_complex_params_rotate_f32():
     kernel.x(q[0])
     kernel.y(q[1])
     kernel.h(q)
-    kernel.mz(q)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(f'rotate: {counts}')
@@ -221,6 +228,7 @@ def test_kernel_complex_params_f64():
 
     kernel, vec = cudaq.make_kernel(list[complex])
     q = kernel.qalloc(vec)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(counts)
@@ -237,6 +245,7 @@ def test_kernel_complex_params_f32():
 
     kernel, vec = cudaq.make_kernel(list[np.complex64])
     q = kernel.qalloc(vec)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(counts)
@@ -253,6 +262,7 @@ def test_kernel_complex_capture_f64():
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(c)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -269,6 +279,7 @@ def test_kernel_complex_capture_f32():
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(c)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -285,6 +296,7 @@ def test_kernel_complex_np_array_from_capture_f64():
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(np.array(c))
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -301,6 +313,7 @@ def test_kernel_complex_np_array_from_capture_f32():
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(np.array(c))
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -315,6 +328,7 @@ def test_kernel_complex_definition_f64():
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)])
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -329,6 +343,7 @@ def test_kernel_complex_definition_f32():
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)])
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -349,6 +364,7 @@ def test_kernel_dtype_complex_params_f64():
 
     kernel, vec = cudaq.make_kernel(list[complex])
     q = kernel.qalloc(vec)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel, a)
     print(counts)
@@ -366,6 +382,7 @@ def test_kernel_dtype_complex128_params_f64():
 
     kernel, vec = cudaq.make_kernel(list[np.complex128])
     q = kernel.qalloc(vec)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(counts)
@@ -385,6 +402,7 @@ def test_kernel_amplitudes_complex_params_f32():
 
     kernel, vec = cudaq.make_kernel(list[np.complex64])
     q = kernel.qalloc(vec)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(counts)
@@ -401,6 +419,7 @@ def test_kernel_simulation_dtype_np_array_from_capture_f64():
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(np.array(c, dtype=cudaq.complex()))
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -417,6 +436,7 @@ def test_kernel_simulation_dtype_np_array_from_capture_f32():
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(np.array(c, dtype=cudaq.complex()))
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -435,6 +455,7 @@ def test_kernel_simulation_dtype_np_array_capture_f64():
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(state)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -453,6 +474,7 @@ def test_kernel_simulation_dtype_np_array_capture_f32():
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(state)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -602,6 +624,7 @@ def test_kernel_qvector_init_from_param_int():
     kernel, n = cudaq.make_kernel(int)
     kernel.disable_quantum_optimization()
     q = kernel.qalloc(n)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel, 2)
     print(counts)
@@ -617,6 +640,7 @@ def test_kernel_qvector_init_from_capture_int():
     kernel = cudaq.make_kernel()
     kernel.disable_quantum_optimization()
     q = kernel.qalloc(n)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -631,6 +655,7 @@ def test_kernel_qvector_init_from_int():
     kernel = cudaq.make_kernel()
     kernel.disable_quantum_optimization()
     q = kernel.qalloc(2)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)

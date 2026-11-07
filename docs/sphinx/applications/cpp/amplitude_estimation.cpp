@@ -108,7 +108,7 @@ struct run_circuit {
       statePrep_A{}(q, bmax);
     }
     // Measure the last auxiliary qubit
-    mz(last_qubit);
+    cudaq::record(last_qubit);
   }
 };
 

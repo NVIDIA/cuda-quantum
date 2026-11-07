@@ -33,7 +33,7 @@ __qpu__ void foo() {
   x(qubits);
   bar(qubits);
 
-  auto result = mz(qubits);
+  cudaq::record(qubits);
 }
 
 int main() {

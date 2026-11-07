@@ -13,14 +13,7 @@
 // RUN: cudaq-opt '--qubit-mapping=device=path(2) placement=identity search=none' %s | FileCheck %s
 
 module {
-  // This kernel measures explicitly, which `sample` and `observe` no longer
-// support: they add their own measurements after mapping, keyed off the
-// `quake.evince` ops. It is kept in this form to cover mapping a measurement
-// for `cudaq::run`, which does support them. No `mapping_reorder_idx` is
-// expected below: that attribute comes from `add-measurements`, which bails
-// out when the kernel already has measurements of its own.
-
-quake.wire_set @wires[2147483647]
+  quake.wire_set @wires[2147483647]
 
   func.func @bool_return.run() attributes {quake.cudaq_run = [i1]} {
     %true = arith.constant true

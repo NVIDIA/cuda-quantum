@@ -34,7 +34,7 @@ CUDAQ_TEST(QbraidTester, checkSampleSync) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   auto counts = cudaq::sample(kernel);
   counts.dump();
@@ -45,7 +45,7 @@ CUDAQ_TEST(QbraidTester, checkSampleAsync) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   auto future = cudaq::sample_async(kernel);
   auto counts = future.get();
@@ -56,7 +56,7 @@ CUDAQ_TEST(QbraidTester, checkSampleAsyncLoadFromFile) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   auto future = cudaq::sample_async(kernel);
   {
@@ -81,7 +81,7 @@ CUDAQ_TEST(QbraidTester, checkBitOrder) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(3);
   kernel.h(qubit[2]);
-  kernel.mz(qubit);
+  kernel.record(qubit);
 
   auto counts = cudaq::sample(kernel);
   counts.dump();
@@ -96,6 +96,7 @@ CUDAQ_TEST(QbraidTester, checkObserveSync) {
   kernel.x(qubit[0]);
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+  kernel.record(qubit);
 
   using namespace cudaq::spin;
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
@@ -113,6 +114,7 @@ CUDAQ_TEST(QbraidTester, checkObserveAsync) {
   kernel.x(qubit[0]);
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+  kernel.record(qubit);
 
   using namespace cudaq::spin;
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
@@ -132,6 +134,7 @@ CUDAQ_TEST(QbraidTester, checkObserveAsyncLoadFromFile) {
   kernel.x(qubit[0]);
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+  kernel.record(qubit);
 
   using namespace cudaq::spin;
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
@@ -168,7 +171,7 @@ CUDAQ_TEST(QbraidTester, checkApiKeyFromTarget) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   auto counts = cudaq::sample(kernel);
   EXPECT_GE(counts.size(), 1u);
@@ -186,7 +189,7 @@ CUDAQ_TEST(QbraidTester, checkJobFailure) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   EXPECT_ANY_THROW({ (void)cudaq::sample(kernel); });
 }
@@ -205,7 +208,7 @@ CUDAQ_TEST(QbraidTester, checkResultRetry) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   auto counts = cudaq::sample(kernel);
   EXPECT_GE(counts.size(), 1u);
@@ -225,7 +228,7 @@ CUDAQ_TEST(QbraidTester, checkResultRetryExhaustion) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   EXPECT_ANY_THROW({ (void)cudaq::sample(kernel); });
 }
@@ -267,7 +270,7 @@ CUDAQ_TEST(QbraidTester, checkResultAuthFailure) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
   EXPECT_TRUE(throwsWithMessage([&]() { (void)cudaq::sample(kernel); },
                                 "authentication failed"));
 }
@@ -278,7 +281,7 @@ CUDAQ_TEST(QbraidTester, checkResultForbidden) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
   EXPECT_TRUE(throwsWithMessage([&]() { (void)cudaq::sample(kernel); },
                                 "authentication failed"));
 }
@@ -289,7 +292,7 @@ CUDAQ_TEST(QbraidTester, checkResultNotFound) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
   EXPECT_TRUE(throwsWithMessage([&]() { (void)cudaq::sample(kernel); },
                                 "result not found"));
 }
@@ -302,7 +305,7 @@ CUDAQ_TEST(QbraidTester, checkResultConflict) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
   EXPECT_TRUE(throwsWithMessage([&]() { (void)cudaq::sample(kernel); },
                                 "did not produce results"));
 }
@@ -314,7 +317,7 @@ CUDAQ_TEST(QbraidTester, checkResultServerErrorRetries) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
   auto counts = cudaq::sample(kernel);
   EXPECT_GE(counts.size(), 1u);
 }

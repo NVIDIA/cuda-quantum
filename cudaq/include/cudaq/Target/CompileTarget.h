@@ -53,7 +53,7 @@ struct CompileTarget {
   bool supportResourceCounts = true;
 
   /// Whether explicit measurements are supported by the target.
-  bool supportExplicitMeasurements = true;
+  bool supportExplicitMeasurements = false;
 
   /// Whether the target supports measuring arbitrary observables.
   ///
@@ -81,10 +81,6 @@ struct CompileTarget {
   /// Whether the backend needs the `sample` reorder index. Set from the server
   /// helper, which knows whether the backend routes onto physical qubits.
   bool needsReorderIdx = false;
-
-  /// Whether the compiler should synthesize measurements for a `sample` kernel
-  /// that does not measure for itself.
-  bool needsImplicitMeasurements = true;
 
   /// Whether to run the replace-state-with-kernel pass.
   ///

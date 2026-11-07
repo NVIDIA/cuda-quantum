@@ -81,7 +81,7 @@ def _make_h_kernel():
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
+    kernel.record(qubits)
     return kernel
 
 
@@ -122,7 +122,7 @@ def test_qbraid_bit_order():
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(3)
     kernel.h(qubits[2])
-    kernel.mz(qubits)
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     assert len(counts) == 2
@@ -137,6 +137,7 @@ def _make_vqe_ansatz():
     kernel.x(qreg[0])
     kernel.ry(theta, qreg[1])
     kernel.cx(qreg[1], qreg[0])
+    kernel.record(qreg)
     hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -
                    2.1433 * spin.y(0) * spin.y(1) + 0.21829 * spin.z(0) -
                    6.125 * spin.z(1))
@@ -174,7 +175,7 @@ def test_qbraid_api_key_via_target_arg_without_env_var():
         kernel = cudaq.make_kernel()
         qubit = kernel.qalloc()
         kernel.h(qubit)
-        kernel.mz(qubit)
+        kernel.record(qubit)
 
         counts = cudaq.sample(kernel)
         assert len(counts) >= 1
@@ -190,7 +191,7 @@ def test_qbraid_machine_alternative_device():
     kernel = cudaq.make_kernel()
     qubit = kernel.qalloc()
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
@@ -213,7 +214,7 @@ def test_qbraid_accepts_gate_model_device():
     kernel = cudaq.make_kernel()
     qubit = kernel.qalloc()
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
 
@@ -236,7 +237,7 @@ def test_qbraid_result_auth_failure():
     kernel = cudaq.make_kernel()
     qubit = kernel.qalloc()
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
     with pytest.raises(RuntimeError, match="authentication failed"):
         cudaq.sample(kernel)
 
@@ -247,7 +248,7 @@ def test_qbraid_result_forbidden():
     kernel = cudaq.make_kernel()
     qubit = kernel.qalloc()
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
     with pytest.raises(RuntimeError, match="authentication failed"):
         cudaq.sample(kernel)
 
@@ -258,7 +259,7 @@ def test_qbraid_result_not_found():
     kernel = cudaq.make_kernel()
     qubit = kernel.qalloc()
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
     with pytest.raises(RuntimeError, match="result not found"):
         cudaq.sample(kernel)
 
@@ -269,7 +270,7 @@ def test_qbraid_result_server_error_retries():
     kernel = cudaq.make_kernel()
     qubit = kernel.qalloc()
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
 

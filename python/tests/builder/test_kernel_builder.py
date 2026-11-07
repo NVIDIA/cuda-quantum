@@ -35,7 +35,7 @@ def test_sdg_0_state():
     kernel.sdg(qubit)
     # Apply another hadamard.
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -59,7 +59,7 @@ def test_sdg_1_state():
     kernel.sdg(qubit)
     # Apply another hadamard.
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -85,7 +85,7 @@ def test_sdg_0_state_negate():
     kernel.s(qubit)
     # Apply another hadamard.
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -110,7 +110,7 @@ def test_sdg_1_state_negate():
     kernel.z(qubit)
     # Apply another hadamard.
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -133,7 +133,7 @@ def test_tdg_0_state():
     kernel.tdg(qubit)
     # Apply another hadamard.
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -159,7 +159,7 @@ def test_tdg_1_state():
     kernel.tdg(qubit)
     # Apply another hadamard.
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -185,7 +185,7 @@ def test_tdg_0_state_negate():
     kernel.z(qubit)
     # Apply another hadamard.
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -215,7 +215,7 @@ def test_tdg_1_state_negate():
     kernel.t(qubit)
     # Apply another hadamard.
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -243,6 +243,7 @@ def test_rotation_multi_target():
     kernel.ry(np.pi, qubits)
     # Phase rotation.
     kernel.rz(np.pi, qubits)
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     assert counts["111"] == 1000
@@ -272,6 +273,7 @@ def test_ctrl_x():
     # controlled operation on the final qubit.
     kernel.x(controls)
     kernel.cx(controls, qubits[4])
+    kernel.record(qubits, controls)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -304,6 +306,7 @@ def test_ctrl_y():
     # controlled operation on the final qubit.
     kernel.x(controls)
     kernel.cy(controls, qubits[4])
+    kernel.record(qubits, controls)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -336,6 +339,7 @@ def test_ctrl_z():
     # controlled operation on the final qubit.
     kernel.x(controls)
     kernel.cz(controls, qubits[4])
+    kernel.record(qubits, controls)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -370,23 +374,19 @@ def test_ctrl_h():
     # controlled operation on the final qubit.
     kernel.x(controls)
     kernel.ch(controls, qubits[4])
-    counts1 = cudaq.sample(kernel)
-    print(counts1)
+    state = cudaq.get_state(kernel)
 
     # Our first two qubits remain untouched, while `qubits[2]` is rotated
     # to 1, and `qubits[3]` receives a Hadamard. This results in a nearly 50/50
     # split of measurements on `qubits[3]` between 0 and 1.
     # The controlled Hadamard on `qubits[4]` also results in a 50/50 split of its
     # measurements between 0 and 1.
-    assert counts1["0011011"] >= 225 and counts1["0011011"] <= 275
-    assert counts1["0011111"] >= 225 and counts1["0011111"] <= 275
-    assert counts1["0010011"] >= 225 and counts1["0010011"] <= 275
-    assert counts1["0010111"] >= 225 and counts1["0010111"] <= 275
-    assert counts1["0011011"] + counts1["0011111"] + counts1[
-        "0010011"] + counts1["0010111"] == 1000
+    for bits in ["0011011", "0011111", "0010011", "0010111"]:
+        assert abs(state.amplitude(bits))**2 == pytest.approx(0.25)
 
     kernel.h(qubits[3])
     kernel.h(qubits[4])
+    kernel.record(qubits, controls)
     counts2 = cudaq.sample(kernel)
     print(counts2)
     assert counts2["0010011"] == 1000
@@ -416,6 +416,7 @@ def test_ctrl_s():
     # controlled operation on the final qubit.
     kernel.x(controls)
     kernel.cz(controls, qubits[4])
+    kernel.record(qubits, controls)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -449,6 +450,7 @@ def test_ctrl_t():
     # controlled operation on the final qubit.
     kernel.x(controls)
     kernel.cz(controls, qubits[4])
+    kernel.record(qubits, controls)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -482,6 +484,7 @@ def test_cr1_gate():
     kernel.cr1(angle, controls, qubits[4])
     # `float` parameter that we set = 0.0 so it doesn't impact state.
     kernel.cr1(0.0, controls, qubits[4])
+    kernel.record(qubits, controls)
 
     counts = cudaq.sample(kernel, angle_value)
     print(counts)
@@ -515,6 +518,7 @@ def test_crx_gate():
     kernel.crx(angle, controls, qubits[4])
     # `float` parameter that we set = 0.0 so it doesn't impact state.
     kernel.crx(0.0, controls, qubits[4])
+    kernel.record(qubits, controls)
 
     counts = cudaq.sample(kernel, angle_value)
     print(counts)
@@ -547,6 +551,7 @@ def test_cry_gate():
     kernel.cry(angle, controls, qubits[4])
     # `float` parameter that we set = 0.0 so it doesn't impact state.
     kernel.cry(0.0, controls, qubits[4])
+    kernel.record(qubits, controls)
 
     counts = cudaq.sample(kernel, angle_value)
     print(counts)
@@ -578,6 +583,7 @@ def test_crz_gate():
     kernel.crz(angle, controls, qubits[4])
     # `float` parameter that we set = 0.0 so it doesn't impact state.
     kernel.crz(0.0, controls, qubits[4])
+    kernel.record(qubits, controls)
 
     counts = cudaq.sample(kernel, angle_value)
     print(counts)
@@ -615,6 +621,7 @@ def test_cswap_gate_ctrl_list(control_count):
         kernel.x(control)
     # Should now SWAP our `first` and `second` qubits.
     kernel.cswap(controls, first, second)
+    kernel.record(*controls, first, second)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -653,6 +660,7 @@ def test_cswap_gate_mixed_ctrls():
     kernel.x(controls_vector[1])
     kernel.cswap([controls_vector[0], controls_vector[1], controls_register],
                  first, second)
+    kernel.record(*controls_vector, controls_register, first, second)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -682,6 +690,7 @@ def test_crx_control_list():
     # Overload 2: `float` parameter. `q3` is still in |0>, so this
     # should not rotate our `target`.
     kernel.crx(np.pi, [q3, q2, q1], target)
+    kernel.record(target, q1, q2, q3)
 
     print(kernel)
 
@@ -711,6 +720,7 @@ def test_cry_control_list():
     # Overload 2: `float` parameter. `q3` is still in |0>, so this
     # should not rotate our `target`.
     kernel.cry(np.pi, [q3, q2, q1], target)
+    kernel.record(target, q1, q2, q3)
 
     result = cudaq.sample(kernel, np.pi)
     print(result)
@@ -741,6 +751,7 @@ def test_crz_control_list():
 
     # Another hadamard to our target.
     kernel.h(target)
+    kernel.record(target, q1, q2, q3)
 
     result = cudaq.sample(kernel, -np.pi / 2)
     print(result)
@@ -772,6 +783,7 @@ def test_cr1_control_list():
 
     # Another hadamard to our target.
     kernel.h(target)
+    kernel.record(target, q1, q2, q3)
 
     result = cudaq.sample(kernel, -np.pi / 2)
     print(result)
@@ -815,6 +827,7 @@ def test_ctrl_rotation_integration():
     # Test (2): Flip `ctrl` and try again.
     kernel.x(ctrl)
     kernel.crx(np.pi / 4., [ctrls, ctrl], target)
+    kernel.record(ctrls, ctrl, target)
 
     result = cudaq.sample(kernel)
     print(result)
@@ -841,11 +854,6 @@ def test_can_progressively_build():
     assert np.isclose(1. / np.sqrt(2.), state[2].real)
     assert np.isclose(0., state[3].real)
 
-    counts = cudaq.sample(kernel)
-    print(counts)
-    assert '10' in counts
-    assert '00' in counts
-
     # Continue building the kernel
     kernel.cx(q[0], q[1])
     print(kernel)
@@ -855,6 +863,7 @@ def test_can_progressively_build():
     assert np.isclose(0., state[2].real)
     assert np.isclose(1. / np.sqrt(2.), state[3].real)
 
+    kernel.record(q)
     counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
@@ -886,6 +895,7 @@ def test_state_capture():
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=complex)
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(state)
+    kernel.record(qubits)
     counts = cudaq.sample(kernel)
 
     assert '11' in counts
@@ -897,6 +907,7 @@ def test_state_capture():
 
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(state)
+    kernel.record(qubits)
     counts = cudaq.sample(kernel)
     assert '10' in counts
     assert '00' in counts
@@ -908,6 +919,7 @@ def test_from_state0():
 
     kernel, initState = cudaq.make_kernel(list[complex])
     qubits = kernel.qalloc(initState)
+    kernel.record(qubits)
 
     # Test float64 list, casts to complex
     state = [.70710678, 0., 0., 0.70710678]
@@ -934,6 +946,7 @@ def test_from_state0():
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=complex)
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(state)
+    kernel.record(qubits)
     counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
@@ -942,6 +955,7 @@ def test_from_state0():
     state = [.70710678 + 0j, 0., 0., 0.70710678]
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(state)
+    kernel.record(qubits)
     counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
@@ -950,6 +964,7 @@ def test_from_state0():
     state = np.array([.70710678, 0., 0., 0.70710678])
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(state)
+    kernel.record(qubits)
     counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
@@ -958,6 +973,7 @@ def test_from_state0():
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(state)
+    kernel.record(qubits)
     counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
@@ -982,6 +998,7 @@ def test_from_state1():
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex128)
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(state)
+    kernel.record(qubits)
     counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
@@ -990,6 +1007,7 @@ def test_from_state1():
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
     kernel2 = cudaq.make_kernel()
     qubits = kernel2.qalloc(state)
+    kernel2.record(qubits)
     counts = cudaq.sample(kernel2)
     print(counts)
     assert '11' in counts
@@ -1002,6 +1020,7 @@ def test_from_state1():
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=cudaq.complex())
     kernel2 = cudaq.make_kernel()
     qubits = kernel2.qalloc(state)
+    kernel2.record(qubits)
     counts = cudaq.sample(kernel2)
     print(counts)
     assert '11' in counts
@@ -1010,6 +1029,7 @@ def test_from_state1():
     state = cudaq.amplitudes([.70710678, 0., 0., 0.70710678])
     kernel2 = cudaq.make_kernel()
     qubits = kernel2.qalloc(state)
+    kernel2.record(qubits)
     counts = cudaq.sample(kernel2)
     print(counts)
     assert '11' in counts
@@ -1018,6 +1038,7 @@ def test_from_state1():
     state = cudaq.amplitudes(np.array([.5] * 4))
     kernel2 = cudaq.make_kernel()
     qubits = kernel2.qalloc(state)
+    kernel2.record(qubits)
     counts = cudaq.sample(kernel2)
     print(counts)
     assert '11' in counts
@@ -1027,6 +1048,7 @@ def test_from_state1():
 
     kernel, initState = cudaq.make_kernel(list[np.complex64])
     qubits = kernel.qalloc(initState)
+    kernel.record(qubits)
     state = cudaq.amplitudes([.70710678, 0., 0., 0.70710678])
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -1045,6 +1067,7 @@ def test_pauli_word_input():
     kernel.x(q[1])
     kernel.for_loop(0, paulis.size(),
                     lambda idx: kernel.exp_pauli(theta, q, paulis[idx]))
+    kernel.record(q)
 
     print(kernel)
     want_exp = cudaq.observe(kernel, h, .11, ['XXXY']).expectation()
@@ -1060,6 +1083,7 @@ def test_exp_pauli():
     kernel.x(qubits[1])
     print(type(.11))
     kernel.exp_pauli(.11, qubits, "XXXY")
+    kernel.record(qubits)
     print(kernel)
     h = h2_hamiltonian_4q()
     want_exp = cudaq.observe(kernel, h).expectation()
@@ -1071,6 +1095,7 @@ def test_exp_pauli():
     kernel.x(qubits[0])
     kernel.x(qubits[1])
     kernel.exp_pauli(theta, qubits, "XXXY")
+    kernel.record(qubits)
     want_exp = cudaq.observe(kernel, h, .11).expectation()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
@@ -1080,6 +1105,7 @@ def test_exp_pauli():
     kernel.x(qubits[0])
     kernel.x(qubits[1])
     kernel.exp_pauli(theta, qubits, cudaq.SpinOperator.from_word('XXXY'))
+    kernel.record(qubits)
     want_exp = cudaq.observe(kernel, h, .11).expectation()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
@@ -1129,6 +1155,7 @@ def test_exp_pauli_register_and_qubits():
     kernel.disable_quantum_optimization()
     qreg = kernel.qalloc(2)
     kernel.exp_pauli(1.0, qreg, 'XX')
+    kernel.record(qreg)
     counts = cudaq.sample(kernel)
     assert '00' in counts
     assert '11' in counts
@@ -1193,6 +1220,7 @@ def test_call_kernel_expressions():
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(5)
     kernel.apply_call(kernelThatTakesInt, qubits, 2)
+    kernel.record(qubits)
     print(kernel)
 
     counts = cudaq.sample(kernel)
@@ -1209,6 +1237,7 @@ def test_call_kernel_expressions():
     ansatz.x(qubits[0])
     ansatz.apply_call(kernelThatTakesIntAndFloat, qubits, 1, .59)
     ansatz.cx(qubits[1], qubits[0])
+    ansatz.record(qubits)
 
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
@@ -1234,6 +1263,7 @@ def test_call_kernel_expressions_List():
     ansatz.x(qubits[0])
     ansatz.apply_call(kernelThatTakesIntAndListFloat, qubits, 1, [.59])
     ansatz.cx(qubits[1], qubits[0])
+    ansatz.record(qubits)
 
     assert np.isclose(-1.74,
                       cudaq.observe(ansatz, hamiltonian).expectation(),
@@ -1250,6 +1280,7 @@ def test_call_kernel_expressions_List():
     ansatz.x(qubits[0])
     ansatz.apply_call(kernelThatTakesIntAndListListFloat, qubits, 1, [[.59]])
     ansatz.cx(qubits[1], qubits[0])
+    ansatz.record(qubits)
 
     assert np.isclose(-1.74,
                       cudaq.observe(ansatz, hamiltonian).expectation(),
@@ -1257,12 +1288,15 @@ def test_call_kernel_expressions_List():
 
     kernelAndArgs = cudaq.make_kernel(List[bool])
     qubits = kernelAndArgs[0].qalloc(1)
+    kernelAndArgs[0].record(qubits)
     cudaq.sample(kernelAndArgs[0], [False, True, False])
     kernelAndArgs = cudaq.make_kernel(List[int])
     qubits = kernelAndArgs[0].qalloc(1)
+    kernelAndArgs[0].record(qubits)
     cudaq.sample(kernelAndArgs[0], [1, 2, 3, 4])
     kernelAndArgs = cudaq.make_kernel(List[float])
     qubits = kernelAndArgs[0].qalloc(1)
+    kernelAndArgs[0].record(qubits)
     cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
 
 
@@ -1282,6 +1316,7 @@ def test_call_kernel_expressions_list():
     ansatz.x(qubits[0])
     ansatz.apply_call(kernelThatTakesIntAndListFloat, qubits, 1, [.59])
     ansatz.cx(qubits[1], qubits[0])
+    ansatz.record(qubits)
 
     assert np.isclose(-1.74,
                       cudaq.observe(ansatz, hamiltonian).expectation(),
@@ -1298,6 +1333,7 @@ def test_call_kernel_expressions_list():
     ansatz.x(qubits[0])
     ansatz.apply_call(kernelThatTakesIntAndListListFloat, qubits, 1, [[.59]])
     ansatz.cx(qubits[1], qubits[0])
+    ansatz.record(qubits)
 
     assert np.isclose(-1.74,
                       cudaq.observe(ansatz, hamiltonian).expectation(),
@@ -1305,12 +1341,15 @@ def test_call_kernel_expressions_list():
 
     kernelAndArgs = cudaq.make_kernel(list[bool])
     qubits = kernelAndArgs[0].qalloc(1)
+    kernelAndArgs[0].record(qubits)
     cudaq.sample(kernelAndArgs[0], [False, True, False])
     kernelAndArgs = cudaq.make_kernel(list[int])
     qubits = kernelAndArgs[0].qalloc(1)
+    kernelAndArgs[0].record(qubits)
     cudaq.sample(kernelAndArgs[0], [1, 2, 3, 4])
     kernelAndArgs = cudaq.make_kernel(list[float])
     qubits = kernelAndArgs[0].qalloc(1)
+    kernelAndArgs[0].record(qubits)
     cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
 
 
@@ -1362,11 +1401,14 @@ def test_apply_call_captures_from_definition_scope():
     # `inner` and `n_qubits` are NOT reachable from this scope.
     builder = cudaq.make_kernel()
     builder.apply_call(wrapper)
-    cudaq.sample(builder, shots_count=3)
+    # Qubits are allocated in the callee, so check the state instead of sampling.
+    assert np.isclose(abs(cudaq.get_state(builder)[1]), 1.)
 
 
 def test_sample_with_no_qubits():
+    # Recording an empty qvector warns, and returns an empty histogram.
     kernel = cudaq.make_kernel()
+    kernel.record(kernel.qalloc(0))
     histogram = cudaq.sample(kernel)
     assert (not len(histogram))
 
@@ -1379,6 +1421,7 @@ def test_adequate_number_params():
     kernel.rx(thetas[1], qubits[0])
     kernel.rz(thetas[idx], qubits[0])
     kernel.r1(thetas[0], qubits[0])
+    kernel.record(qubits)
     print(kernel)
     with pytest.raises(RuntimeError) as e:
         result = cudaq.observe(kernel, spin.z(0), [2.2], 0)
@@ -1458,6 +1501,7 @@ def test_list_subscript():
     print(kernelAndArgs[0])
     assert len(kernelAndArgs) == 5 and len(kernelAndArgs[0].arguments) == 4
     qubits = kernelAndArgs[0].qalloc(1)
+    kernelAndArgs[0].record(qubits)
     cudaq.sample(kernelAndArgs[0], False, [False], [3], [3.5])
 
     # Test can call with empty list
@@ -1468,6 +1512,7 @@ def test_u3_op():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(1)
     kernel.u3(np.pi, np.pi, np.pi / 2, q)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     assert counts["1"] == 1000
@@ -1479,6 +1524,7 @@ def test_u3_ctrl():
     qubits = kernel.qalloc(2)
     kernel.u3(np.pi / 2, 0., np.pi, qubits[0])
     kernel.cu3(np.pi, np.pi, np.pi / 2, qubits[0], qubits[1])
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     assert (len(counts) == 2)
@@ -1508,7 +1554,7 @@ def test_builder_rotate_state():
     kernel.h(q)
 
     # Measure.
-    kernel.mz(q)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel, c)
     print(counts)
@@ -1533,6 +1579,7 @@ def test_issue_670():
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(1)
     kernel.ry(0.1, qubits)
+    kernel.record(qubits)
 
     cudaq.sample(kernel)
 
@@ -1564,7 +1611,7 @@ def test_repeated_builder_launch_no_segfault():
         "for _ in range(512):\n"
         "    kernel, *_ = cudaq.make_kernel(bool, list[bool], List[int], list[float])\n"
         "    kernel.disable_quantum_optimization()\n"
-        "    kernel.qalloc(1)\n"
+        "    kernel.record(kernel.qalloc(1))\n"
         "    cudaq.sample(kernel, False, [False], [3], [3.5])\n"
         "    cudaq.sample(kernel, False, [], [], [])\n"
         "print('OK')\n")

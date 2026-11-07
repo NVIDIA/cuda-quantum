@@ -31,7 +31,7 @@ struct Flip {
     count = count + 1;
     for (int k = 0; k < count; ++k)
       rx(angle, q[k]);
-    mz(q);
+    cudaq::record(q);
   }
 };
 
@@ -46,7 +46,7 @@ struct Gate {
       x(q[target]);
     if (off)
       x(q[0]);
-    mz(q);
+    cudaq::record(q);
   }
 };
 

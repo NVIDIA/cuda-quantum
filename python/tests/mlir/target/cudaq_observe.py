@@ -21,6 +21,7 @@ def ansatz(angle: float):
     x(q[0])
     ry(angle, q[1])
     x.ctrl(q[1], q[0])
+    cudaq.record(q)
 
 
 hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(

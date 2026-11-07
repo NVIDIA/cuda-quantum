@@ -43,7 +43,7 @@ CUDAQ_TEST(QuantinuumNGTester, checkGpuDecoderConfig) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   // This will throw because the decoder config is invalid YAML.
   EXPECT_ANY_THROW(cudaq::sample(100, kernel));

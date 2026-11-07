@@ -31,6 +31,7 @@ def test_alias_basic_kernel():
     @cq.kernel
     def simple():
         q = cq.qubit()
+        cq.record(q)
 
     counts = cq.sample(simple)
     assert len(counts) == 1
@@ -45,6 +46,7 @@ def test_alias_qvector():
         qubits = cq.qvector(2)
         h(qubits[0])
         cx(qubits[0], qubits[1])
+        cq.record(qubits)
 
     counts = cq.sample(bell)
     assert len(counts) == 2
@@ -58,6 +60,7 @@ def test_alias_kernel_with_int_arg():
     @cq.kernel
     def kernel(n: int):
         qubits = cq.qvector(n)
+        cq.record(qubits)
 
     counts = cq.sample(kernel, 3)
     assert len(counts) == 1
@@ -71,6 +74,7 @@ def test_alias_kernel_with_float_arg():
     def kernel(angle: float):
         q = cq.qubit()
         rx(angle, q)
+        cq.record(q)
 
     counts = cq.sample(kernel, 0.0)
     assert len(counts) == 1
@@ -104,6 +108,7 @@ def test_canonical_still_works():
     @cudaq.kernel
     def simple():
         q = cudaq.qubit()
+        cudaq.record(q)
 
     counts = cudaq.sample(simple)
     assert len(counts) == 1
@@ -117,11 +122,13 @@ def test_alias_and_canonical_separate_kernels():
     def kernel_alias():
         q = cq.qubit()
         x(q)
+        cq.record(q)
 
     @cudaq.kernel
     def kernel_canonical():
         q = cudaq.qubit()
         x(q)
+        cudaq.record(q)
 
     counts_alias = cq.sample(kernel_alias)
     counts_canonical = cudaq.sample(kernel_canonical)
@@ -148,6 +155,7 @@ def test_alias_common_gates():
         z(q[1])
         t(q[0])
         s(q[1])
+        cq.record(q)
 
     counts = cq.sample(kernel)
     assert len(counts) > 0
@@ -162,6 +170,7 @@ def test_alias_rotation_gates():
         rx(1.5708, q)
         ry(1.5708, q)
         rz(1.5708, q)
+        cq.record(q)
 
     counts = cq.sample(kernel)
     assert len(counts) > 0
@@ -180,6 +189,7 @@ def test_alias_adjoint():
         q = cq.qubit()
         t(q)
         t.adj(q)
+        cq.record(q)
 
     counts = cq.sample(kernel)
     assert '0' in counts
@@ -193,6 +203,7 @@ def test_alias_control():
         q = cq.qvector(2)
         x(q[0])
         x.ctrl(q[0], q[1])
+        cq.record(q)
 
     counts = cq.sample(kernel)
     assert '11' in counts
@@ -229,6 +240,7 @@ def test_alias_multiple_allocations():
         b = cq.qvector(2)
         h(a[0])
         cx(a[0], b[0])
+        cq.record(a, b)
 
     counts = cq.sample(kernel)
     assert len(counts) > 0
