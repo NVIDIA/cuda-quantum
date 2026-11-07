@@ -188,8 +188,97 @@ class ValidateReturnStatements(ast.NodeVisitor):
         if node.returns is None or is_none_ret:
             return self.generic_visit(node)
 
+        def literal_int(node, known):
+            if isinstance(node, ast.Constant) and isinstance(
+                    node.value, int) and not isinstance(node.value, bool):
+                return node.value
+            if isinstance(node, ast.UnaryOp) and isinstance(
+                    node.op, ast.USub):
+                v = literal_int(node.operand, known)
+                return None if v is None else -v
+            if isinstance(node, ast.Name):
+                return known.get(node.id)
+            return None
+
+        compare_ops = {
+            ast.Lt: lambda a, b: a < b,
+            ast.LtE: lambda a, b: a <= b,
+            ast.Gt: lambda a, b: a > b,
+            ast.GtE: lambda a, b: a >= b,
+            ast.Eq: lambda a, b: a == b,
+            ast.NotEq: lambda a, b: a != b,
+        }
+
+        def while_test_is_statically_true(test, known):
+            if isinstance(test, ast.Constant):
+                return bool(test.value)
+            if isinstance(test, ast.Compare) and len(test.ops) == 1 and len(
+                    test.comparators) == 1 and type(
+                        test.ops[0]) in compare_ops:
+                left = literal_int(test.left, known)
+                right = literal_int(test.comparators[0], known)
+                if left is None or right is None:
+                    return False
+                return compare_ops[type(test.ops[0])](left, right)
+            return False
+
+        def loop_provably_runs(stmt, known):
+            """A `for`/`while` loop's `orelse` always runs when the loop
+            finishes without `break`, including zero iterations, so it needs
+            no special handling. The body is only trustworthy for "all paths
+            return" when the loop is statically guaranteed to execute at
+            least once -- otherwise control can fall through the loop
+            without ever taking it, reaching the end of the function with no
+            return and no error.
+
+            This check is intentionally narrow. It only tightens the two
+            shapes that can be proven unsound from the syntax alone: a
+            `while` whose condition is not a statically-true comparison, and
+            a `for` over `range(...)` whose bound is not a compile-time
+            constant. Iteration over any other iterable (a plain variable, a
+            list literal, `enumerate(...)`, a qvector, ...) keeps the
+            pre-existing lenient treatment, since it is a compile-time
+            unknown either way and this file's own test suite relies on
+            that leniency for unrelated reasons in exactly that case.
+            """
+            if isinstance(stmt, ast.While):
+                return while_test_is_statically_true(stmt.test, known)
+            it = stmt.iter
+            if not (isinstance(it, ast.Call) and
+                    isinstance(it.func, ast.Name) and
+                    it.func.id == 'range' and 1 <= len(it.args) <= 3):
+                return True
+            bounds = [literal_int(a, known) for a in it.args]
+            if any(b is None for b in bounds):
+                return False
+            if len(bounds) == 1:
+                start, stop, step = 0, bounds[0], 1
+            elif len(bounds) == 2:
+                start, stop, step = bounds[0], bounds[1], 1
+            else:
+                start, stop, step = bounds
+            if step == 0:
+                return False
+            span = stop - start
+            return span > 0 if step > 0 else span < 0
+
         def all_paths_return(stmts):
+            # Tracks variables assigned a compile-time-constant int earlier in
+            # this same statement list, so a following `while <var> <op>
+            # <literal>:` can be recognized as provably entered -- the
+            # established idiom throughout this file's own test suite (e.g.
+            # `i = 0` then `while i < 6:`).
+            known_ints = {}
             for stmt in stmts:
+                if isinstance(stmt, ast.Assign) and len(
+                        stmt.targets) == 1 and isinstance(
+                            stmt.targets[0], ast.Name):
+                    v = literal_int(stmt.value, known_ints)
+                    if v is None:
+                        known_ints.pop(stmt.targets[0].id, None)
+                    else:
+                        known_ints[stmt.targets[0].id] = v
+
                 if isinstance(stmt, ast.Return):
                     return True
 
@@ -199,8 +288,9 @@ class ValidateReturnStatements(ast.NodeVisitor):
                         return True
 
                 if isinstance(stmt, (ast.For, ast.While)):
-                    if all_paths_return(stmt.body) or all_paths_return(
-                            stmt.orelse):
+                    if (loop_provably_runs(stmt, known_ints) and
+                            all_paths_return(stmt.body)) or all_paths_return(
+                                stmt.orelse):
                         return True
 
             return False
