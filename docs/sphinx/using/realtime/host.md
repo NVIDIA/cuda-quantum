@@ -261,7 +261,7 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED` on the device path:
     and launches it any way it likes, for example with the driver's
     `cuLaunchKernelEx`; see
     `realtime/docs/device_code_contract.md`
-- All other wiring (`set_function_table`, `set_control`) remains the same
+- All other wiring (`set_function_table`) remains the same
 
 ### Wiring Example (Unified Mode with GpuRoceTransceiver)
 
@@ -292,7 +292,6 @@ cudaq_dispatcher_get_device_handler(dispatcher, "my_handler", &handler);
 // ... fill the DEVICE_CALL entry with `handler`, copy the table to the device
 
 cudaq_dispatcher_set_function_table(dispatcher, &table);
-cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
 cudaq_dispatcher_start(dispatcher);
 cudaq_bridge_launch(bridge);
 ```
@@ -505,7 +504,7 @@ Parameters:
     (`CUDAQ_DISPATCH_PATH_HOST`); not processed by the device path
 - `out_dispatcher`: receives the created dispatcher handle.
 
-Call this before wiring ring buffers, function tables, or control state.
+Call this before wiring ring buffers or function tables.
 
 <strong><code>cudaq_dispatcher_destroy</code></strong> releases a dispatcher
 after it has been stopped.
@@ -514,7 +513,11 @@ Parameters:
 
 - `dispatcher`: dispatcher handle to destroy.
 
-Call this when the dispatcher is no longer needed.
+Call this when the dispatcher is no longer needed. On the device path it frees
+the dispatcher's own shutdown flag and counter, with a stream-ordered call
+where the device supports it; elsewhere `cudaFree` stands in and may wait for
+kernels resident on the device, so on such a device destroy the dispatcher
+while no other kernel of the application is resident.
 
 <strong><code>cudaq_dispatcher_set_ringbuffer</code></strong> provides
 the RX/TX flag and data pointers the dispatch kernel will poll
@@ -577,22 +580,24 @@ there is no separate runtime registration call.
 - If no entry matches, the dispatcher clears the slot without a response.
 - Suggested: use stable, human-readable handler names (e.g., `"mock_decode"`).
 
-<strong><code>cudaq_dispatcher_set_control</code></strong> supplies
-the shutdown flag and stats buffer the dispatch kernel uses
-for termination and bookkeeping.
-
-Parameters:
-
-- `dispatcher`: dispatcher handle.
-- `shutdown_flag`: device-visible flag used to signal shutdown.
-- `stats`: device-visible stats buffer.
-
-Call this before starting the dispatcher; both buffers must remain valid for
-the dispatcher’s lifetime.
+<strong><code>cudaq_dispatcher_set_control</code></strong> is deprecated.
+The dispatcher owns the shutdown flag its loop polls and the counter it
+adds processed requests to: `cudaq_dispatcher_start` sets them up (zeroed
+at each start), `cudaq_dispatcher_stop` raises the flag, and
+`cudaq_dispatcher_get_processed` reads the count. The call remains for
+applications not yet moved: it overrides both words with the caller's
+(device-visible on the device path), which must then stay valid until the
+dispatcher is destroyed. The override's words are used as given:
+`cudaq_dispatcher_start` does not zero them, so the caller clears the flag
+before a restart. Call it before `cudaq_dispatcher_start`; it is refused
+while the dispatcher runs.
 
 <strong><code>cudaq_dispatcher_set_launch_fn</code></strong> provides
 the host-side launch wrapper that invokes the dispatch kernel
-with the correct grid/block dimensions.
+with the correct grid/block dimensions, on the stream it is given:
+`cudaq_dispatcher_stop` raises the shutdown flag with a default-stream
+copy and then waits on that stream, so the kernel must not run on the
+legacy default stream or on a blocking stream.
 
 Parameters:
 
@@ -610,8 +615,16 @@ Parameters:
 
 - `dispatcher`: dispatcher handle.
 
-Call this only after ring buffers, function table, control buffers, and launch
-function are set.
+Call this once the dispatcher is wired for its shape: the function table, and
+the ring buffer or bridge (host unified needs the bridge's CPU data plane;
+device unified needs the bridge's GPU data plane or
+`cudaq_dispatcher_set_unified_launch`). `cudaq_dispatcher_set_launch_fn` is
+optional on the device ring path. On the device path the dispatcher's own
+shutdown flag and counter are device memory, set up with stream-ordered calls
+where the device supports them (`cudaDevAttrMemoryPoolsSupported`); elsewhere
+`cudaMalloc` and `cudaMemset` stand in and may wait for kernels resident on the
+device, so on such a device start the dispatcher while no other kernel of the
+application is resident.
 
 <strong><code>cudaq_dispatcher_stop</code></strong> signals
 the dispatch kernel to exit and waits for it to shut down.
@@ -623,8 +636,10 @@ Parameters:
 Call this during tear-down before destroying the dispatcher.
 
 <strong><code>cudaq_dispatcher_get_processed</code></strong> reads
-the processed‑packet counter from the stats buffer
-to support debugging or throughput tracking.
+the dispatcher's processed‑request counter to support debugging or
+throughput tracking. With the dispatcher's own counter it is zero before
+the first start; it is final once `cudaq_dispatcher_stop` has returned (the
+host loops publish their count when they exit).
 
 Parameters:
 
@@ -817,9 +832,6 @@ cudaq_function_table_t table{};
 table.entries = d_entries;
 table.count = func_count_;
 ASSERT_EQ(cudaq_dispatcher_set_function_table(dispatcher_, &table), CUDAQ_OK);
-
-ASSERT_EQ(cudaq_dispatcher_set_control(dispatcher_, d_shutdown_flag_, d_stats_),
-          CUDAQ_OK);
 
 ASSERT_EQ(cudaq_dispatcher_set_launch_fn(
               dispatcher_,

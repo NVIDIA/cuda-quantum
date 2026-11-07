@@ -113,8 +113,10 @@ protected:
   }
 
   // Serve one increment request end to end: wire, start, send over
-  // loopback, and check the answer and the dispatcher's own count.
-  void serveOneRequest(bool unified) {
+  // loopback, and check the answer and the dispatcher's own count.  With
+  // `override_control`, the deprecated cudaq_dispatcher_set_control names the
+  // fixture's words in place of the dispatcher's own.
+  void serveOneRequest(bool unified, bool override_control = false) {
     auto b = bridge(unified);
     ASSERT_NE(b, nullptr);
     auto *d = dispatcher(
@@ -122,8 +124,13 @@ protected:
                     unified ? CUDAQ_KERNEL_UNIFIED : CUDAQ_KERNEL_REGULAR));
     ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b), CUDAQ_OK);
     ASSERT_EQ(cudaq_dispatcher_set_function_table(d, &table), CUDAQ_OK);
-    ASSERT_EQ(cudaq_dispatcher_set_control(d, &shutdown_flag, &stats),
-              CUDAQ_OK);
+    if (override_control) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+      ASSERT_EQ(cudaq_dispatcher_set_control(d, &shutdown_flag, &stats),
+                CUDAQ_OK);
+#pragma GCC diagnostic pop
+    }
     ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
     ASSERT_EQ(cudaq_bridge_connect(b), CUDAQ_OK);
     ASSERT_EQ(cudaq_bridge_launch(b), CUDAQ_OK);
@@ -190,7 +197,8 @@ protected:
   }
 
   cudaq_dispatch_manager_t *manager = nullptr;
-  // Members, so they outlive the dispatchers TearDown destroys.
+  // The set_control override's words; members, so they outlive the
+  // dispatchers TearDown destroys.
   volatile int shutdown_flag = 0;
   std::uint64_t stats = 0;
   cudaq_function_entry_t entries[1] = {};
@@ -202,6 +210,45 @@ protected:
 TEST_F(SetBridgeTest, HostRingServesARequest) { serveOneRequest(false); }
 
 TEST_F(SetBridgeTest, HostUnifiedServesARequest) { serveOneRequest(true); }
+
+// Nothing has run before start(), so the count is zero rather than an error.
+TEST_F(SetBridgeTest, GetProcessedIsZeroBeforeStart) {
+  auto *d =
+      dispatcher(make_config(CUDAQ_DISPATCH_PATH_HOST, CUDAQ_KERNEL_REGULAR));
+  std::uint64_t processed = 42;
+  ASSERT_EQ(cudaq_dispatcher_get_processed(d, &processed), CUDAQ_OK);
+  EXPECT_EQ(processed, 0u);
+}
+
+// The deprecated override still routes the loop's flag and count to the
+// caller's words: stop() raises that flag, and the count lands in that word.
+TEST_F(SetBridgeTest, SetControlStillOverridesTheWords) {
+  serveOneRequest(false, /*override_control=*/true);
+  EXPECT_EQ(static_cast<int>(shutdown_flag), 1);
+  EXPECT_EQ(stats, 1u);
+}
+
+// Once the loop runs it has its pointers; the override is refused rather than
+// repointed under it, and the dispatcher's own words stay in use.
+TEST_F(SetBridgeTest, SetControlIsRefusedWhileRunning) {
+  auto b = bridge(false);
+  ASSERT_NE(b, nullptr);
+  auto *d =
+      dispatcher(make_config(CUDAQ_DISPATCH_PATH_HOST, CUDAQ_KERNEL_REGULAR));
+  ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b), CUDAQ_OK);
+  ASSERT_EQ(cudaq_dispatcher_set_function_table(d, &table), CUDAQ_OK);
+  ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  EXPECT_EQ(cudaq_dispatcher_set_control(d, &shutdown_flag, &stats),
+            CUDAQ_ERR_INVALID_ARG);
+#pragma GCC diagnostic pop
+  ASSERT_EQ(cudaq_dispatcher_stop(d), CUDAQ_OK);
+  std::uint64_t processed = 42;
+  ASSERT_EQ(cudaq_dispatcher_get_processed(d, &processed), CUDAQ_OK);
+  EXPECT_EQ(processed, 0u);
+  EXPECT_EQ(static_cast<int>(shutdown_flag), 0);
+}
 
 // The provider serves one shape per configuration; the dispatcher must say so
 // when wired, not appear to drop every request later.
