@@ -129,6 +129,8 @@ König
 LGPL
 LICM
 LLVM
+LQCLOUD
+LQCloud
 LSB
 LVM
 Libraries
@@ -591,6 +593,7 @@ lookups
 loopback
 lossy
 lowerings
+lqcloud
 lvalue
 lvm
 lz
