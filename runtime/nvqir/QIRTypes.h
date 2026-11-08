@@ -65,6 +65,10 @@ public:
   void clear();
   int element_size() const;
 
+  /// @brief Set the number of elements, keeping whatever storage is already
+  /// held when shrinking.
+  void resize(std::size_t nitems);
+
   ~Array();
 };
 

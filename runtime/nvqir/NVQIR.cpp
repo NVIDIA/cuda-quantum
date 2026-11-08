@@ -1446,9 +1446,11 @@ static void commonInvokeWithRotationsControlsTargets(
   for (std::size_t i = 0; i < numControlOperands; i++)
     numControls += isArrayAndLength[i] ? isArrayAndLength[i] : 1;
 
-  // Create the Control Array *, This should
-  // be deallocated upon function exit.
-  auto ctrlArray = std::make_unique<Array>(numControls, sizeof(std::size_t));
+  // Thread local Control Array with resize to avoid reallocation for each gate.
+  thread_local Array ctrlArrayStore(0, sizeof(std::size_t));
+  ctrlArrayStore.resize(numControls);
+  Array *ctrlArray = &ctrlArrayStore;
+
   std::vector<std::int32_t> controlValues;
   if (operandValues)
     controlValues.reserve(numControls);
@@ -1465,16 +1467,15 @@ static void commonInvokeWithRotationsControlsTargets(
       Array *array = reinterpret_cast<Array *>(controls[i]);
       for (std::size_t k = 0; k < numQubitsInArray; k++) {
         auto qubitK = __quantum__rt__array_get_element_ptr_1d(array, k);
-        Qubit **ctrliRawPtr =
-            reinterpret_cast<Qubit **>(__quantum__rt__array_get_element_ptr_1d(
-                ctrlArray.get(), counter++));
+        Qubit **ctrliRawPtr = reinterpret_cast<Qubit **>(
+            __quantum__rt__array_get_element_ptr_1d(ctrlArray, counter++));
         *ctrliRawPtr = *reinterpret_cast<Qubit **>(qubitK);
       }
     } else {
       // this is a qubit
       Qubit *ctrli = controls[i];
       Qubit **ctrliRawPtr = reinterpret_cast<Qubit **>(
-          __quantum__rt__array_get_element_ptr_1d(ctrlArray.get(), counter++));
+          __quantum__rt__array_get_element_ptr_1d(ctrlArray, counter++));
       *ctrliRawPtr = ctrli;
     }
   }
@@ -1485,22 +1486,22 @@ static void commonInvokeWithRotationsControlsTargets(
       if (numTargetOperands == 1)
         reinterpret_cast<void (*)(decltype(rotations)..., Array *,
                                   const std::int32_t *, std::int64_t, Qubit *)>(
-            QISFunction)(rotations..., ctrlArray.get(), controlValues.data(),
-                         count, targets[0]);
+            QISFunction)(rotations..., ctrlArray, controlValues.data(), count,
+                         targets[0]);
       else
         reinterpret_cast<void (*)(decltype(rotations)..., Array *,
                                   const std::int32_t *, std::int64_t, Qubit *,
                                   Qubit *)>(QISFunction)(
-            rotations..., ctrlArray.get(), controlValues.data(), count,
-            targets[0], targets[1]);
+            rotations..., ctrlArray, controlValues.data(), count, targets[0],
+            targets[1]);
     } else {
       if (numTargetOperands == 1)
         reinterpret_cast<void (*)(decltype(rotations)..., Array *, Qubit *)>(
-            QISFunction)(rotations..., ctrlArray.get(), targets[0]);
+            QISFunction)(rotations..., ctrlArray, targets[0]);
       else
         reinterpret_cast<void (*)(decltype(rotations)..., Array *, Qubit *,
                                   Qubit *)>(QISFunction)(
-            rotations..., ctrlArray.get(), targets[0], targets[1]);
+            rotations..., ctrlArray, targets[0], targets[1]);
     }
   };
   switch (numRotationOperands) {
