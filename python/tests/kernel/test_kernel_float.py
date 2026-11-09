@@ -264,6 +264,69 @@ def test_integer_floor_division_matches_python():
         assert python_floor_div(left, right) == kernel_floor_div(left, right)
 
 
+def test_integer_modulo_matches_python():
+
+    @cudaq.kernel
+    def kernel_mod(left: int, right: int) -> int:
+        return left % right
+
+    @cudaq.kernel
+    def kernel_mod_int32(left: np.int32, right: np.int32) -> np.int32:
+        return left % right
+
+    # The result takes the sign of the divisor, as in Python; the integer
+    # remainder used to be unsigned, so every negative operand was wrong.
+    cases = [(7, 3), (-7, 3), (7, -3), (-7, -3), (-1, 3), (-1, 5), (-6, 3),
+             (6, -3), (5, -3), (0, 3), (0, -3), (1, 1)]
+    for left, right in cases:
+        assert kernel_mod(left, right) == left % right
+        assert kernel_mod_int32(np.int32(left), np.int32(right)) == left % right
+
+
+def test_integer_floor_division_modulo_identity():
+
+    @cudaq.kernel
+    def kernel_identity(left: int, right: int) -> int:
+        return (left // right) * right + left % right
+
+    for left in range(-7, 8):
+        for right in [-3, -2, -1, 1, 2, 3]:
+            assert kernel_identity(left, right) == left
+
+
+def test_integer_modulo_augmented_assignment():
+
+    @cudaq.kernel
+    def kernel_mod_assign(left: int, right: int) -> int:
+        value = left
+        value %= right
+        return value
+
+    for left, right in [(7, 3), (-7, 3), (7, -3), (-7, -3)]:
+        assert kernel_mod_assign(left, right) == left % right
+
+
+def test_boolean_modulo_matches_python():
+
+    @cudaq.kernel
+    def kernel_mod(left: bool, right: bool) -> bool:
+        return left % right
+
+    @cudaq.kernel
+    def kernel_mod_mixed(left: bool, right: int) -> int:
+        return left % right
+
+    # Two `bool` operands stay one bit wide; `True % True` must be `0`, not
+    # a signed one-bit overflow.
+    for left in [False, True]:
+        assert kernel_mod(left, True) == left % True
+
+    # A `bool` promoted next to an `int` is zero-extended, so it behaves as
+    # `0` or `1`.
+    for left, right in [(True, 3), (True, -3), (False, 3), (False, -3)]:
+        assert kernel_mod_mixed(left, right) == left % right
+
+
 def test_float_floor_division_error():
     error = ("floor division with floating-point operands is not supported; "
              "use integer operands or math.floor(...), numpy.floor(...), or "
@@ -286,6 +349,65 @@ def test_float_floor_division_error():
                        match=r"floor division with floating") as e:
         float32_floor_div(np.float32(9.0), np.float32(2.0))
     assert error in str(e.value)
+
+
+def test_float_modulo_matches_python():
+
+    @cudaq.kernel
+    def kernel_mod(left: float, right: float) -> float:
+        return left % right
+
+    @cudaq.kernel
+    def kernel_mod_float32(left: np.float32, right: np.float32) -> np.float32:
+        return left % right
+
+    # `fmod` keeps the sign of the dividend; Python's `%` takes the sign of
+    # the divisor. Compare with a relative tolerance only: the last case
+    # cancels down to about 5.6e-17, which an absolute tolerance would not
+    # distinguish from a wrong `0.0`.
+    cases = [(9.0, 2.0), (-9.0, 2.0), (9.0, -2.0), (-9.0, -2.0), (-0.5, 2.0),
+             (0.5, -2.0), (7.5, 2.0), (-7.5, 2.0), (-1.0, 0.1)]
+    for left, right in cases:
+        expected = left % right
+        actual = kernel_mod(left, right)
+        assert math.isclose(expected, actual, rel_tol=1e-12, abs_tol=0.0)
+        assert math.copysign(1.0, expected) == math.copysign(1.0, actual)
+
+    for left, right in cases:
+        expected = float(np.float32(left) % np.float32(right))
+        actual = float(kernel_mod_float32(np.float32(left), np.float32(right)))
+        assert math.isclose(expected, actual, rel_tol=1e-6, abs_tol=0.0)
+        assert math.copysign(1.0, expected) == math.copysign(1.0, actual)
+
+
+def test_float_modulo_zero_remainder_takes_sign_of_divisor():
+
+    @cudaq.kernel
+    def kernel_mod(left: float, right: float) -> float:
+        return left % right
+
+    # `-0.0 == 0.0`, so compare the signs explicitly.
+    for left, right in [(4.0, 2.0), (-4.0, 2.0), (4.0, -2.0), (-4.0, -2.0),
+                        (0.0, -2.0), (-0.0, 2.0)]:
+        expected = left % right
+        actual = kernel_mod(left, right)
+        assert actual == 0.0
+        assert math.copysign(1.0, expected) == math.copysign(1.0, actual)
+
+
+def test_float_modulo_non_finite_operands():
+
+    @cudaq.kernel
+    def kernel_mod(left: float, right: float) -> float:
+        return left % right
+
+    for left, right in [(5.0, math.inf), (-5.0, math.inf), (5.0, -math.inf),
+                        (-5.0, -math.inf)]:
+        assert kernel_mod(left, right) == left % right
+
+    for left, right in [(math.inf, 2.0), (math.nan, 2.0), (2.0, math.nan)]:
+        assert math.isnan(left % right)
+        assert math.isnan(kernel_mod(left, right))
 
 
 # np.float64
