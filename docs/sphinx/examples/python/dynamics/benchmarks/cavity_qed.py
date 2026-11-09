@@ -109,7 +109,7 @@ sm_dag = boson.create(0)
 H = 2 * np.pi * f_c * boson.number(1) + 2 * np.pi * f_a * boson.number(
     0) + 2 * np.pi * g * (sm * a_dag + sm_dag * a)
 
-collapse_operators = [gamma * sm, kappa * a]
+collapse_operators = [np.sqrt(gamma) * sm, np.sqrt(kappa) * a]
 
 # Initial state vector
 qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)

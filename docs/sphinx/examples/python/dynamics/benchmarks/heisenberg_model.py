@@ -106,7 +106,7 @@ for i in range(spins - 1):
     H += Jy * spin.y(i) * spin.y(i + 1)
     H += Jz * spin.z(i) * spin.z(i + 1)
 
-collapse_operators = [gamma * spin.x(i) for i in range(spins)]
+collapse_operators = [np.sqrt(gamma) * spin.x(i) for i in range(spins)]
 
 # Initial state vector
 initial_state = cudaq.dynamics.InitialState.ZERO
