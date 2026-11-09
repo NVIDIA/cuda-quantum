@@ -40,6 +40,45 @@ variable. For any CUDA-Q executable, just prepend as follows:
       # or
       CUDAQ_DUMP_JIT_IR=<output_filename> ./a.out
 
+Kernel Compilation Threads
+++++++++++++++++++++++++++++
+
+By default, CUDA-Q runs the compiler passes for a kernel on the thread that
+launches it. Kernels are usually too small to benefit from multiple threads.
+The :code:`CUDAQ_MLIR_NUM_THREADS` environment variable changes this:
+
+.. list-table::
+  :widths: 20 80
+
+  * - Value
+    - Behavior
+  * - ``1``
+    - Run compiler passes on the launching thread. This is the default.
+  * - ``N`` greater than 1
+    - Share a pool of ``N`` worker threads among all kernel compilations in
+      the process, capped at the number of CPUs the process may run on.
+  * - ``0``
+    - Use the MLIR default: a pool sized to the number of CPUs the process may
+      run on.
+
+Threads that launch kernels concurrently, for example under the
+:code:`nvidia-mqpu` target or the asynchronous APIs, still compile in parallel
+with any value. The variable is read once, when CUDA-Q is first loaded, so it
+must be set before :code:`import cudaq` in Python or before a C++ program
+starts. Any value other than a non-negative integer is rejected with an error.
+
+.. tab:: Python
+
+  .. code-block:: bash
+
+      CUDAQ_MLIR_NUM_THREADS=4 python3 file.py
+
+.. tab:: C++
+
+  .. code-block:: bash
+
+      CUDAQ_MLIR_NUM_THREADS=4 ./a.out
+
 Python Stack-Traces
 ++++++++++++++++++++++++
 

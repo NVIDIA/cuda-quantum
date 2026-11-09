@@ -156,6 +156,14 @@ NB_MODULE(_quakeDialects, m) {
       "Translation passes with the provided MLIR Context. Primarily used by "
       "kernel_builder and ast_bridge when created new MLIR Contexts.");
   cudaqRuntime.def(
+      "configureContextThreading",
+      [](MlirContext ctx) {
+        cudaq_internal::compiler::configureContextThreading(*unwrap(ctx));
+      },
+      "Give a newly created MLIR Context the pass-pipeline thread pool "
+      "selected by CUDAQ_MLIR_NUM_THREADS. Must be called before the Context "
+      "is shared between threads.");
+  cudaqRuntime.def(
       "initialize_cudaq",
       [&](std::optional<std::string> option, std::optional<bool> emulate,
           std::optional<std::string> target) {
