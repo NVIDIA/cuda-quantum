@@ -78,10 +78,6 @@ struct CompileTarget {
   /// Whether to disable qubit mapping.
   bool disableQubitMapping = false;
 
-  /// Whether the backend needs the `sample` reorder index. Set from the server
-  /// helper, which knows whether the backend routes onto physical qubits.
-  bool needsReorderIdx = false;
-
   /// Whether to run the replace-state-with-kernel pass.
   ///
   /// Allows targets that do not support get_state (e.g. remote QPUs)

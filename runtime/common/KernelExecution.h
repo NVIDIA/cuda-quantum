@@ -28,7 +28,6 @@ struct KernelExecution {
   cudaq::cudaq_json output_names = {};
   std::vector<std::size_t> mapping_reorder_idx = {};
   bool hasConditionalsOnMeasureResults = false;
-  bool hasUserRecord = false;
   std::vector<std::size_t> recordedQubits = {};
   cudaq::cudaq_json user_data = {};
 };

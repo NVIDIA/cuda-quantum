@@ -1744,11 +1744,7 @@ LogicalResult cudaq::quake::EvinceOp::verify() {
     return emitOpError("result types must mirror wire/cable operand types "
                        "in left-to-right order");
 
-  // A user-written evince comes from `cudaq::record`, which states what the
-  // sampling histogram contains. Those constraints are checked here so the
-  // user sees them rather than a confused register downstream. A
-  // compiler-generated evince is exempt: `inject-implicit-output` emits one
-  // per declared allocation and may emit several.
+  // A `cudaq::record` must be top level, unique, and name each qubit once.
   if (!getUserRecord())
     return success();
 

@@ -767,8 +767,7 @@ protected:
   /// @brief Handle basic sampling tasks by storing the qubit index for
   /// processing in finalizeExecutionContext. Return true to indicate this is
   /// sampling and to exit early. False otherwise.
-  bool handleBasicSampling(const std::size_t qubitIdx,
-                           [[maybe_unused]] const std::string &regName) {
+  bool handleBasicSampling(const std::size_t qubitIdx) {
     auto executionContext = cudaq::getExecutionContext();
     if (executionContext && executionContext->name == "sample") {
 
@@ -862,19 +861,10 @@ protected:
     if (executionContext->hasConditionalsOnMeasureResults && !force)
       return;
 
-    if (executionContext->explicitMeasurements) {
-      // Every measurement is reported, in the order the kernel made them,
-      // repeats included. Each flush contributes its bits to the same shot.
-    } else if (executionContext->sortMeasuredQubits) {
-      // A routed target's `mapping_reorder_idx` undoes a physical-order
-      // readout, so the simulator has to produce one.
-      std::sort(sampleQubits.begin(), sampleQubits.end());
-      auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
-      sampleQubits.erase(last, sampleQubits.end());
-    } else {
-      // Keep the order the kernel measured in. `cudaq::record` fixes that
-      // order and forbids repeats; the dedup only guards a kernel that
-      // measured a qubit more than once.
+    // Keep the order the kernel measured in, without repeats (unless we're in
+    // the optimized sampling mode that simply concatenates sequential
+    // measurements).
+    if (!executionContext->explicitMeasurements) {
       std::vector<std::size_t> inOrder;
       inOrder.reserve(sampleQubits.size());
       for (auto q : sampleQubits)
@@ -1177,8 +1167,7 @@ protected:
 
     // Spin operator index `i` is the `i`-th qubit the kernel recorded. Empty
     // means the record is the allocations in order, so index `i` is qubit `i`.
-    auto recorded = std::move(recordedQubits);
-    recordedQubits.clear();
+    auto recorded = std::exchange(recordedQubits, {});
     auto toRecorded = [&](const cudaq::spin_op_term &term) {
       if (recorded.empty())
         return term;
@@ -1593,7 +1582,7 @@ public:
                         /*targets=*/{qubitIdx}, /*params=*/{});
 
     // If sampling, just store the bit, do nothing else.
-    if (handleBasicSampling(qubitIdx, registerName))
+    if (handleBasicSampling(qubitIdx))
       return true;
 
     // Get the actual measurement from the subtype measureQubit implementation.

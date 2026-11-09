@@ -93,8 +93,7 @@ nlohmann::json formOutputNames(const std::string &codegenTranslation,
 /// For each qubit the kernel recorded, in record order, the qubit index the
 /// backend will report it under.
 ///
-/// This is the one place that relates the record to the lowered IR. The
-/// measurements sit in record order (`add-measurements` emits them in front
+/// The measurements sit in record order (`add-measurements` emits them in front
 /// of the `cudaq::record` operands), and the qubit index is read straight off
 /// the IR: `regtomem` leaves the allocas in physical order, and in value
 /// semantics a wire carries its own index and threads through the gates.
@@ -109,20 +108,14 @@ std::vector<std::size_t> collectRecordedQubits(mlir::ModuleOp moduleOp,
     }));
   };
 
+  // A veq's qubits are `physical[veq] + [0, size)`.
   llvm::DenseMap<mlir::Value, std::size_t> physical;
-  // Size of each tracked veq; its qubits are `physical[veq] + [0, size)`.
-  llvm::DenseMap<mlir::Value, std::size_t> veqSize;
   std::size_t numAllocated = 0;
   std::vector<std::size_t> recorded;
   epFunc.walk([&](mlir::Operation *op) {
     if (auto alloc = mlir::dyn_cast<cudaq::quake::AllocaOp>(op)) {
       physical[alloc.getResult()] = numAllocated;
-      auto veqTy = mlir::dyn_cast<cudaq::quake::VeqType>(alloc.getType());
-      std::size_t size =
-          veqTy && veqTy.hasSpecifiedSize() ? veqTy.getSize() : 1;
-      if (veqTy)
-        veqSize[alloc.getResult()] = size;
-      numAllocated += size;
+      numAllocated += cudaq::quake::getVeqSize(alloc.getResult()).value_or(1);
       return;
     }
     if (auto ext = mlir::dyn_cast<cudaq::quake::ExtractRefOp>(op)) {
@@ -140,8 +133,7 @@ std::vector<std::size_t> collectRecordedQubits(mlir::ModuleOp moduleOp,
         auto iter = physical.find(opnd);
         if (iter == physical.end())
           continue;
-        auto size = veqSize.find(opnd);
-        for (std::size_t i = 0, e = size == veqSize.end() ? 1 : size->second;
+        for (std::size_t i = 0, e = cudaq::quake::getVeqSize(opnd).value_or(1);
              i < e; ++i)
           recorded.push_back(iter->second + i);
       }
@@ -153,27 +145,6 @@ std::vector<std::size_t> collectRecordedQubits(mlir::ModuleOp moduleOp,
         physical[out] = iter->second;
   });
   return recorded;
-}
-
-/// Project the record onto a backend that reports only the measured qubits,
-/// sorted by physical qubit: give the position in that readout of each
-/// recorded qubit, in record order.
-std::vector<std::size_t>
-reorderIdxFromRecord(const std::vector<std::size_t> &recorded) {
-  if (recorded.empty())
-    return {};
-  std::vector<std::size_t> byPhysical(recorded.size());
-  for (std::size_t ix = 0; auto &element : byPhysical)
-    element = ix++;
-  llvm::sort(byPhysical, [&](std::size_t a, std::size_t b) {
-    return recorded[a] < recorded[b];
-  });
-  // `byPhysical[p]` is the record position reported at readout position `p`;
-  // invert it so the result is indexed by record position.
-  std::vector<std::size_t> reorderIdx(recorded.size());
-  for (std::size_t p = 0; p < byPhysical.size(); ++p)
-    reorderIdx[byPhysical[p]] = p;
-  return reorderIdx;
 }
 } // namespace
 
@@ -485,28 +456,25 @@ static void disableQuantumOptimization(mlir::ModuleOp moduleOp) {
 
 /// Does the entry point measure for itself?
 static bool hasUserMeasurements(mlir::func::FuncOp epFunc) {
-  bool found = false;
-  epFunc.walk([&](mlir::Operation *op) {
-    if (op->hasTrait<cudaq::QuantumMeasure>()) {
-      found = true;
-      return mlir::WalkResult::interrupt();
-    }
-    return mlir::WalkResult::advance();
-  });
-  return found;
+  return epFunc
+      .walk([](mlir::Operation *op) {
+        return op->hasTrait<cudaq::QuantumMeasure>()
+                   ? mlir::WalkResult::interrupt()
+                   : mlir::WalkResult::advance();
+      })
+      .wasInterrupted();
 }
 
-/// Did the kernel say what belongs in the histogram, with `cudaq::record`?
-static bool hasUserRecord(mlir::func::FuncOp epFunc) {
-  bool found = false;
+/// The kernel's `cudaq::record`, if any.
+static cudaq::quake::EvinceOp getUserRecord(mlir::func::FuncOp epFunc) {
+  cudaq::quake::EvinceOp record;
   epFunc.walk([&](cudaq::quake::EvinceOp evince) {
-    if (evince.getUserRecord()) {
-      found = true;
-      return mlir::WalkResult::interrupt();
-    }
-    return mlir::WalkResult::advance();
+    if (!evince.getUserRecord())
+      return mlir::WalkResult::advance();
+    record = evince;
+    return mlir::WalkResult::interrupt();
   });
-  return found;
+  return record;
 }
 
 static bool hasConditionalsOnMeasureResults(mlir::ModuleOp moduleOp) {
@@ -576,10 +544,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
         "Skipping counting resources from IR as target does not support it.");
   }
 
-  // The record is measured after the main pipeline, so the measurements land
-  // on the mapped qubits and ancillas added along the way stay out of the
-  // histogram.
-  const bool userRecord = hasUserRecord(epFunc);
+  auto record = getUserRecord(epFunc);
+  const bool userRecord = static_cast<bool>(record);
 
   if (options.addSampleMeasurements) {
     const bool measures = hasUserMeasurements(epFunc);
@@ -606,21 +572,18 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
                     "' records nothing, so `cudaq::sample` has no histogram "
                     "to report. Add a `cudaq::record(...)` naming the qubits "
                     "to report.");
-      bool recordsQubits = false;
-      epFunc.walk([&](cudaq::quake::EvinceOp evince) {
-        if (evince.getUserRecord())
-          for (mlir::Value v : evince.getArgs())
-            if (cudaq::quake::getVeqSize(v) != 0)
-              recordsQubits = true;
-      });
-      if (!recordsQubits)
+      if (llvm::none_of(record.getArgs(), [](mlir::Value v) {
+            return cudaq::quake::getVeqSize(v) != 0;
+          }))
         CUDAQ_WARN("Kernel '{}' records no qubits; `cudaq::sample` returns an "
                    "empty histogram.",
                    kernelName);
 
       // Measure the recorded qubits, in record order, then drop the record.
-      // Measure even where `remove-measurements` strips them after codegen:
-      // the measurements are what the recorded qubits are read from below.
+      // This runs after the main pipeline, so the measurements land on the
+      // mapped qubits and routing ancillas stay out of the histogram. Measure
+      // even where `remove-measurements` strips them after codegen: the
+      // recorded qubits are read from these measurements below.
       applyPipeline("func.func(add-measurements{use-evince=1})", moduleOp,
                     kernelName);
       cudaq::quake::eraseUserRecords(moduleOp);
@@ -648,18 +611,10 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
                 "qubit each spin operator index refers to. Add a "
                 "`cudaq::record(...)` naming the qubits, in index order.");
 
-  // NB: this must follow the pass above, which is what adds the measurements
-  // the record is read from. One walk relates the record to the lowered IR;
-  // each backend takes the projection it needs. A routed backend reports only
-  // the measured qubits, sorted by physical, so it wants the permutation; a
-  // backend that measures every qubit wants the qubit indices themselves.
+  // Must follow `add-measurements` above.
   std::vector<std::size_t> recorded_qubits;
-  std::vector<std::size_t> mapping_reorder_idx;
-  if (options.storeReorderIdx) {
+  if (options.storeReorderIdx)
     recorded_qubits = collectRecordedQubits(moduleOp, epFunc);
-    if (target.needsReorderIdx)
-      mapping_reorder_idx = reorderIdxFromRecord(recorded_qubits);
-  }
 
   // Warn if kernel has named measurement registers (sub-registers).
   if (options.warnNamedMeasurements) {
@@ -736,9 +691,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   return assembleCompiledModule(
       kernelName, modules, needJit, isFullySpecialized, isEntryPoint,
       emulate && combineMeasurements, std::move(resourceCounts),
-      {.reorderIdx = mapping_reorder_idx,
-       .hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes,
-       .hasUserRecord = userRecord,
+      {.hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes,
        .recordedQubits = recorded_qubits},
       context);
 }
@@ -808,7 +761,7 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
     codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j,
                        mapping_reorder_idx,
                        compiled.getMetadata().hasConditionalsOnMeasureResults,
-                       compiled.getMetadata().hasUserRecord, recorded);
+                       recorded);
   }
 
   return codes;

@@ -277,14 +277,10 @@ AnyonServerHelper::processResults(ServerMessage &postJobResponse,
   srs.back().sequentialData = bitstrings;
   sample_result sampleResult(srs);
 
-  // Now reorder according to reorderIdx[]. This sorts the global bitstring in
-  // original user qubit allocation order.
-  auto thisJobReorderIdxIt = reorderIdx.find(jobId);
-  if (thisJobReorderIdxIt != reorderIdx.end()) {
-    auto &thisJobReorderIdx = thisJobReorderIdxIt->second;
-    if (!thisJobReorderIdx.empty())
-      sampleResult.reorder(thisJobReorderIdx);
-  }
+  // Now reorder from physical qubit order into the order the kernel recorded.
+  auto recordedIt = recordedQubits.find(jobId);
+  if (recordedIt != recordedQubits.end() && !recordedIt->second.empty())
+    sampleResult.reorder(reorderIdxFromRecord(recordedIt->second));
 
   return sampleResult;
 }

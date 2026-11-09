@@ -104,9 +104,7 @@ void samplePreamble(ExecutionContext &ctx, sample_policy &policy,
     auto &platform = get_platform();
     platform.with_execution_context(context,
                                     std::forward<KernelFunctor>(wrappedKernel));
-    // In trace mode, if we have a measure result
-    // that is passed to an if statement, then
-    // we'll have collected registernames
+    // Reject conditional feedback detected by tracing.
     if (cudaq::detail::hasConditionalFeedback(kernelName, &context))
       throw std::runtime_error(
           "`cudaq::sample` and `cudaq::sample_async` no longer support kernels "

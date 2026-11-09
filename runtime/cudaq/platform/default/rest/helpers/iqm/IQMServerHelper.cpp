@@ -244,13 +244,12 @@ void IQMServerHelper::initialize(BackendConfig config) {
     cleanupQuantumArchitectureFilePath = false;
   }
 
-  // Parse common config entries (e.g. `reorderIdx.<task_id>` populated by
+  // Parse common config entries (e.g. `recordedQubits.<task_id>` populated by
   // Executor::execute) so that processResults() can map sampled bitstrings
-  // back to the user's original qubit allocation order after the qubit
-  // mapping pass has permuted them. Without this call the reorder map stays
-  // empty and the bitstrings remain in physical-qubit order, which leads to
-  // wrong bit positions when the mapping pass picks a non-identity
-  // placement (see GitHub issue #4621).
+  // back to the order the kernel recorded after the qubit mapping pass has
+  // permuted them. Without this call the bitstrings remain in physical-qubit
+  // order, which leads to wrong bit positions when the mapping pass picks a
+  // non-identity placement (see GitHub issue #4621).
   parseConfigForCommonParams(config);
 }
 
@@ -495,15 +494,11 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
 
   sample_result sampleResult(srs);
 
-  // The original sampleResult is ordered by physical qubit number. Reorder
-  // according to reorderIdx[] so the global bitstring is in the user's
-  // original qubit allocation order.
-  auto thisJobReorderIdxIt = reorderIdx.find(jobID);
-  if (thisJobReorderIdxIt != reorderIdx.end()) {
-    auto &thisJobReorderIdx = thisJobReorderIdxIt->second;
-    if (!thisJobReorderIdx.empty())
-      sampleResult.reorder(thisJobReorderIdx);
-  }
+  // The original sampleResult is ordered by physical qubit number. Reorder it
+  // into the order the kernel recorded.
+  auto recordedIt = recordedQubits.find(jobID);
+  if (recordedIt != recordedQubits.end() && !recordedIt->second.empty())
+    sampleResult.reorder(reorderIdxFromRecord(recordedIt->second));
 
   return sampleResult;
 }

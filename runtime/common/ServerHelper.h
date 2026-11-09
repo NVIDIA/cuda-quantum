@@ -79,6 +79,18 @@ protected:
   /// this to get the histogram the kernel asked for.
   std::map<std::string, std::vector<std::size_t>> recordedQubits;
 
+  /// @brief Narrow a readout of every qubit to \p recorded, in record order.
+  /// An empty \p recorded leaves the readout as is.
+  static cudaq::sample_result
+  sliceToRecord(const cudaq::sample_result &readout,
+                const std::vector<std::size_t> &recorded);
+
+  /// @brief For a backend that reports only the measured qubits, sorted by
+  /// physical qubit: the position in that readout of each qubit in \p recorded,
+  /// in record order.
+  static std::vector<std::size_t>
+  reorderIdxFromRecord(const std::vector<std::size_t> &recorded);
+
   /// @brief  Information about the runtime target managing this server helper.
   RuntimeTarget runtimeTarget;
 

@@ -399,10 +399,10 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   // The kernel said what to report with `cudaq::record`; the compiler handed
   // us those qubits in record order. IonQ measures every qubit, so the job is
   // to slice its readout down to that list.
-  if (recordedQubits.find(jobID) == recordedQubits.end())
+  auto recordedIt = recordedQubits.find(jobID);
+  if (recordedIt == recordedQubits.end())
     throw std::runtime_error("Could not find recorded qubits for job " + jobID);
-
-  auto &recorded = recordedQubits[jobID];
+  auto &recorded = recordedIt->second;
   CUDAQ_INFO("Recorded qubits for job {}: {}", jobID, recorded);
 
   cudaq::CountsDictionary counts;
@@ -426,7 +426,7 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   auto fullSampleResults = cudaq::sample_result{fullExecResults};
 
   // clang-format off
-  // The following code strips out and reorders the outputs based on output_names.
+  // The following code strips out and reorders the outputs based on the recorded qubits.
   // For example, if `counts` is something like:
   //      { 11111:62 01111:12 11110:12 01110:12 }
   // And if we want to discard the first bit (because qubit 0 was a
@@ -442,19 +442,7 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   // -----------------------------------------------------
   // clang-format on
 
-  std::vector<ExecutionResult> execResults;
-
-  // Slice the all-qubit readout down to the recorded qubits, in record order.
-  // An empty record means the kernel recorded nothing to narrow to.
-  if (recorded.empty()) {
-    execResults.emplace_back(ExecutionResult{fullSampleResults.to_map()});
-  } else {
-    auto subset = fullSampleResults.get_marginal(recorded);
-    execResults.emplace_back(ExecutionResult{subset.to_map()});
-  }
-
-  auto ret = cudaq::sample_result(execResults);
-  return ret;
+  return sliceToRecord(fullSampleResults, recorded);
 }
 
 // Get the headers for the API requests

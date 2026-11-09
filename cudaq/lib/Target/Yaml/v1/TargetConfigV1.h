@@ -54,10 +54,6 @@ struct BackendEndConfigEntryV1 {
   rfl::DefaultVal<bool> libraryMode;
   // Default preserves the existing runtime default (true).
   rfl::DefaultVal<bool> supportResourceCounts = true;
-  // Does the backend report its register sorted by physical qubit, so that
-  // `sample` needs the permutation back to allocation order? True for targets
-  // whose pipeline routes onto a coupling graph.
-  rfl::DefaultVal<bool> needsReorderIdx = false;
   // May the caller ask for every measurement in execution order? Only for
   // backends that can replay mid-circuit measurements.
   rfl::DefaultVal<bool> supportExplicitMeasurements = false;

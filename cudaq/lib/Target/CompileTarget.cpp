@@ -117,7 +117,6 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
   target.codegen.emissionFormat = targetConfig.getCodeGenSpec(runtimeConfig);
 
   target.supportResourceCounts = backendConfig.SupportResourceCounts;
-  target.needsReorderIdx = backendConfig.NeedsReorderIdx;
   target.supportExplicitMeasurements =
       backendConfig.SupportExplicitMeasurements;
 
@@ -144,7 +143,7 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
       t.supportResourceCounts, t.supportExplicitMeasurements,
       t.supportObservableMeasurements, t.supportSampleWithoutMeasurements,
       t.fullySpecialize, t.argumentSynthChangeSemantics, t.disableQubitMapping,
-      t.needsReorderIdx, t.replaceStateWithKernel);
+      t.replaceStateWithKernel);
 }
 
 std::size_t std::hash<cudaq::config::UncheckedProfile>::operator()(

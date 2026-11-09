@@ -212,21 +212,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 
     auto sampleResult = qioResult.toCudaqSampleResult();
 
-    // For each original counts entry in the full sample results, reduce it
-    // down to the user component and add to userGlobal. If qubitNumbers is
-    // empty, that means all qubits were measured.
-    std::vector<ExecutionResult> execResults;
-
-    if (recorded.empty()) {
-      execResults.emplace_back(ExecutionResult{sampleResult.to_map()});
-    } else {
-      auto subset = sampleResult.get_marginal(recorded);
-      execResults.emplace_back(ExecutionResult{subset.to_map()});
-    }
-
-    auto ret = cudaq::sample_result(execResults);
-
-    return ret;
+    return sliceToRecord(sampleResult, recorded);
   } catch (const std::exception &e) {
     throw std::runtime_error("Error while parsing result: " +
                              std::string(e.what()));

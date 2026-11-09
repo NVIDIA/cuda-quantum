@@ -134,7 +134,7 @@ sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
   auto fullSampleResults = cudaq::sample_result{fullExecResults};
 
   // clang-format off
-  // The following code strips out and reorders the outputs based on output_names.
+  // The following code strips out and reorders the outputs based on the recorded qubits.
   // For example, if `counts` is something like:
   //      { 11111:62 01111:12 11110:12 01110:12 }
   // And if we want to discard the first bit (because qubit 0 was a
@@ -150,21 +150,7 @@ sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
   // -----------------------------------------------------
   // clang-format on
 
-  std::vector<ExecutionResult> execResults;
-
-  // Slice the readout down to the recorded qubits, in record order. An empty
-  // record means there is nothing to narrow to.
-  if (recorded.empty()) {
-    execResults.emplace_back(ExecutionResult{fullSampleResults.to_map()});
-  } else {
-    auto subset = fullSampleResults.get_marginal(recorded);
-    execResults.emplace_back(ExecutionResult{subset.to_map()});
-  }
-
-  // Return a sample result including the global register and all individual
-  // registers.
-  auto ret = cudaq::sample_result(execResults);
-  return ret;
+  return sliceToRecord(fullSampleResults, recorded);
 }
 
 void BraketServerHelper::setOutputNames(

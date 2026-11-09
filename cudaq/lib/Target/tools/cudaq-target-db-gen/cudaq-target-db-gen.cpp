@@ -334,7 +334,6 @@ cxxBackendConfigEntry(const cudaq::config::BackendEndConfigEntry &c) {
      << ".GenTargetBackend = " << cxxBool(c.GenTargetBackend) << ", "
      << ".LibraryMode = " << cxxBool(c.LibraryMode) << ", "
      << ".SupportResourceCounts = " << cxxBool(c.SupportResourceCounts) << ", "
-     << ".NeedsReorderIdx = " << cxxBool(c.NeedsReorderIdx) << ", "
      << ".SupportExplicitMeasurements = "
      << cxxBool(c.SupportExplicitMeasurements) << ", "
      << ".CompileTarget = " << cxxCompileTarget(c.CompileTarget) << ", "

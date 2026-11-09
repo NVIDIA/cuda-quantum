@@ -308,12 +308,8 @@ struct DropEmptyVeqEvinceArgsPattern
       return success();
     }
 
-    SmallVector<NamedAttribute> attrs(evin->getAttrs());
-    auto newOp = rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
-        evin, keep, evin.getCompilerGenerated());
-    // Carry every attribute across
-    for (auto namedAttr : attrs)
-      newOp->setAttr(namedAttr.getName(), namedAttr.getValue());
+    // Only non-linear operands are dropped, so the results are unchanged.
+    rewriter.modifyOpInPlace(evin, [&]() { evin->setOperands(keep); });
     return success();
   }
 };

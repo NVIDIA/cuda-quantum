@@ -261,19 +261,11 @@ public:
           cudaq::ExecutionResult fullExecResults{counts};
           auto fullSampleResults = cudaq::sample_result{fullExecResults};
 
-          std::vector<ExecutionResult> execResults;
-
           auto recordedIt = recordedQubits.find(jobId);
-          if (recordedIt != recordedQubits.end() &&
-              !recordedIt->second.empty()) {
-            auto subset = fullSampleResults.get_marginal(recordedIt->second);
-            execResults.emplace_back(ExecutionResult{subset.to_map()});
-          } else {
-            // Nothing to narrow to: report the full flat counts.
-            execResults.emplace_back(ExecutionResult{counts});
-          }
-
-          return cudaq::sample_result(execResults);
+          return sliceToRecord(fullSampleResults,
+                               recordedIt == recordedQubits.end()
+                                   ? std::vector<std::size_t>{}
+                                   : recordedIt->second);
         }
 
         // No valid data yet and no explicit error - retry

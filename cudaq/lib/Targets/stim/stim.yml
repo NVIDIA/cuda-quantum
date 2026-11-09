@@ -13,7 +13,7 @@ config:
   # Load this config at run time, so `support-explicit-measurements` reaches it.
   gen-target-backend: true
   nvqir-simulation-backend: stim
-  # Stim can replay mid-circuit measurements, so it is the one target where
-  # `sample` may be asked to report one bit per measurement.
+  # Stim can replay mid-circuit measurements, so `sample` may report one bit
+  # per measurement.
   support-explicit-measurements: true
   preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]

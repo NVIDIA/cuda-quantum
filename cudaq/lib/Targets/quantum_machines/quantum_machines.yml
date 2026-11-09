@@ -23,9 +23,6 @@ config:
   gen-target-backend: true
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
-  # This target routes onto a coupling graph, so the backend reports its
-  # register sorted by physical qubit.
-  needs-reorder-idx: true
   # Define the JIT lowering pipeline
   # Decompose source operations before mapping so the mapper sees only gates
   # supported by its two-qubit coupling graph. Keep the second decomposition

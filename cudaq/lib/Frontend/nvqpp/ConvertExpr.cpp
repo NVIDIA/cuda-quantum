@@ -2802,12 +2802,8 @@ bool QuakeBridgeVisitor::lowerCall(clang::CallExpr *x, OperandStack &stack) {
     // `quake.evince`; the backend-specific lowering (adding measurements, or
     // mapping an implicit readout back onto these qubits) happens later.
     if (funcName == "record" && inCudaqDirect) {
-      SmallVector<Value> qubits;
-      qubits.reserve(args.size());
-      for (auto arg : args)
-        qubits.push_back(arg);
-      auto evince = cudaq::quake::EvinceOp::create(builder, loc, qubits,
-                                                  /*compilerGenerated=*/false);
+      auto evince = cudaq::quake::EvinceOp::create(builder, loc, args,
+                                                   /*compilerGenerated=*/false);
       evince.setUserRecord(true);
       return true;
     }

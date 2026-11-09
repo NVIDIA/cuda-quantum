@@ -199,10 +199,9 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
               newBuilder, loc, newBuilder.getI64Type(),
               cudaq::quake::getAllocationSize(alloc.getType()));
         // A builder kernel may size a register with a narrower integer.
-        if (allocSize.getType() != newBuilder.getI64Type())
-          allocSize = cudaq::cc::CastOp::create(
-              newBuilder, loc, newBuilder.getI64Type(), allocSize,
-              cudaq::cc::CastOpMode::Unsigned);
+        allocSize = cudaq::opt::factory::createCast(
+            newBuilder, loc, newBuilder.getI64Type(), allocSize,
+            /*signExtend=*/false, /*zeroExtend=*/true);
 
         auto offset = arith::SubIOp::create(newBuilder, loc, allocSize, one);
         subArg = cudaq::quake::SubVeqOp::create(newBuilder, loc, retTy, arg,
@@ -332,10 +331,9 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
               newBuilder, loc, newBuilder.getI64Type(),
               cudaq::quake::getAllocationSize(alloc.getType()));
         newBuilder.setInsertionPointAfter(alloc);
-        if (allocSize.getType() != newBuilder.getI64Type())
-          allocSize = cudaq::cc::CastOp::create(
-              newBuilder, loc, newBuilder.getI64Type(), allocSize,
-              cudaq::cc::CastOpMode::Unsigned);
+        allocSize = cudaq::opt::factory::createCast(
+            newBuilder, loc, newBuilder.getI64Type(), allocSize,
+            /*signExtend=*/false, /*zeroExtend=*/true);
         size = arith::AddIOp::create(newBuilder, loc, size, allocSize);
       }
 

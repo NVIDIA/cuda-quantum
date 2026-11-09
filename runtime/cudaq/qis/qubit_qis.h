@@ -630,9 +630,7 @@ template <typename T>
 concept any_measure_result_or_vec =
     std::is_same_v<std::remove_cvref_t<T>, measure_result> ||
     std::is_same_v<std::remove_cvref_t<T>, std::vector<measure_result>>;
-} // namespace detail
 
-namespace detail {
 /// A `record` argument is an individual qudit or a container of them.
 template <typename>
 struct is_recordable : std::false_type {};

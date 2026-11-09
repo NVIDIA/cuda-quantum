@@ -70,13 +70,11 @@ using EvincedQubit =
 /// the same qubit afterwards.
 void collectEvincedQubits(func::FuncOp funcOp,
                           SmallVectorImpl<EvincedQubit> &qubits) {
-  SmallPtrSet<Value, 16> seen;
   funcOp.walk([&](cudaq::quake::EvinceOp evince) {
     if (!evince.getUserRecord())
       return;
     for (auto [index, opnd] : llvm::enumerate(evince->getOperands())) {
-      if (!cudaq::quake::isQuantumType(opnd.getType()) ||
-          !seen.insert(opnd).second)
+      if (!cudaq::quake::isQuantumType(opnd.getType()))
         continue;
       if (auto size = cudaq::quake::getVeqSize(opnd))
         for (std::size_t i = 0; i < *size; ++i)
@@ -96,7 +94,7 @@ void collectEvincedQubits(func::FuncOp funcOp,
 LogicalResult appendMeasurements(func::FuncOp funcOp, ArrayRef<bool> bsf) {
   SmallVector<EvincedQubit> qubits;
   collectEvincedQubits(funcOp, qubits);
-  // Only the launched kernel records.
+  // Nothing to measure in a function without a record.
   if (qubits.empty())
     return success();
 
@@ -147,24 +145,12 @@ LogicalResult appendMeasurements(func::FuncOp funcOp, ArrayRef<bool> bsf) {
     }
   }
 
-  // The measurements stand in for the record now; consume it.
-  SmallPtrSet<Operation *, 2> records;
-  for (auto [evince, position, element] : qubits)
-    records.insert(evince);
-  for (auto *op : records) {
-    auto evince = cast<cudaq::quake::EvinceOp>(op);
-    unsigned resultIdx = 0;
-    for (Value arg : evince.getArgs())
-      if (cudaq::quake::isLinearType(arg.getType()))
-        evince.getOuts()[resultIdx++].replaceAllUsesWith(arg);
-    evince->erase();
-  }
+  cudaq::quake::eraseUserRecords(funcOp);
   return success();
 }
 
 /// This pass appends the basis changes and `mz` operations for a single Pauli
-/// term to an ansatz, in front of the `quake.evince` ops that mark the qubits
-/// the kernel declared.
+/// term to an ansatz, in front of the kernel's `cudaq::record`.
 class ObserveAnsatzPass
     : public cudaq::opt::impl::ObserveAnsatzBase<ObserveAnsatzPass> {
 public:
@@ -184,8 +170,8 @@ public:
       for (auto &b : termBSF)
         binarySymplecticForm.push_back(b);
 
-    // `observe` measures the whole register itself, so a kernel that measures
-    // for itself cannot be observed.
+    // `observe` adds its own measurements, so a kernel that measures cannot be
+    // observed.
     bool hasMeasurement = false;
     funcOp.walk([&](cudaq::quake::MeasurementInterface) {
       hasMeasurement = true;
