@@ -1,4 +1,4 @@
-/****************************************************************-*- C++ -*-****
+/*************************************************************** -*- C++ -*- ***
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -169,8 +169,7 @@ protected:
       }
     }
 
-    // Capacity of each memory tier -- device (local) wires and host (migration)
-    // wires -- and the resulting per-layer index-bit classes and sizes.
+    // Per-layer index-bit classes and sizes.
     const auto [classes, bits] = communicationLayers(maxMigrationWires);
     // Select how peer ranks share sub-state device memory, consistent with the
     // layers `communicationLayers` produced: cuStateVecEx requires a sharing

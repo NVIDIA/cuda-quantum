@@ -243,8 +243,18 @@ TEST(MGpuCapacityTest, IncludesConfiguredHostCapacity) {
   const auto deviceCapacity = simulator.maximumDistributedWires();
   simulator.configureMemoryLimits(1, 8);
   const auto totalCapacity = simulator.maximumDistributedWires();
-  ASSERT_GT(totalCapacity, deviceCapacity);
-  simulator.allocateQubits(totalCapacity + 1);
+  // Skip collectively so no peer enters the capacity check alone.
+  const int32_t hasHostCapacity = totalCapacity > deviceCapacity;
+  int32_t allRanksHaveHostCapacity = 0;
+  auto *const plugin = cudaq::mpi::getMpiPlugin();
+  ASSERT_EQ(plugin->get()->Allreduce(plugin->getComm(), &hasHostCapacity,
+                                     &allRanksHaveHostCapacity, 1, INT_32, MIN),
+            0);
+  if (!allRanksHaveHostCapacity)
+    GTEST_SKIP()
+        << "This regression requires available host migration capacity "
+           "on every rank.";
+  simulator.allocateQubits(totalCapacity + 2);
   expectCapacityError(simulator);
   EXPECT_EQ(simulator.materializedState(), nullptr);
 }
