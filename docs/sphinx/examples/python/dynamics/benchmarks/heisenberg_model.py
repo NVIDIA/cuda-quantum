@@ -154,8 +154,8 @@ run_time = timed_evolve(n_steps)
 
 time_per_step = (run_time - baseline_time) / (n_steps - 3)
 evolve_init_time = baseline_time - 3 * time_per_step
-startup_time = (first_time + second_time -
-                2 * (evolve_init_time + time_per_step))
+startup_time = (first_time + second_time - 2 *
+                (evolve_init_time + time_per_step))
 log(f"Time per step: {format_ms(time_per_step)}")
 log(f"Evolve initialization time: {format_ms(evolve_init_time)}")
 log(f"Startup time: {format_ms(startup_time)}")

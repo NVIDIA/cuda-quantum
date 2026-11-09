@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Cavity QED (Jaynes–Cummings) model master equation solver benchmark
+# Cavity QED: Jaynes-Cummings model master equation solver benchmark
 # The benchmark models follow those in qutip-benchmark
 # (https://github.com/qutip/qutip-benchmark).
 
@@ -114,7 +114,7 @@ collapse_operators = [gamma * sm, kappa * a]
 # Initial state vector
 qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
 
-# Cavity in a state which has fock_dim/2 photons initially
+# Cavity in a state which has `fock_dim/2` photons initially
 cavity_state = cp.zeros((fock_dim, fock_dim), dtype=cp.complex128)
 cavity_state[fock_dim // 2][fock_dim // 2] = 1.0
 initial_state = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
@@ -163,8 +163,8 @@ run_time = timed_evolve(n_steps)
 
 time_per_step = (run_time - baseline_time) / (n_steps - 3)
 evolve_init_time = baseline_time - 3 * time_per_step
-startup_time = (first_time + second_time -
-                2 * (evolve_init_time + time_per_step))
+startup_time = (first_time + second_time - 2 *
+                (evolve_init_time + time_per_step))
 log(f"Time per step: {format_ms(time_per_step)}")
 log(f"Evolve initialization time: {format_ms(evolve_init_time)}")
 log(f"Startup time: {format_ms(startup_time)}")
