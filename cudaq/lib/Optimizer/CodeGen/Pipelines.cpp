@@ -189,13 +189,14 @@ createTargetCodegenPipeline(OpPassManager &pm,
   // QIR without a profile can't lower borrowed wires, so swap them for null
   // wires first. Profile QIR lowers wire sets with `wireset-to-profile-qir`
   // instead, so it still rejects borrowed wires here.
-  if (fullQIR) {
+  if (fullQIR)
     pm.addPass(cudaq::opt::createWireSetToNullWires());
-  } else {
-    // Full QIR passes negated controls to NVQIR. Other targets expand them
-    // before simplification, which can then cancel the X pairs.
+  // A QIR API that cannot lower negated controls gets them expanded before
+  // simplification, which can then cancel the X pairs.
+  const bool supportNegatedControls = cudaq::opt::qirAPISupportsNegatedControls(
+      fullQIR ? "full" : "base-profile");
+  if (!supportNegatedControls)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-  }
   createCommonTargetCodegenPipeline(pm, options);
   if (useValueSemantics) {
     cudaq::opt::addConvertToLinearValues(pm);
@@ -207,9 +208,8 @@ createTargetCodegenPipeline(OpPassManager &pm,
 
   cudaq::opt::addPhaseLifecycle(pm);
   // `LowerPhase` can leave negative controls on the R1/Rz it creates, so we
-  // need to run this pass again to expand those negations on non-full-QIR
-  // targets.
-  if (!fullQIR)
+  // need to run this pass again to expand those negations.
+  if (!supportNegatedControls)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
 
   cudaq::opt::addLowerToCFG(pm);

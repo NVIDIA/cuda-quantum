@@ -69,6 +69,10 @@ void registerToQIRAPIPipeline();
 void addConvertToQIRAPIPipeline(mlir::OpPassManager &pm, mlir::StringRef api,
                                 bool opaquePtr = true);
 
+/// Whether the QIR API \p api, as passed to `addConvertToQIRAPIPipeline`,
+/// lowers negated controls. If not, `expand-control-negations` must run first.
+bool qirAPISupportsNegatedControls(mlir::StringRef api);
+
 /// The pipeline for lowering Quake code to the execution manager API. This
 /// pipeline should be run before conversion to the LLVM-IR dialect.
 void registerToExecutionManagerCCPipeline();

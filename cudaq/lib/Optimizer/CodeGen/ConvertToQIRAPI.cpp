@@ -3300,6 +3300,14 @@ struct QuakeToQIRAPIFinalPass
 
 } // namespace
 
+bool cudaq::opt::qirAPISupportsNegatedControls(StringRef api) {
+  SmallVector<StringRef> apiFields;
+  splitTransportTriple(apiFields, api);
+  if (!apiFields.empty() && apiFields[0] == "full")
+    return FullQIR</*opaquePtr=*/true>::supportNegatedControls;
+  return AnyProfileQIR</*opaquePtr=*/true>::supportNegatedControls;
+}
+
 void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
                                             bool opaquePtr) {
   QuakeToQIRAPIPrepOptions prepApiOpt{.api = api.str(), .opaquePtr = opaquePtr};

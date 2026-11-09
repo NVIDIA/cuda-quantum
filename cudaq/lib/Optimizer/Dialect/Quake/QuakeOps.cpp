@@ -784,7 +784,7 @@ void cudaq::quake::ExpPauliOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<BindExpPauliWord, AdjustAdjointExpPauliPattern,
                EraseEmptyVeqControlPattern<ExpPauliOp>,
-               EraseRedundantNegatedControlsPattern<ExpPauliOp>>(context);
+               EraseAllFalseNegatedControlsPattern<ExpPauliOp>>(context);
 }
 
 LogicalResult cudaq::quake::ExpPauliOp::verify() {
@@ -1327,7 +1327,7 @@ void cudaq::quake::PhaseOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<AdjustAdjointPhasePattern, EraseZeroPhasePattern,
                MergeAdjacentPhasePattern, EraseEmptyVeqControlPattern<PhaseOp>,
-               EraseRedundantNegatedControlsPattern<PhaseOp>>(context);
+               EraseAllFalseNegatedControlsPattern<PhaseOp>>(context);
 }
 
 void cudaq::quake::PhasedRxOp::getOperatorMatrix(Matrix &matrix) {
@@ -1489,7 +1489,7 @@ LogicalResult cudaq::quake::CustomUnitaryCallOp::verify() {
 void cudaq::quake::CustomUnitaryCallOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryCallOp>,
-               EraseRedundantNegatedControlsPattern<CustomUnitaryCallOp>>(
+               EraseAllFalseNegatedControlsPattern<CustomUnitaryCallOp>>(
       context);
 }
 
@@ -1585,7 +1585,7 @@ LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {
 void cudaq::quake::CustomUnitaryConstantOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryConstantOp>,
-               EraseRedundantNegatedControlsPattern<CustomUnitaryConstantOp>>(
+               EraseAllFalseNegatedControlsPattern<CustomUnitaryConstantOp>>(
       context);
 }
 
@@ -1731,7 +1731,7 @@ WIRE_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
   void cudaq::quake::Op::getCanonicalizationPatterns(                          \
       RewritePatternSet &patterns, MLIRContext *context) {                     \
     patterns.add<EraseEmptyVeqControlPattern<Op>,                              \
-                 EraseRedundantNegatedControlsPattern<Op>>(context);           \
+                 EraseAllFalseNegatedControlsPattern<Op>>(context);            \
   }
 
 BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_CANONICALIZATION)

@@ -216,9 +216,10 @@ struct EraseEmptyVeqControlPattern : public OpRewritePattern<ConcreteOp> {
   }
 };
 
-// An absent polarity attribute already means that every control is positive.
+// Drops a `negated_qubit_controls` array whose entries are all false. An absent
+// attribute already means that every control is positive.
 template <typename ConcreteOp>
-struct EraseRedundantNegatedControlsPattern
+struct EraseAllFalseNegatedControlsPattern
     : public OpRewritePattern<ConcreteOp> {
   using OpRewritePattern<ConcreteOp>::OpRewritePattern;
 
@@ -1161,8 +1162,8 @@ struct AdjustAdjointPhasePattern
         arith::NegFOp::create(rewriter, phase.getLoc(), phase.getParameter());
     auto dict = phase->getDiscardableAttrDictionary();
     auto newPhase = rewriter.replaceOpWithNewOp<cudaq::quake::PhaseOp>(
-        phase, phase.getResultTypes(), /*is_adj=*/false, ValueRange{negatedAngle},
-        phase.getControls(), phase.getTargets(),
+        phase, phase.getResultTypes(), /*is_adj=*/false,
+        ValueRange{negatedAngle}, phase.getControls(), phase.getTargets(),
         phase.getNegatedQubitControlsAttr());
     newPhase->setDiscardableAttrs(std::move(dict));
     return success();
@@ -1253,8 +1254,8 @@ struct MergeAdjacentPhasePattern
         arith::AddFOp::create(rewriter, loc, firstAngle, secondAngle);
 
     rewriter.replaceOpWithNewOp<cudaq::quake::PhaseOp>(
-        phase, phase.getResultTypes(), /*is_adj=*/false, ValueRange{mergedAngle},
-        input.getControls(), input.getTargets(),
+        phase, phase.getResultTypes(), /*is_adj=*/false,
+        ValueRange{mergedAngle}, input.getControls(), input.getTargets(),
         input.getNegatedQubitControlsAttr());
     rewriter.eraseOp(input);
     return success();
