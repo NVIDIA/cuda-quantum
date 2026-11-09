@@ -13,10 +13,13 @@
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/platform.h"
 #include "cudaq/qis/execution_manager.h"
+#include <array>
 #include <cmath>
+#include <complex>
 #include <cstdint>
 #include <limits>
 #include <thread>
+#include <utility>
 #include <vector>
 
 extern "C" {
@@ -66,6 +69,8 @@ void __quantum__qis__ry__ctl(double x, Array *ctrls, Qubit *q);
 void __quantum__qis__rz(double x, Qubit *q);
 void __quantum__qis__rz__ctl(double x, Array *ctrls, Qubit *q);
 void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q);
+void __quantum__qis__u3__ctl(double theta, double phi, double lambda,
+                             Array *controls, Qubit *q);
 Result *__quantum__qis__mz(Qubit *q);
 std::int64_t __quantum__qis__mz_handle__to__register(Qubit *q,
                                                      const char *name);
@@ -76,10 +81,25 @@ void __quantum__qis__exp__body(Array *paulis, double angle, Array *qubits);
 // Utility function used by MLIRGen to map Qubit*... controls to Array*
 void invokeWithControlQubits(const std::size_t nControls,
                              void (*QISFunction)(Array *, Qubit *), ...);
-void generalizedInvokeWithControlValues(std::size_t numRotations,
-                                        std::size_t numControls,
-                                        std::size_t numTargets,
-                                        void (*QISFunction)(...), ...);
+void generalizedInvokeWithRotationsControlsTargets(std::size_t numRotations,
+                                                   std::size_t numControlArrays,
+                                                   std::size_t numControlQubits,
+                                                   std::size_t numTargets,
+                                                   void (*QISFunction)(...),
+                                                   ...);
+void generalizedInvokeWithRotationsControlsTargets_v2(
+    std::size_t numRotations, std::size_t numControlArrays,
+    std::size_t numControlQubits, std::size_t numTargets,
+    void (*QISFunction)(...), ...);
+void invokeCustomUnitaryWithControlValues(
+    std::size_t numControlArrays, std::size_t numControlQubits,
+    std::complex<double> *matrix, Array *targets, const char *name,
+    void (*callback)(std::complex<double> *, Array *, const std::int32_t *,
+                     std::int64_t, Array *, const char *),
+    ...);
+void invokeExpPauliWithControlValues(std::size_t numControlArrays,
+                                     std::size_t numControlQubits, double theta,
+                                     Array *targets, char *pauliWord, ...);
 void __nvqir__qis__x__ctl_values(Array *controls, const std::int32_t *values,
                                  std::int64_t count, Qubit *target);
 void __nvqir__qis__ry__ctl_values(double theta, Array *controls,
@@ -528,124 +548,285 @@ CUDAQ_TEST(NVQIRTester, checkValueControlInvoke) {
   auto *array = __quantum__rt__array_slice_1d(qubits, 0, 1, 1);
   auto *empty = __quantum__rt__array_create_1d(sizeof(Qubit *), 0);
   static std::vector<Qubit *> expected;
-  // The callback only inspects arguments, so control/target overlap is
-  // intentional. Array elements must retain their position among scalars.
-  expected = {extract_qubit(qubits, 3), extract_qubit(qubits, 0),
-              extract_qubit(qubits, 1), extract_qubit(qubits, 2)};
+  static unsigned invocations;
+  invocations = 0;
+  // The callbacks only inspect arguments, so control/target overlap is
+  // intentional. Register qubits precede scalar qubits.
+  expected = {extract_qubit(qubits, 0), extract_qubit(qubits, 1),
+              extract_qubit(qubits, 3), extract_qubit(qubits, 2)};
   using Callback =
       void (*)(double, double, double, Array *, const std::int32_t *,
                std::int64_t, Qubit *, Qubit *);
   Callback callback = [](double theta, double phi, double lambda,
                          Array *controls, const std::int32_t *values,
                          std::int64_t count, Qubit *first, Qubit *second) {
+    ++invocations;
     EXPECT_EQ(theta, 0.25);
     EXPECT_EQ(phi, -0.5);
     EXPECT_EQ(lambda, 0.75);
-    // Empty and null arrays contribute zero: 0 + 1 + 2 + 0 + 1 + 0 = 4.
+    // Empty and null registers contribute no controls: 0 + 2 + 0 + 1 + 1.
     ASSERT_EQ(count, 4);
     EXPECT_EQ(__quantum__rt__array_get_size_1d(controls), count);
-    const std::vector<std::int32_t> expectedValues{0, 1, 1, 0};
+    const std::vector<std::int32_t> expectedValues{1, 1, 0, 1};
     for (std::int64_t i = 0; i < count; ++i) {
       EXPECT_EQ(extract_qubit(controls, i), expected[i]);
       EXPECT_EQ(values[i], expectedValues[i]);
     }
-    EXPECT_EQ(first, expected[1]);
-    EXPECT_EQ(second, expected[2]);
+    EXPECT_EQ(first, expected[0]);
+    EXPECT_EQ(second, expected[1]);
   };
-  generalizedInvokeWithControlValues(
-      /*numRotationOperands=*/3, /*numControlOperands=*/6,
-      /*numTargetOperands=*/2, reinterpret_cast<void (*)(...)>(callback),
+  generalizedInvokeWithRotationsControlsTargets_v2(
+      /*numRotationOperands=*/3, /*numControlArrayOperands=*/3,
+      /*numControlQubitOperands=*/2, /*numTargetOperands=*/2,
+      reinterpret_cast<void (*)(...)>(callback),
+      // Bit k marks control operand k as open: the empty register (bit 0) and
+      // q3 (bit 3). A register's bit applies to each of its qubits.
+      std::int64_t{0b01001},
       // Rotation parameters.
       0.25, -0.5, 0.75,
-      // Each control operand is (isArray, requiredValue, operand). An array's
-      // required value applies to every element, without changing their order.
-      1, 0, reinterpret_cast<Qubit *>(empty), // No controls.
-      0, 0, expected[0],                      // q3 == 0.
-      1, 1, reinterpret_cast<Qubit *>(array), // q0 == 1 and q1 == 1.
-      1, 1, static_cast<Qubit *>(nullptr),    // No controls.
-      0, 0, expected[3],                      // q2 == 0.
-      1, 0, reinterpret_cast<Qubit *>(empty), // No controls.
-      expected[1], expected[2]);              // Targets q0 and q1.
+      // Registers are (length, Array *).
+      std::size_t{0}, reinterpret_cast<Qubit *>(empty), std::size_t{2},
+      reinterpret_cast<Qubit *>(array), std::size_t{0},
+      static_cast<Qubit *>(nullptr),
+      // Qubits q3 and q2.
+      expected[2], expected[3],
+      // Targets q0 and q1.
+      expected[0], expected[1]);
+
+  using PositiveCallback =
+      void (*)(double, double, double, Array *, Qubit *, Qubit *);
+  PositiveCallback positiveCallback = [](double theta, double phi,
+                                         double lambda, Array *controls,
+                                         Qubit *first, Qubit *second) {
+    ++invocations;
+    EXPECT_EQ(theta, 0.25);
+    EXPECT_EQ(phi, -0.5);
+    EXPECT_EQ(lambda, 0.75);
+    ASSERT_EQ(__quantum__rt__array_get_size_1d(controls), expected.size());
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+      EXPECT_EQ(extract_qubit(controls, i), expected[i]);
+    }
+    EXPECT_EQ(first, expected[0]);
+    EXPECT_EQ(second, expected[1]);
+  };
+  // The same operands without the mask produce the same control order. Code
+  // compiled before control values existed uses this layout, so these calls
+  // also pin it.
+  generalizedInvokeWithRotationsControlsTargets(
+      3, 3, 2, 2, reinterpret_cast<void (*)(...)>(positiveCallback), 0.25, -0.5,
+      0.75, std::size_t{0}, reinterpret_cast<Qubit *>(empty), std::size_t{2},
+      reinterpret_cast<Qubit *>(array), std::size_t{0},
+      static_cast<Qubit *>(nullptr), expected[2], expected[3], expected[0],
+      expected[1]);
+
   using EmptyCallback =
       void (*)(Array *, const std::int32_t *, std::int64_t, Qubit *);
   EmptyCallback emptyCallback = [](Array *controls, const std::int32_t *,
                                    std::int64_t count, Qubit *target) {
+    ++invocations;
     EXPECT_EQ(__quantum__rt__array_get_size_1d(controls), 0);
     EXPECT_EQ(count, 0);
     EXPECT_EQ(target, expected[0]);
   };
-  generalizedInvokeWithControlValues(
-      0, 1, 1, reinterpret_cast<void (*)(...)>(emptyCallback), 1, 0,
-      reinterpret_cast<Qubit *>(empty), expected[0]);
-  generalizedInvokeWithControlValues(
-      0, 0, 1, reinterpret_cast<void (*)(...)>(emptyCallback), expected[0]);
+  generalizedInvokeWithRotationsControlsTargets_v2(
+      0, 1, 0, 1, reinterpret_cast<void (*)(...)>(emptyCallback),
+      std::int64_t{1}, std::size_t{0}, reinterpret_cast<Qubit *>(empty),
+      expected[0]);
+  // Without control operands, no mask word follows the gate function.
+  generalizedInvokeWithRotationsControlsTargets_v2(
+      0, 0, 0, 1, reinterpret_cast<void (*)(...)>(emptyCallback), expected[0]);
+  void (*positiveEmptyCallback)(Array *, Qubit *) = [](Array *controls,
+                                                       Qubit *target) {
+    ++invocations;
+    EXPECT_EQ(__quantum__rt__array_get_size_1d(controls), 0);
+    EXPECT_EQ(target, expected[0]);
+  };
+  generalizedInvokeWithRotationsControlsTargets(
+      0, 2, 0, 1, reinterpret_cast<void (*)(...)>(positiveEmptyCallback),
+      std::size_t{0}, reinterpret_cast<Qubit *>(empty), std::size_t{0},
+      static_cast<Qubit *>(nullptr), expected[0]);
+  generalizedInvokeWithRotationsControlsTargets(
+      0, 0, 0, 1, reinterpret_cast<void (*)(...)>(positiveEmptyCallback),
+      expected[0]);
+  EXPECT_EQ(invocations, 6u);
+
+  // The custom-unitary wrapper takes the version 2 controls and packs them the
+  // same way.
+  static std::vector<std::int32_t> expectedValues;
+  static std::int64_t expectedCount;
+  static Qubit *expectedTarget;
+  static unsigned customCalls;
+  expectedValues = {1, 1, 0, 1};
+  expectedCount = 4;
+  expectedTarget = extract_qubit(qubits, 3);
+  customCalls = 0;
+  auto customCallback = [](std::complex<double> *matrix, Array *controls,
+                           const std::int32_t *values, std::int64_t count,
+                           Array *targets, const char *name) {
+    ++customCalls;
+    EXPECT_EQ(matrix[1], std::complex<double>(0., 1.));
+    EXPECT_STREQ(name, "packed_custom");
+    EXPECT_EQ(extract_qubit(targets, 0), expectedTarget);
+    ASSERT_EQ(count, expectedCount);
+    EXPECT_EQ(__quantum__rt__array_get_size_1d(controls), count);
+    for (std::int64_t i = 0; i < count; ++i) {
+      EXPECT_EQ(extract_qubit(controls, i), expected[i]);
+      EXPECT_EQ(values[i], expectedValues[i]);
+    }
+  };
+  std::complex<double> matrix[]{0., {0., 1.}, 1., 0.};
+  auto *targets = __quantum__rt__array_slice_1d(qubits, 3, 1, 3);
+  invokeCustomUnitaryWithControlValues(
+      /*numControlArrays=*/3, /*numControlQubits=*/2, matrix, targets,
+      "packed_custom", customCallback, std::int64_t{0b01001}, std::size_t{0},
+      reinterpret_cast<Qubit *>(empty), std::size_t{2},
+      reinterpret_cast<Qubit *>(array), std::size_t{0},
+      static_cast<Qubit *>(nullptr), expected[2], expected[3]);
+  expectedCount = 0;
+  invokeCustomUnitaryWithControlValues(
+      2, 0, matrix, targets, "packed_custom", customCallback, std::int64_t{1},
+      std::size_t{0}, reinterpret_cast<Qubit *>(empty), std::size_t{0},
+      static_cast<Qubit *>(nullptr));
+  invokeCustomUnitaryWithControlValues(0, 0, matrix, targets, "packed_custom",
+                                       customCallback);
+  EXPECT_EQ(customCalls, 3u);
+  __quantum__rt__array_release(targets);
   __quantum__rt__array_release(empty);
   __quantum__rt__array_release(array);
   __quantum__rt__qubit_release_array(qubits);
   __quantum__rt__finalize();
 }
 
-CUDAQ_TEST(NVQIRTester, checkValueControlInvokeExecution) {
-  for (unsigned inputs = 0; inputs < 4; ++inputs) {
-    SCOPED_TRACE(inputs);
-    __quantum__rt__initialize(0, nullptr);
-    auto *qubits = __quantum__rt__qubit_allocate_array(7);
-    auto *scalar = extract_qubit(qubits, 0);
-    auto *array = __quantum__rt__array_slice_1d(qubits, 1, 1, 1);
-    auto *empty = __quantum__rt__array_create_1d(sizeof(Qubit *), 0);
-    if (inputs & 1)
-      __quantum__qis__x(scalar);
-    if (inputs & 2)
-      __quantum__qis__x(extract_qubit(qubits, 1));
-    __quantum__qis__x(extract_qubit(qubits, 6));
-
-    // All callbacks require q0 == 0 and q1 == 1 (input 2). Their different
-    // signatures exercise zero through three parameters and both target counts.
-    generalizedInvokeWithControlValues(
-        1, 3, 1, reinterpret_cast<void (*)(...)>(__nvqir__qis__ry__ctl_values),
-        M_PI, 0, 0, scalar, 1, 1, reinterpret_cast<Qubit *>(array), 1, 0,
-        reinterpret_cast<Qubit *>(empty), extract_qubit(qubits, 2));
-    generalizedInvokeWithControlValues(
-        2, 3, 1,
-        reinterpret_cast<void (*)(...)>(__nvqir__qis__phased_rx__ctl_values),
-        M_PI, 0.37, 0, 0, scalar, 1, 1, reinterpret_cast<Qubit *>(array), 1, 0,
-        reinterpret_cast<Qubit *>(empty), extract_qubit(qubits, 3));
-    generalizedInvokeWithControlValues(
-        3, 3, 1, reinterpret_cast<void (*)(...)>(__nvqir__qis__u3__ctl_values),
-        M_PI, 0.31, -0.53, 0, 0, scalar, 1, 1, reinterpret_cast<Qubit *>(array),
-        1, 0, reinterpret_cast<Qubit *>(empty), extract_qubit(qubits, 4));
-    generalizedInvokeWithControlValues(
-        0, 3, 2,
-        reinterpret_cast<void (*)(...)>(__nvqir__qis__swap__ctl_values), 0, 0,
-        scalar, 1, 1, reinterpret_cast<Qubit *>(array), 1, 0,
-        reinterpret_cast<Qubit *>(empty), extract_qubit(qubits, 5),
-        extract_qubit(qubits, 6));
-
-    EXPECT_EQ(*__quantum__qis__mz(scalar), static_cast<bool>(inputs & 1));
-    EXPECT_EQ(*__quantum__qis__mz(extract_qubit(qubits, 1)),
-              static_cast<bool>(inputs & 2));
-    const bool active = inputs == 2;
-    for (int target = 2; target < 6; ++target)
-      EXPECT_EQ(*__quantum__qis__mz(extract_qubit(qubits, target)), active);
-    EXPECT_EQ(*__quantum__qis__mz(extract_qubit(qubits, 6)), !active);
-    __quantum__rt__array_release(empty);
-    __quantum__rt__array_release(array);
-    __quantum__rt__qubit_release_array(qubits);
-    __quantum__rt__finalize();
-  }
+// Expands the scalar controls into the varargs of one version 2 call.
+template <std::size_t... I>
+static void
+invokeV2WithScalarControls(void (*callback)(...), std::int64_t lowMask,
+                           std::int64_t highMask,
+                           const std::array<Qubit *, sizeof...(I)> &controls,
+                           Qubit *target, std::index_sequence<I...>) {
+  generalizedInvokeWithRotationsControlsTargets_v2(0, 0, sizeof...(I), 1,
+                                                   callback, lowMask, highMask,
+                                                   controls[I]..., target);
 }
 
-CUDAQ_TEST(NVQIRTester, checkValueControlInvokeErrors) {
-  // Each invalid prefix must throw before reading omitted trailing arguments
-  // or reaching the null callback.
-  void (*callback)(...) = nullptr;
-  EXPECT_ANY_THROW(generalizedInvokeWithControlValues(4, 0, 1, callback));
-  EXPECT_ANY_THROW(generalizedInvokeWithControlValues(0, 0, 0, callback));
-  EXPECT_ANY_THROW(generalizedInvokeWithControlValues(0, 0, 3, callback));
-  EXPECT_ANY_THROW(generalizedInvokeWithControlValues(
-      0, 1, 1, callback, 2, 0, static_cast<Qubit *>(nullptr)));
-  EXPECT_ANY_THROW(generalizedInvokeWithControlValues(
-      0, 1, 1, callback, 0, 2, static_cast<Qubit *>(nullptr)));
+CUDAQ_TEST(NVQIRTester, checkValueControlInvokeMaskWords) {
+  // 65 controls need two mask words. The callback only compares pointers, so
+  // the controls need not be allocated qubits.
+  constexpr std::size_t numControls = 65;
+  static std::array<std::size_t, numControls + 1> storage;
+  static std::array<Qubit *, numControls> controls;
+  for (std::size_t i = 0; i < numControls; ++i)
+    controls[i] = reinterpret_cast<Qubit *>(&storage[i]);
+  static unsigned invocations;
+  invocations = 0;
+  using Callback =
+      void (*)(Array *, const std::int32_t *, std::int64_t, Qubit *);
+  Callback callback = [](Array *packed, const std::int32_t *values,
+                         std::int64_t count, Qubit *target) {
+    ++invocations;
+    ASSERT_EQ(count, static_cast<std::int64_t>(numControls));
+    for (std::size_t i = 0; i < numControls; ++i) {
+      EXPECT_EQ(extract_qubit(packed, i), controls[i]);
+      // Bits 0, 63 (the first word's sign bit), and 64 are open.
+      EXPECT_EQ(values[i], (i == 0 || i == 63 || i == 64) ? 0 : 1) << i;
+    }
+    EXPECT_EQ(target, reinterpret_cast<Qubit *>(&storage[numControls]));
+  };
+  invokeV2WithScalarControls(reinterpret_cast<void (*)(...)>(callback),
+                             std::numeric_limits<std::int64_t>::min() | 1, 1,
+                             controls,
+                             reinterpret_cast<Qubit *>(&storage[numControls]),
+                             std::make_index_sequence<numControls>{});
+  EXPECT_EQ(invocations, 1u);
+}
+
+CUDAQ_TEST(NVQIRTester, checkValueControlInvokeExecution) {
+  for (bool withControlValues : {false, true}) {
+    SCOPED_TRACE(withControlValues);
+    for (unsigned inputs = 0; inputs < 4; ++inputs) {
+      SCOPED_TRACE(inputs);
+      __quantum__rt__initialize(0, nullptr);
+      auto *qubits = __quantum__rt__qubit_allocate_array(7);
+      auto *scalar = extract_qubit(qubits, 0);
+      auto *array = reinterpret_cast<Qubit *>(
+          __quantum__rt__array_slice_1d(qubits, 1, 1, 1));
+      auto *empty = reinterpret_cast<Qubit *>(
+          __quantum__rt__array_create_1d(sizeof(Qubit *), 0));
+      if (inputs & 1)
+        __quantum__qis__x(scalar);
+      if (inputs & 2)
+        __quantum__qis__x(extract_qubit(qubits, 1));
+      __quantum__qis__x(extract_qubit(qubits, 6));
+
+      // Every gate requires q0 == 0 and q1 == 1 (input 2). The callbacks cover
+      // zero through three parameters and both target counts.
+      if (withControlValues) {
+        // The mask opens the empty register (bit 1) and the scalar (bit 2).
+        constexpr std::int64_t openMask = 0b110;
+        generalizedInvokeWithRotationsControlsTargets_v2(
+            1, 2, 1, 1,
+            reinterpret_cast<void (*)(...)>(__nvqir__qis__ry__ctl_values),
+            openMask, M_PI, std::size_t{1}, array, std::size_t{0}, empty,
+            scalar, extract_qubit(qubits, 2));
+        generalizedInvokeWithRotationsControlsTargets_v2(
+            2, 2, 1, 1,
+            reinterpret_cast<void (*)(...)>(
+                __nvqir__qis__phased_rx__ctl_values),
+            openMask, M_PI, 0.37, std::size_t{1}, array, std::size_t{0}, empty,
+            scalar, extract_qubit(qubits, 3));
+        generalizedInvokeWithRotationsControlsTargets_v2(
+            3, 2, 1, 1,
+            reinterpret_cast<void (*)(...)>(__nvqir__qis__u3__ctl_values),
+            openMask, M_PI, 0.31, -0.53, std::size_t{1}, array, std::size_t{0},
+            empty, scalar, extract_qubit(qubits, 4));
+        generalizedInvokeWithRotationsControlsTargets_v2(
+            0, 2, 1, 2,
+            reinterpret_cast<void (*)(...)>(__nvqir__qis__swap__ctl_values),
+            openMask, std::size_t{1}, array, std::size_t{0}, empty, scalar,
+            extract_qubit(qubits, 5), extract_qubit(qubits, 6));
+      } else {
+        void (*twoParameterCallback)(double, double, Array *, Qubit *) =
+            [](double theta, double phi, Array *controls, Qubit *target) {
+              EXPECT_EQ(phi, 0.37);
+              __quantum__qis__ry__ctl(theta, controls, target);
+            };
+        // These callbacks act on |1> controls, so conjugate the scalar.
+        __quantum__qis__x(scalar);
+        generalizedInvokeWithRotationsControlsTargets(
+            1, 2, 1, 1,
+            reinterpret_cast<void (*)(...)>(__quantum__qis__ry__ctl), M_PI,
+            std::size_t{1}, array, std::size_t{0}, empty, scalar,
+            extract_qubit(qubits, 2));
+        generalizedInvokeWithRotationsControlsTargets(
+            2, 2, 1, 1, reinterpret_cast<void (*)(...)>(twoParameterCallback),
+            M_PI, 0.37, std::size_t{1}, array, std::size_t{0}, empty, scalar,
+            extract_qubit(qubits, 3));
+        generalizedInvokeWithRotationsControlsTargets(
+            3, 2, 1, 1,
+            reinterpret_cast<void (*)(...)>(__quantum__qis__u3__ctl), M_PI,
+            0.31, -0.53, std::size_t{1}, array, std::size_t{0}, empty, scalar,
+            extract_qubit(qubits, 4));
+        generalizedInvokeWithRotationsControlsTargets(
+            0, 2, 1, 2,
+            reinterpret_cast<void (*)(...)>(__quantum__qis__swap__ctl),
+            std::size_t{1}, array, std::size_t{0}, empty, scalar,
+            extract_qubit(qubits, 5), extract_qubit(qubits, 6));
+        __quantum__qis__x(scalar);
+      }
+
+      EXPECT_EQ(*__quantum__qis__mz(scalar), static_cast<bool>(inputs & 1));
+      EXPECT_EQ(*__quantum__qis__mz(extract_qubit(qubits, 1)),
+                static_cast<bool>(inputs & 2));
+      const bool active = inputs == 2;
+      for (int target = 2; target < 6; ++target)
+        EXPECT_EQ(*__quantum__qis__mz(extract_qubit(qubits, target)), active);
+      EXPECT_EQ(*__quantum__qis__mz(extract_qubit(qubits, 6)), !active);
+      __quantum__rt__array_release(reinterpret_cast<Array *>(empty));
+      __quantum__rt__array_release(reinterpret_cast<Array *>(array));
+      __quantum__rt__qubit_release_array(qubits);
+      __quantum__rt__finalize();
+    }
+  }
 }
 
 CUDAQ_TEST(NVQIRTester, checkValueControlOwnership) {
@@ -678,10 +859,12 @@ CUDAQ_TEST(NVQIRTester, checkValueControlOwnership) {
 }
 
 CUDAQ_TEST(NVQIRTester, checkValueControlCustomAdjoint) {
+  enum class Invocation { Legacy, ExplicitValues, Wrapper };
   for (bool adjoint : {false, true}) {
-    for (bool explicitValues : {false, true}) {
-      SCOPED_TRACE(::testing::Message()
-                   << "adjoint=" << adjoint << ", values=" << explicitValues);
+    for (const auto api : {Invocation::Legacy, Invocation::ExplicitValues,
+                           Invocation::Wrapper}) {
+      SCOPED_TRACE(::testing::Message() << "adjoint=" << adjoint
+                                        << ", api=" << static_cast<int>(api));
       constexpr int shots = 100;
       cudaq::ExecutionContext ctx("sample", shots);
       cudaq::sample_policy policy;
@@ -699,7 +882,16 @@ CUDAQ_TEST(NVQIRTester, checkValueControlCustomAdjoint) {
           std::complex<double> matrix[]{0., {0., 1.}, 1., 0.};
           const std::int32_t value = 0;
           __quantum__qis__h(control);
-          if (explicitValues) {
+          if (api == Invocation::Wrapper) {
+            auto apply = adjoint ? __nvqir__qis__custom_unitary__adj__ctl_values
+                                 : __nvqir__qis__custom_unitary__ctl_values;
+            invokeCustomUnitaryWithControlValues(0, 1, matrix, targets,
+                                                 "test_custom", apply,
+                                                 std::int64_t{1}, control);
+            // The queued operation must retain the original matrix.
+            matrix[0] = matrix[3] = 1.;
+            matrix[1] = matrix[2] = 0.;
+          } else if (api == Invocation::ExplicitValues) {
             auto apply = adjoint ? __nvqir__qis__custom_unitary__adj__ctl_values
                                  : __nvqir__qis__custom_unitary__ctl_values;
             apply(matrix, controls, &value, 1, targets, "test_custom");
@@ -731,6 +923,71 @@ CUDAQ_TEST(NVQIRTester, checkValueControlCustomAdjoint) {
       EXPECT_EQ(counts.get_total_shots(), shots);
       __quantum__rt__finalize();
     }
+  }
+}
+
+CUDAQ_TEST(NVQIRTester, checkValueControlExpPauliInvoke) {
+  for (unsigned inputs = 0; inputs < 4; ++inputs) {
+    SCOPED_TRACE(inputs);
+    constexpr int shots = 100;
+    cudaq::ExecutionContext ctx("sample", shots);
+    cudaq::sample_policy policy;
+    policy.options.shots = shots;
+    auto counts = cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
+      return cudaq::ExecutionManager::with_default_em(policy, [&]() {
+        __quantum__rt__initialize(0, nullptr);
+        auto *qubits = __quantum__rt__qubit_allocate_array(4);
+        auto *scalar = extract_qubit(qubits, 0);
+        auto *controls = __quantum__rt__array_slice_1d(qubits, 1, 1, 1);
+        auto *targets = __quantum__rt__array_slice_1d(qubits, 2, 1, 2);
+        auto *empty = __quantum__rt__array_create_1d(sizeof(Qubit *), 0);
+        if (inputs & 1) {
+          __quantum__qis__x(scalar);
+        }
+        if (inputs & 2) {
+          __quantum__qis__x(extract_qubit(qubits, 1));
+        }
+        struct PauliWord {
+          char *data;
+          std::int64_t length;
+        };
+        char word[] = "X";
+        PauliWord pauli{word, 1};
+        // The registers come first, so bit 1 opens the empty register and bit
+        // 3 opens the scalar.
+        invokeExpPauliWithControlValues(
+            3, 1, M_PI / 2., targets, reinterpret_cast<char *>(&pauli),
+            std::int64_t{0b1010}, std::size_t{1},
+            reinterpret_cast<Qubit *>(controls), std::size_t{0},
+            reinterpret_cast<Qubit *>(empty), std::size_t{0},
+            static_cast<Qubit *>(nullptr), scalar);
+        // Change caller buffers before measurement flushes queued work.
+        word[0] = 'Z';
+        *reinterpret_cast<Qubit **>(__quantum__rt__array_get_element_ptr_1d(
+            controls, 0)) = extract_qubit(qubits, 2);
+        __quantum__rt__array_release(controls);
+        __quantum__rt__array_release(targets);
+        __quantum__rt__array_release(empty);
+
+        auto *uncontrolled = __quantum__rt__array_slice_1d(qubits, 3, 1, 3);
+        word[0] = 'Y';
+        invokeExpPauliWithControlValues(0, 0, M_PI / 4., uncontrolled,
+                                        reinterpret_cast<char *>(&pauli));
+        word[0] = 'Z';
+        __quantum__rt__array_release(uncontrolled);
+        // exp(i theta Y) is Ry(-2 theta), so this also checks the angle sign.
+        __quantum__qis__ry(M_PI / 2., extract_qubit(qubits, 3));
+        for (int i = 0; i < 4; ++i) {
+          __quantum__qis__mz(extract_qubit(qubits, i));
+        }
+        __quantum__rt__qubit_release_array(qubits);
+      });
+    });
+    const char expected[]{inputs & 1 ? '1' : '0', inputs & 2 ? '1' : '0',
+                          inputs == 2 ? '1' : '0', '0', '\0'};
+    EXPECT_EQ(counts.count(expected), shots);
+    EXPECT_EQ(counts.get_total_shots(), shots);
+    __quantum__rt__finalize();
   }
 }
 
