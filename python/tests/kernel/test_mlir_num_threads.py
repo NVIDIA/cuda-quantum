@@ -114,20 +114,20 @@ _multiple_cpus = pytest.mark.skipif(not hasattr(os, "sched_getaffinity") or
                                     reason="needs at least 2 CPUs")
 
 
-@pytest.mark.parametrize("value", [None, "1"])
-def test_default_compiles_on_calling_thread(value, tmp_path):
+@_multiple_cpus
+@pytest.mark.parametrize("value", [None, "0"])
+def test_default_uses_mlir_default_pool(value, tmp_path):
     """The value is read once per process, so each case runs in a fresh one."""
-    assert _threads_gained(value, tmp_path) == 0
+    assert _threads_gained(value, tmp_path) >= 1
+
+
+def test_one_compiles_on_calling_thread(tmp_path):
+    assert _threads_gained("1", tmp_path) == 0
 
 
 @_multiple_cpus
 def test_positive_value_bounds_the_pool(tmp_path):
     assert 1 <= _threads_gained("2", tmp_path) <= 2
-
-
-@_multiple_cpus
-def test_zero_uses_mlir_default_pool(tmp_path):
-    assert _threads_gained("0", tmp_path) >= 1
 
 
 @pytest.mark.parametrize("value", ["abc", "-1", "2x"])

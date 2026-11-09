@@ -43,9 +43,10 @@ variable. For any CUDA-Q executable, just prepend as follows:
 Kernel Compilation Threads
 ++++++++++++++++++++++++++++
 
-By default, CUDA-Q runs the compiler passes for a kernel on the thread that
-launches it. Kernels are usually too small to benefit from multiple threads.
-The :code:`CUDAQ_MLIR_NUM_THREADS` environment variable changes this:
+CUDA-Q compiles kernels with MLIR, which by default runs compiler passes on a
+pool of worker threads sized to the number of CPUs the process may run on. The
+:code:`CUDAQ_MLIR_NUM_THREADS` environment variable sets the number of threads
+used:
 
 .. list-table::
   :widths: 20 80
@@ -53,14 +54,14 @@ The :code:`CUDAQ_MLIR_NUM_THREADS` environment variable changes this:
 
   * - Value
     - Behavior
+  * - ``0``
+    - Use the MLIR default: a pool sized to the number of CPUs the process may
+      run on. This is the default.
   * - ``1``
-    - Run compiler passes on the launching thread. This is the default.
+    - Run compiler passes on the launching thread.
   * - ``N`` greater than 1
     - Share a pool of ``N`` worker threads among all kernel compilations in
       the process, capped at the number of CPUs the process may run on.
-  * - ``0``
-    - Use the MLIR default: a pool sized to the number of CPUs the process may
-      run on.
 
 Threads that launch kernels concurrently, for example under the
 :code:`nvidia-mqpu` target or the asynchronous APIs, still compile in parallel

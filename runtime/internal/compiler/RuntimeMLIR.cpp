@@ -741,17 +741,16 @@ static MLIRContext *mlirContext;
 
 /// MLIR thread pool, configured by the `CUDAQ_MLIR_NUM_THREADS` env variable:
 ///
-/// - 1 (the default) runs pass pipelines on the calling thread; see
-///   InlineExecutor.cpp,
+/// - 0 (the default) uses the MLIR default: a pool with one worker per CPU the
+///   process may run on, for each context,
+/// - 1 runs pass pipelines on the calling thread; see InlineExecutor.cpp,
 /// - n > 1 shares a pool of n workers across all contexts (at most the number
-///   of CPUs the process may run on),
-/// - 0 uses the MLIR default: a pool with one worker per CPU the process may
-///   run on, for each context.
+///   of CPUs the process may run on).
 static llvm::ThreadPoolInterface *getCompilerThreadPool() {
   // Never destroyed: it must outlive every context that borrows it, including
   // ones deliberately leaked at a longer lifetime than this file's statics.
   static llvm::ThreadPoolInterface *pool = []() -> llvm::ThreadPoolInterface * {
-    unsigned threads = 1;
+    unsigned threads = 0;
     if (const char *value = std::getenv("CUDAQ_MLIR_NUM_THREADS"))
       if (StringRef(value).trim().getAsInteger(10, threads))
         throw std::invalid_argument("Invalid CUDAQ_MLIR_NUM_THREADS value: '" +

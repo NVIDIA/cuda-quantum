@@ -12,12 +12,9 @@
 namespace {
 /// A thread pool that runs each task on the thread that submits it.
 ///
-/// MLIR hands every function body in a nested pass pipeline to its context's
-/// thread pool. Kernel modules are typically too small to benefit from
-/// multithreading. Running the tasks inline keeps the same work on one thread
-/// with no wakeups to pay for.
-///
-/// Leaving threading disabled through MLIRContext::disableMultithreading is not
+/// This is an optimization for when CUDAQ_MLIR_NUM_THREADS=1, to keep work on
+/// the calling thread rather than waking a MLIR thread for the work. Leaving
+/// threading disabled through MLIRContext::disableMultithreading is not
 /// an option. It switches the attribute and type uniquers out of their locking
 /// mode, so a context shared between threads stops being safe (e.g. mqpu,
 /// where several threads compile against one context). LLVM's own
