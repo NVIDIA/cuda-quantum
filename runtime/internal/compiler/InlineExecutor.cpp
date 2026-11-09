@@ -17,12 +17,13 @@ namespace {
 /// multithreading. Running the tasks inline keeps the same work on one thread
 /// with no wakeups to pay for.
 ///
-/// MLIRContext::disableMultithreading cannot be used. It switches the
-/// attribute and type uniquers out of their locking mode, so a context shared
-/// between threads stops being safe (e.g. mqpu, where several threads compile
-/// against one context). LLVM's own SingleThreadExecutor will also not serve:
-/// it defers tasks into an unsynchronized deque that wait() drains, so two
-/// threads compiling against one context would race on it.
+/// Leaving threading disabled through MLIRContext::disableMultithreading is not
+/// an option. It switches the attribute and type uniquers out of their locking
+/// mode, so a context shared between threads stops being safe (e.g. mqpu,
+/// where several threads compile against one context). LLVM's own
+/// SingleThreadExecutor will also not serve: it defers tasks into an
+/// unsynchronized deque that wait() drains, so two threads compiling against
+/// one context would race on it.
 ///
 /// Here we hold no state at all to avoid these issues.
 class InlineExecutor : public llvm::ThreadPoolInterface {

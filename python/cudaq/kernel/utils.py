@@ -85,9 +85,6 @@ def getMLIRContext():
         cudaq__global_mlir_context
     except NameError:
         cudaq__global_mlir_context = Context()
-        # Done here, while this context is new and unshared, because MLIR only
-        # allows the threading setting to change when no thread is inside a
-        # parallel region on the context.
         cudaq_runtime.configureContextThreading(cudaq__global_mlir_context)
         register_all_dialects(cudaq__global_mlir_context)
         quake.register_dialect(context=cudaq__global_mlir_context)

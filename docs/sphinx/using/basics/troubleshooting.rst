@@ -49,6 +49,7 @@ The :code:`CUDAQ_MLIR_NUM_THREADS` environment variable changes this:
 
 .. list-table::
   :widths: 20 80
+  :header-rows: 1
 
   * - Value
     - Behavior
@@ -63,9 +64,10 @@ The :code:`CUDAQ_MLIR_NUM_THREADS` environment variable changes this:
 
 Threads that launch kernels concurrently, for example under the
 :code:`nvidia-mqpu` target or the asynchronous APIs, still compile in parallel
-with any value. The variable is read once, when CUDA-Q is first loaded, so it
-must be set before :code:`import cudaq` in Python or before a C++ program
-starts. Any value other than a non-negative integer is rejected with an error.
+with any value. The variable is read once per process, when CUDA-Q sets up its
+kernel compiler: at :code:`import cudaq` in Python, or the first time a C++
+program compiles a kernel at runtime. Any value other than a non-negative
+integer raises an error at that point.
 
 .. tab:: Python
 

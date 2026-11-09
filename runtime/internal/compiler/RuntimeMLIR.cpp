@@ -739,12 +739,14 @@ static void registerToIQMJsonTranslation() {
 static std::once_flag mlir_init_flag;
 static MLIRContext *mlirContext;
 
-/// The thread pool shared by every context this layer configures, chosen once
-/// per process from CUDAQ_MLIR_NUM_THREADS. 1 (the default) runs pass pipelines
-/// on the calling thread; see InlineExecutor.cpp. A larger value shares that
-/// many workers across all contexts, capped at the CPUs the process may run on
-/// because MLIR clones each nested pass pipeline once per worker. 0 returns
-/// null, leaving each context its own MLIR pool sized to those CPUs.
+/// MLIR thread pool, configured by the `CUDAQ_MLIR_NUM_THREADS` env variable:
+///
+/// - 1 (the default) runs pass pipelines on the calling thread; see
+///   InlineExecutor.cpp,
+/// - n > 1 shares a pool of n workers across all contexts (at most the number
+///   of CPUs the process may run on),
+/// - 0 uses the MLIR default: a pool with one worker per CPU the process may
+///   run on, for each context.
 static llvm::ThreadPoolInterface *getCompilerThreadPool() {
   // Never destroyed: it must outlive every context that borrows it, including
   // ones deliberately leaked at a longer lifetime than this file's statics.
