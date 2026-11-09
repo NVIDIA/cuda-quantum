@@ -561,18 +561,18 @@ private:
 };
 } // namespace
 
-/// True if \p ref is a reference that is converted to a wire with an unwrap.
+/// True if \p ref is a reference that is promoted to a wire value (via unwrap).
 /// A blacklisted reference stays in memory form, so it is left as it is.
-static bool isUnwrapped(Value ref, const QuantumRefAnalysis &refAnalysis) {
+static bool isValuePromoted(Value ref, const QuantumRefAnalysis &refAnalysis) {
   return isa<cudaq::quake::RefType>(ref.getType()) &&
          !refAnalysis.isBlacklisted(ref);
 }
 
 /// True if \p op has a reference operand that is converted to a wire.
-static bool hasUnwrappedReference(Operation *op,
-                                  const QuantumRefAnalysis &refAnalysis) {
+static bool hasValuePromotedRef(Operation *op,
+                                const QuantumRefAnalysis &refAnalysis) {
   return llvm::any_of(op->getOperands(), [&](Value opnd) {
-    return isUnwrapped(opnd, refAnalysis);
+    return isValuePromoted(opnd, refAnalysis);
   });
 }
 
@@ -1193,7 +1193,7 @@ public:
     auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
     auto opnd = op.getTargets();
     assert(opnd.getType() == cudaq::quake::RefType::get(rewriter.getContext()));
-    if (!isUnwrapped(opnd, refAnalysis))
+    if (!isValuePromoted(opnd, refAnalysis))
       return failure();
     Value target = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
     auto newOp =
@@ -1218,7 +1218,7 @@ public:
     auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
     auto opnd = op.getReference();
     assert(isa<cudaq::quake::RefType>(opnd.getType()));
-    if (!isUnwrapped(opnd, refAnalysis))
+    if (!isValuePromoted(opnd, refAnalysis))
       return failure();
     Value target = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
     rewriter.replaceOpWithNewOp<cudaq::quake::SinkOp>(op, target);
@@ -1243,7 +1243,7 @@ public:
     SmallVector<Value> refArgs;
     SmallVector<Value> newArgs;
     for (Value arg : op.getArgs()) {
-      if (isUnwrapped(arg, refAnalysis)) {
+      if (isValuePromoted(arg, refAnalysis)) {
         Value wire = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, arg);
         newArgs.push_back(wire);
         refArgs.push_back(arg);
@@ -1290,7 +1290,7 @@ public:
     auto convert = [&](ValueRange operands) {
       for (Value opnd : operands) {
         origOperands.push_back(opnd);
-        if (isUnwrapped(opnd, refAnalysis))
+        if (isValuePromoted(opnd, refAnalysis))
           newOperands.push_back(
               cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd));
         else
@@ -1334,7 +1334,9 @@ public:
       auto newOp = OP::create(rewriter, loc, newTy, unwrapTargs,
                               op.getRegisterNameAttr());
       op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
-      threadWires(newOp, 1, 1);
+      // Result 0 is the measured bits; the wires follow it.
+      constexpr int wireResultOffset = 1;
+      threadWires(newOp, wireResultOffset, wireResultOffset);
     } else {
       // Any operand that is a wire in the new operation is in the result
       // vector. Those new results are propagated to wrap operations.
@@ -2027,7 +2029,7 @@ public:
         .addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
                                cudaq::quake::DeallocOp, cudaq::quake::EvinceOp>(
             [&](Operation *op) {
-              return !hasUnwrappedReference(op, refAnalysis);
+              return !hasValuePromotedRef(op, refAnalysis);
             });
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::WrapOp,
                       cudaq::quake::NullWireOp, cudaq::quake::SinkOp>();
