@@ -817,6 +817,27 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // Declarations of all full QIR functions used by codegen.
     // These include gates (sans the "__body" suffix) and measurements.
     {"qir_full", {"qir_common"}, R"#(
+  llvm.func @generalizedInvokeWithRotationsControlsTargets_v2(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
+  llvm.func @invokeCustomUnitaryWithControlValues(i64, i64, !qir_llvmptr, !qir_llvmptr, !qir_llvmptr, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
+  llvm.func @invokeExpPauliWithControlValues(i64, i64, f64, !qir_llvmptr, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
+  func.func private @__nvqir__qis__h__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__x__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__y__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__z__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__s__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__sdg__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__t__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__tdg__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__rx__ctl_values(f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__ry__ctl_values(f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__rz__ctl_values(f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__r1__ctl_values(f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__u2__ctl_values(f64, f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__phased_rx__ctl_values(f64, f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__u3__ctl_values(f64, f64, f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__swap__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit, !qir_qubit)
+  func.func private @__nvqir__qis__custom_unitary__ctl_values(!cc.ptr<complex<f64>>, !qir_array, !cc.ptr<i32>, i64, !qir_array, !qir_charptr)
+  func.func private @__nvqir__qis__custom_unitary__adj__ctl_values(!cc.ptr<complex<f64>>, !qir_array, !cc.ptr<i32>, i64, !qir_array, !qir_charptr)
   func.func private @__quantum__qis__h(!qir_qubit)
   func.func private @__quantum__qis__x(!qir_qubit)
   func.func private @__quantum__qis__y(!qir_qubit)
