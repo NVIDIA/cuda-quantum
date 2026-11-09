@@ -103,7 +103,7 @@ increases:
     :end-before: [End OptimizationLevel]
 
 Since level 2 is the default, its result is identical to the one obtained in
-the previous section.
+the previous section. Optimization levels 2 and 3 are currently identical.
 
 A Clifford+T target is also shipped with the
 `cudaq-logical <../../preview/logical/index.html#http://>`__ package, CUDA-Q's
@@ -173,6 +173,9 @@ two-qubit gates:
     :language: python
     :start-after: [Begin CustomTarget]
     :end-before: [End CustomTarget]
+
+In this case, optimization level 2 matches the performance achieved by the
+T-count optimized compilation.
 
 For more details on the available profiles and on how to build multi-stage
 compile targets, see

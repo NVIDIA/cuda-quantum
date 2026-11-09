@@ -131,7 +131,7 @@ cudaq.set_target("qpp-cpu", compile_target=nisq_target)
 # Gate counts per level, in addition to the 8 `mz` measurements:
 #   level 0: 56 `cz`, 112 `h` and 60 `rz`
 #   level 1: 56 `cz`, 112 `h` and 57 `rz`
-#   level 2: 56 `cz`, 112 `h` and 15 `rz`
+#   level 2: 14 `cz`, 28 `h` and 15 `rz`
 for level in range(3):
     resources = cudaq.estimate(trotter, optimization_level=level).resources
     print(resources)
