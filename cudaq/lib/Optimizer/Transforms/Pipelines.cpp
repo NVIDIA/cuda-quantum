@@ -271,7 +271,7 @@ static void addTwoQubitGateCountOptimization(
   if (options.level == 1)
     return;
   funcPM.addPass(cudaq::opt::createPhaseFolding());
-  funcPM.addPass(createCanonicalizerPass());
+  addSharedCleanup(funcPM, /*approximationTolerance=*/0.0);
 }
 
 void cudaq::opt::registerTwoQubitGateCountOptimizationPipeline() {
