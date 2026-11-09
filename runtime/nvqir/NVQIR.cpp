@@ -1446,10 +1446,28 @@ static void commonInvokeWithRotationsControlsTargets(
   for (std::size_t i = 0; i < numControlOperands; i++)
     numControls += isArrayAndLength[i] ? isArrayAndLength[i] : 1;
 
-  // Thread local Control Array with resize to avoid reallocation for each gate.
+  // Thread-local Control Array with resize to avoid allocation for each gate.
   thread_local Array ctrlArrayStore(0, sizeof(std::size_t));
-  ctrlArrayStore.resize(numControls);
+  thread_local bool ctrlArrayStoreInUse = false;
+  std::unique_ptr<Array> nestedCtrlArray;
   Array *ctrlArray = &ctrlArrayStore;
+
+  // Depth guard to prevent nested calls from reusing the same control array.
+  // (Only an outermost call uses the shared array.)
+  if (ctrlArrayStoreInUse) {
+    nestedCtrlArray = std::make_unique<Array>(numControls, sizeof(std::size_t));
+    ctrlArray = nestedCtrlArray.get();
+  } else {
+    ctrlArrayStore.resize(numControls);
+    ctrlArrayStoreInUse = true;
+  }
+  struct ReleaseCtrlArrayStore {
+    bool owner;
+    ~ReleaseCtrlArrayStore() {
+      if (owner)
+        ctrlArrayStoreInUse = false;
+    }
+  } releaseCtrlArrayStore{!nestedCtrlArray};
 
   std::vector<std::int32_t> controlValues;
   if (operandValues)
