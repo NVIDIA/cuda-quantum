@@ -14,9 +14,9 @@ programming in Python and in C++.
 The CUDA-Q ecosystem supports a wide variety of QPU hardware and high-performance simulators.
 It includes Python and C++ interfaces for quantum programming, compiler toolchains for optimization and hardware support
 and low-level QPU runtimes for detailed hardware control.
-CUDA-Q also provides an open, extensible logical layer for fault-tolerant fault-tolerant
+CUDA-Q also provides an open, extensible logical layer for fault-tolerant
 workloads, Quantum Error Correction (QEC) codes and QPU architecture co-design, currently in preview.
-See `cudaq-logical <./preview/logical/index.html#http://>`__ for more information.
+See `cudaq-logical <./preview/logical/index.html>`__ for more information.
 
 You are browsing the documentation for |version| version of CUDA-Q. You can find documentation for all released versions :doc:`here <versions>`.
 
