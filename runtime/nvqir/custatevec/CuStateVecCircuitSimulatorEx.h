@@ -210,6 +210,10 @@ protected:
 
     // Direct Kronecker not possible (migrated/distributed): grow the register
     // with zeroed wires, then initialize them via the gate-based extension.
+    // synchronize() above leaves noisy circuit gates queued for trajectory
+    // replay. Finish pending state initialization, such as zero-fills, before
+    // resizing, which can unmap and remap the state's virtual memory.
+    m_state->synchronize();
     addZeroWires(count);
     if (!stateData)
       return;
