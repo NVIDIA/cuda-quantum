@@ -19,7 +19,7 @@
         },
         {
             "name": "open-mpi",
-            "tags_to_keep": 10
+            "tags_to_keep": 24
         }
     ],    
     "external_images":
