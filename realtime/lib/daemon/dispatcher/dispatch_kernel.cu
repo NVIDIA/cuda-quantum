@@ -208,7 +208,7 @@ __global__ void dispatch_kernel_device_call_only(
     if (work.func == nullptr)
       break;  // uniform: every thread read the same descriptor
 
-    // Same two-pointer call as the host path (host_dispatcher.cu): the
+    // Same two-pointer call as the host path (host_dispatcher.cpp): the
     // handler reads the request from rx_slot, writes its result after the
     // RPCResponse in tx_slot and sets response->result_len.  Nothing is
     // written to tx_slot before the call: on an in-place ring it aliases
@@ -380,7 +380,7 @@ __global__ void dispatch_kernel_with_graph(
     if (work.func == nullptr)
       break;  // uniform: every thread read the same descriptor
 
-    // Same two-pointer call as the host path (host_dispatcher.cu): the
+    // Same two-pointer call as the host path (host_dispatcher.cpp): the
     // handler reads the request from rx_slot, writes its result after the
     // RPCResponse in tx_slot and sets response->result_len.  Nothing is
     // written to tx_slot before the call: on an in-place ring it aliases

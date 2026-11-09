@@ -899,14 +899,8 @@ func.func @concat_alias() {
   return
 }
 
-// The final target of %other's own wrap (its original alloca-ref vs. the
-// wrap_new stand-in threaded through the concat -- both alias the same
-// qubit) is not deterministic across runs of the pass (a separate,
-// pre-existing determinism bug in its own right, unrelated to the aliasing
-// fix under test here); that one operand is matched with a bare wildcard
-// rather than a named capture so this test doesn't flake, while the rest of
-// the structure -- in particular %[[VAL_1]] wrapped before the mz and
-// re-unwrapped fresh after -- is still checked precisely.
+// %other is a concat operand, so it names the same qubit as element 0 of %c
+// and stays in memory form.
 
 // CHECK-LABEL:   func.func @concat_alias() {
 // CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<4>
@@ -915,10 +909,7 @@ func.func @concat_alias() {
 // CHECK:           %[[X_0:.*]] = quake.x %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[SUBVEQ_0:.*]] = quake.subveq %[[ALLOCA_0]], 1, 3 : (!quake.veq<4>) -> !quake.veq<3>
 // CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[WRAP_NEW_0:.*]] = quake.wrap_new %[[UNWRAP_1]] : (!quake.wire) -> !quake.ref
-// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[WRAP_NEW_0]], %[[SUBVEQ_0]] : (!quake.ref, !quake.veq<3>) -> !quake.veq<4>
-// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_1]], %[[SUBVEQ_0]] : (!quake.ref, !quake.veq<3>) -> !quake.veq<4>
 // CHECK:           %[[MZ_0:.*]] = quake.mz %[[CONCAT_0]] : (!quake.veq<4>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           %[[X_1:.*]] = quake.x %[[X_0]] : (!quake.wire) -> !quake.wire
 // CHECK:           quake.wrap %[[X_1]] to %[[EXTRACT_REF_0]] : !quake.wire, !quake.ref

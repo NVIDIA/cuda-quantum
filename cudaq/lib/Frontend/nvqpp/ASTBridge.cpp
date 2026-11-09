@@ -8,6 +8,7 @@
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
 #include "cudaq/Frontend/nvqpp/QisBuilder.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "clang/AST/ParentMapContext.h"
 #include "clang/AST/RecordLayout.h"
@@ -166,7 +167,6 @@ static bool containsHandleInSignature(FunctionType funcTy) {
 // into its callers before it registers them for the JIT, so only a marker on
 // the caller keeps the callee's gates as written.
 static void markCallersOfUnoptimizedFunctions(ModuleOp module) {
-  auto unitAttr = UnitAttr::get(module.getContext());
   SymbolTable symbolTable(module);
   auto refersToUnoptimizedFunction = [&](func::FuncOp func) {
     auto uses = SymbolTable::getSymbolUses(func);
@@ -174,16 +174,16 @@ static void markCallersOfUnoptimizedFunctions(ModuleOp module) {
              auto *callee =
                  symbolTable.lookup(use.getSymbolRef().getRootReference());
              return callee &&
-                    callee->hasAttr(cudaq::runtime::disableQuantumOpts);
+                    cudaq::runtime::isQuantumOptimizationDisabled(callee);
            });
   };
   bool changed = true;
   while (changed) {
     changed = false;
     for (auto func : module.getOps<func::FuncOp>())
-      if (!func->hasAttr(cudaq::runtime::disableQuantumOpts) &&
+      if (!cudaq::runtime::isQuantumOptimizationDisabled(func) &&
           refersToUnoptimizedFunction(func)) {
-        func->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
+        cudaq::runtime::setOptimizationLevel(func, 0);
         changed = true;
       }
   }
@@ -933,13 +933,11 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       auto unitAttr = UnitAttr::get(ctx);
       // Flag func as a quantum kernel.
       func->setAttr(kernelAttrName, unitAttr);
-      // If the kernel is annotated with disable_quantum_optimization, set the
-      // quake.noOptimization attribute on the module so that value semantics
-      // lowering and related quantum optimization passes are skipped.
+      // Record the optimization level at the kernel level, as a `func`
+      // attribute.
       for (auto *a : fdPair.second->specific_attrs<clang::AnnotateAttr>())
         if (a->getAnnotation().str() == cudaq::disableQuantumOptAnnotation) {
-          (*module)->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
-          func->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
+          cudaq::runtime::setOptimizationLevel(func, 0);
           break;
         }
       for (auto *a : fdPair.second->specific_attrs<clang::AnnotateAttr>())

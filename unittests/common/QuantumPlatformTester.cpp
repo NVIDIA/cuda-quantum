@@ -17,8 +17,10 @@
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/ptsbe/policy.h"
+#include <cstdlib>
 #include <cxxabi.h>
 #include <gtest/gtest.h>
 #include <memory>
@@ -35,23 +37,15 @@ public:
   /// Number of times `launchKernel(sample_policy)` was called on this QPU.
   std::size_t sampleLaunchCount = 0;
 
-  /// The most recent seed this QPU was notified about. Folded into the compile
-  /// target, the way randomized compilation passes consume it.
-  std::size_t seed = 0;
-
-  void onRandomSeedSet(std::size_t newSeed) override { seed = newSeed; }
-
   CompileTarget getCompileTarget(const RuntimeTarget *) override {
     CompileTarget ct;
     config::CustomPipelineLowering lowering;
     lowering.highLevelPipeline = "custom_pipeline";
-    lowering.lowLevelPipeline = "seed=" + std::to_string(seed);
     ct.stages.push_back(
         config::CompilationStage{.irOutputProfile = config::UncheckedProfile{},
                                  .lowering = std::move(lowering)});
     ct.fullySpecialize = false;
     ct.overrideAOTCompilation = true;
-    ct.resetOnRandomSeedSet = true;
     return ct;
   }
 
@@ -62,8 +56,9 @@ public:
   }
 
   void enqueue(QuantumTask &) override {}
-  KernelThunkResultType unifiedLaunchModule(const AnyModule &,
-                                            KernelArgs) override {
+  KernelThunkResultType
+  compileAndLaunchKernel(const AnyModule &, KernelArgs, const CompileTarget &,
+                         const CompileOptions &) override {
     return {};
   }
 };
@@ -217,6 +212,57 @@ void expectUnsupported(Fn &&fn, const std::string &what) {
 
 } // namespace
 
+TEST(QuantumPlatformLifetimeDeathTest, ReleasesEndpointsBeforePluginGlobals) {
+  // Re-exec to avoid inheriting locked runtime mutexes.
+  ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+  EXPECT_EXIT(
+      {
+        static int released = 0;
+        static TestPlatform first(0);
+        static TestPlatform second(0);
+
+        // Both platforms must release resources before plugin shutdown.
+        std::atexit([] {
+          if (released != 2)
+            std::_Exit(1);
+        });
+        detail::registerPlatformCleanup();
+        // Repeated cleanup must be safe.
+        detail::registerPlatformCleanup();
+        {
+          RuntimeEndpoint endpoint;
+          endpoint.impl = std::shared_ptr<int>(new int(0), [](int *value) {
+            ++released;
+            delete value;
+          });
+          first.setEndpoint({}, endpoint);
+          endpoint.impl = std::shared_ptr<int>(new int(0), [](int *value) {
+            ++released;
+            delete value;
+          });
+          second.setEndpoint({}, endpoint);
+          // Destroyed platforms must leave the registry.
+          TestPlatform temporary(0);
+        }
+        if (released != 0)
+          std::_Exit(2);
+        std::exit(0);
+      },
+      ::testing::ExitedWithCode(0), "");
+}
+
+TEST(QuantumPlatformCompileTargetTester, legacyEmulationNeedsJitNotTargetCode) {
+  TestPlatform platform;
+  platform.setEndpoint(makePlatformCompileTarget(),
+                       RuntimeEndpoint{.isEmulated = true});
+
+  auto options = platform.getCompileOptions(other_policies{});
+  EXPECT_TRUE(options.emulate);
+  EXPECT_TRUE(options.emitJit);
+  EXPECT_FALSE(options.emitTargetCode);
+  EXPECT_TRUE(platform.getCompileOptions(sample_policy{}).emitTargetCode);
+}
+
 TEST(QuantumPlatformCompileTargetTester, fallsBackToQpuWhenUnset) {
   TestPlatform platform;
 
@@ -251,20 +297,6 @@ TEST(QuantumPlatformCompileTargetTester, otherPoliciesUsesPlatformOverride) {
   auto ct = platform.getCompileTarget();
   EXPECT_EQ(getCustomPipelineLowering(ct).highLevelPipeline, "custom_platform");
   EXPECT_TRUE(ct.fullySpecialize);
-}
-
-TEST(QuantumPlatformCompileTargetTester, newRandomSeedRefreshesQpuTarget) {
-  TestPlatform platform(/*numQpus=*/2);
-  EXPECT_EQ(
-      getCustomPipelineLowering(platform.getCompileTarget()).lowLevelPipeline,
-      "seed=0");
-
-  platform.onRandomSeedSet(42);
-
-  for (std::size_t qpuId = 0; qpuId < platform.num_qpus(); ++qpuId)
-    EXPECT_EQ(getCustomPipelineLowering(platform.getCompileTarget(qpuId))
-                  .lowLevelPipeline,
-              "seed=42");
 }
 
 TEST(QuantumPlatformCompileTargetTester, newRandomSeedKeepsEndpointTarget) {

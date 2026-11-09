@@ -30,6 +30,10 @@
 /// __syncwarp, the DOCA *_warp helpers): a warp barrier would never complete
 /// and a block barrier would collide with the one the block is waiting in.
 /// `__shared__` state a transport declares is touched by thread 0 only.
+/// A dispatch kernel the application launches itself
+/// (cudaq_dispatcher_set_unified_launch) keeps the rule in whatever grid it
+/// runs: one thread, the same for the whole launch, calls the hooks, so a hook
+/// must not use cluster- or grid-wide barriers either.
 ///
 /// LINKAGE.  These are `extern __device__` functions with fixed names, NOT
 /// function pointers: a device function pointer is only valid inside the
@@ -71,8 +75,8 @@ typedef enum {
 /// thread 0 (see THREADING), at kernel entry before any other hook.
 ///
 /// The implementation materialises whatever state it needs (derived handles,
-/// cursors) from `ctx` into `storage` and returns the handle passed back to
-/// the other two hooks.
+/// cursors) from `ctx` into `storage`.  The other two hooks receive `storage`
+/// itself as their session.
 ///
 ///   - `storage`       : CUDAQ_DEV_TRANSPORT_SESSION_BYTES of kernel-local
 ///                       memory, aligned to CUDAQ_DEV_TRANSPORT_SESSION_ALIGN,
@@ -88,8 +92,10 @@ typedef enum {
 ///                       The transport retains it, because `rx_poll` blocks
 ///                       and is therefore the only place it can be observed.
 ///
-/// Returns the session handle, or `nullptr` if the transport cannot run (the
-/// kernel then exits immediately).
+/// Returns `storage`, or `nullptr` if the transport cannot run (the kernel
+/// then exits immediately).  Any other non-null value is treated as `storage`:
+/// the kernel passes the storage, not the returned pointer, so that the
+/// session can stay in registers.
 extern __device__ void *cudaq_dev_enter_kernel(void *storage, void *ctx,
                                                volatile int *shutdown_flag);
 
@@ -108,15 +114,18 @@ extern __device__ void *cudaq_dev_enter_kernel(void *storage, void *ctx,
 /// slot indices, are the handles: they are what the loop must dereference,
 /// and handing them over directly keeps the transport's slot addressing --
 /// bases, strides, count -- private inside `ctx`.  Pass the response back
-/// verbatim to `tx_publish`.
+/// verbatim to `tx_publish`.  Both frames MUST be global memory (device
+/// memory, or mapped host memory through its device pointer); the kernel
+/// tells the compiler so, which lets the transport's send issue the frame
+/// loads without ordering them after its own shared-memory stores.
 ///
 /// Contract: MUST observe the shutdown flag while it waits, since the dispatch
 /// loop cannot check it meanwhile.  Blocking here is intentional and is the
 /// one divergence from `cudaq_cpu_rx_poll_fn_t`, which must not block: the
-/// host loop has to return every turn to service graph-launch completions,
-/// whereas this path runs device calls only and has no other work to
-/// interleave.  Returning on every empty poll would also put a cross-TU call
-/// in the spin, so the wait stays inside the implementation.
+/// host loop checks the shutdown flag between polls, whereas this path runs
+/// device calls only and has no other work to interleave.  Returning on every
+/// empty poll would also put a cross-TU call in the spin, so the wait stays
+/// inside the implementation.
 extern __device__ cudaq_rx_dev_status_t cudaq_dev_rx_poll(void *session,
                                                           void **out_request,
                                                           void **out_response);

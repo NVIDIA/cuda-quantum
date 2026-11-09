@@ -29,8 +29,8 @@ using namespace mlir;
 namespace {
 /// The loop unrolling pass will fully unroll a `cc::LoopOp` when the loop is
 /// known to always execute a constant number of iterations. That is, the loop
-/// is a counted loop. (A threshold value can be used to bound the legal range
-/// of iterations. The default is 50.)
+/// is a counted loop. (The threshold is an inclusive upper bound on the
+/// number of iterations. The default is 50.)
 class LoopUnrollPass : public cudaq::opt::impl::LoopUnrollBase<LoopUnrollPass> {
 public:
   using LoopUnrollBase::LoopUnrollBase;

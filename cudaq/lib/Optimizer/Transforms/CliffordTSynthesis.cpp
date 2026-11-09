@@ -303,8 +303,9 @@ static PreCheck validateRotationOperands(Operation *op, Value angleVal,
                      "angle (--on-dynamic-angle=skip)");
     } else {
       op->emitError("clifford-t-synthesis: rotation angle is not a "
-                    "compile-time constant. Fold the angle upstream or set "
-                    "--on-dynamic-angle=skip to leave the op alone.");
+                    "compile-time constant. Synthesis needs the value of "
+                    "every angle at compile time, so it cannot synthesize an "
+                    "angle computed at run time.");
       *hadHardError = true;
     }
     return {PreCheck::Action::LeaveInPlace, 0.0};
@@ -422,17 +423,29 @@ public:
     // count must be non-negative because the retry loop left-shifts the
     // budgets by `attempt`. Both tolerances must also be finite. An infinite
     // epsilon accepts every angle as an exact multiple of pi/4, and an
-    // infinite skip-below erases every rotation.
-    if (!(epsilon > 0.0) || !std::isfinite(epsilon) ||
-        maxFactoringIterations < 0 || maxCandidateIterations < 0 ||
-        maxFactoringRestarts < 0 || maxOdgpScanSteps < 0 || retryCount < 0 ||
-        skipBelow < 0.0 || !std::isfinite(skipBelow)) {
+    // infinite skip-below erases every rotation. These are checked before
+    // looking at the IR, so a bad option fails every kernel rather than only
+    // the first one with a rotation to synthesize.
+    if (!(epsilon > 0.0) || !std::isfinite(epsilon)) {
+      getOperation().emitError("clifford-t-synthesis: epsilon must be finite "
+                               "and greater than 0, got ")
+          << epsilon.getValue();
+      signalPassFailure();
+      return;
+    }
+    if (skipBelow < 0.0 || !std::isfinite(skipBelow)) {
+      getOperation().emitError("clifford-t-synthesis: skip-below must be "
+                               "finite and non-negative, got ")
+          << skipBelow.getValue();
+      signalPassFailure();
+      return;
+    }
+    if (maxFactoringIterations < 0 || maxCandidateIterations < 0 ||
+        maxFactoringRestarts < 0 || maxOdgpScanSteps < 0 || retryCount < 0) {
       getOperation().emitError(
-          "clifford-t-synthesis: invalid options. Require a finite epsilon > 0 "
-          "and non-negative max-factoring-iterations, "
+          "clifford-t-synthesis: max-factoring-iterations, "
           "max-candidate-iterations, max-factoring-restarts, "
-          "max-odgp-scan-steps, retry-count, and a "
-          "finite skip-below.");
+          "max-odgp-scan-steps, and retry-count must be non-negative");
       signalPassFailure();
       return;
     }

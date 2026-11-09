@@ -9,7 +9,7 @@
 #include "nvjitlink_linker.h"
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/realtime/daemon/dispatcher/graph_launch_engine.h"
+#include "cudaq/realtime/daemon/dispatcher/host_dispatch_loop.h"
 #include <atomic>
 #include <cstdio>
 #include <cstring>
@@ -60,18 +60,14 @@ struct cudaq_dispatcher_t {
   uint64_t *stats = nullptr;
   cudaStream_t stream = nullptr;
   bool running = false;
-  void **h_mailbox_bank = nullptr;
   // The unified loop's data-plane (HOST + UNIFIED path), copied in by
   // set_cpu_dataplane or set_bridge; its hooks stay NULL until one of them
   // runs.  The public setter is void* to keep the API transport-agnostic;
   // stored typed here since this TU includes bridge_interface.h.
   cudaq_cpu_dataplane_t cpu_dataplane{};
-  // Both HOST dispatch paths (ring and unified) run their loop on this thread
-  // and drive GRAPH_LAUNCH work through `engine`, both owned here: created in
-  // cudaq_dispatcher_start, torn down in stop/destroy.  `engine` is NULL for a
-  // HOST_CALL-only table.
+  // Both HOST dispatch paths (ring and unified) run their loop on this thread:
+  // spawned in cudaq_dispatcher_start, joined in stop/destroy.
   std::thread host_thread;
-  cudaq_graph_launch_engine_t *engine = nullptr;
   // The bridge wired by cudaq_dispatcher_set_bridge, if any.
   cudaq_realtime_bridge_handle_t bridge = nullptr;
   // DEVICE + UNIFIED over a GPU data plane: the bridge's hook images, copied
@@ -86,25 +82,19 @@ std::mutex attached_bridges_mutex;
 std::unordered_set<cudaq_realtime_bridge_handle_t> attached_bridges;
 } // namespace
 
+// True once set_bridge has wired a GPU data plane: the dispatcher links its
+// module, and start() runs it through its own kernel or the application's
+// launcher.
+static bool has_gpu_dataplane(const cudaq_dispatcher_t *dispatcher) {
+  return !dispatcher->jit_device_lib.bridge_device_code.empty();
+}
+
 // True for HOST + UNIFIED: the dispatcher runs cudaq_host_unified_loop on its
-// own thread over the ring data-plane (HOST_CALL inline + GRAPH_LAUNCH via the
-// engine).
+// own thread over the ring data-plane (HOST_CALL inline).
 static bool is_host_unified_dispatcher(const cudaq_dispatcher_t *dispatcher) {
   return dispatcher &&
          dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST &&
          dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED;
-}
-
-// True when the table has any GRAPH_LAUNCH entry.  Such entries need a GPU (the
-// engine creates CUDA streams / graphs); a HOST_CALL-only table runs GPU-less
-// on either HOST transport.
-static bool table_has_graph_launch(const cudaq_function_table_t *table) {
-  if (!table || !table->entries)
-    return false;
-  for (uint32_t i = 0; i < table->count; ++i)
-    if (table->entries[i].dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH)
-      return true;
-  return false;
 }
 
 static bool is_valid_kernel_type(cudaq_kernel_type_t kernel_type) {
@@ -153,6 +143,15 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
     return CUDAQ_ERR_INVALID_ARG;
 
   if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
+    // The host loops serve HOST_CALL entries only.  Under shared_ring_mode a
+    // DEVICE_CALL or GRAPH_LAUNCH entry may belong to a peer dispatcher on the
+    // same ring; otherwise nothing could serve it and its requests would be
+    // dropped unanswered, so refuse the table.
+    if (!dispatcher->config.shared_ring_mode)
+      for (uint32_t i = 0; i < dispatcher->table.count; ++i)
+        if (dispatcher->table.entries[i].dispatch_mode !=
+            CUDAQ_DISPATCH_HOST_CALL)
+          return CUDAQ_ERR_UNSUPPORTED;
     if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
       if (!dispatcher->cpu_dataplane.rx_poll ||
           !dispatcher->cpu_dataplane.tx_publish)
@@ -173,8 +172,11 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
     if (dispatcher->config.slot_size == 0)
       return CUDAQ_ERR_INVALID_ARG;
     // One block of >= 1 threads: the block is what every DEVICE_CALL handler
-    // runs on.
-    if (dispatcher->config.num_blocks != 1 ||
+    // runs on.  The application's launcher over a GPU data plane picks its
+    // own grid.
+    const bool launcher_grid =
+        dispatcher->unified_launch_fn && has_gpu_dataplane(dispatcher);
+    if ((!launcher_grid && dispatcher->config.num_blocks != 1) ||
         dispatcher->config.threads_per_block == 0)
       return CUDAQ_ERR_INVALID_ARG;
   } else {
@@ -291,8 +293,6 @@ cudaq_status_t cudaq_dispatcher_destroy(cudaq_dispatcher_t *dispatcher) {
             ->store(1, std::memory_order_relaxed);
       if (dispatcher->host_thread.joinable())
         dispatcher->host_thread.join();
-      cudaq_graph_launch_engine_destroy(dispatcher->engine);
-      dispatcher->engine = nullptr;
     }
     dispatcher->running = false;
   }
@@ -350,22 +350,35 @@ cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
   return CUDAQ_OK;
 }
 
-cudaq_status_t cudaq_dispatcher_set_mailbox(cudaq_dispatcher_t *dispatcher,
-                                            void **h_mailbox_bank) {
-  if (!dispatcher || !h_mailbox_bank)
-    return CUDAQ_ERR_INVALID_ARG;
-  dispatcher->h_mailbox_bank = h_mailbox_bank;
-  return CUDAQ_OK;
-}
-
 cudaq_status_t
 cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,
                                     void *transport_ctx) {
+  if (!dispatcher || !unified_launch_fn)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (has_gpu_dataplane(dispatcher)) {
+    // The application's own dispatch loop, over the bridge's context.
+    if (transport_ctx || dispatcher->running) {
+      fprintf(stderr,
+              "ERROR: cudaq_dispatcher_set_unified_launch: over a GPU data "
+              "plane, pass a NULL transport context (the bridge's is kept) "
+              "and call it before cudaq_dispatcher_start\n");
+      return CUDAQ_ERR_INVALID_ARG;
+    }
+    dispatcher->unified_launch_fn = unified_launch_fn;
+    return CUDAQ_OK;
+  }
   // Both are required: the dispatcher's own unified kernel runs only over a
   // bridge's GPU data plane, wired by set_bridge.
-  if (!dispatcher || !unified_launch_fn || !transport_ctx)
+  if (!transport_ctx)
     return CUDAQ_ERR_INVALID_ARG;
+  if (dispatcher->bridge) {
+    fprintf(stderr,
+            "ERROR: cudaq_dispatcher_set_unified_launch: the dispatcher's "
+            "bridge serves no GPU data plane; a launcher runs only over one, "
+            "or on a dispatcher without a bridge\n");
+    return CUDAQ_ERR_INVALID_ARG;
+  }
   dispatcher->unified_launch_fn = unified_launch_fn;
   dispatcher->transport_ctx = transport_ctx;
   return CUDAQ_OK;
@@ -433,10 +446,6 @@ cudaq_dispatcher_set_bridge(cudaq_dispatcher_t *dispatcher,
               shape, host ? "host" : "device");
       return CUDAQ_ERR_INVALID_ARG;
     }
-    // The provider's TX pump owns the wire and reads any non-zero tx flag as
-    // a slot address, so the in-flight sentinel must not be written.
-    if (host)
-      config.skip_tx_markers = 1;
   } else if (host) {
     status = cudaq_bridge_get_cpu_dataplane(bridge, &cpu_dataplane);
     if (status != CUDAQ_OK) {
@@ -569,7 +578,7 @@ static cudaq_status_t link_dispatcher(cudaq_dispatcher_t *dispatcher,
     fprintf(stderr, "ERROR: %s: the dispatcher is already running\n", caller);
     return CUDAQ_ERR_INVALID_ARG;
   }
-  if (dispatcher->unified_launch_fn) {
+  if (dispatcher->unified_launch_fn && !has_gpu_dataplane(dispatcher)) {
     fprintf(stderr,
             "ERROR: %s: the bridge's launch override replaces the dispatch "
             "kernel; there is nothing to link\n",
@@ -663,23 +672,34 @@ static CUresult find_device_global(cudaq_dispatcher_t *dispatcher,
   return err;
 }
 
+// The first lookup links the module with `images`; later ones must pass the
+// same device code.
+static cudaq_status_t link_for_lookup(cudaq_dispatcher_t *dispatcher,
+                                      const char *caller,
+                                      const cudaq_device_image_t *images,
+                                      size_t count) {
+  if (!dispatcher->jit_device_lib.library)
+    return link_dispatcher(dispatcher, caller, images, count);
+  if (!is_linked_device_code(dispatcher, images, count)) {
+    fprintf(stderr,
+            "ERROR: %s: the dispatcher's module was linked with other device "
+            "code; all handlers and kernels of one dispatcher come from one "
+            "binary, looked up before start\n",
+            caller);
+    return CUDAQ_ERR_INVALID_ARG;
+  }
+  return CUDAQ_OK;
+}
+
 cudaq_status_t cudaq_dispatcher_get_device_handler_in(
     cudaq_dispatcher_t *dispatcher, const cudaq_device_image_t *images,
     size_t count, const char *name, void **out_fn) {
   if (!dispatcher || !images || count == 0 || !name || !out_fn)
     return CUDAQ_ERR_INVALID_ARG;
-  if (!dispatcher->jit_device_lib.library) {
-    const cudaq_status_t status = link_dispatcher(
-        dispatcher, "cudaq_dispatcher_get_device_handler", images, count);
-    if (status != CUDAQ_OK)
-      return status;
-  } else if (!is_linked_device_code(dispatcher, images, count)) {
-    fprintf(stderr,
-            "ERROR: cudaq_dispatcher_get_device_handler: the dispatcher's "
-            "module was linked with other device code; all handlers of one "
-            "dispatcher come from one binary, looked up before start\n");
-    return CUDAQ_ERR_INVALID_ARG;
-  }
+  const cudaq_status_t status = link_for_lookup(
+      dispatcher, "cudaq_dispatcher_get_device_handler", images, count);
+  if (status != CUDAQ_OK)
+    return status;
   if (cudaSetDevice(dispatcher->config.device_id) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
   const std::string global =
@@ -715,6 +735,59 @@ cudaq_status_t cudaq_dispatcher_get_device_handler_in(
   return CUDAQ_OK;
 }
 
+cudaq_status_t cudaq_dispatcher_get_device_kernel_in(
+    cudaq_dispatcher_t *dispatcher, const cudaq_device_image_t *images,
+    size_t count, const char *name, cudaKernel_t *out_kernel) {
+  if (!dispatcher || !images || count == 0 || !name || !out_kernel)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (std::strcmp(name, "cudaq_unified_dispatch_kernel") == 0) {
+    fprintf(stderr,
+            "ERROR: cudaq_dispatcher_get_device_kernel: "
+            "cudaq_unified_dispatch_kernel is the dispatcher's own kernel, "
+            "which start() launches when no launcher is set\n");
+    return CUDAQ_ERR_INVALID_ARG;
+  }
+  const cudaq_status_t status = link_for_lookup(
+      dispatcher, "cudaq_dispatcher_get_device_kernel", images, count);
+  if (status != CUDAQ_OK)
+    return status;
+  CUkernel kernel = nullptr;
+  const CUresult found = cudaq::realtime::detail::driver_library()->get_kernel(
+      &kernel, dispatcher->jit_device_lib.library, name);
+  if (found == CUDA_ERROR_NOT_FOUND) {
+    fprintf(stderr,
+            "ERROR: cudaq_dispatcher_get_device_kernel: the linked module has "
+            "no kernel '%s'; define it extern \"C\" __global__ and embed its "
+            "LTO-IR in the binary's __nv_relfatbin section (see "
+            "realtime/docs/device_code_contract.md)\n",
+            name);
+    return CUDAQ_ERR_INVALID_ARG;
+  }
+  if (found != CUDA_SUCCESS) {
+    fprintf(stderr,
+            "ERROR: cudaq_dispatcher_get_device_kernel: looking up '%s' in "
+            "the linked module failed: CUresult %d\n",
+            name, static_cast<int>(found));
+    return CUDAQ_ERR_CUDA;
+  }
+  *out_kernel = kernel;
+  return CUDAQ_OK;
+}
+
+// Raise the shutdown flag, wait for the DEVICE dispatcher's stream and destroy
+// it.  If the flag cannot be written, the stream is kept, so destroy() leaves
+// the linked module loaded under whatever may still run from it.
+static cudaq_status_t stop_device_kernel(cudaq_dispatcher_t *dispatcher) {
+  int shutdown = 1;
+  if (cudaMemcpy(const_cast<int *>(dispatcher->shutdown_flag), &shutdown,
+                 sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess)
+    return CUDAQ_ERR_CUDA;
+  cudaStreamSynchronize(dispatcher->stream);
+  cudaStreamDestroy(dispatcher->stream);
+  dispatcher->stream = nullptr;
+  return CUDAQ_OK;
+}
+
 cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   if (dispatcher &&
       dispatcher->config.dispatch_path != CUDAQ_DISPATCH_PATH_HOST &&
@@ -726,9 +799,9 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
             "launcher with cudaq_dispatcher_set_launch_fn\n");
     return CUDAQ_ERR_INVALID_ARG;
   }
-  const bool linked_kernel = dispatcher &&
-                             is_device_unified_dispatcher(dispatcher) &&
-                             !dispatcher->unified_launch_fn;
+  const bool linked_kernel =
+      dispatcher && is_device_unified_dispatcher(dispatcher) &&
+      (has_gpu_dataplane(dispatcher) || !dispatcher->unified_launch_fn);
   cudaq_status_t status = validate_dispatcher(dispatcher);
   if (status != CUDAQ_OK)
     return status;
@@ -780,73 +853,34 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   }
 
   if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
-    const bool unified = is_host_unified_dispatcher(dispatcher);
-
-    // Check if the table has any GRAPH_LAUNCH entries. If so, we need to make
-    // sure the device is set and create a graph launch engine.
-    if (table_has_graph_launch(&dispatcher->table)) {
-      if (cudaSetDevice(dispatcher->config.device_id) != cudaSuccess)
-        return CUDAQ_ERR_CUDA;
-
-      const cudaq_ringbuffer_t *engine_ring =
-          unified ? &dispatcher->cpu_dataplane.ring : &dispatcher->ringbuffer;
-
-      // Unified must keep the markers: its publish_ready reads the per-slot
-      // CUDAQ_TX_FLAG_IN_FLIGHT sentinel to tell a still-running graph from a
-      // completed one.  The ring path may skip them (config), since it recycles
-      // workers via cudaStreamQuery and its transport thread owns TX.
-      const int skip_tx_markers =
-          unified ? 0 : dispatcher->config.skip_tx_markers;
-
-      cudaq_status_t engine_st = CUDAQ_OK;
-      dispatcher->engine = cudaq_graph_launch_engine_create(
-          engine_ring, &dispatcher->table, skip_tx_markers,
-          dispatcher->h_mailbox_bank, &engine_st);
-      if (engine_st != CUDAQ_OK)
-        return CUDAQ_ERR_INTERNAL;
-    }
-
-    cudaq_graph_launch_engine_t *engine = dispatcher->engine;
+    // The host loops run HOST_CALL handlers only and never touch the CUDA
+    // runtime, so no device is selected here; a handler that uses CUDA
+    // selects its own.
     volatile int *shutdown_flag = dispatcher->shutdown_flag;
     uint64_t *stats = dispatcher->stats;
     cudaq_function_table_t tbl = dispatcher->table;
-    if (unified) {
+    if (is_host_unified_dispatcher(dispatcher)) {
       // stop() and destroy() join the thread before the dispatcher goes away.
       cudaq_cpu_dataplane_t *cpu_dataplane = &dispatcher->cpu_dataplane;
       dispatcher->host_thread =
-          std::thread([engine, cpu_dataplane, tbl, shutdown_flag, stats] {
-            cudaq_host_unified_loop(cpu_dataplane, &tbl, engine, shutdown_flag,
-                                    stats);
+          std::thread([cpu_dataplane, tbl, shutdown_flag, stats] {
+            cudaq_host_unified_loop(cpu_dataplane, &tbl, shutdown_flag, stats);
           });
     } else {
       cudaq_ringbuffer_t rb = dispatcher->ringbuffer;
       cudaq_dispatcher_config_t cfg = dispatcher->config;
-      dispatcher->host_thread =
-          std::thread([rb, tbl, cfg, engine, shutdown_flag, stats] {
-            cudaq_host_ring_dispatch_loop(&rb, &tbl, &cfg, engine,
-                                          shutdown_flag, stats);
-          });
+      dispatcher->host_thread = std::thread([rb, tbl, cfg, shutdown_flag,
+                                             stats] {
+        cudaq_host_ring_dispatch_loop(&rb, &tbl, &cfg, shutdown_flag, stats);
+      });
     }
     dispatcher->running = true;
     return CUDAQ_OK;
   }
 
-  // The HOST dispatch path may run without a usable CUDA device: HOST_CALL
-  // entries never touch the device, and GRAPH_LAUNCH workers fail at their
-  // own CUDA calls (cudaStreamCreate) when the device is truly needed. Only
-  // the no-device error class is tolerated, though: if devices are
-  // enumerable, a cudaSetDevice failure means `device_id` names a bad device
-  // (e.g. cudaErrorInvalidDevice), and swallowing it would leave host-side
-  // GRAPH_LAUNCH workers silently running on the default device instead of
-  // the configured one.
-  if (cudaSetDevice(dispatcher->config.device_id) != cudaSuccess) {
-    if (dispatcher->config.dispatch_path != CUDAQ_DISPATCH_PATH_HOST)
-      return CUDAQ_ERR_CUDA;
-    int device_count = 0;
-    if (cudaGetDeviceCount(&device_count) == cudaSuccess && device_count > 0)
-      return CUDAQ_ERR_CUDA;
-    (void)cudaGetLastError();
-  }
+  // create() mapped a negative device_id to 0.
+  if (cudaSetDevice(dispatcher->config.device_id) != cudaSuccess)
+    return CUDAQ_ERR_CUDA;
 
   // Non-blocking, so that no legacy-stream copy (stop(), get_processed(), a
   // lookup on another dispatcher) queues behind the resident kernel.  Such a
@@ -893,13 +927,22 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
     // The unified kernel runs from the dispatcher's linked module
     // (linked by the first handler lookup or above).  unified_launch_fn is an
     // override, used only by a transport that replaces the dispatch loop
-    // outright.
+    // outright, or by the application's own loop over the linked module.
     if (dispatcher->unified_launch_fn) {
-      dispatcher->unified_launch_fn(
+      const cudaq_status_t launched = dispatcher->unified_launch_fn(
           dispatcher->transport_ctx, dispatcher->config.slot_size,
           dispatcher->table.entries, dispatcher->table.count,
           dispatcher->shutdown_flag, dispatcher->stats,
           dispatcher->config.threads_per_block, dispatcher->stream);
+      if (launched != CUDAQ_OK) {
+        fprintf(stderr,
+                "ERROR: cudaq_dispatcher_start: the unified launcher failed "
+                "(status %d)\n",
+                launched);
+        // The launcher may have enqueued its kernel before failing.
+        stop_device_kernel(dispatcher);
+        return launched;
+      }
     } else {
       const CUresult launched = launch_linked_unified_kernel(
           dispatcher->jit_device_lib.dispatch_kernel, dispatcher->transport_ctx,
@@ -929,8 +972,8 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   if (err != cudaSuccess) {
     fprintf(stderr, "CUDA error in dispatcher launch: %s (%d)\n",
             cudaGetErrorString(err), err);
-    cudaStreamDestroy(dispatcher->stream);
-    dispatcher->stream = nullptr;
+    // The launch itself may have succeeded.
+    stop_device_kernel(dispatcher);
     return CUDAQ_ERR_CUDA;
   }
 
@@ -945,7 +988,7 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher) {
     return CUDAQ_OK;
 
   if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
-    // Both HOST paths (ring + unified) run on host_thread and own `engine`.
+    // Both HOST paths (ring + unified) run on host_thread.
     // `const_cast` drops the flag's `volatile` qualifier (`reinterpret_cast`
     // can't cast away cv-qualifiers) so it can be written as a plain atomic.
     if (dispatcher->shutdown_flag)
@@ -954,19 +997,13 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher) {
           ->store(1, std::memory_order_relaxed);
     if (dispatcher->host_thread.joinable())
       dispatcher->host_thread.join();
-    cudaq_graph_launch_engine_destroy(dispatcher->engine);
-    dispatcher->engine = nullptr;
     dispatcher->running = false;
     return CUDAQ_OK;
   }
 
-  int shutdown = 1;
-  if (cudaMemcpy(const_cast<int *>(dispatcher->shutdown_flag), &shutdown,
-                 sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess)
-    return CUDAQ_ERR_CUDA;
-  cudaStreamSynchronize(dispatcher->stream);
-  cudaStreamDestroy(dispatcher->stream);
-  dispatcher->stream = nullptr;
+  const cudaq_status_t stopped = stop_device_kernel(dispatcher);
+  if (stopped != CUDAQ_OK)
+    return stopped;
   dispatcher->running = false;
   return CUDAQ_OK;
 }
@@ -1035,20 +1072,12 @@ void cudaq_host_ringbuffer_signal_slot(const cudaq_ringbuffer_t *rb,
   atomic_store_u64(&rb->rx_flags_host[slot_idx], addr);
 }
 
-cudaq_tx_status_t
-cudaq_host_ringbuffer_poll_tx_flag(const cudaq_ringbuffer_t *rb,
-                                   uint32_t slot_idx, int *out_cuda_error) {
-  uint64_t v = atomic_load_u64(&rb->tx_flags_host[slot_idx]);
-  if (v == 0)
-    return CUDAQ_TX_EMPTY;
-  if (v == CUDAQ_TX_FLAG_IN_FLIGHT)
-    return CUDAQ_TX_IN_FLIGHT;
-  if ((v >> 48) == CUDAQ_TX_FLAG_ERROR_TAG) {
-    if (out_cuda_error)
-      *out_cuda_error = static_cast<int>(v & 0xFFFF);
-    return CUDAQ_TX_ERROR;
-  }
-  return CUDAQ_TX_READY;
+cudaq_tx_status_t cudaq_host_ringbuffer_poll_tx_flag(
+    const cudaq_ringbuffer_t *rb, uint32_t slot_idx, int * /*out_cuda_error*/) {
+  // A non-zero flag is the TX slot's address, stored once the response is in
+  // place; there are no other flag values.
+  return atomic_load_u64(&rb->tx_flags_host[slot_idx]) == 0 ? CUDAQ_TX_EMPTY
+                                                            : CUDAQ_TX_READY;
 }
 
 int cudaq_host_ringbuffer_slot_available(const cudaq_ringbuffer_t *rb,
@@ -1060,17 +1089,4 @@ int cudaq_host_ringbuffer_slot_available(const cudaq_ringbuffer_t *rb,
 void cudaq_host_ringbuffer_clear_slot(const cudaq_ringbuffer_t *rb,
                                       uint32_t slot_idx) {
   atomic_store_u64(&rb->tx_flags_host[slot_idx], 0);
-}
-
-cudaq_status_t cudaq_host_release_worker(cudaq_dispatcher_t *dispatcher,
-                                         int worker_id) {
-  if (!dispatcher)
-    return CUDAQ_ERR_INVALID_ARG;
-  // External worker release is a 3-thread ring-path feature; the unified path
-  // recycles workers internally via publish_ready.
-  if (dispatcher->config.dispatch_path != CUDAQ_DISPATCH_PATH_HOST ||
-      is_host_unified_dispatcher(dispatcher) || !dispatcher->engine)
-    return CUDAQ_ERR_INVALID_ARG;
-  return cudaq_graph_launch_engine_release_worker(dispatcher->engine,
-                                                  worker_id);
 }

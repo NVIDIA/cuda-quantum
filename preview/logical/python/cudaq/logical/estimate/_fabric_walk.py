@@ -144,7 +144,7 @@ def _walk_executable(
                 if name == "fabric.call" and "profile" in operation.attributes:
                     profile_name = _attr_text(operation.attributes["profile"])
                     profile = symbols.get(profile_name)
-                    if profile is None or profile.name != "fabric.gadget_profile":
+                    if profile is None or profile.name != "fabric.gadget_contract":
                         raise error_type(
                             f"Fabric call references missing profile @{profile_name}"
                         )

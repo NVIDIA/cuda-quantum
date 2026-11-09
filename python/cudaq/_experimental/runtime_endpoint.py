@@ -48,7 +48,7 @@ uninstall call.
 from typing import Protocol, runtime_checkable
 
 # Keep the frontend import path as an alias of the shared capability protocol.
-from cudaq.core.backends import RuntimeEndpoint
+from cudaq.core._experimental import RuntimeEndpoint
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import (
     CompiledModule,
     DEMResult,

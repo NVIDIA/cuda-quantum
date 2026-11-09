@@ -83,7 +83,7 @@ void addThemHandler(const void *rxSlot, void *txSlot, std::size_t slotSize) {
 }
 
 // A session exporting a single HOST_CALL entry. Deliberately makes no CUDA
-// runtime calls: HOST_CALL tables need no graph, mailbox, or device memory.
+// runtime calls: HOST_CALL tables need no device memory.
 class HostOnlySession : public DeviceCallServiceSession {
 public:
   HostOnlySession() {

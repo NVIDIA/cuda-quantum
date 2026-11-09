@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Conversion/QuakeToQLXPasses.h"
 #include "qlx/Dialect/Cflow/IR/CflowOps.h"
@@ -28,6 +28,7 @@
 #include <string>
 
 #ifdef QLX_HAS_CUDAQ_QUAKE
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -52,6 +53,10 @@ struct ImportState {
   DenseMap<Value, Value> wireOwners;    // quake wire -> qlx logical owner
   DenseMap<Value, Value> classicalBits; // quake measure-handle/i1 -> qlx i1
   DenseSet<Value> measuredWires;        // post-measurement wires (no discard)
+  // The Python frontend returns `tuple[bool, ...]` as one `!cc.struct` built
+  // from `cc.undef` by `cc.insert_value`. One qlx i1 per member, null until
+  // inserted.
+  DenseMap<Value, SmallVector<Value>> classicalTuples;
   DenseMap<Value, SmallVector<Value>> cableOwners;
   // CUDA-Q reference helpers may unwrap the same ref/veq slot repeatedly.
   // Every such wire is an alias handle for one mutable source slot, not an
@@ -265,6 +270,84 @@ static FailureOr<qlx::BuiltinAction> actionForGate(GateOp gate) {
   return failure();
 }
 
+// CUDA-Q's `kernel-execution` pass registers an entry point `<kernel>` with
+// the host runtime from a load-time constructor, `<kernel>.kernelRegFunc`,
+// listed in `llvm.mlir.global_ctors`. The constructor passes the constant
+// string `<kernel>.kernelName` and the kernel's `.argsCreator` to the
+// runtime's registration functions. P0 has no host side, so the conversion
+// drops a registration whose constructor does nothing else.
+
+static bool namesKernelSymbol(StringRef symbol, StringRef kernel,
+                              StringRef suffix) {
+  return symbol.consume_back(suffix) && symbol == kernel;
+}
+
+/// Whether `op`, in the registration constructor of `kernel`, takes the
+/// address of the kernel's `.kernelName` string or `.argsCreator`, casts it,
+/// passes it to a runtime registration function, or returns.
+static bool isRegistrationStep(Operation &op, StringRef kernel) {
+  StringRef name = op.getName().getStringRef();
+  if (name == "llvm.mlir.addressof") {
+    auto global = op.getAttrOfType<FlatSymbolRefAttr>("global_name");
+    return global &&
+           namesKernelSymbol(global.getValue(), kernel, ".kernelName");
+  }
+  if (auto constant = dyn_cast<func::ConstantOp>(op))
+    return namesKernelSymbol(constant.getValue(), kernel, ".argsCreator");
+  if (auto call = dyn_cast<func::CallOp>(op))
+    return call.getCallee() == cudaq::runtime::CudaqRegisterKernelName ||
+           call.getCallee() == cudaq::runtime::CudaqRegisterArgsCreator;
+  return name == "llvm.return" ||
+         isa<cudaq::cc::CastOp, cudaq::cc::FuncToPtrOp>(op);
+}
+
+/// Whether `op` is the registration constructor of an entry kernel in
+/// `kernels`.
+static bool isRegistrationConstructor(Operation &op,
+                                      const DenseSet<StringRef> &kernels) {
+  auto symbol = op.getAttrOfType<StringAttr>(SymbolTable::getSymbolAttrName());
+  if (op.getName().getStringRef() != "llvm.func" || !symbol ||
+      op.getNumRegions() != 1 || !op.getRegion(0).hasOneBlock())
+    return false;
+  StringRef kernel = symbol.getValue();
+  return kernel.consume_back(".kernelRegFunc") && kernels.contains(kernel) &&
+         llvm::all_of(op.getRegion(0).front(), [&](Operation &step) {
+           return isRegistrationStep(step, kernel);
+         });
+}
+
+/// Whether `op` is the constant `<kernel>.kernelName` string, which holds
+/// `<kernel>`, of an entry kernel in `kernels`.
+static bool isKernelNameString(Operation &op,
+                               const DenseSet<StringRef> &kernels) {
+  auto symbol = op.getAttrOfType<StringAttr>(SymbolTable::getSymbolAttrName());
+  auto value = op.getAttrOfType<StringAttr>("value");
+  if (op.getName().getStringRef() != "llvm.mlir.global" || !symbol || !value ||
+      !op.hasAttr("constant"))
+    return false;
+  StringRef kernel = symbol.getValue();
+  StringRef text = value.getValue();
+  return kernel.consume_back(".kernelName") && kernels.contains(kernel) &&
+         text.consume_back(StringRef("\0", 1)) && text == kernel;
+}
+
+/// Whether `op` belongs to the host registration of an entry kernel in
+/// `kernels`, given the module's registration `constructors`.
+static bool isHostKernelRegistration(Operation &op,
+                                     const DenseSet<StringRef> &kernels,
+                                     const DenseSet<StringRef> &constructors) {
+  if (op.getName().getStringRef() == "llvm.mlir.global_ctors") {
+    auto ctors = op.getAttrOfType<ArrayAttr>("ctors");
+    return ctors && llvm::all_of(ctors, [&](Attribute ctor) {
+             auto symbol = dyn_cast<FlatSymbolRefAttr>(ctor);
+             return symbol && constructors.contains(symbol.getValue());
+           });
+  }
+  auto symbol = op.getAttrOfType<StringAttr>(SymbolTable::getSymbolAttrName());
+  return (symbol && constructors.contains(symbol.getValue())) ||
+         isKernelNameString(op, kernels);
+}
+
 class ConvertQuakeToQLXPass
     : public qlx::impl::ConvertQuakeToQLXBase<ConvertQuakeToQLXPass> {
 public:
@@ -326,9 +409,21 @@ public:
       return;
     }
 
+    DenseSet<StringRef> kernels;
+    for (func::FuncOp entry : entries) {
+      StringRef kernel = entry.getSymName();
+      kernel.consume_front("__nvqpp__mlirgen__");
+      kernels.insert(kernel);
+    }
+    DenseSet<StringRef> constructors;
+    for (Operation &op : module.getBody()->getOperations())
+      if (isRegistrationConstructor(op, kernels))
+        constructors.insert(SymbolTable::getSymbolName(&op).getValue());
+
     // Reject top-level facts that this conversion neither preserves nor
     // deliberately removes. In particular, do not treat later cleanup as a
     // legalization mechanism for arbitrary input operations.
+    SmallVector<Operation *> hostRegistrations;
     for (Operation &op : module.getBody()->getOperations()) {
       if (isa<func::FuncOp>(op))
         continue;
@@ -347,10 +442,16 @@ public:
       if (op.getName().getStringRef() == "llvm.func" &&
           op.getNumRegions() == 1 && op.getRegion(0).empty())
         continue;
+      if (isHostKernelRegistration(op, kernels, constructors)) {
+        hostRegistrations.push_back(&op);
+        continue;
+      }
       op.emitError("unexpected top-level operation at the Quake-to-P0 "
                    "boundary; preserve or lower it explicitly");
       return signalPassFailure();
     }
+    for (Operation *op : hostRegistrations)
+      op->erase();
 
     // Declare retained logical objectives before converting any caller.  The
     // dialect verifier resolves qlx.apply symbols as each converted entry is
@@ -492,7 +593,7 @@ private:
             !function->hasAttr("qlx-objective"))
           return function.emitOpError(
               "reachable body-less helper must be an explicitly marked "
-              "non-entry CUDA-Q Logical objective declaration");
+              "non-entry CUDA-Q Logical action declaration");
         reachableFunctions.insert(function.getOperation());
         objectiveDeclarations.insert(function.getOperation());
         return success();
@@ -668,7 +769,7 @@ private:
       for (Value wire : wires) {
         auto found = values.find(wire);
         if (found == values.end())
-          return gate.emitOpError("uses a wire with no live P0 owner");
+          return gate.emitOpError("uses a wire with no live P0 qubit value");
         inputs.push_back(found->second);
         values.erase(found);
       }
@@ -738,7 +839,7 @@ private:
     Value target = measurement.getTargets().front();
     auto input = values.find(target);
     if (input == values.end())
-      return measurement.emitOpError("uses a wire with no live P0 owner");
+      return measurement.emitOpError("uses a wire with no live P0 qubit value");
 
     auto measured =
         qlx::MeasureOp::create(builder, measurement.getLoc(),
@@ -767,7 +868,7 @@ private:
     for (Value wire : swap.getTargets()) {
       auto found = values.find(wire);
       if (found == values.end())
-        return swap.emitOpError("uses a wire with no live P0 owner");
+        return swap.emitOpError("uses a wire with no live P0 qubit value");
       inputs.push_back(found->second);
       values.erase(found);
     }
@@ -840,7 +941,7 @@ private:
 
     auto found = values.find(gate.getTargets()[0]);
     if (found == values.end())
-      return gate.emitOpError("uses a wire with no live P0 owner");
+      return gate.emitOpError("uses a wire with no live P0 qubit value");
 
     Value input = found->second;
     values.erase(found);
@@ -870,7 +971,7 @@ private:
         continue;
       auto input = state.wireOwners.find(wire);
       if (input == state.wireOwners.end())
-        return owner->emitOpError("uses a wire with no live P0 owner");
+        return owner->emitOpError("uses a wire with no live P0 qubit value");
       inputs.push_back(input->second);
       liveWires.push_back(wire);
     }
@@ -885,7 +986,7 @@ private:
                                    OpBuilder &builder, ImportState &state) {
     if (state.wireReferenceSlots.contains(wire))
       return owner->emitOpError(
-          "cannot discard a borrowed reference-helper owner");
+          "cannot discard a borrowed reference-helper value");
     return discardWires(owner, ValueRange{wire}, builder, state);
   }
 
@@ -899,7 +1000,7 @@ private:
       if (slot->second >= state.referenceResults.size() ||
           !state.referenceResults[slot->second])
         return owner->emitOpError(
-            "reference-helper wire resolves to no current P0 owner");
+            "reference-helper wire resolves to no current P0 qubit value");
       if (!seen.insert(slot->second).second)
         return owner->emitOpError(
             "uses two aliases of the same reference slot in one operation");
@@ -917,7 +1018,7 @@ private:
     if (owners == state.cableOwners.end() ||
         owners->second.size() != slots->second.size())
       return owner->emitOpError(
-          "reference-helper cable has inconsistent owner provenance");
+          "reference-helper cable has inconsistent qubit provenance");
     DenseSet<unsigned> seen;
     for (auto [index, slot] : llvm::enumerate(slots->second)) {
       if (slot < 0)
@@ -926,7 +1027,7 @@ private:
       if (unsignedSlot >= state.referenceResults.size() ||
           !state.referenceResults[unsignedSlot])
         return owner->emitOpError(
-            "reference-helper cable resolves to no current P0 owner");
+            "reference-helper cable resolves to no current P0 qubit value");
       if (!seen.insert(unsignedSlot).second)
         return owner->emitOpError(
             "contains two aliases of the same reference slot");
@@ -957,7 +1058,7 @@ private:
                                                   ImportState &state) {
     if (inputs.size() != results.size())
       return owner->emitOpError(
-          "does not preserve reference-helper owner arity");
+          "does not preserve reference-helper qubit arity");
     for (auto [input, result] : llvm::zip(inputs, results)) {
       auto slot = state.wireReferenceSlots.find(input);
       if (slot == state.wireReferenceSlots.end())
@@ -965,7 +1066,7 @@ private:
       auto mapped = state.wireOwners.find(result);
       if (mapped == state.wireOwners.end())
         return owner->emitOpError(
-            "reference-helper result has no live P0 owner");
+            "reference-helper result has no live P0 qubit value");
       // Copy before inserting: the insert may invalidate `slot`.
       unsigned slotIndex = slot->second;
       state.wireReferenceSlots[result] = slotIndex;
@@ -1038,7 +1139,7 @@ private:
           return failure();
         auto found = state.wireOwners.find(argument);
         if (found == state.wireOwners.end())
-          return call.emitOpError("uses a wire with no live P0 owner");
+          return call.emitOpError("uses a wire with no live P0 qubit value");
         inputs.push_back(found->second);
         auto slot = state.wireReferenceSlots.find(argument);
         inputSlots.push_back(slot == state.wireReferenceSlots.end()
@@ -1052,7 +1153,7 @@ private:
           return failure();
         auto found = state.cableOwners.find(argument);
         if (found == state.cableOwners.end())
-          return call.emitOpError("uses a cable with no live P0 owners");
+          return call.emitOpError("uses a cable with no live P0 qubit values");
         inputs.append(found->second.begin(), found->second.end());
         auto slots = state.cableReferenceSlots.find(argument);
         if (slots == state.cableReferenceSlots.end())
@@ -1082,7 +1183,7 @@ private:
     }
     if (flattenedResults != inputs.size())
       return call.emitOpError(
-          "helper must return one flattened successor per input owner");
+          "helper must return one flattened successor per input value");
 
     auto callee = qlxSymbolFor(call.getCalleeAttr().getLeafReference(),
                                call.getOperation());
@@ -1180,7 +1281,8 @@ private:
           for (Value wire : bundle.getWires()) {
             auto found = state.wireOwners.find(wire);
             if (found == state.wireOwners.end())
-              return bundle.emitOpError("bundles a wire with no live P0 owner");
+              return bundle.emitOpError(
+                  "bundles a wire with no live P0 qubit value");
             owners.push_back(found->second);
             auto slot = state.wireReferenceSlots.find(wire);
             slots.push_back(slot == state.wireReferenceSlots.end()
@@ -1192,7 +1294,7 @@ private:
               cast<cudaq::quake::CableType>(bundle.getResult().getType());
           if (type.getSize() != owners.size())
             return bundle.emitOpError(
-                "cable width does not match its flattened owners");
+                "cable width does not match its flattened wires");
           state.cableOwners[bundle.getResult()] = std::move(owners);
           state.cableReferenceSlots[bundle.getResult()] = std::move(slots);
           return success();
@@ -1200,7 +1302,8 @@ private:
         .Case<cudaq::quake::SplitCableOp>([&](auto split) -> LogicalResult {
           auto found = state.cableOwners.find(split.getCable());
           if (found == state.cableOwners.end())
-            return split.emitOpError("splits a cable with no live P0 owners");
+            return split.emitOpError(
+                "splits a cable with no live P0 qubit values");
           if (found->second.size() != split.getNumResults())
             return split.emitOpError(
                 "split result count does not match the cable width");
@@ -1233,7 +1336,7 @@ private:
           unsigned flattened = slice->second.first + index;
           if (!state.referenceResults[flattened])
             return extract.emitOpError(
-                "extracts a vector element with no current owner");
+                "extracts a vector element with no current qubit value");
           state.referenceIndices[extract.getRef()] = flattened;
           return success();
         })
@@ -1248,7 +1351,7 @@ private:
                 "reference is not a specialized helper input slot");
           if (!state.referenceResults[index->second])
             return unwrap.emitOpError(
-                "reference-helper slot has no current P0 owner");
+                "reference-helper slot has no current P0 qubit value");
           state.wireReferenceSlots[unwrap.getResult()] = index->second;
           state.wireOwners[unwrap.getResult()] =
               state.referenceResults[index->second];
@@ -1264,7 +1367,7 @@ private:
             return wrap.emitOpError("target is not a helper input reference");
           auto owner = state.wireOwners.find(wrap.getWireValue());
           if (owner == state.wireOwners.end())
-            return wrap.emitOpError("uses a wire with no live P0 owner");
+            return wrap.emitOpError("uses a wire with no live P0 qubit value");
           auto slot = state.wireReferenceSlots.find(wrap.getWireValue());
           if (slot == state.wireReferenceSlots.end() ||
               slot->second != index->second)
@@ -1272,8 +1375,39 @@ private:
                 "wire provenance does not match the wrapped reference slot");
           if (state.referenceResults[index->second] != owner->second)
             return wrap.emitOpError(
-                "wrapped wire is not the current reference-slot owner");
+                "wrapped wire is not the current reference-slot wire");
           return success();
+        })
+        .Case<cudaq::quake::PhaseOp>([&](auto phase) -> LogicalResult {
+          // P0 ignores global phase, but a controlled phase is relative and
+          // must be lowered upstream. The anchor still carries wire ownership.
+          if (!phase.getControls().empty())
+            return phase.emitOpError(
+                "controlled phases are outside the Quake-to-P0 contract; "
+                "lower upstream");
+          Value input = phase.getTarget();
+          if (!isa<cudaq::quake::WireType>(input.getType()) ||
+              phase.getWires().size() != 1)
+            return phase.emitOpError("requires an anchor wire");
+          Value result = phase.getWires().front();
+          if (failed(hydrateReferenceWires(phase, ValueRange{input}, state)))
+            return failure();
+          auto owner = state.wireOwners.find(input);
+          if (owner == state.wireOwners.end()) {
+            if (!state.measuredWires.erase(input))
+              return phase.emitOpError(
+                  "uses a wire with no live or measured P0 owner");
+            state.measuredWires.insert(result);
+            return success();
+          }
+          if (state.measuredWires.contains(input))
+            return phase.emitOpError(
+                "wire lifetime state is both live and measured");
+          Value logicalOwner = owner->second;
+          state.wireOwners.erase(owner);
+          state.wireOwners[result] = logicalOwner;
+          return commitReferenceWireResults(phase, ValueRange{input},
+                                            phase.getWires(), state);
         })
         .Case<cudaq::quake::R1Op>([&](auto g) -> LogicalResult {
           // On one uncontrolled target, R1(theta) and Rz(theta) differ only
@@ -1313,6 +1447,27 @@ private:
                   cudaq::quake::VeqType>(undef.getInputType().getType()))
             return undef.emitOpError(
                 "quantum cc.undef is outside the Quake-to-P0 contract");
+          if (auto tuple = dyn_cast<cudaq::cc::StructType>(
+                  undef.getInputType().getType()))
+            state.classicalTuples[undef.getInputType()] =
+                SmallVector<Value>(tuple.getNumMembers());
+          return success();
+        })
+        .Case<cudaq::cc::InsertValueOp>([&](auto insert) -> LogicalResult {
+          auto tuple = state.classicalTuples.find(insert.getContainer());
+          if (tuple == state.classicalTuples.end())
+            return insert.emitOpError("Quake-to-P0 supports cc.insert_value "
+                                      "only into a struct built from cc.undef");
+          if (insert.getPosition().size() != 1)
+            return insert.emitOpError("Quake-to-P0 supports cc.insert_value "
+                                      "only at a top-level struct member");
+          auto bit = state.classicalBits.find(insert.getValue());
+          if (bit == state.classicalBits.end())
+            return insert.emitOpError("Quake-to-P0 supports cc.insert_value "
+                                      "only of a discriminated measurement");
+          SmallVector<Value> members = tuple->second;
+          members[insert.getPosition().front()] = bit->second;
+          state.classicalTuples[insert.getResult()] = std::move(members);
           return success();
         })
         .Case<cudaq::quake::MzOp>([&](auto m) -> LogicalResult {
@@ -1385,7 +1540,7 @@ private:
             for (auto [wire, owner] : state.wireOwners)
               if (!state.wireReferenceSlots.contains(wire))
                 return sourceReturn.emitOpError(
-                    "helper leaves a live non-reference quantum owner");
+                    "helper leaves a live non-reference quantum value");
             if (llvm::any_of(state.referenceResults,
                              [](Value value) { return !value; }))
               return sourceReturn.emitOpError(
@@ -1397,39 +1552,57 @@ private:
           }
           SmallVector<Value> results;
           for (Value value : sourceReturn.getOperands()) {
-            auto found = state.classicalBits.find(value);
-            if (found == state.classicalBits.end())
+            if (auto found = state.classicalBits.find(value);
+                found != state.classicalBits.end()) {
+              results.push_back(found->second);
+              continue;
+            }
+            auto tuple = state.classicalTuples.find(value);
+            if (tuple == state.classicalTuples.end() ||
+                llvm::is_contained(tuple->second, Value()))
               return sourceReturn.emitOpError(
-                  "returns a value that is not a discriminated measurement");
-            results.push_back(found->second);
+                  "returns a value that is not a discriminated measurement or "
+                  "a struct of them");
+            llvm::append_range(results, tuple->second);
           }
           qlx::ReturnOp::create(builder, sourceReturn.getLoc(), results);
           return success();
         })
-        .Default([&](Operation *unsupported) -> LogicalResult {
-          if (unsupported->getName().getStringRef() == "quake.evince") {
-            // Python frontend lifetime logging has no logical effect.  The
-            // scalar form forwards its wire, so retain the current owner for
-            // the result; aggregate logging has no results and can disappear.
-            if (unsupported->getNumResults() == 0)
-              return success();
-            if (unsupported->getNumOperands() != 1 ||
-                unsupported->getNumResults() != 1 ||
-                !isa<cudaq::quake::WireType>(
-                    unsupported->getOperand(0).getType()) ||
-                !isa<cudaq::quake::WireType>(
-                    unsupported->getResult(0).getType()))
-              return unsupported->emitOpError(
-                  "unsupported quantum lifetime logging shape");
-            auto owner = state.wireOwners.find(unsupported->getOperand(0));
-            if (owner == state.wireOwners.end())
-              return unsupported->emitOpError(
-                  "logs a wire with no live P0 owner");
+        .Case<cudaq::quake::EvinceOp>([&](auto evince) -> LogicalResult {
+          // CUDA-Q expands aggregate lifetime logging before wire conversion.
+          // The resulting compiler-generated evince forwards each wire without
+          // changing its live or measured state in the logical program.
+          if (!evince.getCompilerGenerated() ||
+              evince.getArgs().size() != evince.getOuts().size() ||
+              !llvm::all_of(evince.getArgs().getTypes(),
+                            [](Type type) {
+                              return isa<cudaq::quake::WireType>(type);
+                            }) ||
+              !llvm::all_of(evince.getOuts().getTypes(), [](Type type) {
+                return isa<cudaq::quake::WireType>(type);
+              }))
+            return evince.emitOpError(
+                "unsupported quantum lifetime logging shape");
+          for (auto [input, result] :
+               llvm::zip(evince.getArgs(), evince.getOuts())) {
+            auto owner = state.wireOwners.find(input);
+            if (owner == state.wireOwners.end()) {
+              if (!state.measuredWires.erase(input))
+                return evince.emitOpError(
+                    "logs a wire with no live or measured P0 owner");
+              state.measuredWires.insert(result);
+              continue;
+            }
+            if (state.measuredWires.contains(input))
+              return evince.emitOpError(
+                  "wire lifetime state is both live and measured");
             Value logicalOwner = owner->second;
             state.wireOwners.erase(owner);
-            state.wireOwners[unsupported->getResult(0)] = logicalOwner;
-            return success();
+            state.wireOwners[result] = logicalOwner;
           }
+          return success();
+        })
+        .Default([&](Operation *unsupported) -> LogicalResult {
           return unsupported->emitOpError(
               "is outside the typed Quake-to-P0 conversion contract");
         });
@@ -1456,7 +1629,7 @@ private:
       auto found = state.wireOwners.find(val);
       if (found == state.wireOwners.end())
         return scope.emitOpError(
-            "cc.scope yields a wire with no live P0 owner");
+            "cc.scope yields a wire with no live P0 qubit value");
       Value owner = found->second;
       state.wireOwners.erase(found);
       state.wireOwners[res] = owner;
@@ -1477,7 +1650,7 @@ private:
     for (unsigned i : m.wireCarries) {
       auto found = state.wireOwners.find(loop.getInitialArgs()[i]);
       if (found == state.wireOwners.end())
-        return loop.emitOpError("loop carry has no live P0 owner");
+        return loop.emitOpError("loop carry has no live P0 qubit value");
       inits.push_back(found->second);
       state.wireOwners.erase(found);
     }
@@ -1513,12 +1686,13 @@ private:
       for (unsigned i : m.wireCarries) {
         auto found = bodyState.wireOwners.find(doCont.getOperands()[i]);
         if (found == bodyState.wireOwners.end())
-          return doCont.emitOpError("yields a wire with no live P0 owner");
+          return doCont.emitOpError(
+              "yields a wire with no live P0 qubit value");
         yields.push_back(found->second);
       }
       if (bodyState.wireOwners.size() != yields.size())
         return doCont.emitOpError(
-            "folded loop leaks an iteration-local quantum owner; measure or "
+            "folded loop leaks an iteration-local quantum value; measure or "
             "discard every body-local allocation before yielding");
       state.nextAllocation = bodyState.nextAllocation;
       qlx::cflow::YieldOp::create(builder, loc, yields);
@@ -1547,7 +1721,7 @@ private:
     for (unsigned i = 0; i < linearArgs.size(); ++i) {
       auto found = state.wireOwners.find(linearArgs[i]);
       if (found == state.wireOwners.end())
-        return ifop.emitOpError("conditional carry has no live P0 owner");
+        return ifop.emitOpError("conditional carry has no live P0 qubit value");
       // Copy before mutating: inserting may rehash and invalidate `found`.
       Value owner = found->second;
       state.wireOwners.erase(found);
@@ -1560,7 +1734,7 @@ private:
     for (auto [res, val] : llvm::zip(ifop.getResults(), cont.getOperands())) {
       auto found = state.wireOwners.find(val);
       if (found == state.wireOwners.end())
-        return cont.emitOpError("yields a wire with no live P0 owner");
+        return cont.emitOpError("yields a wire with no live P0 qubit value");
       Value owner = found->second;
       state.wireOwners.erase(found);
       state.wireOwners[res] = owner;
@@ -1596,7 +1770,7 @@ private:
     for (Value w : linearArgs) {
       auto found = state.wireOwners.find(w);
       if (found == state.wireOwners.end())
-        return ifop.emitOpError("conditional carry has no live P0 owner");
+        return ifop.emitOpError("conditional carry has no live P0 qubit value");
       incoming.push_back(found->second);
       state.wireOwners.erase(found);
     }
@@ -1631,7 +1805,8 @@ private:
         for (Value v : cont.getOperands()) {
           auto found = bs.wireOwners.find(v);
           if (found == bs.wireOwners.end())
-            return cont.emitOpError("yields a wire with no live P0 owner");
+            return cont.emitOpError(
+                "yields a wire with no live P0 qubit value");
           yields.push_back(found->second);
         }
       }
@@ -1676,10 +1851,16 @@ private:
             "Quake-to-P0 requires every specialized classical argument to be "
             "constant-folded or unused");
     }
-    for (Type type : function.getResultTypes())
-      if (!type.isInteger(1))
-        return function.emitOpError(
-            "Quake-to-P0 currently supports only i1 entry-point results");
+    SmallVector<Type> resultTypes;
+    for (Type type : function.getResultTypes()) {
+      auto tuple = dyn_cast<cudaq::cc::StructType>(type);
+      ArrayRef<Type> members = tuple ? tuple.getMembers() : ArrayRef(type);
+      if (!llvm::all_of(members,
+                        [](Type member) { return member.isInteger(1); }))
+        return function.emitOpError("Quake-to-P0 currently supports only i1 "
+                                    "entry-point results and structs of i1");
+      llvm::append_range(resultTypes, members);
+    }
     if (failed(requireWireSemantics(function)))
       return failure();
 
@@ -1690,7 +1871,7 @@ private:
     if (failed(sourceName))
       return failure();
     auto functionType =
-        FunctionType::get(function.getContext(), {}, function.getResultTypes());
+        FunctionType::get(function.getContext(), {}, resultTypes);
     auto program = qlx::ProgramOp::create(builder, function.getLoc(),
                                           *sourceName, functionType,
                                           /*estimateOnly=*/nullptr,
@@ -1732,7 +1913,7 @@ private:
     if (!state.wireOwners.empty())
       return function.emitOpError()
              << "leaves " << state.wireOwners.size()
-             << " live quantum owner(s); measure, sink, or return every wire";
+             << " live quantum value(s); measure, sink, or return every wire";
 
     if (body->empty() || !isa<qlx::ReturnOp>(body->back()))
       qlx::ReturnOp::create(builder, function.getLoc());
@@ -1743,23 +1924,23 @@ private:
                                             OpBuilder &builder) {
     if (!function.getResultTypes().empty())
       return function.emitOpError(
-          "CUDA-Q objective declarations return updated qubits through their "
+          "CUDA-Q action declarations return updated qubits through their "
           "reference arguments");
     if (function.getNumArguments() == 0)
       return function.emitOpError(
-          "CUDA-Q objective declarations require at least one quantum input");
+          "CUDA-Q action declarations require at least one quantum input");
     for (BlockArgument argument : function.getArguments())
       if (!isa<cudaq::quake::RefType, cudaq::quake::VeqType>(
               argument.getType()))
         return function.emitOpError(
-            "CUDA-Q objective declarations accept only quantum reference "
+            "CUDA-Q action declarations accept only quantum reference "
             "arguments");
 
     auto specialization = helperArgumentWidths.find(function.getSymName());
     if (specialization == helperArgumentWidths.end() ||
         specialization->second.size() != function.getNumArguments())
       return function.emitOpError(
-          "CUDA-Q objective declaration is missing its exact call-site width "
+          "CUDA-Q action declaration is missing its exact call-site width "
           "specialization");
     auto symbol = qlxSymbolFor(function.getSymName(), function.getOperation());
     if (failed(symbol))

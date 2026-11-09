@@ -8,8 +8,9 @@
 
 import pytest
 
-from cudaq._target import (CompilationStage, CustomPipelineLowering,
-                           QuakeReferenceSemanticsProfile, UncheckedProfile)
+from cudaq.core._target import (CompilationStage, CustomPipelineLowering,
+                                QuakeReferenceSemanticsProfile,
+                                UncheckedProfile)
 
 
 @pytest.mark.parametrize("fragment", ["high_level", "mid_level", "low_level"])

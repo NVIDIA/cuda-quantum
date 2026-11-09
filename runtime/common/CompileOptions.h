@@ -11,16 +11,18 @@
 #include "cudaq/Support/Hash.h"
 #include "cudaq/operators.h"
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 
 namespace cudaq {
 
-enum class OptimizationLevel : unsigned {
-  O0 = 0,
-  O1 = 1,
-  O2 = 2,
-  O3 = 3,
-};
+enum class OptimizationLevel : unsigned { O0 = 0, O1 = 1, O2 = 2, O3 = 3 };
+
+/// The level a kernel compiles at when neither the kernel nor the caller sets
+/// one. Above level 1, only stages that declare a `cost-model` optimize more,
+/// so targets without one do the same work at levels 1 to 3.
+inline constexpr OptimizationLevel defaultOptimizationLevel =
+    OptimizationLevel::O2;
 
 struct CompileOptions {
   /// Issue a warning if named measurements are contained in the kernel.
@@ -75,10 +77,6 @@ struct CompileOptions {
   /// device.
   bool emulate = false;
 
-  /// Whether to disable quantum optimization passes (e.g. value semantics
-  /// lowering). Used in tracer mode.
-  bool disableQuantumOpts = false;
-
   /// Whether to pack `i1` vectors as bit-packed `std::vector<bool>` (for local
   /// simulators)
   bool boolVecBitPacked = false;
@@ -88,7 +86,13 @@ struct CompileOptions {
   std::optional<cudaq::spin_op> measureObservable;
 
   /// The optimization level to use for the compilation.
-  OptimizationLevel optimizationLevel = OptimizationLevel::O1;
+  ///
+  /// Use `OptimizationLevel::O0` to disable quantum optimization.
+  OptimizationLevel optimizationLevel = defaultOptimizationLevel;
+
+  /// Seed for randomized compiler passes, such as Clifford+T synthesis.
+  /// Without one, their output can differ from run to run.
+  std::optional<std::uint64_t> seed;
 };
 
 } // namespace cudaq
@@ -104,7 +108,7 @@ struct std::hash<cudaq::CompileOptions> {
         o.warnNamedMeasurements, o.storeReorderIdx, o.emitResourceCounts,
         o.emitJit, o.emitTargetCode, o.skipTargetLoweringPipeline,
         o.addSampleMeasurements, o.explicitMeasurements,
-        o.failOnConditionalsOnMeasureResults, o.emulate, o.disableQuantumOpts,
-        o.boolVecBitPacked, pauliStr, o.optimizationLevel);
+        o.failOnConditionalsOnMeasureResults, o.emulate, o.boolVecBitPacked,
+        pauliStr, o.optimizationLevel, o.seed);
   }
 };

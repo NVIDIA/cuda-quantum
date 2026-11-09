@@ -157,7 +157,7 @@ def test_static_estimate_expands_folded_call_multiplicity_analytically():
 
 
 def test_static_profile_counts_analysis_and_realization_separately():
-    profile = cql.gadgets.GadgetProfile(
+    profile = cql.gadgets.GadgetContract(
         memory,
         success=(cql.gadgets.SuccessPredicate(memory.record("r1.s0")),),
         name="memory_analysis",
@@ -221,7 +221,7 @@ def test_selected_fabric_walk_preserves_invocation_provenance(attach_profile):
         if attach_profile:
             with mlir_ir.InsertionPoint(module.body):
                 profile = mlir_ir.Operation.create(
-                    "fabric.gadget_profile",
+                    "fabric.gadget_contract",
                     attributes={
                         "sym_name": mlir_ir.StringAttr.get("selected_profile"),
                         "gadget": mlir_ir.FlatSymbolRefAttr.get("encoded_h"),
@@ -302,6 +302,35 @@ def test_summarized_fabric_walk_validates_unselected_calls(callee, diagnostic):
         count(malformed)
 
 
+def test_selected_wsc_output_syndromes_do_not_block_static_costing():
+    builder = cql.devices.DeviceBuilder("PinnacleStaticEstimateTest")
+    compute = builder.logical.add_compute(capacity=2)
+    builder.qec.bind(compute, architecture=pinnacle.gb30)
+    device = builder.build()
+
+    @cql.program
+    def wsc_product() -> bool:
+        data = cql.ops.allocate(2, state=cql.types.zero, name="data")
+        data[0], data[1], result = cql.ops.mpp(
+            cql.types.X(data[0]) @ cql.types.Z(data[1]))
+        cql.ops.discard(data)
+        return result
+
+    build = cql.compile(
+        wsc_product,
+        pipeline=cql.compiler.pipelines.qec(),
+        device=device,
+        policy={"rounds": 2},
+    )
+
+    assert "fabric.output_syndrome" in build.to_mlir()
+    estimate = cql.analysis.estimate(build, tier=Tier.STATIC)
+    # Contract rows are analysis declarations, not executable quantum work.
+    assert "output_syndrome" not in estimate.operation_counts
+    assert estimate.logical_qubits_peak >= 2
+    assert sum(estimate.operation_counts.values()) > 0
+
+
 def test_estimation_tiers_fail_closed_when_fidelity_inputs_are_missing():
     build = cql.compile(four_h)
     estimate = cql.estimate(
@@ -366,6 +395,66 @@ def test_analytical_probability_aggregation_is_stable_at_small_error():
     for invalid in (math.nan, math.inf):
         with pytest.raises(ValueError, match="scaling prefactor"):
             cql.analysis.Scaling(prefactor=invalid)
+
+
+@pytest.mark.parametrize("probability", [0.0078, 0.0308, 0.5])
+def test_analytical_single_attempt_retry_executes_once(probability):
+    # The first two probabilities round the old expectation above and
+    # below one, respectively; 0.5 gives exactly one as a control.
+    from cudaq.logical.algebra import GF2Matrix
+    from cudaq.logical.gadgets import GadgetSpec, OutcomeMap, OutcomeRole, Port
+
+    Code = cql.codes.BareQubit
+
+    @cql.objective
+    def check(
+            q: cql.types.logical_qubit) -> tuple[cql.types.logical_qubit, bool]:
+        q, bit = cql.mpp(cql.types.Z(q))
+        return q, bit
+
+    spec = GadgetSpec(
+        implements=check,
+        ports=(Port.inout("block", encoding=Code),),
+        record_schema=("mpp0.outcome",),
+        outcome_map=OutcomeMap(
+            records=("mpp0.outcome",),
+            matrix=GF2Matrix([[1]]),
+            roles=((OutcomeRole.SUCCESS,),),
+        ),
+    )
+
+    @cql.gadget(spec=spec)
+    def attempt(block: cql.patch[Code]) -> tuple[cql.patch[Code], bool]:
+        block, bit = cql.mpp(cql.types.Z(block[0]))
+        return block, bit
+
+    evidence = "analysis:declared-probability-model"
+    profile = cql.gadgets.GadgetContract(
+        attempt,
+        success=(cql.gadgets.SuccessPredicate(attempt.record("mpp0.outcome")),),
+        metadata={
+            "success_probability": probability,
+            "success_probability_evidence": evidence,
+        },
+    )
+
+    @cql.protocol
+    def retry_once(block: cql.patch[Code]) -> cql.patch[Code]:
+        block, mismatch = attempt(block, analysis=profile)
+        return cql.ops.retry(block,
+                             until=cql.ops.all_false(mismatch),
+                             max_attempts=1)
+
+    build = cql.compile(retry_once)
+    estimate = cql.estimate(
+        build,
+        tier=Tier.ANALYTICAL,
+        p_phys=1e-3,
+        failure_budget=0.1,
+    )
+    demand, = estimate.retry_demands
+    assert demand.expected_attempts == 1.0
+    assert demand.exhaustion_probability == 1.0 - probability
 
 
 @cql.machine

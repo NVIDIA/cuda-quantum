@@ -225,7 +225,7 @@ declare_mlir_python_extension(QLXPythonSources.Runtime
   MODULE_NAME _qlxRuntime
   ADD_TO_PARENT QLXPythonSources
   ROOT_DIR "${QLX_PYTHON_BINDINGS_DIR}"
-  SOURCES QLXRuntime.cpp
+  SOURCES QLXRuntime.cpp AnalysisDiagnosticCapture.h
   EMBED_CAPI_LINK_LIBS
     QLXCAPIDialectQLX
     QLXCAPIDialectFabric
@@ -315,6 +315,9 @@ add_cudaq_python_modules(QLXPythonModules
     cudaq::cudaqMLIRCAPI
     cudaq::MLIRPythonSupport
 )
+if(TARGET cudaq-edem-python)
+  add_dependencies(QLXPythonModules cudaq-edem-python)
+endif()
 
 # MLIRPythonSupport and nanobind live in the runtime wheel's
 # cudaq/mlir/_mlir_libs, not in lib/. The build-tree output directory is
@@ -349,6 +352,7 @@ if(TARGET ${_qlx_runtime_target})
   target_link_libraries(${_qlx_runtime_target} PRIVATE
     MLIRQLXTransforms
     MLIRFabricTransforms
+    cudaq::edem
     ${_qlx_runtime_mlir_link_libraries}
   )
   target_compile_definitions(${_qlx_runtime_target} PRIVATE
@@ -397,6 +401,19 @@ if(SKBUILD)
     list(APPEND _qlx_cudaq_runtime_rpaths
       "${_qlx_origin}/../../../cudaq_core/cudaq/core/lib"
       "${_qlx_origin}/../../../cudaq_core/cudaq/mlir/_mlir_libs")
+  endif()
+
+  # EDEM remains owned by the cudaq-edem dependency wheel. Resolve its native
+  # libraries relative to site-packages instead of bundling a second copy.
+  list(APPEND _qlx_cudaq_runtime_rpaths
+    "${_qlx_origin}/../../../cudaq_edem/lib")
+  if(TARGET ${_qlx_runtime_target})
+    # This extension also releases owned EDEM buffers directly. Preserve the
+    # MLIR helper's existing paths while resolving the dependency wheel.
+    set_property(TARGET ${_qlx_runtime_target} APPEND PROPERTY
+      INSTALL_RPATH "${_qlx_origin}/../../../cudaq_edem/lib")
+    set_property(TARGET ${_qlx_runtime_target} PROPERTY
+      INSTALL_RPATH_USE_LINK_PATH FALSE)
   endif()
 
   set(_qlx_cudaq_runtime_targets QLXPythonCAPI)
@@ -499,6 +516,21 @@ add_test(NAME qlx-python-tests
     -v
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
+
+# The install target creates the installed wheel layout but does not guarantee
+# that MLIR's generated Python sources and extension modules have been
+# assembled in the build-tree package used by this test. Make that staging an
+# explicit CTest fixture so fresh artifact-only test jobs cannot race pytest
+# against QLXPythonModules.
+add_test(NAME qlx-python-build-modules
+  COMMAND ${CMAKE_COMMAND}
+    --build ${CMAKE_BINARY_DIR}
+    --target QLXPythonModules
+)
+set_tests_properties(qlx-python-build-modules PROPERTIES
+  FIXTURES_SETUP qlx-python-modules
+  RESOURCE_LOCK qlx-build-dir
+)
 set_tests_properties(qlx-python-tests PROPERTIES
   # The QLX build tree contains only the additions to the cudaq package. Keep
   # the configured CUDA-Q installation on the module search path so the core
@@ -507,6 +539,7 @@ set_tests_properties(qlx-python-tests PROPERTIES
   # the invoking environment.
   ENVIRONMENT_MODIFICATION
     "${_qlx_runtime_pytest_env_modifications}"
+  FIXTURES_REQUIRED qlx-python-modules
   LABELS "qlx;conformance"
   # The suite runs ~15 minutes serially on a fast Release build; Debug builds
   # on loaded (e.g. arm64 CI) runners need headroom.

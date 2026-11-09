@@ -1,0 +1,179 @@
+# Build, repair and test the cudaq-edem wheels.
+#
+# EDEM does not depend on CUDA-Q, so these jobs do not wait for any other
+# wheel. Each wheel is built in a vanilla manylinux_2_28 container, repaired
+# with auditwheel, and then installed, relocated and exercised by
+# edem/test/check_wheel.py. The wheels are uploaded as artifacts named after
+# the wheel file (`cudaq_edem-<version>-cp<py>-...whl`), so consumers can
+# select them with the pattern `cudaq_edem-*`.
+
+name: Build cudaq-edem wheels
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        type: string
+        required: true
+        description: The platform to build for, either amd64 or arm64.
+      python_versions:
+        type: string
+        default: "['3.11', '3.12', '3.13', '3.14']"
+        description: Json array of the Python versions to build wheels for.
+      upload_sdist:
+        type: boolean
+        default: false
+        description: >-
+          Also upload the source distribution as cudaq-edem-sdist-<platform>.
+          It is created by the first Python version in python_versions.
+      pypi_version_check:
+        type: string
+        default: none
+        description: >-
+          Check the source distribution of the first Python version against
+          the same cudaq-edem version on PyPI. A published version with
+          different sources fails the job. none skips the check, lenient only
+          warns if PyPI is unreachable, and strict fails.
+
+jobs:
+  wheel:
+    name: Build cudaq-edem wheel (${{ inputs.platform }}, ${{ matrix.python_version }})
+    runs-on:
+      ${{ (inputs.platform == 'arm64' && 'linux-arm64-cpu8') ||
+      'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+      packages: read
+
+    strategy:
+      matrix:
+        python_version: ${{ fromJSON(inputs.python_versions) }}
+      fail-fast: false
+
+    # Build in a vanilla manylinux_2_28 container (AlmaLinux 8, glibc 2.28).
+    container:
+      image: ghcr.io/nvidia/pypa/manylinux_2_28_${{ (inputs.platform == 'arm64' && 'aarch64') || 'x86_64' }}:latest
+      options: --user root
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    env:
+      PYTHON_VERSION: ${{ matrix.python_version }}
+      PLAT: manylinux_2_28_${{ (inputs.platform == 'arm64' && 'aarch64') || 'x86_64' }}
+
+    defaults:
+      run:
+        shell: bash -euo pipefail {0}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create the build environment
+        run: |
+          PY_TAG="${PYTHON_VERSION/./}"
+          echo "PY_TAG=$PY_TAG" >> "$GITHUB_ENV"
+
+          # Build against the matrix Python shipped by the manylinux image.
+          pybin="/opt/python/cp${PY_TAG}-cp${PY_TAG}/bin/python"
+          if [ ! -x "$pybin" ]; then
+            echo "::error::Expected interpreter $pybin in the manylinux image; /opt/python contains:"
+            ls /opt/python
+            exit 1
+          fi
+          "$pybin" -m venv /opt/edem-venv
+          /opt/edem-venv/bin/python -m pip install --quiet \
+            "build[virtualenv]>=1.2,<2" \
+            "auditwheel==6.5.0" \
+            "patchelf>=0.17" \
+            "cmake>=3.23" \
+            ninja
+          echo /opt/edem-venv/bin >> "$GITHUB_PATH"
+
+          ldd --version | sed -n 1p
+          gcc --version | sed -n 1p
+          /opt/edem-venv/bin/python --version
+
+      - name: Build the source distribution and wheel
+        id: build
+        run: |
+          python edem/scripts/build_wheel.py --outdir dist/raw
+
+          raw_wheel="$(find dist/raw -name "cudaq_edem-*-cp${PY_TAG}-*.whl" -print -quit)"
+          sdist="$(find dist/raw -name 'cudaq_edem-*.tar.gz' -print -quit)"
+          if [ -z "$raw_wheel" ] || [ -z "$sdist" ]; then
+            echo "::error::Missing the cudaq-edem wheel or source distribution under dist/raw."
+            find dist/raw -type f
+            exit 1
+          fi
+          echo "raw_wheel=$raw_wheel" >> "$GITHUB_OUTPUT"
+          echo "sdist=$sdist" >> "$GITHUB_OUTPUT"
+
+      # PyPI never accepts a second upload of a version, so a changed version
+      # that is already published must be bumped before it can ship.
+      - name: Check the version against PyPI
+        if: >-
+          ${{ inputs.pypi_version_check != 'none'
+          && matrix.python_version == fromJSON(inputs.python_versions)[0] }}
+        env:
+          SDIST: ${{ steps.build.outputs.sdist }}
+          PYPI_VERSION_CHECK: ${{ inputs.pypi_version_check }}
+        run: |
+          flags=()
+          case "$PYPI_VERSION_CHECK" in
+            strict) ;;
+            lenient) flags+=(--allow-offline) ;;
+            *)
+              echo "::error::pypi_version_check must be none, lenient or strict, got '$PYPI_VERSION_CHECK'."
+              exit 1
+              ;;
+          esac
+          python edem/scripts/check_pypi_version.py ${flags[@]+"${flags[@]}"} "$SDIST"
+
+      - name: Repair the wheel for manylinux_2_28
+        id: repair
+        env:
+          RAW_WHEEL: ${{ steps.build.outputs.raw_wheel }}
+        run: |
+          echo "=== Pre-repair auditwheel analysis ==="
+          python -m auditwheel show "$RAW_WHEEL"
+
+          # The extension and both libraries only depend on the base system.
+          python -m auditwheel repair --plat "$PLAT" --wheel-dir dist/repaired "$RAW_WHEEL"
+
+          wheel="$(find dist/repaired -name "cudaq_edem-*-cp${PY_TAG}-*${PLAT}.whl" -print -quit)"
+          if [ -z "$wheel" ]; then
+            echo "::error::Repaired $PLAT wheel not found under dist/repaired."
+            find dist/repaired -type f
+            exit 1
+          fi
+
+          echo "=== Post-repair auditwheel verification ==="
+          python -m auditwheel show "$wheel"
+
+          echo "wheel_path=$wheel" >> "$GITHUB_OUTPUT"
+          echo "wheel_name=$(basename "$wheel")" >> "$GITHUB_OUTPUT"
+
+      - name: Test the repaired wheel
+        env:
+          WHEEL: ${{ steps.repair.outputs.wheel_path }}
+        run: python edem/test/check_wheel.py "$WHEEL"
+
+      - name: Upload cudaq-edem wheel
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.repair.outputs.wheel_name }}
+          path: ${{ steps.repair.outputs.wheel_path }}
+          archive: false
+          if-no-files-found: error
+
+      - name: Upload cudaq-edem source distribution
+        if: >-
+          ${{ inputs.upload_sdist
+          && matrix.python_version == fromJSON(inputs.python_versions)[0] }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: cudaq-edem-sdist-${{ inputs.platform }}
+          path: ${{ steps.build.outputs.sdist }}
+          if-no-files-found: error

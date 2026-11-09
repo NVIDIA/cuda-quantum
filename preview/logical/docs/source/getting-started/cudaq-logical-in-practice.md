@@ -1,10 +1,11 @@
 # The logical programming stack
 
-Follow one Bell-pair computation from a portable logical program to a physical
-schedule using the Steane code. First, compile, place, and estimate the program
-directly with `cudaq.logical`. Then expose the same device as a CUDA-Q target
-so application developers can estimate a kernel with a single
-`cudaq.estimate` call.
+Follow one Bell pair, written as an ordinary CUDA-Q kernel, from the kernel to
+a physical schedule on Steane-encoded qubits, and then run it. First, compile,
+place, and estimate the kernel with explicit `cudaq.logical` calls. Then
+estimate it with a single `cudaq.estimate` call through a CUDA-Q target built
+from the same device. Finally, run the kernel and its physical build with
+`cudaq.run`.
 
 Install CUDA-Q Logical following the [quick start](quickstart.md). See
 [Core concepts](concepts.md) for the definitions used throughout this guide.
@@ -24,42 +25,20 @@ The [compilation stages](concepts.md#definitions-builds-and-compilation) are
 P0: logical program → P1: placement → P2: QEC realization → P3: physical schedule
 ```
 
-Each stage adds the information needed for more detailed resource estimates.
+A *logical program* describes the computation on logical qubits, independent of
+the QEC code and device. Each stage adds the information needed for more detailed
+resource estimates.
 
-## 1. Compile and estimate the logical program
+## 1. Write the kernel
 
-Define a [logical program](concepts.md#logical-programs-and-quantum-values) that
-prepares and measures a Bell pair. The program specifies the computation
-independently of its QEC code and device:
-
-```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
-:language: python
-:start-after: START_LOGICAL_PROGRAM
-:end-before: END_LOGICAL_PROGRAM
-```
-
-The assignments retain the successor values returned by each operation; see
-[linear ownership](concepts.md#logical-programs-and-quantum-values) for why
-these assignments are required.
-
-`cql.compile` translates the program into a P0
-[build](concepts.md#definitions-builds-and-compilation). Pass that build to
-`cql.estimate` to count its logical resources:
+Write the Bell pair as a CUDA-Q kernel that returns its two measurements. The
+kernel specifies the computation independently of its QEC code and device:
 
 ```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
 :language: python
-:start-after: START_LOGICAL_ESTIMATE
-:end-before: END_LOGICAL_ESTIMATE
+:start-after: START_BELL_KERNEL
+:end-before: END_BELL_KERNEL
 ```
-
-```text
-Peak logical qubits: 2
-Hadamard actions: 1
-Controlled-X actions: 1
-```
-
-These counts describe the workload. Encoded blocks, physical qubits, and timing
-depend on the realization we choose next.
 
 ## 2. Choose the code and its implementations
 
@@ -72,7 +51,7 @@ the logical X and Z operators.
 
 `@cql.code` validates the code's algebraic structure.
 [`cql.materialize`](concepts.md#definitions-builds-and-compilation) creates its compiler
-representation, which can be inspected independently of the Bell program:
+representation, which can be inspected independently of the Bell kernel:
 
 ```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
 :language: python
@@ -83,10 +62,10 @@ representation, which can be inspected independently of the Bell program:
 The same code is also available as the built-in `cql.codes.Steane`. To use it,
 replace the class definition with `Steane = cql.codes.Steane`.
 
-Supply [gadgets](concepts.md#codes-and-operation-implementations) for the Bell
-program's Hadamard and controlled-X operations. Each `implements=` clause
+Supply [gadgets](concepts.md#codes-and-operation-implementations) for the
+kernel's Hadamard and controlled-X operations. Each `implements=` clause
 names the ideal logical
-[objective](concepts.md#codes-and-operation-implementations); the body
+[action](concepts.md#codes-and-operation-implementations); the body
 describes its implementation on encoded patches. For Steane, these operations
 can be applied across the data qubits:
 
@@ -96,9 +75,23 @@ can be applied across the data qubits:
 :end-before: END_STEANE_GADGETS
 ```
 
-Combine these gadgets with the supplied preparation and measurement gadgets in
-a [QEC architecture](concepts.md#codes-and-operation-implementations).
-Together they cover every operation in the Bell program:
+Each logical qubit also needs a preparation. Resetting the seven data qubits
+gives `|0000000⟩`, which does not satisfy the X stabilizers, so supply an
+encoder that prepares logical `|0⟩`.
+[`cql.gadgets.verify_gadget`](../use-cases/gadgets-and-verification.md) checks
+it. The contract binds the prepared block's syndrome to zero, which requires
+every stabilizer to be +1, and the `prepare_zero` claim requires logical Z to
+be +1:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_STEANE_ENCODER
+:end-before: END_STEANE_ENCODER
+```
+
+Combine these gadgets with the library's logical-Z measurement in a
+[QEC architecture](concepts.md#codes-and-operation-implementations).
+Together they cover every operation in the kernel:
 
 ```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
 :language: python
@@ -142,11 +135,52 @@ results describe these assumptions. See
 [Devices and placement](../use-cases/devices-and-placement.md) for other device
 configurations.
 
-## 4. Place and realize the program
+A [compilation target](concepts.md#cuda-q-integration) packages the device so
+that CUDA-Q can compile and estimate kernels for it. Expose `device` through
+`Target.from_device`, with the estimate options that the target and the
+explicit estimates below share:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_CUDA_Q_TARGET
+:end-before: END_CUDA_Q_TARGET
+```
+
+## 4. Compile the kernel for CUDA-Q Logical
+
+`cql.compiler.import_cudaq` compiles the kernel to a logical program, a P0
+[build](concepts.md#definitions-builds-and-compilation). The P0 program returns
+one result per measurement, in the kernel's return order:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_KERNEL_IMPORT
+:end-before: END_KERNEL_IMPORT
+```
+
+Pass the build to `cql.estimate` to count its logical resources:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_LOGICAL_ESTIMATE
+:end-before: END_LOGICAL_ESTIMATE
+```
+
+```text
+Peak logical qubits: 2
+Hadamard actions: 1
+Controlled-X actions: 1
+```
+
+These counts describe the workload. Encoded blocks, physical qubits, and timing
+depend on the realization chosen above. See
+[Capabilities](../reference/capabilities.md#execution-and-documented-boundaries)
+for the results a kernel can return.
+
+## 5. Place and realize the program
 
 Use [`cql.compiler.place`](concepts.md#devices-and-placement) to assign the P0
-program's logical values to the device's logical machine. The constraint keeps
-the named `data` allocation in one region:
+program's logical qubits to the device's logical machine:
 
 ```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
 :language: python
@@ -175,10 +209,10 @@ Hadamard gadget calls: 1
 Controlled-X gadget calls: 1
 ```
 
-The same Bell program now uses two Steane patches. Its selected implementations
-also include two preparations and two logical-Z measurements.
+The Bell pair now uses two Steane patches. Its selected implementations also
+include two encoder preparations and two logical-Z measurements.
 
-## 5. Schedule and estimate the physical resources
+## 6. Schedule and estimate the physical resources
 
 Continue with the physical pipeline and
 [schedule](concepts.md#schedules-and-resource-estimates) the resulting P3 events:
@@ -189,8 +223,8 @@ Continue with the physical pipeline and
 :end-before: END_PHYSICAL_SCHEDULE
 ```
 
-`cql.estimate` can now report physical resources and timing. Keep the estimate
-options together so we can reuse them in the CUDA-Q target below:
+`cql.estimate` can now report physical resources and timing under the estimate
+options defined with the target:
 
 ```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
 :language: python
@@ -200,8 +234,8 @@ options together so we can reuse them in the CUDA-Q target below:
 
 ```text
 Physical qubits: 26
-Scheduled events: 13
-Makespan: 4.0 ns
+Scheduled events: 25
+Makespan: 10.0 ns
 ```
 
 The [estimation tier](concepts.md#schedules-and-resource-estimates) determines
@@ -218,35 +252,14 @@ See [Resource estimation](../use-cases/estimation.md) for the analytical tier
 and the complete result fields. The outputs above are estimates for preparing
 and measuring the Bell pair under this device model.
 
-## 6. Expose the device as a CUDA-Q target
+## 7. Estimate the kernel through the target
 
 The explicit calls above are useful when developing a device or inspecting
-compilation stages. For application developers, a
-[compilation target](concepts.md#cuda-q-integration) packages that workflow so
-an ordinary CUDA-Q kernel can use the same code,
-gadgets, physical bindings, and estimate options.
-
-Expose `device` through `Target.from_device` and select the resulting target:
-
-```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
-:language: python
-:start-after: START_CUDA_Q_TARGET
-:end-before: END_CUDA_Q_TARGET
-```
-
-This target can now be used with CUDA-Q kernels. For example, the same logical
-program can be written as a Bell-pair kernel:
-
-```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
-:language: python
-:start-after: START_CUDA_Q_KERNEL
-:end-before: END_CUDA_Q_KERNEL
-```
-
-The target now handles logical compilation, placement, QEC realization, and
-physical scheduling when the application calls `cudaq.estimate`. Recover the
-logical and static counts with typed views; the schedule results are available
-in the `SCHEDULE` annotation:
+compilation stages. An application can instead select the target and call
+`cudaq.estimate` on the kernel. The target then handles logical compilation,
+placement, QEC realization, and physical scheduling. Recover the logical and
+static counts with typed views; the schedule results are available in the
+`SCHEDULE` annotation:
 
 ```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
 :language: python
@@ -254,9 +267,54 @@ in the `SCHEDULE` annotation:
 :end-before: END_KERNEL_ESTIMATE
 ```
 
-Both entry points estimate the same Bell-pair workload on the same device. An
+Both entry points estimate the same Bell pair on the same device. An
 application can reuse the target for compatible kernels without repeating the
 individual compiler calls.
+
+## 8. Run the kernel and its physical build
+
+`cudaq.run` executes the kernel directly. It also executes the P3 build, which
+it first translates to Quake with `Build.to_quake()`. Both circuits are
+Clifford, so the `stim` target runs them:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_CUDA_Q_RUN
+:end-before: END_CUDA_Q_RUN
+```
+
+```text
+CUDA-Q kernel:  outcomes        {(True, True): 52, (False, False): 48}
+P3 Build:       outcomes        {(False, False): 46, (True, True): 54}
+```
+
+Both runs give only the two Bell outcomes, and the counts vary from run to run.
+The kernel returns each shot as the tuple it declares. The P3 build returns
+its two results as a `list[bool]`, in the kernel's return order, so the cell
+converts each shot with `tuple(shot)` before counting.
+
+## 9. Optional: inspect the executed Quake
+
+The Quake that the P3 build runs is an ordinary CUDA-Q module. This cell counts
+its operations next to the kernel's:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_QUAKE_INSPECTION
+:end-before: END_QUAKE_INSPECTION
+```
+
+```text
+CUDA-Q kernel: 2 qubits, 1 h, 1 cx, 2 mz
+P3 Build: 28 qubits, 13 h, 39 cx, 14 reset, 2 mz
+```
+
+The Quake allocates all 13 carriers of each block, including the six check
+ancillas this program never uses, plus one ancilla for each logical-Z
+measurement. The schedule counts that measurement as one native Pauli-product
+event, so it reports only the 26 carriers. These counts follow from how this
+release translates P3 to Quake. Use the schedule estimate for physical
+resources.
 
 ## Where to go next
 

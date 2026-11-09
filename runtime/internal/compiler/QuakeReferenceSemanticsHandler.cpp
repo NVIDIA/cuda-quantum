@@ -25,12 +25,14 @@ namespace {
 /// `reset-after-measure`, and last when it requests `reset-after-measure`.
 /// The handler is generic over the profile options and never inspects
 /// provider names.
+///
+/// `QuakeUnmappedHandler` supersedes this handler, which goes away with its
+/// profile.
 class QuakeReferenceSemanticsHandler
     : public cudaq_internal::compiler::LoweringHandler {
 public:
   bool supports(const cudaq::config::Profile &input,
-                const cudaq::config::Profile &output,
-                const cudaq::CompileOptions &options) const override {
+                const cudaq::config::Profile &output) const override {
     const auto *referenceProfile =
         std::get_if<cudaq::config::QuakeReferenceSemanticsProfile>(&output);
     if (!referenceProfile ||
@@ -45,7 +47,7 @@ public:
   getStagePasses(const cudaq::config::Profile &input,
                  const cudaq::config::Profile &output,
                  const cudaq::CompileOptions &options) const override {
-    if (!supports(input, output, options))
+    if (!supports(input, output))
       return std::nullopt;
     const auto &referenceProfile =
         std::get<cudaq::config::QuakeReferenceSemanticsProfile>(output);

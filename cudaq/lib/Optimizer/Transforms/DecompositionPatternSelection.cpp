@@ -267,6 +267,16 @@ public:
     }
   }
 
+  /// Whether \p gate is in \p basisGates or decomposes to them.
+  bool reachesBasis(const OperatorInfo &gate,
+                    const std::unordered_set<OperatorInfo> &basisGates) const {
+    std::unordered_map<OperatorInfo, std::size_t> distances;
+    computePatternSelection(basisGates, /*disabledPatterns=*/{}, &distances);
+    auto unboundedGate = gate;
+    unboundedGate.numControls = UNBOUNDED;
+    return distances.contains(gate) || distances.contains(unboundedGate);
+  }
+
 private:
   const std::unique_ptr<cudaq::DecompositionPatternType> &
   getPatternType(llvm::StringRef patternName) const {
@@ -304,10 +314,14 @@ private:
   ///
   /// @param basisGates The set of basis gates to decompose to
   /// @param disabledPatterns The patterns to disable
+  /// @param distances If given, receives every gate that reaches the basis
+  /// gates, with its number of pattern applications
   /// @return A vector of selected pattern names
   std::vector<std::string> computePatternSelection(
       const std::unordered_set<OperatorInfo> &basisGates,
-      const std::unordered_set<std::string> &disabledPatterns) const {
+      const std::unordered_set<std::string> &disabledPatterns,
+      std::unordered_map<OperatorInfo, std::size_t> *distances =
+          nullptr) const {
 
     // An element in the priority queue of the Dijkstra algorithm (ordered by
     // smallest distance)
@@ -407,6 +421,8 @@ private:
       }
     }
 
+    if (distances)
+      *distances = std::move(visitedGates);
     return selectedPatterns;
   }
 
@@ -435,6 +451,14 @@ private:
 };
 } // namespace
 
+/// The decomposition graph, built once on first use from every pattern in the
+/// decomposition-pattern registry. `selectDecompositionPatterns` and
+/// `canDecomposeTo` both read it.
+static DecompositionGraph &getRegisteredGraph() {
+  static DecompositionGraph graph = DecompositionGraph::fromRegistry();
+  return graph;
+}
+
 std::unique_ptr<ConversionTarget>
 cudaq::createBasisTarget(MLIRContext &context,
                          ArrayRef<std::string> targetBasis) {
@@ -444,9 +468,7 @@ cudaq::createBasisTarget(MLIRContext &context,
 void cudaq::selectDecompositionPatterns(
     RewritePatternSet &patterns, ArrayRef<std::string> targetBasis,
     ArrayRef<std::string> disabledPatterns) {
-  // Static local graph - constructed once and reused
-  static DecompositionGraph graph = DecompositionGraph::fromRegistry();
-
+  auto &graph = getRegisteredGraph();
   BasisTarget target(*patterns.getContext(), targetBasis);
 
   // Convert targetBasis, disabledPatterns and enabledPatterns to sets for O(1)
@@ -457,6 +479,14 @@ void cudaq::selectDecompositionPatterns(
                                                       disabledPatterns.end());
 
   return graph.selectPatterns(patterns, basisGatesSet, disabledPatternsSet);
+}
+
+bool cudaq::canDecomposeTo(StringRef gate, ArrayRef<std::string> targetBasis) {
+  std::unordered_set<cudaq::detail::OperatorInfo> basisGates;
+  for (const auto &basisGate : targetBasis)
+    basisGates.emplace(basisGate);
+  return getRegisteredGraph().reachesBasis(cudaq::detail::OperatorInfo(gate),
+                                           basisGates);
 }
 
 cudaq::DecompositionPatternType::DecompositionPatternType(

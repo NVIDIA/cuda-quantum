@@ -14,14 +14,14 @@ target_link_libraries(CUDAQTargetPython PRIVATE CUDAQTargetConfig)
 target_compile_options(CUDAQTargetPython PRIVATE -fexceptions -frtti -Wno-cast-qual)
 set_target_properties(CUDAQTargetPython PROPERTIES
   OUTPUT_NAME _target
-  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/cudaq")
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/cudaq/core")
 set_target_properties(nanobind-static PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 install(TARGETS CUDAQTargetPython
-  LIBRARY DESTINATION cudaq COMPONENT CUDAQCorePythonModules)
+  LIBRARY DESTINATION cudaq/core COMPONENT CUDAQCorePythonModules)
 
 if(CUDAQ_BUILD_TESTS)
   if(CUDAQ_TARGET_STANDALONE_BUILD)
-    # If standalone, shadow any installed `cudaq` on purpose to resolve `cudaq._target` properly
+    # If standalone, shadow any installed `cudaq` on purpose to resolve `cudaq.core._target` properly
     file(WRITE "${CMAKE_BINARY_DIR}/python/cudaq/__init__.py" "")
   endif()
   add_test(NAME ctest-target-python

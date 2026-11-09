@@ -12,9 +12,18 @@ import lit.formats
 import lit.util
 
 config.name = "QLX"
-config.test_format = lit.formats.ShTest(True)
+try:
+    config.test_format = lit.formats.ShTest(True)
+except ValueError:
+    # LLVM 23 requires callers that intentionally use the external shell to
+    # opt in explicitly. Older lit releases reject the keyword but accept the
+    # positional form above.
+    config.test_format = lit.formats.ShTest(True, force_execute_external=True)
 
 config.suffixes = [".mlir", ".test"]
+
+# Files under Inputs/ are fixtures read by other tests, not tests themselves.
+config.excludes = ["Inputs"]
 
 config.test_source_root = os.path.dirname(__file__)
 

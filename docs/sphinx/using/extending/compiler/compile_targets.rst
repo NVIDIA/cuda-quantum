@@ -17,14 +17,17 @@ using one of the following constructors:
 
 * ``CompileTarget(ir_output_profile=profile)`` defines a target made of a single
   compilation stage that lowers the input kernel to the specified IR profile. The
-  only currently supported profile is ``QuakeReferenceSemanticsProfile``.
+  supported profiles are ``QuakeReferenceSemanticsProfile`` and
+  ``QuakeUnmappedProfile``.
 * ``CompileTarget(custom_pipeline=lowering)`` defines a target made of a single
   compilation stage, given by the custom `lowering` pipeline. `lowering` should
   be either a ``CustomPipelineLowering`` or a MLIR pipeline string.
 
 More complex multi-stage compile targets can be constructed using the
 ``CompileTarget(stages=[])`` constructor, although support for this is currently
-limited. ``stages``, ``ir_output_profile`` and ``custom_pipeline`` are mutually
+limited. A ``QuakeMappedProfile`` stage routes the kernel onto its ``device``
+when one is set.
+``stages``, ``ir_output_profile`` and ``custom_pipeline`` are mutually
 exclusive.
 
 Setting compile targets with ``set_target``

@@ -37,6 +37,12 @@ add_executable(test_gpu_dataplane
   test_gpu_dataplane.cpp
   test_gpu_dataplane_device.cu
   test_gpu_dataplane_second_handler.cu)
+# The application's own dispatch kernel the test launches, through
+# driver_launch.h.
+cudaq_realtime_add_dispatch_kernel(test_gpu_dataplane
+  ${CUDAQ_REALTIME_TEST_DISPATCHERS_DIR}/single_thread_dispatcher.cu)
+target_include_directories(test_gpu_dataplane PRIVATE
+  ${CUDAQ_REALTIME_TEST_DISPATCHERS_DIR})
 set_target_properties(test_gpu_dataplane PROPERTIES
   CUDA_SEPARABLE_COMPILATION ON
   CUDA_STANDARD 20)
@@ -44,7 +50,9 @@ target_include_directories(test_gpu_dataplane PRIVATE
   ${CUDAQ_REALTIME_INCLUDE_DIR}
   ${CUDAToolkit_INCLUDE_DIRS})
 target_compile_definitions(test_gpu_dataplane PRIVATE
-  GPU_LOOPBACK_BRIDGE_PATH="$<TARGET_FILE:cudaq-realtime-bridge-gpu-loopback>")
+  GPU_LOOPBACK_BRIDGE_PATH="$<TARGET_FILE:cudaq-realtime-bridge-gpu-loopback>"
+  CUDAQ_REALTIME_TEST_EXPECT_CUDA_DEFINITION
+  $<$<COMPILE_LANGUAGE:CUDA>:CUDAQ_REALTIME_TEST_CUDA_DEFINITION>)
 target_link_libraries(test_gpu_dataplane PRIVATE
   GTest::gtest_main
   cudaq-realtime

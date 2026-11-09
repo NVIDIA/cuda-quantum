@@ -120,10 +120,40 @@ public:
       return;
     m_engine->flush(*m_state, m_pendingRandomNumbers);
     m_pendingRandomNumbers.clear();
+    if (m_deferHostWait)
+      return;
     m_state->synchronize();
   }
 
 protected:
+  /// @brief Suppress the host-side wait in synchronize() for the duration of a
+  /// scope. Used to flush ExpPauli without unnecessary host-side wait.
+  /// Implemented as guard object, so m_deferHostWait is reset to false on
+  /// an exception.
+  class DeferredHostWait {
+  public:
+    explicit DeferredHostWait(CuStateVecCircuitSimulator &simulator)
+        : m_simulator(simulator) {
+      m_simulator.m_deferHostWait = true;
+    }
+    ~DeferredHostWait() { m_simulator.m_deferHostWait = false; }
+    DeferredHostWait(const DeferredHostWait &) = delete;
+    DeferredHostWait &operator=(const DeferredHostWait &) = delete;
+
+  private:
+    CuStateVecCircuitSimulator &m_simulator;
+  };
+
+  /// @brief Hand the queued gates to the engine without the host-side wait,
+  /// leaving the engine flush in place.
+  ///
+  /// flushGateQueue() ends in synchronize() and this bypasses the final
+  /// host synchronization in cases where it is unnecessary to read the state.
+  void flushGateQueueNoWait() {
+    const DeferredHostWait defer(*this);
+    flushGateQueue();
+  }
+
   void addQubitToState() override { addQubitsToState(1, nullptr); }
 
   void addQubitsToState(std::size_t count, const void *stateData) override {
@@ -180,6 +210,10 @@ protected:
 
     // Direct Kronecker not possible (migrated/distributed): grow the register
     // with zeroed wires, then initialize them via the gate-based extension.
+    // synchronize() above leaves noisy circuit gates queued for trajectory
+    // replay. Finish pending state initialization, such as zero-fills, before
+    // resizing, which can unmap and remap the state's virtual memory.
+    m_state->synchronize();
     addZeroWires(count);
     if (!stateData)
       return;
@@ -390,7 +424,7 @@ protected:
       Base::applyExpPauli(theta, controls, qubits, term, controlValues);
       return;
     }
-    flushGateQueue();
+    flushGateQueueNoWait();
     if (term.num_ops() != qubits.size())
       throw std::runtime_error(
           "incorrect number of qubits in exp_pauli - expecting " +
@@ -802,23 +836,14 @@ protected:
       }
     } else {
       task.kind = NoiseChannelKind::General;
-      for (const auto &operation : channel.get_ops()) {
-        auto &converted = task.matrices.emplace_back();
-        // Python-defined channels may carry a precision different from the
-        // simulator, so inspect each operation before converting its matrix.
-        converted.reserve(operation.data.size());
-        if (operation.precision == cudaq::simulation_precision::fp32) {
-          const auto *const values =
-              reinterpret_cast<const std::complex<float> *>(
-                  operation.data.data());
-          converted.assign(values, values + operation.data.size());
-        } else {
-          const auto *const values =
-              reinterpret_cast<const std::complex<double> *>(
-                  operation.data.data());
-          converted.assign(values, values + operation.data.size());
-        }
-      }
+      // Both `kraus_op::data` and `NoiseTask::matrices` are always double
+      // precision regardless of the simulator scalar type, so the Kraus
+      // matrices can be moved in directly. `get_ops()` returns by value, so
+      // moving out of the local copy avoids a second copy of each matrix.
+      auto ops = channel.get_ops();
+      task.matrices.reserve(ops.size());
+      for (auto &operation : ops)
+        task.matrices.push_back(std::move(operation.data));
     }
     compactNoiseMatrices(task);
     return task;
@@ -1370,6 +1395,8 @@ protected:
   bool m_measurementRecorded = false;
   bool m_replayingTrajectory = false;
   bool m_hasCustomInitialState = false;
+  // Set by DeferredHostWait; read by synchronize().
+  bool m_deferHostWait = false;
 };
 
 } // namespace cudaq::cusv

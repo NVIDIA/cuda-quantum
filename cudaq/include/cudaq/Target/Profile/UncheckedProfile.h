@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <functional>
+
 namespace cudaq::config {
 
 /// IR profile that accepts any IR.
@@ -23,3 +25,9 @@ struct UncheckedProfile {
 };
 
 } // namespace cudaq::config
+
+template <>
+struct std::hash<cudaq::config::UncheckedProfile> {
+  std::size_t
+  operator()(const cudaq::config::UncheckedProfile &) const noexcept;
+};

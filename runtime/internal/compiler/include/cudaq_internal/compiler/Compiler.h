@@ -75,7 +75,7 @@ class Compiler {
                                            mlir::MLIRContext *,
                                            mlir::func::FuncOp);
 
-  // ---- Common helpers used by runPassPipeline ----
+  // ---- Common helpers used by `compile` ----
 
   /// Run an arbitrary MLIR pass pipeline string on a module.
   void applyPipeline(const std::string &pipeline, mlir::ModuleOp moduleOp,
@@ -105,6 +105,11 @@ class Compiler {
       cudaq::CompiledModule::CompilationMetadata metadata,
       std::shared_ptr<mlir::MLIRContext> context);
 
+  /// Translate \p module according to the target's `codegen` emission format.
+  /// Returns the target code and its JSON-serialized output names mapping.
+  std::pair<std::string, std::string> emitTargetCode(mlir::ModuleOp module,
+                                                     bool disableQuantumOpts);
+
 public:
   const cudaq::CompileTarget &getTarget() const { return target; }
   const cudaq::CompileOptions &getOptions() const { return options; }
@@ -124,22 +129,17 @@ public:
 
   /// @brief Compile the given module and return a `CompiledModule`.
   ///
-  /// Performs argument synthesis, the full pass pipeline, and observation
-  /// splitting (for observe mode).
+  /// Performs argument synthesis, the full pass pipeline, observation
+  /// splitting (for observe mode) and `codegen`.
   ///
   /// If \p context is provided, `module.getContext() == context.get()` must
   /// be true. In that case, the MLIR artifacts will keep a `shared_ptr` to
   /// the context, guaranteeing it outlives the artifacts. Otherwise the
   /// context lifetime must be managed by the caller.
   cudaq::CompiledModule
-  runPassPipeline(const std::string &kernelName, const void *modulePtr,
-                  cudaq::KernelArgs args, bool isEntryPoint,
-                  std::shared_ptr<mlir::MLIRContext> context = nullptr);
-
-  /// @brief Emit target-specific code for each `MlirArtifact` in the
-  /// `CompiledModule` and produce `KernelExecution` objects.
-  std::vector<cudaq::KernelExecution>
-  emitKernelExecutions(const cudaq::CompiledModule &compiled);
+  compile(const std::string &kernelName, const void *modulePtr,
+          cudaq::KernelArgs args, bool isEntryPoint,
+          std::shared_ptr<mlir::MLIRContext> context = nullptr);
 };
 
 /// Build the JIT pass pipeline for \p target. On failure, set \p diagnostic to
@@ -169,6 +169,24 @@ getPassPipeline(const cudaq::CompileTarget &target,
                 const cudaq::CompileOptions &options,
                 const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
                 std::string &diagnostic);
+
+/// Whether compiles for \p target substitute the values of an entry point's
+/// arguments instead of taking them at run time. That holds when the platform
+/// cannot take arguments at run time (`fullySpecialize`) or when the handler
+/// that `getPassPipeline` selects for an inferred stage requires argument
+/// values. Custom and override stages are opaque, so a target whose custom
+/// pipeline needs values sets `fullySpecialize`.
+///
+/// The compiler, the Python compiled-module cache, and Python argument packing
+/// all read this answer, and they must agree, because the arguments are laid
+/// out differently for the two cases. It depends only on the target so that
+/// Python can pack arguments before a launch's `CompileOptions` exist.
+bool specializesArguments(
+    const cudaq::CompileTarget &target,
+    const std::vector<std::unique_ptr<LoweringHandler>> &handlers);
+
+/// `specializesArguments` with the built-in lowering handlers.
+bool specializesArguments(const cudaq::CompileTarget &target);
 
 /// Compile a source module for the given policy, compile target and
 /// arguments.

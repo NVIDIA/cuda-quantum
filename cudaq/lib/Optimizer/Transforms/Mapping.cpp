@@ -7,9 +7,11 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/Characteristics.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Device.h"
@@ -2828,7 +2830,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
     if (!highestIdentity) {
-      if (nonComposable) {
+      // Only an entry point that applies a gate or measures has to be mapped.
+      // A callee kernel whose qubits are its arguments is mapped through the
+      // entry point it is inlined into, so it is left alone.
+      if (nonComposable && func->hasAttr(cudaq::entryPointAttrName) &&
+          (cudaq::opt::hasQuantum(*func) || cudaq::opt::hasMeasureOp(*func))) {
         func.emitOpError("no borrow_wire ops found in " + func.getName());
         signalPassFailure();
       }
@@ -3158,6 +3164,18 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                            blockResults);
     auto phyToWire = emitter.emit(block, sources, blockResults[&block]);
     sortTopologically(&block);
+
+    // The result of a `cudaq::run` kernel is published by `quake.evince`. It
+    // reads the measurement results through memory, so it is not a user of
+    // the measurements. It must stay behind the stores that it reads. (A
+    // `cudaq::record` threads wires, so it stays where it is.)
+    SmallVector<Operation *> evinces;
+    for (Operation &op : block)
+      if (isa<cudaq::quake::EvinceOp>(op) && op.getNumResults() == 0)
+        evinces.push_back(&op);
+    for (Operation *op : evinces)
+      block.getOperations().splice(std::prev(block.end()),
+                                   block.getOperations(), op->getIterator());
 
     // Remove any unused BorrowWireOps and add ReturnWireOp's where needed. Each
     // source starts on physical qubit `initialLayout[i]`, so its final wire is

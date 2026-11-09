@@ -1,0 +1,44 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --qubit-mapping=device=path\(2\) %s | FileCheck %s
+
+quake.wire_set @wires[2147483647]
+
+// The mapper defers the measurements to the end of the circuit. The result of
+// a `cudaq::run` kernel is published by `quake.evince`, which reads the stores
+// of the measurement results through memory. It must be kept behind them.
+//
+// CHECK-LABEL: func.func @test_evince_after_measurements()
+// CHECK:         quake.mz
+// CHECK:         cc.store
+// CHECK:         quake.mz
+// CHECK:         cc.store
+// CHECK:         quake.evince
+// CHECK:         quake.return_wire
+func.func @test_evince_after_measurements() attributes {"cudaq-kernel", quake.cudaq_run = [!cc.sequence<i1>]} {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %buf = cc.alloca !cc.array<i8 x 2>
+  %p0 = cc.cast %buf : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+  %p1 = cc.compute_ptr %buf[1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+  %seq = cc.sequence_init %buf : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.sequence<i1>
+  quake.evince %seq : (!cc.sequence<i1>) -> ()
+  %m0, %w0 = quake.mz %2#0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+  %d0 = quake.discriminate %m0 : (!cc.measure_handle) -> i1
+  %b0 = cc.cast unsigned %d0 : (i1) -> i8
+  cc.store %b0, %p0 : !cc.ptr<i8>
+  %m1, %w1 = quake.mz %2#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+  %d1 = quake.discriminate %m1 : (!cc.measure_handle) -> i1
+  %b1 = cc.cast unsigned %d1 : (i1) -> i8
+  cc.store %b1, %p1 : !cc.ptr<i8>
+  quake.return_wire %w0 : !quake.wire
+  quake.return_wire %w1 : !quake.wire
+  return
+}

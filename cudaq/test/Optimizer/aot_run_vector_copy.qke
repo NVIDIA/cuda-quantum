@@ -9,7 +9,7 @@
 
 // Regression test for the Python AOT pipeline's vector-return handling.
 // RunSemanticsHackery must remove the heap copy from the generated `.run`
-// clone before the later inliner expands it.
+// clone and inline the clone into the `.run` entry point.
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__aot_run_vector_copy = "__nvqpp__mlirgen__aot_run_vector_copy_PyKernelEntryPointRewrite"}} {
   func.func @__nvqpp__mlirgen__aot_run_vector_copy() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
@@ -41,15 +41,11 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__aot_run_vector_co
 // CHECK-NOT: call @__nvqpp_vectorCopyCtor
 // CHECK-NOT: call @malloc
 // CHECK-NOT: call @llvm.memcpy
-// CHECK: quake.evince
-// CHECK: return
-
-// CHECK-LABEL: func.func @__nvqpp__mlirgen__aot_run_vector_copy.ruined()
-// CHECK-NOT: call @__nvqpp_vectorCopyCtor
-// CHECK-NOT: call @malloc
-// CHECK-NOT: call @llvm.memcpy
 // CHECK: cc.sequence_init
 // CHECK-NOT: call @__nvqpp_vectorCopyCtor
 // CHECK-NOT: call @malloc
 // CHECK-NOT: call @llvm.memcpy
+// CHECK: quake.evince
 // CHECK: return
+// The clone is inlined by `run-semantics-hackery` and does not remain.
+// CHECK-NOT: ruined

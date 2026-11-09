@@ -27,6 +27,11 @@
 #include <infiniband/verbs.h>
 
 #include <arpa/inet.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
 #include <cerrno>
 #include <cstdint>
 #include <cstdlib>
@@ -58,8 +63,11 @@ inline std::string env_or(const char *name, const char *fallback) {
   return (v && *v) ? v : fallback;
 }
 
-inline bool has_ipv4_rocev2_gid(ibv_context *ctx, std::uint32_t port,
-                                int gid_tbl_len, const in_addr &want) {
+/// Finds the IPv4-mapped RoCEv2 GID for `want` and reports the index of the
+/// network interface it belongs to.
+inline bool find_ipv4_rocev2_gid(ibv_context *ctx, std::uint32_t port,
+                                 int gid_tbl_len, const in_addr &want,
+                                 std::uint32_t &ndev_ifindex) {
   // Scan the whole table: slots are recycled as addresses come and go, so an
   // empty slot is not the end of it.
   for (int i = 0; i < gid_tbl_len; ++i) {
@@ -73,10 +81,31 @@ inline bool has_ipv4_rocev2_gid(ibv_context *ctx, std::uint32_t port,
     static constexpr std::uint8_t kV4MappedPrefix[12] = {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff};
     if (std::memcmp(raw, kV4MappedPrefix, sizeof(kV4MappedPrefix)) == 0 &&
-        std::memcmp(raw + 12, &want.s_addr, 4) == 0)
+        std::memcmp(raw + 12, &want.s_addr, 4) == 0) {
+      ndev_ifindex = entry.ndev_ifindex;
       return true;
+    }
   }
   return false;
+}
+
+/// Whether network interface `ifindex` is administratively up: 1 if up, 0 if
+/// down, -1 when it cannot be told (e.g. the index is not in this network
+/// namespace).
+inline int netdev_admin_up(std::uint32_t ifindex) {
+  char name[IF_NAMESIZE] = {};
+  if (ifindex == 0 || !if_indextoname(ifindex, name))
+    return -1;
+  const int fd = ::socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+  if (fd < 0)
+    return -1;
+  ifreq req{};
+  std::strncpy(req.ifr_name, name, IFNAMSIZ - 1);
+  const int rc = ::ioctl(fd, SIOCGIFFLAGS, &req);
+  ::close(fd);
+  if (rc != 0)
+    return -1;
+  return (req.ifr_flags & IFF_UP) ? 1 : 0;
 }
 } // namespace detail
 
@@ -96,7 +125,13 @@ inline RoceTopology roce_test_topology() {
 /// the port is an ACTIVE Ethernet (RoCE) port, and it has an IPv4-mapped
 /// RoCEv2 GID for the endpoint's IP.  Returns an empty string when usable,
 /// otherwise a one-line reason naming the first check that failed.
-inline std::string probe_roce_endpoint(const RoceEndpoint &endpoint) {
+///
+/// With `loopback` (both ends on this one port) the port need not be ACTIVE:
+/// the HCA loops the frames back without a link, so a port with no cable
+/// serves.  Its network interface must still be administratively up, or the
+/// kernel cannot resolve the peer when the QP moves to RTR.
+inline std::string probe_roce_endpoint(const RoceEndpoint &endpoint,
+                                       bool loopback = false) {
   const std::string where = "'" + endpoint.device + "' (" + endpoint.ip + ")";
   in_addr want{};
   if (inet_pton(AF_INET, endpoint.ip.c_str(), &want) != 1)
@@ -127,25 +162,32 @@ inline std::string probe_roce_endpoint(const RoceEndpoint &endpoint) {
   constexpr std::uint32_t kPort = 1;
   std::string why;
   ibv_port_attr port{};
+  std::uint32_t ndev_ifindex = 0;
   if (ibv_query_port(ctx, kPort, &port) != 0)
     why = where + ": cannot query port 1";
-  else if (port.state != IBV_PORT_ACTIVE)
+  else if (!loopback && port.state != IBV_PORT_ACTIVE)
     why = where + ": port 1 is " + ibv_port_state_str(port.state) +
           ", not ACTIVE";
   else if (port.link_layer != IBV_LINK_LAYER_ETHERNET)
     why = where + ": port 1 is not a RoCE (Ethernet) port";
-  else if (!detail::has_ipv4_rocev2_gid(ctx, kPort, port.gid_tbl_len, want))
+  else if (!detail::find_ipv4_rocev2_gid(ctx, kPort, port.gid_tbl_len, want,
+                                         ndev_ifindex))
     why = where + ": no RoCEv2 GID for this address on port 1 (is it "
                   "configured on the device's netdev?)";
+  else if (loopback && detail::netdev_admin_up(ndev_ifindex) == 0)
+    why = where + ": port 1's netdev is administratively down (loopback "
+                  "needs no link, but needs the netdev up)";
   ibv_close_device(ctx);
   return why;
 }
 
 /// Both endpoints of `topology`, caller first; empty when both are usable.
+/// Two endpoints on the same device are a loopback (see probe_roce_endpoint).
 inline std::string probe_roce_topology(const RoceTopology &topology) {
-  std::string why = probe_roce_endpoint(topology.caller);
+  const bool loopback = topology.caller.device == topology.service.device;
+  std::string why = probe_roce_endpoint(topology.caller, loopback);
   if (why.empty())
-    why = probe_roce_endpoint(topology.service);
+    why = probe_roce_endpoint(topology.service, loopback);
   return why;
 }
 

@@ -144,7 +144,9 @@ def test_resource_kernel_matches_operating_point(factory, example, modulus_bits,
 
     point = factory.OPERATING_POINTS[modulus_bits]
     cudaq.set_target(cql.targets.estimator)
-    estimate = cudaq.estimate(example["build_resource_kernel"](point))
+    estimate = cudaq.estimate(
+        example["build_resource_kernel"](point),
+        optimization_level=example["PAPER_OPTIMIZATION_LEVEL"])
     logical = cql.estimate.LogicalEstimate.from_annotations(
         estimate.annotations)
 

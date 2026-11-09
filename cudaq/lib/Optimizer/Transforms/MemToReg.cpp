@@ -498,6 +498,37 @@ private:
       scanVeqUses(veq, veq, 0, visited);
     }
 
+    // A `quake.concat` result is a root of its own, but its elements are the
+    // operands' qubits, so a memory-form access recorded against the result
+    // (a run-time `extract_ref`, say) is also an access to every operand. The
+    // operands then alias that access and cannot be tracked as wires. Push the
+    // opacity back to the operands' roots. A concat that is itself an operand
+    // only becomes opaque once an outer concat is processed, so go again until
+    // no concat is left to propagate.
+    SmallVector<cudaq::quake::ConcatOp> concats;
+    f.walk([&](cudaq::quake::ConcatOp concat) { concats.push_back(concat); });
+    SmallPtrSet<Operation *, 8> propagated;
+    for (bool changed = true; changed;) {
+      changed = false;
+      for (auto concat : concats) {
+        auto it = opaque.find(concat.getResult());
+        if (it == opaque.end() || it->second.empty() ||
+            !propagated.insert(concat).second)
+          continue;
+        changed = true;
+        for (Value target : concat.getTargets()) {
+          if (isa<cudaq::quake::RefType>(target.getType())) {
+            // An unresolvable ref is kept in memory form below regardless.
+            if (auto loc = resolveRefLocation(target))
+              markOpaque(loc->first, loc->second, 1);
+          } else if (auto base = resolveVeqBase(target)) {
+            markOpaque(base->first, base->second,
+                       cudaq::quake::getVeqSize(target));
+          }
+        }
+      }
+    }
+
     // 3. classify each ref. An unresolvable location, or a location covered by
     // a memory-form access, means the ref stays in memory form.
     for (Value ref : refs) {
