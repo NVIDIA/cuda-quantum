@@ -12,8 +12,8 @@ target.
 2. `01_clifford_t_resource_estimate.py` descends one layer, changing rotation
    precision and reading the resulting Clifford+T resources.
 3. `02_surface_code_resource_estimate.py` descends through surface-code and
-   physical compilation. It varies layout parameters, then holds the layout
-   fixed to expose operating-point effects.
+   physical compilation and reports physical qubits and scheduled runtime for
+   one logical memory.
 4. `03_fermi_hubbard.py` moves beyond teaching-scale kernels and estimates a
    Trotterized Fermi--Hubbard workload.
 5. `04_carbon_code.py` removes the built-in-target convenience and constructs
@@ -29,9 +29,8 @@ target.
 `steane_bell_e2e_workflow.py` follows a Bell pair, written as a CUDA-Q kernel,
 through logical compilation, placement, QEC realization, and physical
 scheduling using Steane. It then estimates the kernel through a CUDA-Q target
-built from the same device, verifies that both entry points report the same
-resources, and runs the kernel and its P3 build with `cudaq.run`. Its excerpts
-supply the
+built from the same device and runs the kernel and its P3 build with
+`cudaq.run`. Its excerpts supply the
 [logical programming stack walkthrough](../docs/source/getting-started/cudaq-logical-in-practice.md).
 
 The `standalone/` examples use `cudaq.logical` directly and expose each

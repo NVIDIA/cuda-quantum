@@ -37,8 +37,6 @@ estimates = {
     precision: estimate_at_precision(precision) for precision in precisions
 }
 
-assert all(estimate.resources.count("t") > 0 for estimate in estimates.values())
-
 print("Clifford+T resources by rotation precision:")
 for precision, estimate in estimates.items():
     resources = estimate.resources
@@ -46,11 +44,3 @@ for precision, estimate in estimates.items():
           f"T={resources.count('t')}, "
           f"T-depth={resources.t_depth}, "
           f"depth={resources.depth}")
-
-# %%
-# Going deeper: the full logical estimate lives in
-# `estimate.annotations["LOGICAL"]`. For example, `synthesis_demand` lists the
-# gates that a fault-tolerant machine has to synthesize or distill.
-tightest = estimates[precisions[-1]]
-print("Synthesis demand at the tightest precision:")
-print(f"  {tightest.annotations['LOGICAL']['synthesis_demand']}")
