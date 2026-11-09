@@ -698,7 +698,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
   return assembleCompiledModule(
       kernelName, modules, needJit, isFullySpecialized, isEntryPoint,
       emulate && combineMeasurements, std::move(resourceCounts),
-      {.hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes,
+      {.reorderIdx = {},
+       .hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes,
        .optimizationLevel = resolvedOptions.optimizationLevel,
        .recordedQubits = std::move(recordedQubits)},
       context);
