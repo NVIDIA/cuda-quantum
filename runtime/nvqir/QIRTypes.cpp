@@ -110,6 +110,9 @@ void Array::add_element() { storage.resize((1 + size()) * element_size_bytes); }
 
 std::size_t Array::size() const { return storage.size() / element_size_bytes; }
 void Array::clear() { storage.clear(); }
+void Array::resize(std::size_t nitems) {
+  storage.resize(nitems * element_size_bytes, 0);
+}
 int Array::element_size() const { return element_size_bytes; }
 
 Array::~Array() { clear(); }

@@ -648,6 +648,36 @@ CUDAQ_TEST(NVQIRTester, checkValueControlInvokeErrors) {
       0, 1, 1, callback, 0, 2, static_cast<Qubit *>(nullptr)));
 }
 
+CUDAQ_TEST(NVQIRTester, checkReentrantInvoke) {
+  __quantum__rt__initialize(0, nullptr);
+  auto *qubits = __quantum__rt__qubit_allocate_array(4);
+  static std::vector<Qubit *> expected;
+  static int calls;
+  expected = {extract_qubit(qubits, 0), extract_qubit(qubits, 1),
+              extract_qubit(qubits, 2), extract_qubit(qubits, 3)};
+  calls = 0;
+  // The outer callback invokes again with a different number of controls and
+  // must still see its own controls afterwards.
+  using Callback = void (*)(Array *, Qubit *);
+  static Callback callback;
+  callback = [](Array *controls, Qubit *target) {
+    EXPECT_EQ(target, expected[3]);
+    if (calls++ == 0) {
+      invokeWithControlQubits(1, callback, expected[2], target);
+      ASSERT_EQ(__quantum__rt__array_get_size_1d(controls), 2);
+      EXPECT_EQ(extract_qubit(controls, 0), expected[0]);
+      EXPECT_EQ(extract_qubit(controls, 1), expected[1]);
+    } else {
+      ASSERT_EQ(__quantum__rt__array_get_size_1d(controls), 1);
+      EXPECT_EQ(extract_qubit(controls, 0), expected[2]);
+    }
+  };
+  invokeWithControlQubits(2, callback, expected[0], expected[1], expected[3]);
+  EXPECT_EQ(calls, 2);
+  __quantum__rt__qubit_release_array(qubits);
+  __quantum__rt__finalize();
+}
+
 CUDAQ_TEST(NVQIRTester, checkValueControlOwnership) {
   __quantum__rt__initialize(0, nullptr);
   auto *qubits = __quantum__rt__qubit_allocate_array(3);
