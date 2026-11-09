@@ -62,7 +62,7 @@ jobs:
             CMakeLists.txt
             cmake/modules/CUDAQConfig.cmake
             runtime/internal/device_call/CMakeLists.txt
-            runtime/cudaq/realtime
+            runtime/cudaq/realtime/
             realtime/
             .github/workflows/realtime_ci.yml
             .github/workflows/realtime_prebuilt_binaries.yml
