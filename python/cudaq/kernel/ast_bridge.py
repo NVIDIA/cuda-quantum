@@ -1760,7 +1760,7 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             values = list(self.__groupValues(node.args, [n]))
 
-        quake.EvinceOp([], values, userRecord=True)
+        quake.EvinceOp([], values)
 
     def _lowerQECOp(self, node):
         """Lower ``cudaq.detector(...)``, ``cudaq.logical_observable(...)``,

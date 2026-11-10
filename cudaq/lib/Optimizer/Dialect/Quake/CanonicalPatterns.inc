@@ -303,7 +303,7 @@ struct DropEmptyVeqEvinceArgsPattern
       return failure();
 
     // A `cudaq::record` of empty registers stays: it records nothing.
-    if (keep.empty() && !evin.getUserRecord()) {
+    if (keep.empty() && evin.getCompilerGenerated()) {
       rewriter.eraseOp(evin);
       return success();
     }

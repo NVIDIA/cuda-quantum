@@ -32,7 +32,7 @@ func.func @test_loop_single_wire() attributes {"cudaq-kernel"} {
     %out = quake.h %bw : (!quake.wire) -> !quake.wire
     cc.continue %out : !quake.wire
   }
-  %rec = quake.evince %loop : (!quake.wire) -> !quake.wire {userRecord}
+  %rec = quake.evince %loop : (!quake.wire) -> !quake.wire
   quake.return_wire %rec : !quake.wire
   return
 }
@@ -114,7 +114,7 @@ func.func @test_two_loops() attributes {"cudaq-kernel"} {
     %out = quake.t %bw : (!quake.wire) -> !quake.wire
     cc.continue %out : !quake.wire
   }
-  %rec = quake.evince %loop2 : (!quake.wire) -> !quake.wire {userRecord}
+  %rec = quake.evince %loop2 : (!quake.wire) -> !quake.wire
   quake.return_wire %rec : !quake.wire
   return
 }
@@ -145,7 +145,7 @@ func.func @test_loop_two_wires() attributes {"cudaq-kernel"} {
     %r1 = quake.t %bw1 : (!quake.wire) -> !quake.wire
     cc.continue %r0, %r1 : !quake.wire, !quake.wire
   }
-  %rec:2 = quake.evince %loop#0, %loop#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {userRecord}
+  %rec:2 = quake.evince %loop#0, %loop#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   quake.return_wire %rec#0 : !quake.wire
   quake.return_wire %rec#1 : !quake.wire
   return
@@ -228,7 +228,7 @@ func.func @test_nested_loop() attributes {"cudaq-kernel"} {
     }
     cc.continue %inner : !quake.wire
   }
-  %rec = quake.evince %outer : (!quake.wire) -> !quake.wire {userRecord}
+  %rec = quake.evince %outer : (!quake.wire) -> !quake.wire
   quake.return_wire %rec : !quake.wire
   return
 }
@@ -327,7 +327,7 @@ func.func @test_postcond_single_wire() attributes {"cudaq-kernel"} {
   ^bb0(%w : !quake.wire):
     cc.condition %cond (%w : !quake.wire)
   }
-  %rec = quake.evince %loop : (!quake.wire) -> !quake.wire {userRecord}
+  %rec = quake.evince %loop : (!quake.wire) -> !quake.wire
   quake.return_wire %rec : !quake.wire
   return
 }
@@ -398,7 +398,7 @@ func.func @test_step_passthrough() attributes {"cudaq-kernel"} {
   ^bb0(%sw : !quake.wire):
     cc.continue %sw : !quake.wire
   }
-  %rec = quake.evince %loop : (!quake.wire) -> !quake.wire {userRecord}
+  %rec = quake.evince %loop : (!quake.wire) -> !quake.wire
   quake.return_wire %rec : !quake.wire
   return
 }

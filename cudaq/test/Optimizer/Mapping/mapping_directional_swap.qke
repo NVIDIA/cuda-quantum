@@ -20,7 +20,7 @@ func.func @route_across_one_way_edge() {
   %q1 = quake.borrow_wire @wires[1] : !quake.wire
   %q2 = quake.borrow_wire @wires[2] : !quake.wire
   %x:2 = quake.x [%q0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %rec:3 = quake.evince %x#0, %q1, %x#1 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire) {userRecord}
+  %rec:3 = quake.evince %x#0, %q1, %x#1 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
   quake.return_wire %rec#0 : !quake.wire
   quake.return_wire %rec#1 : !quake.wire
   quake.return_wire %rec#2 : !quake.wire

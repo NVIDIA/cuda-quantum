@@ -241,7 +241,7 @@ def test_sample_adjoint_qubit():
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
 # CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} (%[[VAL_0]]) : (!quake.ref) -> ()
-# CHECK:           quake.evince %[[VAL_0]] : (!quake.ref) -> () {userRecord}
+# CHECK:           quake.evince %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -302,7 +302,7 @@ def test_sample_adjoint_qreg():
 # CHECK:           } {invariant}
 # CHECK:           call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%[[VAL_3]]) : (!quake.veq<?>) -> ()
 # CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} (%[[VAL_3]]) : (!quake.veq<?>) -> ()
-# CHECK:           quake.evince %[[VAL_3]] : (!quake.veq<?>) -> () {userRecord}
+# CHECK:           quake.evince %[[VAL_3]] : (!quake.veq<?>) -> ()
 # CHECK:           return
 # CHECK:         }
 

@@ -17,7 +17,7 @@ quake.wire_set @wires[2147483647]
 func.func @single_qubit() {
   %q0 = quake.borrow_wire @wires[0] : !quake.wire
   %0 = quake.h %q0 : (!quake.wire) -> !quake.wire
-  %rec = quake.evince %0 : (!quake.wire) -> !quake.wire {userRecord}
+  %rec = quake.evince %0 : (!quake.wire) -> !quake.wire
   quake.return_wire %rec : !quake.wire
   return
 }
@@ -28,7 +28,7 @@ func.func @bell_with_idle_qubit() {
   %q2 = quake.borrow_wire @wires[2] : !quake.wire
   %0 = quake.h %q0 : (!quake.wire) -> !quake.wire
   %1:2 = quake.x [%0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %rec:3 = quake.evince %1#0, %1#1, %q2 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire) {userRecord}
+  %rec:3 = quake.evince %1#0, %1#1, %q2 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
   quake.return_wire %rec#0 : !quake.wire
   quake.return_wire %rec#1 : !quake.wire
   quake.return_wire %rec#2 : !quake.wire

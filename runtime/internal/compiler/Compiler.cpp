@@ -473,7 +473,7 @@ static bool hasUserMeasurements(mlir::func::FuncOp epFunc) {
 static cudaq::quake::EvinceOp getUserRecord(mlir::func::FuncOp epFunc) {
   cudaq::quake::EvinceOp record;
   epFunc.walk([&](cudaq::quake::EvinceOp evince) {
-    if (!evince.getUserRecord())
+    if (evince.getCompilerGenerated())
       return mlir::WalkResult::advance();
     record = evince;
     return mlir::WalkResult::interrupt();

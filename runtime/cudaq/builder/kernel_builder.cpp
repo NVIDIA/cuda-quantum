@@ -847,9 +847,7 @@ void record(ImplicitLocOpBuilder &builder,
   values.reserve(qubits.size());
   for (auto &q : qubits)
     values.push_back(q.getValue());
-  auto evince = cudaq::quake::EvinceOp::create(builder, values,
-                                               /*compilerGenerated=*/false);
-  evince.setUserRecord(true);
+  cudaq::quake::EvinceOp::create(builder, values);
 }
 
 void detector(ImplicitLocOpBuilder &builder,

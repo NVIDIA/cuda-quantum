@@ -70,7 +70,7 @@ module {
     %51 = quake.t %50#1 : (!quake.wire) -> !quake.wire
     %52 = quake.t %50#0 : (!quake.wire) -> !quake.wire
     %53 = quake.h %47 : (!quake.wire) -> !quake.wire
-    %54:4 = quake.evince %52, %51, %37, %38 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire) {userRecord}
+    %54:4 = quake.evince %52, %51, %37, %38 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire)
     quake.return_wire %53 : !quake.wire
     quake.return_wire %54#0 : !quake.wire
     quake.return_wire %54#1 : !quake.wire
@@ -144,7 +144,7 @@ module {
 // CHECK:           %[[T_19:.*]] = quake.t %[[X_21]]#1 : (!quake.wire) -> !quake.wire
 // CHECK:           %[[T_20:.*]] = quake.t %[[X_21]]#0 : (!quake.wire) -> !quake.wire
 // CHECK:           %[[H_5:.*]] = quake.h %[[T_17]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[EVINCE_0:.*]]:4 = quake.evince %[[T_20]], %[[T_19]], %[[T_13]], %[[SWAP_3]]#0 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire) {userRecord}
+// CHECK:           %[[EVINCE_0:.*]]:4 = quake.evince %[[T_20]], %[[T_19]], %[[T_13]], %[[SWAP_3]]#0 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire)
 // CHECK:           quake.return_wire %[[EVINCE_0]]#1 : !quake.wire
 // CHECK:           quake.return_wire %[[EVINCE_0]]#0 : !quake.wire
 // CHECK:           quake.return_wire %[[H_5]] : !quake.wire

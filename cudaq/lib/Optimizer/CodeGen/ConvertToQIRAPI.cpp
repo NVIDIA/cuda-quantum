@@ -450,6 +450,18 @@ Type getInitialType(OP op, unsigned off) {
   return cast<TypeAttr>(initialArgs[off]).getValue();
 }
 
+/// A `cudaq::record` names qubits; a `.run` return-value evince is classical.
+static bool isRecord(cudaq::quake::EvinceOp evince) {
+  if (evince.getCompilerGenerated())
+    return false;
+  for (unsigned i = 0, e = evince->getNumOperands(); i < e; ++i) {
+    Type ty = getInitialType(evince, i);
+    if (cudaq::quake::isQuantumType(ty ? ty : evince->getOperand(i).getType()))
+      return true;
+  }
+  return false;
+}
+
 /// Lower a `cudaq::record` to one runtime call per operand, in record order.
 struct RecordOpRewrite : public OpConversionPattern<cudaq::quake::EvinceOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -457,7 +469,7 @@ struct RecordOpRewrite : public OpConversionPattern<cudaq::quake::EvinceOp> {
   LogicalResult
   matchAndRewrite(cudaq::quake::EvinceOp evince, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    if (!evince.getUserRecord())
+    if (!isRecord(evince))
       return failure();
     auto loc = evince.getLoc();
     SmallVector<Value> outs;
@@ -2804,7 +2816,7 @@ struct QuakeToQIRAPIPass
     // pass), not by QuakeToQIRAPI, so mark it legal to pass through unchanged.
     // A `cudaq::record` is the exception: full QIR lowers it to runtime calls.
     target.addDynamicallyLegalOp<cudaq::quake::EvinceOp>(
-        [](cudaq::quake::EvinceOp op) { return !op.getUserRecord(); });
+        [](cudaq::quake::EvinceOp op) { return !isRecord(op); });
     target.addLegalOp<cudaq::codegen::MaterializeConstantArrayOp>();
     target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp fn) {
       return !needsTypeConversion(fn.getFunctionType()) &&

@@ -1745,7 +1745,7 @@ LogicalResult cudaq::quake::EvinceOp::verify() {
                        "in left-to-right order");
 
   // A `cudaq::record` must be top level, unique, and name each qubit once.
-  if (!getUserRecord())
+  if (getCompilerGenerated())
     return success();
 
   auto funcOp = (*this)->getParentOfType<mlir::func::FuncOp>();
@@ -1778,7 +1778,7 @@ LogicalResult cudaq::quake::EvinceOp::verify() {
 
   for (auto &op : funcOp.getOps())
     if (auto other = dyn_cast<cudaq::quake::EvinceOp>(&op))
-      if (other.getUserRecord() && other != *this)
+      if (!other.getCompilerGenerated() && other != *this)
         return emitOpError("a kernel may contain only one `cudaq::record` "
                            "statement");
 
@@ -1796,7 +1796,10 @@ void cudaq::quake::EvinceOp::getCanonicalizationPatterns(
 
 void cudaq::quake::eraseUserRecords(Operation *op) {
   op->walk([](EvinceOp evince) {
-    if (!evince.getUserRecord())
+    // A `.run` entry point's evince logs the kernel's return values.
+    auto func = evince->getParentOfType<func::FuncOp>();
+    if (evince.getCompilerGenerated() ||
+        (func && func->hasAttr(cudaq::runtime::enableCudaqRun)))
       return;
     unsigned resultIdx = 0;
     for (Value arg : evince.getArgs())

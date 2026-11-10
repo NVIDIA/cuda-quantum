@@ -22,7 +22,7 @@
     quake.ry (%3) %4 : (f64, !quake.ref) -> ()
     %5 = quake.extract_ref %1[2] : (!quake.veq<3>) -> !quake.ref
     quake.x [%2] %5 : (!quake.ref, !quake.ref) -> ()
-    quake.evince %2, %4, %5 : (!quake.ref, !quake.ref, !quake.ref) -> () {userRecord}
+    quake.evince %2, %4, %5 : (!quake.ref, !quake.ref, !quake.ref) -> ()
     return
   }
 
@@ -46,7 +46,7 @@
     %1 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref
     %2 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref
     %3 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
-    quake.evince %1, %2, %3 : (!quake.ref, !quake.ref, !quake.ref) -> () {userRecord}
+    quake.evince %1, %2, %3 : (!quake.ref, !quake.ref, !quake.ref) -> ()
     return
   }
 
@@ -67,7 +67,7 @@
     %0 = quake.alloca !quake.ref
     %1 = quake.alloca !quake.ref
     %2 = quake.alloca !quake.ref
-    quake.evince %0, %1, %2 : (!quake.ref, !quake.ref, !quake.ref) -> () {userRecord}
+    quake.evince %0, %1, %2 : (!quake.ref, !quake.ref, !quake.ref) -> ()
     return
   }
 
@@ -92,7 +92,7 @@
     %2 = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
     %3 = quake.extract_ref %1[0] : (!quake.veq<2>) -> !quake.ref
     %4 = quake.extract_ref %1[1] : (!quake.veq<2>) -> !quake.ref
-    quake.evince %2, %3, %4 : (!quake.ref, !quake.ref, !quake.ref) -> () {userRecord}
+    quake.evince %2, %3, %4 : (!quake.ref, !quake.ref, !quake.ref) -> ()
     return
   }
 

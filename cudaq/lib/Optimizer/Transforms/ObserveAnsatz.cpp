@@ -71,7 +71,7 @@ using EvincedQubit =
 void collectEvincedQubits(func::FuncOp funcOp,
                           SmallVectorImpl<EvincedQubit> &qubits) {
   funcOp.walk([&](cudaq::quake::EvinceOp evince) {
-    if (!evince.getUserRecord())
+    if (evince.getCompilerGenerated())
       return;
     for (auto [index, opnd] : llvm::enumerate(evince->getOperands())) {
       if (!cudaq::quake::isQuantumType(opnd.getType()))

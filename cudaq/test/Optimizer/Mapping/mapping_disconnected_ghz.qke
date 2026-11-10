@@ -20,7 +20,7 @@ func.func @ghz_chain() {
   %q2 = quake.borrow_wire @wires[2] : !quake.wire
   %a:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %b:2 = quake.x [%a#1] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %rec:3 = quake.evince %a#0, %b#0, %b#1 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire) {userRecord}
+  %rec:3 = quake.evince %a#0, %b#0, %b#1 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
   quake.return_wire %rec#0 : !quake.wire
   quake.return_wire %rec#1 : !quake.wire
   quake.return_wire %rec#2 : !quake.wire
@@ -33,7 +33,7 @@ func.func @ghz_star() {
   %q2 = quake.borrow_wire @wires[2] : !quake.wire
   %a:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %b:2 = quake.x [%a#0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %rec:3 = quake.evince %b#0, %a#1, %b#1 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire) {userRecord}
+  %rec:3 = quake.evince %b#0, %a#1, %b#1 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
   quake.return_wire %rec#0 : !quake.wire
   quake.return_wire %rec#1 : !quake.wire
   quake.return_wire %rec#2 : !quake.wire

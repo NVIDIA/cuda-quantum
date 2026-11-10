@@ -33,7 +33,7 @@ func.func @test_if_single_wire() attributes {"cudaq-kernel"} {
     %r = quake.x %a : (!quake.wire) -> !quake.wire
     cc.continue %r : !quake.wire
   }
-  %rec = quake.evince %1#0 : (!quake.wire) -> !quake.wire {userRecord}
+  %rec = quake.evince %1#0 : (!quake.wire) -> !quake.wire
   quake.return_wire %rec : !quake.wire
   return
 }
@@ -116,7 +116,7 @@ func.func @test_two_ifs() attributes {"cudaq-kernel"} {
     %r = quake.s %a : (!quake.wire) -> !quake.wire
     cc.continue %r : !quake.wire
   }
-  %rec = quake.evince %3#0 : (!quake.wire) -> !quake.wire {userRecord}
+  %rec = quake.evince %3#0 : (!quake.wire) -> !quake.wire
   quake.return_wire %rec : !quake.wire
   return
 }
@@ -157,7 +157,7 @@ func.func @test_nested_if() attributes {"cudaq-kernel"} {
     %r = quake.z %a : (!quake.wire) -> !quake.wire
     cc.continue %r : !quake.wire
   }
-  %rec = quake.evince %1#0 : (!quake.wire) -> !quake.wire {userRecord}
+  %rec = quake.evince %1#0 : (!quake.wire) -> !quake.wire
   quake.return_wire %rec : !quake.wire
   return
 }

@@ -331,7 +331,7 @@ def test_sample_control_qubit_args():
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}[%[[VAL_1]]] (%[[VAL_0]]) : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-# CHECK:           quake.evince %[[VAL_1]] : (!quake.ref) -> () {userRecord}
+# CHECK:           quake.evince %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -387,7 +387,7 @@ def test_sample_control_qreg_args():
 # CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
 # CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}[%[[VAL_5]]] (%[[VAL_6]]) : (!quake.veq<2>, !quake.ref) -> ()
-# CHECK:           quake.evince %[[VAL_5]], %[[VAL_6]] : (!quake.veq<2>, !quake.ref) -> () {userRecord}
+# CHECK:           quake.evince %[[VAL_5]], %[[VAL_6]] : (!quake.veq<2>, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -445,7 +445,7 @@ def test_sample_apply_call_control():
 # CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} [%{{[0-2]}}] (%{{[0-2]}}) : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
-# CHECK:           quake.evince %{{[0-2]}} : (!quake.ref) -> () {userRecord}
+# CHECK:           quake.evince %{{[0-2]}} : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 

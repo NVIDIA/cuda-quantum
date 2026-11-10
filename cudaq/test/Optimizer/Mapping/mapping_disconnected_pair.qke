@@ -19,7 +19,7 @@ func.func @bell_pair() {
   %q1 = quake.borrow_wire @wires[1] : !quake.wire
   %0 = quake.h %q0 : (!quake.wire) -> !quake.wire
   %1:2 = quake.x [%0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %rec:2 = quake.evince %1#0, %1#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {userRecord}
+  %rec:2 = quake.evince %1#0, %1#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   quake.return_wire %rec#0 : !quake.wire
   quake.return_wire %rec#1 : !quake.wire
   return

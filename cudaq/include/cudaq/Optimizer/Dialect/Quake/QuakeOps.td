@@ -2098,8 +2098,7 @@ def quake_EvinceOp : QuakeOp<"evince"> {
 
   let arguments = (ins
     Variadic<AnyType>:$args,
-    UnitAttr:$compilerGenerated,
-    UnitAttr:$userRecord
+    UnitAttr:$compilerGenerated
   );
   let results = (outs Variadic<AnyQLinearType>:$outs);
   let hasVerifier = 1;

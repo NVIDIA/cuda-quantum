@@ -24,7 +24,7 @@ func.func @three_islands() {
   %a:2 = quake.x [%q0] %q5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %b:2 = quake.x [%q1] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %c:2 = quake.x [%q3] %q4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %rec:6 = quake.evince %a#0, %b#0, %b#1, %c#0, %c#1, %a#1 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) {userRecord}
+  %rec:6 = quake.evince %a#0, %b#0, %b#1, %c#0, %c#1, %a#1 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
   quake.return_wire %rec#0 : !quake.wire
   quake.return_wire %rec#1 : !quake.wire
   quake.return_wire %rec#2 : !quake.wire

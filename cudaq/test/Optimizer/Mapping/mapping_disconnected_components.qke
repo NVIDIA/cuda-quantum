@@ -25,7 +25,7 @@ func.func @component_swapped() {
   %c:2 = quake.x [%b#0] %b#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %d:2 = quake.x [%v2] %v3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %e:2 = quake.x [%d#1] %v4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %rec:5 = quake.evince %c#0, %c#1, %d#0, %e#0, %e#1 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) {userRecord}
+  %rec:5 = quake.evince %c#0, %c#1, %d#0, %e#0, %e#1 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
   quake.return_wire %rec#0 : !quake.wire
   quake.return_wire %rec#1 : !quake.wire
   quake.return_wire %rec#2 : !quake.wire

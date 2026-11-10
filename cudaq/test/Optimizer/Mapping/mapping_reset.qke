@@ -13,7 +13,7 @@ quake.wire_set @wires[2147483647]
 func.func @test_reset() {
   %0 = quake.borrow_wire @wires[0] : !quake.wire
   %1 = quake.reset %0 : (!quake.wire) -> !quake.wire
-  %rec = quake.evince %1 : (!quake.wire) -> !quake.wire {userRecord}
+  %rec = quake.evince %1 : (!quake.wire) -> !quake.wire
   quake.return_wire %rec : !quake.wire
   return
 }
@@ -21,7 +21,7 @@ func.func @test_reset() {
 // CHECK-LABEL:   func.func @test_reset() attributes {mapping_v2p = [0]} {
 // CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @mapped_wireset
 // CHECK:           %[[VAL_1:.*]] = quake.reset %[[VAL_0]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_2:.*]] = quake.evince %[[VAL_1]] : (!quake.wire) -> !quake.wire {userRecord}
+// CHECK:           %[[VAL_2:.*]] = quake.evince %[[VAL_1]] : (!quake.wire) -> !quake.wire
 // CHECK:           quake.return_wire %[[VAL_2]] : !quake.wire
 // CHECK:           return
 // CHECK:         }

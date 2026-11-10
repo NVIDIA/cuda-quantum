@@ -1293,7 +1293,7 @@ class PyKernel(object):
             emitFatalError("kernel.record requires at least one qubit argument")
         self.clearCache()
         with self.ctx, self.insertPoint, self.loc:
-            quake.EvinceOp([], [q.mlirValue for q in qubits], userRecord=True)
+            quake.EvinceOp([], [q.mlirValue for q in qubits])
 
     def detector(self, *measurements):
         """Define a detector over one or more measurement results.
