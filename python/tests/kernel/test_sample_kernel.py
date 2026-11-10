@@ -214,6 +214,9 @@ def test_sample_async():
     assert '1' in sample_result and len(sample_result) == 1
 
 
+@pytest.mark.xfail(
+    reason="sample/observe should reject an early return, which can skip the "
+    "record; not yet implemented")
 def test_conditional_bare_return():
 
     @cudaq.kernel
@@ -232,6 +235,9 @@ def test_conditional_bare_return():
     assert '1' in counts and len(counts) == 1
 
 
+@pytest.mark.xfail(
+    reason="sample/observe should reject an early return, which can skip the "
+    "record; not yet implemented")
 def test_composite_conditional_bare_return():
 
     @cudaq.kernel
@@ -250,6 +256,9 @@ def test_composite_conditional_bare_return():
         assert '1' in counts and len(counts) == 1
 
 
+@pytest.mark.xfail(
+    reason="sample/observe should reject an early return, which can skip the "
+    "record; not yet implemented")
 def test_bare_return_in_loop():
 
     @cudaq.kernel

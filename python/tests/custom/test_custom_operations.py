@@ -44,6 +44,7 @@ def test_basic():
         qubits = cudaq.qvector(2)
         custom_h(qubits[0])
         custom_x.ctrl(qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     check_bell(bell)
 
@@ -60,6 +61,7 @@ def test_cnot_gate():
         qubits = cudaq.qvector(2)
         h(qubits[0])
         custom_cnot(qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     check_bell(bell_pair)
 
@@ -80,6 +82,7 @@ def test_cz_gate():
         x(qubits[2])
         custom_cz(qubits[3], qubits[2])
         x(controls)
+        cudaq.record(qubits, controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
     assert counts["0010011"] == 1000
@@ -101,6 +104,7 @@ def test_three_qubit_op():
         q = cudaq.qvector(3)
         x(q)
         toffoli(q[0], q[1], q[2])
+        cudaq.record(q)
 
     counts = cudaq.sample(test_toffoli)
     print(counts)
@@ -148,6 +152,7 @@ def test_custom_adjoint():
         custom_s.adj(q)
         custom_s_adj(q)
         h(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     counts.dump()
@@ -201,6 +206,7 @@ def test_builder_mode():
     qubits = kernel.qalloc(2)
     kernel.custom_h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
+    kernel.record(qubits)
 
     check_bell(kernel)
 
@@ -214,6 +220,7 @@ def test_builder_mode_control():
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.custom_x(qubits[0], qubits[1])
+    kernel.record(qubits)
 
     check_bell(kernel)
 
@@ -253,6 +260,7 @@ def test_bug_2452():
         ancilla = cudaq.qvector(2)
         x(ancilla)
         custom_x.ctrl(ancilla, qubit)  # `controls` can be `qvector`
+        cudaq.record(qubit, ancilla)
 
     counts = cudaq.sample(kernel2)
     assert len(counts) == 1 and '111' in counts
@@ -284,6 +292,7 @@ def test_nested_kernel_single_qubit():
     def outer():
         q = cudaq.qubit()
         inner(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(outer, shots_count=100)
     assert counts["1"] == 100
@@ -302,6 +311,7 @@ def test_nested_kernel_qview():
     def outer():
         qubits = cudaq.qvector(2)
         inner(qubits)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(outer, shots_count=100)
     assert counts["11"] == 100
