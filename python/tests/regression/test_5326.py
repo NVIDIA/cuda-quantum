@@ -24,7 +24,7 @@ def controlled_slice(n: int):
     q = cudaq.qvector(n + 2)
     h(q)
     cudaq.control(flip_on_slice, q[n + 1], q[0:n + 1], n)
-    mz(q)
+    cudaq.record(q)
 
 
 @skip_if_nvidia_unavailable

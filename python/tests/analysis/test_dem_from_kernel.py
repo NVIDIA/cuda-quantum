@@ -555,7 +555,12 @@ def test_emulate_target_independent():
             "observables": 1
         }
 
-        counts = cudaq.sample(kernel, shots_count=10)
+        @cudaq.kernel
+        def recorded():
+            q = cudaq.qubit()
+            cudaq.record(q)
+
+        counts = cudaq.sample(recorded, shots_count=10)
         assert counts["0"] == 10
 
         @cudaq.kernel

@@ -26,7 +26,7 @@ def loop_local_angles():
     for i in range(2):
         angles = [0.5, 0.25]
         rx(angles[i], q[i])
-    mz(q)
+    cudaq.record(q)
 
 
 @cudaq.kernel

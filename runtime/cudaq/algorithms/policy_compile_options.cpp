@@ -35,6 +35,7 @@ CompileOptions get_compile_options_impl(const sample_policy &policy) {
 
 CompileOptions get_compile_options_impl(const observe_policy &policy) {
   CompileOptions opts;
+  opts.storeReorderIdx = true;
   opts.measureObservable = policy.spin;
   return opts;
 }

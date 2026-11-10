@@ -543,6 +543,11 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
     }
   }
 
+  // `sample` and `observe` read only the record, so let the optimizer drop
+  // qubits outside it.
+  if (options.addSampleMeasurements || options.measureObservable)
+    applyPipeline("func.func(erase-implicit-output)", moduleOp, kernelName);
+
   auto [combineMeasurements, passPipeline] =
       executeMainPipeline(moduleOp, kernelName, resolvedOptions);
 

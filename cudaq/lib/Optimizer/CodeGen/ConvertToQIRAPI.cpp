@@ -3205,6 +3205,9 @@ void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
                                             bool opaquePtr) {
   QuakeToQIRAPIPrepOptions prepApiOpt{.api = api.str(), .opaquePtr = opaquePtr};
   pm.addPass(cudaq::opt::createQuakeToQIRAPIPrep(prepApiOpt));
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createEraseCompilerGeneratedEvince());
+  // Fuse SSI blocks after erasure of all fake quake.evince.
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createLowerToCG());
   QuakeToQIRAPIOptions apiOpt{.api = api.str(), .opaquePtr = opaquePtr};

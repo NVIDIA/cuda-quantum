@@ -128,6 +128,12 @@ function f_option_handling {
 	-fkernel-execution)
 		ENABLE_KERNEL_EXECUTION=true
 		;;
+	-fno-inject-implicit-output)
+		ENABLE_INJECT_IMPLICIT_OUTPUT=false
+		;;
+	-finject-implicit-output)
+		ENABLE_INJECT_IMPLICIT_OUTPUT=true
+		;;
 	-fno-add-dealloc)
 		ENABLE_ADD_DEALLOC=false
 		;;
@@ -319,6 +325,9 @@ function show_help {
 
 -f[no-]kernel-execution
 	Enable/disable kernel execution pass.
+
+-f[no-]inject-implicit-output
+	Enable/disable injection of implicit quake.log_output operations.
 
 -f[no-]add-dealloc
 	Enable/disable insertion of quantum deallocation operations.
@@ -537,6 +546,7 @@ ENABLE_AGGRESSIVE_INLINE=true
 ENABLE_EXPAND_MEASUREMENTS=true
 ENABLE_LOWER_TO_CFG=false
 ENABLE_APPLY_SPECIALIZATION=true
+ENABLE_INJECT_IMPLICIT_OUTPUT=true
 ENABLE_LAMBDA_LIFTING=true
 QUANTUM_OPT_LEVEL=
 ENABLE_MLIR_LIB_LINKING=true
@@ -1016,6 +1026,10 @@ fi
 if ${ENABLE_UNWIND_LOWERING}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(unwind-lowering)")
+fi
+if ${ENABLE_INJECT_IMPLICIT_OUTPUT}; then
+	RUN_OPT=true
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(inject-implicit-output)")
 fi
 if ${ENABLE_ADD_DEALLOC}; then
 	RUN_OPT=true

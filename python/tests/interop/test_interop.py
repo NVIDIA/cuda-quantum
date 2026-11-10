@@ -82,6 +82,7 @@ def test_cpp_kernel_from_python_0():
         qstd.qft(q)
         h(q)
         qstd.another(q, 2)
+        cudaq.record(q)
 
     callQftAndAnother()
 
@@ -122,6 +123,7 @@ def test_cpp_kernel_from_python_1():
         cudaq_test_cpp_algo.qstd.qft(q)
         h(q)
         cudaq_test_cpp_algo.qstd.another(q, 2)
+        cudaq.record(q)
 
     callQftAndAnother()
 
@@ -217,6 +219,7 @@ def test_cpp_kernel_from_python_4():
         qlib.qstd.qft(q)
         h(q)
         qlib.qstd.another(q, 2)
+        cudaq.record(q)
 
     callQftAndAnother()
 
@@ -446,14 +449,15 @@ def test_cpp_kernel_from_builder_apply_call():
     from cudaq_test_cpp_algo import qstd
 
     @cudaq.kernel(defer_compilation=False, disable_quantum_optimization=True)
-    def cppCaller():
-        q = cudaq.qvector(4)
+    def cppCaller(q: cudaq.qview):
         qstd.qft(q)
         h(q)
         qstd.another(q, 2)
 
     kernel = cudaq.make_kernel()
-    kernel.apply_call(cppCaller)
+    q = kernel.qalloc(4)
+    kernel.apply_call(cppCaller, q)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)

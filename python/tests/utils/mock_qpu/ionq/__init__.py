@@ -112,7 +112,10 @@ async def postJob(job: Job,
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
     # Invoke the Kernel
-    results = cudaq.testing.sampleKernel(numQubitsRequired, job.shots, kernel)
+    results = cudaq.testing.sampleKernel(numQubitsRequired,
+                                         job.shots,
+                                         kernel,
+                                         measureAll=True)
     results.dump()
     createdJobs[newId] = results
 
