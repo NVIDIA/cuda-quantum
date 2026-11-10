@@ -61,7 +61,8 @@ TEST(QuantumPlatformTester, clearWaitsForActiveTaskBeforeDestroyingQPU) {
   auto qpu = std::make_unique<QueuedQPU>(destroyed);
   QuantumTask task = [&] {
     entered.set_value();
-    // Without the fix, clearQPUs destroys the QPU during this window.
+    // Without shutting down the execution queue first, clearQPUs destroys the
+    // QPU during this window.
     const auto deadline =
         std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
     while (!destroyed && std::chrono::steady_clock::now() < deadline)
