@@ -305,11 +305,6 @@ protected:
     ASSERT_TRUE(allocate_host_ring_buffer(num_slots_, slot_size_,
                                           &tx_flags_host_, &tx_data_host_));
 
-    shutdown_flag_ = new (std::nothrow) int(0);
-    stats_ = new (std::nothrow) uint64_t(0);
-    ASSERT_NE(shutdown_flag_, nullptr);
-    ASSERT_NE(stats_, nullptr);
-
     host_table_ = new (std::nothrow) cudaq_function_entry_t[1];
     ASSERT_NE(host_table_, nullptr);
     std::memset(host_table_, 0, sizeof(cudaq_function_entry_t));
@@ -342,17 +337,10 @@ protected:
     ASSERT_EQ(cudaq_dispatcher_set_function_table(dispatcher_, &table),
               CUDAQ_OK);
 
-    ASSERT_EQ(
-        cudaq_dispatcher_set_control(dispatcher_, shutdown_flag_, stats_),
-        CUDAQ_OK);
     ASSERT_EQ(cudaq_dispatcher_start(dispatcher_), CUDAQ_OK);
   }
 
   void TearDown() override {
-    if (shutdown_flag_) {
-      *shutdown_flag_ = 1;
-      __sync_synchronize();
-    }
     if (dispatcher_) {
       cudaq_dispatcher_stop(dispatcher_);
       cudaq_dispatcher_destroy(dispatcher_);
@@ -364,10 +352,6 @@ protected:
     }
     free_host_ring_buffer(rx_flags_host_, rx_data_host_);
     free_host_ring_buffer(tx_flags_host_, tx_data_host_);
-    if (shutdown_flag_)
-      delete shutdown_flag_;
-    if (stats_)
-      delete stats_;
     if (host_table_)
       delete[] host_table_;
   }
@@ -388,8 +372,6 @@ protected:
   std::uint8_t* rx_data_host_ = nullptr;
   std::uint8_t* tx_data_host_ = nullptr;
 
-  int* shutdown_flag_ = nullptr;
-  uint64_t* stats_ = nullptr;
   cudaq_function_entry_t* host_table_ = nullptr;
 
   cudaq_ringbuffer_t ringbuffer_{};
@@ -446,8 +428,6 @@ protected:
   }
 
   void TearDown() override {
-    shutdown_flag_ = 1;
-    __sync_synchronize();
     if (dispatcher_) {
       cudaq_dispatcher_stop(dispatcher_);
       cudaq_dispatcher_destroy(dispatcher_);
@@ -477,9 +457,6 @@ protected:
               CUDAQ_OK);
     EXPECT_EQ(cudaq_dispatcher_set_function_table(dispatcher_, &table),
               CUDAQ_OK);
-    EXPECT_EQ(cudaq_dispatcher_set_control(dispatcher_, &shutdown_flag_,
-                                           &stats_),
-              CUDAQ_OK);
     return cudaq_dispatcher_start(dispatcher_);
   }
 
@@ -489,8 +466,6 @@ protected:
   volatile uint64_t* tx_flags_host_ = nullptr;
   std::uint8_t* rx_data_host_ = nullptr;
   std::uint8_t* tx_data_host_ = nullptr;
-  volatile int shutdown_flag_ = 0;
-  uint64_t stats_ = 0;
   cudaq_function_entry_t entries_[2];
   cudaq_ringbuffer_t ringbuffer_{};
   cudaq_dispatch_manager_t* manager_ = nullptr;
@@ -675,16 +650,12 @@ protected:
     tx_data_dev_ = rx_data_dev_;
     tx_data_is_owned_ = false;
 
+    // The host loop below runs directly on a thread, not through a
+    // dispatcher, so it takes this flag; the device dispatcher owns its own.
     void* tmp = nullptr;
     CUDA_CHECK(cudaHostAlloc(&tmp, sizeof(int), cudaHostAllocMapped));
     shutdown_flag_host_ = static_cast<volatile int*>(tmp);
     *shutdown_flag_host_ = 0;
-    void* tmp_dev = nullptr;
-    CUDA_CHECK(cudaHostGetDevicePointer(&tmp_dev, tmp, 0));
-    shutdown_flag_dev_ = static_cast<volatile int*>(tmp_dev);
-
-    CUDA_CHECK(cudaMalloc(&device_loop_stats_, sizeof(uint64_t)));
-    CUDA_CHECK(cudaMemset(device_loop_stats_, 0, sizeof(uint64_t)));
 
     void* fn_table_host_ptr = nullptr;
     CUDA_CHECK(cudaHostAlloc(&fn_table_host_ptr,
@@ -743,11 +714,6 @@ protected:
                                                   &shared_table),
               CUDAQ_OK);
 
-    ASSERT_EQ(cudaq_dispatcher_set_control(device_dispatcher_,
-                                           shutdown_flag_dev_,
-                                           device_loop_stats_),
-              CUDAQ_OK);
-
     ASSERT_EQ(cudaq_dispatcher_set_launch_fn(
                   device_dispatcher_, &cudaq_launch_dispatch_kernel_regular),
               CUDAQ_OK);
@@ -802,8 +768,6 @@ protected:
 
     if (function_table_host_)
       cudaFreeHost(function_table_host_);
-    if (device_loop_stats_)
-      cudaFree(device_loop_stats_);
 
     free_ring_buffer(rx_flags_host_, rx_data_host_);
     if (tx_flags_host_)
@@ -868,13 +832,11 @@ protected:
   bool tx_data_is_owned_ = true;
 
   volatile int* shutdown_flag_host_ = nullptr;
-  volatile int* shutdown_flag_dev_ = nullptr;
   cudaq_function_entry_t* function_table_host_ = nullptr;
   cudaq_function_entry_t* function_table_dev_ = nullptr;
 
   cudaq_dispatch_manager_t* device_manager_ = nullptr;
   cudaq_dispatcher_t* device_dispatcher_ = nullptr;
-  uint64_t* device_loop_stats_ = nullptr;
 
   cudaq_ringbuffer_t host_ringbuffer_{};
   cudaq_function_table_t host_table_{};
@@ -911,8 +873,8 @@ TEST_F(SharedRingDispatcherTest, InterleavedHostAndDeviceRequests) {
   cudaq_dispatcher_stop(device_dispatcher_);
 
   uint64_t dev_count = 0;
-  CUDA_CHECK(cudaMemcpy(&dev_count, device_loop_stats_, sizeof(uint64_t),
-                        cudaMemcpyDeviceToHost));
+  ASSERT_EQ(cudaq_dispatcher_get_processed(device_dispatcher_, &dev_count),
+            CUDAQ_OK);
   EXPECT_EQ(dev_count, 2u);
   EXPECT_EQ(host_loop_stats_, 2u);
 

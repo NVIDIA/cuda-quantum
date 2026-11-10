@@ -176,20 +176,7 @@ int main(int argc, char *argv[]) {
     signal(SIGTERM, bridge_signal_handler);
     auto &g_shutdown = bridge_shutdown_flag();
     std::cout << "=== GpuRoceTransceiver Generic Bridge ===" << std::endl;
-    // Allocate control variables (shutdown flag)
-    void *tmp_shutdown = nullptr;
-    BRIDGE_CUDA_CHECK(
-        cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
-    void *tmp_d_shutdown = nullptr;
-    BRIDGE_CUDA_CHECK(
-        cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
-    volatile int *d_shutdown_flag = static_cast<volatile int *>(tmp_d_shutdown);
-    volatile int *shutdown_flag = static_cast<volatile int *>(tmp_shutdown);
-
     // CUDA-Q realtime variables
-    uint64_t *d_stats = nullptr;
-    BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
-    BRIDGE_CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(uint64_t)));
     cudaq_function_entry_t *d_function_entries = nullptr;
     cudaq_dispatch_manager_t *manager = nullptr;
     cudaq_dispatcher_t *dispatcher = nullptr;
@@ -227,11 +214,6 @@ int main(int argc, char *argv[]) {
                 << (config.unified ? "unified" : "3-kernel") << ")..."
                 << std::endl;
 
-      *shutdown_flag = 0;
-      int zero = 0;
-      BRIDGE_CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag), &zero,
-                                   sizeof(int), cudaMemcpyHostToDevice));
-
       // Create CUDA-Q dispatcher manager
       HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatch_manager_create(&manager));
       // Ring geometry stays 0: the dispatcher takes it from the bridge, which
@@ -268,11 +250,6 @@ int main(int argc, char *argv[]) {
       // Set the function table for the dispatcher
       HANDLE_CUDAQ_REALTIME_ERROR(
           cudaq_dispatcher_set_function_table(dispatcher, &table));
-      // Set the control variables (shutdown flag and stats pointer) for the
-      // dispatcher
-      HANDLE_CUDAQ_REALTIME_ERROR(
-          cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats));
-
       // Start the dispatcher (launches the dispatch kernel)
       HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatcher_start(dispatcher));
       std::cout << "  Dispatch kernel launched" << std::endl;
@@ -288,10 +265,6 @@ int main(int argc, char *argv[]) {
     //============================================================================
     // Main run loop
     //============================================================================
-    cudaStream_t diag_stream = nullptr;
-    BRIDGE_CUDA_CHECK(
-        cudaStreamCreateWithFlags(&diag_stream, cudaStreamNonBlocking));
-
     auto start_time = std::chrono::steady_clock::now();
     uint64_t last_processed = 0;
 
@@ -306,12 +279,11 @@ int main(int argc, char *argv[]) {
       }
 
       // Progress report every 5 seconds
-      if (!config.forward && d_stats && elapsed > 0 && elapsed % 5 == 0) {
+      if (!config.forward && dispatcher && elapsed > 0 && elapsed % 5 == 0) {
         uint64_t processed = 0;
-        cudaMemcpyAsync(&processed, d_stats, sizeof(uint64_t),
-                        cudaMemcpyDeviceToHost, diag_stream);
-        cudaStreamSynchronize(diag_stream);
-        if (processed != last_processed) {
+        if (cudaq_dispatcher_get_processed(dispatcher, &processed) ==
+                CUDAQ_OK &&
+            processed != last_processed) {
           std::cout << "  [" << elapsed << "s] Processed " << processed
                     << " packets" << std::endl;
           last_processed = processed;
@@ -326,8 +298,6 @@ int main(int argc, char *argv[]) {
     //============================================================================
     std::cout << "\n=== Shutting down ===" << std::endl;
     if (!config.forward) {
-      *shutdown_flag = 1;
-      __sync_synchronize();
       cudaq_dispatcher_stop(dispatcher);
 
       uint64_t total_processed = 0;
@@ -339,7 +309,6 @@ int main(int argc, char *argv[]) {
     HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_disconnect(bridge_handle));
     // Clean up
     BRIDGE_CUDA_CHECK(cudaFree(d_function_entries));
-    BRIDGE_CUDA_CHECK(cudaFree(d_stats));
     if (dispatcher)
       cudaq_dispatcher_destroy(dispatcher);
     if (manager)
@@ -347,8 +316,6 @@ int main(int argc, char *argv[]) {
     std::cout << "  Destroying bridge..." << std::endl;
     HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_destroy(bridge_handle));
     std::cout << "Bridge shut down successfully." << std::endl;
-    if (shutdown_flag)
-      BRIDGE_CUDA_CHECK(cudaFreeHost(const_cast<int *>(shutdown_flag)));
   } catch (const std::exception &e) {
     std::cerr << "ERROR: " << e.what() << std::endl;
     return 1;

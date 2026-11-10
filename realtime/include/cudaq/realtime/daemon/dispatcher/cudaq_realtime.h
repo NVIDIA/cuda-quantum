@@ -216,7 +216,11 @@ typedef struct {
   uint32_t count;                  // number of entries
 } cudaq_function_table_t;
 
-// Host launch function pointer type
+// Host launch function pointer type.  The launcher must start the kernel on
+// `stream`, the dispatcher's non-blocking stream: cudaq_dispatcher_stop raises
+// the shutdown flag with a legacy-default-stream copy and then waits on
+// `stream`, so a kernel on the legacy stream or on a blocking stream would
+// deadlock it.
 typedef void (*cudaq_dispatch_launch_fn_t)(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
     uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
@@ -378,17 +382,29 @@ cudaq_dispatcher_set_ringbuffer(cudaq_dispatcher_t *dispatcher,
 cudaq_status_t
 cudaq_dispatcher_set_function_table(cudaq_dispatcher_t *dispatcher,
                                     const cudaq_function_table_t *table);
-cudaq_status_t cudaq_dispatcher_set_control(cudaq_dispatcher_t *dispatcher,
-                                            volatile int *shutdown_flag,
-                                            uint64_t *stats);
+// Deprecated: the dispatcher owns the shutdown flag its loop polls and the
+// counter it adds processed requests to (set up by start(), raised by stop(),
+// read by cudaq_dispatcher_get_processed), so nothing has to be wired here.
+// This call overrides both with the caller's words for code not yet moved:
+// device-visible on the DEVICE path, as before, kept alive until
+// cudaq_dispatcher_destroy, and used as given (start() does not zero them, so
+// the caller clears the flag before a restart).  Call it before
+// cudaq_dispatcher_start; it is refused while the dispatcher runs.  Goes away
+// once no application needs it.
+__attribute__((deprecated(
+    "the dispatcher owns its shutdown flag and counter; drop this call")))
+cudaq_status_t
+cudaq_dispatcher_set_control(cudaq_dispatcher_t *dispatcher,
+                             volatile int *shutdown_flag, uint64_t *stats);
 // Optional on the DEVICE ring path: without it, start() calls the archive's
 // cudaq_launch_dispatch_kernel_regular.  That default binds to the first copy
 // of the archive exported in the process, so name the launcher here when this
 // binary's copy may not be that one: when it hides the archive's symbols
 // (-Wl,--exclude-libs), or shares the process with another binary that links
 // the archive.  The kernel must share a CUDA module with the function table's
-// DEVICE_CALL handlers.  Refused on the HOST path, and NULL is refused on the
-// DEVICE path.
+// DEVICE_CALL handlers, and run on the stream the launcher is given (see
+// cudaq_dispatch_launch_fn_t).  Refused on the HOST path, and NULL is refused
+// on the DEVICE path.
 cudaq_status_t
 cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
                                cudaq_dispatch_launch_fn_t launch_fn);
@@ -478,11 +494,23 @@ cudaq_status_t
 cudaq_dispatcher_set_cpu_dataplane(cudaq_dispatcher_t *dispatcher,
                                    void *cpu_dataplane);
 
-// Start/stop
+// Start/stop.  start() sets up the dispatcher's own shutdown flag and
+// processed-request counter (zeroed at each start) and runs the loop; stop()
+// raises the flag itself and returns once the loop has exited, and is a no-op
+// when nothing is running.  On the DEVICE path the two words are device
+// memory, allocated, zeroed and (by cudaq_dispatcher_destroy) freed with
+// stream-ordered calls where the device supports them
+// (cudaDevAttrMemoryPoolsSupported); elsewhere cudaMalloc, cudaMemset and
+// cudaFree stand in, and those may wait for kernels resident on the device,
+// as a caller's own cudaFree of these words did before: on such a device,
+// start and destroy the dispatcher while no other kernel of the application
+// is resident.
 cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher);
 cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher);
 
-// Stats
+// Stats: the requests the dispatcher has processed.  With the dispatcher's own
+// counter, zero before the first start(); final once stop() has returned (the
+// HOST loops publish their count when they exit).
 cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
                                               uint64_t *out_packets);
 

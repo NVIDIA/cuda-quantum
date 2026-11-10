@@ -318,9 +318,6 @@ inline int bridge_run(BridgeConfig &config) {
   // dispatch kernel occupancy query below handles our own kernels.
 
   // Dispatch kernel resources (unused in forward mode)
-  volatile int *shutdown_flag = nullptr;
-  volatile int *d_shutdown_flag = nullptr;
-  uint64_t *d_stats = nullptr;
   cudaq_dispatch_manager_t *manager = nullptr;
   cudaq_dispatcher_t *dispatcher = nullptr;
 
@@ -340,22 +337,6 @@ inline int bridge_run(BridgeConfig &config) {
     // [4] Wire dispatch kernel
     //==========================================================================
     std::cout << "\n[4/5] Wiring dispatch kernel (3-kernel)..." << std::endl;
-
-    void *tmp_shutdown = nullptr;
-    BRIDGE_CUDA_CHECK(
-        cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
-    shutdown_flag = static_cast<volatile int *>(tmp_shutdown);
-    void *tmp_d_shutdown = nullptr;
-    BRIDGE_CUDA_CHECK(
-        cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
-    d_shutdown_flag = static_cast<volatile int *>(tmp_d_shutdown);
-    *shutdown_flag = 0;
-    int zero = 0;
-    BRIDGE_CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag), &zero,
-                                 sizeof(int), cudaMemcpyHostToDevice));
-
-    BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
-    BRIDGE_CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(uint64_t)));
 
     if (cudaq_dispatch_manager_create(&manager) != CUDAQ_OK) {
       std::cerr << "ERROR: Failed to create dispatch manager" << std::endl;
@@ -405,12 +386,6 @@ inline int bridge_run(BridgeConfig &config) {
       return 1;
     }
 
-    if (cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats) !=
-        CUDAQ_OK) {
-      std::cerr << "ERROR: Failed to set control" << std::endl;
-      return 1;
-    }
-
     if (cudaq_dispatcher_start(dispatcher) != CUDAQ_OK) {
       std::cerr << "ERROR: Failed to start dispatcher" << std::endl;
       return 1;
@@ -445,10 +420,6 @@ inline int bridge_run(BridgeConfig &config) {
   //============================================================================
   // Main run loop
   //============================================================================
-  cudaStream_t diag_stream = nullptr;
-  BRIDGE_CUDA_CHECK(
-      cudaStreamCreateWithFlags(&diag_stream, cudaStreamNonBlocking));
-
   auto start_time = std::chrono::steady_clock::now();
   uint64_t last_processed = 0;
 
@@ -463,12 +434,10 @@ inline int bridge_run(BridgeConfig &config) {
     }
 
     // Progress report every 5 seconds
-    if (!config.forward && d_stats && elapsed > 0 && elapsed % 5 == 0) {
+    if (!config.forward && dispatcher && elapsed > 0 && elapsed % 5 == 0) {
       uint64_t processed = 0;
-      cudaMemcpyAsync(&processed, d_stats, sizeof(uint64_t),
-                      cudaMemcpyDeviceToHost, diag_stream);
-      cudaStreamSynchronize(diag_stream);
-      if (processed != last_processed) {
+      if (cudaq_dispatcher_get_processed(dispatcher, &processed) == CUDAQ_OK &&
+          processed != last_processed) {
         std::cout << "  [" << elapsed << "s] Processed " << processed
                   << " packets" << std::endl;
         last_processed = processed;
@@ -483,14 +452,7 @@ inline int bridge_run(BridgeConfig &config) {
   //============================================================================
   std::cout << "\n=== Shutting down ===" << std::endl;
 
-  if (diag_stream) {
-    cudaStreamDestroy(diag_stream);
-    diag_stream = nullptr;
-  }
-
   if (!config.forward) {
-    *shutdown_flag = 1;
-    __sync_synchronize();
     cudaq_dispatcher_stop(dispatcher);
 
     uint64_t total_processed = 0;
@@ -508,11 +470,6 @@ inline int bridge_run(BridgeConfig &config) {
   if (manager)
     cudaq_dispatch_manager_destroy(manager);
   gpu_roce_destroy_transceiver(transceiver);
-
-  if (shutdown_flag)
-    cudaFreeHost(const_cast<int *>(shutdown_flag));
-  if (d_stats)
-    cudaFree(d_stats);
 
   // Call tool-specific cleanup
   if (config.cleanup_fn)

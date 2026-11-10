@@ -58,10 +58,9 @@
 /// -- and `unified` is the single kernel that drives the provider's device
 /// hooks.  The device path is compiled in only when the build has the
 /// gpu_roce tooling (CUDAQ_REALTIME_ENABLE_HSB_TOOLS); otherwise
-/// `--path=device` is refused.  It differs from the host path in three
-/// places, each a branch of a numbered step below: the dispatcher config [3],
-/// the function table [5], and the control variables [6], which the GPU must
-/// be able to read.  All device function-table construction is in
+/// `--path=device` is refused.  It differs from the host path in two
+/// places, each a branch of a numbered step below: the dispatcher config [3]
+/// and the function table [5].  All device function-table construction is in
 /// build_device_table().  The 3-kernel dispatch kernel comes from
 /// libcudaq-realtime-dispatch.a, device-linked into this binary with the
 /// handler, and the dispatcher finds its launcher there by itself.  The
@@ -277,21 +276,13 @@ struct ServerResources {
   cudaq_realtime_bridge_handle_t bridge = nullptr;
   cudaq_dispatch_manager_t *manager = nullptr;
   cudaq_dispatcher_t *dispatcher = nullptr;
-  // The host view of the dispatcher's shutdown flag, raised before stop():
-  // on the device path, stop()'s own write is a cudaMemcpy that would queue
-  // behind the kernel it is meant to end.
-  volatile int *shutdown_flag = nullptr;
 #ifdef CUDAQ_REALTIME_TEST_SERVER_DEVICE_PATH
-  // Device path only, freed last: the dispatch kernel reads all three.
-  void *h_shutdown_flag = nullptr; // cudaHostAllocMapped
-  std::uint64_t *d_stats = nullptr;
+  // Device path only, freed last: the dispatch kernel reads it.
   cudaq_function_entry_t *d_entries = nullptr;
 #endif
 
   ~ServerResources() {
     if (dispatcher) {
-      if (shutdown_flag)
-        *shutdown_flag = 1;
       cudaq_dispatcher_stop(dispatcher);
       cudaq_dispatcher_destroy(dispatcher);
     }
@@ -304,10 +295,6 @@ struct ServerResources {
 #ifdef CUDAQ_REALTIME_TEST_SERVER_DEVICE_PATH
     if (d_entries)
       cudaFree(d_entries);
-    if (d_stats)
-      cudaFree(d_stats);
-    if (h_shutdown_flag)
-      cudaFreeHost(h_shutdown_flag);
 #endif
   }
 };
@@ -505,39 +492,9 @@ int main(int argc, char **argv) {
   }
 #endif
 
-  // [6] Control variables, then start polling.  A HOST_CALL-only table needs
-  //     no graph engine and therefore no GPU.
-  volatile int host_shutdown_flag = 0;
-  std::uint64_t host_stats = 0;
-  volatile int *shutdown_flag = &host_shutdown_flag;
-  std::uint64_t *stats = &host_stats;
-#ifdef CUDAQ_REALTIME_TEST_SERVER_DEVICE_PATH
-  if (cfg.device) {
-    // [6d] The kernel polls the flag, so it lives in mapped pinned memory and
-    //      the dispatcher gets its device view; the host keeps the other for
-    //      the shutdown in [11].  The kernel adds its count to a device word.
-    void *d_shutdown_flag = nullptr;
-    if (cudaHostAlloc(&res.h_shutdown_flag, sizeof(int), cudaHostAllocMapped) !=
-            cudaSuccess ||
-        cudaHostGetDevicePointer(&d_shutdown_flag, res.h_shutdown_flag, 0) !=
-            cudaSuccess ||
-        cudaMalloc(&res.d_stats, sizeof(std::uint64_t)) != cudaSuccess ||
-        cudaMemset(res.d_stats, 0, sizeof(std::uint64_t)) != cudaSuccess) {
-      std::cerr << "ERROR: cannot allocate the device control variables"
-                << std::endl;
-      return 1;
-    }
-    *static_cast<volatile int *>(res.h_shutdown_flag) = 0;
-    res.shutdown_flag = static_cast<volatile int *>(res.h_shutdown_flag);
-    shutdown_flag = static_cast<volatile int *>(d_shutdown_flag);
-    stats = res.d_stats;
-  }
-#endif
-  if (cudaq_dispatcher_set_control(res.dispatcher, shutdown_flag, stats) !=
-      CUDAQ_OK) {
-    std::cerr << "ERROR: cudaq_dispatcher_set_control failed" << std::endl;
-    return 1;
-  }
+  // [6] Start polling.  A HOST_CALL-only table needs no graph engine and
+  //     therefore no GPU.  On either path the dispatcher owns the shutdown
+  //     flag its loop polls and the counter it adds processed requests to.
   if (cudaq_dispatcher_start(res.dispatcher) != CUDAQ_OK) {
     std::cerr << "ERROR: cudaq_dispatcher_start failed" << std::endl;
     return 1;
@@ -585,10 +542,6 @@ int main(int argc, char **argv) {
 
   // [11] Stop the dispatch loop, then report the count it accumulated (only
   //      final once the loop has exited).  ServerResources unwinds the rest.
-  //      A device kernel is ended through the flag's host view first, see
-  //      ServerResources::shutdown_flag.
-  if (res.shutdown_flag)
-    *res.shutdown_flag = 1;
   cudaq_dispatcher_stop(res.dispatcher);
   std::uint64_t processed = 0;
   cudaq_dispatcher_get_processed(res.dispatcher, &processed);

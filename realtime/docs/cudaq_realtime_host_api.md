@@ -262,7 +262,7 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED` on the DEVICE path:
     fills it from the bridge when the `config` leaves it 0
 - `num_blocks` must be 1 and `threads_per_block >= 1` (the block every
     `CUDAQ_DISPATCH_DEVICE_CALL` handler runs on)
-- All other wiring (`set_function_table`, `set_control`) remains the same
+- All other wiring (`set_function_table`) remains the same
 
 ### Wiring Example (Unified Mode with GpuRoceTransceiver)
 
@@ -297,7 +297,6 @@ cudaq_dispatcher_get_device_handler(dispatcher, "my_handler", &handler);
 // ... fill the DEVICE_CALL entry with `handler`, copy the table to the device
 
 cudaq_dispatcher_set_function_table(dispatcher, &table);
-cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
 cudaq_dispatcher_start(dispatcher);
 cudaq_bridge_launch(bridge);
 ```
@@ -543,7 +542,7 @@ dispatch loop.
 
 - `out_dispatcher`: receives the created dispatcher handle.
 
-Call this before wiring ring buffers, function tables, or control state.
+Call this before wiring ring buffers or function tables.
 
 **`cudaq_dispatcher_destroy`** releases a dispatcher after it has been stopped.
 
@@ -551,7 +550,11 @@ Parameters:
 
 - `dispatcher`: dispatcher handle to destroy.
 
-Call this when the dispatcher is no longer needed.
+Call this when the dispatcher is no longer needed. On the device path it frees
+the dispatcher's own shutdown flag and counter, with a stream-ordered call
+where the device supports it; elsewhere `cudaFree` stands in and may wait for
+kernels resident on the device, so on such a device destroy the dispatcher
+while no other kernel of the application is resident.
 
 **`cudaq_dispatcher_set_bridge`** wires a transport bridge (see
 `bridge_interface.h`) to the dispatcher.  The configured `dispatch_path` and
@@ -691,20 +694,22 @@ no separate runtime registration call.
 - If no entry matches, the dispatcher clears the slot without a response.
 - Suggested: use stable, human-readable handler names (e.g., `"mock_decode"`).
 
-**`cudaq_dispatcher_set_control`** supplies the shutdown flag and stats buffer
-the dispatch kernel uses for termination and bookkeeping.
-
-Parameters:
-
-- `dispatcher`: dispatcher handle.
-- `shutdown_flag`: device-visible flag used to signal shutdown.
-- `stats`: device-visible stats buffer.
-
-Call this before starting the dispatcher; both buffers must remain valid for
-the dispatcher’s lifetime.
+**`cudaq_dispatcher_set_control`** is deprecated. The dispatcher owns the
+shutdown flag its loop polls and the counter it adds processed requests to:
+`cudaq_dispatcher_start` sets them up (zeroed at each start),
+`cudaq_dispatcher_stop` raises the flag, and `cudaq_dispatcher_get_processed`
+reads the count. The call remains for applications not yet moved: it overrides
+both words with the caller's (device-visible on the device path), which must
+then stay valid until the dispatcher is destroyed. The override's words are
+used as given: `cudaq_dispatcher_start` does not zero them, so the caller
+clears the flag before a restart. Call it before `cudaq_dispatcher_start`; it
+is refused while the dispatcher runs.
 
 **`cudaq_dispatcher_set_launch_fn`** provides the host-side launch wrapper that
-invokes the dispatch kernel with the correct grid/block dimensions.
+invokes the dispatch kernel with the correct grid/block dimensions, on the
+stream it is given: `cudaq_dispatcher_stop` raises the shutdown flag with a
+default-stream copy and then waits on that stream, so the kernel must not run
+on the legacy default stream or on a blocking stream.
 
 Parameters:
 
@@ -723,8 +728,16 @@ Parameters:
 
 - `dispatcher`: dispatcher handle.
 
-Call this only after ring buffers, function table, control buffers, and launch
-function are set.
+Call this once the dispatcher is wired for its shape: the function table, and
+the ring buffer or bridge (host unified needs the bridge's CPU data plane;
+device unified needs the bridge's GPU data plane or
+`cudaq_dispatcher_set_unified_launch`). `cudaq_dispatcher_set_launch_fn` is
+optional on the device ring path. On the device path the dispatcher's own
+shutdown flag and counter are device memory, set up with stream-ordered calls
+where the device supports them (`cudaDevAttrMemoryPoolsSupported`); elsewhere
+`cudaMalloc` and `cudaMemset` stand in and may wait for kernels resident on the
+device, so on such a device start the dispatcher while no other kernel of the
+application is resident.
 
 **`cudaq_dispatcher_stop`** signals the dispatch kernel to exit and waits for it
 to shut down.
@@ -735,8 +748,11 @@ Parameters:
 
 Call this during tear-down before destroying the dispatcher.
 
-**`cudaq_dispatcher_get_processed`** reads the processed‑packet counter from the
-stats buffer to support debugging or throughput tracking.
+**`cudaq_dispatcher_get_processed`** reads the dispatcher's processed‑request
+counter to support debugging or throughput tracking. With the dispatcher's own
+counter it is zero before the first start; it is final once
+`cudaq_dispatcher_stop` has returned (the host loops publish their count when
+they exit).
 
 Parameters:
 
@@ -894,8 +910,10 @@ In the NIC-free path, flags and data are allocated with
 
 ## Step-by-Step: Wiring the Host API (Minimal)
 
-The snippet below is real code from
-`cudaq-qec/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`:
+The snippet below is adapted from
+`cudaq-qec/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
+(that test still calls the deprecated `cudaq_dispatcher_set_control`, omitted
+here):
 
 ```cpp
 // Host API wiring
@@ -933,9 +951,6 @@ cudaq_function_table_t table{};
 table.entries = d_entries;
 table.count = func_count_;
 ASSERT_EQ(cudaq_dispatcher_set_function_table(dispatcher_, &table), CUDAQ_OK);
-
-ASSERT_EQ(cudaq_dispatcher_set_control(dispatcher_, d_shutdown_flag_, d_stats_),
-          CUDAQ_OK);
 
 ASSERT_EQ(cudaq_dispatcher_set_launch_fn(
               dispatcher_,
@@ -1321,7 +1336,7 @@ host_table[0].function_id = MY_INCREMENT_FUNCTION_ID;
 host_table[0].dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
 host_table[0].handler.host_fn = &host_increment;
 
-// 4. Wire: manager, dispatcher, ring buffer, function table, control
+// 4. Wire: manager, dispatcher, ring buffer, function table
 cudaq_dispatch_manager_t *manager;
 cudaq_dispatch_manager_create(&manager);
 
@@ -1338,10 +1353,6 @@ cudaq_function_table_t table{};
 table.entries = host_table;
 table.count   = 1;
 cudaq_dispatcher_set_function_table(dispatcher, &table);
-
-volatile int shutdown_flag = 0;
-uint64_t stats = 0;
-cudaq_dispatcher_set_control(dispatcher, &shutdown_flag, &stats);
 
 // 5. Start the host dispatcher (spawns the dispatch thread)
 cudaq_dispatcher_start(dispatcher);
@@ -1362,12 +1373,12 @@ while (cudaq_host_ringbuffer_poll_tx_flag(&ringbuffer, 0, nullptr) ==
 auto *resp = reinterpret_cast<RPCResponse *>(tx_data.data());
 uint8_t *result = tx_data.data() + sizeof(RPCResponse);
 
-// Teardown
+// Teardown: stop() raises the dispatcher's own shutdown flag and joins the
+// loop, which adds its handled count on exit.
 cudaq_host_ringbuffer_clear_slot(&ringbuffer, 0);
-shutdown_flag = 1;
-__sync_synchronize();
 cudaq_dispatcher_stop(dispatcher);
-// stats == 1: the loop adds its handled count to *stats when it exits
+uint64_t processed = 0;
+cudaq_dispatcher_get_processed(dispatcher, &processed); // 1
 cudaq_dispatcher_destroy(dispatcher);
 cudaq_dispatch_manager_destroy(manager);
 ```
