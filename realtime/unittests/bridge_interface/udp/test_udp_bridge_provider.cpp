@@ -135,8 +135,64 @@ TEST(UdpBridgeProvider, RefusesCpuDataplaneWithoutUnified) {
 
   // ... while the ring shape is served, as it always has been.
   cudaq_ringbuffer_t ring = {};
-  EXPECT_EQ(cudaq_bridge_get_transport_context(bridge, RING_BUFFER, &ring),
+  EXPECT_EQ(cudaq_bridge_get_ring_buffer(bridge, &ring), CUDAQ_OK);
+
+  EXPECT_EQ(cudaq_bridge_destroy(bridge), CUDAQ_OK);
+}
+
+// The ring shape is served through the typed query, in that shape only, with
+// the host views a host-path dispatcher polls.
+TEST(UdpBridgeProvider, GetRingBufferServesRingShapeOnly) {
+  cudaq_realtime_bridge_handle_t ring_bridge =
+      make_bridge({"--port=0", "--num-slots=8", "--slot-size=256"});
+  ASSERT_NE(ring_bridge, nullptr);
+  cudaq_ringbuffer_t ring = {};
+  ASSERT_EQ(cudaq_bridge_get_ring_buffer(ring_bridge, &ring), CUDAQ_OK);
+  EXPECT_NE(ring.rx_flags_host, nullptr);
+  EXPECT_NE(ring.tx_flags_host, nullptr);
+  EXPECT_NE(ring.rx_data_host, nullptr);
+  EXPECT_NE(ring.tx_data_host, nullptr);
+  EXPECT_EQ(ring.rx_stride_sz, size_t{256});
+  EXPECT_EQ(ring.tx_stride_sz, size_t{256});
+  EXPECT_EQ(cudaq_bridge_get_ring_buffer(ring_bridge, nullptr),
+            CUDAQ_ERR_INVALID_ARG);
+  EXPECT_EQ(cudaq_bridge_destroy(ring_bridge), CUDAQ_OK);
+
+  cudaq_realtime_bridge_handle_t unified_bridge = make_bridge(
+      {"--unified", "--port=0", "--num-slots=8", "--slot-size=256"});
+  ASSERT_NE(unified_bridge, nullptr);
+  EXPECT_EQ(cudaq_bridge_get_ring_buffer(unified_bridge, &ring),
+            CUDAQ_ERR_UNSUPPORTED);
+  EXPECT_EQ(cudaq_bridge_destroy(unified_bridge), CUDAQ_OK);
+}
+
+// The deprecated untyped query keeps working for callers not yet moved: its
+// RING_BUFFER case is the typed query, and its UNIFIED case is still refused
+// by a provider that is not running unified.
+TEST(UdpBridgeProvider, TransportContextRingForwardsToGetRingBuffer) {
+  cudaq_realtime_bridge_handle_t bridge =
+      make_bridge({"--port=0", "--num-slots=8", "--slot-size=256"});
+  ASSERT_NE(bridge, nullptr);
+  cudaq_ringbuffer_t ring = {};
+  ASSERT_EQ(cudaq_bridge_get_ring_buffer(bridge, &ring), CUDAQ_OK);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  cudaq_ringbuffer_t old = {};
+  ASSERT_EQ(cudaq_bridge_get_transport_context(bridge, RING_BUFFER, &old),
             CUDAQ_OK);
+  cudaq_unified_dispatch_ctx_t unified = {};
+  EXPECT_EQ(cudaq_bridge_get_transport_context(bridge, UNIFIED, &unified),
+            CUDAQ_ERR_UNSUPPORTED);
+  EXPECT_EQ(cudaq_bridge_get_transport_context(bridge, RING_BUFFER, nullptr),
+            CUDAQ_ERR_INVALID_ARG);
+#pragma GCC diagnostic pop
+  EXPECT_EQ(old.rx_flags_host, ring.rx_flags_host);
+  EXPECT_EQ(old.tx_flags_host, ring.tx_flags_host);
+  EXPECT_EQ(old.rx_data_host, ring.rx_data_host);
+  EXPECT_EQ(old.tx_data_host, ring.tx_data_host);
+  EXPECT_EQ(old.rx_stride_sz, ring.rx_stride_sz);
+  EXPECT_EQ(old.tx_stride_sz, ring.tx_stride_sz);
 
   EXPECT_EQ(cudaq_bridge_destroy(bridge), CUDAQ_OK);
 }
@@ -165,16 +221,17 @@ TEST(UdpBridgeProvider, ExposesCpuDataplaneWithUnified) {
   // into a named wiring error rather than a transport that appears to drop
   // every request.
   cudaq_ringbuffer_t ring = {};
-  EXPECT_EQ(cudaq_bridge_get_transport_context(bridge, RING_BUFFER, &ring),
-            CUDAQ_ERR_UNSUPPORTED);
+  EXPECT_EQ(cudaq_bridge_get_ring_buffer(bridge, &ring), CUDAQ_ERR_UNSUPPORTED);
 
   EXPECT_EQ(cudaq_bridge_destroy(bridge), CUDAQ_OK);
 }
 
-// A consumer that means to serve unified asks get_transport_context first, the
-// same call it would make for the ring shape, and keys off launch_fn to learn
-// which flavor of unified it got.  Both configurations are asserted, because
-// the whole mechanism rests on a provider refusing the shape it is NOT running.
+// The deprecated UNIFIED query, which set_bridge still makes to find a launch
+// override, answers "unified, but the loop is yours" under --unified and is
+// refused otherwise.  Both configurations are asserted, because the mechanism
+// rests on a provider refusing the shape it is NOT running.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 TEST(UdpBridgeProvider, AnswersUnifiedWithNoDispatcherOverride) {
   cudaq_realtime_bridge_handle_t ring_bridge =
       make_bridge({"--port=0", "--num-slots=8", "--slot-size=256"});
@@ -206,6 +263,7 @@ TEST(UdpBridgeProvider, AnswersUnifiedWithNoDispatcherOverride) {
 
   EXPECT_EQ(cudaq_bridge_destroy(unified_bridge), CUDAQ_OK);
 }
+#pragma GCC diagnostic pop
 
 //==============================================================================
 // Is the data plane we hand out actually wired to anything?

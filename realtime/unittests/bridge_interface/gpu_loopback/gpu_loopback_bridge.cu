@@ -14,12 +14,22 @@
 /// test's handlers -- runs on any GPU.  The test plays the wire: it writes a
 /// request into an RX slot and raises that slot's RX flag, and the response
 /// appears in the matching TX slot with its TX flag raised.  It reaches the
-/// rings through `get_transport_context(RING_BUFFER)`.
+/// rings through `cudaq_bridge_get_ring_buffer`.
 ///
 /// Bridge options:
 ///   --explicit-garbage   hand over an image that cannot link
 ///   --no-device-code     hand over no device code at all
 ///   --unified-context-fails  fail the UNIFIED context query (INTERNAL)
+///
+/// Built three times: as is, a version-5 provider that serves its rings
+/// through get_ring_buffer and keeps the deprecated get_transport_context
+/// entry for the `--unified-context-fails` answer; with
+/// GPU_LOOPBACK_LEGACY_INTERFACE defined, a provider written before version 5
+/// that leaves get_ring_buffer NULL and still answers RING_BUFFER through
+/// get_transport_context, for the API's fallback; and with
+/// GPU_LOOPBACK_NO_TRANSPORT_CONTEXT defined, the provider the interface doc
+/// describes, with no get_transport_context entry at all
+/// (`--unified-context-fails` then has nothing to answer).
 ///
 /// Like any provider, this library links no realtime library: it uses the
 /// realtime headers only.
@@ -213,6 +223,18 @@ static cudaq_status_t loopback_destroy(cudaq_realtime_bridge_handle_t handle) {
 }
 
 static cudaq_status_t
+loopback_get_ring_buffer(cudaq_realtime_bridge_handle_t handle,
+                         cudaq_ringbuffer_t *out_ring) {
+  if (!handle || !out_ring)
+    return CUDAQ_ERR_INVALID_ARG;
+  *out_ring = static_cast<LoopbackBridge *>(handle)->ring;
+  return CUDAQ_OK;
+}
+
+#ifndef GPU_LOOPBACK_NO_TRANSPORT_CONTEXT
+// Deprecated entry: the UNIFIED query answers `--unified-context-fails`, and
+// the legacy build still serves the rings here.
+static cudaq_status_t
 loopback_get_transport_context(cudaq_realtime_bridge_handle_t handle,
                                cudaq_realtime_transport_context_t context_type,
                                void *out_context) {
@@ -221,12 +243,14 @@ loopback_get_transport_context(cudaq_realtime_bridge_handle_t handle,
   if (context_type == UNIFIED &&
       static_cast<LoopbackBridge *>(handle)->unified_context_fails)
     return CUDAQ_ERR_INTERNAL;
-  if (context_type != RING_BUFFER)
-    return CUDAQ_ERR_UNSUPPORTED;
-  *static_cast<cudaq_ringbuffer_t *>(out_context) =
-      static_cast<LoopbackBridge *>(handle)->ring;
-  return CUDAQ_OK;
+#ifdef GPU_LOOPBACK_LEGACY_INTERFACE
+  if (context_type == RING_BUFFER)
+    return loopback_get_ring_buffer(
+        handle, static_cast<cudaq_ringbuffer_t *>(out_context));
+#endif
+  return CUDAQ_ERR_UNSUPPORTED;
 }
+#endif
 
 static cudaq_status_t loopback_noop(cudaq_realtime_bridge_handle_t handle) {
   return handle ? CUDAQ_OK : CUDAQ_ERR_INVALID_ARG;
@@ -285,7 +309,11 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION,
       loopback_create,
       loopback_destroy,
+#ifdef GPU_LOOPBACK_NO_TRANSPORT_CONTEXT
+      /*get_transport_context=*/nullptr, // the doc's new-provider shape
+#else
       loopback_get_transport_context,
+#endif
       loopback_noop, // connect
       loopback_noop, // launch
       loopback_noop, // disconnect
@@ -294,6 +322,11 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       loopback_get_ring_geometry,
       /*set_function_table=*/nullptr,
       loopback_get_gpu_dataplane,
+#ifdef GPU_LOOPBACK_LEGACY_INTERFACE
+      /*get_ring_buffer=*/nullptr, // pre-version-5 provider: rings above
+#else
+      loopback_get_ring_buffer,
+#endif
   };
   return &iface;
 }

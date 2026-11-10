@@ -27,6 +27,32 @@ target_include_directories(cudaq-realtime-bridge-gpu-loopback PRIVATE
   ${CUDAQ_REALTIME_INCLUDE_DIR})
 target_link_libraries(cudaq-realtime-bridge-gpu-loopback PRIVATE CUDA::cudart)
 
+# The same provider as one written before interface version 5: no
+# get_ring_buffer entry, rings answered through get_transport_context.
+add_library(cudaq-realtime-bridge-gpu-loopback-legacy SHARED gpu_loopback_bridge.cu)
+set_target_properties(cudaq-realtime-bridge-gpu-loopback-legacy PROPERTIES
+  CUDA_SEPARABLE_COMPILATION ON
+  POSITION_INDEPENDENT_CODE ON
+  CUDA_STANDARD 20)
+target_compile_definitions(cudaq-realtime-bridge-gpu-loopback-legacy PRIVATE
+  GPU_LOOPBACK_LEGACY_INTERFACE)
+target_include_directories(cudaq-realtime-bridge-gpu-loopback-legacy PRIVATE
+  ${CUDAQ_REALTIME_INCLUDE_DIR})
+target_link_libraries(cudaq-realtime-bridge-gpu-loopback-legacy PRIVATE CUDA::cudart)
+
+# The same provider as the interface doc describes a new one: no
+# get_transport_context entry at all.
+add_library(cudaq-realtime-bridge-gpu-loopback-no-tc SHARED gpu_loopback_bridge.cu)
+set_target_properties(cudaq-realtime-bridge-gpu-loopback-no-tc PROPERTIES
+  CUDA_SEPARABLE_COMPILATION ON
+  POSITION_INDEPENDENT_CODE ON
+  CUDA_STANDARD 20)
+target_compile_definitions(cudaq-realtime-bridge-gpu-loopback-no-tc PRIVATE
+  GPU_LOOPBACK_NO_TRANSPORT_CONTEXT)
+target_include_directories(cudaq-realtime-bridge-gpu-loopback-no-tc PRIVATE
+  ${CUDAQ_REALTIME_INCLUDE_DIR})
+target_link_libraries(cudaq-realtime-bridge-gpu-loopback-no-tc PRIVATE CUDA::cudart)
+
 # A binary without device code, for the reader's empty case.
 add_library(gpu_dataplane_no_device_code SHARED no_device_code.cpp)
 target_include_directories(gpu_dataplane_no_device_code PRIVATE
@@ -51,6 +77,8 @@ target_include_directories(test_gpu_dataplane PRIVATE
   ${CUDAToolkit_INCLUDE_DIRS})
 target_compile_definitions(test_gpu_dataplane PRIVATE
   GPU_LOOPBACK_BRIDGE_PATH="$<TARGET_FILE:cudaq-realtime-bridge-gpu-loopback>"
+  GPU_LOOPBACK_LEGACY_BRIDGE_PATH="$<TARGET_FILE:cudaq-realtime-bridge-gpu-loopback-legacy>"
+  GPU_LOOPBACK_NO_TC_BRIDGE_PATH="$<TARGET_FILE:cudaq-realtime-bridge-gpu-loopback-no-tc>"
   CUDAQ_REALTIME_TEST_EXPECT_CUDA_DEFINITION
   $<$<COMPILE_LANGUAGE:CUDA>:CUDAQ_REALTIME_TEST_CUDA_DEFINITION>)
 target_link_libraries(test_gpu_dataplane PRIVATE
@@ -59,8 +87,10 @@ target_link_libraries(test_gpu_dataplane PRIVATE
   gpu_dataplane_no_device_code
   CUDA::cudart)
 
-# The provider is dlopen'd, not linked.
-add_dependencies(test_gpu_dataplane cudaq-realtime-bridge-gpu-loopback)
+# The providers are dlopen'd, not linked.
+add_dependencies(test_gpu_dataplane cudaq-realtime-bridge-gpu-loopback
+  cudaq-realtime-bridge-gpu-loopback-legacy
+  cudaq-realtime-bridge-gpu-loopback-no-tc)
 
 cudaq_gtest_discover_tests(test_gpu_dataplane DISCOVERY_TIMEOUT 120)
 message(STATUS "  - test_gpu_dataplane (run-time linked GPU data plane)")

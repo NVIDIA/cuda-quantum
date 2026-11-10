@@ -237,31 +237,36 @@ static cudaq_status_t udp_bridge_get_transport_context(
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
 
-  // A consumer asks here for whichever shape it means to serve, so both are
-  // answerable.  Under --unified the answer is "unified, but the loop is
-  // yours": no dispatcher override, and the hooks that drive it come from
-  // get_cpu_dataplane.  Both fields are written rather than left alone, so a
-  // caller that did not zero-initialize reads "no override" and not stack
-  // garbage it would then try to call.
-  if (context_type == UNIFIED) {
-    if (!ctx->unified)
-      return CUDAQ_ERR_UNSUPPORTED;
-    auto *unified_ctx =
-        reinterpret_cast<cudaq_unified_dispatch_ctx_t *>(out_context);
-    unified_ctx->launch_fn = nullptr;
-    unified_ctx->transport_ctx = nullptr;
-    return CUDAQ_OK;
-  }
-  if (context_type != RING_BUFFER)
+  // Deprecated entry, kept for the UNIFIED answer only: under --unified it is
+  // "unified, but the loop is yours": no dispatcher override, and the hooks
+  // that drive it come from get_cpu_dataplane.  Both fields are written rather
+  // than left alone, so a caller that did not zero-initialize reads "no
+  // override" and not stack garbage it would then try to call.  The rings are
+  // served by udp_bridge_get_ring_buffer, which the API forwards to.
+  if (context_type != UNIFIED || !ctx->unified)
     return CUDAQ_ERR_UNSUPPORTED;
+  auto *unified_ctx =
+      reinterpret_cast<cudaq_unified_dispatch_ctx_t *>(out_context);
+  unified_ctx->launch_fn = nullptr;
+  unified_ctx->transport_ctx = nullptr;
+  return CUDAQ_OK;
+}
+
+static cudaq_status_t
+udp_bridge_get_ring_buffer(cudaq_realtime_bridge_handle_t handle,
+                           cudaq_ringbuffer_t *out_ring) {
+  if (!handle || !out_ring)
+    return CUDAQ_ERR_INVALID_ARG;
+  auto *ctx = reinterpret_cast<UdpBridgeContext *>(handle);
+  if (!ctx->transceiver)
+    return CUDAQ_ERR_INTERNAL;
   // Report the rings only in the shape that uses them.  Handing them out under
   // --unified would let a consumer poll rx_flags that the unified data path
   // never sets, which looks like a transport silently dropping every request;
   // refusing turns that into a consumer-side wiring error naming the shape.
   if (ctx->unified)
     return CUDAQ_ERR_UNSUPPORTED;
-
-  return fill_ring(ctx, reinterpret_cast<cudaq_ringbuffer_t *>(out_context));
+  return fill_ring(ctx, out_ring);
 }
 
 // The unified data plane's two hooks, translating the transceiver's 1/0
@@ -372,6 +377,7 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       udp_bridge_get_ring_geometry,
       /*set_function_table=*/nullptr, // no function table needed
       /*get_gpu_dataplane=*/nullptr,  // host rings only
+      udp_bridge_get_ring_buffer,
   };
   return &cudaq_udp_bridge_interface;
 }

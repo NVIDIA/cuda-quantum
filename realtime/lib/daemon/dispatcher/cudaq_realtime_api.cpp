@@ -426,7 +426,7 @@ cudaq_dispatcher_set_bridge(cudaq_dispatcher_t *dispatcher,
   cudaq_unified_dispatch_ctx_t unified_ctx{};
   cudaq_gpu_dataplane_t gpu_dataplane{};
   if (!unified) {
-    status = cudaq_bridge_get_transport_context(bridge, RING_BUFFER, &ring);
+    status = cudaq_bridge_get_ring_buffer(bridge, &ring);
     if (status != CUDAQ_OK) {
       fprintf(stderr,
               "ERROR: cudaq_dispatcher_set_bridge (%s): the bridge serves no "
@@ -472,8 +472,15 @@ cudaq_dispatcher_set_bridge(cudaq_dispatcher_t *dispatcher,
     // outright.  A bridge without one may refuse the UNIFIED context, and the
     // dispatcher's own kernel then runs over the bridge's GPU data plane.
     // Refusing means CUDAQ_ERR_UNSUPPORTED; any other error is a failure.
+    // The query is deprecated.  It is still made for two answers: the launch
+    // override, and CUDAQ_OK with no launch_fn, which a provider whose unified
+    // loop runs on the host gives and which selects the diagnostic below.  It
+    // goes with the provider entry once no provider answers it.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     const cudaq_status_t override_status =
         cudaq_bridge_get_transport_context(bridge, UNIFIED, &unified_ctx);
+#pragma GCC diagnostic pop
     if (override_status == CUDAQ_ERR_UNSUPPORTED) {
       unified_ctx = {};
     } else if (override_status != CUDAQ_OK) {
