@@ -9,7 +9,7 @@
 #pragma once
 
 /// Compile-time reflection of the target types (`cudaq::CompileTarget` and the
-/// structs and enums it contains).
+/// `struct`s and `enum`s it contains).
 ///
 /// Internal to the target library: reflect-cpp is a private dependency, so this
 /// header must not be included from installed headers.
@@ -19,7 +19,6 @@
 #include <rfl/internal/get_type_name.hpp>
 #include <rfl/to_view.hpp>
 #include <string_view>
-#include <type_traits>
 
 namespace cudaq::reflection {
 
@@ -32,11 +31,6 @@ constexpr std::string_view qualifiedName =
 template <typename T>
 constexpr std::string_view typeName =
     qualifiedName<T>.substr(qualifiedName<T>.rfind("::") + 2);
-
-/// Whether `T` is a struct or an enum of the `cudaq` namespace.
-template <typename T>
-constexpr bool isReflected = (std::is_aggregate_v<T> || std::is_enum_v<T>) &&
-                             qualifiedName<T>.starts_with("cudaq::");
 
 /// Calls `f(name, field)` on each field of the struct `value`.
 template <typename T, typename F>

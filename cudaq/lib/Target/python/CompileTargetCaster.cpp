@@ -23,7 +23,6 @@ using cudaq::reflection::typeName;
 
 /// The Python type called `name` in `cudaq.core._target`.
 nb::object pyType(std::string_view name) {
-  // Never released: the module outlives the interpreter's finalization.
   static auto *module =
       new nb::module_(nb::module_::import_("cudaq.core._target"));
   return module->attr(nb::str(name.data(), name.size()));
@@ -41,13 +40,6 @@ std::string pythonName(std::string_view name) {
     snake += std::tolower(name[i]);
   }
   return snake;
-}
-
-/// Whether the field `name` of `T` is not exposed to Python.
-template <typename T>
-bool isHidden(std::string_view name) {
-  return std::is_same_v<T, cudaq::CompileTarget> &&
-         name == "resetOnRandomSeedSet";
 }
 
 /// Runs `f`, which builds a Python object, and reports an exception as a
@@ -70,35 +62,41 @@ constexpr auto typeDescr = []<std::size_t... I>(std::index_sequence<I...>) {
   return nb::detail::descr<sizeof...(I)>(typeName<T>[I]...);
 }(std::make_index_sequence<typeName<T>.size()>());
 
-} // namespace
-
-namespace nanobind::detail {
+// `NB_TYPE_CASTER` refers to names of both namespaces unqualified.
+using namespace nanobind;
+using namespace nanobind::detail;
 
 /// Converts the struct `T` to and from the dataclass of the same name.
 template <typename T>
-struct reflected_caster {
+struct struct_caster {
   NB_TYPE_CASTER(T, typeDescr<T>)
 
   bool from_python(handle src, uint8_t flags, cleanup_list *cleanup) noexcept {
     try {
       if (!isinstance(src, pyType(typeName<T>)))
         return false;
-      // The dataclass may check its own invariants, which could have been
-      // broken since it was constructed.
+
+      // Ensure dataclass invariants are satisfied.
       if (hasattr(src, "verify"))
         src.attr("verify")();
+
       bool ok = true;
       cudaq::reflection::forEachField(value, [&](std::string_view name,
                                                  auto &field) {
-        using Field = std::remove_reference_t<decltype(field)>;
-        if (!ok || isHidden<T>(name))
+        // Short-circuit if an earlier field failed to convert.
+        if (!ok)
           return;
+
+        using Field = std::remove_reference_t<decltype(field)>;
         make_caster<Field> caster;
         ok = caster.from_python(getattr(src, pythonName(name).c_str(), none()),
-                                flags, cleanup) &&
-             caster.template can_cast<Field>();
-        if (ok)
-          field = caster.operator cast_t<Field>();
+                                flags, cleanup);
+        if (!ok || !caster.template can_cast<Field>()) {
+          ok = false;
+          return;
+        }
+
+        field = caster.operator cast_t<Field>();
       });
       return ok;
     } catch (...) {
@@ -111,8 +109,7 @@ struct reflected_caster {
       dict kwargs;
       cudaq::reflection::forEachField(
           value, [&](std::string_view name, const auto &field) {
-            if (!isHidden<T>(name))
-              kwargs[pythonName(name).c_str()] = cast(field);
+            kwargs[pythonName(name).c_str()] = cast(field);
           });
       return pyType(typeName<T>)(**kwargs);
     });
@@ -122,7 +119,7 @@ struct reflected_caster {
 /// Converts the enum `E` to and from the Python enum of the same name. Accepts
 /// a member of the enum or its name.
 template <typename E>
-struct reflected_enum_caster {
+struct enum_caster {
   NB_TYPE_CASTER(E, typeDescr<E>)
 
   bool from_python(handle src, uint8_t, cleanup_list *) noexcept {
@@ -149,28 +146,39 @@ struct reflected_enum_caster {
     });
   }
 };
+} // namespace
 
-template <typename T>
-struct type_caster<
-    T, enable_if_t<cudaq::reflection::isReflected<T> && std::is_class_v<T>>>
-    : reflected_caster<T> {};
+namespace nanobind::detail {
 
-// Enums are listed one by one, as a partial specialization would be ambiguous
-// with nanobind's enum caster.
-template <>
-struct type_caster<cudaq::NoiseSupport>
-    : reflected_enum_caster<cudaq::NoiseSupport> {};
-template <>
-struct type_caster<cudaq::config::CostModel>
-    : reflected_enum_caster<cudaq::config::CostModel> {};
-template <>
-struct type_caster<cudaq::config::LoopUnrolling>
-    : reflected_enum_caster<cudaq::config::LoopUnrolling> {};
+///-----------------------------------------------------------------------------
+/// Nanobind casters based on compile-time reflection
+///-----------------------------------------------------------------------------
+
+/// Register a nanobind caster for `T` using `struct_caster` or `enum_caster`.
+#define CUDAQ_REFLECTED_CASTER(kind, T)                                        \
+  template <>                                                                  \
+  struct type_caster<T> : kind##_caster<T> {};
+
+CUDAQ_REFLECTED_CASTER(struct, cudaq::config::UncheckedProfile)
+CUDAQ_REFLECTED_CASTER(struct, cudaq::config::QuakeReferenceSemanticsProfile)
+CUDAQ_REFLECTED_CASTER(struct, cudaq::config::QuakeUnmappedProfile)
+CUDAQ_REFLECTED_CASTER(struct, cudaq::config::QuakeMappedProfile)
+CUDAQ_REFLECTED_CASTER(struct, cudaq::config::CustomPipelineLowering)
+CUDAQ_REFLECTED_CASTER(struct, cudaq::config::CompilationStage)
+CUDAQ_REFLECTED_CASTER(enum, cudaq::NoiseSupport)
+CUDAQ_REFLECTED_CASTER(enum, cudaq::config::CostModel)
+CUDAQ_REFLECTED_CASTER(enum, cudaq::config::LoopUnrolling)
+
+#undef CUDAQ_REFLECTED_CASTER
+
+///-----------------------------------------------------------------------------
+/// Custom casters (e.g. support casting from multiple native Python types)
+///-----------------------------------------------------------------------------
 
 /// `MeasurementForm` is a `str` in Python.
 template <>
 struct type_caster<cudaq::config::MeasurementForm>
-    : reflected_enum_caster<cudaq::config::MeasurementForm> {
+    : enum_caster<cudaq::config::MeasurementForm> {
   static constexpr auto Name = const_name("str");
 
   static handle from_cpp(cudaq::config::MeasurementForm value, rv_policy,
@@ -188,19 +196,23 @@ struct type_caster<cudaq::config::InferredLowering>
 /// Also accepts the emission format as a string.
 template <>
 struct type_caster<cudaq::config::Codegen>
-    : reflected_caster<cudaq::config::Codegen> {
+    : struct_caster<cudaq::config::Codegen> {
   bool from_python(handle src, uint8_t flags, cleanup_list *cleanup) noexcept {
     if (std::string format; try_cast(src, format)) {
       value = {std::move(format), ""};
       return true;
     }
-    return reflected_caster::from_python(src, flags, cleanup);
+    return struct_caster::from_python(src, flags, cleanup);
   }
 };
 
+///-----------------------------------------------------------------------------
+/// Implement `CompileTarget` caster (declared in header file)
+///-----------------------------------------------------------------------------
+
 bool type_caster<cudaq::CompileTarget>::from_python(
     handle src, uint8_t flags, cleanup_list *cleanup) noexcept {
-  reflected_caster<cudaq::CompileTarget> caster;
+  struct_caster<cudaq::CompileTarget> caster;
   if (!caster.from_python(src, flags, cleanup))
     return false;
   value = std::move(caster.value);
@@ -211,8 +223,7 @@ handle
 type_caster<cudaq::CompileTarget>::from_cpp(const cudaq::CompileTarget &value,
                                             rv_policy policy,
                                             cleanup_list *cleanup) noexcept {
-  return reflected_caster<cudaq::CompileTarget>::from_cpp(value, policy,
-                                                          cleanup);
+  return struct_caster<cudaq::CompileTarget>::from_cpp(value, policy, cleanup);
 }
 
 } // namespace nanobind::detail

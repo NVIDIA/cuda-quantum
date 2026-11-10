@@ -49,18 +49,23 @@ cudaq.set_target("qpp-cpu", compile_target=target)
 
 import enum
 from dataclasses import KW_ONLY, InitVar, dataclass, field
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 
 class NoiseSupport(enum.Enum):
-    """What a target does with the noise a kernel applies with `apply_noise`."""
+    """What a target does with the noise a kernel applies with `apply_noise`.
+    
+    - `erase`: `apply_noise` operations are erased.
+    - `supported`: `apply_noise` are passed as-is to the target.
+    - `unsupported`: kernels with `apply_noise` are rejected.
+    """
     erase = enum.auto()
     supported = enum.auto()
     unsupported = enum.auto()
 
 
 class CostModel(enum.Enum):
-    """What the optimizer of a `quake-unmapped` stage minimizes."""
+    """The cost function to use for gate count optimization in the compiler."""
     t_count = enum.auto()
     two_qubit_gate_count = enum.auto()
 
@@ -78,12 +83,9 @@ class UncheckedProfile:
 
 @dataclass
 class QuakeReferenceSemanticsProfile:
-    """IR profile for reference-semantics Quake.
-
-    `measurement_type` is either "any" or "single_qubit".
-    """
+    """IR profile for reference-semantics Quake."""
     basis_gates: list[str] = field(default_factory=list)
-    measurement_type: str = "any"
+    measurement_type: Literal["any", "single_qubit"] = "any"
     reset_after_measure: bool = False
 
 
@@ -141,7 +143,8 @@ class Codegen:
 
 @dataclass
 class CompilationStage:
-    """One compilation stage: the IR profile it lowers to, and how.
+    """
+    One compilation stage: the IR profile it lowers to, and how to get there.
 
     A `lowering` of None infers the pipeline from the registered handlers.
     """
@@ -151,12 +154,31 @@ class CompilationStage:
 
 @dataclass
 class CompileTarget:
-    """The compilation half of a backend.
+    """Target properties used to define the compilation pipeline.
 
     Instead of `stages`, a single-stage target can be given by either
     `ir_output_profile` or `custom_pipeline` (a pipeline string or a
-    `CustomPipelineLowering`). A `codegen` string is the emission format.
+    `CustomPipelineLowering`):
+
+    ```python
+    CompileTarget(ir_output_profile=QuakeUnmappedProfile())
+    # is equivalent to
+    CompileTarget(stages=[
+        CompilationStage(ir_output_profile=QuakeUnmappedProfile()),
+    ])
+
+    CompileTarget(custom_pipeline="canonicalize,cse")
+    # is equivalent to
+    CompileTarget(stages=[
+        CompilationStage(
+            ir_output_profile=UncheckedProfile(),
+            lowering=CustomPipelineLowering(
+                override_pass_pipeline="canonicalize,cse"),
+        ),
+    ])
+    ```
     """
+
     stages: list[CompilationStage] = field(default_factory=list)
     codegen: Union[Codegen, str] = field(default_factory=Codegen)
     override_aot_compilation: bool = False
@@ -173,6 +195,7 @@ class CompileTarget:
     argument_synth_change_semantics: bool = True
     disable_qubit_mapping: bool = False
     replace_state_with_kernel: bool = False
+    reset_on_random_seed_set: bool = False
 
     # These are aliases for some common options - not stored on the dataclass,
     # but `__init__` accepts them and passes them to `__post_init__`.

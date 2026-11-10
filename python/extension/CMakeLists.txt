@@ -106,7 +106,6 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/operators/py_handlers.cpp
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
-    ../../cudaq/lib/Target/python/CompileTargetCaster.cpp
     ../utils/LinkedLibraryHolder.cpp
     ../../runtime/cudaq/platform/default/python/QPU.cpp
     PythonMLIRHooks.cpp
@@ -132,14 +131,6 @@ target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE
     ${CMAKE_SOURCE_DIR}/python/utils
     ${CMAKE_SOURCE_DIR}/runtime
     ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
-    ${CMAKE_SOURCE_DIR}/cudaq/lib/Target
-    ${CMAKE_SOURCE_DIR}/cudaq/lib/Target/python
-)
-# The compile target caster reflects the target types with reflect-cpp, whose
-# objects the catalog already contains: take only its headers, as system
-# headers like linking it would.
-target_include_directories(CUDAQuantumPythonSources.Extension SYSTEM INTERFACE
-    $<TARGET_PROPERTY:reflectcpp,INTERFACE_INCLUDE_DIRECTORIES>
 )
 # The `cudaq.orca` submodule binds cudaq::orca::sample directly, so it can only
 # be built when the ORCA backend is. Link the library rather than recompiling
@@ -157,6 +148,7 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     cudaq-em-default
     cudaq-em-photonics
     fmt::fmt-header-only
+    CUDAQTargetPython
 )
 
 ################################################################################

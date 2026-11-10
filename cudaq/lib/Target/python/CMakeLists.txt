@@ -8,18 +8,32 @@
 
 find_package(Python 3 REQUIRED COMPONENTS Interpreter)
 
-# The compile target types are pure Python dataclasses; the nanobind casters
-# that convert them are compiled into the main Python extension.
 set(_target_py "${CMAKE_BINARY_DIR}/python/cudaq/core/_target.py")
+# Symlink the pure Python dataclasses to the build directory.
 add_custom_command(
   OUTPUT "${_target_py}"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/_target.py"
   COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/python/cudaq/core"
   COMMAND "${CMAKE_COMMAND}" -E create_symlink
     "${CMAKE_CURRENT_SOURCE_DIR}/_target.py" "${_target_py}")
-add_custom_target(CUDAQTargetPython ALL DEPENDS "${_target_py}")
+add_custom_target(CUDAQTargetPythonStaging ALL DEPENDS "${_target_py}")
+# Install the pure Python dataclasses to the build directory.
 install(FILES _target.py
   DESTINATION cudaq/core COMPONENT CUDAQCorePythonModules)
+
+# The nanobind casters between those dataclasses and the C++ types.
+add_library(CUDAQTargetPython INTERFACE)
+target_sources(CUDAQTargetPython INTERFACE
+  "${CMAKE_CURRENT_SOURCE_DIR}/CompileTargetCaster.cpp")
+target_include_directories(CUDAQTargetPython INTERFACE
+  "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/..")
+target_include_directories(CUDAQTargetPython SYSTEM INTERFACE
+  $<TARGET_PROPERTY:reflectcpp,INTERFACE_INCLUDE_DIRECTORIES>)
+target_link_libraries(CUDAQTargetPython INTERFACE CUDAQTargetCatalog)
+
+# The casters import `cudaq.core._target` at runtime.
+add_dependencies(CUDAQTargetPython CUDAQTargetPythonStaging)
 
 if(CUDAQ_BUILD_TESTS)
   if(CUDAQ_TARGET_STANDALONE_BUILD)
