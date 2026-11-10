@@ -354,7 +354,20 @@ void quantum_platform::addQPU(const CompileTarget &target,
   runtimeEndpoints.push_back(endpoint);
 }
 
-void quantum_platform::clearQPUs() {
+void quantum_platform::clearQPUs() { clearQPUs({}); }
+
+void quantum_platform::clearQPUs(
+    const std::vector<RuntimeEndpoint> &retainedEndpoints) {
+  // Stop removed QPUs before releasing their resources. Compile-target
+  // overrides reinstall the same endpoints, so their queues must stay usable.
+  std::unordered_set<const QPU *> retained;
+  for (const auto &endpoint : retainedEndpoints)
+    if (auto *qpu = endpoint.getQPU())
+      retained.insert(qpu);
+  for (auto &endpoint : runtimeEndpoints)
+    if (auto *qpu = endpoint.getQPU())
+      if (!retained.contains(qpu))
+        qpu->shutdownExecutionQueue();
   runtimeEndpoints.clear();
   compileTargets.clear();
 }

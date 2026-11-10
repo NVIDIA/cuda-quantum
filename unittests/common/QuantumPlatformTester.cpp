@@ -20,6 +20,8 @@
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/ptsbe/policy.h"
+#include <atomic>
+#include <chrono>
 #include <cstdlib>
 #include <cxxabi.h>
 #include <gtest/gtest.h>
@@ -29,6 +31,51 @@
 #include <vector>
 
 using namespace cudaq;
+
+// The flags live outside the QPU so the test never reads freed memory.
+TEST(QuantumPlatformTester, clearWaitsForActiveTaskBeforeDestroyingQPU) {
+  std::atomic<bool> destroyed = false;
+  std::promise<void> entered;
+  std::promise<bool> observedDestruction;
+  class QueuedQPU : public QPU {
+    std::atomic<bool> &destroyed;
+
+  public:
+    explicit QueuedQPU(std::atomic<bool> &flag) : destroyed(flag) {}
+    ~QueuedQPU() override { destroyed = true; }
+    CompileTarget getCompileTarget(const RuntimeTarget *) override {
+      return {};
+    }
+    void enqueue(QuantumTask &task) override { execution_queue->enqueue(task); }
+    KernelThunkResultType
+    compileAndLaunchKernel(const AnyModule &, KernelArgs, const CompileTarget &,
+                           const CompileOptions &) override {
+      return {};
+    }
+  };
+  class QueueTestPlatform : public quantum_platform {
+  public:
+    using quantum_platform::addQPU;
+    using quantum_platform::clearQPUs;
+  } platform;
+  auto qpu = std::make_unique<QueuedQPU>(destroyed);
+  QuantumTask task = [&] {
+    entered.set_value();
+    // Without shutting down the execution queue first, clearQPUs destroys the
+    // QPU during this window.
+    const auto deadline =
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+    while (!destroyed && std::chrono::steady_clock::now() < deadline)
+      std::this_thread::yield();
+    observedDestruction.set_value(destroyed.load());
+  };
+  qpu->enqueue(task);
+  entered.get_future().wait();
+  platform.addQPU(std::move(qpu));
+  platform.clearQPUs();
+  EXPECT_FALSE(observedDestruction.get_future().get());
+  EXPECT_TRUE(destroyed);
+}
 
 namespace {
 
@@ -589,4 +636,38 @@ TEST(QuantumPlatformCustomEndpointTester, errorMessageIdentifiesOperation) {
   platform.setEndpoint(makePlatformCompileTarget(), RuntimeEndpoint{.impl = 0});
 
   expectUnsupported([&] { platform.set_noise(nullptr); }, "set_noise");
+}
+
+TEST(QuantumPlatformTester, retainedEndpointsKeepTheirExecutionQueues) {
+  class QueuedQPU : public CompileTargetTestQPU {
+  public:
+    void enqueue(QuantumTask &task) override { execution_queue->enqueue(task); }
+  };
+  class QueueTestPlatform : public quantum_platform {
+  public:
+    using quantum_platform::addQPU;
+    using quantum_platform::clearQPUs;
+  } platform;
+  auto removed = RuntimeEndpoint::fromQPU(std::make_unique<QueuedQPU>());
+  auto reused = RuntimeEndpoint::fromQPU(std::make_unique<QueuedQPU>());
+  CompileTarget target;
+  platform.addQPU(target, removed);
+  platform.addQPU(target, reused);
+  // Compile-target overrides copy endpoints, clear the platform, then reinstall
+  // the same QPUs. Match QPU identity even when its index changes.
+  std::vector<RuntimeEndpoint> retained{reused, RuntimeEndpoint{.impl = 0}};
+  platform.clearQPUs(retained);
+  for (const auto &endpoint : retained)
+    platform.addQPU(target, endpoint);
+
+  std::promise<void> executed;
+  auto completed = executed.get_future();
+  QuantumTask task = [&] { executed.set_value(); };
+  ASSERT_NO_THROW(reused.getQPU()->enqueue(task));
+  EXPECT_EQ(completed.wait_for(std::chrono::seconds(5)),
+            std::future_status::ready);
+  // Removed QPUs are stopped even if another endpoint still owns them.
+  EXPECT_THROW(removed.getQPU()->enqueue(task), std::runtime_error);
+  platform.clearQPUs();
+  EXPECT_THROW(reused.getQPU()->enqueue(task), std::runtime_error);
 }
