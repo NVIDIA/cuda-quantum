@@ -65,7 +65,7 @@ public:
   QPU(QPU &&) = default;
   /// The destructor
   virtual ~QPU() = default;
-  /// Drain the execution queue. Call before the derived QPU is destroyed.
+  /// Stop pending work and join the active task before destroying the QPU.
   void shutdownExecutionQueue() {
     if (execution_queue)
       execution_queue->shutdown();

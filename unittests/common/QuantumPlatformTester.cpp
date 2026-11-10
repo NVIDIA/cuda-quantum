@@ -637,3 +637,37 @@ TEST(QuantumPlatformCustomEndpointTester, errorMessageIdentifiesOperation) {
 
   expectUnsupported([&] { platform.set_noise(nullptr); }, "set_noise");
 }
+
+TEST(QuantumPlatformTester, retainedEndpointsKeepTheirExecutionQueues) {
+  class QueuedQPU : public CompileTargetTestQPU {
+  public:
+    void enqueue(QuantumTask &task) override { execution_queue->enqueue(task); }
+  };
+  class QueueTestPlatform : public quantum_platform {
+  public:
+    using quantum_platform::addQPU;
+    using quantum_platform::clearQPUs;
+  } platform;
+  auto removed = RuntimeEndpoint::fromQPU(std::make_unique<QueuedQPU>());
+  auto reused = RuntimeEndpoint::fromQPU(std::make_unique<QueuedQPU>());
+  CompileTarget target;
+  platform.addQPU(target, removed);
+  platform.addQPU(target, reused);
+  // Compile-target overrides copy endpoints, clear the platform, then reinstall
+  // the same QPUs. Match QPU identity even when its index changes.
+  std::vector<RuntimeEndpoint> retained{reused, RuntimeEndpoint{.impl = 0}};
+  platform.clearQPUs(retained);
+  for (const auto &endpoint : retained)
+    platform.addQPU(target, endpoint);
+
+  std::promise<void> executed;
+  auto completed = executed.get_future();
+  QuantumTask task = [&] { executed.set_value(); };
+  ASSERT_NO_THROW(reused.getQPU()->enqueue(task));
+  EXPECT_EQ(completed.wait_for(std::chrono::seconds(5)),
+            std::future_status::ready);
+  // Removed QPUs are stopped even if another endpoint still owns them.
+  EXPECT_THROW(removed.getQPU()->enqueue(task), std::runtime_error);
+  platform.clearQPUs();
+  EXPECT_THROW(reused.getQPU()->enqueue(task), std::runtime_error);
+}
