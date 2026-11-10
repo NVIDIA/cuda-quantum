@@ -688,6 +688,12 @@ protected:
     /// Discard queued tasks while keeping the slots and their buffers.
     void clear() { m_head = m_size = 0; }
 
+    /// Discard queued tasks and free the slots and their buffers.
+    void release() {
+      std::deque<GateApplicationTask>().swap(m_tasks);
+      m_head = m_size = 0;
+    }
+
     template <typename... Args>
     void emplace(Args &&...args) {
       if (m_size == m_tasks.size())
@@ -758,6 +764,10 @@ protected:
   /// @brief The current queue of operations to execute
   GateQueue gateQueue;
 
+  /// @brief Free the gate queue's slots on deallocation instead of reusing them
+  bool releaseGateQueue =
+      cudaq::getEnvBool("CUDAQ_FORCE_RELEASE_GATE_QUEUE", false);
+
   /// @brief Get the number of shots to execute (only valid if executionContext
   /// is set)
   int getNumShotsToExec() const {
@@ -818,7 +828,10 @@ protected:
   /// @brief Reset the qubit state back to dim = 0.
   void deallocateState() {
     deallocateStateImpl();
-    gateQueue.clear();
+    if (releaseGateQueue)
+      gateQueue.release();
+    else
+      gateQueue.clear();
     tracker.reset();
     nQubitsAllocated = 0;
     stateDimension = 0;
