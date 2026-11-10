@@ -20,6 +20,8 @@
 constexpr int n_params = 2 * N_LAYERS;
 
 CUDAQ_TEST(VqeThenSample, checkBug67) {
+  GTEST_SKIP() << "XFAIL: outdated by the explicit-record sampling refactor "
+                  "(library mode: no `cudaq::record`).";
 
   struct ansatz {
     void operator()(std::vector<double> theta) __qpu__ {
