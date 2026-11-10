@@ -212,63 +212,57 @@ gpu_roce_bridge_destroy(cudaq_realtime_bridge_handle_t handle) {
   return CUDAQ_OK;
 }
 
-static cudaq_status_t gpu_roce_bridge_get_transport_context(
-    cudaq_realtime_bridge_handle_t handle,
-    cudaq_realtime_transport_context_t context_type, void *out_context) {
-
-  if (!handle || !out_context)
+// This provider implements both shapes, and create() has already committed
+// to one of them: config.unified decides whether the transceiver was built
+// with the 3-kernel path (use_3kernel above) and whether launch() starts a
+// monitor thread.  So each query answers only for the configured shape.
+// Describing the other one on request was worse than useless: a consumer that
+// wired a ring (REGULAR) dispatcher but gave this bridge --unified could take
+// the rings anyway, then watch launch() skip the 3-kernel monitor underneath
+// its ring dispatcher.  Refusing makes that a wiring error at the consumer
+// instead.
+static cudaq_status_t
+gpu_roce_bridge_get_ring_buffer(cudaq_realtime_bridge_handle_t handle,
+                                cudaq_ringbuffer_t *out_ring) {
+  if (!handle || !out_ring)
     return CUDAQ_ERR_INVALID_ARG;
   GpuRoceBridgeContext *ctx = reinterpret_cast<GpuRoceBridgeContext *>(handle);
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
-
-  // This provider implements both shapes, and create() has already committed
-  // to one of them: config.unified decides whether the transceiver was built
-  // with the 3-kernel path (use_3kernel above) and whether launch() starts a
-  // monitor thread.  So report only the configured shape, per the contract on
-  // cudaq_bridge_get_transport_context.  Describing the other one on request
-  // was worse than useless: a consumer that selected unified but forgot this
-  // bridge's --unified could take the launch_fn anyway, then watch launch()
-  // start the 3-kernel monitor underneath its unified dispatcher.  Refusing
-  // makes that a wiring error at the consumer instead.
-  //
-  // UNIFIED would name a launch override, and this provider has none: its
-  // unified data plane is the GPU one, which get_gpu_dataplane serves.
-  if (context_type == UNIFIED)
-    return CUDAQ_ERR_UNSUPPORTED;
-  if (context_type == RING_BUFFER && ctx->config.unified)
+  if (ctx->config.unified)
     return CUDAQ_ERR_UNSUPPORTED;
 
   auto &transceiver = ctx->transceiver;
-  if (context_type == RING_BUFFER) {
-    cudaq_ringbuffer_t *ringbuffer =
-        reinterpret_cast<cudaq_ringbuffer_t *>(out_context);
-
-    // Ring buffer pointers
-    uint8_t *rx_ring_data = reinterpret_cast<uint8_t *>(
-        gpu_roce_get_rx_ring_data_addr(transceiver));
-    uint64_t *rx_ring_flag = gpu_roce_get_rx_ring_flag_addr(transceiver);
-    uint8_t *tx_ring_data = reinterpret_cast<uint8_t *>(
-        gpu_roce_get_tx_ring_data_addr(transceiver));
-    uint64_t *tx_ring_flag = gpu_roce_get_tx_ring_flag_addr(transceiver);
-
-    if (!rx_ring_data || !rx_ring_flag || !tx_ring_data || !tx_ring_flag) {
-      std::cerr << "ERROR: Failed to get ring buffer pointers" << std::endl;
-      return CUDAQ_ERR_INTERNAL;
-    }
-
-    ringbuffer->rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
-    ringbuffer->tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
-    ringbuffer->rx_data = rx_ring_data;
-    ringbuffer->tx_data = tx_ring_data;
-    ringbuffer->rx_stride_sz = ctx->config.page_size;
-    ringbuffer->tx_stride_sz = ctx->config.page_size;
-  } else {
-    std::cerr << "ERROR: Invalid transport context type" << std::endl;
-    return CUDAQ_ERR_INVALID_ARG;
+  uint8_t *rx_ring_data =
+      reinterpret_cast<uint8_t *>(gpu_roce_get_rx_ring_data_addr(transceiver));
+  uint64_t *rx_ring_flag = gpu_roce_get_rx_ring_flag_addr(transceiver);
+  uint8_t *tx_ring_data =
+      reinterpret_cast<uint8_t *>(gpu_roce_get_tx_ring_data_addr(transceiver));
+  uint64_t *tx_ring_flag = gpu_roce_get_tx_ring_flag_addr(transceiver);
+  if (!rx_ring_data || !rx_ring_flag || !tx_ring_data || !tx_ring_flag) {
+    std::cerr << "ERROR: Failed to get ring buffer pointers" << std::endl;
+    return CUDAQ_ERR_INTERNAL;
   }
 
+  out_ring->rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
+  out_ring->tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
+  out_ring->rx_data = rx_ring_data;
+  out_ring->tx_data = tx_ring_data;
+  out_ring->rx_stride_sz = ctx->config.page_size;
+  out_ring->tx_stride_sz = ctx->config.page_size;
   return CUDAQ_OK;
+}
+
+// Deprecated entry.  The rings are served by gpu_roce_bridge_get_ring_buffer,
+// which the API forwards to, and UNIFIED would name a launch override, which
+// this provider has none of: its unified data plane is the GPU one, which
+// get_gpu_dataplane serves.
+static cudaq_status_t gpu_roce_bridge_get_transport_context(
+    cudaq_realtime_bridge_handle_t handle,
+    cudaq_realtime_transport_context_t /*context_type*/, void *out_context) {
+  if (!handle || !out_context)
+    return CUDAQ_ERR_INVALID_ARG;
+  return CUDAQ_ERR_UNSUPPORTED;
 }
 
 static cudaq_status_t
@@ -424,6 +418,7 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       gpu_roce_bridge_get_ring_geometry,
       /*set_function_table=*/nullptr, // no function table needed
       gpu_roce_bridge_get_gpu_dataplane,
+      gpu_roce_bridge_get_ring_buffer,
   };
   return &cudaq_gpu_roce_bridge_interface;
 }

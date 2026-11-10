@@ -403,27 +403,34 @@ static cudaq_status_t cpu_roce_bridge_get_transport_context(
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
 
-  // Under --unified the answer is "unified, but the loop is yours": no
-  // dispatcher override, and the hooks that drive it come from
-  // get_cpu_dataplane.  Both fields are written so a caller that did not
-  // zero-initialize reads "no override" rather than stack garbage.
-  if (context_type == UNIFIED) {
-    if (!ctx->unified)
-      return CUDAQ_ERR_UNSUPPORTED;
-    auto *unified_ctx =
-        reinterpret_cast<cudaq_unified_dispatch_ctx_t *>(out_context);
-    unified_ctx->launch_fn = nullptr;
-    unified_ctx->transport_ctx = nullptr;
-    return CUDAQ_OK;
-  }
-  if (context_type != RING_BUFFER)
+  // Deprecated entry, kept for the UNIFIED answer only: under --unified it is
+  // "unified, but the loop is yours": no dispatcher override, and the hooks
+  // that drive it come from get_cpu_dataplane.  Both fields are written so a
+  // caller that did not zero-initialize reads "no override" rather than stack
+  // garbage.  The rings are served by cpu_roce_bridge_get_ring_buffer, which
+  // the API forwards to.
+  if (context_type != UNIFIED || !ctx->unified)
     return CUDAQ_ERR_UNSUPPORTED;
+  auto *unified_ctx =
+      reinterpret_cast<cudaq_unified_dispatch_ctx_t *>(out_context);
+  unified_ctx->launch_fn = nullptr;
+  unified_ctx->transport_ctx = nullptr;
+  return CUDAQ_OK;
+}
+
+static cudaq_status_t
+cpu_roce_bridge_get_ring_buffer(cudaq_realtime_bridge_handle_t handle,
+                                cudaq_ringbuffer_t *out_ring) {
+  if (!handle || !out_ring)
+    return CUDAQ_ERR_INVALID_ARG;
+  auto *ctx = reinterpret_cast<CpuRoceBridgeContext *>(handle);
+  if (!ctx->transceiver)
+    return CUDAQ_ERR_INTERNAL;
   // Under --unified nothing sets rx_flags, so a ring consumer would look like
   // a transport silently dropping every request; refuse instead.
   if (ctx->unified)
     return CUDAQ_ERR_UNSUPPORTED;
-
-  return fill_ring(ctx, reinterpret_cast<cudaq_ringbuffer_t *>(out_context));
+  return fill_ring(ctx, out_ring);
 }
 
 // The unified data plane's two hooks, translating the transceiver's 1/0
@@ -613,6 +620,7 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       cpu_roce_bridge_get_ring_geometry,
       /*set_function_table=*/nullptr, // no function table needed
       /*get_gpu_dataplane=*/nullptr,  // host rings only
+      cpu_roce_bridge_get_ring_buffer,
   };
   return &cudaq_cpu_roce_bridge_interface;
 }

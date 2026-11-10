@@ -166,18 +166,30 @@ protected:
       cudaFreeHost(const_cast<int *>(h_shutdown));
   }
 
-  cudaq_realtime_bridge_handle_t bridge(std::vector<std::string> args = {}) {
+  cudaq_realtime_bridge_handle_t
+  bridge(std::vector<std::string> args = {},
+         const char *library = GPU_LOOPBACK_BRIDGE_PATH) {
     std::vector<char *> argv;
     for (auto &arg : args)
       argv.push_back(arg.data());
     cudaq_realtime_bridge_handle_t b = nullptr;
-    EXPECT_EQ(cudaq_bridge_create_from_library(&b, GPU_LOOPBACK_BRIDGE_PATH,
-                                               static_cast<int>(argv.size()),
-                                               argv.data()),
+    EXPECT_EQ(cudaq_bridge_create_from_library(
+                  &b, library, static_cast<int>(argv.size()), argv.data()),
               CUDAQ_OK);
     if (b)
       bridges.push_back(b);
     return b;
+  }
+
+  // The same provider built as one written before interface version 5.
+  cudaq_realtime_bridge_handle_t legacy_bridge() {
+    return bridge({}, GPU_LOOPBACK_LEGACY_BRIDGE_PATH);
+  }
+
+  // The same provider built the way the interface doc describes a new one:
+  // without the deprecated get_transport_context entry.
+  cudaq_realtime_bridge_handle_t no_tc_bridge() {
+    return bridge({}, GPU_LOOPBACK_NO_TC_BRIDGE_PATH);
   }
 
   cudaq_dispatcher_t *
@@ -211,8 +223,7 @@ protected:
   // and checks that every request was counted.
   void round_trip(cudaq_realtime_bridge_handle_t b, cudaq_dispatcher_t *d) {
     cudaq_ringbuffer_t ring{};
-    ASSERT_EQ(cudaq_bridge_get_transport_context(b, RING_BUFFER, &ring),
-              CUDAQ_OK);
+    ASSERT_EQ(cudaq_bridge_get_ring_buffer(b, &ring), CUDAQ_OK);
     std::uint32_t num_slots = 0, slot_size = 0;
     ASSERT_EQ(cudaq_bridge_get_ring_geometry(b, &num_slots, &slot_size),
               CUDAQ_OK);
@@ -298,6 +309,114 @@ TEST_F(GpuDataplaneTest, RoundTripWrapsTheRing) {
   install(d, fn);
   ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
   round_trip(b, d);
+}
+
+// The typed ring query and the deprecated untyped one hand out the same ring.
+TEST_F(GpuDataplaneTest, GetRingBufferMatchesTheDeprecatedQuery) {
+  auto b = bridge();
+  cudaq_ringbuffer_t ring{};
+  ASSERT_EQ(cudaq_bridge_get_ring_buffer(b, &ring), CUDAQ_OK);
+  EXPECT_NE(ring.rx_flags, nullptr);
+  EXPECT_NE(ring.tx_flags, nullptr);
+  EXPECT_NE(ring.rx_data, nullptr);
+  EXPECT_NE(ring.tx_data, nullptr);
+  EXPECT_EQ(cudaq_bridge_get_ring_buffer(b, nullptr), CUDAQ_ERR_INVALID_ARG);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  cudaq_ringbuffer_t old{};
+  ASSERT_EQ(cudaq_bridge_get_transport_context(b, RING_BUFFER, &old), CUDAQ_OK);
+  // No launch override here: the unified query is refused, as before.
+  cudaq_unified_dispatch_ctx_t unified{};
+  EXPECT_EQ(cudaq_bridge_get_transport_context(b, UNIFIED, &unified),
+            CUDAQ_ERR_UNSUPPORTED);
+#pragma GCC diagnostic pop
+  EXPECT_EQ(old.rx_flags, ring.rx_flags);
+  EXPECT_EQ(old.tx_flags, ring.tx_flags);
+  EXPECT_EQ(old.rx_data, ring.rx_data);
+  EXPECT_EQ(old.tx_data, ring.tx_data);
+  EXPECT_EQ(old.rx_stride_sz, ring.rx_stride_sz);
+  EXPECT_EQ(old.tx_stride_sz, ring.tx_stride_sz);
+}
+
+// A provider written before version 5 leaves get_ring_buffer NULL and answers
+// RING_BUFFER through the deprecated entry; the API falls back to it, so the
+// provider works unchanged: a ring-shape dispatcher wires through
+// set_bridge, and a unified one still round-trips over its GPU data plane.
+TEST_F(GpuDataplaneTest, OldStyleProviderStillServesTheRing) {
+  auto b = legacy_bridge();
+  ASSERT_NE(b, nullptr);
+  cudaq_ringbuffer_t ring{};
+  ASSERT_EQ(cudaq_bridge_get_ring_buffer(b, &ring), CUDAQ_OK);
+  EXPECT_NE(ring.rx_flags, nullptr);
+  EXPECT_NE(ring.tx_data, nullptr);
+
+  // A caller not yet moved off the deprecated query (cudaq-qec's device-graph
+  // consumer) over this provider takes the shim's fallback branch.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  cudaq_ringbuffer_t old{};
+  ASSERT_EQ(cudaq_bridge_get_transport_context(b, RING_BUFFER, &old), CUDAQ_OK);
+  cudaq_unified_dispatch_ctx_t unified{};
+  EXPECT_EQ(cudaq_bridge_get_transport_context(b, UNIFIED, &unified),
+            CUDAQ_ERR_UNSUPPORTED);
+#pragma GCC diagnostic pop
+  EXPECT_EQ(old.rx_flags, ring.rx_flags);
+  EXPECT_EQ(old.tx_flags, ring.tx_flags);
+  EXPECT_EQ(old.rx_data, ring.rx_data);
+  EXPECT_EQ(old.tx_data, ring.tx_data);
+  EXPECT_EQ(old.rx_stride_sz, ring.rx_stride_sz);
+  EXPECT_EQ(old.tx_stride_sz, ring.tx_stride_sz);
+
+  auto *ring_dispatcher =
+      dispatcher(CUDAQ_DISPATCH_PATH_DEVICE, CUDAQ_KERNEL_REGULAR);
+  EXPECT_EQ(cudaq_dispatcher_set_bridge(ring_dispatcher, b), CUDAQ_OK);
+
+  auto b2 = legacy_bridge();
+  auto *d = dispatcher();
+  ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b2), CUDAQ_OK);
+  void *fn = nullptr;
+  ASSERT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn), CUDAQ_OK);
+  install(d, fn);
+  ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+  round_trip(b2, d);
+}
+
+// The shape the interface doc describes for a new provider: get_ring_buffer
+// filled, no get_transport_context entry.  The typed query serves the rings,
+// the deprecated query forwards for RING_BUFFER and is refused for UNIFIED
+// instead of calling through a NULL entry, and both dispatcher shapes wire.
+TEST_F(GpuDataplaneTest, ProviderWithoutTransportContextEntry) {
+  auto b = no_tc_bridge();
+  ASSERT_NE(b, nullptr);
+  cudaq_ringbuffer_t ring{};
+  ASSERT_EQ(cudaq_bridge_get_ring_buffer(b, &ring), CUDAQ_OK);
+  EXPECT_NE(ring.rx_flags, nullptr);
+  EXPECT_NE(ring.tx_data, nullptr);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  cudaq_ringbuffer_t old{};
+  ASSERT_EQ(cudaq_bridge_get_transport_context(b, RING_BUFFER, &old), CUDAQ_OK);
+  cudaq_unified_dispatch_ctx_t unified{};
+  EXPECT_EQ(cudaq_bridge_get_transport_context(b, UNIFIED, &unified),
+            CUDAQ_ERR_UNSUPPORTED);
+#pragma GCC diagnostic pop
+  EXPECT_EQ(old.rx_flags, ring.rx_flags);
+  EXPECT_EQ(old.tx_data, ring.tx_data);
+
+  auto *ring_dispatcher =
+      dispatcher(CUDAQ_DISPATCH_PATH_DEVICE, CUDAQ_KERNEL_REGULAR);
+  EXPECT_EQ(cudaq_dispatcher_set_bridge(ring_dispatcher, b), CUDAQ_OK);
+
+  auto b2 = no_tc_bridge();
+  auto *d = dispatcher();
+  ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b2), CUDAQ_OK);
+  void *fn = nullptr;
+  ASSERT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn), CUDAQ_OK);
+  install(d, fn);
+  ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+  round_trip(b2, d);
 }
 
 // The application's own kernel, from this binary's device code, started by
