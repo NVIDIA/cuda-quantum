@@ -512,6 +512,8 @@ frontends
 func
 functors
 gaussian
+gdrcopy
+gdrdrv
 getter
 getters
 ghz
@@ -680,6 +682,7 @@ precommit
 precompute
 precomputed
 preflight
+prelaunched
 preparer
 prepend
 prepended

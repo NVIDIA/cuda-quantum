@@ -30,6 +30,11 @@ and host API are available:
 
 - [Realtime host API](docs/cudaq_realtime_host_api.md)
 
+## Examples
+
+- [GPU grid dispatch](docs/gpu_grid_dispatch_example.md): answering each RPC
+  request with a whole resident cooperative GPU grid over the CPU RoCE bridge
+
 ## Feedback
 
 Please let us know your feedback and ideas for the CUDA-Q platform in the

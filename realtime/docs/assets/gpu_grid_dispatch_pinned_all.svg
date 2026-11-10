@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1026" width="900" height="1026" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif" role="img" aria-label="gpu_grid_dispatch: pinned notify, all blocks poll">
+<title>gpu_grid_dispatch: pinned notify, all blocks poll</title>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker></defs>
+<rect width="900" height="1026" fill="#fff"/>
+<line x1="80" y1="96" x2="80" y2="692" stroke="#bbb" stroke-width="1" stroke-dasharray="3 5"/>
+<line x1="245" y1="96" x2="245" y2="692" stroke="#bbb" stroke-width="1" stroke-dasharray="3 5"/>
+<line x1="410" y1="96" x2="410" y2="692" stroke="#bbb" stroke-width="1" stroke-dasharray="3 5"/>
+<line x1="600" y1="96" x2="600" y2="692" stroke="#bbb" stroke-width="1" stroke-dasharray="3 5"/>
+<line x1="790" y1="96" x2="790" y2="692" stroke="#bbb" stroke-width="1" stroke-dasharray="3 5"/>
+<line x1="22" y1="96" x2="22" y2="692" stroke="#555" stroke-width="1.2" marker-end="url(#ah)"/>
+<text transform="translate(14,394) rotate(-90)" text-anchor="middle" font-size="10" fill="#1a1a1a">time</text>
+<rect x="20" y="14" width="120" height="34" rx="5" fill="#fff" stroke="#888" stroke-width="1.5"/>
+<text x="80" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">FPGA</text>
+<rect x="175" y="14" width="140" height="34" rx="5" fill="#fff" stroke="#888" stroke-width="1.5"/>
+<text x="245" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">NIC on the host</text>
+<rect x="330" y="14" width="160" height="34" rx="5" fill="#fff" stroke="#888" stroke-width="1.5"/>
+<text x="410" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">CPU dispatch thread</text>
+<rect x="520" y="14" width="350" height="34" rx="5" fill="#fff" stroke="#888" stroke-width="1.5"/>
+<text x="695" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">GPU grid</text>
+<rect x="538" y="56" width="124" height="22" rx="4" fill="#fff" stroke="#888"/>
+<text x="600" y="71" text-anchor="middle" font-size="11" fill="#1a1a1a">block 0</text>
+<rect x="728" y="56" width="124" height="22" rx="4" fill="#fff" stroke="#888"/>
+<text x="790" y="71" text-anchor="middle" font-size="11" fill="#1a1a1a">blocks 1..N-1</text>
+<line x1="80" y1="138" x2="245" y2="138" stroke="#555" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="118" y="121" width="89" height="14" fill="#fff"/>
+<text x="162" y="132" text-anchor="middle" font-size="11" fill="#1a1a1a">WRITE_WITH_IMM</text>
+<circle cx="103" cy="128" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="103" y="132" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">1</text>
+<line x1="245" y1="186" x2="410" y2="186" stroke="#555" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="277" y="169" width="102" height="14" fill="#fff"/>
+<text x="328" y="180" text-anchor="middle" font-size="11" fill="#1a1a1a">DMA + completion</text>
+<circle cx="262" cy="176" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="262" y="180" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">2</text>
+<rect x="302" y="202" width="215" height="38" rx="4" fill="#fff" stroke="#888" stroke-width="1.3"/>
+<text x="410" y="218" text-anchor="middle" font-size="11" fill="#1a1a1a">validate header, find rpc_increment,</text>
+<text x="410" y="232" text-anchor="middle" font-size="11" fill="#1a1a1a">call HOST_CALL handler</text>
+<rect x="290" y="262" width="240" height="38" rx="4" fill="#fff" stroke="#888" stroke-width="1.3"/>
+<text x="410" y="278" text-anchor="middle" font-size="11" fill="#1a1a1a">release store: payload, seq</text>
+<text x="410" y="292" text-anchor="middle" font-size="11" fill="#1a1a1a">mailbox in mapped pinned host memory</text>
+<circle cx="290" cy="262" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="290" y="266" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">3</text>
+<line x1="600" y1="340" x2="410" y2="340" stroke="#555" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<rect x="445" y="323" width="120" height="14" fill="#fff"/>
+<text x="505" y="334" text-anchor="middle" font-size="11" fill="#1a1a1a">poll (system scope)</text>
+<circle cx="431" cy="330" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="431" y="334" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">4</text>
+<line x1="790" y1="366" x2="410" y2="366" stroke="#555" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<rect x="540" y="349" width="120" height="14" fill="#fff"/>
+<text x="600" y="360" text-anchor="middle" font-size="11" fill="#1a1a1a">poll (system scope)</text>
+<circle cx="526" cy="356" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="526" y="360" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">4</text>
+<rect x="525" y="388" width="150" height="24" rx="4" fill="#fff" stroke="#888" stroke-width="1.3"/>
+<text x="600" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">work</text>
+<circle cx="525" cy="388" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="525" y="392" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">5</text>
+<rect x="715" y="388" width="150" height="24" rx="4" fill="#fff" stroke="#888" stroke-width="1.3"/>
+<text x="790" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">work</text>
+<rect x="530" y="448" width="330" height="24" rx="4" fill="#fff" stroke="#888" stroke-width="1.3"/>
+<text x="695" y="464" text-anchor="middle" font-size="11" fill="#1a1a1a">fan-in</text>
+<circle cx="530" cy="448" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="530" y="452" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">6</text>
+<line x1="600" y1="512" x2="410" y2="512" stroke="#555" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="433" y="495" width="144" height="14" fill="#fff"/>
+<text x="505" y="506" text-anchor="middle" font-size="11" fill="#1a1a1a">last arriver: done.seq</text>
+<circle cx="418" cy="502" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="418" y="506" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">7</text>
+<rect x="302" y="542" width="215" height="38" rx="4" fill="#fff" stroke="#888" stroke-width="1.3"/>
+<text x="410" y="558" text-anchor="middle" font-size="11" fill="#1a1a1a">handler sees done, copies reply</text>
+<text x="410" y="572" text-anchor="middle" font-size="11" fill="#1a1a1a">into TX slot, writes RPCResponse hdr</text>
+<line x1="410" y1="620" x2="245" y2="620" stroke="#555" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="298" y="603" width="59" height="14" fill="#fff"/>
+<text x="328" y="614" text-anchor="middle" font-size="11" fill="#1a1a1a">post SEND</text>
+<circle cx="284" cy="610" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="284" y="614" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">8</text>
+<line x1="245" y1="664" x2="80" y2="664" stroke="#555" stroke-width="1.6" marker-end="url(#ah)"/>
+<rect x="109" y="647" width="108" height="14" fill="#fff"/>
+<text x="162" y="658" text-anchor="middle" font-size="11" fill="#1a1a1a">reply on the wire</text>
+<circle cx="94" cy="654" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="94" y="658" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">9</text>
+<line x1="14" y1="704" x2="886" y2="704" stroke="#ccc"/>
+<circle cx="34" cy="718" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="34" y="722" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">1</text>
+<text x="56" y="722" font-size="12" fill="#1a1a1a">FPGA sends the 32-byte request (RDMA WRITE_WITH_IMM into the host ring slot).</text>
+<circle cx="34" cy="742" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="34" y="746" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">2</text>
+<text x="56" y="746" font-size="12" fill="#1a1a1a">The NIC DMAs the request into the ring slot and posts a completion. The CPU dispatch thread, polling the</text>
+<text x="56" y="760" font-size="12" fill="#1a1a1a">completion in the cpu_roce unified loop, sees it, validates the RPC header, resolves rpc_increment in the</text>
+<text x="56" y="774" font-size="12" fill="#1a1a1a">function table and calls the HOST_CALL handler with the RX and TX slots.</text>
+<circle cx="34" cy="794" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="34" y="798" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">3</text>
+<text x="56" y="798" font-size="12" fill="#1a1a1a">Handler: seq++, then stores the 8 payload bytes and, last, seq with a release store into the mailbox, which is</text>
+<text x="56" y="812" font-size="12" fill="#1a1a1a">mapped pinned host memory.</text>
+<circle cx="34" cy="832" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="34" y="836" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">4</text>
+<text x="56" y="836" font-size="12" fill="#1a1a1a">GPU: thread 0 of every block polls the mailbox at system scope; each poll reads host memory across the</text>
+<text x="56" y="850" font-size="12" fill="#1a1a1a">interconnect (plain DRAM on an integrated GPU). The dashed arrows are those reads.</text>
+<circle cx="34" cy="870" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="34" y="874" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">5</text>
+<text x="56" y="874" font-size="12" fill="#1a1a1a">Work, on every SM. Here the stand-in body is so small that the last arriver does it in step 7.</text>
+<circle cx="34" cy="894" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="34" y="898" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">6</text>
+<text x="56" y="898" font-size="12" fill="#1a1a1a">Fan-in: each block checks in when its work is done; the last one to do so carries on, nobody waits.</text>
+<circle cx="34" cy="918" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="34" y="922" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">7</text>
+<text x="56" y="922" font-size="12" fill="#1a1a1a">The last arriver increments the 8 payload bytes, stores the reply into the done line, then a fence and a</text>
+<text x="56" y="936" font-size="12" fill="#1a1a1a">release store of seq into the done line (mapped pinned host memory).</text>
+<circle cx="34" cy="956" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="34" y="960" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">8</text>
+<text x="56" y="960" font-size="12" fill="#1a1a1a">The CPU handler sees done.seq, reads the reply from the done line and copies it into the TX slot, and writes the</text>
+<text x="56" y="974" font-size="12" fill="#1a1a1a">RPCResponse header. The transport posts the SEND.</text>
+<circle cx="34" cy="994" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="34" y="998" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">9</text>
+<text x="56" y="998" font-size="12" fill="#1a1a1a">The reply goes out on the wire to the FPGA.</text>
+</svg>
