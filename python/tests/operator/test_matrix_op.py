@@ -495,6 +495,23 @@ def test_evaluation():
     check_evaluation(coeff * displace_op + squeeze_op)
 
 
+def test_evaluate_no_spurious_zero_term():
+    # `OperatorSum.evaluate()` used to seed its accumulation with
+    # `arithmetics.evaluate(ScalarOperator.const(0))` and add every term to
+    # that, including the first. For the default evaluation arithmetics that
+    # resolves to a plain `0 + term`, and the underlying operator classes
+    # turn that into an explicit, spurious zero-coefficient identity term
+    # (degrees == []) rather than simplifying it away - so a multi-term
+    # operator gained an extra term nobody asked for every time it was
+    # evaluated.
+    op = boson.create(0) + boson.annihilate(1)
+    assert op.term_count == 2
+    evaluated = op.evaluate()
+    assert evaluated.term_count == op.term_count
+    for term in evaluated:
+        assert len(term.degrees) > 0
+
+
 def test_term_distribution():
     op = empty()
     for target in range(7):
