@@ -10,6 +10,7 @@
 #include "CuDensityMatOpConverter.h"
 #include "CuDensityMatUtils.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <ranges>

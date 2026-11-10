@@ -9,6 +9,7 @@
 #include "callback.h"
 
 #include <complex>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <unordered_map>

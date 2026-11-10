@@ -22,6 +22,7 @@
 #include "mlir/IR/Verifier.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include <cmath>
+#include <cstdint>
 #include <limits>
 
 namespace qlx {

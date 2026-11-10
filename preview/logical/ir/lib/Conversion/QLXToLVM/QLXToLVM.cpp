@@ -27,6 +27,7 @@
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Parser/Parser.h"
 
+#include <cstdint>
 #include <limits>
 #include <set>
 

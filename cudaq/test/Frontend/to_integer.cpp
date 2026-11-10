@@ -12,6 +12,8 @@
 
 #include "cudaq/qis/qubit_qis.h"
 
+#include <cstdint>
+
 void external_call_to_keep_result(std::int64_t results_int) {}
 
 struct kernel {

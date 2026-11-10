@@ -11,6 +11,7 @@
 #include <atomic>
 #include <barrier>
 #include <chrono>
+#include <cstdint>
 #include <future>
 #include <gtest/gtest.h>
 #include <thread>

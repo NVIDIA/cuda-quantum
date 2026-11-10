@@ -11,6 +11,8 @@
 #include "tensornet_utils.h"
 #include "timing_utils.h"
 
+#include <cstdint>
+
 namespace nvqir {
 
 template <typename ScalarType>

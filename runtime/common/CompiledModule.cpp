@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CompiledModule.h"
+#include <cstdint>
 #include <string_view>
 
 cudaq::FatQuakeModule::FatQuakeModule(std::string kernelName)

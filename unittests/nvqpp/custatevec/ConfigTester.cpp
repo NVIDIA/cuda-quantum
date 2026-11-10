@@ -12,6 +12,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
+
 namespace {
 
 class Environment {

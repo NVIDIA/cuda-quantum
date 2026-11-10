@@ -36,6 +36,7 @@
 #include "llvm/Support/MathExtras.h"
 
 #include <cassert>
+#include <cstdint>
 #include <cstdlib>
 #include <functional>
 #include <initializer_list>

@@ -10,6 +10,8 @@
 
 #include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
 
+#include <cstdint>
+
 namespace {
 
 using namespace cudaq::synth;

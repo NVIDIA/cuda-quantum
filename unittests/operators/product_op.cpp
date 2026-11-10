@@ -10,6 +10,7 @@
 #include "cudaq/operators.h"
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <numeric>
 
 TEST(OperatorExpressions, checkProductOperatorBasics) {

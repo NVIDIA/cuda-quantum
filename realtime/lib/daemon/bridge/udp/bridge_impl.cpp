@@ -62,6 +62,7 @@
 
 #include <cuda_runtime_api.h>
 
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <iostream>

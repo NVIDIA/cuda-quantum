@@ -10,6 +10,8 @@
 
 #include "cudaq/Synthesis/Math/Real.h"
 
+#include <cstdint>
+
 namespace {
 
 using cudaq::synth::Integer;

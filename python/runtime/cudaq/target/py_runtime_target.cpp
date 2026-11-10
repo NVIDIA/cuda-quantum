@@ -14,6 +14,7 @@
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <nanobind/nanobind.h>

@@ -12,6 +12,8 @@
 #include <cudaq.h>
 #include <gtest/gtest.h>
 
+#include <cstdint>
+
 class TestEnvironment : public ::testing::Environment {
 protected:
   void SetUp() override { cudaq::mpi::initialize(); }

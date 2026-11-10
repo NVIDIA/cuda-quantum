@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <complex>
+#include <cstdint>
 #include <vector>
 
 namespace cudaq {

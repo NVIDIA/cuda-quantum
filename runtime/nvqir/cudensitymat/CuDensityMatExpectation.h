@@ -8,6 +8,7 @@
 
 #pragma once
 #include <complex>
+#include <cstdint>
 #include <cudensitymat.h>
 #include <vector>
 namespace cudaq {

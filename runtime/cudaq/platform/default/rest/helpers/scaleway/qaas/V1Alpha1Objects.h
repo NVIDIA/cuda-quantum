@@ -7,6 +7,7 @@
  ******************************************************************************/
 #pragma once
 #include "nlohmann/json.hpp"
+#include <cstdint>
 #include <string>
 
 /// @brief Common API objects used to interact with Scaleway QaaS.

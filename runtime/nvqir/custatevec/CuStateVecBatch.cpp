@@ -15,6 +15,7 @@
 #include <bitset>
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <limits>
 #include <numeric>
 #include <stdexcept>

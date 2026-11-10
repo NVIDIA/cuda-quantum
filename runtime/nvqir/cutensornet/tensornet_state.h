@@ -14,6 +14,7 @@
 #include "tensornet_utils.h"
 #include "timing_utils.h"
 #include "cudaq/operators.h"
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <unordered_map>

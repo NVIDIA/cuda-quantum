@@ -11,6 +11,7 @@
 #include "CuDensityMatUtils.h"
 #include "common/FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <ranges>

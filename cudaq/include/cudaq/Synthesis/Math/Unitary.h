@@ -10,6 +10,7 @@
 
 #include <array>
 #include <complex>
+#include <cstdint>
 #include <string>
 
 #include "cudaq/Synthesis/Circuit/Circuit.h"

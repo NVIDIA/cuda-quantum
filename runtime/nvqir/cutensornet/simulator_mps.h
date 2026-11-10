@@ -11,6 +11,7 @@
 #include "mps_simulation_state.h"
 #include "simulator_cutensornet.h"
 #include <charconv>
+#include <cstdint>
 #include <errno.h>
 
 namespace nvqir {

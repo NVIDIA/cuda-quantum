@@ -10,6 +10,7 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
+#include <cstdint>
 #include <map>
 
 namespace cudaq {

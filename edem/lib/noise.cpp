@@ -11,6 +11,7 @@
 #include "allocation.h"
 #include "storage.h"
 #include <cmath>
+#include <cstdint>
 
 using namespace cudaq_gf2_private;
 

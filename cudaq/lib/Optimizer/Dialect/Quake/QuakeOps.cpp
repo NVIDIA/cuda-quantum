@@ -26,6 +26,7 @@
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <unordered_set>
 

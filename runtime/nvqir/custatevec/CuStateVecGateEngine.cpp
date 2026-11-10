@@ -14,6 +14,7 @@
 #include <cuda_runtime_api.h>
 
 #include <complex>
+#include <cstdint>
 #include <cstring>
 #include <stdexcept>
 #include <type_traits>

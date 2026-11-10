@@ -8,6 +8,7 @@
 
 #include "cudaq/operators.h"
 #include "cudaq/operators/matrix.h"
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 

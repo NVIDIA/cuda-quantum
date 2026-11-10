@@ -13,6 +13,7 @@
 #include "common/FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <iterator>
 #include <map>

@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <cstdint>
 #include <cstdlib>
 #include <memory>
 #include <mutex>

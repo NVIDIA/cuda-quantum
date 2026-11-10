@@ -8,6 +8,7 @@
 
 #include "cudaq/Synthesis/Math/Real.h"
 
+#include <cstdint>
 #include <string>
 
 namespace cudaq::synth {

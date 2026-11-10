@@ -52,6 +52,7 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/Passes.h"
+#include <cstdint>
 #include <fmt/core.h>
 #include <mlir/IR/OwningOpRef.h>
 #include <nanobind/nanobind.h>

@@ -20,6 +20,8 @@
 
 #include "mlir/IR/BuiltinAttributes.h"
 
+#include <cstdint>
+
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Fabric, fabric,
                                       qlx::fabric::FabricDialect)
 

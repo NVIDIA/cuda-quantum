@@ -14,6 +14,7 @@
 #include <unsupported/Eigen/KroneckerProduct>
 
 #include <complex>
+#include <cstdint>
 #include <random>
 #include <type_traits>
 #include <vector>

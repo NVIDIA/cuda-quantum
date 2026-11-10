@@ -11,6 +11,7 @@
 #include "helpers.h"
 #include "cudaq/operators.h"
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <set>
 #include <tuple>

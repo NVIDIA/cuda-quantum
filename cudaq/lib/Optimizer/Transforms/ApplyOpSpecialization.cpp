@@ -33,6 +33,8 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_APPLYSPECIALIZATION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
+
+#include <cstdint>
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "apply-op-specialization"

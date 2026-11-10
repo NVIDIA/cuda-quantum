@@ -16,6 +16,7 @@
 #include <custatevecEx_ext.h>
 #include <dlfcn.h>
 
+#include <cstdint>
 #include <exception>
 #include <mutex>
 #include <stdexcept>

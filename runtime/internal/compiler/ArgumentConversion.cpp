@@ -22,6 +22,8 @@
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Parser/Parser.h"
 
+#include <cstdint>
+
 using namespace mlir;
 
 template <typename A>

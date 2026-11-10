@@ -26,6 +26,8 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
+#include <cstdint>
+
 namespace nb = nanobind;
 using namespace mlir::python::nanobind_adaptors;
 

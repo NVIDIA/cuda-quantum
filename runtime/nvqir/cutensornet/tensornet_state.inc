@@ -10,6 +10,7 @@
 
 #include "common/EigenDense.h"
 #include "common/Environment.h"
+#include <cstdint>
 #include <algorithm>
 #include <bitset>
 #include <cassert>

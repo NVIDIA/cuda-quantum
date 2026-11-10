@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <bit>
+#include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <limits>

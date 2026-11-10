@@ -18,6 +18,8 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QUBITRESETBEFOREREUSE
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
+
+#include <cstdint>
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "reset-before-reuse"

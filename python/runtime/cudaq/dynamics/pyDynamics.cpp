@@ -23,6 +23,8 @@
 #include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
+#include <cstdint>
+
 namespace {
 cudaq::CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
   auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);

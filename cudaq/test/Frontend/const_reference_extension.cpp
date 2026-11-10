@@ -10,6 +10,8 @@
 
 #include "cudaq/qis/qubit_qis.h"
 
+#include <cstdint>
+
 __qpu__ std::uint64_t
 qubit_values_to_integer(const std::vector<cudaq::measure_result> &values) {
   std::uint64_t result = 0;

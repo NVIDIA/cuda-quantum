@@ -11,6 +11,8 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "llvm/ADT/TypeSwitch.h"
 
+#include <cstdint>
+
 using namespace mlir;
 
 /// Generate code to read the length from a host-side string object. (On the

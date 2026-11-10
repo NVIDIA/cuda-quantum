@@ -10,6 +10,7 @@
 /// @brief GpuRoceTransceiver bridge interface implementation for
 /// libcudaq-realtime dispatch.
 
+#include <cstdint>
 #include <cstdio>
 #include <sstream>
 

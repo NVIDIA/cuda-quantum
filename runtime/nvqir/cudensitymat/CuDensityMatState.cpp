@@ -13,6 +13,7 @@
 #include "common/FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include <cstdint>
 #include <cutensor.h>
 #include <limits>
 #include <numeric>

@@ -10,6 +10,8 @@
 #include "cudaq/operators.h"
 #include <gtest/gtest.h>
 
+#include <cstdint>
+
 TEST(OperatorExpressions, checkOperatorSumBasics) {
 
   // testing some utility functions

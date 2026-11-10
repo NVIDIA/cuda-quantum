@@ -8,6 +8,7 @@
 
 #include "CUDAQTestUtils.h"
 #include "CustabilizerCircuitSimulator.cpp"
+#include <cstdint>
 #include <random>
 #include <set>
 

@@ -10,6 +10,7 @@
 #include "common/SampleResult.h"
 #include "nlohmann/json.hpp"
 #include <bitset>
+#include <cstdint>
 
 namespace cudaq::utils::quantinuum {
 

@@ -12,6 +12,7 @@
 #include "llvm/Support/Debug.h"
 
 #include <algorithm>
+#include <cstdint>
 
 #define DEBUG_TYPE "cudaq-synth"
 

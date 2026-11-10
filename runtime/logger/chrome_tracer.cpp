@@ -11,6 +11,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <unistd.h>

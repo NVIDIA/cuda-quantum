@@ -12,6 +12,7 @@
 // RUN: if %braket_avail; then nvq++ %s -o %t --target braket --emulate && %t | FileCheck %s; fi
 // clang-format on
 
+#include <cstdint>
 #include <cudaq.h>
 #include <iostream>
 #include <unordered_set>

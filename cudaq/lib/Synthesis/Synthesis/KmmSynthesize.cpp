@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstdint>
 
 #define DEBUG_TYPE "cudaq-synth"
 

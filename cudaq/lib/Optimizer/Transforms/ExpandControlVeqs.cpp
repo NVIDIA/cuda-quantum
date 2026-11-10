@@ -16,6 +16,8 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_EXPANDCONTROLVEQS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
+
+#include <cstdint>
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "expand-control-veqs"

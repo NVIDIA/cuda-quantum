@@ -15,6 +15,7 @@
 /// to the appropriate provider implementation based on the bridge handle.
 
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
+#include <cstdint>
 #include <cstdlib>
 #include <dlfcn.h>
 #include <iostream>

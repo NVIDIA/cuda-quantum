@@ -25,6 +25,7 @@
 #include "mlir/Pass/PassManager.h"
 
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <map>
 #include <set>

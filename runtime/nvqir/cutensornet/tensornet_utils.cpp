@@ -10,6 +10,8 @@
 #include "common/FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
 
+#include <cstdint>
+
 std::vector<double> randomValues(std::uint64_t num_samples, double max_value,
                                  std::mt19937 &randomEngine) {
   std::vector<double> rs;

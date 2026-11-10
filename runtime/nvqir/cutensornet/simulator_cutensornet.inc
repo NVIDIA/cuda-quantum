@@ -13,6 +13,8 @@
 #include "cudaq/cudaq_mpi.h"
 #include "cudaq/platform/qpu_utils.h"
 
+#include <cstdint>
+
 namespace nvqir {
 template <typename ScalarType>
 SimulatorTensorNetBase<ScalarType>::SimulatorTensorNetBase()

@@ -8,6 +8,8 @@
 
 #include "evaluation.h"
 
+#include <cstdint>
+
 namespace cudaq {
 
 // operator_arithmetics<matrix_evaluation>

@@ -12,6 +12,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <sstream>

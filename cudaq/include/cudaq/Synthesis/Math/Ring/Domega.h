@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <string>
 
 namespace cudaq::synth {

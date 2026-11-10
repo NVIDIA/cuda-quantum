@@ -13,6 +13,7 @@
 #include "llvm/Support/LogicalResult.h"
 
 #include <cassert>
+#include <cstdint>
 #include <utility>
 
 namespace cudaq::synth {

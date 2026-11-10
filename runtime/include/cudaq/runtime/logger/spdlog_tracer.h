@@ -10,6 +10,8 @@
 
 #include "cudaq/runtime/logger/tracer.h"
 
+#include <cstdint>
+
 namespace cudaq {
 
 class SpdlogTraceBackend : public TraceBackend {

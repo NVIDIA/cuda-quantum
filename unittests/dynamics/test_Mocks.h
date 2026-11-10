@@ -13,6 +13,7 @@
 #include <CuDensityMatErrorHandling.h>
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <cudensitymat.h>
 #include <iostream>
 

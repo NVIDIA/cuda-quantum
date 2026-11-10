@@ -8,6 +8,7 @@
 #include "cudaq/edem/composition.hpp"
 #include "cudaq/edem/noise.hpp"
 #include <array>
+#include <cstdint>
 #include <cstdlib>
 #include <type_traits>
 #include <utility>

@@ -9,6 +9,7 @@
 #pragma once
 
 #include <complex>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <type_traits>

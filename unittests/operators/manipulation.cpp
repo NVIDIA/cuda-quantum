@@ -10,6 +10,8 @@
 #include "cudaq/operators/helpers.h"
 #include <gtest/gtest.h>
 
+#include <cstdint>
+
 using namespace cudaq::detail;
 
 TEST(OperatorHelpersTest, GenerateAllStates_TwoQubits) {

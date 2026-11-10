@@ -16,6 +16,7 @@
 #include "cudaq/operators.h"
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <cudaq.h>
 #include <iostream>
 #include <vector>

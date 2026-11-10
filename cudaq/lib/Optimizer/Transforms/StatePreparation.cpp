@@ -14,6 +14,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+#include <cstdint>
 #include <span>
 
 namespace cudaq::opt {

@@ -11,6 +11,7 @@
 #include "cudaq/distributed/mpi_plugin.h"
 #include "cudaq/ptsbe/PTSBESamplerImpl.h"
 #include <cmath>
+#include <cstdint>
 #include <execution>
 #include <gtest/gtest.h>
 #include <memory>

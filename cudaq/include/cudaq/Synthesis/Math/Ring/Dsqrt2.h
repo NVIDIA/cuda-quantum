@@ -13,6 +13,7 @@
 #include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
 
 #include <cassert>
+#include <cstdint>
 
 namespace cudaq::synth {
 

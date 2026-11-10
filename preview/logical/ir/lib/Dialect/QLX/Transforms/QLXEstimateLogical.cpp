@@ -21,6 +21,7 @@
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Pass/Pass.h"
 
+#include <cstdint>
 #include <limits>
 #include <map>
 #include <string>

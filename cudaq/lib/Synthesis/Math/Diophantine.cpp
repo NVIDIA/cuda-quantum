@@ -16,6 +16,7 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <random>
 #include <variant>

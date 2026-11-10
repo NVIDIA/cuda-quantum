@@ -15,6 +15,7 @@
 #include "cudaq/edem/python.h"
 
 #include <array>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <memory>

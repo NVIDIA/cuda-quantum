@@ -202,5 +202,7 @@ void CflowDialect::initialize() {
   addOperations<
 #define GET_OP_LIST
 #include "qlx/Dialect/Cflow/IR/CflowOps.cpp.inc"
+
+#include <cstdint>
       >();
 }

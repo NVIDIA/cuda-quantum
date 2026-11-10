@@ -13,6 +13,7 @@
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cmath>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 

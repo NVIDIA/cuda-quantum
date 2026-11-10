@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <cstdint>
 #include <deque>
 #include <map>
 #include <memory>

@@ -16,6 +16,8 @@
 #include "cudaq/distributed/mpi_plugin.h"
 #include <dlfcn.h>
 
+#include <cstdint>
+
 namespace {
 // Hook to query this shared lib file location at runtime.
 extern "C" {

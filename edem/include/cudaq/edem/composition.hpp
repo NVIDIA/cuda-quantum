@@ -11,6 +11,8 @@
 #include "cudaq/edem/composition.h"
 #include "cudaq/edem/owned.hpp"
 
+#include <cstdint>
+
 #if defined(__GNUC__) || defined(__clang__)
 #define CUDAQ_EDEM_COMPOSITION_CPP_LOCAL __attribute__((visibility("hidden")))
 #else

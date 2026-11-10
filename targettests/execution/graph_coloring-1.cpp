@@ -13,6 +13,7 @@
 // RUN: then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
+#include <cstdint>
 #include <cudaq.h>
 #include <iostream>
 #include <unordered_set>

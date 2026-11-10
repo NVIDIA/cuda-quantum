@@ -20,6 +20,7 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
+#include <cstdint>
 #include <cstring>
 #include <limits>
 #include <new>

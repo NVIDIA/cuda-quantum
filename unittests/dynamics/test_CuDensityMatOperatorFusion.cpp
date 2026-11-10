@@ -12,6 +12,7 @@
 #include "cudaq/operators.h"
 #include <CuDensityMatErrorHandling.h>
 #include <complex>
+#include <cstdint>
 #include <cstdlib>
 #include <gtest/gtest.h>
 #include <memory>

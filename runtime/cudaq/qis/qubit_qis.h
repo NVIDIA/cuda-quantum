@@ -20,6 +20,7 @@
 #include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <functional>
 #include <stdexcept>

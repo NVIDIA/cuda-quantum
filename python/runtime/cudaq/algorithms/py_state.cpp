@@ -16,6 +16,7 @@
 #include "cudaq/algorithms/get_state.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <cstdint>
 #include <limits>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/shared_ptr.h>

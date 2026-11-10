@@ -13,6 +13,8 @@
 
 #include "nlohmann/json.hpp"
 
+#include <cstdint>
+
 namespace nanobind {
 namespace detail {
 

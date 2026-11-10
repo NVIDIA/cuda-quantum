@@ -9,6 +9,7 @@
 #pragma once
 
 #include <complex>
+#include <cstdint>
 #include <unordered_map>
 #include <vector>
 

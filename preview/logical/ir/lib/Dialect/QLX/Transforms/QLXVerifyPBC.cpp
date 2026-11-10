@@ -17,6 +17,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Verifier.h"
+#include <cstdint>
 #include <limits>
 
 namespace qlx {

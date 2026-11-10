@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include <complex>
+#include <cstdint>
 #include <mutex>
 #include <unordered_map>
 #include <vector>

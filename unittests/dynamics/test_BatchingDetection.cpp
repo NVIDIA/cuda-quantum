@@ -8,6 +8,7 @@
 
 #include "BatchingUtils.h"
 #include <cmath>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 

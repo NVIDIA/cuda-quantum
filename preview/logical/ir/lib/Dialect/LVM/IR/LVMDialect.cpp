@@ -1247,5 +1247,7 @@ void LVMDialect::initialize() {
   addOperations<
 #define GET_OP_LIST
 #include "qlx/Dialect/LVM/IR/LVMOps.cpp.inc"
+
+#include <cstdint>
       >();
 }

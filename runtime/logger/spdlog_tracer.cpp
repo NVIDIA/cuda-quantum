@@ -10,6 +10,7 @@
 #include "cudaq/runtime/logger/cudaq_fmt.h"
 #include "cudaq/runtime/logger/logger.h"
 
+#include <cstdint>
 #include <string>
 
 namespace cudaq {

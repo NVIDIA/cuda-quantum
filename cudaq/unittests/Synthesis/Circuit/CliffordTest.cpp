@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "Circuit/Clifford.h"
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <sstream>
 

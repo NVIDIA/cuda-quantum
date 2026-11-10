@@ -10,6 +10,8 @@
 
 #include "cudaq/qis/qubit_qis.h"
 
+#include <cstdint>
+
 void fun(int);
 
 __qpu_intrinsic__ void uma(cudaq::qubit &, cudaq::qubit &, cudaq::qubit &);

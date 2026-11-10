@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <bit>
 #include <charconv>
+#include <cstdint>
 #include <cstdlib>
 #include <limits>
 #include <stdexcept>

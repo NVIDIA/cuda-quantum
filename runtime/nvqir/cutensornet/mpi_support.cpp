@@ -9,6 +9,7 @@
 #include "cudaq/distributed/mpi_plugin.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <cassert>
+#include <cstdint>
 #include <cutensornet.h>
 #include <dlfcn.h>
 #include <stdio.h>

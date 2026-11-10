@@ -10,6 +10,8 @@
 
 #include "cudaq/Synthesis/Math/Ring/Zomega.h"
 
+#include <cstdint>
+
 namespace {
 
 using namespace cudaq::synth;

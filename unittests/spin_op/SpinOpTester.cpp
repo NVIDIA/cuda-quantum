@@ -10,6 +10,8 @@
 #include "cudaq/operators.h"
 #include <gtest/gtest.h>
 
+#include <cstdint>
+
 enum Pauli : std::int8_t { I = 0, X, Y, Z };
 constexpr Pauli paulis[4] = {Pauli::I, Pauli::X, Pauli::Y, Pauli::Z};
 

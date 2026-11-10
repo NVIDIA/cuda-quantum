@@ -13,6 +13,7 @@
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
 #include <cmath>
+#include <cstdint>
 #include <numeric>
 
 using namespace cudaq;

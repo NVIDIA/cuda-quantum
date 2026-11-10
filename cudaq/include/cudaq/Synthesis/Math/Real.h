@@ -10,6 +10,8 @@
 
 #include "cudaq/Synthesis/Math/Integer.h"
 
+#include <cstdint>
+
 // Enable mpfr_set_sj / mpfr_get_sj (intmax_t variants). Needed so that
 // std::int64_t bridges into MPFR without truncation on platforms where `long`
 // is 32-bit (e.g. LLP64).

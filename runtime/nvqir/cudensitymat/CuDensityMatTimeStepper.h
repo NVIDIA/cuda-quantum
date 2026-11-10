@@ -12,6 +12,8 @@
 #include "cudaq/algorithms/base_time_stepper.h"
 #include <cudensitymat.h>
 
+#include <cstdint>
+
 namespace cudaq {
 class CuDensityMatTimeStepper : public base_time_stepper {
 public:

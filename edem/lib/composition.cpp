@@ -13,6 +13,8 @@
 #include "vocabulary.h"
 #include "cudaq/edem/format.h"
 
+#include <cstdint>
+
 using namespace cudaq_gf2_private;
 using namespace cudaq_edem_private;
 

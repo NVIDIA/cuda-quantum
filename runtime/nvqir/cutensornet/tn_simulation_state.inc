@@ -11,6 +11,8 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include <cuComplex.h>
 
+#include <cstdint>
+
 namespace nvqir {
 int deviceFromPointer(void *ptr) {
   cudaPointerAttributes attributes;

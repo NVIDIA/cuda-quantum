@@ -18,6 +18,8 @@
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 
+#include <cstdint>
+
 #define DEBUG_TYPE "cc-to-llvm"
 
 using namespace mlir;

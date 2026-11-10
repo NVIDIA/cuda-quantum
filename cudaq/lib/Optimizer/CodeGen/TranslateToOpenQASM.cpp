@@ -16,6 +16,8 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Analysis/CallGraph.h"
 
+#include <cstdint>
+
 using namespace mlir;
 
 //===----------------------------------------------------------------------===//

@@ -15,6 +15,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <cstdint>
 #include <cstring>
 #include <type_traits>
 #include <utility>

@@ -16,6 +16,7 @@
 #include "common/EvolveResult.h"
 #include "common/FmtCore.h"
 #include "cudaq/algorithms/integrator.h"
+#include <cstdint>
 #include <iterator>
 #include <numeric>
 #include <random>

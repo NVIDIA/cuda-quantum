@@ -9,6 +9,7 @@
 #include "helpers.h"
 #include "common/EigenSparse.h"
 #include <algorithm>
+#include <cstdint>
 #include <set>
 #include <unordered_map>
 

@@ -10,6 +10,8 @@
 
 #include "cudaq/qis/qubit_qis.h"
 
+#include <cstdint>
+
 __qpu__ std::uint64_t otherKernel(std::vector<cudaq::measure_result> &x);
 
 __qpu__ std::uint64_t test_entry_point() {

@@ -8,6 +8,7 @@
 
 #include "cudaq_utils.h"
 
+#include <cstdint>
 #include <random>
 
 namespace cudaq {

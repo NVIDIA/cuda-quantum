@@ -10,6 +10,7 @@
 
 #include "common/EigenDense.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include <cstdint>
 #include <bitset>
 #include <charconv>
 #include <cuComplex.h>

@@ -26,6 +26,7 @@
 #include "mlir/Analysis/TopologicalSortUtils.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Diagnostics.h"
+#include <cstdint>
 #include <iterator>
 
 namespace cudaq::opt {

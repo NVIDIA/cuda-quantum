@@ -30,6 +30,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/SymbolTable.h"
 
+#include <cstdint>
 #include <functional>
 
 using namespace mlir;

@@ -11,6 +11,7 @@
 #include "CuDensityMatTimeStepper.h"
 #include "test_Mocks.h"
 #include <CuDensityMatErrorHandling.h>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>

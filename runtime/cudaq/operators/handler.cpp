@@ -9,6 +9,7 @@
 #include "operator_leafs.h"
 #include "cudaq/operators/matrix.h"
 #include <complex>
+#include <cstdint>
 #include <set>
 #include <unordered_map>
 #include <vector>

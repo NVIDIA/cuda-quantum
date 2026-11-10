@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include <complex>
+#include <cstdint>
 #include <nanobind/ndarray.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/complex.h>

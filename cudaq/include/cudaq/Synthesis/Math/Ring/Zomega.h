@@ -10,6 +10,7 @@
 
 #include <cassert>
 #include <complex>
+#include <cstdint>
 #include <string>
 #include <utility>
 

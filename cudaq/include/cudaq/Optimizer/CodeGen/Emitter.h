@@ -20,6 +20,7 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/ValueRange.h"
 #include "mlir/Support/IndentedOstream.h"
+#include <cstdint>
 #include <stack>
 
 namespace cudaq {

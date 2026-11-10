@@ -8,6 +8,7 @@
 #pragma once
 
 #include "common/SimulationState.h"
+#include <cstdint>
 #include <cudensitymat.h>
 #include <memory>
 #include <unordered_map>

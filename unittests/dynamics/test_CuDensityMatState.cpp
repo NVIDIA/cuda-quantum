@@ -11,6 +11,7 @@
 #include "common/EigenDense.h"
 #include <CuDensityMatErrorHandling.h>
 #include <complex>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>

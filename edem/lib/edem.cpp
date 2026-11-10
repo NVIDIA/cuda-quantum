@@ -13,6 +13,7 @@
 #include "storage.h"
 #include "vocabulary.h"
 #include "cudaq/edem/format.h"
+#include <cstdint>
 #include <float.h>
 #include <iterator>
 #include <math.h>

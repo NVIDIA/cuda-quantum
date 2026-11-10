@@ -20,6 +20,8 @@
 
 #include "llvm/ADT/Twine.h"
 
+#include <cstdint>
+
 // Type casters for MLIR C-API types.
 namespace nanobind {
 namespace detail {

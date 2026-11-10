@@ -11,6 +11,7 @@
 #include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/algorithms/integrator.h"
 #include <cmath>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <unsupported/Eigen/KroneckerProduct>

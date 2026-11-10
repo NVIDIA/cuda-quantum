@@ -9,6 +9,7 @@
 #include "cudaq/gf2/bump_allocator.h"
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

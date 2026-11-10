@@ -12,6 +12,8 @@
 
 #include <cudaq.h>
 
+#include <cstdint>
+
 struct foo_test_result {
   std::int64_t a;
   std::int64_t b;

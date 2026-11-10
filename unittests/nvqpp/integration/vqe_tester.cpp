@@ -13,6 +13,8 @@
 #include <cudaq/algorithms/gradients/central_difference.h>
 #include <cudaq/optimizers.h>
 
+#include <cstdint>
+
 // Stim does not support rotational gates
 #ifndef CUDAQ_BACKEND_STIM
 

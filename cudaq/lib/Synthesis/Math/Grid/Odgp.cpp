@@ -15,6 +15,7 @@
 #include <array>
 #include <cassert>
 #include <cmath>
+#include <cstdint>
 
 #define DEBUG_TYPE "cudaq-synth"
 

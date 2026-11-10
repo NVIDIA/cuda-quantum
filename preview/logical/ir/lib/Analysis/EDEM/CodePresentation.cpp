@@ -15,6 +15,7 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/SymbolTable.h"
 
+#include <cstdint>
 #include <limits>
 #include <utility>
 

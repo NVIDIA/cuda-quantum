@@ -24,6 +24,7 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <string>
 

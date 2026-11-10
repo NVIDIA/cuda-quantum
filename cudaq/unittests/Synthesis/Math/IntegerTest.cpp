@@ -10,6 +10,7 @@
 
 #include "cudaq/Synthesis/Math/Integer.h"
 
+#include <cstdint>
 #include <limits>
 #include <string>
 

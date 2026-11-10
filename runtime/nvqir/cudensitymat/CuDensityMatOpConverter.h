@@ -10,6 +10,7 @@
 
 #include "cudaq/operators.h"
 #include "cudaq/operators/matrix.h"
+#include <cstdint>
 #include <cudensitymat.h>
 #include <deque>
 #include <optional>

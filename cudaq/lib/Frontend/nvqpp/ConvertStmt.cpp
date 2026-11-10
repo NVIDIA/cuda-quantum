@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Builders.h"
+#include <cstdint>
 #include <optional>
 #include <tuple>
 #include <vector>

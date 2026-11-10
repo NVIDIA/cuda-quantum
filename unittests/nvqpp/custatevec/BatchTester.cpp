@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <numeric>
 
 using cudaq::cusv::compactMatrixTask;

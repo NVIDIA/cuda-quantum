@@ -11,6 +11,7 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/host_dispatch_loop.h"
 #include <atomic>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <mutex>

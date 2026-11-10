@@ -12,6 +12,8 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/Passes.h"
 
+#include <cstdint>
+
 using namespace mlir;
 
 namespace {

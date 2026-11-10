@@ -9,6 +9,7 @@
 #pragma once
 #include "cutensornet.h"
 #include <complex>
+#include <cstdint>
 #include <random>
 #include <vector>
 
