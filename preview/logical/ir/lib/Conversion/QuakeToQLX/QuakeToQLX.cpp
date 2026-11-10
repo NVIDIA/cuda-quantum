@@ -59,16 +59,11 @@ struct ImportState {
   // inserted.
   DenseMap<Value, SmallVector<Value>> classicalTuples;
   DenseMap<Value, SmallVector<Value>> cableOwners;
-  // CUDA-Q reference helpers may unwrap the same ref/veq slot repeatedly.
-  // Every such wire is an alias handle for one mutable source slot, not an
-  // independent quantum owner.  Resolve these handles through the slot's
-  // current P0 owner at each operation so the emitted QLX remains linear.
-  DenseMap<Value, unsigned> wireReferenceSlots;
-  DenseMap<Value, SmallVector<std::int64_t>> cableReferenceSlots;
-  // CUDA-Q's reference helper ABI unwraps each scalar !quake.ref argument to
-  // one wire and wraps the successor wire back to the same reference before
-  // returning.  These maps make that implicit mutation an explicit linear P0
-  // input/result boundary.
+  // In a reference helper, convert-to-linear-values unwraps each !quake.ref
+  // once and wraps its last wire back to it once. A helper's P0 program takes
+  // one qubit per reference slot and returns the qubit last wrapped to each
+  // slot. `referenceIndices` maps a reference to its slot and
+  // `referenceResults` holds each slot's qubit: the input until it is wrapped.
   DenseMap<Value, unsigned> referenceIndices;
   DenseMap<Value, std::pair<unsigned, unsigned>> vectorArgumentSlices;
   SmallVector<Value> referenceResults;
@@ -781,8 +776,6 @@ private:
       return failure();
 
     auto wires = gate.getWires();
-    if (wires.size() != inputs.size())
-      return gate.emitOpError("does not return one wire per quantum operand");
 
     // Two-control Z is the standard logical CCZ action. Whether a later QEC
     // lowering realizes it natively or with a CCZ-state stream is not P0
@@ -983,139 +976,6 @@ private:
     return success();
   }
 
-  static LogicalResult discardWire(Operation *owner, Value wire,
-                                   OpBuilder &builder, ImportState &state) {
-    if (state.wireReferenceSlots.contains(wire))
-      return owner->emitOpError(
-          "cannot discard a borrowed reference-helper value");
-    return discardWires(owner, ValueRange{wire}, builder, state);
-  }
-
-  static LogicalResult hydrateReferenceWires(Operation *owner, ValueRange wires,
-                                             ImportState &state) {
-    DenseSet<unsigned> seen;
-    for (Value wire : wires) {
-      auto slot = state.wireReferenceSlots.find(wire);
-      if (slot == state.wireReferenceSlots.end())
-        continue;
-      if (slot->second >= state.referenceResults.size() ||
-          !state.referenceResults[slot->second])
-        return owner->emitOpError(
-            "reference-helper wire resolves to no current P0 qubit value");
-      if (!seen.insert(slot->second).second)
-        return owner->emitOpError(
-            "uses two aliases of the same reference slot in one operation");
-      state.wireOwners[wire] = state.referenceResults[slot->second];
-    }
-    return success();
-  }
-
-  static LogicalResult hydrateReferenceCable(Operation *owner, Value cable,
-                                             ImportState &state) {
-    auto slots = state.cableReferenceSlots.find(cable);
-    if (slots == state.cableReferenceSlots.end())
-      return success();
-    auto owners = state.cableOwners.find(cable);
-    if (owners == state.cableOwners.end() ||
-        owners->second.size() != slots->second.size())
-      return owner->emitOpError(
-          "reference-helper cable has inconsistent qubit provenance");
-    DenseSet<unsigned> seen;
-    for (auto [index, slot] : llvm::enumerate(slots->second)) {
-      if (slot < 0)
-        continue;
-      auto unsignedSlot = static_cast<unsigned>(slot);
-      if (unsignedSlot >= state.referenceResults.size() ||
-          !state.referenceResults[unsignedSlot])
-        return owner->emitOpError(
-            "reference-helper cable resolves to no current P0 qubit value");
-      if (!seen.insert(unsignedSlot).second)
-        return owner->emitOpError(
-            "contains two aliases of the same reference slot");
-      owners->second[index] = state.referenceResults[unsignedSlot];
-    }
-    return success();
-  }
-
-  static void refreshReferenceAliases(unsigned slot, Value owner,
-                                      ImportState &state) {
-    state.referenceResults[slot] = owner;
-    for (auto [wire, aliasSlot] : state.wireReferenceSlots)
-      if (aliasSlot == slot)
-        state.wireOwners[wire] = owner;
-    for (auto [cable, slots] : state.cableReferenceSlots) {
-      auto owners = state.cableOwners.find(cable);
-      if (owners == state.cableOwners.end())
-        continue;
-      for (auto [index, aliasSlot] : llvm::enumerate(slots))
-        if (aliasSlot == static_cast<std::int64_t>(slot))
-          owners->second[index] = owner;
-    }
-  }
-
-  static LogicalResult commitReferenceWireResults(Operation *owner,
-                                                  ValueRange inputs,
-                                                  ValueRange results,
-                                                  ImportState &state) {
-    if (inputs.size() != results.size())
-      return owner->emitOpError(
-          "does not preserve reference-helper qubit arity");
-    for (auto [input, result] : llvm::zip(inputs, results)) {
-      auto slot = state.wireReferenceSlots.find(input);
-      if (slot == state.wireReferenceSlots.end())
-        continue;
-      auto mapped = state.wireOwners.find(result);
-      if (mapped == state.wireOwners.end())
-        return owner->emitOpError(
-            "reference-helper result has no live P0 qubit value");
-      // Copy before inserting: the insert may invalidate `slot`.
-      unsigned slotIndex = slot->second;
-      state.wireReferenceSlots[result] = slotIndex;
-      refreshReferenceAliases(slotIndex, mapped->second, state);
-    }
-    return success();
-  }
-
-  template <typename GateOp>
-  static LogicalResult convertReferenceAwareGate(GateOp gate,
-                                                 OpBuilder &builder,
-                                                 ImportState &state) {
-    SmallVector<Value> inputs;
-    inputs.append(gate.getControls().begin(), gate.getControls().end());
-    inputs.append(gate.getTargets().begin(), gate.getTargets().end());
-    if (failed(hydrateReferenceWires(gate, inputs, state)))
-      return failure();
-    if (failed(convertGate(gate, builder, state.wireOwners)))
-      return failure();
-    return commitReferenceWireResults(gate, inputs, gate.getWires(), state);
-  }
-
-  static LogicalResult convertReferenceAwareSwap(cudaq::quake::SwapOp swap,
-                                                 OpBuilder &builder,
-                                                 ImportState &state) {
-    SmallVector<Value> inputs(swap.getTargets().begin(),
-                              swap.getTargets().end());
-    if (failed(hydrateReferenceWires(swap, inputs, state)))
-      return failure();
-    if (failed(convertSwap(swap, builder, state.wireOwners)))
-      return failure();
-    return commitReferenceWireResults(swap, inputs, swap.getWires(), state);
-  }
-
-  template <typename GateOp>
-  static LogicalResult
-  convertReferenceAwareRotation(GateOp gate, OpBuilder &builder,
-                                ImportState &state, std::int64_t xMask,
-                                std::int64_t zMask) {
-    SmallVector<Value> inputs(gate.getTargets().begin(),
-                              gate.getTargets().end());
-    if (failed(hydrateReferenceWires(gate, inputs, state)))
-      return failure();
-    if (failed(convertRotation(gate, builder, state.wireOwners, xMask, zMask)))
-      return failure();
-    return commitReferenceWireResults(gate, inputs, gate.getWires(), state);
-  }
-
   // CUDA-Q's linear value conversion should only emit plain, direct applies;
   // that is the subset P0 can import. Reject the rest instead of dropping it.
   static LogicalResult requirePlainApply(cudaq::quake::ApplyOp apply) {
@@ -1133,36 +993,21 @@ private:
     if (failed(requirePlainApply(call)))
       return failure();
     SmallVector<Value> inputs;
-    SmallVector<std::int64_t> inputSlots;
     for (Value argument : call.getActuals()) {
       if (isa<cudaq::quake::WireType>(argument.getType())) {
-        if (failed(hydrateReferenceWires(call, ValueRange{argument}, state)))
-          return failure();
         auto found = state.wireOwners.find(argument);
         if (found == state.wireOwners.end())
           return call.emitOpError("uses a wire with no live P0 qubit value");
         inputs.push_back(found->second);
-        auto slot = state.wireReferenceSlots.find(argument);
-        inputSlots.push_back(slot == state.wireReferenceSlots.end()
-                                 ? -1
-                                 : static_cast<std::int64_t>(slot->second));
         state.wireOwners.erase(found);
         continue;
       }
       if (isa<cudaq::quake::CableType>(argument.getType())) {
-        if (failed(hydrateReferenceCable(call, argument, state)))
-          return failure();
         auto found = state.cableOwners.find(argument);
         if (found == state.cableOwners.end())
           return call.emitOpError("uses a cable with no live P0 qubit values");
         inputs.append(found->second.begin(), found->second.end());
-        auto slots = state.cableReferenceSlots.find(argument);
-        if (slots == state.cableReferenceSlots.end())
-          inputSlots.append(found->second.size(), -1);
-        else
-          inputSlots.append(slots->second.begin(), slots->second.end());
         state.cableOwners.erase(found);
-        state.cableReferenceSlots.erase(argument);
         continue;
       }
       return call.emitOpError(
@@ -1206,33 +1051,18 @@ private:
       importedResults.append(imported.getResults().begin(),
                              imported.getResults().end());
     }
-    unsigned offset = 0;
+    ArrayRef<Value> remaining = importedResults;
     for (Value source : call.getResults()) {
       if (isa<cudaq::quake::WireType>(source.getType())) {
-        Value result = importedResults[offset];
-        state.wireOwners[source] = result;
-        if (inputSlots[offset] >= 0) {
-          unsigned slot = static_cast<unsigned>(inputSlots[offset]);
-          state.wireReferenceSlots[source] = slot;
-          refreshReferenceAliases(slot, result, state);
-        }
-        ++offset;
+        state.wireOwners[source] = remaining.front();
+        remaining = remaining.drop_front();
         continue;
       }
-      auto cable = cast<cudaq::quake::CableType>(source.getType());
-      SmallVector<Value> owners;
-      SmallVector<std::int64_t> slots;
-      for (std::uint64_t index = 0; index < cable.getSize(); ++index) {
-        Value result = importedResults[offset];
-        owners.push_back(result);
-        slots.push_back(inputSlots[offset]);
-        if (inputSlots[offset] >= 0)
-          refreshReferenceAliases(static_cast<unsigned>(inputSlots[offset]),
-                                  result, state);
-        ++offset;
-      }
-      state.cableOwners[source] = std::move(owners);
-      state.cableReferenceSlots[source] = std::move(slots);
+      std::uint64_t width =
+          cast<cudaq::quake::CableType>(source.getType()).getSize();
+      state.cableOwners[source] =
+          SmallVector<Value>(remaining.take_front(width));
+      remaining = remaining.drop_front(width);
     }
     return success();
   }
@@ -1266,38 +1096,25 @@ private:
         .Case<cudaq::quake::HOp, cudaq::quake::SOp, cudaq::quake::TOp,
               cudaq::quake::XOp, cudaq::quake::YOp, cudaq::quake::ZOp>(
             [&](auto gate) -> LogicalResult {
-              return convertReferenceAwareGate(gate, builder, state);
+              return convertGate(gate, builder, state.wireOwners);
             })
         .Case<cudaq::quake::SwapOp>([&](auto swap) -> LogicalResult {
-          return convertReferenceAwareSwap(swap, builder, state);
+          return convertSwap(swap, builder, state.wireOwners);
         })
         .Case<cudaq::quake::ApplyOp>([&](auto call) -> LogicalResult {
           return convertReferenceCall(call, builder, state);
         })
         .Case<cudaq::quake::BundleCableOp>([&](auto bundle) -> LogicalResult {
           SmallVector<Value> owners;
-          SmallVector<std::int64_t> slots;
-          if (failed(hydrateReferenceWires(bundle, bundle.getWires(), state)))
-            return failure();
           for (Value wire : bundle.getWires()) {
             auto found = state.wireOwners.find(wire);
             if (found == state.wireOwners.end())
               return bundle.emitOpError(
                   "bundles a wire with no live P0 qubit value");
             owners.push_back(found->second);
-            auto slot = state.wireReferenceSlots.find(wire);
-            slots.push_back(slot == state.wireReferenceSlots.end()
-                                ? -1
-                                : static_cast<std::int64_t>(slot->second));
             state.wireOwners.erase(found);
           }
-          auto type =
-              cast<cudaq::quake::CableType>(bundle.getResult().getType());
-          if (type.getSize() != owners.size())
-            return bundle.emitOpError(
-                "cable width does not match its flattened wires");
           state.cableOwners[bundle.getResult()] = std::move(owners);
-          state.cableReferenceSlots[bundle.getResult()] = std::move(slots);
           return success();
         })
         .Case<cudaq::quake::SplitCableOp>([&](auto split) -> LogicalResult {
@@ -1305,27 +1122,13 @@ private:
           if (found == state.cableOwners.end())
             return split.emitOpError(
                 "splits a cable with no live P0 qubit values");
-          if (found->second.size() != split.getNumResults())
-            return split.emitOpError(
-                "split result count does not match the cable width");
-          auto slots = state.cableReferenceSlots.find(split.getCable());
-          for (auto [index, wire, owner] :
-               llvm::enumerate(split.getResults(), found->second)) {
+          for (auto [wire, owner] :
+               llvm::zip(split.getResults(), found->second))
             state.wireOwners[wire] = owner;
-            if (slots != state.cableReferenceSlots.end() &&
-                slots->second[index] >= 0)
-              state.wireReferenceSlots[wire] =
-                  static_cast<unsigned>(slots->second[index]);
-          }
           state.cableOwners.erase(found);
-          state.cableReferenceSlots.erase(split.getCable());
           return success();
         })
         .Case<cudaq::quake::ExtractRefOp>([&](auto extract) -> LogicalResult {
-          if (!state.referenceABI)
-            return extract.emitOpError(
-                "quake.extract_ref is legal only in a specialized "
-                "reference helper");
           auto slice = state.vectorArgumentSlices.find(extract.getVeq());
           if (slice == state.vectorArgumentSlices.end())
             return extract.emitOpError(
@@ -1334,96 +1137,56 @@ private:
           if (index >= slice->second.second)
             return extract.emitOpError(
                 "static vector index exceeds the specialized cable width");
-          unsigned flattened = slice->second.first + index;
-          if (!state.referenceResults[flattened])
-            return extract.emitOpError(
-                "extracts a vector element with no current qubit value");
-          state.referenceIndices[extract.getRef()] = flattened;
+          state.referenceIndices[extract.getRef()] =
+              slice->second.first + index;
           return success();
         })
         .Case<cudaq::quake::UnwrapOp>([&](auto unwrap) -> LogicalResult {
-          if (!state.referenceABI)
-            return unwrap.emitOpError(
-                "quake.unwrap is legal only in a scalar reference helper");
-          Value reference = unwrap.getRefValue();
-          auto index = state.referenceIndices.find(reference);
+          auto index = state.referenceIndices.find(unwrap.getRefValue());
           if (index == state.referenceIndices.end())
             return unwrap.emitOpError(
                 "reference is not a specialized helper input slot");
-          if (!state.referenceResults[index->second])
-            return unwrap.emitOpError(
-                "reference-helper slot has no current P0 qubit value");
-          state.wireReferenceSlots[unwrap.getResult()] = index->second;
           state.wireOwners[unwrap.getResult()] =
               state.referenceResults[index->second];
           return success();
         })
         .Case<cudaq::quake::WrapOp>([&](auto wrap) -> LogicalResult {
-          if (!state.referenceABI)
-            return wrap.emitOpError(
-                "quake.wrap is legal only in a scalar reference helper");
-          Value reference = wrap.getRefValue();
-          auto index = state.referenceIndices.find(reference);
+          auto index = state.referenceIndices.find(wrap.getRefValue());
           if (index == state.referenceIndices.end())
             return wrap.emitOpError("target is not a helper input reference");
           auto owner = state.wireOwners.find(wrap.getWireValue());
           if (owner == state.wireOwners.end())
-            return wrap.emitOpError("uses a wire with no live P0 qubit value");
-          auto slot = state.wireReferenceSlots.find(wrap.getWireValue());
-          if (slot == state.wireReferenceSlots.end() ||
-              slot->second != index->second)
             return wrap.emitOpError(
-                "wire provenance does not match the wrapped reference slot");
-          if (state.referenceResults[index->second] != owner->second)
-            return wrap.emitOpError(
-                "wrapped wire is not the current reference-slot wire");
+                "returns a qubit that is measured or not live; P0 "
+                "measurement is destructive");
+          state.referenceResults[index->second] = owner->second;
+          state.wireOwners.erase(owner);
           return success();
         })
         .Case<cudaq::quake::PhaseOp>([&](auto phase) -> LogicalResult {
-          // P0 ignores global phase, but a controlled phase is relative and
-          // must be lowered upstream. The anchor still carries wire ownership.
+          // prepare-quake-for-qlx erases global phases. A controlled phase is
+          // relative and must be lowered upstream.
           if (!phase.getControls().empty())
             return phase.emitOpError(
                 "controlled phases are outside the Quake-to-P0 contract; "
                 "lower upstream");
-          Value input = phase.getTarget();
-          if (!isa<cudaq::quake::WireType>(input.getType()) ||
-              phase.getWires().size() != 1)
-            return phase.emitOpError("requires an anchor wire");
-          Value result = phase.getWires().front();
-          if (failed(hydrateReferenceWires(phase, ValueRange{input}, state)))
-            return failure();
-          auto owner = state.wireOwners.find(input);
-          if (owner == state.wireOwners.end()) {
-            if (!state.measuredWires.erase(input))
-              return phase.emitOpError(
-                  "uses a wire with no live or measured P0 owner");
-            state.measuredWires.insert(result);
-            return success();
-          }
-          if (state.measuredWires.contains(input))
-            return phase.emitOpError(
-                "wire lifetime state is both live and measured");
-          Value logicalOwner = owner->second;
-          state.wireOwners.erase(owner);
-          state.wireOwners[result] = logicalOwner;
-          return commitReferenceWireResults(phase, ValueRange{input},
-                                            phase.getWires(), state);
+          return phase.emitOpError(
+              "global phase must be erased by prepare-quake-for-qlx");
         })
         .Case<cudaq::quake::R1Op>([&](auto g) -> LogicalResult {
           // On one uncontrolled target, R1(theta) and Rz(theta) differ only
           // by an unobservable global phase. Controlled R1 is rejected by
           // convertRotation because that phase would become relative.
-          return convertReferenceAwareRotation(g, builder, state, 0, 1);
+          return convertRotation(g, builder, state.wireOwners, 0, 1);
         })
         .Case<cudaq::quake::RxOp>([&](auto g) -> LogicalResult {
-          return convertReferenceAwareRotation(g, builder, state, 1, 0);
+          return convertRotation(g, builder, state.wireOwners, 1, 0);
         })
         .Case<cudaq::quake::RyOp>([&](auto g) -> LogicalResult {
-          return convertReferenceAwareRotation(g, builder, state, 1, 1);
+          return convertRotation(g, builder, state.wireOwners, 1, 1);
         })
         .Case<cudaq::quake::RzOp>([&](auto g) -> LogicalResult {
-          return convertReferenceAwareRotation(g, builder, state, 0, 1);
+          return convertRotation(g, builder, state.wireOwners, 0, 1);
         })
         .Case<cudaq::cc::ScopeOp>([&](auto scope) -> LogicalResult {
           return importScope(scope, builder, state, policy);
@@ -1474,33 +1237,18 @@ private:
         .Case<cudaq::quake::MzOp>([&](auto m) -> LogicalResult {
           if (structured && !repeatBody)
             return rejectStructured(m, "measurement");
-          if (llvm::any_of(m.getTargets(), [&](Value wire) {
-                return state.wireReferenceSlots.contains(wire);
-              }))
-            return m.emitOpError(
-                "reference-helper inputs cannot be destructively measured");
           return convertMeasurement(m, qlx::Pauli::Z, builder, state.wireOwners,
                                     state.classicalBits, state.measuredWires);
         })
         .Case<cudaq::quake::MxOp>([&](auto m) -> LogicalResult {
           if (structured && !repeatBody)
             return rejectStructured(m, "measurement");
-          if (llvm::any_of(m.getTargets(), [&](Value wire) {
-                return state.wireReferenceSlots.contains(wire);
-              }))
-            return m.emitOpError(
-                "reference-helper inputs cannot be destructively measured");
           return convertMeasurement(m, qlx::Pauli::X, builder, state.wireOwners,
                                     state.classicalBits, state.measuredWires);
         })
         .Case<cudaq::quake::MyOp>([&](auto m) -> LogicalResult {
           if (structured && !repeatBody)
             return rejectStructured(m, "measurement");
-          if (llvm::any_of(m.getTargets(), [&](Value wire) {
-                return state.wireReferenceSlots.contains(wire);
-              }))
-            return m.emitOpError(
-                "reference-helper inputs cannot be destructively measured");
           return convertMeasurement(m, qlx::Pauli::Y, builder, state.wireOwners,
                                     state.classicalBits, state.measuredWires);
         })
@@ -1521,32 +1269,24 @@ private:
         .Case<cudaq::quake::SinkOp>([&](auto sink) -> LogicalResult {
           if (structured && !repeatBody)
             return rejectStructured(sink, "sink");
-          return discardWire(sink, sink.getTarget(), builder, state);
+          return discardWires(sink, sink.getTarget(), builder, state);
         })
         .Case<cudaq::quake::ReturnWireOp>(
             [&](auto returnWire) -> LogicalResult {
               if (structured && !repeatBody)
                 return rejectStructured(returnWire, "wire return");
-              return discardWire(returnWire, returnWire.getTarget(), builder,
-                                 state);
+              return discardWires(returnWire, returnWire.getTarget(), builder,
+                                  state);
             })
         .Case<func::ReturnOp>([&](auto sourceReturn) -> LogicalResult {
           if (structured)
             return rejectStructured(sourceReturn, "function return");
           if (state.referenceABI) {
-            if (!sourceReturn.getOperands().empty())
-              return sourceReturn.emitOpError(
-                  "scalar reference helper must return through quake.wrap, "
-                  "not func.return operands");
-            for (auto [wire, owner] : state.wireOwners)
-              if (!state.wireReferenceSlots.contains(wire))
-                return sourceReturn.emitOpError(
-                    "helper leaves a live non-reference quantum value");
-            if (llvm::any_of(state.referenceResults,
-                             [](Value value) { return !value; }))
-              return sourceReturn.emitOpError(
-                  "helper does not wrap one successor for every input "
-                  "reference");
+            if (!state.wireOwners.empty())
+              return sourceReturn.emitOpError()
+                     << "helper leaves " << state.wireOwners.size()
+                     << " live quantum value(s); wrap, measure, or sink "
+                        "every wire";
             qlx::ReturnOp::create(builder, sourceReturn.getLoc(),
                                   state.referenceResults);
             return success();
@@ -1594,9 +1334,6 @@ private:
               state.measuredWires.insert(result);
               continue;
             }
-            if (state.measuredWires.contains(input))
-              return evince.emitOpError(
-                  "wire lifetime state is both live and measured");
             Value logicalOwner = owner->second;
             state.wireOwners.erase(owner);
             state.wireOwners[result] = logicalOwner;
