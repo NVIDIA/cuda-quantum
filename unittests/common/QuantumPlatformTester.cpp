@@ -20,6 +20,8 @@
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/ptsbe/policy.h"
+#include <atomic>
+#include <chrono>
 #include <cstdlib>
 #include <cxxabi.h>
 #include <gtest/gtest.h>
@@ -29,6 +31,50 @@
 #include <vector>
 
 using namespace cudaq;
+
+// The flags live outside the QPU so the test never reads freed memory.
+TEST(QuantumPlatformTester, clearWaitsForActiveTaskBeforeDestroyingQPU) {
+  std::atomic<bool> destroyed = false;
+  std::promise<void> entered;
+  std::promise<bool> observedDestruction;
+  class QueuedQPU : public QPU {
+    std::atomic<bool> &destroyed;
+
+  public:
+    explicit QueuedQPU(std::atomic<bool> &flag) : destroyed(flag) {}
+    ~QueuedQPU() override { destroyed = true; }
+    CompileTarget getCompileTarget(const RuntimeTarget *) override {
+      return {};
+    }
+    void enqueue(QuantumTask &task) override { execution_queue->enqueue(task); }
+    KernelThunkResultType
+    compileAndLaunchKernel(const AnyModule &, KernelArgs, const CompileTarget &,
+                           const CompileOptions &) override {
+      return {};
+    }
+  };
+  class QueueTestPlatform : public quantum_platform {
+  public:
+    using quantum_platform::addQPU;
+    using quantum_platform::clearQPUs;
+  } platform;
+  auto qpu = std::make_unique<QueuedQPU>(destroyed);
+  QuantumTask task = [&] {
+    entered.set_value();
+    // Without the fix, clearQPUs destroys the QPU during this window.
+    const auto deadline =
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+    while (!destroyed && std::chrono::steady_clock::now() < deadline)
+      std::this_thread::yield();
+    observedDestruction.set_value(destroyed.load());
+  };
+  qpu->enqueue(task);
+  entered.get_future().wait();
+  platform.addQPU(std::move(qpu));
+  platform.clearQPUs();
+  EXPECT_FALSE(observedDestruction.get_future().get());
+  EXPECT_TRUE(destroyed);
+}
 
 namespace {
 

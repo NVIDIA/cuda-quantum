@@ -355,6 +355,10 @@ void quantum_platform::addQPU(const CompileTarget &target,
 }
 
 void quantum_platform::clearQPUs() {
+  // Join queued tasks first. The base QPU destructor runs too late.
+  for (auto &endpoint : runtimeEndpoints)
+    if (auto *qpu = endpoint.getQPU())
+      qpu->shutdownExecutionQueue();
   runtimeEndpoints.clear();
   compileTargets.clear();
 }
