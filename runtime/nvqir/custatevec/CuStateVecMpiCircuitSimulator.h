@@ -148,6 +148,12 @@ protected:
         return;
     }
 
+    // Reject oversized requests before reading or replacing a replicated state
+    // or creating a distributed descriptor.
+    const int32_t maxLocalWires = maximumDeviceWires();
+    const int32_t maxMigrationWires = maximumMigrationWires(maxLocalWires);
+    checkStateCapacity(0, nQubitsAllocated, maxLocalWires, maxMigrationWires);
+
     // Below the distribution threshold every rank holds the same complete
     // state. Preserve that replicated state while replacing its descriptor with
     // a distributed layout, then write only each rank's assigned sub-states.
@@ -163,10 +169,7 @@ protected:
       }
     }
 
-    // Capacity of each memory tier -- device (local) wires and host (migration)
-    // wires -- and the resulting per-layer index-bit classes and sizes.
-    const int32_t maxLocalWires = maximumDeviceWires();
-    const int32_t maxMigrationWires = maximumMigrationWires(maxLocalWires);
+    // Per-layer index-bit classes and sizes.
     const auto [classes, bits] = communicationLayers(maxMigrationWires);
     // Select how peer ranks share sub-state device memory, consistent with the
     // layers `communicationLayers` produced: cuStateVecEx requires a sharing
@@ -210,6 +213,9 @@ protected:
       Base::addZeroWires(count);
       return;
     }
+
+    checkStateCapacity(m_state->numWires(), count, m_state->maxLocalWires(),
+                       m_state->maxMigrationWires());
 
     if (m_state->numWires() == 0) {
       const int32_t processBits = totalProcessBits();
@@ -257,6 +263,23 @@ protected:
   }
 
 private:
+  /// Validate collectively so a rank with less capacity cannot leave its peers
+  /// entering collective state allocation or resizing operations.
+  void checkStateCapacity(std::size_t existingWires, std::size_t addedWires,
+                          int32_t maxLocalWires,
+                          int32_t maxMigrationWires) const {
+    const auto maxWires = static_cast<std::size_t>(
+        maxLocalWires + maxMigrationWires + totalProcessBits());
+    const int32_t exceedsCapacity =
+        existingWires > maxWires || addedWires > maxWires - existingWires;
+    int32_t ranksExceedingCapacity = 0;
+    m_communicator->allReduce(&exceedsCapacity, &ranksExceedingCapacity, 1,
+                              CUDA_R_32I);
+    if (ranksExceedingCapacity != 0)
+      throw std::runtime_error(
+          "State vector exceeds configured GPU and CPU memory.");
+  }
+
   void initializeCommunicatorState() {
     // Fabric discovery and rank-width clamping derive effective values from
     // the active communicator. Restore the parsed user settings before each
