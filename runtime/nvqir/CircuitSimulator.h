@@ -28,7 +28,6 @@
 #include <deque>
 #include <iostream>
 #include <limits>
-#include <queue>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -1128,8 +1127,7 @@ protected:
     // queued gates without applying them. The recorded error is re-thrown by
     // the launcher once the kernel returns (see deferOrThrowKernelException).
     if (kernelExecutionDeferred()) {
-      while (!gateQueue.empty())
-        gateQueue.pop();
+      gateQueue.clear();
       return;
     }
 
@@ -1142,14 +1140,12 @@ protected:
       try {
         applyGateWithControlValues(next);
       } catch (std::exception &e) {
-        while (!gateQueue.empty())
-          gateQueue.pop();
+        gateQueue.clear();
         deferOrThrowKernelException(std::string("Exception in applyGate: ") +
                                     e.what());
         return;
       } catch (...) {
-        while (!gateQueue.empty())
-          gateQueue.pop();
+        gateQueue.clear();
         deferOrThrowKernelException("Unknown exception in applyGate");
         return;
       }
