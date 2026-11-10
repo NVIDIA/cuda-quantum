@@ -37,8 +37,9 @@
 ///   inline  The CPU copies the request's first 8 argument bytes into
 ///           `mailbox.payload`; the last block to arrive increments them and
 ///           stores the reply into `done.reply` just before `seq`, and the
-///           CPU copies it into the TX slot.  The GPU never touches the bridge's rings, which are
-///           plain host allocations registered with the NIC only.
+///           CPU copies it into the TX slot.  The GPU never touches the
+///           bridge's rings, which are plain host allocations registered with
+///           the NIC only.
 ///   ring    The CPU registers the bridge's RX and TX rings with CUDA at
 ///           startup.  Per request it passes the slot index and the clamped
 ///           argument length (from the header it has already validated),
@@ -123,13 +124,13 @@ struct alignas(128) Done {
 /// The resident grid's kernel argument (passed by value).  All pointers are
 /// device views.
 struct GridCtx {
-  const Mailbox *mailbox;      ///< pinned host (NOTIFY_PINNED) or device memory
-  Done *done;                  ///< mapped pinned host memory
-  volatile int *shutdown;      ///< mapped pinned host memory, polled rarely
-  std::uint32_t *smid;         ///< device memory, one entry per block
-  std::uint32_t notify;        ///< Notify
-  std::uint32_t poll;          ///< Poll
-  std::uint32_t request;       ///< Request
+  const Mailbox *mailbox; ///< pinned host (NOTIFY_PINNED) or device memory
+  Done *done;             ///< mapped pinned host memory
+  volatile int *shutdown; ///< mapped pinned host memory, polled rarely
+  std::uint32_t *smid;    ///< device memory, one entry per block
+  std::uint32_t notify;   ///< Notify
+  std::uint32_t poll;     ///< Poll
+  std::uint32_t request;  ///< Request
   // REQUEST_RING only: the bridge's rings, host memory mapped for the GPU.
   const std::uint8_t *rx_ring; ///< base of RX slot 0
   std::uint8_t *tx_ring;       ///< base of TX slot 0

@@ -209,7 +209,7 @@ __global__ void __launch_bounds__(1024) grid_worker(GridCtx ctx) {
   cg::grid_group grid = cg::this_grid();
   const bool ring = ctx.request == REQUEST_RING;
   __shared__ std::uint64_t s_seq;
-  __shared__ std::uint64_t s_payload; // inline
+  __shared__ std::uint64_t s_payload;  // inline
   __shared__ std::uint64_t s_slot_len; // ring: pack_slot_len(slot, len)
 
   // Placement, then a ready signal once every block is resident.  This is the

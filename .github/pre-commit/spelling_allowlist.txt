@@ -14,6 +14,7 @@ Ataides
 AutoCCZ
 AwaitOp
 BFGS
+BRAM
 BRS
 Bloch
 BlueField
@@ -53,6 +54,8 @@ DCO
 DEMs
 DGX
 DLP
+DMA
+DMAs
 DOCA
 DOI
 DSL
@@ -76,6 +79,7 @@ ForLoop
 Fortran
 Fourier
 GF
+GH
 GHCR
 GMP
 GPL
@@ -105,6 +109,7 @@ Homebrew
 Horner
 Håstad
 IB
+IGX
 INIT
 IQM
 IRValue
@@ -172,6 +177,7 @@ OpenSSL
 OpenSUSE
 Ou
 PBC
+PCIe
 POSIX
 PSIRT
 PTSBE
@@ -232,6 +238,7 @@ RTL
 RTR
 RTS
 RTTI
+RTX
 Rabi
 Realtime
 RepeatOp
@@ -244,6 +251,7 @@ SDK
 SLED
 SLES
 SLURM
+SMs
 SVD
 SX
 Scaleway
@@ -260,6 +268,7 @@ TBI
 TCP
 TII
 TableGen
+Tegra
 TestOp
 Timestep
 Toffoli
@@ -318,6 +327,7 @@ arg
 args
 argval
 arity
+arriver
 aspirational
 attr
 attrs
@@ -524,6 +534,7 @@ grovers
 hadamard
 hamiltonian
 handoff
+handoffs
 heisenberg
 hoistable
 homogenous
@@ -535,6 +546,7 @@ hx
 hyperedge
 hypergraph
 hz
+iGPU
 iXZ
 idx
 iff
@@ -670,6 +682,7 @@ pipelining
 plaquette
 plaquettes
 pluggable
+poller
 popcount
 portably
 positionally

@@ -39,10 +39,10 @@
 /// the test server (unittests/test_server/cudaq_realtime_test_server.cpp,
 /// ORDERING RULE), whose setup sequence this follows step by step.
 
+#include "grid_common.h"
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "grid_common.h"
 
 #include <algorithm>
 #include <atomic>
@@ -96,10 +96,10 @@ constexpr std::size_t GDR_PAGE = 65536; // gdrcopy pins whole 64 KiB GPU pages
 
 struct Options {
   int gpu = 0;
-  std::string notify = "auto"; // auto | gdrcopy | pinned
-  std::string poll = "auto";   // auto | all | leader
+  std::string notify = "auto";    // auto | gdrcopy | pinned
+  std::string poll = "auto";      // auto | all | leader
   std::string request = "inline"; // inline | ring
-  unsigned blocks = 0;         // 0 = SM count
+  unsigned blocks = 0;            // 0 = SM count
   unsigned threads = 256;
   int timeout = 0; // seconds, 0 = until SIGINT
   std::string bridge;
@@ -391,10 +391,10 @@ bool map_with_gdrcopy(void *d_page, std::string &why) {
   int sync = 1;
   cuPointerSetAttribute(&sync, CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, address);
   gdr_info_t info{};
-  const int pin = gdr_pin_buffer(h.gdr_handle, address, GDR_PAGE, 0, 0,
-                                 &h.gdr_mh);
-  const int map = pin ? -1 : gdr_map(h.gdr_handle, h.gdr_mh, &h.gdr_map,
-                                     GDR_PAGE);
+  const int pin =
+      gdr_pin_buffer(h.gdr_handle, address, GDR_PAGE, 0, 0, &h.gdr_mh);
+  const int map =
+      pin ? -1 : gdr_map(h.gdr_handle, h.gdr_mh, &h.gdr_map, GDR_PAGE);
   const int inf = map ? -1 : gdr_get_info(h.gdr_handle, h.gdr_mh, &info);
   if (pin || map || inf || address < info.va) {
     why = "gdrcopy pin/map of the mailbox failed (pin " + std::to_string(pin) +
@@ -408,8 +408,8 @@ bool map_with_gdrcopy(void *d_page, std::string &why) {
     h.gdr_handle = nullptr;
     return false;
   }
-  h.mailbox = reinterpret_cast<Mailbox *>(static_cast<std::uint8_t *>(h.gdr_map) +
-                                          (address - info.va));
+  h.mailbox = reinterpret_cast<Mailbox *>(
+      static_cast<std::uint8_t *>(h.gdr_map) + (address - info.va));
   h.gdr = true;
   return true;
 }
@@ -474,10 +474,10 @@ int main(int argc, char **argv) {
   // [1] Device and platform.
   CUDA_CHECK(cudaSetDevice(opt.gpu));
   int sms = 0, integrated = 0, cooperative = 0;
-  CUDA_CHECK(cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount,
-                                    opt.gpu));
-  CUDA_CHECK(cudaDeviceGetAttribute(&integrated, cudaDevAttrIntegrated,
-                                    opt.gpu));
+  CUDA_CHECK(
+      cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, opt.gpu));
+  CUDA_CHECK(
+      cudaDeviceGetAttribute(&integrated, cudaDevAttrIntegrated, opt.gpu));
   CUDA_CHECK(cudaDeviceGetAttribute(&cooperative, cudaDevAttrCooperativeLaunch,
                                     opt.gpu));
   if (!cooperative) {
@@ -520,8 +520,8 @@ int main(int argc, char **argv) {
 #endif
   if (!g_handoff.gdr) {
     void *d = nullptr;
-    CUDA_CHECK(cudaHostAlloc(&h_mailbox_alloc, sizeof(Mailbox),
-                             cudaHostAllocMapped));
+    CUDA_CHECK(
+        cudaHostAlloc(&h_mailbox_alloc, sizeof(Mailbox), cudaHostAllocMapped));
     CUDA_CHECK(cudaHostGetDevicePointer(&d, h_mailbox_alloc, 0));
     std::memset(h_mailbox_alloc, 0, sizeof(Mailbox));
     g_handoff.mailbox = static_cast<Mailbox *>(h_mailbox_alloc);
@@ -583,9 +583,9 @@ int main(int argc, char **argv) {
   //     but the ring registration of --request=ring.
   const std::string library = provider_library(opt);
   cudaq_realtime_bridge_handle_t bridge = nullptr;
-  if (cudaq_bridge_create_from_library(
-          &bridge, library.c_str(), static_cast<int>(opt.bridge_args.size()),
-          opt.bridge_args.data()) != CUDAQ_OK) {
+  if (cudaq_bridge_create_from_library(&bridge, library.c_str(),
+                                       static_cast<int>(opt.bridge_args.size()),
+                                       opt.bridge_args.data()) != CUDAQ_OK) {
     std::fprintf(stderr, "ERROR: cannot create a bridge from '%s'\n",
                  library.c_str());
     return 1;
@@ -593,8 +593,8 @@ int main(int argc, char **argv) {
   std::uint32_t num_slots = 0, slot_size = 0;
   CUDAQ_CHECK(cudaq_bridge_get_ring_geometry(bridge, &num_slots, &slot_size));
   char endpoint[512] = {0};
-  CUDAQ_CHECK(cudaq_bridge_get_endpoint_info(bridge, endpoint,
-                                             sizeof(endpoint)));
+  CUDAQ_CHECK(
+      cudaq_bridge_get_endpoint_info(bridge, endpoint, sizeof(endpoint)));
 
   // --request=ring: map the bridge's RX and TX rings for the grid.  Reading
   // the CPU data plane is a plain accessor (it describes the provider's
@@ -662,8 +662,8 @@ int main(int argc, char **argv) {
 
   static volatile int host_shutdown = 0;
   static std::uint64_t host_stats = 0;
-  CUDAQ_CHECK(cudaq_dispatcher_set_control(dispatcher, &host_shutdown,
-                                           &host_stats));
+  CUDAQ_CHECK(
+      cudaq_dispatcher_set_control(dispatcher, &host_shutdown, &host_stats));
   CUDAQ_CHECK(cudaq_dispatcher_start(dispatcher));
 
   // [5] Only now the resident grid, then wait until every block is running.

@@ -295,7 +295,7 @@ the length instead.
 Platforms: on GH200 and GB200 (C2C), a Thor iGPU and a DGX Spark (shared DRAM)
 the GPU has a coherent mapping of the host ring. On a PCIe discrete GPU such as
 the RTX PRO 6000 the reads cross PCIe, which is correct but slow; a
-device-memory RX ring (DMA-BUF) in the `cpu_roce` bridge would help there and
+device-memory RX ring (`DMA-BUF`) in the `cpu_roce` bridge would help there and
 is future work.
 
 ## Choosing automatically
@@ -596,7 +596,7 @@ GPU could not `cudaHostRegister` the memory the NIC driver allocated; use
   rings, through a CUDA mapping of the host memory. That mapping is coherent
   and fast on GH200/GB200 (C2C), the Thor iGPU and DGX Spark (shared DRAM). On
   a PCIe discrete GPU such as the RTX PRO 6000 every ring access crosses PCIe:
-  correct but slow, and a device-memory RX ring (DMA-BUF) in the `cpu_roce`
+  correct but slow, and a device-memory RX ring (`DMA-BUF`) in the `cpu_roce`
   bridge is future work.
 - The cooperative grid occupies the whole GPU: one block per SM on every SM,
   with shared memory sized to force it. Nothing else can run on that GPU while

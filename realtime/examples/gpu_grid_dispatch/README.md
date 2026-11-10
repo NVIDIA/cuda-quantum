@@ -25,8 +25,10 @@ mailbox and waits for the grid's completion in pinned host memory.
 
 Build against an installed CUDA-Q Realtime (gdrcopy is optional):
 
-    cmake -S . -B build -DCUDAQ_REALTIME_ROOT=<realtime install prefix>
-    cmake --build build
+```bash
+cmake -S . -B build -DCUDAQ_REALTIME_ROOT=<realtime install prefix>
+cmake --build build
+```
 
 The full walkthrough is in
 [realtime/docs/gpu_grid_dispatch_example.md](../../docs/gpu_grid_dispatch_example.md).
