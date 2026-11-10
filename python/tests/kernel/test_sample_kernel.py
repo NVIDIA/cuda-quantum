@@ -214,9 +214,6 @@ def test_sample_async():
     assert '1' in sample_result and len(sample_result) == 1
 
 
-@pytest.mark.xfail(
-    reason="sample/observe should reject an early return, which can skip the "
-    "record; not yet implemented")
 def test_conditional_bare_return():
 
     @cudaq.kernel
@@ -228,16 +225,11 @@ def test_conditional_bare_return():
         x(q)
         cudaq.record(q)
 
-    counts = cudaq.sample(kernel, True, shots_count=100)
-    assert '0' in counts and len(counts) == 1
-
-    counts = cudaq.sample(kernel, False, shots_count=100)
-    assert '1' in counts and len(counts) == 1
+    # An early return can skip the record.
+    with pytest.raises(RuntimeError, match="can return before"):
+        cudaq.sample(kernel, True, shots_count=100)
 
 
-@pytest.mark.xfail(
-    reason="sample/observe should reject an early return, which can skip the "
-    "record; not yet implemented")
 def test_composite_conditional_bare_return():
 
     @cudaq.kernel
@@ -248,17 +240,11 @@ def test_composite_conditional_bare_return():
         x(q)
         cudaq.record(q)
 
-    counts = cudaq.sample(kernel, 0, shots_count=100)
-    assert '0' in counts and len(counts) == 1
-
-    for value in [1, 2]:
-        counts = cudaq.sample(kernel, value, shots_count=100)
-        assert '1' in counts and len(counts) == 1
+    # An early return can skip the record.
+    with pytest.raises(RuntimeError, match="can return before"):
+        cudaq.sample(kernel, 0, shots_count=100)
 
 
-@pytest.mark.xfail(
-    reason="sample/observe should reject an early return, which can skip the "
-    "record; not yet implemented")
 def test_bare_return_in_loop():
 
     @cudaq.kernel
@@ -270,11 +256,9 @@ def test_bare_return_in_loop():
             x(q)
         cudaq.record(q)
 
-    counts = cudaq.sample(kernel, 1, shots_count=100)
-    assert '1' in counts and len(counts) == 1
-
-    counts = cudaq.sample(kernel, 3, shots_count=100)
-    assert '0' in counts and len(counts) == 1
+    # An early return can skip the record.
+    with pytest.raises(RuntimeError, match="can return before"):
+        cudaq.sample(kernel, 3, shots_count=100)
 
 
 def test_function_scope_bare_return():

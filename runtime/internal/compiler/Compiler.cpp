@@ -35,6 +35,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Dominance.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Parser/Parser.h"
@@ -480,6 +481,19 @@ static cudaq::quake::EvinceOp getUserRecord(mlir::func::FuncOp epFunc) {
   return record;
 }
 
+/// False on early returns before \p record.
+static bool recordsOnEveryPath(mlir::func::FuncOp epFunc,
+                               cudaq::quake::EvinceOp record) {
+  if (epFunc
+          .walk([](cudaq::cc::UnwindReturnOp) {
+            return mlir::WalkResult::interrupt();
+          })
+          .wasInterrupted())
+    return false;
+  mlir::PostDominanceInfo postDom(epFunc);
+  return postDom.postDominates(record->getBlock(), &epFunc.getBody().front());
+}
+
 static bool hasConditionalsOnMeasureResults(mlir::ModuleOp moduleOp) {
   return std::any_of(moduleOp.begin(), moduleOp.end(), [](auto &innerOp) {
     cudaq::quake::detail::QuakeFunctionAnalysis analysis{&innerOp};
@@ -549,6 +563,16 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
 
   auto record = getUserRecord(epFunc);
   const bool userRecord = static_cast<bool>(record);
+
+  // Fail on early returns before the record.
+  const bool readsRecord =
+      (options.addSampleMeasurements && !options.explicitMeasurements) ||
+      options.measureObservable;
+  if (readsRecord && userRecord && !recordsOnEveryPath(epFunc, record))
+    CUDAQ_ERROR("Kernel '" + kernelName +
+                "' can return before its `cudaq::record`, so `cudaq::sample` "
+                "and `cudaq::observe` would miss it on that path. Remove the "
+                "early return.");
 
   if (options.addSampleMeasurements) {
     const bool measures = hasUserMeasurements(epFunc);
