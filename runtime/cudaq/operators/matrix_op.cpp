@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include <complex>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -26,7 +27,27 @@ bool matrix_handler::can_be_canonicalized = false;
 
 // tools for custom operators
 
-std::unordered_map<std::string, Definition> matrix_handler::defined_ops = {};
+namespace {
+// Lazy constructors hold this lock across lookup and registration, and call
+// define(), which takes the same lock. No matrix callbacks run under this lock.
+std::recursive_mutex &definitionMutex() {
+  static std::recursive_mutex mutex;
+  return mutex;
+}
+} // namespace
+
+std::unordered_map<std::string, std::shared_ptr<const Definition>>
+    matrix_handler::defined_ops = {};
+
+std::shared_ptr<const Definition>
+matrix_handler::get_definition(const std::string &operator_id) {
+  std::lock_guard lock(definitionMutex());
+  auto it = defined_ops.find(operator_id);
+  if (it == defined_ops.end())
+    throw std::range_error("no matrix operator with the name '" + operator_id +
+                           "' has been defined");
+  return it->second;
+}
 
 template <typename T>
 std::string matrix_handler::type_prefix() {
@@ -52,10 +73,12 @@ void matrix_handler::define(
     std::string operator_id, std::vector<std::int64_t> expected_dimensions,
     matrix_callback &&create,
     std::unordered_map<std::string, std::string> &&parameter_descriptions) {
-  auto defn = Definition(operator_id, std::move(expected_dimensions),
-                         std::move(create), std::move(parameter_descriptions));
+  auto defn = std::make_shared<const Definition>(
+      operator_id, std::move(expected_dimensions), std::move(create),
+      std::move(parameter_descriptions));
+  std::lock_guard lock(definitionMutex());
   auto result =
-      matrix_handler::defined_ops.insert({operator_id, std::move(defn)});
+      matrix_handler::defined_ops.try_emplace(operator_id, std::move(defn));
   if (!result.second)
     throw std::runtime_error("a matrix operator with name " + operator_id +
                              " is already defined");
@@ -77,19 +100,26 @@ void matrix_handler::define(std::string operator_id,
                             diag_matrix_callback &&diag_create,
                             const std::unordered_map<std::string, std::string>
                                 &parameter_descriptions) {
-  auto defn = Definition(
+  auto defn = std::make_shared<const Definition>(
       operator_id, std::move(expected_dimensions), std::move(create),
       std::move(diag_create),
       std::unordered_map<std::string, std::string>(parameter_descriptions));
+  std::lock_guard lock(definitionMutex());
   auto result =
-      matrix_handler::defined_ops.insert({operator_id, std::move(defn)});
+      matrix_handler::defined_ops.try_emplace(operator_id, std::move(defn));
   if (!result.second)
     throw std::runtime_error("a matrix operator with name " + operator_id +
                              " is already defined");
 }
 
 bool matrix_handler::remove_definition(const std::string &operator_id) {
-  return matrix_handler::defined_ops.erase(operator_id);
+  // Destroy callbacks outside the lock; their captures may release user data.
+  decltype(defined_ops)::node_type removed;
+  {
+    std::lock_guard lock(definitionMutex());
+    removed = defined_ops.extract(operator_id);
+  }
+  return !removed.empty();
 }
 
 product_op<matrix_handler>
@@ -106,10 +136,7 @@ product_op<matrix_handler>
 matrix_handler::instantiate(std::string operator_id,
                             std::vector<std::size_t> &&degrees,
                             const commutation_behavior &commutation_behavior) {
-  auto it = matrix_handler::defined_ops.find(operator_id);
-  if (it == matrix_handler::defined_ops.end())
-    throw std::range_error("not matrix operator with the name '" + operator_id +
-                           "' has been defined");
+  get_definition(operator_id);
   auto application_degrees = degrees;
   std::sort(application_degrees.begin(), application_degrees.end(),
             operator_handler::canonical_order);
@@ -128,15 +155,11 @@ matrix_handler::instantiate(std::string operator_id,
 
 const std::unordered_map<std::string, std::string> &
 matrix_handler::get_parameter_descriptions() const {
-  auto it = matrix_handler::defined_ops.find(this->op_code);
-  assert(it != matrix_handler::defined_ops.end());
-  return it->second.parameter_descriptions;
+  return get_definition(this->op_code)->parameter_descriptions;
 }
 
 const std::vector<int64_t> &matrix_handler::get_expected_dimensions() const {
-  auto it = matrix_handler::defined_ops.find(this->op_code);
-  assert(it != matrix_handler::defined_ops.end());
-  return it->second.expected_dimensions;
+  return get_definition(this->op_code)->expected_dimensions;
 }
 
 // private helpers
@@ -144,13 +167,11 @@ const std::vector<int64_t> &matrix_handler::get_expected_dimensions() const {
 std::string matrix_handler::canonical_form(
     std::unordered_map<std::size_t, std::int64_t> &dimensions,
     std::vector<std::int64_t> &relevant_dims) const {
-  auto it = matrix_handler::defined_ops.find(this->op_code);
-  assert(it != matrix_handler::defined_ops
-                   .end()); // should be validated upon instantiation
+  const auto definition = get_definition(this->op_code);
 
   for (auto i = 0; i < this->targets.size(); ++i) {
     auto entry = dimensions.find(this->targets[i]);
-    auto expected_dim = it->second.expected_dimensions[i];
+    auto expected_dim = definition->expected_dimensions[i];
     if (expected_dim <= 0) {
       if (entry == dimensions.end())
         throw std::runtime_error("missing dimension for degree " +
@@ -191,6 +212,7 @@ matrix_handler::matrix_handler(std::size_t degree)
     : op_code("I"), commutes(true),
       group(operator_handler::default_commutation_relations) {
   this->targets.push_back(degree);
+  std::lock_guard lock(definitionMutex());
   if (matrix_handler::defined_ops.find(this->op_code) ==
       matrix_handler::defined_ops.end()) {
     auto func =
@@ -267,6 +289,7 @@ matrix_handler::matrix_handler(const T &other,
     : op_code(matrix_handler::type_prefix<T>() + other.to_string(false)),
       commutes(behavior.commutes_across_degrees), group(behavior.group),
       targets(other.degrees()) {
+  std::lock_guard lock(definitionMutex());
   if (matrix_handler::defined_ops.find(this->op_code) ==
       matrix_handler::defined_ops.end()) {
     auto func = [other](const std::vector<std::int64_t> &dimensions,
@@ -363,15 +386,13 @@ complex_matrix matrix_handler::to_matrix(
     std::unordered_map<std::size_t, std::int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto it = matrix_handler::defined_ops.find(this->op_code);
-  assert(it != matrix_handler::defined_ops
-                   .end()); // should be validated upon instantiation
+  const auto definition = get_definition(this->op_code);
 
   std::vector<std::int64_t> relevant_dimensions;
   relevant_dimensions.reserve(this->targets.size());
   for (auto i = 0; i < this->targets.size(); ++i) {
     auto entry = dimensions.find(this->targets[i]);
-    auto expected_dim = it->second.expected_dimensions[i];
+    auto expected_dim = definition->expected_dimensions[i];
     if (expected_dim <= 0) {
       if (entry == dimensions.end())
         throw std::runtime_error("missing dimension for degree " +
@@ -388,24 +409,22 @@ complex_matrix matrix_handler::to_matrix(
     }
   }
 
-  return it->second.generate_matrix(relevant_dimensions, parameters);
+  return definition->generate_matrix(relevant_dimensions, parameters);
 }
 
 mdiag_sparse_matrix matrix_handler::to_diagonal_matrix(
     std::unordered_map<std::size_t, std::int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto it = matrix_handler::defined_ops.find(this->op_code);
-  assert(it != matrix_handler::defined_ops
-                   .end()); // should be validated upon instantiation
+  const auto definition = get_definition(this->op_code);
 
-  if (!it->second.has_dia_generator())
+  if (!definition->has_dia_generator())
     return mdiag_sparse_matrix();
   std::vector<std::int64_t> relevant_dimensions;
   relevant_dimensions.reserve(this->targets.size());
   for (auto i = 0; i < this->targets.size(); ++i) {
     auto entry = dimensions.find(this->targets[i]);
-    auto expected_dim = it->second.expected_dimensions[i];
+    auto expected_dim = definition->expected_dimensions[i];
     if (expected_dim <= 0) {
       if (entry == dimensions.end())
         throw std::runtime_error("missing dimension for degree " +
@@ -422,7 +441,7 @@ mdiag_sparse_matrix matrix_handler::to_diagonal_matrix(
     }
   }
 
-  return it->second.generate_dia_matrix(relevant_dimensions, parameters);
+  return definition->generate_dia_matrix(relevant_dimensions, parameters);
 }
 
 std::string matrix_handler::to_string(bool include_degrees) const {
@@ -446,6 +465,7 @@ bool matrix_handler::operator==(const matrix_handler &other) const {
 
 matrix_handler matrix_handler::number(std::size_t degree) {
   std::string op_code = "number";
+  std::lock_guard lock(definitionMutex());
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
     auto func =
@@ -465,6 +485,7 @@ matrix_handler matrix_handler::number(std::size_t degree) {
 
 matrix_handler matrix_handler::parity(std::size_t degree) {
   std::string op_code = "parity";
+  std::lock_guard lock(definitionMutex());
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
     auto func =
@@ -484,6 +505,7 @@ matrix_handler matrix_handler::parity(std::size_t degree) {
 
 matrix_handler matrix_handler::position(std::size_t degree) {
   std::string op_code = "position";
+  std::lock_guard lock(definitionMutex());
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
     auto func =
@@ -505,6 +527,7 @@ matrix_handler matrix_handler::position(std::size_t degree) {
 
 matrix_handler matrix_handler::momentum(std::size_t degree) {
   std::string op_code = "momentum";
+  std::lock_guard lock(definitionMutex());
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
     auto func =
@@ -528,6 +551,7 @@ matrix_handler matrix_handler::momentum(std::size_t degree) {
 
 matrix_handler matrix_handler::displace(std::size_t degree) {
   std::string op_code = "displace";
+  std::lock_guard lock(definitionMutex());
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
     auto func = [](const std::vector<std::int64_t> &dimensions,
@@ -559,6 +583,7 @@ matrix_handler matrix_handler::displace(std::size_t degree) {
 
 matrix_handler matrix_handler::squeeze(std::size_t degree) {
   std::string op_code = "squeeze";
+  std::lock_guard lock(definitionMutex());
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
     auto func = [](const std::vector<std::int64_t> &dimensions,
