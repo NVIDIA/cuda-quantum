@@ -1013,7 +1013,7 @@ private:
           "helper arguments must be scalar wires or statically sized cables");
     }
 
-    uint64_t flattenedResults = 0;
+    std::uint64_t flattenedResults = 0;
     for (Type type : call.getResultTypes()) {
       if (isa<cudaq::quake::WireType>(type)) {
         ++flattenedResults;
@@ -1057,7 +1057,7 @@ private:
         remaining = remaining.drop_front();
         continue;
       }
-      uint64_t width =
+      std::uint64_t width =
           cast<cudaq::quake::CableType>(source.getType()).getSize();
       state.cableOwners[source] =
           SmallVector<Value>(remaining.take_front(width));
@@ -1132,7 +1132,7 @@ private:
           if (slice == state.vectorArgumentSlices.end())
             return extract.emitOpError(
                 "vector source is not a specialized helper argument");
-          uint64_t index = extract.getRawIndex();
+          std::uint64_t index = extract.getRawIndex();
           if (index >= slice->second.second)
             return extract.emitOpError(
                 "static vector index exceeds the specialized cable width");
@@ -1683,8 +1683,8 @@ private:
     if (failed(symbol))
       return failure();
 
-    uint64_t flattenedWidth = 0;
-    for (uint64_t width : specialization->second)
+    std::uint64_t flattenedWidth = 0;
+    for (std::uint64_t width : specialization->second)
       flattenedWidth += width;
     auto logicalType = qlx::LogicalQubitType::get(function.getContext());
     SmallVector<Type> boundaryTypes(flattenedWidth, logicalType);
@@ -1736,8 +1736,8 @@ private:
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPoint(function);
     auto logicalType = qlx::LogicalQubitType::get(function.getContext());
-    uint64_t flattenedWidth = 0;
-    for (uint64_t width : specialization->second)
+    std::uint64_t flattenedWidth = 0;
+    for (std::uint64_t width : specialization->second)
       flattenedWidth += width;
     SmallVector<Type> boundaryTypes(flattenedWidth, logicalType);
     auto functionType =

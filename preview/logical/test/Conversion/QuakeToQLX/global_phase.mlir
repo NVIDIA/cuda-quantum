@@ -7,8 +7,12 @@
 // ========================================================================== //
 
 // REQUIRES: qlx-opt, cudaq-quake
-// RUN: qlx-opt --prepare-quake-for-qlx --split-input-file %s | FileCheck %s --check-prefix=PREP --implicit-check-not=quake.phase
-// RUN: qlx-opt --prepare-quake-for-qlx --convert-quake-to-qlx --split-input-file %s | FileCheck %s --check-prefix=P0 --implicit-check-not=quake. --implicit-check-not=pauli_rotation
+// RUN: qlx-opt --prepare-quake-for-qlx --split-input-file %s | \
+// RUN:   FileCheck %s --check-prefix=PREP --implicit-check-not=quake.phase
+// RUN: qlx-opt --prepare-quake-for-qlx --convert-quake-to-qlx \
+// RUN:   --split-input-file %s | \
+// RUN:   FileCheck %s --check-prefix=P0 --implicit-check-not=quake. \
+// RUN:   --implicit-check-not=pauli_rotation
 
 // prepare-quake-for-qlx erases ordinary and adjoint global phases and forwards
 // the anchor, including when the successor is used by a gate and then by a
