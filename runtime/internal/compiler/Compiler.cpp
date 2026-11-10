@@ -590,6 +590,21 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
       applyPipeline("func.func(add-measurements{use-evince=1})", moduleOp,
                     kernelName);
       cudaq::quake::eraseUserRecords(moduleOp);
+      // A profile that measures one qubit at a time splits those measurements.
+      // The module may be handed over before codegen (e.g. to an endpoint), so
+      // it has to satisfy the profile here.
+      const bool singleQubitMeasurements =
+          llvm::any_of(target.stages, [](const auto &stage) {
+            const auto *profile =
+                std::get_if<cudaq::config::QuakeReferenceSemanticsProfile>(
+                    &stage.irOutputProfile);
+            return profile && profile->measurementType ==
+                                  cudaq::config::MeasurementForm::single_qubit;
+          });
+      if (singleQubitMeasurements)
+        applyPipeline("func.func(expand-measurements,canonicalize,"
+                      "cc-loop-unroll,canonicalize)",
+                      moduleOp, kernelName);
     }
   }
 
