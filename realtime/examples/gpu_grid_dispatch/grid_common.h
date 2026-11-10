@@ -39,12 +39,12 @@
 ///           stores the reply into `done.reply` just before `seq`, and the
 ///           CPU copies it into the TX slot.  The GPU never touches the
 ///           bridge's rings, which are plain host allocations registered with
-///           the NIC only.
+///           the transport only.
 ///   ring    The CPU registers the bridge's RX and TX rings with CUDA at
 ///           startup.  Per request it passes the slot index and the clamped
 ///           argument length (from the header it has already validated),
 ///           packed in one 64-bit word.  The whole grid reads the argument
-///           bytes where the NIC wrote them (RX slot N), a 32-bit word per
+///           bytes where the bridge wrote them (RX slot N), a 32-bit word per
 ///           thread, and writes the reply payload straight into TX slot N;
 ///           the GPU reads no header, and
 ///           the CPU touches no payload bytes, only the 24-byte response

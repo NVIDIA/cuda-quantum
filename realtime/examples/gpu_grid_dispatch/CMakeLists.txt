@@ -8,8 +8,8 @@
 cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
 
 # gpu_grid_dispatch: serve an RPC with a whole resident cooperative GPU grid
-# while the CPU owns the NIC (CUDA-Q Realtime's host dispatch path over the
-# cpu_roce bridge).  Builds against an installed CUDA-Q Realtime, found
+# while the CPU owns the transport (CUDA-Q Realtime's host dispatch path
+# over a CPU-driven bridge).  Builds against an installed CUDA-Q Realtime, found
 # through CUDAQ_REALTIME_ROOT (cache variable or environment), as
 # examples/gpu_dispatch does:
 #

@@ -11,23 +11,23 @@ device: one block per SM, every SM, nothing else running on the GPU. It is
 launched once, before the transport connects, with
 `cudaLaunchCooperativeKernel`, and then waits for work.
 
-The CPU owns the NIC. The CUDA-Q Realtime host dispatch path
-(single-thread unified loop: NIC receive, dispatch, send) runs over the
-`cpu_roce` bridge, a CPU RoCE transceiver whose rings live in host memory.
+The CPU owns the transport. The CUDA-Q Realtime host dispatch path
+(single-thread unified loop: receive, dispatch, send) runs over a CPU-driven
+bridge whose rings live in host memory (`cpu_roce` by default).
 A `CUDAQ_DISPATCH_HOST_CALL` handler wakes the prelaunched grid through a
 mailbox and waits on a done word in mapped pinned host memory.
 
 Where the request and reply bytes travel is selected by `--request`:
 
-- `inline` (the default): the GPU does not touch the NIC rings. The `cpu_roce`
-  rings are host allocations registered with the NIC but not with CUDA, so
+- `inline` (the default): the GPU does not touch the bridge's rings. They are
+  host allocations registered with the transport but not with CUDA, so
   the handler copies the 8 request payload bytes into the mailbox, and the grid
   returns the 8 reply bytes through a done line in mapped pinned host memory.
   The CPU handler copies the reply from the done line into the TX slot, writes
   the `RPCResponse` header, and the transport sends it. This is the fast path
   for a few bytes.
 - `ring`: at startup the example registers the bridge's RX and TX rings with
-  CUDA, so the grid reads the request where the NIC wrote it and writes the
+  CUDA, so the grid reads the request where the bridge wrote it and writes the
   reply payload straight into the paired TX slot. The CPU touches no payload
   bytes: it passes the slot index and the length through the mailbox and
   writes only the `RPCResponse` header afterwards. This is the shape for a
@@ -55,8 +55,8 @@ and stores the reply as one 8-byte word into the done line just before `seq`;
 every other thread stands in for a real decoder's work and does nothing. In
 ring mode the whole grid increments the bytes in place, a 32-bit word per
 thread (see below), before arriving, and the last arriver adds a system-scope
-fence before the release store, because the TX slot is read by the NIC's DMA
-engine rather than by a CPU thread. The three switches below are template
+fence before the release store, because the TX slot is read by the bridge's
+DMA engine rather than by a CPU thread. The three switches below are template
 parameters of the kernel: the host launches the one instance that matches, so
 no mode is tested on the request path. No block waits for any
 other, and `grid.sync()` is used only once, at startup, to report placement and
@@ -90,18 +90,18 @@ two (the program prints its choice):
 The mailbox is one 128-byte line, `{seq, payload (inline), slot_len (ring)}`;
 the done line is `{seq, reply (inline only), ready}`.
 
-## Why a CPU-owned NIC and a resident grid
+## Why a CPU-owned transport and a resident grid
 
 A resident grid avoids a kernel launch per request: the cost of waking it is
-one write and one poll. Keeping the NIC under CPU control keeps the transport
-simple and portable. The same binary runs on any platform with a ConnectX NIC
-and a CUDA GPU, with no GPU-side networking stack, and the only platform
+one write and one poll. Keeping the transport under CPU control keeps it
+simple and portable. The same binary runs on any platform with a CPU-driven
+bridge and a CUDA GPU, with no GPU-side networking stack, and the only platform
 dependent part is how the CPU tells the grid that a request has arrived. That
 is the part the two switches select.
 
-The ring stays in host memory on every platform, because the CPU owns the NIC
-in this design. The choice of handoff is therefore only about the mailbox and
-about how the grid polls it, never about where the ring lives.
+The ring stays in host memory on every platform, because the CPU owns the
+transport in this design. The choice of handoff is therefore only about the
+mailbox and about how the grid polls it, never about where the ring lives.
 
 ## The three handoffs
 
@@ -130,9 +130,9 @@ connects.
 3. Set the maximum dynamic shared memory attribute of the kernel so every block
    reserves just over half an SM's shared memory, which forces one block per
    SM.
-4. Create the dispatcher with the `cpu_roce` bridge (`--qp_config=hsb_fpga
-   --peer-ip --remote-qp`; `--unified` is added automatically), register the
-   `HOST_CALL` handler and start the dispatcher.
+4. Create the dispatcher with the bridge (provider options after `--`;
+   `--unified` is added automatically), register the `HOST_CALL` handler and
+   start the dispatcher.
 5. Only now launch the grid, once, with `cudaLaunchCooperativeKernel`. Every
    block starts polling.
 6. The grid raises its ready word once every block is resident, and the CPU
@@ -140,7 +140,7 @@ connects.
 7. Print `CUDAQ_REALTIME_SERVER_READY <endpoint> notify=... poll=... request=...`
    before connecting.
 8. The orchestration script reads the READY line and programs the FPGA (or the
-   emulator and playback tool) with `qp`, `rkey` and `buffer_addr`.
+   emulator and playback tool) with the bridge endpoint.
 9. The transport connects and requests start to flow.
 10. Serve until `--timeout` expires or Ctrl-C.
 11. Shutdown: stop the dispatcher, then raise the grid's shutdown flag; the grid
@@ -155,10 +155,10 @@ Selected with `--notify=gdrcopy --poll=all`.
 
 ![gdrcopy notify, all blocks poll](assets/gpu_grid_dispatch_gdrcopy_all.svg)
 
-1. FPGA sends the 32-byte request (RDMA `WRITE_WITH_IMM` into the host ring
+1. FPGA sends the 32-byte request (a `WRITE` into the bridge's RX ring
    slot).
-2. The NIC DMAs the request into the ring slot and posts a completion. The CPU
-   dispatch thread, polling the completion in the `cpu_roce` unified loop, sees
+2. The bridge lands the request in the ring slot and posts a completion. The
+   CPU dispatch thread, polling the completion in the unified host loop, sees
    it, validates the RPC header, resolves `rpc_increment` in the function table
    and calls the `HOST_CALL` handler with the RX and TX slots.
 3. Handler: `seq++`, then writes the 8 payload bytes and, last, `seq` into the
@@ -183,11 +183,11 @@ Selected with `--notify=pinned --poll=all`.
 
 ![pinned notify, all blocks poll](assets/gpu_grid_dispatch_pinned_all.svg)
 
-1. FPGA sends the 32-byte request (RDMA `WRITE_WITH_IMM` into the host ring
+1. FPGA sends the 32-byte request (a `WRITE` into the bridge's RX ring
    slot).
-2. The NIC DMAs the request into the ring slot and posts a completion; the CPU
-   dispatch thread sees it, validates the RPC header, resolves `rpc_increment`
-   and calls the `HOST_CALL` handler with the RX and TX slots.
+2. The bridge lands the request in the ring slot and posts a completion; the
+   CPU dispatch thread sees it, validates the RPC header, resolves
+   `rpc_increment` and calls the `HOST_CALL` handler with the RX and TX slots.
 3. Handler: `seq++`, then stores the 8 payload bytes and, last, `seq` with a
    release store into the mailbox, which is mapped pinned host memory.
 4. GPU: thread 0 of every block polls the mailbox at system scope. Each poll
@@ -211,11 +211,11 @@ Selected with `--notify=pinned --poll=leader`.
 
 ![pinned notify, leader polls](assets/gpu_grid_dispatch_pinned_leader.svg)
 
-1. FPGA sends the 32-byte request (RDMA `WRITE_WITH_IMM` into the host ring
+1. FPGA sends the 32-byte request (a `WRITE` into the bridge's RX ring
    slot).
-2. The NIC DMAs the request into the ring slot and posts a completion; the CPU
-   dispatch thread sees it, validates the RPC header, resolves `rpc_increment`
-   and calls the `HOST_CALL` handler with the RX and TX slots.
+2. The bridge lands the request in the ring slot and posts a completion; the
+   CPU dispatch thread sees it, validates the RPC header, resolves
+   `rpc_increment` and calls the `HOST_CALL` handler with the RX and TX slots.
 3. Handler: `seq++`, then stores the 8 payload bytes and, last, `seq` with a
    release store into the mailbox (mapped pinned host memory).
 4. GPU, in two parts:
@@ -251,25 +251,25 @@ all-poll case.
 
 The point of this mode: an RPC payload can be as large as the slot stride minus
 24 bytes (kilobytes of syndrome data), and copying that through the CPU is the
-wrong shape. Here the grid reads the request where the NIC wrote it and writes
-the reply payload into the TX slot the transport will send from. The CPU
+wrong shape. Here the grid reads the request where the bridge wrote it and
+writes the reply payload into the TX slot the transport will send from. The CPU
 touches no payload byte. Inline stays the fast path for a few bytes.
 
 At startup, before the dispatcher and the grid are created, the example gets
-the `cpu_roce` bridge's RX and TX ring base addresses and strides from
+the bridge's RX and TX ring base addresses and strides from
 `cudaq_bridge_get_cpu_dataplane` and the slot count from
 `cudaq_bridge_get_ring_geometry`, registers both rings with CUDA
 (`cudaHostRegister`, mapped and portable) and takes the device pointers. The
 rings are unregistered at shutdown. The ring stays in host memory: the CPU owns
-the NIC.
+the transport.
 
 Per request:
 
-1. FPGA sends the request (RDMA `WRITE_WITH_IMM` into host RX ring slot N). The
+1. FPGA sends the request (a `WRITE` into the bridge's RX ring slot N). The
    payload can be kilobytes.
-2. The NIC DMAs it into the ring slot and posts a completion; the CPU dispatch
-   thread sees it, validates the RPC header, resolves `rpc_increment` and calls
-   the `HOST_CALL` handler with the RX and TX slots.
+2. The bridge lands it in the ring slot and posts a completion; the CPU
+   dispatch thread sees it, validates the RPC header, resolves `rpc_increment`
+   and calls the `HOST_CALL` handler with the RX and TX slots.
 3. Handler: computes the RX slot index from the slot pointer and the stride and
    checks that the TX slot pairs with it (the unified shape pairs slot N on
    both rings), clamps the request's `arg_len` to what fits in a slot after the
@@ -301,8 +301,8 @@ the length instead.
 Platforms: on GH200 and GB200 (C2C), a Thor iGPU and a DGX Spark (shared DRAM)
 the GPU has a coherent mapping of the host ring. On a PCIe discrete GPU such as
 the RTX PRO 6000 the reads cross PCIe, which is correct but slow; a
-device-memory RX ring (`DMA-BUF`) in the `cpu_roce` bridge would help there and
-is future work.
+device-memory RX ring (`DMA-BUF`) in the bridge would help there and is
+future work.
 
 ## Choosing automatically
 
@@ -347,8 +347,8 @@ Why each choice wins:
 is only used when asked for. The `auto` rules above apply to `--notify` and
 `--poll` in either request mode.
 
-The ring stays in host memory on every platform, because the CPU owns the NIC
-in this design.
+The ring stays in host memory on every platform, because the CPU owns the
+transport in this design.
 
 ## Building
 
@@ -497,10 +497,10 @@ See `gpu_grid_dispatch_test.sh --help` for defaults.
 ### Command line
 
 ```text
-Usage: gpu_grid_dispatch [options] [-- <cpu_roce bridge options>]
+Usage: gpu_grid_dispatch [options] [-- <bridge options>]
 
 Serves rpc_increment with a resident cooperative GPU grid; the CPU
-owns the NIC through the cpu_roce bridge (unified host loop).
+owns the transport through the bridge (unified host loop).
 
   --gpu=N                        CUDA device [0]
   --notify=auto|gdrcopy|pinned   CPU -> GPU mailbox [auto]
@@ -514,9 +514,9 @@ owns the NIC through the cpu_roce bridge (unified host loop).
   --timeout=S                    stop after S s, 0 = never [0]
   --bridge=PATH                  bridge provider .so [cpu_roce]
 
-Bridge options after --, e.g. --device=mlx5_0 --qp_config=hsb_fpga
---peer-ip=A --remote-qp=N --num-slots=64 --slot-size=4096
---frame-size=32 (--unified is added if missing).
+Bridge options after -- (for cpu_roce, e.g. --device=mlx5_0
+--qp_config=hsb_fpga --peer-ip=A --remote-qp=N --num-slots=64
+--slot-size=4096 --frame-size=32); --unified is added if missing.
 ```
 
 When `--bridge` is not given, the `libcudaq-realtime-bridge-cpu-roce.so` next
@@ -588,22 +588,22 @@ If `--notify=gdrcopy` fails with a gdrcopy error, check the build (see
 `/dev/gdrdrv`, or pass `--notify=pinned`.
 
 If `--request=ring` fails with `cannot map the bridge's RX ring` (or `TX`), the
-GPU could not `cudaHostRegister` the memory the NIC driver allocated; use
+GPU could not `cudaHostRegister` the memory the bridge allocated; use
 `--request=inline` on that platform.
 
 ## Limitations
 
-- The ring is in host memory. The CPU owns the NIC through `cpu_roce`, and
-  there is no device-resident ring with that bridge. With `--request=inline`
+- The ring is in host memory. The CPU owns the transport through the bridge, and
+  the `cpu_roce` provider has no device-resident ring. With `--request=inline`
   the rings are not registered with CUDA, so the GPU can neither read the
   request from the ring nor write the reply into the TX slot: the payload goes
   through the mailbox and the reply comes back through the done line, with the
   CPU doing both copies. With `--request=ring` the GPU does read and write the
-  rings, through a CUDA mapping of the host memory. That mapping is coherent
-  and fast on GH200/GB200 (C2C), the Thor iGPU and DGX Spark (shared DRAM). On
-  a PCIe discrete GPU such as the RTX PRO 6000 every ring access crosses PCIe:
-  correct but slow, and a device-memory RX ring (`DMA-BUF`) in the `cpu_roce`
-  bridge is future work.
+  rings, through a CUDA mapping of the host memory. That mapping is coherent and
+  fast on GH200/GB200 (C2C), the Thor iGPU and DGX Spark (shared DRAM). On a
+  PCIe discrete GPU such as the RTX PRO 6000 every ring access crosses PCIe:
+  correct but slow, and a device-memory RX ring (`DMA-BUF`) in the bridge is
+  future work.
 - The cooperative grid occupies the whole GPU: one block per SM on every SM,
   with shared memory sized to force it. Nothing else can run on that GPU while
   the example is up.

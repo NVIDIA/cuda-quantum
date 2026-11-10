@@ -8,20 +8,20 @@
 
 /// @file gpu_grid_dispatch.cpp
 /// @brief Serve an RPC with a whole resident GPU grid while the CPU owns the
-/// NIC.
+/// transport.
 ///
 /// The request is the CI workload's: a 24-byte RPCHeader plus 8 payload bytes
 /// for `rpc_increment`, answered with a 24-byte RPCResponse plus the 8 bytes
 /// each incremented by one (with --request=ring, any payload that fits the
-/// slot, kilobytes included).  The NIC side is CUDA-Q Realtime's host dispatch
-/// path: the single-thread unified loop (receive, dispatch, send on one CPU
-/// thread) over the pure-CPU `cpu_roce` bridge, with one HOST_CALL entry.
+/// slot, kilobytes included).  The transport side is CUDA-Q Realtime's host
+/// dispatch path: the single-thread unified loop (receive, dispatch, send on
+/// one CPU thread) over a CPU-driven bridge, with one HOST_CALL entry.
 /// That handler does not do the work itself: it wakes a cooperative grid,
 /// launched once at startup with one block on every SM, through a mailbox,
 /// and waits for the grid's completion in pinned host memory.  grid_common.h
 /// has the per-request protocol.
 ///
-///     gpu_grid_dispatch [options] [-- <cpu_roce bridge options>]
+///     gpu_grid_dispatch [options] [-- <bridge options>]
 ///
 /// `--notify=gdrcopy|pinned` (how the CPU writes the mailbox) and
 /// `--poll=all|leader` (which GPU threads poll it) pick the handoff; `auto`
@@ -29,7 +29,8 @@
 /// picks where the bytes travel: inline (default) copies 8 request bytes
 /// through the mailbox and 8 reply bytes back through the done line; ring
 /// maps the bridge's RX/TX rings for the GPU, so the grid reads the request
-/// where the NIC wrote it and writes the reply where the NIC sends it from.
+/// where the bridge wrote it and writes the reply where the bridge sends it
+/// from.
 ///
 /// Setup order matters.  Everything that allocates or registers CUDA memory
 /// (mailbox, done line, gdrcopy mapping, ring registration) and the
@@ -108,9 +109,9 @@ struct Options {
 
 void usage(const char *prog) {
   std::printf(
-      "Usage: %s [options] [-- <cpu_roce bridge options>]\n\n"
+      "Usage: %s [options] [-- <bridge options>]\n\n"
       "Serves rpc_increment with a resident cooperative GPU grid; the CPU\n"
-      "owns the NIC through the cpu_roce bridge (unified host loop).\n\n"
+      "owns the transport through the bridge (unified host loop).\n\n"
       "  --gpu=N                        CUDA device [0]\n"
       "  --notify=auto|gdrcopy|pinned   CPU -> GPU mailbox [auto]\n"
       "  --poll=auto|all|leader         who polls the mailbox [auto]\n"
@@ -122,9 +123,9 @@ void usage(const char *prog) {
       "  --threads=N                    threads per block [256]\n"
       "  --timeout=S                    stop after S s, 0 = never [0]\n"
       "  --bridge=PATH                  bridge provider .so [cpu_roce]\n\n"
-      "Bridge options after --, e.g. --device=mlx5_0 --qp_config=hsb_fpga\n"
-      "--peer-ip=A --remote-qp=N --num-slots=64 --slot-size=4096\n"
-      "--frame-size=32 (--unified is added if missing).\n",
+      "Bridge options after -- (for cpu_roce, e.g. --device=mlx5_0\n"
+      "--qp_config=hsb_fpga --peer-ip=A --remote-qp=N --num-slots=64\n"
+      "--slot-size=4096 --frame-size=32); --unified is added if missing.\n",
       prog);
 }
 
@@ -356,7 +357,7 @@ void grid_handler(const void *rx_slot, void *tx_slot, std::size_t slot_size) {
     n = static_cast<std::uint32_t>(
         std::min<std::size_t>({req->arg_len, 8, room}));
     std::uint64_t payload = 0;
-    std::memcpy(&payload, req + 1, n); // the GPU never reads the NIC ring
+    std::memcpy(&payload, req + 1, n); // the GPU never reads the bridge ring
     const std::uint64_t seq = ++h.seq;
     publish_request(seq, payload, 0);
     ok = wait_for_grid(seq);
@@ -426,8 +427,8 @@ void unmap_gdrcopy() {
 #endif
 
 /// Ring mode: register one of the bridge's host rings with CUDA and return
-/// the GPU's view of it.  The cpu_roce rings are page-aligned posix_memalign
-/// allocations registered with the NIC (ibv_reg_mr) but not with CUDA;
+/// the GPU's view of it.  The bridge's rings are page-aligned host
+/// allocations registered with the transport but not with CUDA;
 /// cudaHostRegister maps those already-pinned pages into the GPU's address
 /// space.  On GH200 and the integrated platforms the GPU reaches that memory
 /// coherently at memory speed; on a PCIe GPU every ring access crosses PCIe,
@@ -450,7 +451,7 @@ bool map_ring_for_gpu(std::uint8_t *host, std::size_t bytes, const char *name,
   std::fprintf(stderr,
                "ERROR: --request=ring: cannot map the bridge's %s ring "
                "(%zu B at %p) for GPU %d: %s.  The GPU must be able to map "
-               "memory the NIC driver allocated (cudaHostRegister; "
+               "memory the bridge allocated (cudaHostRegister; "
                "cudaDevAttrHostRegisterSupported=%d on this platform).  Use "
                "--request=inline here.\n",
                name, bytes, static_cast<void *>(host), device,

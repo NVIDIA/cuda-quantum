@@ -79,7 +79,7 @@ __device__ __forceinline__ std::uint64_t load_relaxed(const std::uint64_t *p) {
   return v;
 }
 
-/// Ring loads.  The RX ring is host memory the NIC writes behind the GPU's
+/// Ring loads.  The RX ring is host memory the bridge writes behind the GPU's
 /// back, and a slot is rewritten every `num_slots` requests, so every read of
 /// it is a strong system-scope load: it is never answered by a stale L1/L2
 /// copy of an earlier request.  The work loop reads 32-bit words; the byte
@@ -213,7 +213,7 @@ __device__ Req wait_for_broadcast(std::uint64_t last) {
 ///   kSys     the mailbox is pinned host memory (NOTIFY_PINNED), polled at
 ///            system scope; otherwise device memory (gdrcopy), GPU scope;
 ///   kLeader  block 0 alone polls the mailbox and re-publishes (POLL_LEADER);
-///   kRing    the request bytes live in the NIC rings (REQUEST_RING).
+///   kRing    the request bytes live in the bridge's rings (REQUEST_RING).
 /// The dynamic shared memory is never touched: it is only reserved, so that
 /// two blocks cannot share an SM (see configure_grid).
 template <bool kSys, bool kLeader, bool kRing>
@@ -264,8 +264,8 @@ __global__ void __launch_bounds__(1024) grid_worker(GridCtx ctx) {
     // 2. The work: the inlined rpc_increment body.
     if constexpr (kRing) {
       //    Ring: the whole grid, one 32-bit argument word per thread per
-      //    pass, read from the RX slot the NIC wrote, each byte plus one, and
-      //    stored straight into the paired TX slot behind the response
+      //    pass, read from the RX slot the bridge wrote, each byte plus one,
+      //    and stored straight into the paired TX slot behind the response
       //    header.  Each thread i < words does one independent u32 load and
       //    one store; nothing else is loaded first.  The thread after the
       //    last full word handles a trailing partial word byte by byte.
@@ -313,10 +313,11 @@ __global__ void __launch_bounds__(1024) grid_worker(GridCtx ctx) {
         //    everything in causality order before it, the other blocks' work
         //    included, to the CPU's acquire load.
         if constexpr (kRing) {
-          //    Ring: the TX-slot stores of every SM will be read by the NIC's
-          //    DMA engine, not by a CPU thread that synchronizes with us, so
-          //    a system-scope fence first: it makes them performed at system
-          //    scope before the flag, rather than visible to an acquirer.
+          //    Ring: the TX-slot stores of every SM will be read by the
+          //    bridge's DMA engine, not by a CPU thread that synchronizes
+          //    with us, so a system-scope fence first: it makes them
+          //    performed at system scope before the flag, rather than
+          //    visible to an acquirer.
           __threadfence_system();
         } else {
           //    Inline: the reply travels in the done line itself and only

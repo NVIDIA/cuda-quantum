@@ -3,9 +3,9 @@
 Serves the CI's `rpc_increment` RPC (24-byte `RPCHeader` + 8 payload bytes in,
 24-byte `RPCResponse` + those bytes each incremented by one out) with a whole
 resident cooperative GPU grid, one block on every SM, while the CPU owns the
-NIC: CUDA-Q Realtime's single-thread host dispatch loop over the `cpu_roce`
-bridge receives each request, its HOST_CALL handler wakes the grid through a
-mailbox and waits for the grid's completion in pinned host memory.
+transport: CUDA-Q Realtime's single-thread host dispatch loop over a
+CPU-driven bridge receives each request, its HOST_CALL handler wakes the grid
+through a mailbox and waits for the grid's completion in pinned host memory.
 
 - `--notify=auto|gdrcopy|pinned` picks how the CPU writes the mailbox, and
   `--poll=auto|all|leader` which GPU threads poll it; `auto` chooses per

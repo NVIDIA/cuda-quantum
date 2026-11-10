@@ -11,7 +11,7 @@
 <rect x="20" y="14" width="120" height="34" rx="5" fill="#fff" stroke="#888" stroke-width="1.5"/>
 <text x="80" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">FPGA / emulator</text>
 <rect x="175" y="14" width="140" height="34" rx="5" fill="#fff" stroke="#888" stroke-width="1.5"/>
-<text x="245" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">NIC on the host</text>
+<text x="245" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">Bridge</text>
 <rect x="330" y="14" width="160" height="34" rx="5" fill="#fff" stroke="#888" stroke-width="1.5"/>
 <text x="410" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">CPU (main thread)</text>
 <rect x="520" y="14" width="350" height="34" rx="5" fill="#fff" stroke="#888" stroke-width="1.5"/>
@@ -32,8 +32,8 @@
 <circle cx="280" cy="224" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
 <text x="280" y="228" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">3</text>
 <rect x="280" y="284" width="260" height="38" rx="4" fill="#fff" stroke="#888" stroke-width="1.3"/>
-<text x="410" y="300" text-anchor="middle" font-size="11" fill="#1a1a1a">create + start dispatcher, cpu_roce bridge</text>
-<text x="410" y="314" text-anchor="middle" font-size="11" fill="#1a1a1a">--qp_config=hsb_fpga --peer-ip --remote-qp</text>
+<text x="410" y="300" text-anchor="middle" font-size="11" fill="#1a1a1a">create + start dispatcher, bridge</text>
+<text x="410" y="314" text-anchor="middle" font-size="11" fill="#1a1a1a">bridge options after --</text>
 <circle cx="280" cy="284" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
 <text x="280" y="288" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">4</text>
 <line x1="410" y1="362" x2="695" y2="362" stroke="#555" stroke-width="1.6" marker-end="url(#ah)"/>
@@ -48,7 +48,7 @@
 <text x="506" y="390" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">6</text>
 <line x1="410" y1="430" x2="80" y2="430" stroke="#555" stroke-width="1.6" marker-end="url(#ah)"/>
 <rect x="167" y="413" width="156" height="14" fill="#fff"/>
-<text x="245" y="424" text-anchor="middle" font-size="11" fill="#1a1a1a">READY qp rkey buffer_addr</text>
+<text x="245" y="424" text-anchor="middle" font-size="11" fill="#1a1a1a">READY &lt;bridge endpoint&gt;</text>
 <circle cx="152" cy="420" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
 <text x="152" y="424" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">7</text>
 <rect x="35" y="456" width="150" height="38" rx="4" fill="#fff" stroke="#888" stroke-width="1.3"/>
@@ -92,7 +92,7 @@
 <text x="56" y="862" font-size="12" fill="#1a1a1a">shared memory, which forces one block per SM.</text>
 <circle cx="34" cy="882" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
 <text x="34" y="886" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">4</text>
-<text x="56" y="886" font-size="12" fill="#1a1a1a">Create the dispatcher with the cpu_roce bridge (--qp_config=hsb_fpga --peer-ip --remote-qp; --unified is added</text>
+<text x="56" y="886" font-size="12" fill="#1a1a1a">Create the dispatcher with the bridge (provider options after --; --unified is added</text>
 <text x="56" y="900" font-size="12" fill="#1a1a1a">automatically), register the HOST_CALL handler and start it.</text>
 <circle cx="34" cy="920" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
 <text x="34" y="924" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">5</text>
@@ -102,12 +102,12 @@
 <text x="56" y="948" font-size="12" fill="#1a1a1a">The grid raises its ready word once every block is resident, and the CPU waits for it.</text>
 <circle cx="34" cy="968" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
 <text x="34" y="972" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">7</text>
-<text x="56" y="972" font-size="12" fill="#1a1a1a">Print CUDAQ_REALTIME_SERVER_READY &lt;bridge endpoint: qp, rkey, buffer_addr&gt; notify=... poll=... request=..., before</text>
+<text x="56" y="972" font-size="12" fill="#1a1a1a">Print CUDAQ_REALTIME_SERVER_READY &lt;bridge endpoint&gt; notify=... poll=... request=..., before</text>
 <text x="56" y="986" font-size="12" fill="#1a1a1a">connecting.</text>
 <circle cx="34" cy="1006" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
 <text x="34" y="1010" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">8</text>
-<text x="56" y="1010" font-size="12" fill="#1a1a1a">The orchestration script reads the READY line and programs the FPGA (or the emulator and playback tool) with qp,</text>
-<text x="56" y="1024" font-size="12" fill="#1a1a1a">rkey and buffer_addr.</text>
+<text x="56" y="1010" font-size="12" fill="#1a1a1a">The orchestration script reads the READY line and programs the FPGA (or the emulator and playback tool) with the</text>
+<text x="56" y="1024" font-size="12" fill="#1a1a1a">bridge endpoint.</text>
 <circle cx="34" cy="1044" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
 <text x="34" y="1048" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">9</text>
 <text x="56" y="1048" font-size="12" fill="#1a1a1a">The transport connects and requests start to flow.</text>

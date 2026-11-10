@@ -10,8 +10,8 @@
 # gpu_grid_dispatch_test.sh
 #
 # End-to-end run of the gpu_grid_dispatch example: the HSB FPGA (or its
-# emulator) sends rpc_increment requests over RoCE, gpu_grid_dispatch receives
-# them on the CPU through the cpu_roce bridge, hands each to its resident GPU
+# emulator) sends rpc_increment requests, gpu_grid_dispatch receives them on
+# the CPU through the bridge (cpu_roce), hands each to its resident GPU
 # grid and sends the reply, and hsb_fpga_playback checks the replies.
 # Modelled on unittests/cpu_transport/hsb_test_cpu.sh, which runs the same
 # wire protocol against hsb_bridge_cpu.
