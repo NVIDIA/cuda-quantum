@@ -274,6 +274,9 @@ protected:
   /// Destroy all of the platform's QPUs and runtime endpoints.
   void clearQPUs();
 
+  /// Clear endpoints while keeping queues alive for QPUs that will be reused.
+  void clearQPUs(const std::vector<RuntimeEndpoint> &retainedEndpoints);
+
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
 
