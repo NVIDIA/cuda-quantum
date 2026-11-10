@@ -162,9 +162,11 @@ func.func @evince_drop_empty_veq_arg(%r: !quake.ref, %e: !quake.veq<0>) {
 // CHECK-SAME:    %[[R:[a-zA-Z0-9_.$-]+]]: !quake.ref
 // CHECK:         quake.evince %[[R]] : (!quake.ref) -> ()
 
+// A `cudaq::record` of empty registers would stay; a compiler-generated evince
+// of them is erased.
 func.func @evince_erase_all_empty_veq_args(%e0: !quake.veq<0>,
                                                %e1: !quake.veq<0>) {
-  quake.evince %e0, %e1 : (!quake.veq<0>, !quake.veq<0>) -> ()
+  quake.evince %e0, %e1 : (!quake.veq<0>, !quake.veq<0>) -> () {compilerGenerated}
   return
 }
 

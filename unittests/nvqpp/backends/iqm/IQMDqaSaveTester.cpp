@@ -25,8 +25,7 @@ CUDAQ_TEST(IQMTester, dqaSaveFile) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
-  kernel.mz(qubit[1]);
+  kernel.record(qubit[0], qubit[1]);
 
   auto counts = cudaq::sample(kernel);
 
@@ -44,8 +43,7 @@ CUDAQ_TEST(IQMTester, dqaLoadFile) {
   auto kernel2 = cudaq::make_kernel();
   auto qubit2 = kernel2.qalloc(2);
   kernel2.h(qubit2[0]);
-  kernel2.mz(qubit2[0]);
-  kernel2.mz(qubit2[1]);
+  kernel2.record(qubit2[0], qubit2[1]);
 
   auto counts = cudaq::sample(kernel2);
 

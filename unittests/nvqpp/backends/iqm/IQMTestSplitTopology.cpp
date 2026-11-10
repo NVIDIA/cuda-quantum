@@ -101,7 +101,7 @@ void runRefFile(std::string ref_filename) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
   auto counts = cudaq::sample(kernel);
   EXPECT_EQ(counts.size(), 2);
 

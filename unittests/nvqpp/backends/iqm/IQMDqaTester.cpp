@@ -17,8 +17,7 @@ CUDAQ_TEST(IQMDqaTester, dynamicQuantumArchitectureFile) {
   auto kernel3 = cudaq::make_kernel();
   auto qubit3 = kernel3.qalloc(2);
   kernel3.h(qubit3[0]);
-  kernel3.mz(qubit3[0]);
-  kernel3.mz(qubit3[1]);
+  kernel3.record(qubit3[0], qubit3[1]);
 
   auto counts = cudaq::sample(kernel3);
 

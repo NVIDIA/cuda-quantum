@@ -1745,7 +1745,13 @@ LogicalResult cudaq::quake::EvinceOp::verify() {
                        "in left-to-right order");
 
   // A `cudaq::record` must be top level, unique, and name each qubit once.
-  if (getCompilerGenerated())
+  // Evinces of classical values log output, so they are not records.
+  auto isRecord = [](cudaq::quake::EvinceOp evince) {
+    return !evince.getCompilerGenerated() &&
+           llvm::any_of(evince.getArgs(),
+                        [](Value v) { return isQuantumType(v.getType()); });
+  };
+  if (!isRecord(*this))
     return success();
 
   auto funcOp = (*this)->getParentOfType<mlir::func::FuncOp>();
@@ -1778,7 +1784,7 @@ LogicalResult cudaq::quake::EvinceOp::verify() {
 
   for (auto &op : funcOp.getOps())
     if (auto other = dyn_cast<cudaq::quake::EvinceOp>(&op))
-      if (!other.getCompilerGenerated() && other != *this)
+      if (other != *this && isRecord(other))
         return emitOpError("a kernel may contain only one `cudaq::record` "
                            "statement");
 
