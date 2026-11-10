@@ -7,10 +7,12 @@
 // ========================================================================== //
 
 // REQUIRES: qlx-opt, cudaq-quake
-// RUN: qlx-opt --convert-quake-to-qlx --split-input-file %s | FileCheck %s --check-prefix=P0 --implicit-check-not=quake. --implicit-check-not=pauli_rotation
+// RUN: qlx-opt --prepare-quake-for-qlx --split-input-file %s | FileCheck %s --check-prefix=PREP --implicit-check-not=quake.phase
+// RUN: qlx-opt --prepare-quake-for-qlx --convert-quake-to-qlx --split-input-file %s | FileCheck %s --check-prefix=P0 --implicit-check-not=quake. --implicit-check-not=pauli_rotation
 
-// Both ordinary and adjoint global phases forward the anchor, including when
-// the successor is used by a gate and then by a measurement.
+// prepare-quake-for-qlx erases ordinary and adjoint global phases and forwards
+// the anchor, including when the successor is used by a gate and then by a
+// measurement.
 module {
   func.func @__nvqpp__mlirgen__global_phase() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %a = arith.constant 0.3 : f64
@@ -25,6 +27,12 @@ module {
   }
 }
 
+// PREP-LABEL: func.func @__nvqpp__mlirgen__global_phase
+// PREP: %[[Q:.*]] = quake.null_wire
+// PREP-NEXT: %[[H:.*]] = quake.h %[[Q]]
+// PREP-NEXT: %{{.*}}, %[[W:.*]] = quake.mz %[[H]]
+// PREP-NEXT: quake.sink %[[W]]
+
 // P0-LABEL: qlx.program @global_phase
 // P0: %[[Q:.*]] = qlx.prepare "zero"
 // P0-NEXT: %[[H:.*]] = qlx.apply #qlx.action<h>(%[[Q]])
@@ -33,8 +41,8 @@ module {
 
 // -----
 
-// Reference-helper provenance must reach the phase successor, so the wire
-// wrapped back into the reference is the current slot value.
+// A global phase in a reference helper is erased the same way, so the wire
+// wrapped back to the reference is the gate's result.
 module {
   func.func @__nvqpp__mlirgen__reference_phase() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %q = quake.null_wire
@@ -52,6 +60,11 @@ module {
     return
   }
 }
+
+// PREP-LABEL: func.func @phase_helper
+// PREP: %[[Q:.*]] = quake.unwrap
+// PREP-NEXT: %[[H:.*]] = quake.h %[[Q]]
+// PREP-NEXT: quake.wrap %[[H]] to
 
 // P0-LABEL: qlx.program @reference_phase
 // P0: %[[Q:.*]] = qlx.prepare "zero"

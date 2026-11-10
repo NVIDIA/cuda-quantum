@@ -20,6 +20,7 @@ void registerPrepareQuakeForQLXPipeline() {
         "Finalize CUDA-Q Quake already lowered through "
         "convert-to-linear-values for QLX P0 conversion",
         [](mlir::OpPassManager &pm) {
+          pm.addPass(qlx::createEraseQuakeGlobalPhase());
           pm.addPass(qlx::createPruneDeadCCLoopCarries());
         });
     return true;
