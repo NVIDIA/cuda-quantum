@@ -8,7 +8,118 @@
 
 #include "utils.h"
 #include "cudaq/operators.h"
+#include <atomic>
+#include <barrier>
+#include <chrono>
+#include <future>
 #include <gtest/gtest.h>
+#include <thread>
+
+TEST(MatrixRegistry, concurrentLazyRegistrationAndEvaluation) {
+  // Keep concurrent comparisons quiet unless a matrix differs.
+  const auto checkEqual = [](const cudaq::complex_matrix &actual,
+                             const cudaq::complex_matrix &expected) {
+    ASSERT_EQ(actual.rows(), expected.rows());
+    ASSERT_EQ(actual.cols(), expected.cols());
+    for (std::size_t row = 0; row < actual.rows(); ++row)
+      for (std::size_t col = 0; col < actual.cols(); ++col)
+        EXPECT_NEAR(std::abs(actual[{row, col}] - expected[{row, col}]), 0.,
+                    1e-8);
+  };
+  // Reset between rounds so this tests first use, independently of test order.
+  for (int round = 0; round < 10; ++round) {
+    for (const auto *name : {"I", "X", "Y", "Z", "number", "parity", "position",
+                             "momentum", "displace", "squeeze"})
+      cudaq::matrix_handler::remove_definition(name);
+    constexpr int threadCount = 16;
+    std::barrier start(threadCount);
+    std::vector<std::thread> threads;
+    for (int i = 0; i < threadCount; ++i)
+      threads.emplace_back([&] {
+        start.arrive_and_wait();
+        EXPECT_NO_THROW({
+          for (const auto &spin : {cudaq::spin_op::x(0), cudaq::spin_op::y(0),
+                                   cudaq::spin_op::z(0)}) {
+            cudaq::sum_op<cudaq::matrix_handler> matrix(spin);
+            checkEqual(matrix.to_matrix({{0, 2}}), spin.to_matrix());
+          }
+          checkEqual(cudaq::matrix_op::identity(0).to_matrix({{0, 2}}),
+                     utils::id_matrix(2));
+          checkEqual(cudaq::matrix_op::number(0).to_matrix({{0, 2}}),
+                     utils::number_matrix(2));
+          checkEqual(cudaq::matrix_op::parity(0).to_matrix({{0, 2}}),
+                     utils::parity_matrix(2));
+          checkEqual(cudaq::matrix_op::position(0).to_matrix({{0, 2}}),
+                     utils::position_matrix(2));
+          checkEqual(cudaq::matrix_op::momentum(0).to_matrix({{0, 2}}),
+                     utils::momentum_matrix(2));
+          checkEqual(cudaq::matrix_op::displace(0).to_matrix(
+                         {{0, 2}}, {{"displacement", 0.}}),
+                     utils::id_matrix(2));
+          checkEqual(cudaq::matrix_op::squeeze(0).to_matrix(
+                         {{0, 2}}, {{"squeezing", 0.}}),
+                     utils::id_matrix(2));
+        });
+      });
+    for (auto &thread : threads)
+      thread.join();
+  }
+}
+
+TEST(MatrixRegistry, concurrentExplicitDefinitionsRejectDuplicates) {
+  const std::string name = "concurrent_explicit_definition";
+  cudaq::matrix_handler::remove_definition(name);
+  constexpr int threadCount = 16;
+  std::barrier start(threadCount);
+  std::atomic<int> successes = 0, duplicates = 0;
+  std::vector<std::thread> threads;
+  for (int i = 0; i < threadCount; ++i)
+    threads.emplace_back([&] {
+      start.arrive_and_wait();
+      try {
+        cudaq::matrix_handler::define(
+            name, {2},
+            [](const auto &, const auto &) { return utils::id_matrix(2); });
+        ++successes;
+      } catch (const std::runtime_error &error) {
+        EXPECT_EQ(std::string(error.what()), "a matrix operator with name " +
+                                                 name + " is already defined");
+        ++duplicates;
+      }
+    });
+  for (auto &thread : threads)
+    thread.join();
+  EXPECT_EQ(successes, 1);
+  EXPECT_EQ(duplicates, threadCount - 1);
+  EXPECT_TRUE(cudaq::matrix_handler::remove_definition(name));
+}
+
+TEST(MatrixRegistry, evaluationRetainsDefinitionWithoutHoldingRegistryLock) {
+  const std::string name = "definition_removed_during_evaluation";
+  std::promise<void> entered, removed;
+  auto enteredFuture = entered.get_future();
+  auto removedFuture = removed.get_future();
+  cudaq::matrix_handler::define(name, {2}, [&](const auto &, const auto &) {
+    entered.set_value();
+    // A different thread must be able to access the registry during a callback.
+    EXPECT_EQ(removedFuture.wait_for(std::chrono::seconds(5)),
+              std::future_status::ready);
+    return cudaq::matrix_op::identity(0).to_matrix({{0, 2}});
+  });
+  auto op = cudaq::matrix_handler::instantiate(name, {0});
+  std::thread remover([&] {
+    enteredFuture.wait();
+    EXPECT_TRUE(cudaq::matrix_handler::remove_definition(name));
+    cudaq::matrix_handler::define(name, {2}, [](const auto &, const auto &) {
+      return utils::zero_matrix(2);
+    });
+    removed.set_value();
+  });
+  EXPECT_NO_THROW(utils::checkEqual(op.to_matrix(), utils::id_matrix(2)));
+  remover.join();
+  utils::checkEqual(op.to_matrix(), utils::zero_matrix(2));
+  EXPECT_TRUE(cudaq::matrix_handler::remove_definition(name));
+}
 
 TEST(OperatorExpressions, checkMatrixOpsUnary) {
   auto op = cudaq::matrix_op::position(0);
