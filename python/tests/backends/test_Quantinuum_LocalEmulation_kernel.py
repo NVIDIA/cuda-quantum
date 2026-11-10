@@ -47,7 +47,7 @@ def test_quantinuum_sample():
         qubits = cudaq.qvector(2)
         h(qubits[0])
         x.ctrl(qubits[0], qubits[1])
-        mz(qubits)
+        cudaq.record(qubits)
 
     print(simple)
     # Run sample synchronously, this is fine
@@ -80,6 +80,7 @@ def test_quantinuum_observe():
         x(qreg[0])
         ry(theta, qreg[1])
         x.ctrl(qreg[1], qreg[0])
+        cudaq.record(qreg)
 
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -102,6 +103,7 @@ def test_observe():
     @cudaq.kernel
     def ansatz():
         q = cudaq.qvector(1)
+        cudaq.record(q)
 
     molecule = 5.0 - 1.0 * spin.x(0)
     res = cudaq.observe(ansatz, molecule, shots_count=10000)
@@ -118,6 +120,7 @@ def test_quantinuum_exp_pauli():
         qreg = cudaq.qvector(2)
         x(qreg[0])
         exp_pauli(theta, qreg, "XY")
+        cudaq.record(qreg)
 
     print(ansatz)
     # Define its spin Hamiltonian.
@@ -146,6 +149,7 @@ def test_u3_emulatation():
     def check_x():
         q = cudaq.qubit()
         u3(np.pi, np.pi, np.pi / 2, q)
+        cudaq.record(q)
 
     counts = cudaq.sample(check_x)
 
@@ -157,6 +161,7 @@ def test_u3_ctrl_emulation():
         control = cudaq.qubit()
         target = cudaq.qubit()
         u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
+        cudaq.record(control, target)
 
     result = cudaq.sample(kernel)
 
@@ -172,6 +177,7 @@ def test_quantinuum_state_synthesis():
     def kernel(s: cudaq.State):
         q = cudaq.qvector(s)
         x(q[1])
+        cudaq.record(q)
 
     s = cudaq.get_state(init, 2)
     s = cudaq.get_state(kernel, s)
@@ -186,6 +192,7 @@ def test_exp_pauli():
     def test():
         q = cudaq.qvector(2)
         exp_pauli(1.0, q, "XX")
+        cudaq.record(q)
 
     counts = cudaq.sample(test)
     assert '00' in counts
@@ -200,6 +207,7 @@ def test_exp_pauli_param():
     def test_param(w: cudaq.pauli_word):
         q = cudaq.qvector(2)
         exp_pauli(1.0, q, w)
+        cudaq.record(q)
 
     counts = cudaq.sample(test_param, cudaq.pauli_word("XX"))
     assert '00' in counts
@@ -218,7 +226,7 @@ def test_exp_pauli_zz():
         exp_pauli(theta, q, "ZZ")
         h(q[0])
         h(q[1])
-        mz(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, np.pi / 2)
     counts.dump()
@@ -233,6 +241,7 @@ def test_list_complex_param():
         q = cudaq.qvector(2)
         for i in range(len(coefficients)):
             exp_pauli(coefficients[i].real, q, "XX")
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, [10. + 0.j, 30. + 0.j])
     assert "00" in counts
@@ -251,6 +260,7 @@ def test_1q_unitary_synthesis():
     def basic_x():
         qubit = cudaq.qubit()
         custom_x(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(basic_x)
     assert len(counts) == 1 and "1" in counts
@@ -259,6 +269,7 @@ def test_1q_unitary_synthesis():
     def basic_h():
         qubit = cudaq.qubit()
         custom_h(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(basic_h)
     assert "0" in counts and "1" in counts
@@ -268,6 +279,7 @@ def test_1q_unitary_synthesis():
         qubits = cudaq.qvector(2)
         custom_h(qubits[0])
         custom_x.ctrl(qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(bell)
     assert len(counts) == 2
@@ -283,6 +295,7 @@ def test_1q_unitary_synthesis():
         custom_s.adj(q)
         custom_s_adj(q)
         h(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     assert counts["1"] == 1000
@@ -299,6 +312,7 @@ def test_2q_unitary_synthesis():
         qubits = cudaq.qvector(2)
         h(qubits[0])
         custom_cnot(qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(bell_pair)
     assert len(counts) == 2
@@ -316,6 +330,7 @@ def test_2q_unitary_synthesis():
         x(qubits[2])
         custom_cz(qubits[3], qubits[2])
         x(controls)
+        cudaq.record(qubits, controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
     assert counts["0010011"] == 1000
@@ -335,6 +350,7 @@ def test_3q_unitary_synthesis():
         q = cudaq.qvector(3)
         x(q)
         toffoli(q[0], q[1], q[2])
+        cudaq.record(q)
 
     # The 3-qubit custom operation is now lowered via Quantum Shannon
     # decomposition, so the kernel runs on the emulated hardware target.
@@ -355,6 +371,7 @@ def test_observe_chemistry():
     @cudaq.kernel
     def kernel(thetas: list[float]):
         qubits = cudaq.qvector(qubit_count)
+        cudaq.record(qubits)
 
     result = cudaq.observe(kernel, molecule, [.0, .0, .0, .0], shots_count=1000)
 
@@ -441,6 +458,7 @@ def test_quantinuum_state_preparation():
     @cudaq.kernel
     def kernel(vec: List[complex]):
         qubits = cudaq.qvector(vec)
+        cudaq.record(qubits)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
     counts = cudaq.sample(kernel, state)
@@ -467,6 +485,7 @@ def test_state_preparation_complex_amplitudes(n_qubits):
     @cudaq.kernel
     def prepare(amplitudes: List[complex]):
         q = cudaq.qvector(amplitudes)
+        cudaq.record(q)
 
     rng = np.random.default_rng(41 + n_qubits)
     amplitudes = (rng.normal(size=2**n_qubits) +
@@ -483,19 +502,6 @@ def test_state_preparation_complex_amplitudes(n_qubits):
                                amplitudes.tolist(),
                                shots_count=100000).expectation()
         assert abs(actual - expected) < 0.015
-
-
-def test_named_reg_in_sample(capfd):
-
-    @cudaq.kernel
-    def foo():
-        q = cudaq.qubit()
-        x(q)
-        var = mz(q)
-
-    cudaq.sample(foo).dump()
-    captured = capfd.readouterr()
-    assert "WARNING" in captured.err
 
 
 def test_sample_with_conditional():

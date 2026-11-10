@@ -49,6 +49,7 @@ def test_cache_mode_sample():
         qubits = cudaq.qvector(3)
         for q in qubits:
             x(q)
+        cudaq.record(qubits)
 
     for _ in range(3):
         assert cudaq.sample(ones, shots_count=1).count("111") == 1
@@ -93,6 +94,7 @@ def test_cache_mode_get_unitary():
     def h_kernel():
         q = cudaq.qubit()
         h(q)
+        cudaq.record(q)
 
     u1 = cudaq.get_unitary(h_kernel)
     u2 = cudaq.get_unitary(h_kernel)
@@ -135,7 +137,7 @@ def test_cache_mode_builder():
     kernel = cudaq.make_kernel()
     qreg = kernel.qalloc(3)
     kernel.x(qreg)
-    kernel.mz(qreg)
+    kernel.record(qreg)
 
     for _ in range(3):
         assert cudaq.sample(kernel, shots_count=1).count("111") == 1
@@ -160,16 +162,18 @@ def test_builder_wrapper_shares_builder_cache():
 def test_builder_mutation_discards_compiled_module_cache():
     """Extending a compiled builder cannot reuse code for its old body."""
 
+    # `get_state` rather than `sample`: a recorded builder cannot be extended,
+    # since gates added after the `record` would follow the measurements.
     kernel = cudaq.make_kernel()
     kernel.disable_quantum_optimization()
     qubit = kernel.qalloc()
 
-    assert cudaq.sample(kernel, shots_count=1).count("0") == 1
+    assert abs(cudaq.get_state(kernel)[0]) == pytest.approx(1.0)
     old_cache = kernel._compiled_module_cache
 
     kernel.x(qubit)
     assert not hasattr(kernel, '_compiled_module_cache')
-    assert cudaq.sample(kernel, shots_count=1).count("1") == 1
+    assert abs(cudaq.get_state(kernel)[1]) == pytest.approx(1.0)
     assert kernel._compiled_module_cache is not old_cache
 
 
@@ -183,13 +187,15 @@ def test_independent_caches_per_kernel():
 
     @cudaq.kernel(disable_quantum_optimization=True)
     def all_zero():
-        cudaq.qvector(3)
+        qubits = cudaq.qvector(3)
+        cudaq.record(qubits)
 
     @cudaq.kernel
     def all_one():
         qubits = cudaq.qvector(3)
         for q in qubits:
             x(q)
+        cudaq.record(qubits)
 
     # Interleave so a shared cache would corrupt results.
     assert cudaq.sample(all_zero, shots_count=1).count("000") == 1
@@ -209,6 +215,7 @@ def test_different_runtime_args_remain_correct_with_cache_reuse():
         qubits = cudaq.qvector(n)
         for q in qubits:
             x(q)
+        cudaq.record(qubits)
 
     assert cudaq.sample(all_one, 3, shots_count=1).count("111") == 1
     assert cudaq.sample(all_one, 5, shots_count=1).count("11111") == 1
@@ -228,6 +235,7 @@ def test_synthesized_kernel_correctness():
         qubits = cudaq.qvector(n)
         for q in qubits:
             x(q)
+        cudaq.record(qubits)
 
     synth_3 = cudaq.synthesize(all_one, 3)
     synth_5 = cudaq.synthesize(all_one, 5)
@@ -249,6 +257,7 @@ def test_redefined_kernel_does_not_hit_stale_cache():
         qubits = cudaq.qvector(3)
         for q in qubits:
             x(q)
+        cudaq.record(qubits)
 
     assert cudaq.sample(k, shots_count=1).count("111") == 1
 
@@ -257,7 +266,8 @@ def test_redefined_kernel_does_not_hit_stale_cache():
     # all-ones body.
     @cudaq.kernel(disable_quantum_optimization=True)
     def k():
-        cudaq.qvector(3)
+        qubits = cudaq.qvector(3)
+        cudaq.record(qubits)
 
     assert cudaq.sample(k, shots_count=1).count("000") == 1
 
@@ -270,6 +280,7 @@ def test_observe_with_different_spin_operators():
     def ansatz(theta: float):
         q = cudaq.qubit()
         rx(theta, q)
+        cudaq.record(q)
 
     # <X> on |+_x rotation> kernel: rx(pi/2)|0> = |-iY> direction.
     # Pick two Hamiltonians whose expectation values must differ on this state.
@@ -305,6 +316,7 @@ def test_synthesized_kernels_remain_independent():
         qubits = cudaq.qvector(n)
         for q in qubits:
             x(q)
+        cudaq.record(qubits)
 
     synth_a = cudaq.synthesize(all_one, 3)
     synth_b = cudaq.synthesize(all_one, 4)

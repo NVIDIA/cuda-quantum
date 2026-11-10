@@ -56,6 +56,7 @@ def test_tuple_assign_struq():
         x(q)
         x.ctrl(q, r)
         x.ctrl(q, s)
+        cudaq.record(q, r, s)
 
     print(test1)
     print("result test1: " + str(cudaq.sample(test1)))
@@ -66,6 +67,7 @@ def test_tuple_assign_struq():
         x(q[0])
         x.ctrl(q[0], q[1])
         x.ctrl(q[0], q[2])
+        cudaq.record(q[0], q[1], q[2])
 
     print(test2)
     print("result test2: " + str(cudaq.sample(test2)))
@@ -77,6 +79,7 @@ def test_tuple_assign_struq():
         x(c)
         x.ctrl(c, t1)
         x.ctrl(c, t2)
+        cudaq.record(c, t1, t2)
 
     print(test3)
     print("result test3: " + str(cudaq.sample(test3)))
@@ -87,6 +90,7 @@ def test_tuple_assign_struq():
         x(c)
         x.ctrl(c, q[0])
         x.ctrl(c, q[1])
+        cudaq.record(c, q[0], q[1])
 
     print(test4)
     print("result test4: " + str(cudaq.sample(test4)))
@@ -97,6 +101,7 @@ def test_tuple_assign_struq():
         x(c)
         x.ctrl(c, q1)
         x.ctrl(c, q2)
+        cudaq.record(c, q1, q2)
 
     print(test5)
     print("result test5: " + str(cudaq.sample(test5)))
@@ -105,6 +110,7 @@ def test_tuple_assign_struq():
     def test6():
         q, a = cudaq.qubit(), numpy.pi
         ry(a, q)
+        cudaq.record(q)
 
     print(test6)
     print("result test6: " + str(cudaq.sample(test6)))
@@ -124,6 +130,7 @@ def test_tuple_assign_struq():
         q = getMyTuple(reg)
         x(q.controls)
         x.ctrl(q.controls, q.target)
+        cudaq.record(reg)
 
     print(test7)
     print("result test7: " + str(cudaq.sample(test7)))
@@ -134,6 +141,7 @@ def test_tuple_assign_struq():
         q = getMyTuple(reg)
         x(q[0])
         x.ctrl(q[0], q[1])
+        cudaq.record(reg)
 
     print(test8)
     print("result test8: " + str(cudaq.sample(test8)))
@@ -144,6 +152,7 @@ def test_tuple_assign_struq():
         cs, t = getMyTuple(reg)
         x(cs)
         x.ctrl(cs, t)
+        cudaq.record(reg)
 
     print(test9)
     print("result test9: " + str(cudaq.sample(test9)))
@@ -158,6 +167,7 @@ def test_tuple_assign_struq():
         q = getTuple(reg)
         x(q[0])
         x.ctrl(q[0], q[1])
+        cudaq.record(reg)
 
     print(test10)
     print("result test10: " + str(cudaq.sample(test10)))

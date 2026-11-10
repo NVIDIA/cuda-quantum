@@ -19,14 +19,13 @@ func.func @bell_pair() {
   %q1 = quake.borrow_wire @wires[1] : !quake.wire
   %0 = quake.h %q0 : (!quake.wire) -> !quake.wire
   %1:2 = quake.x [%0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %m0, %w0 = quake.mz %1#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m1, %w1 = quake.mz %1#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  quake.return_wire %w0 : !quake.wire
-  quake.return_wire %w1 : !quake.wire
+  %rec:2 = quake.evince %1#0, %1#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %rec#0 : !quake.wire
+  quake.return_wire %rec#1 : !quake.wire
   return
 }
 
-// CHECK-LABEL:   func.func @bell_pair() attributes {mapping_reorder_idx = [0, 1], mapping_v2p = [5, 6]} {
+// CHECK-LABEL:   func.func @bell_pair() attributes {mapping_v2p = [5, 6]} {
 // CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[5] : !quake.wire
 // CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[6] : !quake.wire
 // CHECK:           %[[H_0:.*]] = quake.h %[[BORROW_WIRE_0]] : (!quake.wire) -> !quake.wire

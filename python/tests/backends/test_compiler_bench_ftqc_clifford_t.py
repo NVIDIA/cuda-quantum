@@ -215,7 +215,7 @@ def flip(bits: list[bool]):
     for i in range(len(bits)):
         if bits[i]:
             x(qubits[i])
-    mz(qubits)
+    cudaq.record(qubits)
 
 
 def test_arguments_are_substituted_for_synthesis():
@@ -245,6 +245,7 @@ def test_sample_keeps_an_idle_qubit():
     q = kernel.qalloc(3)
     kernel.x(q[0])
     kernel.x(q[2])
+    kernel.record(q)
 
     counts = cudaq.sample(kernel, shots_count=10)
     assert counts.most_probable() == '101'

@@ -45,7 +45,6 @@
 // CHECK-LABEL: quantum_machines:
 // CHECK-NEXT: canonicalize
 // CHECK-NEXT: hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true}
-// CHECK-NEXT: func.func(add-measurements)
 // CHECK-NEXT: jit-deploy-pipeline{no-loop-unroll=true}
 // CHECK-NEXT: prepare-for-wireset{add-wireset=true unroll-only-aliasing-quantum-access-loops=true}
 // CHECK-NEXT: decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}
@@ -58,7 +57,6 @@
 // CHECK-LABEL: quantum_machines emulated:
 // CHECK-NEXT: canonicalize
 // CHECK-NEXT: emul-jit-prep-pipeline{erase-noise=true allow-early-exit=false no-loop-unroll=true}
-// CHECK-NEXT: func.func(add-measurements)
 // CHECK-NEXT: jit-deploy-pipeline{no-loop-unroll=true}
 // CHECK-NEXT: prepare-for-wireset{add-wireset=true unroll-only-aliasing-quantum-access-loops=true}
 // CHECK-NEXT: decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}

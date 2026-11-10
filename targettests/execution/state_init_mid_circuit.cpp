@@ -28,16 +28,14 @@
 __qpu__ void test_single_then_state(std::vector<cudaq::complex> inState) {
   cudaq::qubit p;
   cudaq::qvector q{cudaq::state(inState)};
-  mz(p);
-  mz(q);
+  cudaq::record(p, q);
 }
 
 // Same pattern with a multi-qubit register allocated first.
 __qpu__ void test_multi_then_state(std::vector<cudaq::complex> inState) {
   cudaq::qvector p(2);
   cudaq::qvector q{cudaq::state(inState)};
-  mz(p);
-  mz(q);
+  cudaq::record(p, q);
 }
 
 int main() {
@@ -95,8 +93,7 @@ int main() {
 // MLIR:         %[[VAL_6:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_5]] : i64]
 // MLIR:         %[[VAL_7:.*]] = quake.init_state %[[VAL_6]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
 // MLIR:         quake.delete_state %[[VAL_4]] : !cc.ptr<!quake.state>
-// MLIR:         %[[VAL_8:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !cc.measure_handle
-// MLIR:         %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+// MLIR:         quake.evince %[[VAL_1]], %[[VAL_7]] : (!quake.ref, !quake.veq<?>) -> ()
 // MLIR:         return
 // MLIR:       }
 
@@ -109,8 +106,7 @@ int main() {
 // MLIR:         %[[VAL_6:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_5]] : i64]
 // MLIR:         %[[VAL_7:.*]] = quake.init_state %[[VAL_6]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
 // MLIR:         quake.delete_state %[[VAL_4]] : !cc.ptr<!quake.state>
-// MLIR:         %[[VAL_8:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
-// MLIR:         %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+// MLIR:         quake.evince %[[VAL_1]], %[[VAL_7]] : (!quake.veq<2>, !quake.veq<?>) -> ()
 // MLIR:         return
 // MLIR:       }
 // clang-format on

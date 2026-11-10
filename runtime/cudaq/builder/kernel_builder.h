@@ -224,6 +224,10 @@ CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 
+/// @brief Name the qubits whose measurements form the sampling histogram.
+void record(mlir::ImplicitLocOpBuilder &builder,
+            const std::vector<QuakeValue> &qubits);
+
 /// @brief Declare a detector over one or more measurement results.
 void detector(mlir::ImplicitLocOpBuilder &builder,
               const std::vector<QuakeValue> &measurements);
@@ -271,7 +275,7 @@ jitCode(mlir::ImplicitLocOpBuilder &, mlir::ExecutionEngine *,
 
 /// @brief Invoke the function with the given kernel name.
 void invokeCode(mlir::ImplicitLocOpBuilder &builder, mlir::ExecutionEngine *jit,
-                std::string kernelName, void **argsArray,
+                std::string kernelName, void **argsArray, std::size_t numArgs,
                 std::vector<std::string> extraLibPaths,
                 StateVectorStorage &storage);
 
@@ -680,6 +684,20 @@ public:
   CUDAQ_BUILDER_ADD_MEASURE(my)
   CUDAQ_BUILDER_ADD_MEASURE(mz)
 
+  /// @brief Record the given qubits in the sampling histogram.
+  ///
+  /// The arguments, in order, define the bits of each bitstring reported by
+  /// `cudaq::sample`; a `qvector` handle contributes its qubits in order. A
+  /// sampled kernel shall contain exactly one `record`, and shall not record
+  /// the same qubit twice. Kernels needing their own measurements use
+  /// `cudaq::run`.
+  template <typename... QubitArgs>
+    requires(sizeof...(QubitArgs) >= 1) && AllDecayToQuakeValue<QubitArgs...>
+  void record(QubitArgs &&...qubits) {
+    std::vector<QuakeValue> values{std::forward<QubitArgs>(qubits)...};
+    detail::record(*opBuilder, values);
+  }
+
   /// @brief Define a detector over one or more measurement results.
   ///
   /// Arguments are `QuakeValue` handles returned by `mz`/`mx`/`my`
@@ -1005,7 +1023,7 @@ public:
       jitCode(extraLibPaths);
     }
     detail::invokeCode(*opBuilder, jitEngine.get(), kernelName, argsArray,
-                       extraLibPaths, stateVectorStorage);
+                       arguments.size(), extraLibPaths, stateVectorStorage);
   }
 
   /// @brief The call operator for the kernel_builder, takes as input the

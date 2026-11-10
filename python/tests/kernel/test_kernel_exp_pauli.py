@@ -20,6 +20,7 @@ def test_exp_pauli():
     def test():
         q = cudaq.qvector(2)
         exp_pauli(1.0, q, "XX")
+        cudaq.record(q)
 
     counts = cudaq.sample(test)
     assert '00' in counts
@@ -34,6 +35,7 @@ def test_exp_pauli_param():
     def test_param(w: cudaq.pauli_word):
         q = cudaq.qvector(2)
         exp_pauli(1.0, q, w)
+        cudaq.record(q)
 
     counts = cudaq.sample(test_param, cudaq.pauli_word("XX"))
     assert '00' in counts
@@ -48,6 +50,7 @@ def test_exp_pauli_individual_qubits():
     def test(theta: float):
         q = cudaq.qvector(3)
         exp_pauli(theta, "YX", q[0], q[2])
+        cudaq.record(q)
 
     counts = cudaq.sample(test, math.pi / 2.0)
     assert len(counts) == 1
@@ -60,6 +63,7 @@ def test_exp_pauli_single_individual_qubit():
     def test(theta: float):
         q = cudaq.qvector(3)
         exp_pauli(theta, "X", q[1])
+        cudaq.record(q)
 
     counts = cudaq.sample(test, math.pi / 2.0)
     assert len(counts) == 1
@@ -72,6 +76,7 @@ def test_exp_pauli_three_individual_qubits():
     def test(theta: float):
         q = cudaq.qvector(3)
         exp_pauli(theta, "XXX", q[2], q[0], q[1])
+        cudaq.record(q)
 
     counts = cudaq.sample(test, math.pi / 2.0)
     assert len(counts) == 1
@@ -85,6 +90,7 @@ def test_exp_pauli_individual_qubit_ordering():
         q = cudaq.qvector(2)
         # Ordering-sensitive: X flips q[0], while Z leaves q[1] in |0>.
         exp_pauli(theta, "XZ", q[0], q[1])
+        cudaq.record(q)
 
     counts = cudaq.sample(test, math.pi / 2.0)
     assert len(counts) == 1

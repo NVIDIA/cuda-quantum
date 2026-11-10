@@ -20,6 +20,7 @@ struct kernel_vbool {
     for (std::size_t i = 0; i < vec.size(); i++) {
       x(q[i]);
     }
+    cudaq::record(q);
   }
 };
 
@@ -33,6 +34,7 @@ struct kernel_vvbool {
         x(q[m]);
       }
     }
+    cudaq::record(q);
   }
 };
 
@@ -50,6 +52,7 @@ struct kernel_vvvbool {
         }
       }
     }
+    cudaq::record(q);
   }
 };
 

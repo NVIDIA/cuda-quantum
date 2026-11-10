@@ -24,11 +24,13 @@
 __qpu__ void test() {
   cudaq::qvector q(2);
   cudaq::exp_pauli(1.0, q, "XX");
+  cudaq::record(q);
 }
 
 __qpu__ void test_param(cudaq::pauli_word w) {
   cudaq::qvector q(2);
   cudaq::exp_pauli(1.0, q, w);
+  cudaq::record(q);
 }
 
 void printCounts(cudaq::sample_result &result) {

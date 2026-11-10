@@ -728,6 +728,11 @@ static std::pair<cudaq::CompileTarget, cudaq::CompileOptions> getCompileConfig(
       if constexpr (std::is_same_v<Policy, cudaq::observe_policy>) {
         policy.spin = ctx->spin.value();
       }
+      if constexpr (std::is_same_v<Policy, cudaq::sample_policy>) {
+        // The policy is rebuilt from the context name, so the caller's
+        // `explicit_measurements` request only survives on the context.
+        policy.options.explicit_measurements = ctx->explicitMeasurements;
+      }
 
       options = getOptions(policy, ctx->qpuId);
     });

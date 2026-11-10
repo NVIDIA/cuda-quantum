@@ -18,6 +18,7 @@ def test_qview_zero_length():
         q = cudaq.qvector(N + N)
         qv = q[N:]
         x(qv[0:1])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel1, 2)
     print(counts)
@@ -31,6 +32,7 @@ def test_qview_non_zero_length():
         q = cudaq.qvector(N + N)
         qv = q[N:]
         x(qv[0:2])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel1, 2)
     print(counts)

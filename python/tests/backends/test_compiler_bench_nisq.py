@@ -172,6 +172,7 @@ def prepare_1101():
     x(q[0])
     entangle(q[0], q[3])
     x(q[1])
+    cudaq.record(q)
 
 
 @cudaq.kernel
@@ -198,6 +199,7 @@ def rolled_loop():
         x.ctrl(q[0], q[3])
         h(q[1])
         h(q[2])
+    cudaq.record(q)
 
 
 @pytest.mark.parametrize("level", range(4))

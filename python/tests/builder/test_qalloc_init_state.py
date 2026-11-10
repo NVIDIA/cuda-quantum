@@ -69,6 +69,7 @@ def test_kernel_complex_params_f64():
     @cudaq.kernel
     def kernel(vec: cudaq.State):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -88,6 +89,7 @@ def test_kernel_complex128_params_f64():
     @cudaq.kernel
     def kernel(vec: cudaq.State):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -120,6 +122,7 @@ def test_kernel_complex64_params_f32():
     @cudaq.kernel
     def kernel(vec: cudaq.State):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -165,6 +168,7 @@ def test_kernel_complex_capture_f64():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(state)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -184,6 +188,7 @@ def test_kernel_complex128_capture_f64():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(state)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -216,6 +221,7 @@ def test_kernel_complex64_capture_f32():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(state)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -263,6 +269,7 @@ def test_kernel_simulation_dtype_complex_params_f64():
 
     kernel, initialState = cudaq.make_kernel(cudaq.State)
     qubits = kernel.qalloc(initialState)
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -281,6 +288,7 @@ def test_kernel_simulation_dtype_complex_params_f32():
 
     kernel, initialState = cudaq.make_kernel(cudaq.State)
     qubits = kernel.qalloc(initialState)
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -299,6 +307,7 @@ def test_kernel_simulation_dtype_capture_f64():
 
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(state)
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -316,6 +325,7 @@ def test_kernel_simulation_dtype_capture_cpu():
 
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(state)
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -334,6 +344,7 @@ def test_kernel_simulation_dtype_capture_f32():
 
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(state)
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -359,6 +370,7 @@ def test_init_from_other_kernel_state_f64():
 
     kernel, initialState = cudaq.make_kernel(cudaq.State)
     qubits = kernel.qalloc(initialState)
+    kernel.record(qubits)
 
     state2 = cudaq.get_state(kernel, state)
     state2.dump()
@@ -386,6 +398,7 @@ def test_init_from_other_kernel_state_f32():
 
     kernel, initialState = cudaq.make_kernel(cudaq.State)
     qubits = kernel.qalloc(initialState)
+    kernel.record(qubits)
 
     state2 = cudaq.get_state(kernel, state)
     state2.dump()

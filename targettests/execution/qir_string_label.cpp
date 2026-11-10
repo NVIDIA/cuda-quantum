@@ -20,7 +20,7 @@
 __qpu__ void qir_test() {
   cudaq::qubit q;
   x(q);
-  auto measureResult = mz(q);
+  cudaq::record(q);
 };
 
 int main() {
@@ -33,7 +33,7 @@ int main() {
 
 // clang-format off
 // QIR_ADAPTIVE-DAG: @cstr.[[TYPE_ADDR:[A-Z0-9]+]] = private constant [14 x i8] c"array<i1 x 1>\00"
-// QIR_ADAPTIVE-DAG: @cstr.[[LABEL_ADDR:[A-Z0-9]+]] = private constant [14 x i8] c"measureResult\00"
+// QIR_ADAPTIVE-DAG: @cstr.[[LABEL_ADDR:[A-Z0-9]+]] = private constant [7 x i8] c"r00000\00"
 // CHECK-LABEL: define void @__nvqpp__mlirgen__function_qir_test.
 // CHECK-SAME:    () local_unnamed_addr #[[ATTR_1:[0-9]+]] {
 // QIR_ADAPTIVE:         tail call void @__quantum__rt__array_record_output(i64 1, ptr nonnull @cstr.[[TYPE_ADDR]])

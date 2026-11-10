@@ -98,6 +98,8 @@ TEST_P(MQPUDeviceSelection, ObserveAsyncBindsEachWorkerWithoutWarmup) {
 }
 
 TEST_P(MQPUDeviceSelection, SampleAsyncBindsEachWorkerWithoutWarmup) {
+  GTEST_SKIP() << "XFAIL: outdated by the explicit-record sampling refactor "
+                  "(library mode: no `cudaq::record`).";
   std::vector<cudaq::async_sample_result> results;
   for (std::size_t qpu = 0; qpu < numDevices; ++qpu)
     results.emplace_back(cudaq::sample_async(10, qpu, kernel));

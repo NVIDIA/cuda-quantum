@@ -302,13 +302,14 @@ struct DropEmptyVeqEvinceArgsPattern
     if (keep.size() == args.size())
       return failure();
 
-    if (keep.empty()) {
+    // A `cudaq::record` of empty registers stays: it records nothing.
+    if (keep.empty() && evin.getCompilerGenerated()) {
       rewriter.eraseOp(evin);
       return success();
     }
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
-        evin, keep, evin.getCompilerGenerated());
+    // Only non-linear operands are dropped, so the results are unchanged.
+    rewriter.modifyOpInPlace(evin, [&]() { evin->setOperands(keep); });
     return success();
   }
 };

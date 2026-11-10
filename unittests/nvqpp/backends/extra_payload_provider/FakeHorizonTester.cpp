@@ -15,7 +15,7 @@ CUDAQ_TEST(ExtraPayloadProviderTester, checkNoProvier) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
   // Cannot find the provider requested in the config
   EXPECT_THROW(cudaq::sample(kernel), std::runtime_error);
 }
@@ -38,7 +38,7 @@ CUDAQ_TEST(ExtraPayloadProviderTester, checkWrongProvider) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
   // Cannot find the provider requested in the config
   EXPECT_THROW(cudaq::sample(kernel), std::runtime_error);
 }
@@ -61,7 +61,7 @@ CUDAQ_TEST(ExtraPayloadProviderTester, checkProvider) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
   EXPECT_NO_THROW(cudaq::sample(kernel)); // No throw
 }
 

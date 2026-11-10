@@ -23,7 +23,7 @@ def bell():
     q = cudaq.qvector(2)
     h(q[0])
     x.ctrl(q[0], q[1])
-    mz(q)
+    cudaq.record(q)
 
 
 def test_file_backed_chrome_backend_interleaves_python_and_mlir_pass(tmp_path):
@@ -83,7 +83,7 @@ def test_builtin_python_phase_spans_wrap_kernel_lifecycle():
     def fresh():
         q = cudaq.qvector(1)
         h(q[0])
-        mz(q)
+        cudaq.record(q)
 
     backend = trace.ChromeBackend()
     trace.set_backend(backend)
@@ -110,7 +110,6 @@ def test_builtin_python_phase_spans_wrap_kernel_lifecycle():
     assert "ast_bridge.call.process_quake_ctor" in names
     assert "ast_bridge.call.group_values" in names
     assert "ast_bridge.call.emit_quantum_operation" in names
-    assert "ast_bridge.call.emit_measurement" in names
     assert "ast_bridge.call.emit_qvector" in names
 
 
@@ -121,7 +120,7 @@ def test_builder_trace_marks_aot_and_jit_pipeline_spans():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(1)
     kernel.h(q)
-    kernel.mz(q)
+    kernel.record(q)
 
     backend = trace.ChromeBackend()
     trace.set_backend(backend)

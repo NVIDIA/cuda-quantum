@@ -51,6 +51,7 @@ def testUCCSD():
     kernel.x(qubits[0])
     kernel.x(qubits[1])
     kernel.apply_call(uccsd, qubits, thetas, numElectrons, numQubits)
+    kernel.record(qubits)
 
     num_parameters = cudaq.kernels.uccsd_num_parameters(numElectrons, numQubits)
 
@@ -84,6 +85,7 @@ def testHWE():
     kernel.x(qubits[0])
     kernel.x(qubits[1])
     cudaq.kernels.hwe(kernel, qubits, numQubits, numLayers, thetas)
+    kernel.record(qubits)
 
     num_parameters = cudaq.kernels.num_hwe_parameters(numQubits, numLayers)
     assert np.equal(40, num_parameters)
@@ -111,6 +113,7 @@ def test_uccsd_kernel():
         x(q[0])
         x(q[1])
         uccsd(q, thetas, 2, 4)
+        cudaq.record(q)
 
     geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
     molecule, data = cudaq.chemistry.create_molecular_hamiltonian(

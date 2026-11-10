@@ -19,7 +19,7 @@ __qpu__ void foo() {
   x(q[1]);
   x<cudaq::ctrl>(q[0], q[1]);
   x<cudaq::ctrl>(q[0], q[2]); // requires a swap(q0,q1)
-  auto result = mz(q);
+  cudaq::record(q);
 }
 
 int main() {
@@ -43,13 +43,10 @@ int main() {
 // CHECK:         tail call void @__quantum__qis__mz__body(ptr null, ptr nonnull writeonly inttoptr (i64 1 to ptr))
 // CHECK:         tail call void @__quantum__qis__mz__body(ptr nonnull inttoptr (i64 2 to ptr), ptr nonnull writeonly inttoptr (i64 2 to ptr))
 // CHECK:         tail call void @__quantum__rt__array_record_output(i64 3, ptr nonnull @cstr.61727261793C6931207820333E00)
-// CHECK:         tail call void @__quantum__rt__result_record_output(ptr nonnull null, ptr nonnull @cstr.726573756C74253000)
-// CHECK:         tail call void @__quantum__rt__result_record_output(ptr nonnull inttoptr (i64 1 to ptr), ptr nonnull @cstr.726573756C74253100)
-// CHECK:         tail call void @__quantum__rt__result_record_output(ptr nonnull inttoptr (i64 2 to ptr), ptr nonnull @cstr.726573756C74253200)
+// CHECK:         tail call void @__quantum__rt__result_record_output(ptr nonnull null, ptr nonnull @cstr.72303030303000)
+// CHECK:         tail call void @__quantum__rt__result_record_output(ptr nonnull inttoptr (i64 1 to ptr), ptr nonnull @cstr.72303030303100)
+// CHECK:         tail call void @__quantum__rt__result_record_output(ptr nonnull inttoptr (i64 2 to ptr), ptr nonnull @cstr.72303030303200)
 // CHECK:         ret void
 // clang-format on
-// STDOUT-DAG: __global__ : { 101:1000 }
-// STDOUT-DAG: result%0 : { 1:1000 }
-// STDOUT-DAG: result%1 : { 0:1000 }
-// STDOUT-DAG: result%2 : { 1:1000 }
+// STDOUT-DAG: { 101:1000 }
 // STDOUT-DAG: most_probable "101"

@@ -71,7 +71,7 @@ void samplePreamble(ExecutionContext &ctx, sample_policy &policy,
         "' uses conditional feedback. Use `cudaq::run` or `cudaq::run_async` "
         "instead. See CUDA-Q documentation for migration guide.");
 
-  if (explicitMeasurements && !platform.supports_explicit_measurements())
+  if (explicitMeasurements && !platform.supports_explicit_measurements(qpu_id))
     throw std::runtime_error("The sampling option `explicit_measurements` is "
                              "not supported on this target.");
 
@@ -104,16 +104,15 @@ void samplePreamble(ExecutionContext &ctx, sample_policy &policy,
     auto &platform = get_platform();
     platform.with_execution_context(context,
                                     std::forward<KernelFunctor>(wrappedKernel));
-    // In trace mode, if we have a measure result
-    // that is passed to an if statement, then
-    // we'll have collected registernames
-    if (!context.registerNames.empty()) {
-      // append new register names to the main sample context
-      for (std::size_t i = 0; i < context.registerNames.size(); ++i)
-        ctx.registerNames.emplace_back("auto_register_" + std::to_string(i));
-
-      ctx.hasConditionalsOnMeasureResults = true;
-    }
+    // Reject conditional feedback detected by tracing.
+    if (cudaq::detail::hasConditionalFeedback(kernelName, &context))
+      throw std::runtime_error(
+          "`cudaq::sample` and `cudaq::sample_async` no longer support kernels "
+          "that branch on measurement results. Kernel '" +
+          kernelName +
+          "' uses conditional feedback. Use `cudaq::run` or "
+          "`cudaq::run_async` instead. See CUDA-Q documentation for migration "
+          "guide.");
   }
 #endif
 }
@@ -121,7 +120,7 @@ void samplePreamble(ExecutionContext &ctx, sample_policy &policy,
 template <typename KernelFunctor>
 auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                       const std::string &kernelName, int shots,
-                      bool explicitMeasurements = false, std::size_t qpu_id = 0,
+                      bool explicitMeasurements, std::size_t qpu_id = 0,
                       std::optional<noise_model> noise = std::nullopt);
 
 /// @brief Take the input KernelFunctor (a lambda that captures runtime
@@ -590,15 +589,15 @@ std::vector<sample_result> sample(const sample_options &options,
   // Create the functor that will broadcast the sampling tasks across
   // all requested argument sets provided.
   detail::BroadcastFunctorType<sample_result, Args...> functor =
-      [&, explicit_mz = options.explicit_measurements](
-          std::size_t qpuId, std::size_t counter, std::size_t N,
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> sample_result {
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = detail::runSampling(
         [&kernel, &singleIterParameters...]() mutable {
           kernel(std::forward<Args>(singleIterParameters)...);
         },
-        platform, kernelName, shots, explicit_mz, qpuId, counter, N);
+        platform, kernelName, shots, /*explicitMeasurements=*/false, qpuId,
+        counter, N);
     return ret;
   };
 

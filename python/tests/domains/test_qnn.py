@@ -40,6 +40,7 @@ def test_simpleObserveN_QNN():
         kernel.rz(params[i + qubit_count * 2], qubits[i])
     for q1, q2 in zip(qubits_list[0::2], qubits_list[1::2]):
         kernel.cz(qubits[q1], qubits[q2])
+    kernel.record(qubits)
 
     exp_vals = cudaq.observe(kernel, h, parameters)
     assert len(exp_vals) == samples_count
@@ -80,6 +81,7 @@ def test_observeAsync_QNN():
         kernel.ry(params[i + n_qubits], qubits[i])
     for i in range(n_qubits):
         kernel.rz(params[i + n_qubits * 2], qubits[i])
+    kernel.record(qubits)
     xi = np.split(parameters, num_qpus)
     asyncresults = []
     for i in range(len(xi)):

@@ -12,6 +12,7 @@ description: "NISQ benchmark target lowering to a CZ and rotation basis, with op
 
 config:
   nvqir-simulation-backend: qpp
+  support-explicit-measurements: true
 
 # Set `device` on the `quake-mapped` stage of `get_compile_target()`, such
 # as `path(5)`, to route; without one nothing is routed.

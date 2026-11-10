@@ -24,6 +24,7 @@ def test_banjo():
                 x.ctrl(ancilla, qubits[0])
             else:
                 x.ctrl([ancilla, *qubits[0:i]], qubits[i])
+        cudaq.record(ancilla, qubits)
 
     shots = 10000
     print(bar)
@@ -68,6 +69,7 @@ def test_banjo():
 # CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_4]], %[[CONSTANT_1]] : i64
 # CHECK:             cc.continue %[[ADDI_0]] : i64
 # CHECK:           }
+# CHECK:           quake.evince %[[ALLOCA_0]], %[[ALLOCA_1]] : (!quake.ref, !quake.veq<4>) -> ()
 # CHECK-DAG:       quake.dealloc %[[ALLOCA_1]] : !quake.veq<4>
 # CHECK-DAG:       quake.dealloc %[[ALLOCA_0]] : !quake.ref
 # CHECK:           return

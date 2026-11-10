@@ -10,13 +10,13 @@
 
 // RUN: nvq++ %s -o %t
 // RUN: CUDAQ_LOG_LEVEL=info %t 1 | \
-// RUN:   FileCheck %s --check-prefixes=CHECK,AOT
+// RUN:   FileCheck %s --check-prefixes=CHECK,JIT
 // RUN: CUDAQ_LOG_LEVEL=info %t 2 | \
-// RUN:   FileCheck %s --check-prefixes=CHECK,AOT
+// RUN:   FileCheck %s --check-prefixes=CHECK,JIT
 // RUN: CUDAQ_LOG_LEVEL=info %t 3 | \
-// RUN:   FileCheck %s --check-prefixes=CHECK,AOT
+// RUN:   FileCheck %s --check-prefixes=CHECK,JIT
 // RUN: CUDAQ_LOG_LEVEL=info %t 4 | \
-// RUN:   FileCheck %s --check-prefixes=CHECK,AOT
+// RUN:   FileCheck %s --check-prefixes=CHECK,JIT
 // clang-format off
 // RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate -DEMULATE %s -o %t.emulate; fi
 // RUN: if %quantinuum_avail; then CUDAQ_LOG_LEVEL=info %t.emulate 1 | FileCheck %s --check-prefixes=CHECK,EMULATE; fi
@@ -32,11 +32,9 @@
 // CHECK: Launching kernel in sync mode with policy resource-count
 // CHECK: No compiled module found. Compiling.
 
-// When using AOT compilation, we expect no JIT compilation, with all gate
-// tracing happening at runtime
+// A simulator JIT-compiles every launch, including resource estimation.
 
-// AOT: No JIT compilation required. Using AOT-compiled module as-is.
-// AOT: Applying x with 1 controls
+// JIT-NOT: No JIT compilation required
 
 // When using JIT compilation, we expect JIT compilation, but all tracing gets
 // folded away at JIT compile time

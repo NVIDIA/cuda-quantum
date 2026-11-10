@@ -22,9 +22,7 @@ def foo():
     x(q1)
     x.ctrl(q0, q1)
     x.ctrl(q0, q2)
-    q0result = mz(q0)
-    q1result = mz(q1)
-    q2result = mz(q2)
+    cudaq.record(q0, q1, q2)
 
 
 result = cudaq.sample(foo)

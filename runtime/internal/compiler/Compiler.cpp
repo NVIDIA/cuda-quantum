@@ -23,6 +23,7 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -34,6 +35,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Dominance.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Parser/Parser.h"
@@ -90,21 +92,61 @@ nlohmann::json formOutputNames(const std::string &codegenTranslation,
   }
   return output_names;
 }
-/// Extract qubit-mapping reorder indices from the entry-point attributes.
-std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
-                                                  mlir::func::FuncOp epFunc) {
+/// For each qubit the kernel recorded, in record order, the qubit index the
+/// backend will report it under.
+///
+/// The measurements sit in record order (`add-measurements` emits them in front
+/// of the `cudaq::record` operands), and the qubit index is read straight off
+/// the IR: `regtomem` leaves the allocas in physical order, and in value
+/// semantics a wire carries its own index and threads through the gates.
+/// Ancillas introduced by routing are never measured, so they never appear.
+std::vector<std::size_t> collectRecordedQubits(mlir::ModuleOp moduleOp,
+                                               mlir::func::FuncOp epFunc) {
   assert(moduleOp.template lookupSymbol<mlir::func::FuncOp>(epFunc.getName()) &&
          "Entry point function must survive the lowering pipeline.");
-  std::vector<std::size_t> mapping_reorder_idx;
-  if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
-          epFunc->getAttr("mapping_reorder_idx"))) {
-    mapping_reorder_idx.resize(mappingAttr.size());
-    std::transform(mappingAttr.begin(), mappingAttr.end(),
-                   mapping_reorder_idx.begin(), [](mlir::Attribute attr) {
-                     return mlir::cast<mlir::IntegerAttr>(attr).getInt();
-                   });
-  }
-  return mapping_reorder_idx;
+  auto linearOnly = [](auto &&values) {
+    return llvm::to_vector(llvm::make_filter_range(values, [](mlir::Value v) {
+      return cudaq::quake::isLinearType(v.getType());
+    }));
+  };
+
+  // A veq's qubits are `physical[veq] + [0, size)`.
+  llvm::DenseMap<mlir::Value, std::size_t> physical;
+  std::size_t numAllocated = 0;
+  std::vector<std::size_t> recorded;
+  epFunc.walk([&](mlir::Operation *op) {
+    if (auto alloc = mlir::dyn_cast<cudaq::quake::AllocaOp>(op)) {
+      physical[alloc.getResult()] = numAllocated;
+      numAllocated += cudaq::quake::getVeqSize(alloc.getResult()).value_or(1);
+      return;
+    }
+    if (auto ext = mlir::dyn_cast<cudaq::quake::ExtractRefOp>(op)) {
+      if (auto iter = physical.find(ext.getVeq());
+          iter != physical.end() && ext.hasConstantIndex())
+        physical[ext.getResult()] = iter->second + ext.getConstantIndex();
+      return;
+    }
+    if (auto borrow = mlir::dyn_cast<cudaq::quake::BorrowWireOp>(op)) {
+      physical[borrow.getResult()] = borrow.getIdentity();
+      return;
+    }
+    if (op->hasTrait<cudaq::QuantumMeasure>())
+      for (mlir::Value opnd : op->getOperands()) {
+        auto iter = physical.find(opnd);
+        if (iter == physical.end())
+          continue;
+        for (std::size_t i = 0, e = cudaq::quake::getVeqSize(opnd).value_or(1);
+             i < e; ++i)
+          recorded.push_back(iter->second + i);
+      }
+    // Thread the qubit onwards: a linear result continues the operand of the
+    // same rank among them.
+    for (auto [in, out] :
+         llvm::zip(linearOnly(op->getOperands()), linearOnly(op->getResults())))
+      if (auto iter = physical.find(in); iter != physical.end())
+        physical[out] = iter->second;
+  });
+  return recorded;
 }
 } // namespace
 
@@ -416,23 +458,40 @@ static void disableQuantumOptimization(mlir::ModuleOp moduleOp) {
     cudaq::runtime::setOptimizationLevel(func, 0);
 }
 
-/// Whether a stage of \p target may erase or move qubits, so that `sample` has
-/// to measure every qubit before the pipeline instead of letting the simulator
-/// read out whatever qubits are left at the end. A cost model's optimization
-/// runs `dqe` from level 1, which erases a qubit that no gate uses, and mapping
-/// moves qubits to device positions. The mapper uses the measurements to
-/// record how to put results back in the kernel's qubit order.
-// TODO: NVIDIA/cuda-quantum#5777 adds `sample`'s measurements after the
-// pipeline and keeps idle qubits through `dqe` with `quake.evince`. When it
-// lands, this check can go, and the reorder index can come from the compiler.
-static bool mayMoveQubits(const cudaq::CompileTarget &target) {
-  return llvm::any_of(target.stages, [](const auto &stage) {
-    const auto &profile = stage.irOutputProfile;
-    const auto *unmapped =
-        std::get_if<cudaq::config::QuakeUnmappedProfile>(&profile);
-    return std::holds_alternative<cudaq::config::QuakeMappedProfile>(profile) ||
-           (unmapped && unmapped->costModel);
+/// Does the entry point measure for itself?
+static bool hasUserMeasurements(mlir::func::FuncOp epFunc) {
+  return epFunc
+      .walk([](mlir::Operation *op) {
+        return op->hasTrait<cudaq::QuantumMeasure>()
+                   ? mlir::WalkResult::interrupt()
+                   : mlir::WalkResult::advance();
+      })
+      .wasInterrupted();
+}
+
+/// The kernel's `cudaq::record`, if any.
+static cudaq::quake::EvinceOp getUserRecord(mlir::func::FuncOp epFunc) {
+  cudaq::quake::EvinceOp record;
+  epFunc.walk([&](cudaq::quake::EvinceOp evince) {
+    if (evince.getCompilerGenerated())
+      return mlir::WalkResult::advance();
+    record = evince;
+    return mlir::WalkResult::interrupt();
   });
+  return record;
+}
+
+/// False on early returns before \p record.
+static bool recordsOnEveryPath(mlir::func::FuncOp epFunc,
+                               cudaq::quake::EvinceOp record) {
+  if (epFunc
+          .walk([](cudaq::cc::UnwindReturnOp) {
+            return mlir::WalkResult::interrupt();
+          })
+          .wasInterrupted())
+    return false;
+  mlir::PostDominanceInfo postDom(epFunc);
+  return postDom.postDominates(record->getBlock(), &epFunc.getBody().front());
 }
 
 static bool hasConditionalsOnMeasureResults(mlir::ModuleOp moduleOp) {
@@ -484,14 +543,10 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
     }
   }
 
-  if (options.addSampleMeasurements &&
-      (!target.supportSampleWithoutMeasurements || mayMoveQubits(target))) {
-    // No need to add measurements only to remove them eventually
-    if (target.codegen.postCodegenPasses.find("remove-measurements") ==
-        std::string::npos)
-      applyPipeline("func.func(add-measurements{use-evince=1})", moduleOp,
-                    kernelName);
-  }
+  // `sample` and `observe` read only the record, so let the optimizer drop
+  // qubits outside it.
+  if (options.addSampleMeasurements || options.measureObservable)
+    applyPipeline("func.func(erase-implicit-output)", moduleOp, kernelName);
 
   auto [combineMeasurements, passPipeline] =
       executeMainPipeline(moduleOp, kernelName, resolvedOptions);
@@ -511,9 +566,84 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
         "Skipping counting resources from IR as target does not support it.");
   }
 
-  std::vector<std::size_t> mapping_reorder_idx;
-  if (options.storeReorderIdx)
-    mapping_reorder_idx = extractMappingReorderIdx(moduleOp, epFunc);
+  auto record = getUserRecord(epFunc);
+  const bool userRecord = static_cast<bool>(record);
+
+  // Fail on early returns before the record.
+  const bool readsRecord =
+      (options.addSampleMeasurements && !options.explicitMeasurements) ||
+      options.measureObservable;
+  if (readsRecord && userRecord && !recordsOnEveryPath(epFunc, record))
+    CUDAQ_ERROR("Kernel '" + kernelName +
+                "' can return before its `cudaq::record`, so `cudaq::sample` "
+                "and `cudaq::observe` would miss it on that path. Remove the "
+                "early return.");
+
+  if (options.addSampleMeasurements) {
+    const bool measures = hasUserMeasurements(epFunc);
+    if (options.explicitMeasurements) {
+      // The kernel's own measurements are the histogram.
+      if (!measures)
+        CUDAQ_ERROR(
+            "`explicit_measurements` is not supported on a kernel without any "
+            "measurement operation. Kernel '" +
+            kernelName +
+            "' measures nothing, so `cudaq::sample` has no histogram to "
+            "report. Add measurements, or drop the option and name the qubits "
+            "to report with `cudaq::record(...)`.");
+    } else {
+      // The record is the histogram; the kernel does not measure.
+      if (measures)
+        CUDAQ_ERROR("Kernel '" + kernelName +
+                    "' measures for itself, which `cudaq::sample` does not "
+                    "support on this target. Mark the qubits to report with "
+                    "`cudaq::record(...)`, or use `cudaq::run` to retrieve "
+                    "individual measurement results.");
+      if (!userRecord)
+        CUDAQ_ERROR("Kernel '" + kernelName +
+                    "' records nothing, so `cudaq::sample` has no histogram "
+                    "to report. Add a `cudaq::record(...)` naming the qubits "
+                    "to report.");
+      if (llvm::none_of(record.getArgs(), [](mlir::Value v) {
+            return cudaq::quake::getVeqSize(v) != 0;
+          }))
+        CUDAQ_WARN("Kernel '{}' records no qubits; `cudaq::sample` returns an "
+                   "empty histogram.",
+                   kernelName);
+
+      // Measure the recorded qubits, in record order, then drop the record.
+      // This runs after the main pipeline, so the measurements land on the
+      // mapped qubits and routing ancillas stay out of the histogram. Measure
+      // even where `remove-measurements` strips them after codegen: the
+      // recorded qubits are read from these measurements below.
+      applyPipeline("func.func(add-measurements{use-evince=1})", moduleOp,
+                    kernelName);
+      cudaq::quake::eraseUserRecords(moduleOp);
+      // A profile that measures one qubit at a time splits those measurements.
+      // The module may be handed over before codegen (e.g. to an endpoint), so
+      // it has to satisfy the profile here.
+      const bool singleQubitMeasurements =
+          llvm::any_of(target.stages, [](const auto &stage) {
+            const auto *profile =
+                std::get_if<cudaq::config::QuakeReferenceSemanticsProfile>(
+                    &stage.irOutputProfile);
+            return profile && profile->measurementType ==
+                                  cudaq::config::MeasurementForm::single_qubit;
+          });
+      if (singleQubitMeasurements)
+        applyPipeline("func.func(expand-measurements,canonicalize,"
+                      "cc-loop-unroll,canonicalize)",
+                      moduleOp, kernelName);
+    }
+  }
+
+  // `observe` reads the spin operator's qubit indices through the record:
+  // index `i` is the `i`-th recorded qubit.
+  if (options.measureObservable && !userRecord)
+    CUDAQ_ERROR("Kernel '" + kernelName +
+                "' records nothing, so `cudaq::observe` cannot tell which "
+                "qubit each spin operator index refers to. Add a "
+                "`cudaq::record(...)` naming the qubits, in index order.");
 
   // Warn if kernel has named measurement registers (sub-registers).
   if (options.warnNamedMeasurements) {
@@ -579,16 +709,30 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
       modules.emplace_back(term.get_term_id(), tmpModuleOp);
     }
   } else {
+    // Only `observe` on a simulator reads a record at run time; full QIR lowers
+    // it to runtime calls. Every other launch drops it here.
+    if (!(options.measureObservable && target.supportObservableMeasurements))
+      cudaq::quake::eraseUserRecords(moduleOp);
     modules.emplace_back(kernelName, moduleOp);
   }
+
+  // The qubits each module's measurements read, in record order. An `observe`
+  // term circuit measures only that term's qubits.
+  std::map<std::string, std::vector<std::size_t>> recordedQubits;
+  if (options.storeReorderIdx)
+    for (auto &[name, module] : modules)
+      if (auto func = module.lookupSymbol<mlir::func::FuncOp>(
+              cudaq::runtime::cudaqGenPrefixName + kernelName))
+        recordedQubits[name] = collectRecordedQubits(module, func);
 
   bool needJit = emulate || emitResourceCounts || options.emitJit;
   return assembleCompiledModule(
       kernelName, modules, needJit, isFullySpecialized, isEntryPoint,
       emulate && combineMeasurements, std::move(resourceCounts),
-      {.reorderIdx = mapping_reorder_idx,
+      {.reorderIdx = {},
        .hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes,
-       .optimizationLevel = resolvedOptions.optimizationLevel},
+       .optimizationLevel = resolvedOptions.optimizationLevel,
+       .recordedQubits = std::move(recordedQubits)},
       context);
 }
 

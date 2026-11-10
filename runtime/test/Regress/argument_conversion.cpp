@@ -584,8 +584,9 @@ void test_simulation_state(mlir::MLIRContext *ctx) {
 
 // A state captured from a kernel is replaced by generated `init` and
 // `num_qubits` functions. The caller owns the qubits it passes to `init`, so
-// the deallocation and the compiler-generated evince of the argument must be
-// dropped from `init`. A user-written evince is kept.
+// the deallocation and the evinces of the argument must be dropped from `init`:
+// the compiler-generated one, and the `cudaq::record`, which has no meaning
+// there.
 void test_kernel_state(mlir::MLIRContext *ctx) {
   const char *code = R"#(
 func.func @__nvqpp__mlirgen__callee(%arg0: i64) {
@@ -616,8 +617,7 @@ func.func @__nvqpp__mlirgen__callee(%arg0: i64) {
 // CHECK-SAME:        %{{.*}}: i64, %[[ARG:.*]]: !quake.veq<?>) -> !quake.veq<?> {
 // CHECK:           %[[SUB:.*]] = quake.subveq %[[ARG]], %{{.*}}, %{{.*}} : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
 // CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
-// The compiler-generated evince on the argument is dropped; the user one is not.
-// CHECK-NEXT:      quake.evince %[[SUB]] : (!quake.veq<?>) -> ()
+// Both evinces on the argument are dropped.
 // CHECK-NOT:       quake.evince
 // The caller owns the qubits, so the argument is not deallocated here.
 // CHECK-NOT:       quake.dealloc

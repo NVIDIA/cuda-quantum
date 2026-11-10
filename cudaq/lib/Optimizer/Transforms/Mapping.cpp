@@ -1262,11 +1262,9 @@ LogicalResult SabreRouter::mapOperation(NodeRef nodeRef) {
   for (auto vr : node.qubits)
     deviceQubits.push_back(placement.getPhy(vr));
 
-  // An operation cannot be mapped if it is not a measurement and uses two
-  // virtual qubits that are not adjacently placed.
-  if (!node.isMeasure && !isStructuredRoutingOperation(node.op) &&
-      deviceQubits.size() == 2 &&
-      !device.areConnected(deviceQubits[0], deviceQubits[1]))
+  // An operation cannot be mapped if it is a two-qubit gate whose virtual
+  // qubits are not adjacently placed.
+  if (node.isTwoQ && !device.areConnected(deviceQubits[0], deviceQubits[1]))
     return failure();
 
   // Structured control flow is routed recursively by ControlFlowRouter.
@@ -2405,38 +2403,6 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
   }
 };
 
-//===----------------------------------------------------------------------===//
-// Measurement preconditions
-//===----------------------------------------------------------------------===//
-
-/// The first measurement in `func` whose measured wire flows to a non-terminal
-/// user, or null. Because the mapper defers measurements to the end of the
-/// circuit, a measured wire may only flow to a terminal consumer (`return_wire`
-/// or `sink`). Any other use is a mid-circuit measurement the deferral cannot
-/// preserve. Classical measurement feedback is detected separately, via
-/// `QuakeFunctionAnalysis`.
-Operation *findNonTerminalMeasuredWireUse(func::FuncOp func) {
-  Operation *found = nullptr;
-  func.walk([&](cudaq::quake::MeasurementInterface meas) {
-    Operation *measOp = meas.getOperation();
-    for (Value result : measOp->getResults()) {
-      if (!isa<cudaq::quake::WireType>(result.getType()))
-        continue;
-      for (Operation *user : result.getUsers())
-        // quake.evince is a transparent wire pass-through (compiler-
-        // generated bookkeeping that is erased before codegen); treat it
-        // like a sink so it doesn't trigger a false mid-circuit diagnosis.
-        if (!isa<cudaq::quake::ReturnWireOp, cudaq::quake::SinkOp,
-                 cudaq::quake::EvinceOp>(user)) {
-          found = measOp;
-          return WalkResult::interrupt();
-        }
-    }
-    return WalkResult::advance();
-  });
-  return found;
-}
-
 struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
   using MappingFuncBase::MappingFuncBase;
 
@@ -2446,15 +2412,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
   virtual LogicalResult initialize(MLIRContext *context) override {
     return initializeDevice(device, nonComposable, context, deviceBypass,
                             deviceInstance);
-  }
-
-  /// Add `op` and all of its users into `opsToMoveToEnd`. `op` may not be
-  /// nullptr.
-  void addOpAndUsersToList(Operation *op,
-                           SmallVectorImpl<Operation *> &opsToMoveToEnd) {
-    opsToMoveToEnd.push_back(op);
-    for (auto user : op->getUsers())
-      addOpAndUsersToList(user, opsToMoveToEnd);
   }
 
   /// Resolve `op`'s quantum operands to their virtual qubits. Returns nullopt
@@ -2601,7 +2558,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                SmallVectorImpl<cudaq::quake::BorrowWireOp> &sources,
                SmallVectorImpl<cudaq::quake::ReturnWireOp> &returnsToRemove,
                DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ,
-               SmallVectorImpl<std::size_t> &userQubitsMeasured,
                DenseMap<std::size_t, Value> &finalQubitWire,
                Operation *&lastSource, VirtualInteractionGraph &interactions,
                SmallVectorImpl<bool> &userVirtualQubits) {
@@ -2666,8 +2622,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
             wireToVirtualQ.insert({regionArg, wireToVirtualQ[linArg]});
           analyzeBlock(region->front(), /*doCollectInteractions=*/false, &op,
                        analysisOk, sources, returnsToRemove, wireToVirtualQ,
-                       userQubitsMeasured, finalQubitWire, lastSource,
-                       interactions, userVirtualQubits);
+                       finalQubitWire, lastSource, interactions,
+                       userVirtualQubits);
           if (!analysisOk)
             return;
         }
@@ -2677,8 +2633,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       } else if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(op)) {
         analyzeBlock(scope.getInitRegion().front(), doCollectInteractions, &op,
                      analysisOk, sources, returnsToRemove, wireToVirtualQ,
-                     userQubitsMeasured, finalQubitWire, lastSource,
-                     interactions, userVirtualQubits);
+                     finalQubitWire, lastSource, interactions,
+                     userVirtualQubits);
         if (!analysisOk)
           return;
         llvm::SmallSet<unsigned, 16> returnedVQs;
@@ -2732,8 +2688,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         // not a loop exit, so we don't map it to the loop results.
         analyzeBlock(*bodyBlock, /*doCollectInteractions=*/false, nullptr,
                      analysisOk, sources, returnsToRemove, wireToVirtualQ,
-                     userQubitsMeasured, finalQubitWire, lastSource,
-                     interactions, userVirtualQubits);
+                     finalQubitWire, lastSource, interactions,
+                     userVirtualQubits);
         if (!analysisOk)
           return;
         // Overwrite finalQubitWire with the loop results; the body
@@ -2785,9 +2741,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           analysisOk = false;
           return;
         }
-        if (isa<cudaq::quake::MeasurementInterface>(op))
-          for (auto virtualQ : virtualOperands)
-            userQubitsMeasured.push_back(virtualQ.index);
         if (doCollectInteractions && isa<cudaq::quake::OperatorInterface>(op) &&
             wireOperands.size() == 2) {
           interactions.addInteraction(virtualOperands[0].index,
@@ -2891,38 +2844,19 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // `run` entry points may wrap their body in a top-level `cc.scope` that the
-    // mapper descends into. Their per-shot results are recorded by index rather
-    // than by global register order, so measurements need not be deferred to
-    // the end and may live inside nested control flow.
+    // mapper descends into.
     const bool isRunEntry = func->hasAttr(cudaq::runtime::enableCudaqRun);
 
-    // Measurement deferral is only safe for terminal readout. Reject
-    // unsupported mid-circuit/adaptive uses before mutating IR, even in
-    // composable mode. This must precede the multi-block limitation below, so
-    // CFG-shaped adaptive measurements cannot pass through unmapped. `run`
-    // entries do not defer measurements, so a measured wire flowing on (e.g.
-    // through a branch's `cc.continue`) is fine; genuine measurement feedback
-    // is still caught by the hasConditionalsOnMeasure check below.
-    if (!isRunEntry)
-      if (Operation *measOp = findNonTerminalMeasuredWireUse(func)) {
-        measOp->emitOpError(
-            "unsupported mid-circuit measurement: a measured wire "
-            "is used by a later operation");
-        signalPassFailure();
-        return;
-      }
-    // Non-run entries defer measurements, so they cannot preserve adaptive
-    // behavior. Run entries keep measurements in place and can preserve
-    // feedback through structured control flow, but measurement-dependent CFG
-    // must still fail here: the multi-block check below is composable and could
-    // otherwise silently leave the function unmapped.
+    // Measurements are routed in place, so structured control flow can carry
+    // measurement feedback, but measurement-dependent CFG must fail here: the
+    // multi-block check below is composable and could otherwise silently leave
+    // the function unmapped.
     const auto &measAnalysis =
         getAnalysis<cudaq::quake::detail::QuakeFunctionAnalysis>();
     const auto &measInfo = measAnalysis.getAnalysisInfo();
     auto measIt = measInfo.find(func);
     assert(measIt != measInfo.end() && "missing measurement analysis for func");
-    if (measIt->second.hasConditionalsOnMeasure &&
-        (!isRunEntry || blocks.size() > 1)) {
+    if (measIt->second.hasConditionalsOnMeasure && blocks.size() > 1) {
       func.emitOpError(
           "unsupported measurement-dependent behavior: "
           "measurement-dependent control flow, quantum operations, "
@@ -3035,7 +2969,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     SmallVector<cudaq::quake::BorrowWireOp> sources(deviceNumQubits);
     SmallVector<cudaq::quake::ReturnWireOp> returnsToRemove;
     DenseMap<Value, cudaq::Placement::VirtualQ> wireToVirtualQ;
-    SmallVector<std::size_t> userQubitsMeasured;
     DenseMap<std::size_t, Value> finalQubitWire;
     Operation *lastSource = nullptr;
 
@@ -3123,31 +3056,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
 
-    // Reject measurements not directly inside the function — measure order
-    // must be preserved and cannot yet be reconciled across a scope, branch, or
-    // loop. This does not apply to `run` entry points, whose per-shot output
-    // log records results by measurement rather than by global register order,
-    // so skip the check there.
-    if (!isRunEntry) {
-      auto measureCheckResult =
-          func.walk([&](cudaq::quake::MeasurementInterface meas) {
-            if (isa<func::FuncOp>(meas->getParentOp()))
-              return WalkResult::advance();
-            if (nonComposable) {
-              meas->emitOpError(
-                  "mapper cannot handle measurements inside a scope, branch, "
-                  "or loop");
-              signalPassFailure();
-            }
-            return WalkResult::interrupt();
-          });
-      if (measureCheckResult.wasInterrupted()) {
-        LLVM_DEBUG(llvm::dbgs()
-                   << "NYI: measurements inside a scope, branch, or loop\n");
-        return;
-      }
-    }
-
     // Not all two-qubit gates are supported on unidirectional devices.
     if (!deviceInstance->isBidirectional() &&
         failed(validateDirectionalOperations(func)))
@@ -3161,8 +3069,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     bool analysisOk = true;
     analyzeBlock(block, /*doCollectInteractions=*/true, nullptr, analysisOk,
-                 sources, returnsToRemove, wireToVirtualQ, userQubitsMeasured,
-                 finalQubitWire, lastSource, interactions, userVirtualQubits);
+                 sources, returnsToRemove, wireToVirtualQ, finalQubitWire,
+                 lastSource, interactions, userVirtualQubits);
     if (!analysisOk)
       return;
 
@@ -3227,19 +3135,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     auto wireTy = builder.getType<cudaq::quake::WireType>();
     auto unknownLoc = builder.getUnknownLoc();
 
-    // Save the order of the measurements. They are not allowed to change. For
-    // `run` this ordering does not matter (results are recorded by index), and
-    // the measurements may live inside branch/loop regions where moving them
-    // out of their region would be invalid, so leave them in place.
-    SmallVector<mlir::Operation *> measureOrder;
-    if (!isRunEntry)
-      func.walk([&](cudaq::quake::MeasurementInterface measure) {
-        measureOrder.push_back(measure);
-        for (auto user : measure->getUsers())
-          measureOrder.push_back(user);
-        return WalkResult::advance();
-      });
-
     // Create or borrow auxillary qubits if needed. Place them after the last
     // allocated qubit.
     builder.setInsertionPointAfter(lastSource);
@@ -3270,24 +3165,13 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     auto phyToWire = emitter.emit(block, sources, blockResults[&block]);
     sortTopologically(&block);
 
-    // Ensure that the original measurement ordering is still honored by moving
-    // the measurements to the end (in their original order). Note that we must
-    // move the users of those measurements to the end as well.
-    for (Operation *measure : measureOrder) {
-      SmallVector<Operation *> opsToMoveToEnd;
-      addOpAndUsersToList(measure, opsToMoveToEnd);
-      for (Operation *op : opsToMoveToEnd)
-        block.getOperations().splice(std::prev(block.end()),
-                                     block.getOperations(), op->getIterator());
-    }
-
     // The result of a `cudaq::run` kernel is published by `quake.evince`. It
     // reads the measurement results through memory, so it is not a user of
-    // the measurements and was not moved with them above. It must stay behind
-    // the stores that it reads.
+    // the measurements. It must stay behind the stores that it reads. (A
+    // `cudaq::record` threads wires, so it stays where it is.)
     SmallVector<Operation *> evinces;
     for (Operation &op : block)
-      if (isa<cudaq::quake::EvinceOp>(op))
+      if (isa<cudaq::quake::EvinceOp>(op) && op.getNumResults() == 0)
         evinces.push_back(&op);
     for (Operation *op : evinces)
       block.getOperations().splice(std::prev(block.end()),
@@ -3321,44 +3205,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           bestLayout.getPhy(cudaq::Placement::VirtualQ(v)).index);
 
     func->setAttr("mapping_v2p", builder.getArrayAttr(attrs));
-
-    // Now populate mapping_reorder_idx attribute. This attribute will be used
-    // by downstream processing to reconstruct a global register as if mapping
-    // had not occurred. This is important because the global register is
-    // required to be sorted by qubit allocation order, and mapping can change
-    // that apparent order AND introduce ancilla qubits that we don't want to
-    // appear in the final global register.
-
-    // pair is <first=virtual, second=physical>
-    using VirtPhyPairType = std::pair<std::size_t, std::size_t>;
-    llvm::SmallVector<VirtPhyPairType> measuredQubits;
-    measuredQubits.reserve(userQubitsMeasured.size());
-    for (auto mq : userQubitsMeasured) {
-      measuredQubits.emplace_back(
-          mq, bestLayout.getPhy(cudaq::Placement::VirtualQ(mq)).index);
-    }
-    // First sort the pairs according to the physical qubits.
-    llvm::sort(measuredQubits,
-               [&](const VirtPhyPairType &a, const VirtPhyPairType &b) {
-                 return a.second < b.second;
-               });
-    // Now find out how to reorder `measuredQubits` such that the elements are
-    // ordered based on the *virtual* qubits (i.e. measuredQubits[].first).
-    llvm::SmallVector<std::size_t> reorder_idx(measuredQubits.size());
-    for (std::size_t ix = 0; auto &element : reorder_idx)
-      element = ix++;
-    llvm::sort(reorder_idx, [&](const std::size_t &i1, const std::size_t &i2) {
-      return measuredQubits[i1].first < measuredQubits[i2].first;
-    });
-    // After kernel execution is complete, you can pass reorder_idx[] into
-    // sample_result::reorder() in order to undo the ordering change to the
-    // global register that the mapping pass induced.
-    llvm::SmallVector<Attribute> mapping_reorder_idx(reorder_idx.size());
-    for (std::size_t ix = 0; auto &element : mapping_reorder_idx)
-      element = IntegerAttr::get(builder.getIntegerType(64), reorder_idx[ix++]);
-
-    func->setAttr("mapping_reorder_idx",
-                  builder.getArrayAttr(mapping_reorder_idx));
   }
 };
 

@@ -28,5 +28,6 @@ def test_4848():
         x(c)
         cudaq.control(leaf, c, q)
         cudaq.control(composite, c, q)
+        cudaq.record(c, q)
 
     cudaq.sample(caller)

@@ -23,6 +23,7 @@ def test_depolarization_channel(target: str):
     circuit = cudaq.make_kernel()
     q = circuit.qalloc()
     circuit.x(q)
+    circuit.record(q)
 
     depol = cudaq.DepolarizationChannel(.1)
     noise = cudaq.NoiseModel()
@@ -71,7 +72,7 @@ def test_depolarization_channel_simple(target: str):
     # Bring the qubit to the |1> state, where it will remain
     # with a probability of `1 - p = 0.0`.
     kernel.y(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     # Without noise, the qubit should still be in the |1> state.
     counts = cudaq.sample(kernel)
@@ -106,7 +107,7 @@ def test_amplitude_damping_simple():
     # This will bring qubit to `1/sqrt(2) (|0> + |1>)`, where it will remain
     # with a probability of `1 - p = 0.0`.
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     # Without noise, the qubit will now have a 50/50 mix of measurements
     # between |0> and |1>.
@@ -147,7 +148,7 @@ def test_phase_flip_simple(target: str):
     kernel.z(qubit)
     # Apply another hadamard and measure.
     kernel.h(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     # Without noise, we'd expect the qubit to end in the |1>
     # state due to the phase rotation between the two hadamard
@@ -192,7 +193,7 @@ def test_bit_flip_simple(target: str):
     # Now we apply an X-gate to qubit 1.
     # Remains in the |1> state with a probability of `1 - p = 0.0`.
     kernel.x(qubits[1])
-    kernel.mz(qubits)
+    kernel.record(qubits)
 
     # Without noise, both qubits in the |1> state.
     counts = cudaq.sample(kernel)
@@ -235,6 +236,7 @@ def test_kraus_channel():
     circuit = cudaq.make_kernel()
     q = circuit.qalloc()
     circuit.x(q)
+    circuit.record(q)
 
     counts = cudaq.sample(circuit)
     want_count_length = 2
@@ -264,6 +266,7 @@ def test_row_major():
     circuit = cudaq.make_kernel()
     q = circuit.qalloc()
     circuit.x(q)
+    circuit.record(q)
     noisy_counts = cudaq.sample(circuit, shots_count=shots)
     noisy_counts.dump()
     # Decay to |0> ~ error_prob
@@ -293,6 +296,7 @@ def test_column_major():
     circuit = cudaq.make_kernel()
     q = circuit.qalloc()
     circuit.x(q)
+    circuit.record(q)
     noisy_counts = cudaq.sample(circuit, shots_count=shots)
     noisy_counts.dump()
     # Decay to |0> ~ error_prob
@@ -319,6 +323,7 @@ def test_noise_u3():
     q = circuit.qalloc()
     # U3(pi,−pi/2,pi/2) == X
     circuit.u3(np.pi, -np.pi / 2, np.pi / 2, q)
+    circuit.record(q)
     noisy_counts = cudaq.sample(circuit, shots_count=shots)
     noisy_counts.dump()
     # Decay to |0> ~ error_prob
@@ -339,7 +344,7 @@ def test_all_qubit_channel(target: str):
     num_qubits = 3
     qubits = kernel.qalloc(num_qubits)
     kernel.x(qubits)
-    kernel.mz(qubits)
+    kernel.record(qubits)
     shots = 252
     noisy_counts = cudaq.sample(kernel, shots_count=shots, noise_model=noise)
     noisy_counts.dump()
@@ -384,7 +389,7 @@ def test_all_qubit_channel_with_control():
         r = qubits[qubit_pair[1]]
         kernel.h(q)
         kernel.cx(q, r)
-        kernel.mz(qubits)
+        kernel.record(qubits)
         shots = 1024
         noisy_counts = cudaq.sample(kernel,
                                     shots_count=shots,
@@ -431,7 +436,7 @@ def test_all_qubit_channel_with_control_prefix():
         r = qubits[qubit_pair[1]]
         kernel.h(q)
         kernel.cx(q, r)
-        kernel.mz(qubits)
+        kernel.record(qubits)
         shots = 1024
         noisy_counts = cudaq.sample(kernel,
                                     shots_count=shots,
@@ -457,7 +462,7 @@ def test_callback_channel():
     num_qubits = 5
     qubits = kernel.qalloc(num_qubits)
     kernel.x(qubits)
-    kernel.mz(qubits)
+    kernel.record(qubits)
     shots = 252
     noisy_counts = cudaq.sample(kernel, shots_count=shots, noise_model=noise)
     noisy_counts.dump()
@@ -483,7 +488,7 @@ def test_callback_channel_with_params():
     qubit = kernel.qalloc()
     # Rx(pi) == X
     kernel.rx(np.pi, qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
     shots = 252
     noisy_counts = cudaq.sample(kernel, shots_count=shots, noise_model=noise)
     noisy_counts.dump()
@@ -494,7 +499,7 @@ def test_callback_channel_with_params():
     qubit = kernel.qalloc()
     # Rx(-pi) == X
     kernel.rx(-np.pi, qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
     shots = 252
     noisy_counts = cudaq.sample(kernel, shots_count=shots, noise_model=noise)
     noisy_counts.dump()
@@ -511,6 +516,7 @@ def check_custom_op_noise(noise_model):
     def basic():
         q = cudaq.qubit()
         custom_x(q)
+        cudaq.record(q)
 
     shots = 100
     counts = cudaq.sample(basic, shots_count=shots, noise_model=noise_model)
@@ -616,6 +622,7 @@ def test_apply_noise_custom():
         x(q)
         # can pass as vector of params
         cudaq.apply_noise(CustomNoiseChannel, [0.1], q)
+        cudaq.record(q)
 
     counts = cudaq.sample(test)
     assert len(counts) == 1 and '1' in counts
@@ -629,6 +636,7 @@ def test_apply_noise_custom():
         x(q)
         # can pass as standard arguments
         cudaq.apply_noise(CustomNoiseChannel, 0.1, q)
+        cudaq.record(q)
 
     counts = cudaq.sample(test)
     assert len(counts) == 1 and '1' in counts
@@ -644,6 +652,7 @@ def test_apply_noise_custom():
             x(q)
             # can pass as standard arguments
             cudaq.apply_noise(CustomNoiseChannelBad, 0.1, q)
+            cudaq.record(q)
 
         cudaq.sample(testbad)
 
@@ -653,6 +662,7 @@ def test_apply_noise_custom():
         x(q)
         # can pass as standard arguments
         cudaq.apply_noise(CustomNoiseChannelTwoParams, 0.1, 0.2, q)
+        cudaq.record(q)
 
     noise.register_channel(CustomNoiseChannelTwoParams)
 
@@ -674,7 +684,7 @@ def test_apply_noise_builtin(target: str):
     def kernel():
         q = cudaq.qvector(3)
         cudaq.apply_noise(cudaq.DepolarizationChannel, 0.1, q[0])
-        mz(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, noise_model=noise)
     print(counts)
@@ -689,6 +699,7 @@ def test_apply_noise_builtin(target: str):
             cudaq.apply_noise(cudaq.Depolarization2, d, q, r)
         else:
             cudaq.apply_noise(cudaq.Depolarization2, [d], q, r)
+        cudaq.record(q, r)
 
     counts = cudaq.sample(bell_depol2, 0.2, True, noise_model=noise)
     assert len(counts) == 4
@@ -705,6 +716,7 @@ def test_apply_noise_builtin(target: str):
         x.ctrl(q, r)
         cudaq.apply_noise(cudaq.XError, 0.1, q)
         cudaq.apply_noise(cudaq.XError, 0.1, r)
+        cudaq.record(q, r)
 
     @cudaq.kernel
     def bell_y():
@@ -713,6 +725,7 @@ def test_apply_noise_builtin(target: str):
         x.ctrl(q, r)
         cudaq.apply_noise(cudaq.YError, 0.1, q)
         cudaq.apply_noise(cudaq.YError, 0.1, r)
+        cudaq.record(q, r)
 
     @cudaq.kernel
     def test_z():
@@ -721,7 +734,7 @@ def test_apply_noise_builtin(target: str):
         cudaq.apply_noise(cudaq.ZError, 0.1, q[0])
         cudaq.apply_noise(cudaq.ZError, 0.1, q[1])
         h(q)
-        mz(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(bell_x, noise_model=noise)
     assert len(counts) == 4
@@ -740,6 +753,7 @@ def test_apply_noise_builtin(target: str):
         x.ctrl(q, r)
         cudaq.apply_noise(cudaq.Pauli1, 0.1, 0.1, 0.1, q)
         cudaq.apply_noise(cudaq.Pauli1, 0.1, 0.1, 0.1, r)
+        cudaq.record(q, r)
 
     counts = cudaq.sample(pauli1_test, noise_model=noise)
     assert len(counts) == 4
@@ -753,6 +767,7 @@ def test_apply_noise_builtin(target: str):
         cudaq.apply_noise(cudaq.Pauli2, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02,
                           0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02,
                           q, r)
+        cudaq.record(q, r)
 
     counts = cudaq.sample(pauli2_test, noise_model=noise)
     assert len(counts) == 4
@@ -772,7 +787,7 @@ def test_depolarization2_standard_formula(target: str):
         q = cudaq.qvector(2)
         x.ctrl(q[0], q[1])
         x.ctrl(q[0], q[1])
-        mz(q)
+        cudaq.record(q)
 
     test_cases = [
         (0.1, 0.70, 0.95),
@@ -810,6 +825,7 @@ def test_noise_observe_reset(target: str):
     test_x = cudaq.make_kernel()
     qubit = test_x.qalloc(1)
     test_x.x(qubit)
+    test_x.record(qubit)
 
     observable = cudaq.spin.z(0)
     for i in range(10):
@@ -933,6 +949,7 @@ def test_builder_apply_noise_custom():
     test.x(q)
     # can pass as vector of params
     test.apply_noise(CustomNoiseChannel, [0.1], q)
+    test.record(q)
 
     counts = cudaq.sample(test)
     counts.dump()
@@ -947,6 +964,7 @@ def test_builder_apply_noise_custom():
     test.x(q)
     # can pass as standard arguments
     test.apply_noise(CustomNoiseChannel, 0.1, q)
+    test.record(q)
 
     counts = cudaq.sample(test)
     counts.dump()
@@ -961,6 +979,7 @@ def test_builder_apply_noise_custom():
     test.x(q)
     # can pass as standard arguments
     test.apply_noise(CustomNoiseChannelTwoParams, 0.1, 0.2, q)
+    test.record(q)
 
     noise.register_channel(CustomNoiseChannelTwoParams)
 
@@ -981,7 +1000,7 @@ def test_builder_apply_noise_builtin(target: str):
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(3)
     kernel.apply_noise(cudaq.DepolarizationChannel, 0.1, q[0])
-    kernel.mz(q)
+    kernel.record(q)
 
     counts = cudaq.sample(kernel, noise_model=noise)
     print(counts)
@@ -992,6 +1011,7 @@ def test_builder_apply_noise_builtin(target: str):
     bell_depol2.h(q)
     bell_depol2.cx(q, r)
     bell_depol2.apply_noise(cudaq.Depolarization2, d, q, r)
+    bell_depol2.record(q, r)
 
     counts = cudaq.sample(bell_depol2, 0.2, noise_model=noise)
     print(counts)
@@ -1003,6 +1023,7 @@ def test_builder_apply_noise_builtin(target: str):
     bell_x.cx(q, r)
     bell_x.apply_noise(cudaq.XError, 0.1, q)
     bell_x.apply_noise(cudaq.XError, 0.1, r)
+    bell_x.record(q, r)
 
     bell_y = cudaq.make_kernel()
     q, r = bell_y.qalloc(), bell_y.qalloc()
@@ -1010,6 +1031,7 @@ def test_builder_apply_noise_builtin(target: str):
     bell_y.cx(q, r)
     bell_y.apply_noise(cudaq.YError, 0.1, q)
     bell_y.apply_noise(cudaq.YError, 0.1, r)
+    bell_y.record(q, r)
 
     test_z = cudaq.make_kernel()
     q = test_z.qalloc(2)
@@ -1017,7 +1039,7 @@ def test_builder_apply_noise_builtin(target: str):
     test_z.apply_noise(cudaq.ZError, 0.1, q[0])
     test_z.apply_noise(cudaq.ZError, 0.1, q[1])
     test_z.h(q)
-    test_z.mz(q)
+    test_z.record(q)
 
     counts = cudaq.sample(bell_x, noise_model=noise)
     assert len(counts) == 4
@@ -1035,6 +1057,7 @@ def test_builder_apply_noise_builtin(target: str):
     pauli1_test.cx(q, r)
     pauli1_test.apply_noise(cudaq.Pauli1, 0.1, 0.1, 0.1, q)
     pauli1_test.apply_noise(cudaq.Pauli1, 0.1, 0.1, 0.1, r)
+    pauli1_test.record(q, r)
 
     counts = cudaq.sample(pauli1_test, noise_model=noise)
     assert len(counts) == 4
@@ -1047,6 +1070,7 @@ def test_builder_apply_noise_builtin(target: str):
     pauli2_test.apply_noise(cudaq.Pauli2, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02,
                             0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02,
                             0.02, q, r)
+    pauli2_test.record(q, r)
 
     counts = cudaq.sample(pauli2_test, noise_model=noise)
     assert len(counts) == 4
@@ -1074,6 +1098,7 @@ def test_builder_apply_noise_inplace():
     test.x(r)
     test.apply_noise(cudaq.KrausChannel(kraus_mats(0.5)), q)
     test.apply_noise(cudaq.KrausChannel(kraus_mats(0.25)), r)
+    test.record(q, r)
     counts = cudaq.sample(test,
                           noise_model=cudaq.NoiseModel(),
                           shots_count=10000)
@@ -1107,7 +1132,7 @@ def test_sample_async_with_noise(target: str):
     kernel = cudaq.make_kernel()
     qubit = kernel.qalloc()
     kernel.x(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     # Create a depolarizing noise model with high probability
     noise = cudaq.NoiseModel()
@@ -1153,7 +1178,7 @@ def test_sample_async_noise_isolation(target: str):
     kernel = cudaq.make_kernel()
     qubit = kernel.qalloc()
     kernel.x(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     # Create two different noise models
     noise_high = cudaq.NoiseModel()
@@ -1239,6 +1264,7 @@ def test_fp32_general_kraus_channel_regression():
     circuit = cudaq.make_kernel()
     q = circuit.qalloc(2)
     circuit.x(q[0])
+    circuit.record(q)
 
     # Case 1: user-defined KrausChannel. Amplitude damping with gamma = 1 is
     # a general channel whose two Kraus ops are symmetric (this also

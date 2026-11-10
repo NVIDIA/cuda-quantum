@@ -25,6 +25,7 @@ def test_qvector_captured_index(index, expected):
     def flip():
         q = cudaq.qvector(2)
         x(q[indices[0]])
+        cudaq.record(q)
 
     counts = cudaq.sample(flip, shots_count=10)
     assert counts[expected] == 10
@@ -41,6 +42,7 @@ def test_qvector_captured_index_out_of_range(index):
     def flip():
         q = cudaq.qvector(2)
         x(q[indices[0]])
+        cudaq.record(q)
 
     with pytest.raises(
             RuntimeError,

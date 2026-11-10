@@ -26,7 +26,7 @@ def test_sample_result_single_register(qubit_count, shots_count):
     qreg = kernel.qalloc(qubit_count)
     # Place every qubit in the 1-state.
     kernel.x(qreg)
-    kernel.mz(qreg)
+    kernel.record(qreg)
 
     # Get the QPU result from a call to `sample`.
     # Check at a varying number of shots.
@@ -112,7 +112,7 @@ def test_sample_result_single_register_float_param(qubit_count, shots_count):
     # the `angle`.
     for index in range(qubit_count):
         kernel.rx(angle, qreg[index])
-    kernel.mz(qreg)
+    kernel.record(qreg)
 
     # Get the QPU result from a call to `sample`, at the concrete
     # angle of `np.pi`. Should be equivalent to the previous test
@@ -200,7 +200,7 @@ def test_sample_result_single_register_list_param(qubit_count, shots_count):
     # the `angle`.
     for index in range(qubit_count):
         kernel.rx(angles[0], qreg[index])
-    kernel.mz(qreg)
+    kernel.record(qreg)
 
     # Get the QPU result from a call to `sample`, at the concrete
     # angle of `np.pi`. Should be equivalent to the previous test
@@ -284,6 +284,7 @@ def test_sample_result_observe(shots_count):
     kernel = cudaq.make_kernel()
     qreg = kernel.qalloc(qubit_count)
     kernel.x(qreg)
+    kernel.record(qreg)
     hamiltonian = spin.z(0) + spin.z(1) + spin.z(2)
     want_expectation = -3.0
     want_state = "111"
@@ -351,7 +352,7 @@ def test_sample_async():
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
+    kernel.record(qubits)
 
     # Invalid QPU
     with pytest.raises(Exception) as error:
@@ -383,7 +384,7 @@ def test_sample_async_params():
     kernel.rx(theta, qubits[0])
     kernel.ry(phi, qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
+    kernel.record(qubits)
 
     # Creating the bell state with rx and ry instead of hadamard
     # need a pi rotation and a pi/2 rotation
@@ -409,6 +410,7 @@ def test_sample_marginalize():
     # Place register in `0101` state.
     kernel.x(qubits[1])
     kernel.x(qubits[3])
+    kernel.record(qubits)
 
     want_bitstring = "0101"
 
@@ -456,7 +458,7 @@ def test_swap_2q():
     # Swap states with qubit 1.
     kernel.swap(qubit_0, qubit_1)
     # Check their states.
-    kernel.mz(qreg)
+    kernel.record(qreg)
 
     want_state = "01"
     result = cudaq.sample(kernel)
@@ -472,7 +474,7 @@ def test_qubit_reset():
     qubit = kernel.qalloc()
     kernel.x(qubit)
     kernel.reset(qubit)
-    kernel.mz(qubit)
+    kernel.record(qubit)
 
     counts = cudaq.sample(kernel)
     assert (len(counts) == 1)
@@ -487,7 +489,7 @@ def test_qreg_reset():
     qubits = kernel.qalloc(2)
     kernel.x(qubits)
     kernel.reset(qubits)
-    kernel.mz(qubits)
+    kernel.record(qubits)
 
     counts = cudaq.sample(kernel)
     assert (len(counts) == 1)
@@ -504,6 +506,7 @@ def test_for_loop():
     # can pass concrete integers for both
     circuit.for_loop(0, inSize - 1,
                      lambda index: circuit.cx(qubits[index], qubits[index + 1]))
+    circuit.record(qubits)
     print(circuit)
     counts = cudaq.sample(circuit, 5)
     assert len(counts) == 2
@@ -523,6 +526,7 @@ def test_sample_n():
     # can pass concrete integers for both
     circuit.for_loop(0, inSize - 1,
                      lambda index: circuit.cx(qubits[index], qubits[index + 1]))
+    circuit.record(qubits)
     # circuit.mz(qubits)
     print(circuit)
 
@@ -547,6 +551,7 @@ def test_sample_n():
     circuit.rx(angles[0], q[0])
     circuit.ry(angles[1], q[0])
     circuit.cx(q[0], q[1])
+    circuit.record(q)
 
     runtimeAngles = np.array([[1.41075134, 1.16822118], [1.4269374, 1.61847813],
                               [2.67020804,
@@ -592,7 +597,7 @@ def test_issue_1218():
             else:
                 kernel.cx(qubits[i], qubits[i + 1])
 
-        kernel.mz(qubits)
+        kernel.record(qubits)
         return kernel
 
     counts = cudaq.sample_async(ghz(4), qpu_id=0).get()
@@ -613,7 +618,7 @@ def test_sample_preserves_externally_set_noise():
         kernel = cudaq.make_kernel()
         qubit = kernel.qalloc()
         kernel.x(qubit)
-        kernel.mz(qubit)
+        kernel.record(qubit)
 
         noise = cudaq.NoiseModel()
         noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(1.0))
@@ -641,12 +646,12 @@ def test_sample_clears_argument_noise_on_exception():
         clean_kernel = cudaq.make_kernel()
         qubit = clean_kernel.qalloc()
         clean_kernel.x(qubit)
-        clean_kernel.mz(qubit)
+        clean_kernel.record(qubit)
 
         bad_kernel, arg0, arg1 = cudaq.make_kernel(float, float)
         bad_qubit = bad_kernel.qalloc()
         bad_kernel.x(bad_qubit)
-        bad_kernel.mz(bad_qubit)
+        bad_kernel.record(bad_qubit)
 
         noise = cudaq.NoiseModel()
         noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(1.0))
@@ -677,7 +682,7 @@ def test_sample_restores_externally_set_noise_after_argument_noise():
         kernel = cudaq.make_kernel()
         qubit = kernel.qalloc()
         kernel.x(qubit)
-        kernel.mz(qubit)
+        kernel.record(qubit)
 
         external_noise = cudaq.NoiseModel()
         external_noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(1.0))

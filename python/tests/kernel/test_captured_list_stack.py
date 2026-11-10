@@ -68,6 +68,7 @@ def _run(case):
             x(q[0])
             for _ in range(n):
                 cudaq.control(step, q[0], q[1:])
+            cudaq.record(q)
 
         expected = '11'
     else:
@@ -77,6 +78,7 @@ def _run(case):
             q = cudaq.qvector(1)
             for _ in range(n):
                 step(q)
+            cudaq.record(q)
 
         expected = '1'
 

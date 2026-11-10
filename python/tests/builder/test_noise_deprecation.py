@@ -57,7 +57,7 @@ def test_sample_noise_model_kwarg_does_not_emit_set_noise_deprecation():
         kernel = cudaq.make_kernel()
         q = kernel.qalloc()
         kernel.x(q)
-        kernel.mz(q)
+        kernel.record(q)
 
         noise = cudaq.NoiseModel()
         noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(1.0))

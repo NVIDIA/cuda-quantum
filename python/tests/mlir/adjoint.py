@@ -223,8 +223,8 @@ def test_sample_adjoint_qubit():
     kernel.apply_call(other_kernel, qubit)
     # Apply adjoint of the other kernel to `qubit`.
     kernel.adjoint(other_kernel, qubit)
-    # Measure `qubit`.
-    kernel.mz(qubit)
+    # Record `qubit`.
+    kernel.record(qubit)
 
     result = cudaq.sample(kernel)
     assert len(result) == 1
@@ -241,7 +241,7 @@ def test_sample_adjoint_qubit():
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
 # CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} (%[[VAL_0]]) : (!quake.ref) -> ()
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !cc.measure_handle
+# CHECK:           quake.evince %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -267,8 +267,8 @@ def test_sample_adjoint_qreg():
     kernel.apply_call(other_kernel, qreg)
     # Apply adjoint of the other kernel to `qreg`.
     kernel.adjoint(other_kernel, qreg)
-    # Measure `qreg`.
-    kernel.mz(qreg)
+    # Record `qreg`.
+    kernel.record(qreg)
 
     qubit_count = 5
     result = cudaq.sample(kernel, qubit_count)
@@ -302,7 +302,7 @@ def test_sample_adjoint_qreg():
 # CHECK:           } {invariant}
 # CHECK:           call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%[[VAL_3]]) : (!quake.veq<?>) -> ()
 # CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} (%[[VAL_3]]) : (!quake.veq<?>) -> ()
-# CHECK:           %[[VAL_13:.*]] = quake.mz %0 : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           quake.evince %[[VAL_3]] : (!quake.veq<?>) -> ()
 # CHECK:           return
 # CHECK:         }
 

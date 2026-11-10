@@ -1743,6 +1743,51 @@ LogicalResult cudaq::quake::EvinceOp::verify() {
   if (SmallVector<Type>(actual) != expected)
     return emitOpError("result types must mirror wire/cable operand types "
                        "in left-to-right order");
+
+  // A `cudaq::record` must be top level, unique, and name each qubit once.
+  // Evinces of classical values log output, so they are not records.
+  auto isRecord = [](cudaq::quake::EvinceOp evince) {
+    return !evince.getCompilerGenerated() &&
+           llvm::any_of(evince.getArgs(),
+                        [](Value v) { return isQuantumType(v.getType()); });
+  };
+  if (!isRecord(*this))
+    return success();
+
+  auto funcOp = (*this)->getParentOfType<mlir::func::FuncOp>();
+  if (!funcOp)
+    return success();
+
+  if ((*this)->getParentOp() != funcOp.getOperation())
+    return emitOpError("`cudaq::record` must appear at the top level of the "
+                       "kernel, not nested in a loop, conditional, or scope");
+
+  // Name each operand by the qubit it denotes rather than by its SSA value:
+  // the frontend emits a separate `extract_ref` per mention, so `record(q[1],
+  // q[1])` arrives as two distinct values for one qubit, and CSE has not run
+  // yet. A whole veq is named by itself, so recording a veq and one of its
+  // elements is caught too.
+  llvm::SmallVector<std::pair<Value, std::int64_t>> seen;
+  for (Value v : getArgs()) {
+    if (!isQuantumType(v.getType()))
+      continue;
+    std::pair<Value, std::int64_t> key{v, -1};
+    if (auto extract = v.getDefiningOp<cudaq::quake::ExtractRefOp>())
+      if (extract.hasConstantIndex())
+        key = {extract.getVeq(), extract.getConstantIndex()};
+    for (auto &prior : seen)
+      if (prior.first == key.first && (prior.second == key.second ||
+                                       prior.second == -1 || key.second == -1))
+        return emitOpError("`cudaq::record` records the same qubit twice");
+    seen.push_back(key);
+  }
+
+  for (auto &op : funcOp.getOps())
+    if (auto other = dyn_cast<cudaq::quake::EvinceOp>(&op))
+      if (other != *this && isRecord(other))
+        return emitOpError("a kernel may contain only one `cudaq::record` "
+                           "statement");
+
   return success();
 }
 
@@ -1754,6 +1799,21 @@ void cudaq::quake::EvinceOp::getCanonicalizationPatterns(
 //===----------------------------------------------------------------------===//
 // Control and wire helpers
 //===----------------------------------------------------------------------===//
+
+void cudaq::quake::eraseUserRecords(Operation *op) {
+  op->walk([](EvinceOp evince) {
+    // A `.run` entry point's evince logs the kernel's return values.
+    auto func = evince->getParentOfType<func::FuncOp>();
+    if (evince.getCompilerGenerated() ||
+        (func && func->hasAttr(cudaq::runtime::enableCudaqRun)))
+      return;
+    unsigned resultIdx = 0;
+    for (Value arg : evince.getArgs())
+      if (isLinearType(arg.getType()))
+        evince.getOuts()[resultIdx++].replaceAllUsesWith(arg);
+    evince->erase();
+  });
+}
 
 bool cudaq::quake::isScalarQubitTarget(Value target) {
   return isa<cudaq::quake::RefType, cudaq::quake::WireType>(target.getType());

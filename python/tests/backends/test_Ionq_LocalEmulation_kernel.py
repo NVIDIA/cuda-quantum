@@ -35,6 +35,7 @@ def test_Ionq_observe():
     @cudaq.kernel
     def ansatz_x():
         q = cudaq.qvector(1)
+        cudaq.record(q)
 
     s = cudaq.spin.x(0)
     res = cudaq.observe(ansatz_x, s, shots_count=10000)
@@ -44,6 +45,7 @@ def test_Ionq_observe():
     def ansatz_y():
         q = cudaq.qvector(4)
         x(q[0])
+        cudaq.record(q)
 
     s = cudaq.spin.y(3)
     res = cudaq.observe(ansatz_y, s, shots_count=10000)
@@ -53,6 +55,7 @@ def test_Ionq_observe():
     def ansatz_z():
         q = cudaq.qvector(2)
         x(q[0])
+        cudaq.record(q)
 
     s = cudaq.spin.z(0) * cudaq.spin.z(1)
     res = cudaq.observe(ansatz_z, s, shots_count=10000)
@@ -83,6 +86,7 @@ def test_Ionq_cudaq_uccsd():
         for i in range(num_electrons):
             x(qubits[i])
         cudaq.kernels.uccsd(qubits, thetas, num_electrons, num_qubits)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel, shots_count=1000)
     assert len(counts) == 6
@@ -105,6 +109,7 @@ def test_Ionq_state_synthesis():
     def kernel(s: cudaq.State):
         q = cudaq.qvector(s)
         x(q[1])
+        cudaq.record(q)
 
     s = cudaq.get_state(init, 2)
     s = cudaq.get_state(kernel, s)
@@ -118,6 +123,7 @@ def test_Ionq_state_preparation():
     @cudaq.kernel
     def kernel(vec: List[complex]):
         qubits = cudaq.qvector(vec)
+        cudaq.record(qubits)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
     counts = cudaq.sample(kernel, state)

@@ -80,7 +80,7 @@ qubit = kernel.qalloc()
 kernel.h(qubit)
 kernel.apply_call(seq.to_kernel(), qubit)
 kernel.h(qubit)
-kernel.mz(qubit)
+kernel.record(qubit)
 
 # The same circuit built with an exact `rz`, for comparison.
 exact = cudaq.make_kernel()
@@ -88,7 +88,7 @@ exact_qubit = exact.qalloc()
 exact.h(exact_qubit)
 exact.rz(theta, exact_qubit)
 exact.h(exact_qubit)
-exact.mz(exact_qubit)
+exact.record(exact_qubit)
 
 cudaq.set_random_seed(13)
 print(f"synthesized: {cudaq.sample(kernel, shots_count=1000)}")

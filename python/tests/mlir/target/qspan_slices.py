@@ -26,7 +26,7 @@ def foo():
     q = cudaq.qvector(4)
     x(q)
     bar(q)
-    result = mz(q)
+    cudaq.record(q)
 
 
 result = cudaq.sample(foo)

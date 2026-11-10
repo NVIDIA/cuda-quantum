@@ -830,6 +830,15 @@ void __quantum__qis__reset(Qubit *q) {
 
 void __quantum__qis__reset__body(Qubit *q) { __quantum__qis__reset(q); }
 
+void __quantum__qis__record(Qubit *q) {
+  nvqir::getCircuitSimulatorInternal()->record(qubitToSizeT(q));
+}
+
+void __quantum__qis__record__array(Array *qs) {
+  for (auto q : arrayToVectorSizeT(qs))
+    nvqir::getCircuitSimulatorInternal()->record(q);
+}
+
 Result *__quantum__qis__mz(Qubit *q) {
   auto qI = qubitToSizeT(q);
   ScopedTraceWithContext("NVQIR::mz", qI);

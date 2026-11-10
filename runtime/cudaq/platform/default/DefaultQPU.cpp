@@ -179,6 +179,8 @@ cudaq::DefaultQPU::getCompileTarget(const RuntimeTarget *rt) {
   auto ct = createDefaultCompileTarget(rt);
   // Simulators support un-specialized arguments.
   ct.fullySpecialize = false;
+  // Compile every launch, so the launch mode can shape the kernel.
+  ct.overrideAOTCompilation = true;
   return ct;
 }
 

@@ -41,15 +41,6 @@ using RestCookies = std::map<std::string, std::string>;
 using ServerJobPayload =
     std::tuple<std::string, RestHeaders, std::vector<ServerMessage>>;
 
-/// @brief Information about a result coming from a backend
-struct ResultInfoType {
-  std::size_t qubitNum;
-  std::string registerName;
-};
-
-/// @brief Results information, indexed by 0-based result number
-using OutputNamesType = std::map<std::size_t, ResultInfoType>;
-
 /// @brief The ServerHelper is a Plugin type that abstracts away the
 /// server-specific information needed for submitting quantum jobs
 /// to a remote server. It enables clients to create server-specific job
@@ -65,14 +56,28 @@ protected:
   std::size_t shots = 100;
 
   /// @brief Parse a `config` for common parameters in a server helper (i.e.
-  /// `outputNames` and `reorderIdx`)
+  /// `reorderIdx` and `recordedQubits`)
   void parseConfigForCommonParams(const BackendConfig &config);
-
-  /// @brief Output names indexed by jobID/taskID
-  std::map<std::string, OutputNamesType> outputNames;
 
   /// @brief Reordering indices indexed by jobID/taskID (used by mapping pass)
   std::map<std::string, std::vector<std::size_t>> reorderIdx;
+
+  /// @brief The qubits the kernel recorded, in record order, indexed by
+  /// jobID/taskID. A backend that measures every qubit slices its readout by
+  /// this to get the histogram the kernel asked for.
+  std::map<std::string, std::vector<std::size_t>> recordedQubits;
+
+  /// @brief Narrow a readout of every qubit to \p recorded, in record order.
+  /// An empty \p recorded leaves the readout as is.
+  static cudaq::sample_result
+  sliceToRecord(const cudaq::sample_result &readout,
+                const std::vector<std::size_t> &recorded);
+
+  /// @brief For a backend that reports only the measured qubits, sorted by
+  /// physical qubit: the position in that readout of each qubit in \p recorded,
+  /// in record order.
+  static std::vector<std::size_t>
+  reorderIdxFromRecord(const std::vector<std::size_t> &recorded);
 
   /// @brief  Information about the runtime target managing this server helper.
   RuntimeTarget runtimeTarget;

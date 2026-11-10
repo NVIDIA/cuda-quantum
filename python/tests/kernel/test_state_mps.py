@@ -143,6 +143,7 @@ def test_mps_observe_with_noise():
     def kernel():
         q = cudaq.qubit()
         x(q)  # |0> -> |1>, so <Z> should be -1
+        cudaq.record(q)
 
     # Z operator: |1> state gives <Z> = -1
     H = cudaq.spin.z(0)
@@ -189,6 +190,7 @@ def test_mps_observe_with_noise_multi_term():
         x(q[0])
         ry(theta, q[1])
         x.ctrl(q[1], q[0])
+        cudaq.record(q)
 
     # Multi-term Hamiltonian
     H = (5.907 - 2.1433 * cudaq.spin.x(0) * cudaq.spin.x(1) -

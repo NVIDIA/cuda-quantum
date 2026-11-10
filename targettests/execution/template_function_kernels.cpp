@@ -100,9 +100,7 @@ __qpu__ void flip(Qs &...qs) {
 __qpu__ void flipFirstAndLast() {
   cudaq::qubit a, b, c;
   flip(a, c);
-  mz(a);
-  mz(b);
-  mz(c);
+  cudaq::record(a, b, c);
 }
 
 // A kernel that calls other specializations.

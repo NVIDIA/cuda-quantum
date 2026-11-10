@@ -56,12 +56,12 @@ def test_llvm_symbols_remain_local_after_kernel_execution(tmp_path):
         def flip():
             q = cudaq.qubit()
             x(q)
-            mz(q)
+            cudaq.record(q)
 
         builder = cudaq.make_kernel()
         q = builder.qalloc()
         builder.x(q)
-        builder.mz(q)
+        builder.record(q)
         targets = ["qpp-cpu", "density-matrix-cpu", "stim"]
         if cudaq.num_available_gpus() and cudaq.has_target("nvidia"):
             targets.append("nvidia")
@@ -91,6 +91,7 @@ def test_numba_jit_import_order(tmp_path, cudaq_first):
         kernel = cudaq.make_kernel()
         q = kernel.qalloc()
         kernel.x(q)
+        kernel.record(q)
         assert cudaq.sample(kernel, shots_count=10)["1"] == 10
     """))
 
@@ -106,6 +107,7 @@ def test_triton_import_order(tmp_path, cudaq_first):
         kernel = cudaq.make_kernel()
         q = kernel.qalloc()
         kernel.x(q)
+        kernel.record(q)
         assert cudaq.sample(kernel, shots_count=10)["1"] == 10
     """))
 

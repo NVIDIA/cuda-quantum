@@ -143,10 +143,14 @@ CompiledModuleHelper::toKernelExecutions(const CompiledModule &compiled,
     if (auto *resources = compiled.getResources(name))
       resourceCounts = *resources;
 
+    const auto &recorded = compiled.getMetadata().recordedQubits;
+    auto recordedIt = recorded.find(name);
     codes.emplace_back(name, std::move(code), std::move(jit),
                        std::move(resourceCounts), std::move(outputNames),
                        compiled.getMetadata().reorderIdx,
-                       compiled.getMetadata().hasConditionalsOnMeasureResults);
+                       compiled.getMetadata().hasConditionalsOnMeasureResults,
+                       recordedIt == recorded.end() ? std::vector<std::size_t>{}
+                                                    : recordedIt->second);
   }
   return codes;
 }

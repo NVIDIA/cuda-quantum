@@ -34,6 +34,7 @@ def test_simple_observe():
         x(q[0])
         ry(angle, q[1])
         x.ctrl(q[1], q[0])
+        cudaq.record(q)
 
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
@@ -52,6 +53,7 @@ def test_optimization():
         x(q[0])
         ry(angle, q[1])
         x.ctrl(q[1], q[0])
+        cudaq.record(q)
 
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
@@ -83,6 +85,7 @@ def test_broadcast():
         x(q[0])
         ry(angle, q[1])
         x.ctrl(q[1], q[0])
+        cudaq.record(q)
 
     results = cudaq.observe(ansatz, hamiltonian, angles)
     energies = np.array([r.expectation() for r in results])
@@ -124,6 +127,7 @@ def test_broadcast():
         ry(theta * -1., qubits[1])
         x.ctrl(qubits[0], qubits[1])
         x.ctrl(qubits[1], qubits[0])
+        cudaq.record(qubits)
 
     np.random.seed(13)
     runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
@@ -146,6 +150,7 @@ def test_broadcast():
         ry(thetas[0] * -1., qubits[1])
         x.ctrl(qubits[0], qubits[1])
         x.ctrl(qubits[1], qubits[0])
+        cudaq.record(qubits)
 
     runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
     print(runtimeAngles)
@@ -171,6 +176,7 @@ def test_broadcast():
         qvector = cudaq.qvector(qubit_count)
         for i in range(qubit_count - 1):
             rx(parameters[i], qvector[i])
+        cudaq.record(qvector)
 
     # Has to fail, user passed a single `qubit_count` with a broadcast call
     with pytest.raises(RuntimeError) as e:
@@ -194,6 +200,7 @@ def test_broadcast_py39Plus():
         ry(thetas[0] * -1., qubits[1])
         x.ctrl(qubits[0], qubits[1])
         x.ctrl(qubits[1], qubits[0])
+        cudaq.record(qubits)
 
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(
@@ -222,6 +229,7 @@ def test_observe_list():
         x(q[0])
         ry(theta, q[1])
         x.ctrl(q[1], q[0])  # can use cx or
+        cudaq.record(q)
 
     results = cudaq.observe(circuit, hamiltonianList, .59)
 
@@ -240,6 +248,7 @@ def test_observe_async():
     def kernel0(i: int):
         q = cudaq.qubit()
         x(q)
+        cudaq.record(q)
 
     # Measuring in the Z-basis.
     hamiltonian = spin.z(0)
@@ -268,6 +277,7 @@ def test_empty_spin_op():
         x(q[0])
         ry(theta, q[1])
         x.ctrl(q[1], q[0])
+        cudaq.record(q)
 
     h = spin.empty()
     h += spin.z(0)
@@ -283,6 +293,7 @@ def test_empty_spin_op_tensornet():
     def circuit():
         q = cudaq.qvector(2)
         h(q[0])
+        cudaq.record(q)
 
     cudaq.set_target('tensornet')
     try:
@@ -342,12 +353,14 @@ def test_pack_args_pauli_list():
     def gqeCirc1(N: int, thetas: list[float], one_pauli: cudaq.pauli_word):
         q = cudaq.qvector(N)
         exp_pauli(thetas[0], q, one_pauli)
+        cudaq.record(q)
 
     @cudaq.kernel
     def gqeCirc2(N: int, thetas: list[float], paulis: list[cudaq.pauli_word]):
         q = cudaq.qvector(N)
         for i in range(len(paulis)):
             exp_pauli(thetas[i], q, paulis[i])
+        cudaq.record(q)
 
     numQubits = 4
     numPaulis = 8
@@ -374,6 +387,7 @@ def test_observe_list_multi_term_operators():
     @cudaq.kernel
     def simple_kernel():
         q = cudaq.qvector(2)
+        cudaq.record(q)
 
     op_multi1 = spin.z(0) + spin.x(0)
     op_multi2 = spin.y(1) + spin.z(1)

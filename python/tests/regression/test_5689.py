@@ -26,6 +26,7 @@ PRELUDE = textwrap.dedent("""
         q = cudaq.qvector(2)
         h(q[0])
         x(q[1])
+        cudaq.record(q)
 
     H = cudaq.SpinOperator.from_word("ZZ")
 

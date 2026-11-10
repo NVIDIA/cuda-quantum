@@ -80,6 +80,7 @@ def testMPI():
     kernel.x(qreg[0])
     kernel.ry(theta, qreg[1])
     kernel.cx(qreg[1], qreg[0])
+    kernel.record(qreg)
 
     check_mpi(kernel)
 
@@ -93,6 +94,7 @@ def testMPI_kernel():
         x(qreg[0])
         ry(theta, qreg[1])
         x.ctrl(qreg[1], qreg[0])
+        cudaq.record(qreg)
 
     check_mpi(kernel)
 

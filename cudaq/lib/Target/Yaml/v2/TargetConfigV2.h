@@ -44,6 +44,9 @@ struct BackendEndConfigEntryV2 {
   rfl::DefaultVal<bool> libraryMode;
   // Default preserves the existing runtime default (true).
   rfl::DefaultVal<bool> supportResourceCounts = true;
+  // May the caller ask for every measurement in execution order? Only for
+  // backends that can replay mid-circuit measurements.
+  rfl::DefaultVal<bool> supportExplicitMeasurements = false;
   rfl::DefaultVal<std::string> platformLibrary;
   rfl::DefaultVal<std::string> libraryModeExecutionManager;
   rfl::DefaultVal<std::string> platformQpu;

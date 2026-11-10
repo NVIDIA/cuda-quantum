@@ -43,7 +43,8 @@ struct Analysis {
             op = user;
         }
         allocations.emplace_back(op);
-      } else if (isa<cudaq::quake::NullWireOp, cudaq::quake::NullCableOp>(op)) {
+      } else if (isa<cudaq::quake::BorrowWireOp, cudaq::quake::NullWireOp,
+                     cudaq::quake::NullCableOp>(op)) {
         allocations.emplace_back(op);
       } else if (isa<cudaq::quake::SinkOp, cudaq::quake::DeallocOp>(op)) {
         // Record deallocations. These supercede return ops in precedence.

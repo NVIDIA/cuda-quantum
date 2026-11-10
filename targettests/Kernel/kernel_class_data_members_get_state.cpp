@@ -38,7 +38,7 @@ struct PrepTheta {
 
 __qpu__ void use(cudaq::state *s) {
   cudaq::qvector q(s);
-  mz(q);
+  cudaq::record(q);
 }
 
 static void report(const char *tag, cudaq::state &s,

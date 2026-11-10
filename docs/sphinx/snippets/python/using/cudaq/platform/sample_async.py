@@ -20,7 +20,7 @@ def kernel(qubit_count: int):
     # Place qubits in superposition state.
     h(qvector)
     # Measure.
-    mz(qvector)
+    cudaq.record(qvector)
 
 
 count_futures = []

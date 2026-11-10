@@ -974,6 +974,12 @@ if ${ENABLE_REALTIME_LOWERING}; then
     LINKLIBS="${LINKLIBS} @CUDAQ_DEVICE_CALL_RUNTIME_LINK_LIBS@"
 fi
 
+# A simulator JIT-compiles every kernel at launch. Export the program's symbols
+# so a kernel can call code defined in it, e.g. `cudaq::apply_noise<...>`.
+if [ -z "${PLATFORM_QPU:-}" ]; then
+	LINKER_FLAGS="${LINKER_FLAGS} ${EXPORT_DYNAMIC_FLAG}"
+fi
+
 # Set the execution manager and the platform
 LINKLIBS="${LINKLIBS} -lcudaq-em-${LIBRARY_MODE_EXECUTION_MANAGER}"
 LINKLIBS="${LINKLIBS} -lcudaq-platform-${PLATFORM_LIBRARY}"

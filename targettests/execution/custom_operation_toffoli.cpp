@@ -23,6 +23,7 @@ __qpu__ void kernel() {
   cudaq::qvector q(3);
   x(q);
   toffoli(q[0], q[1], q[2]);
+  cudaq::record(q);
 }
 
 int main() {

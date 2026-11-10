@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: if %iqm_avail; then nvq++ -DNO_ADAPTIVE --target iqm --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s; fi
+// RUN: if %iqm_avail; then nvq++ --target iqm --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s; fi
 // RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 // clang-format on
@@ -27,117 +27,46 @@
 int main() {
   const int nShots = 1000;
 
-  // Check that qubits show up in user qubit order (w/o var names)
+  // Check that the bits show up in record order, not allocation order.
   auto test1 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
-    mz(b);
-    mz(a);
+    cudaq::record(b, a);
   };
   SAMPLE_AND_PRINT_GLOBAL_REG(test1);
   // CHECK: test1:
-  // CHECK: { 10:1000 }
+  // CHECK: { 01:1000 }
 
-  // Check that qubits show up in user qubit order (w/ var names)
+  // Check that only the recorded qubits appear in the global register.
   auto test2 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
-    auto ret_b = mz(b);
-    auto ret_a = mz(a);
+    cudaq::record(b);
   };
   SAMPLE_AND_PRINT_GLOBAL_REG(test2);
   // CHECK: test2:
-  // CHECK: { 10:1000 }
-
-  // Check that duplicate measurements don't get duplicated in global bitstring
-#ifndef NO_ADAPTIVE
-  auto test3 = []() __qpu__ {
-    cudaq::qubit a, b;
-    x(a);
-    auto ma1 = mz(a); // 1st measurement of qubit a
-    auto ma2 = mz(a); // 2nd measurement of qubit a
-    auto mb = mz(b);
-  };
-#else
-  auto test3 = []() __qpu__ {
-    cudaq::qubit a, b;
-    x(a);
-    auto ma1 = mz(a); // 1st measurement of qubit a
-    // auto ma2 = mz(a); // 2nd measurement of qubit a
-    auto mb = mz(b);
-  };
-#endif
-  SAMPLE_AND_PRINT_GLOBAL_REG(test3);
-  // CHECK: test3:
-  // CHECK: { 10:1000 }
-
-  // Check that measurements will be implicitly added to kernels that have no
-  // measurements.
-  auto test4 = []() __qpu__ {
-    cudaq::qubit a, b;
-    x(a);
-  };
-  SAMPLE_AND_PRINT_GLOBAL_REG(test4);
-  // CHECK: test4:
-  // CHECK: { 1{{0?}}:1000 }
-
-  // Check that specifying a measurement on `b` hides `a` from the global
-  // register.
-  auto test5 = []() __qpu__ {
-    cudaq::qubit a, b;
-    x(a);
-    mz(b);
-  };
-  SAMPLE_AND_PRINT_GLOBAL_REG(test5);
-  // CHECK: test5:
   // CHECK: { 0:1000 }
 
-  // Check that performing a quantum operation after the final measurement makes
-  // all qubits appear in the global register.
-  // FIXME - this is broken for non-library modes that run delay-measurements.
-  // auto test6a = []() __qpu__ {
-  //   cudaq::qubit a, b;
-  //   x(a);
-  //   mz(b);
-  //   x(a);
-  // };
-  // SAMPLE_AND_PRINT_GLOBAL_REG(test6a);
-  // // XHECK: test6a:
-  // // XHECK: { 00:1000 }
-
-  // Check that performing a quantum operation after the final measurement makes
-  // all qubits appear in the global register.
-  // Platforms that don't support the adaptive profile will test this instead.
-  auto test6b = []() __qpu__ {
+  auto test3 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
     x(b);
+    cudaq::record(a, b);
   };
-
-  SAMPLE_AND_PRINT_GLOBAL_REG(test6b);
-  // CHECK: test6b:
+  SAMPLE_AND_PRINT_GLOBAL_REG(test3);
+  // CHECK: test3:
   // CHECK: { 11:1000 }
 
   // Check that mapping introduced qubits (and their corresponding hidden swaps)
   // are managed correctly and distinctly from user swaps.
-  auto test7 = []() __qpu__ {
+  auto test4 = []() __qpu__ {
     cudaq::qvector q(2);
     x(q[0]);
     swap(q[0], q[1]);
-    mz(q);
+    cudaq::record(q);
   };
-  SAMPLE_AND_PRINT_GLOBAL_REG(test7);
-  // CHECK: test7:
-  // CHECK: { 01:1000 }
-
-  // Make sure that test7 works even if measurements aren't specified.
-  auto test8 = []() __qpu__ {
-    cudaq::qvector q(2);
-    x(q[0]);
-    swap(q[0], q[1]);
-  };
-  SAMPLE_AND_PRINT_GLOBAL_REG(test8);
-  // CHECK: test8:
+  SAMPLE_AND_PRINT_GLOBAL_REG(test4);
+  // CHECK: test4:
   // CHECK: { 01:1000 }
 
   return 0;

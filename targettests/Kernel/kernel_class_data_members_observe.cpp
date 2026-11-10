@@ -28,6 +28,7 @@ struct Obs {
     if (on)
       x(q[target]);
     rx(theta, q[1]);
+    cudaq::record(q);
   }
 };
 

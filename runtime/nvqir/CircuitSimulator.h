@@ -104,26 +104,21 @@ protected:
   /// @brief Statistics collected over the life of the simulator.
   SummaryData summaryData;
 
-  /// @brief An "opt-in" way for simulators to tell the base class that they are
-  /// capable of buffering sample results across multiple invocations of the
-  /// sample() function.
-  bool supportsBufferedSample = false;
-
   /// @brief Internal result
   cudaq::sample_result internalResult = {};
 
   /// @brief Reference to the current circuit name.
   std::string currentCircuitName = "";
 
+  /// @brief The qubits `cudaq::record` named under `observe`, in record order:
+  /// spin operator index `i` refers to `recordedQubits[i]`.
+  std::vector<std::size_t> recordedQubits;
+
   /// @brief Get the name of the current circuit being executed.
   std::string getCircuitName() const { return currentCircuitName; }
 
   /// @brief Noise model to apply to the current execution.
   const cudaq::noise_model *noiseModel = nullptr;
-
-  /// @brief Flag to indicate that a warning about named measurement registers
-  /// should be emitted.
-  bool warnAboutNamedMeasurements = false;
 
   /// @brief Record a fatal kernel error. Inside a kernel frame
   /// (`ExecutionContext::inKernelLaunch`) the exception is stashed for the
@@ -361,7 +356,6 @@ public:
   virtual void configureExecutionContext(const cudaq::sample_policy &policy) {
     configureExecutionContextImpl(policy);
     executionContextType = cudaq::detail::ExecutionContextType::sample;
-    warnAboutNamedMeasurements = true;
   }
 
   /// @brief Set the execution context
@@ -369,7 +363,11 @@ public:
     configureExecutionContextImpl(policy);
     executionContextType = cudaq::detail::ExecutionContextType::observe;
     policy.canHandleObserve = canHandleObserve();
+    recordedQubits.clear();
   }
+
+  /// @brief A qubit named by `cudaq::record`, in record order.
+  void record(std::size_t qubitIdx) { recordedQubits.push_back(qubitIdx); }
 
   /// @brief Set the execution context
   virtual void configureExecutionContext(const cudaq::run_policy &policy) {
@@ -680,10 +678,6 @@ protected:
   /// @brief Vector storing register names that are bit vectors
   std::vector<std::string> vectorRegisters;
 
-  /// @brief Map bit register names to the qubits that make it up
-  std::unordered_map<std::string, std::vector<std::size_t>>
-      registerNameToMeasuredQubit;
-
   /// @brief Environment variable name that allows a programmer to
   /// specify how expectation values should be computed. This
   /// defaults to true.
@@ -701,8 +695,6 @@ protected:
     if (!executionContext)
       return 1;
     if (executionContext->hasConditionalsOnMeasureResults)
-      return 1;
-    if (executionContext->explicitMeasurements && !supportsBufferedSample)
       return 1;
     return static_cast<int>(executionContext->shots);
   }
@@ -775,8 +767,7 @@ protected:
   /// @brief Handle basic sampling tasks by storing the qubit index for
   /// processing in finalizeExecutionContext. Return true to indicate this is
   /// sampling and to exit early. False otherwise.
-  bool handleBasicSampling(const std::size_t qubitIdx,
-                           const std::string &regName) {
+  bool handleBasicSampling(const std::size_t qubitIdx) {
     auto executionContext = cudaq::getExecutionContext();
     if (executionContext && executionContext->name == "sample") {
 
@@ -789,28 +780,6 @@ protected:
       }
       // Add the qubit to the sampling list
       sampleQubits.push_back(qubitIdx);
-
-      // If we're using explicit measurements (an optimized sampling mode), then
-      // don't populate registerNameToMeasuredQubit.
-      if (executionContext->explicitMeasurements)
-        return true;
-
-      auto processForRegName = [&](const std::string &regStr) {
-        // Insert the sample qubit into the register name map
-        auto iter = registerNameToMeasuredQubit.find(regStr);
-        if (iter == registerNameToMeasuredQubit.end())
-          registerNameToMeasuredQubit.emplace(
-              regStr, std::vector<std::size_t>{qubitIdx});
-        else if (std::find(iter->second.begin(), iter->second.end(),
-                           qubitIdx) == iter->second.end())
-          iter->second.push_back(qubitIdx);
-      };
-
-      // Insert into global register and named register (if it exists)
-      processForRegName(cudaq::GlobalRegisterName);
-      if (!regName.empty())
-        processForRegName(regName);
-
       return true;
     }
 
@@ -886,34 +855,22 @@ protected:
   void flushAnySamplingTasks(bool force = false) {
     auto executionContext = cudaq::getExecutionContext();
 
-    if (force && supportsBufferedSample &&
-        executionContext->explicitMeasurements) {
-      int nShots = getNumShotsToExec();
-      if (!sampleQubits.empty()) {
-        // We have a few more qubits to be sampled. Call sample on the subclass,
-        // but there is no need to save the results this time.
-        sample(sampleQubits, nShots);
-        sampleQubits.clear();
-      }
-      // OK, now we're ready to grab the buffered sample results for the entire
-      // execution context.
-      auto execResult = sample(sampleQubits, nShots);
-      internalResult.append(std::move(execResult));
-      return;
-    }
-
     if (sampleQubits.empty())
       return;
 
     if (executionContext->hasConditionalsOnMeasureResults && !force)
       return;
 
-    // Sort the qubit indices (unless we're in the optimized sampling mode that
-    // simply concatenates sequential measurements)
+    // Keep the order the kernel measured in, without repeats (unless we're in
+    // the optimized sampling mode that simply concatenates sequential
+    // measurements).
     if (!executionContext->explicitMeasurements) {
-      std::sort(sampleQubits.begin(), sampleQubits.end());
-      auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
-      sampleQubits.erase(last, sampleQubits.end());
+      std::vector<std::size_t> inOrder;
+      inOrder.reserve(sampleQubits.size());
+      for (auto q : sampleQubits)
+        if (std::find(inOrder.begin(), inOrder.end(), q) == inOrder.end())
+          inOrder.push_back(q);
+      sampleQubits = std::move(inOrder);
     }
 
     CUDAQ_INFO("Sampling the current state, with measure qubits = {}",
@@ -922,58 +879,12 @@ protected:
     // Ask the subtype to sample the current state
     auto execResult = sample(sampleQubits, getNumShotsToExec());
 
-    // Warn if there are named measurement registers beyond `__global__`
-    if (warnAboutNamedMeasurements && registerNameToMeasuredQubit.size() > 1) {
-      warnAboutNamedMeasurements = false;
-      std::cerr
-          << "WARNING: Kernel \"" << currentCircuitName
-          << "\" uses named measurement results but is "
-             "invoked in sampling mode. Support for sub-registers in "
-             "`sample_result` is deprecated and will be removed in a future "
-             "release. Use `run` to retrieve individual measurement results."
-          << std::endl;
-    }
-
-    if (registerNameToMeasuredQubit.empty()) {
-      // The whole sampled result goes into internalResult and execResult is not
-      // read again on this path, so hand over its dictionary and its per-shot
-      // bitstrings instead of duplicating both. The else branch below does read
-      // execResult, but the two are mutually exclusive.
-      internalResult.append(std::move(execResult),
-                            executionContext->explicitMeasurements);
-    } else {
-
-      for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
-        // Measurements are sorted according to qubit allocation order
-        std::sort(qubits.begin(), qubits.end());
-        auto last = std::unique(qubits.begin(), qubits.end());
-        qubits.erase(last, qubits.end());
-
-        // Find the position of the qubits we have in the result bit string
-        // Create a map of qubit to bit string location
-        std::unordered_map<std::size_t, std::size_t> qubitLocMap;
-        for (std::size_t i = 0; i < qubits.size(); i++) {
-          auto iter =
-              std::find(sampleQubits.begin(), sampleQubits.end(), qubits[i]);
-          auto idx = std::distance(sampleQubits.begin(), iter);
-          qubitLocMap.insert({qubits[i], idx});
-        }
-
-        cudaq::ExecutionResult tmp(regName);
-        for (auto &[bits, count] : execResult.counts) {
-          std::string b = "";
-          b.reserve(qubits.size());
-          for (auto &qb : qubits)
-            b += bits[qubitLocMap[qb]];
-          tmp.appendResult(std::move(b), count);
-        }
-
-        internalResult.append(std::move(tmp));
-      }
-    }
+    // Sampling reports one global register, so hand over the dictionary and
+    // the per-shot bitstrings rather than duplicating both.
+    internalResult.append(std::move(execResult),
+                          executionContext->explicitMeasurements);
 
     sampleQubits.clear();
-    registerNameToMeasuredQubit.clear();
   }
 
   /// @brief Add a new gate application task to the queue
@@ -1254,16 +1165,68 @@ protected:
     const cudaq::spin_op &H = policy.spin;
     assert(cudaq::spin_op::canonicalize(H) == H);
 
+    // Spin operator index `i` is the `i`-th qubit the kernel recorded. Empty
+    // means the record is the allocations in order, so index `i` is qubit `i`.
+    auto recorded = std::exchange(recordedQubits, {});
+    auto toRecorded = [&](const cudaq::spin_op_term &term) {
+      if (recorded.empty())
+        return term;
+      auto out = term.get_coefficient() * cudaq::spin_op::identity();
+      for (const auto &p : term) {
+        auto target = p.target();
+        if (target >= recorded.size())
+          throw std::runtime_error(
+              "Spin operator index " + std::to_string(target) +
+              " is out of range: the kernel records " +
+              std::to_string(recorded.size()) + " qubit(s).");
+        auto q = recorded[target];
+        switch (p.as_pauli()) {
+        case cudaq::pauli::X:
+          out *= cudaq::spin_op::x(q);
+          break;
+        case cudaq::pauli::Y:
+          out *= cudaq::spin_op::y(q);
+          break;
+        case cudaq::pauli::Z:
+          out *= cudaq::spin_op::z(q);
+          break;
+        default:
+          out *= cudaq::spin_op::i(q);
+        }
+      }
+      return out;
+    };
+
     if (policy.canHandleObserve) {
-      auto [exp, data] = measureSpinOp(H);
-      return cudaq::observe_result(exp, H, data);
+      auto onRecorded = cudaq::spin_op::empty();
+      std::unordered_map<std::string, std::string> originalId;
+      for (const auto &term : H) {
+        auto recordedTerm = toRecorded(term);
+        originalId[recordedTerm.get_term_id()] = term.get_term_id();
+        onRecorded += recordedTerm;
+      }
+      cudaq::getExecutionContext()->spin = onRecorded;
+      auto [exp, data] = measureSpinOp(onRecorded);
+      // File each term's result under the original term's id.
+      std::vector<cudaq::ExecutionResult> results;
+      for (const auto &name : data.register_names()) {
+        if (name == cudaq::GlobalRegisterName)
+          continue;
+        auto iter = originalId.find(name);
+        results.emplace_back(data.to_map(name),
+                             iter == originalId.end() ? name : iter->second,
+                             data.expectation(name));
+      }
+      return cudaq::observe_result(exp, H, cudaq::sample_result(exp, results));
     }
     double sum = 0.0;
     for (const auto &term : H) {
       if (term.is_identity())
         sum += term.evaluate_coefficient().real();
       else {
-        auto [exp, data] = measureSpinOp(term);
+        // Measure on the recorded qubits, but file the result under the
+        // original term's id, which is what the caller looks it up by.
+        auto [exp, data] = measureSpinOp(cudaq::spin_op(toRecorded(term)));
         results.emplace_back(data.to_map(), term.get_term_id(), exp);
         sum += term.evaluate_coefficient().real() * exp;
       }
@@ -1277,15 +1240,10 @@ protected:
   finalizeExecutionContext(const cudaq::sample_policy &policy) override {
     finalizeExecutionContextImpl();
 
-    // Sample the state over the specified number of shots
-    if (sampleQubits.empty() && !policy.options.explicit_measurements) {
-      sampleQubits.resize(getNumQubits());
-      if (sampleQubits.empty())
-        throw std::runtime_error(
-            "Sampling detected on a kernel with no qubits. Your kernel must "
-            "have qubits to sample it.");
-      std::iota(sampleQubits.begin(), sampleQubits.end(), 0);
-    }
+    // A kernel that measured nothing (e.g. it records only empty registers)
+    // reports an empty histogram.
+    if (sampleQubits.empty() && internalResult.get_total_shots() == 0)
+      return {};
 
     // Flush any queued up sampling tasks
     flushAnySamplingTasks(/*force this*/ true);
@@ -1624,7 +1582,7 @@ public:
                         /*targets=*/{qubitIdx}, /*params=*/{});
 
     // If sampling, just store the bit, do nothing else.
-    if (handleBasicSampling(qubitIdx, registerName))
+    if (handleBasicSampling(qubitIdx))
       return true;
 
     // Get the actual measurement from the subtype measureQubit implementation.

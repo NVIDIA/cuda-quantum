@@ -27,6 +27,7 @@ def test_observe_result():
     kernel.disable_quantum_optimization()
     qreg = kernel.qalloc(2)
     kernel.x(qreg[0])
+    kernel.record(qreg)
     hamiltonian = spin.z(0) + spin.x(1) + spin.y(0)
     shots_count = 1000
 
@@ -93,6 +94,7 @@ def test_observe_no_params(want_state, want_expectation, shots_count):
         # Place the qubit in the 1-state.
         # <kernel |H| kernel> = -1.0
         kernel.x(qubit)
+    kernel.record(qubit)
 
     # Measuring in the Z-basis.
     hamiltonian = cudaq.SpinOperator(
@@ -158,6 +160,7 @@ def test_observe_single_param(angle, want_state, want_expectation, shots_count):
     # Rotate both qubits by the provided `theta`.
     kernel.rx(theta, qreg[0])
     kernel.rx(theta, qreg[1])
+    kernel.record(qreg)
 
     # Measure both qubits in the Z-basis.
     hamiltonian = spin.z(0) + spin.z(1)
@@ -235,6 +238,7 @@ def test_observe_multi_param(angle_0, angle_1, angles, want_state,
     kernel.rx(theta_1, qreg[1])
     kernel.rx(thetas[0], qreg[2])
     kernel.rx(thetas[1], qreg[3])
+    kernel.record(qreg)
 
     # Measure each qubit in the Z-basis.
     hamiltonian = spin.z(0) + spin.z(1) + spin.z(2) + spin.z(3)
@@ -311,6 +315,7 @@ def test_observe_async_no_params(want_state, want_expectation, shots_count):
         # Place the qubit in the 1-state.
         # <kernel |H| kernel> = -1.0
         kernel.x(qubit)
+    kernel.record(qubit)
 
     # Measuring in the Z-basis.
     hamiltonian = spin.z(0)
@@ -353,6 +358,7 @@ def test_observe_async_single_param(angle, want_state, want_expectation,
     # Rotate both qubits by the provided `theta`.
     kernel.rx(theta, qreg[0])
     kernel.rx(theta, qreg[1])
+    kernel.record(qreg)
 
     # Measure both qubits in the Z-basis.
     hamiltonian = spin.z(0) + spin.z(1)
@@ -434,6 +440,7 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
     kernel.rx(theta_1, qreg[1])
     kernel.rx(thetas[0], qreg[2])
     kernel.rx(thetas[1], qreg[3])
+    kernel.record(qreg)
 
     # Measure each qubit in the Z-basis.
     hamiltonian = spin.z(0) + spin.z(1) + spin.z(2) + spin.z(3)
@@ -519,6 +526,7 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
     kernel.rx(thetas[1], qreg[1])
     kernel.rx(thetas[2], qreg[2])
     kernel.rx(thetas[3], qreg[3])
+    kernel.record(qreg)
 
     cudaq.get_state(kernel, angles).dump()
     # Measure each qubit in the Z-basis.
@@ -591,6 +599,7 @@ def test_observe_kernel_exception_no_segfault():
     qreg = kernel.qalloc(qubit_count)
     for i in range(qubit_count):
         kernel.rx(thetas[i], qreg[i])
+    kernel.record(qreg)
     hamiltonian = spin.z(0) + spin.z(1) + spin.z(2) + spin.z(3)
 
     with pytest.raises(Exception) as exception:
@@ -625,6 +634,7 @@ def test_observe_n():
     circuit.x(q[0])
     circuit.ry(theta, q[1])
     circuit.cx(q[1], q[0])
+    circuit.record(q)
 
     results = cudaq.observe(circuit, hamiltonian, angles)
     energies = np.array([r.expectation() for r in results])
@@ -664,6 +674,7 @@ def test_observe_n():
     kernel.ry(theta * -1., qubits[1])
     kernel.cx(qubits[0], qubits[1])
     kernel.cx(qubits[1], qubits[0])
+    kernel.record(qubits)
 
     runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
     print(runtimeAngles)
@@ -684,6 +695,7 @@ def test_observe_n():
     kernel.ry(thetas[0] * -1., qubits[1])
     kernel.cx(qubits[0], qubits[1])
     kernel.cx(qubits[1], qubits[0])
+    kernel.record(qubits)
 
     runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
     print(runtimeAngles)
@@ -705,6 +717,7 @@ def test_observe_list():
     circuit.x(q[0])
     circuit.ry(theta, q[1])
     circuit.cx(q[1], q[0])
+    circuit.record(q)
 
     results = cudaq.observe(circuit, hamiltonianList, .59)
 
@@ -735,6 +748,7 @@ def test_combine_sweep():
     circuit.x(q[0])
     circuit.ry(theta, q[1])
     circuit.cx(q[1], q[0])
+    circuit.record(q)
 
     # Observe with list of spin_op and list of angles
     results = cudaq.observe(circuit, hamiltonianList, angles)
@@ -786,6 +800,7 @@ def test_batched_observe_results():
     kernel.ry(thetas[0], qubits[0])
     kernel.rx(thetas[1], qubits[1])
     kernel.rz(thetas[2], qubits[2])
+    kernel.record(qubits)
 
     hamiltonian = [spin.z(0)]
     results_1 = cudaq.observe(kernel, hamiltonian, theta_vals)
@@ -825,6 +840,7 @@ def test_observe():
         kernel.x(qreg[0])
         kernel.ry(theta, qreg[1])
         kernel.cx(qreg[1], qreg[0])
+        kernel.record(qreg)
 
         return kernel
 

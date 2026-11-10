@@ -23,6 +23,7 @@ struct kernel_vbool {
       if (vec[i])
         x(q[i]);
     }
+    cudaq::record(q);
   }
 };
 
@@ -37,6 +38,7 @@ struct kernel_vvbool {
           x(q[m]);
       }
     }
+    cudaq::record(q);
   }
 };
 
@@ -55,6 +57,7 @@ struct kernel_vvvbool {
         }
       }
     }
+    cudaq::record(q);
   }
 };
 

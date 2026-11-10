@@ -120,11 +120,9 @@ def test_sample_control_no_args():
     # Check the MLIR.
     print(caller)
 
-    # Simulate and check for correctness: both control qubits and the
-    # controlled-x target qubit should measure |1>.
-    result = cudaq.sample(caller)
-    assert len(result) == 1
-    assert '111' in result
+    # Both control qubits and the controlled-x target qubit should be |1>.
+    state = cudaq.get_state(caller)
+    assert abs(state[0b111]) == pytest.approx(1.)
 
 
 # CHECK-LABEL: test_sample_control_no_args
@@ -312,7 +310,7 @@ def test_sample_control_qubit_args():
     kernel.control(other_kernel, control_qubit, target_qubit)
     # Apply another hadamard to `control_qubit` and measure.
     kernel.h(control_qubit)
-    kernel.mz(control_qubit)
+    kernel.record(control_qubit)
 
     # Check the MLIR.
     print(kernel)
@@ -333,7 +331,7 @@ def test_sample_control_qubit_args():
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}[%[[VAL_1]]] (%[[VAL_0]]) : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !cc.measure_handle
+# CHECK:           quake.evince %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -368,8 +366,7 @@ def test_sample_control_qreg_args():
     kernel.control(other_kernel, control_register, target_qubit)
 
     # Measure.
-    kernel.mz(control_register)
-    kernel.mz(target_qubit)
+    kernel.record(control_register, target_qubit)
 
     # Simulate and get results.
     result = cudaq.sample(kernel)
@@ -390,7 +387,7 @@ def test_sample_control_qreg_args():
 # CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
 # CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}[%[[VAL_5]]] (%[[VAL_6]]) : (!quake.veq<2>, !quake.ref) -> ()
-# CHECK:           %[[VAL_19:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> !cc.measure_handle
+# CHECK:           quake.evince %[[VAL_5]], %[[VAL_6]] : (!quake.veq<2>, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -427,7 +424,7 @@ def test_sample_apply_call_control():
     # serves as the control qubit for the operation.
     kernel.control(h_kernel, control_qubit, target_qubit)
     kernel.h(control_qubit)
-    kernel.mz(control_qubit)
+    kernel.record(control_qubit)
 
     # Check the MLIR.
     print(kernel)
@@ -448,7 +445,7 @@ def test_sample_apply_call_control():
 # CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} [%{{[0-2]}}] (%{{[0-2]}}) : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
-# CHECK:           %[[VAL_2:.*]] = quake.mz %{{[0-2]}} : (!quake.ref) -> !cc.measure_handle
+# CHECK:           quake.evince %{{[0-2]}} : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 

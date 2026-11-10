@@ -36,6 +36,7 @@ struct x_error_on_qubit {
   void operator()() __qpu__ {
     cudaq::qvector q(1);
     cudaq::apply_noise<cudaq::x_error>(1.0, q[0]);
+    cudaq::record(q);
   }
 };
 
@@ -43,6 +44,7 @@ struct x_error_on_qvector {
   void operator()() __qpu__ {
     cudaq::qvector q(1);
     cudaq::apply_noise<cudaq::x_error>(1.0, q);
+    cudaq::record(q);
   }
 };
 
@@ -50,6 +52,7 @@ struct xx_flip_on_qvector {
   void operator()() __qpu__ {
     cudaq::qvector q(2);
     cudaq::apply_noise<xx_flip>(q);
+    cudaq::record(q);
   }
 };
 

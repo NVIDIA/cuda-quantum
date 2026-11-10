@@ -38,6 +38,7 @@ def test_builder_look_up():
 
     for i in range(op_count):
         kernel.__getattr__(f'{base_name}_{i}')(ancilla, qubit)
+    kernel.record(qubit, ancilla)
 
     print(kernel)
     counts = cudaq.sample(kernel)

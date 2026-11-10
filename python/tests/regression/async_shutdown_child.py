@@ -55,17 +55,10 @@ def ghz_core(q: cudaq.qview):
 
 @cudaq.kernel
 def ghz(num_qubits: int):
-    """GHZ state for `observe_async`."""
+    """GHZ state for `sample_async` and `observe_async`."""
     q = cudaq.qvector(num_qubits)
     ghz_core(q)
-
-
-@cudaq.kernel
-def ghz_explicit_measurements(num_qubits: int):
-    """Explicitly measured GHZ state for `sample_async`."""
-    q = cudaq.qvector(num_qubits)
-    ghz_core(q)
-    mz(q)
+    cudaq.record(q)
 
 
 def all_pauli_hamiltonian(num_qubits):
@@ -87,10 +80,7 @@ def launch(api):
         ]
     if api == "sample":
         return [
-            cudaq.sample_async(ghz_explicit_measurements,
-                               n,
-                               shots_count=shots,
-                               explicit_measurements=True)
+            cudaq.sample_async(ghz, n, shots_count=shots)
             for n, shots in zip(QUBIT_COUNTS, SHOT_COUNTS)
         ]
     if api == "observe":

@@ -27,6 +27,7 @@ struct deuteron_n3_ansatz {
     ry(-x0, q[1]);
     x<cudaq::ctrl>(q[0], q[1]);
     x<cudaq::ctrl>(q[1], q[0]);
+    cudaq::record(q);
   }
 };
 

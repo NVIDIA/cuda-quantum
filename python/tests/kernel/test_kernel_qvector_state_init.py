@@ -31,6 +31,7 @@ def test_kernel_synthesis_complex():
     @cudaq.kernel
     def kernel(vec: cudaq.State):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, state)
     assert '00' in counts
@@ -90,6 +91,7 @@ def test_kernel_complex_params_f64():
     @cudaq.kernel
     def kernel(vec: cudaq.State):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -109,6 +111,7 @@ def test_kernel_complex128_params_f64():
     @cudaq.kernel
     def kernel(vec: cudaq.State):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -141,6 +144,7 @@ def test_kernel_complex64_params_f32():
     @cudaq.kernel
     def kernel(vec: cudaq.State):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -186,6 +190,7 @@ def test_kernel_complex_capture_f64():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(state)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -237,6 +242,7 @@ def test_kernel_complex64_capture_f32():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(state)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -285,6 +291,7 @@ def test_kernel_simulation_dtype_complex_params_f64():
     @cudaq.kernel
     def kernel(vec: cudaq.State):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -304,6 +311,7 @@ def test_kernel_simulation_dtype_complex_params_f32():
     @cudaq.kernel
     def kernel(vec: cudaq.State):
         q = cudaq.qvector(vec)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -323,6 +331,7 @@ def test_kernel_simulation_dtype_capture_f64():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(state)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -342,6 +351,7 @@ def test_kernel_simulation_dtype_capture_f32():
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(state)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -369,6 +379,7 @@ def test_init_from_other_kernel_state_f64():
     @cudaq.kernel
     def kernel(initialState: cudaq.State):
         qubits = cudaq.qvector(initialState)
+        cudaq.record(qubits)
 
     state2 = cudaq.get_state(kernel, state)
     state2.dump()
@@ -398,6 +409,7 @@ def test_init_from_other_kernel_state_f32():
     @cudaq.kernel
     def kernel(initialState: cudaq.State):
         qubits = cudaq.qvector(initialState)
+        cudaq.record(qubits)
 
     state2 = cudaq.get_state(kernel, state)
     state2.dump()
@@ -428,12 +440,9 @@ def test_inner_kernels_state():
 
         kernel2()
 
-    counts = cudaq.sample(kernel0)
-    print(counts)
-    assert '1111' in counts
-    assert '1100' in counts
-    assert '0011' in counts
-    assert '0000' in counts
+    state = cudaq.get_state(kernel0)
+    for index in (0b0000, 0b0011, 0b1100, 0b1111):
+        assert np.isclose(state[index], 0.5)
 
 
 def test_invalid_arg_error_msg():
@@ -464,8 +473,7 @@ def test_extra_qubit_before_qvector_state_f64():
     def kernel(vec: cudaq.State):
         p = cudaq.qubit()
         q = cudaq.qvector(vec)
-        mz(p)
-        mz(q)
+        cudaq.record(p, q)
 
     counts = cudaq.sample(kernel, state)
     assert '011' in counts
@@ -484,8 +492,7 @@ def test_extra_qubit_before_qvector_state_f32():
     def kernel(vec: cudaq.State):
         p = cudaq.qubit()
         q = cudaq.qvector(vec)
-        mz(p)
-        mz(q)
+        cudaq.record(p, q)
 
     counts = cudaq.sample(kernel, state)
     assert '011' in counts
@@ -506,8 +513,7 @@ def test_extra_qubit_before_qvector_large_state_f64():
     def kernel(vec: cudaq.State):
         p = cudaq.qubit()
         q = cudaq.qvector(vec)
-        mz(p)
-        mz(q)
+        cudaq.record(p, q)
 
     counts = cudaq.sample(kernel, state, shots_count=100)
     expected = '0' + '1' * n

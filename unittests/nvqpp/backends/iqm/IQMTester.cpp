@@ -23,7 +23,7 @@ CUDAQ_TEST(IQMTester, executeOneMeasuredQubitProgram) {
   kernel.y(qubit[0]);
   kernel.z(qubit[0]);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
 
   auto counts = cudaq::sample(kernel);
   EXPECT_GE(counts.size(), 1);
@@ -34,8 +34,7 @@ CUDAQ_TEST(IQMTester, executeSeveralMeasuredQubitProgram) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
-  kernel.mz(qubit[1]);
+  kernel.record(qubit[0], qubit[1]);
 
   auto counts = cudaq::sample(kernel);
   EXPECT_GE(counts.size(), 1);
@@ -52,7 +51,7 @@ CUDAQ_TEST(IQMTester, executeLoopOverQubitsProgram) {
   kernel.for_loop(
       0, N - 1, [&](auto i) { kernel.x<cudaq::ctrl>(qubit[i], qubit[i + 1]); });
 
-  kernel.mz(qubit[0]);
+  kernel.record(qubit[0]);
   auto counts = cudaq::sample(kernel);
 
   EXPECT_GE(counts.size(), 1);
@@ -67,7 +66,7 @@ CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
   kernel.h(qubit[0]);
   kernel.x<cudaq::ctrl>(qubit[0], qubit[1]);
 
-  kernel.mz(qubit);
+  kernel.record(qubit);
 
   auto counts = cudaq::sample(kernel);
   EXPECT_GE(counts.size(), 1);
@@ -77,23 +76,23 @@ CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
 // Regression test for https://github.com/NVIDIA/cuda-quantum/issues/4621
 // The IQM server returns counts ordered by physical qubit. When the
 // qubit-mapping pass picks a non-identity virtual->physical placement, the
-// helper must permute the bitstring back to the user's virtual qubit
-// allocation order. That permutation is communicated to the server helper
-// through `reorderIdx.<jobId>` entries in the backend config, which
-// `parseConfigForCommonParams` parses into `ServerHelper::reorderIdx`. If
+// helper must permute the bitstring into the order the kernel recorded. The
+// recorded physical qubits are communicated to the server helper through
+// `recordedQubits.<jobId>` entries in the backend config, which
+// `parseConfigForCommonParams` parses into `ServerHelper::recordedQubits`. If
 // `initialize()` forgets to call that, the helper returns physical-ordered
 // bitstrings (the bug).
-CUDAQ_TEST(IQMTester, processResultsAppliesReorderIdxFromConfig) {
+CUDAQ_TEST(IQMTester, processResultsAppliesRecordedQubitsFromConfig) {
   auto serverHelper = cudaq::registry::get<cudaq::ServerHelper>("iqm");
   ASSERT_TRUE(serverHelper);
 
   const std::string jobId = "test-job-id";
-  // sample_result::reorder semantics: newBits[i] = oldBits[idx[i]].
-  // With idx = [1, 2, 0] and physical bitstring "100", the reordered
-  // (virtual-order) bitstring is "001".
+  // Record position i reads physical qubit recorded[i]. With recorded =
+  // [1, 2, 0] and physical bitstring "100", the bitstring in record order is
+  // "001".
   cudaq::BackendConfig config;
   config["url"] = "http://localhost:62443";
-  config["reorderIdx." + jobId] = "[1, 2, 0]";
+  config["recordedQubits." + jobId] = "[1, 2, 0]";
   serverHelper->initialize(config);
 
   cudaq::ServerMessage response = {
@@ -115,7 +114,7 @@ CUDAQ_TEST(IQMTester, processResultsAppliesReorderIdxFromConfig) {
     }
   }
   EXPECT_EQ(mostFrequent, "001")
-      << "IQMServerHelper did not apply reorderIdx from backend config "
+      << "IQMServerHelper did not apply recordedQubits from backend config "
       << "(see GitHub issue #4621). Got \"" << mostFrequent << "\".";
 }
 
@@ -171,7 +170,7 @@ CUDAQ_TEST(IQMTester, invalidTokenFromEnvVariable) {
         auto kernel = cudaq::make_kernel();
         auto qubit = kernel.qalloc(1);
         kernel.h(qubit[0]);
-        kernel.mz(qubit[0]);
+        kernel.record(qubit[0]);
         cudaq::sample(kernel);
       },
       testing::ThrowsMessage<std::runtime_error>(
@@ -193,7 +192,7 @@ CUDAQ_TEST(IQMTester, iqmServerUrlEnvOverride) {
         auto kernel = cudaq::make_kernel();
         auto qubit = kernel.qalloc(1);
         kernel.h(qubit[0]);
-        kernel.mz(qubit[0]);
+        kernel.record(qubit[0]);
         cudaq::sample(kernel);
       },
       testing::ThrowsMessage<std::runtime_error>(
@@ -220,7 +219,7 @@ CUDAQ_TEST(IQMTester, tokenFilePathEnvOverride) {
         auto kernel = cudaq::make_kernel();
         auto qubit = kernel.qalloc(1);
         kernel.h(qubit[0]);
-        kernel.mz(qubit[0]);
+        kernel.record(qubit[0]);
         cudaq::sample(kernel);
       },
       testing::ThrowsMessage<std::runtime_error>(

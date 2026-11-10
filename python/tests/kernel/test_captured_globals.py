@@ -34,7 +34,7 @@ def test_issue_2608_reproducer():
     def kernel():
         qubit = cudaq.qubit()
         rz(ANGLE, qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
@@ -47,7 +47,7 @@ def test_rx_with_captured_float():
     def kernel():
         qubit = cudaq.qubit()
         rx(ANGLE, qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
@@ -60,7 +60,7 @@ def test_ry_with_captured_float():
     def kernel():
         qubit = cudaq.qubit()
         ry(ANGLE, qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
@@ -73,7 +73,7 @@ def test_rz_with_captured_float():
     def kernel():
         qubit = cudaq.qubit()
         rz(ANGLE, qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
@@ -86,7 +86,7 @@ def test_r1_with_captured_float():
     def kernel():
         qubit = cudaq.qubit()
         r1(ANGLE, qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
@@ -99,7 +99,7 @@ def test_rotation_with_captured_int():
     def kernel():
         qubit = cudaq.qubit()
         rz(ANGLE_INT, qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
@@ -112,7 +112,7 @@ def test_rotation_with_expression_over_captured_global():
     def kernel():
         qubit = cudaq.qubit()
         rz(SCALE * ANGLE, qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
@@ -127,8 +127,7 @@ def test_controlled_rotation_with_captured_global():
         tgt = cudaq.qubit()
         x(ctrl)
         crz(ANGLE, ctrl, tgt)
-        mz(ctrl)
-        mz(tgt)
+        cudaq.record(ctrl, tgt)
 
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
@@ -163,7 +162,7 @@ def test_multiple_captured_globals_in_one_kernel():
         rx(ANGLE, qubit)
         ry(SCALE, qubit)
         r1(ANGLE, qubit)
-        mz(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
@@ -180,6 +179,7 @@ def test_captured_empty_list_with_annotation():
         q = cudaq.qvector(1)
         if len(_CAPTURED_EMPTY) > 0:
             x(q[0])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     assert '0' in counts
@@ -208,12 +208,14 @@ def test_captured_list_of_strings_as_pauli_words():
         q = cudaq.qvector(2)
         for i in range(len(words)):
             exp_pauli(0.1, q, words[i])
+        cudaq.record(q)
 
     @cudaq.kernel
     def with_capture():
         q = cudaq.qvector(2)
         for i in range(len(_CAPTURED_PAULI_STRINGS)):
             exp_pauli(0.1, q, _CAPTURED_PAULI_STRINGS[i])
+        cudaq.record(q)
 
     counts_arg = cudaq.sample(with_arg,
                               [cudaq.pauli_word(w) for w in ['XI', 'ZZ']])
@@ -233,6 +235,7 @@ def test_captured_nested_list():
         for i in range(len(_CAPTURED_NESTED)):
             for j in range(len(_CAPTURED_NESTED[i])):
                 ry(_CAPTURED_NESTED[i][j], q[0])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
@@ -248,6 +251,7 @@ def test_nested_list_arg_sample_equals_get_state():
             gc = cs[i]
             for j in range(len(g)):
                 exp_pauli(gc[j], q, g[j])
+        cudaq.record(q)
 
     nw = [[cudaq.pauli_word('XY'),
            cudaq.pauli_word('YX')], [cudaq.pauli_word('ZI')]]
@@ -270,6 +274,7 @@ def test_captured_empty_ndarray():
         q = cudaq.qvector(1)
         for i in range(len(_CAPTURED_EMPTY_NDARRAY)):
             rx(_CAPTURED_EMPTY_NDARRAY[i], q[0])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     assert '0' in counts
@@ -283,6 +288,7 @@ def test_captured_empty_ndarray_int():
         for i in range(len(_CAPTURED_EMPTY_NDARRAY_INT)):
             x(q[_CAPTURED_EMPTY_NDARRAY_INT[i]])
         x(q[1])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     assert '01' in counts
@@ -295,6 +301,7 @@ def test_captured_nonempty_ndarray():
         q = cudaq.qvector(1)
         for i in range(len(_CAPTURED_NDARRAY)):
             ry(_CAPTURED_NDARRAY[i], q[0])
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     assert '0' in counts

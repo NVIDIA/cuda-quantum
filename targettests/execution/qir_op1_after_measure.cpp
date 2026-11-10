@@ -34,5 +34,5 @@ int main() {
 }
 
 // clang-format off
-// CHECK: error: 'quake.mz' op unsupported mid-circuit measurement: a measured wire is used by a later operation
+// CHECK: measures for itself, which `cudaq::sample` does not support
 // clang-format on

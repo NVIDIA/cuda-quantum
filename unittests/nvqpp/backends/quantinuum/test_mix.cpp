@@ -43,7 +43,7 @@ __qpu__ void sample_ghz(int num_qubits) {
   entangle_all(qubits);
 
   // Measure all qubits
-  mz(qubits);
+  cudaq::record(qubits);
 }
 
 int main() {

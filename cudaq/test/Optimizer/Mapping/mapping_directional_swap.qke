@@ -20,12 +20,10 @@ func.func @route_across_one_way_edge() {
   %q1 = quake.borrow_wire @wires[1] : !quake.wire
   %q2 = quake.borrow_wire @wires[2] : !quake.wire
   %x:2 = quake.x [%q0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %m0, %w0 = quake.mz %x#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m1, %w1 = quake.mz %q1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m2, %w2 = quake.mz %x#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  quake.return_wire %w0 : !quake.wire
-  quake.return_wire %w1 : !quake.wire
-  quake.return_wire %w2 : !quake.wire
+  %rec:3 = quake.evince %x#0, %q1, %x#1 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+  quake.return_wire %rec#0 : !quake.wire
+  quake.return_wire %rec#1 : !quake.wire
+  quake.return_wire %rec#2 : !quake.wire
   return
 }
 
@@ -33,7 +31,6 @@ func.func @route_across_one_way_edge() {
 // reverse CX, which requires four Hadamards, followed by the original CX.
 
 // CHECK-LABEL:   func.func @route_across_one_way_edge
-// CHECK-SAME:      mapping_reorder_idx = [1, 0, 2]
 // CHECK-SAME:      mapping_v2p = [1, 0, 2]
 // CHECK:           %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0]
 // CHECK:           %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1]
@@ -51,7 +48,7 @@ func.func @route_across_one_way_edge() {
 // routing expansion is needed. The selected physical CX direction is
 // reverse-only, producing exactly four Hadamards around one CX.
 
-// SABRE-LABEL:   func.func @route_across_one_way_edge() attributes {mapping_reorder_idx = [1, 2, 0], mapping_v2p = [1, 2, 0]} {
+// SABRE-LABEL:   func.func @route_across_one_way_edge() attributes {mapping_v2p = [1, 2, 0]} {
 // SABRE:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
 // SABRE:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[2] : !quake.wire
 // SABRE:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire

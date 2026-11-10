@@ -27,14 +27,14 @@
 struct kernel {
   __qpu__ void operator()(std::vector<cudaq::complex> vec) {
     cudaq::qvector qubits{vec};
-    mz(qubits);
+    cudaq::record(qubits);
   }
 };
 
 struct kernel2 {
   __qpu__ void operator()(std::vector<cudaq::real> vec) {
     cudaq::qvector qubits{vec};
-    mz(qubits);
+    cudaq::record(qubits);
   }
 };
 

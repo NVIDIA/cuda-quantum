@@ -40,6 +40,7 @@ struct ansatz_handcoded {
     h(q[2]);
     h(q[1]);
     rx(-M_PI_2, q[0]);
+    cudaq::record(q);
   }
 };
 
@@ -62,6 +63,7 @@ struct ansatz_compute_action {
           x<cudaq::ctrl>(q[2], q[3]);
         },
         [&]() { rz(theta[0], q[3]); });
+    cudaq::record(q);
   }
 };
 

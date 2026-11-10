@@ -63,7 +63,7 @@ struct CompileTarget {
   bool supportResourceCounts = true;
 
   /// Whether explicit measurements are supported by the target.
-  bool supportExplicitMeasurements = true;
+  bool supportExplicitMeasurements = false;
 
   /// Whether the target supports measuring arbitrary observables.
   ///

@@ -38,6 +38,7 @@ def test_ctrl_x():
         # controlled operation on the final qubit.
         x(controls)
         cx(controls, qubits[4])
+        cudaq.record(qubits, controls)
 
     counts = cudaq.sample(ctrl_x_kernel)
     print(counts)
@@ -63,6 +64,7 @@ def test_empty_control_register():
             x(ancilla)
         # Specialization gives X both register and scalar controls.
         cudaq.control(cnot, qreg, ancilla, target)
+        cudaq.record(qreg, ancilla, target)
 
     shots = 10
     for n in (0, 2):
@@ -89,6 +91,7 @@ def test_gate_list_comprehension_filter():
     def never():
         qs = cudaq.qvector(3)
         [x(q) for q in qs if False]
+        cudaq.record(qs)
 
     counts = cudaq.sample(never)
     assert counts["000"] == 1000
@@ -97,6 +100,7 @@ def test_gate_list_comprehension_filter():
     def skip_one(skip: int):
         qs = cudaq.qvector(3)
         [x(qs[i]) for i in range(3) if i != skip]
+        cudaq.record(qs)
 
     counts = cudaq.sample(skip_one, 1)
     assert counts["101"] == 1000
@@ -105,6 +109,7 @@ def test_gate_list_comprehension_filter():
     def two_filters():
         qs = cudaq.qvector(4)
         [x(qs[i]) for i in range(4) if i > 0 if i < 3]
+        cudaq.record(qs)
 
     counts = cudaq.sample(two_filters)
     assert counts["0110"] == 1000
@@ -114,6 +119,7 @@ def test_gate_list_comprehension_filter():
         qs = cudaq.qvector(4)
         x(qs[0])
         [x.ctrl(qs[0], qs[i]) for i in range(1, 4) if i != 2]
+        cudaq.record(qs)
 
     counts = cudaq.sample(ctrl_filter)
     assert counts["1101"] == 1000
@@ -128,6 +134,7 @@ def test_ctrl_x_list_comprehension():
         x(qs[0])
         x(qs[1])
         x.ctrl([qs[i] for i in [0, 1]], qs[2])
+        cudaq.record(qs)
 
     counts = cudaq.sample(kernel1)
     assert counts["111"] == 1000
@@ -138,6 +145,7 @@ def test_ctrl_x_list_comprehension():
         x(qs[0])
         x(qs[1])
         x.ctrl([qs[i] for i in range(2)], qs[2])
+        cudaq.record(qs)
 
     counts = cudaq.sample(kernel2)
     assert counts["111"] == 1000
@@ -149,6 +157,7 @@ def test_ctrl_x_list_comprehension():
         x(qs[1])
         cont = [0, 1]
         x.ctrl([qs[i] for i in cont], qs[2])
+        cudaq.record(qs)
 
     counts = cudaq.sample(kernel3)
     assert counts["111"] == 1000
@@ -163,6 +172,7 @@ def test_ctrl_x_list_comprehension():
         x(qs[0])
         x(qs[1])
         ctrl_with_param(qs, [0, 1])
+        cudaq.record(qs)
 
     counts = cudaq.sample(kernel4)
     assert counts["111"] == 1000
@@ -194,6 +204,7 @@ def test_ctrl_y():
         # controlled operation on the final qubit.
         x(controls)
         cy(controls, qubits[4])
+        cudaq.record(qubits, controls)
 
     counts = cudaq.sample(ctrl_y_kernel)
     print(counts)
@@ -228,6 +239,7 @@ def test_ctrl_z():
         # controlled operation on the final qubit.
         x(controls)
         cz(controls, qubits[4])
+        cudaq.record(qubits, controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
     print(counts)
@@ -264,6 +276,7 @@ def test_ctrl_h():
         # controlled operation on the final qubit.
         x(controls)
         ch(controls, qubits[4])
+        cudaq.record(qubits, controls)
 
     counts1 = cudaq.sample(ctrl_h_kernel)
     print(counts1)
@@ -292,6 +305,7 @@ def test_ctrl_h():
         ch(controls, qubits[4])
         h(qubits[3])
         h(qubits[4])
+        cudaq.record(qubits, controls)
 
     counts2 = cudaq.sample(kernel)
     print(counts2)
@@ -324,6 +338,7 @@ def test_ctrl_s():
         # controlled operation on the final qubit.
         x(controls)
         cz(controls, qubits[4])
+        cudaq.record(qubits, controls)
 
     counts = cudaq.sample(ctrl_s_kernel)
     print(counts)
@@ -359,6 +374,7 @@ def test_ctrl_t():
         # controlled operation on the final qubit.
         x(controls)
         cz(controls, qubits[4])
+        cudaq.record(qubits, controls)
 
     counts = cudaq.sample(ctrl_t_kernel)
     print(counts)
@@ -393,6 +409,7 @@ def test_cr1_gate():
         cr1(angle, controls, qubits[4])
         # `float` parameter that we set = 0.0 so it doesn't impact state.
         cr1(0.0, controls, qubits[4])
+        cudaq.record(qubits, controls)
 
     counts = cudaq.sample(cr1_kernel, np.pi)
     print(counts)
@@ -427,6 +444,7 @@ def test_crx_gate():
         crx(angle, controls, qubits[4])
         # `float` parameter that we set = 0.0 so it doesn't impact state.
         crx(0.0, controls, qubits[4])
+        cudaq.record(qubits, controls)
 
     counts = cudaq.sample(crx_kernel, np.pi)
     print(counts)
@@ -460,6 +478,7 @@ def test_cry_gate():
         cry(angle, controls, qubits[4])
         # `float` parameter that we set = 0.0 so it doesn't impact state.
         cry(0.0, controls, qubits[4])
+        cudaq.record(qubits, controls)
 
     counts = cudaq.sample(cry_kernel, np.pi)
     print(counts)
@@ -492,6 +511,7 @@ def test_crz_gate():
         crz(angle, controls, qubits[4])
         # `float` parameter that we set = 0.0 so it doesn't impact state.
         crz(0.0, controls, qubits[4])
+        cudaq.record(qubits, controls)
 
     counts = cudaq.sample(crz_kernel, np.pi)
     print(counts)

@@ -196,6 +196,7 @@ def test_choice_function_2():
 
         h(q)
         x(p)
+        cudaq.record(q, p)
 
     counts1 = cudaq.sample(mykernel, shots_count=5)
     counts2 = cudaq.estimate_resources(mykernel)

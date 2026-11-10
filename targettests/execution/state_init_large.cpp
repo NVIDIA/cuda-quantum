@@ -16,7 +16,10 @@
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void test(cudaq::state *inState) { cudaq::qvector q(inState); }
+__qpu__ void test(cudaq::state *inState) {
+  cudaq::qvector q(inState);
+  cudaq::record(q);
+}
 
 void printCounts(cudaq::sample_result &result) {
   std::vector<std::string> values{};

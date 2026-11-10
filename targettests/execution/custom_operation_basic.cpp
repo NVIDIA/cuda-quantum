@@ -30,6 +30,7 @@ __qpu__ void bell_pair() {
   cudaq::qubit q, r;
   custom_h(q);
   custom_cnot(q, r);
+  cudaq::record(q, r);
 }
 
 int main() {

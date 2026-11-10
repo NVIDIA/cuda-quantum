@@ -24,7 +24,7 @@
 __qpu__ void variable_qreg(unsigned value) {
   cudaq::qvector qubits(value);
 
-  mz(qubits);
+  cudaq::record(qubits);
 }
 
 int main() {

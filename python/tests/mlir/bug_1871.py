@@ -30,6 +30,7 @@ def test_control_on_adjoint():
         h(ancilla)
         cudaq.control(my_func, ancilla, q, theta)
         cudaq.control(adj_func, ancilla, q, theta)
+        cudaq.record(ancilla, q)
 
     print(my_func)
     print(adj_func)
@@ -60,6 +61,7 @@ def test_control_on_adjoint():
 # CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
 # CHECK:           quake.apply %[[VAL_6]] {{\[}}%[[VAL_2]]] (%[[VAL_3]], %[[VAL_0]]) : (!quake.ref, !quake.ref, f64) -> ()
 # CHECK:           quake.apply %[[VAL_7]] {{\[}}%[[VAL_2]]] (%[[VAL_3]], %[[VAL_0]]) : (!quake.ref, !quake.ref, f64) -> ()
+# CHECK:           quake.evince %[[VAL_2]], %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
 # CHECK-DAG:       quake.dealloc %[[VAL_3]]
 # CHECK-DAG:       quake.dealloc %[[VAL_2]]
 # CHECK:           return

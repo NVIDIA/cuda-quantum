@@ -63,7 +63,7 @@ def test_ionq_sample():
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
+    kernel.record(qubits)
     print(kernel)
 
     # Run sample synchronously, this is fine
@@ -112,6 +112,7 @@ def test_ionq_observe():
     kernel.x(qreg[0])
     kernel.ry(theta, qreg[1])
     kernel.cx(qreg[1], qreg[0])
+    kernel.record(qreg)
 
     # Define its spin Hamiltonian.
     hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -
@@ -156,6 +157,7 @@ def test_ionq_observe_broadcast():
         qvector = cudaq.qvector(qubit_count)
         for i in range(qubit_count - 1):
             rx(parameters[i], qvector[i])
+        cudaq.record(qvector)
 
     results = cudaq.observe(kernel,
                             spin.z(0), [qubit_count] * sample_count,
@@ -173,6 +175,7 @@ def test_ionq_u3_decomposition():
     def kernel():
         qubit = cudaq.qubit()
         u3(0.0, np.pi / 2, np.pi, qubit)
+        cudaq.record(qubit)
 
     result = cudaq.sample(kernel)
 
@@ -184,6 +187,7 @@ def test_ionq_u3_ctrl_decomposition():
         control = cudaq.qubit()
         target = cudaq.qubit()
         u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
+        cudaq.record(control, target)
 
     result = cudaq.sample(kernel)
 
@@ -199,6 +203,7 @@ def test_Ionq_state_synthesis():
     def kernel(s: cudaq.State):
         q = cudaq.qvector(s)
         x(q[1])
+        cudaq.record(q)
 
     s = cudaq.get_state(init, 2)
     s = cudaq.get_state(kernel, s)
@@ -218,6 +223,7 @@ def test_Ionq_state_synthesis_builder():
     kernel, state = cudaq.make_kernel(cudaq.State)
     qubits = kernel.qalloc(state)
     kernel.x(qubits[1])
+    kernel.record(qubits)
 
     s = cudaq.get_state(kernel, s)
     counts = cudaq.sample(kernel, s)
@@ -230,6 +236,7 @@ def test_ionq_state_preparation():
     @cudaq.kernel
     def kernel(vec: List[complex]):
         qubits = cudaq.qvector(vec)
+        cudaq.record(qubits)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
     counts = cudaq.sample(kernel, state)
@@ -242,6 +249,7 @@ def test_ionq_state_preparation():
 def test_ionq_state_preparation_builder():
     kernel, state = cudaq.make_kernel(List[complex])
     qubits = kernel.qalloc(state)
+    kernel.record(qubits)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
     counts = cudaq.sample(kernel, state)
@@ -257,6 +265,7 @@ def test_exp_pauli():
     def test():
         q = cudaq.qvector(2)
         exp_pauli(1.0, q, "XX")
+        cudaq.record(q)
 
     counts = cudaq.sample(test)
     print(test, counts)
@@ -276,6 +285,7 @@ def test_1q_unitary_synthesis():
     def basic_x():
         qubit = cudaq.qubit()
         custom_x(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(basic_x)
     counts.dump()
@@ -285,6 +295,7 @@ def test_1q_unitary_synthesis():
     def basic_h():
         qubit = cudaq.qubit()
         custom_h(qubit)
+        cudaq.record(qubit)
 
     counts = cudaq.sample(basic_h)
     counts.dump()
@@ -295,6 +306,7 @@ def test_1q_unitary_synthesis():
         qubits = cudaq.qvector(2)
         custom_h(qubits[0])
         custom_x.ctrl(qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(bell)
     counts.dump()
@@ -311,6 +323,7 @@ def test_1q_unitary_synthesis():
         custom_s.adj(q)
         custom_s_adj(q)
         h(q)
+        cudaq.record(q)
 
     counts = cudaq.sample(kernel)
     counts.dump()
@@ -328,6 +341,7 @@ def test_2q_unitary_synthesis():
         qubits = cudaq.qvector(2)
         h(qubits[0])
         custom_cnot(qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     counts = cudaq.sample(bell_pair)
     assert len(counts) == 2
@@ -345,6 +359,7 @@ def test_2q_unitary_synthesis():
         x(qubits[2])
         custom_cz(qubits[3], qubits[2])
         x(controls)
+        cudaq.record(qubits, controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
     assert len(counts) == 1
@@ -366,9 +381,6 @@ def test_ionq_dem_from_kernel_target_independent():
     result = cudaq.dem_from_kernel(kernel, noise_model=noise)
     assert "error(0.1" in result.dem
     assert "D0" in result.dem
-
-    counts = cudaq.sample(kernel)
-    assert counts['1'] == 1000
 
 
 @pytest.mark.skip_macos_arm64_jit

@@ -135,6 +135,7 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
 
   auto ctx = builder.getContext();
   auto initFunc = cast<func::FuncOp>(builder.clone(*calleeFunc));
+  cudaq::quake::eraseUserRecords(initFunc);
   auto loc = initFunc.getLoc();
 
   auto argTypes = calleeFunc.getArgumentTypes();
@@ -197,6 +198,10 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
           allocSize = arith::ConstantIntOp::create(
               newBuilder, loc, newBuilder.getI64Type(),
               cudaq::quake::getAllocationSize(alloc.getType()));
+        // A builder kernel may size a register with a narrower integer.
+        allocSize = cudaq::opt::factory::createCast(
+            newBuilder, loc, newBuilder.getI64Type(), allocSize,
+            /*signExtend=*/false, /*zeroExtend=*/true);
 
         auto offset = arith::SubIOp::create(newBuilder, loc, allocSize, one);
         subArg = cudaq::quake::SubVeqOp::create(newBuilder, loc, retTy, arg,
@@ -293,6 +298,7 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
 
   auto ctx = builder.getContext();
   auto numQubitsFunc = cast<func::FuncOp>(builder.clone(*calleeFunc));
+  cudaq::quake::eraseUserRecords(numQubitsFunc);
   auto loc = numQubitsFunc.getLoc();
 
   auto argTypes = calleeFunc.getArgumentTypes();
@@ -325,6 +331,9 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
               newBuilder, loc, newBuilder.getI64Type(),
               cudaq::quake::getAllocationSize(alloc.getType()));
         newBuilder.setInsertionPointAfter(alloc);
+        allocSize = cudaq::opt::factory::createCast(
+            newBuilder, loc, newBuilder.getI64Type(), allocSize,
+            /*signExtend=*/false, /*zeroExtend=*/true);
         size = arith::AddIOp::create(newBuilder, loc, size, allocSize);
       }
 

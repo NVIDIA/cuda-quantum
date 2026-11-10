@@ -12,6 +12,7 @@
 
 __qpu__ void test(std::vector<double> inState) {
   cudaq::qvector q{cudaq::state(inState)};
+  cudaq::record(q);
 }
 
 int main() {

@@ -116,6 +116,7 @@ def test_kernel_level_0_wins_over_launch_level():
     def marked():
         q = cudaq.qubit()
         h(q)
+        cudaq.record(q)
 
     _, module = marked.prepare_call(optimization_level=2)
     assert get_optimization_level_attr(module, marked.uniqName) == 0

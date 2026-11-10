@@ -68,7 +68,7 @@ struct qpe {
     iqft(counting_qubits);
 
     // Measure to gather sampling statistics
-    mz(counting_qubits);
+    cudaq::record(counting_qubits);
 
     return;
   }

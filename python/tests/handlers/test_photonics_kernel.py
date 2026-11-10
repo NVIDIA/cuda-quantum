@@ -193,6 +193,7 @@ def test_target_change():
         qubits = cudaq.qvector(2)
         h(qubits[0])
         cx(qubits[0], qubits[1])
+        cudaq.record(qubits)
 
     res = cudaq.sample(bell_pair)
     assert len(res) == 2 and '00' in res and '11' in res

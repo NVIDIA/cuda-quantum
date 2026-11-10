@@ -21,7 +21,7 @@ struct test {
   void operator()() __qpu__ {
     cudaq::qubit q;
     h(q);
-    mz(q);
+    cudaq::record(q);
   }
 };
 #else
@@ -29,7 +29,7 @@ struct test {
   void operator()() __qpu__ {
     cudaq::qubit q;
     x(q);
-    mz(q);
+    cudaq::record(q);
   }
 };
 #endif

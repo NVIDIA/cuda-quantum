@@ -68,7 +68,7 @@ def test_default_target():
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
+    kernel.record(qubits)
 
     result = cudaq.sample(kernel)
     result.dump()
@@ -93,7 +93,7 @@ def test_env_var_with_emulate():
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
+    kernel.record(qubits)
 
     result = cudaq.sample(kernel)
     result.dump()
@@ -111,7 +111,7 @@ def test_target_override():
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
+    kernel.record(qubits)
 
     result = cudaq.sample(kernel)
     result.dump()

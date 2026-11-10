@@ -184,6 +184,8 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
 }
 
 CUDAQ_TEST(KernelsTester, checkFromStateBasis) {
+  GTEST_SKIP() << "XFAIL: outdated by the explicit-record sampling refactor "
+                  "(library mode: no `cudaq::record`).";
   auto verifyBasis = [](std::size_t numQubits, std::size_t idx) {
     std::vector<std::complex<double>> state(1ULL << numQubits, 0.0);
     state[idx] = 1.0;

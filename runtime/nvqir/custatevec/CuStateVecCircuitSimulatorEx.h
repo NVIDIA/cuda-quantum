@@ -340,32 +340,14 @@ protected:
     if (this->getNoiseModel() && !this->getNoiseModel()->empty())
       applyNoiseChannel("mz", {}, {qubit}, {});
 
-    if (context->explicitMeasurements) {
-      const bool result = measureQubit(qubit);
-      cudaq::ExecutionResult measurement;
-      measurement.appendResult(result ? "1" : "0", 1);
-      this->internalResult.append(measurement, true);
-      return result;
-    }
-
     // Non-explicit `sample` supports only terminal measurements. Flag that a
     // measurement has been recorded (so any later quantum operation is rejected
     // as an unsupported mid-circuit measurement) and register the wire for
     // terminal sampling; the bit is recovered from terminal sampling of the
     // final state, so no collapse is applied here.
     m_measurementRecorded = true;
-    recordMeasuredRegister(qubit, cudaq::GlobalRegisterName);
-    if (!registerName.empty())
-      recordMeasuredRegister(qubit, registerName);
+    this->sampleQubits.push_back(qubit);
     return false;
-  }
-
-  /// Register `qubit` under measurement register `name` so terminal sampling
-  /// reconstructs that register's bit-string.
-  void recordMeasuredRegister(std::size_t qubit, const std::string &name) {
-    auto &qubits = this->registerNameToMeasuredQubit[name];
-    if (std::find(qubits.begin(), qubits.end(), qubit) == qubits.end())
-      qubits.push_back(qubit);
   }
 
   /// Non-explicit `sample` supports only terminal measurements, so once a

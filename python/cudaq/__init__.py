@@ -501,6 +501,18 @@ def to_bools(handles):
     raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.to_bools"))
 
 
+def record(*qubits):
+    """Record the given qubits in the sampling histogram.
+
+    The arguments, in order, define the bits of each bitstring reported by
+    ``cudaq.sample``; a ``qvector`` contributes its qubits in order. A sampled
+    kernel shall contain exactly one ``record``, at the top level, and shall
+    not record the same qubit twice. Kernels needing their own measurements
+    should use ``cudaq.run`` instead.
+    """
+    raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.record"))
+
+
 def detector(*measurements):
     """Define a detector over one or more measurement results.
 

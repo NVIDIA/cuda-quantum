@@ -26,6 +26,7 @@ __qpu__ void bell_pair() {
   cudaq::qubit q, r;
   custom_h(q);
   custom_x<cudaq::ctrl>(q, r);
+  cudaq::record(q, r);
 }
 
 int main() {

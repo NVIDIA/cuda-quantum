@@ -553,19 +553,6 @@ protected:
           "Requested shots exceed custabilizer batch size.");
     if (batch_size == 1)
       return StimCircuitSimulator::sample(qubits, shots, includeSequentialData);
-    auto *executionContext = getExecutionContext();
-    if (executionContext->explicitMeasurements && qubits.empty() &&
-        num_measurements == 0)
-      throw std::runtime_error(
-          "The sampling option `explicit_measurements` is not supported on a "
-          "kernel without any measurement operation.");
-
-    bool populateResult = [&]() {
-      if (executionContext->explicitMeasurements)
-        return qubits.empty();
-      return true;
-    }();
-
     if (nQubitsAllocated == 0)
       throw std::runtime_error(
           "custabilizer backend state is not initialized.");
@@ -573,9 +560,6 @@ protected:
     std::vector<std::uint32_t> stimTargetQubits(qubits.begin(), qubits.end());
     applyOpToSims("M", stimTargetQubits);
     num_measurements += stimTargetQubits.size();
-
-    if (!populateResult)
-      return cudaq::ExecutionResult();
 
     const std::vector<bool> &v = tableau->measurement_record.storage;
     if (v.size() != num_measurements)
@@ -595,10 +579,7 @@ protected:
       throw std::runtime_error(
           "Internal error: cuStabilizer measurement table size mismatch.");
     assert(num_measurements >= qubits.size());
-    const std::size_t first_bit_to_save =
-        executionContext->explicitMeasurements
-            ? 0
-            : num_measurements - qubits.size();
+    const std::size_t first_bit_to_save = num_measurements - qubits.size();
     return makeSampleResult(m_table, words_per_row, v, first_bit_to_save, shots,
                             includeSequentialData);
   }

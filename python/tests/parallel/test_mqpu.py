@@ -75,6 +75,7 @@ def testLargeProblem():
 
     for i in range(0, len(cnotPairs), 2):
         kernel.cx(q[cnotPairs[i]], q[cnotPairs[i + 1]])
+    kernel.record(q)
 
     execParams = np.random.uniform(low=-np.pi,
                                    high=np.pi,
@@ -123,6 +124,7 @@ def testLargeProblem_kernel():
 
         for i in range(0, len(cnot_pairs), 2):
             x.ctrl(q[cnot_pairs[i]], q[cnot_pairs[i + 1]])
+        cudaq.record(q)
 
     # This is not large, but we don't want our CI testing take up too much time,
     # if you want to see more of the speedup increase the number of qubits.
@@ -188,6 +190,7 @@ def testAccuracy():
     kernel.x(qreg[0])
     kernel.ry(theta, qreg[1])
     kernel.cx(qreg[1], qreg[0])
+    kernel.record(qreg)
 
     check_accuracy(kernel)
 
@@ -201,6 +204,7 @@ def testAccuracy_kernel():
         x(qreg[0])
         ry(theta, qreg[1])
         x.ctrl(qreg[1], qreg[0])
+        cudaq.record(qreg)
 
     check_accuracy(kernel_with_param)
 
@@ -284,6 +288,7 @@ def test_race_condition_1108():
     kernel, runtime_param = cudaq.make_kernel(int)
     qubits = kernel.qalloc(runtime_param)
     kernel.h(qubits)
+    kernel.record(qubits)
 
     check_race_condition(kernel)
 
@@ -295,6 +300,7 @@ def test_race_condition_1108_kernel():
     def kernel(runtime_param: int):
         qubits = cudaq.qvector(runtime_param)
         h(qubits)
+        cudaq.record(qubits)
 
     check_race_condition(kernel)
 

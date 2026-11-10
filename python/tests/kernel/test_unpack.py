@@ -25,6 +25,7 @@ def test_qubit_list():
         qs1, qs2 = cudaq.qvector(2), cudaq.qvector(2)
         qs = [*qs1, *qs2]
         x(qs[:2])
+        cudaq.record(qs1, qs2)
 
     counts = cudaq.sample(kernel1)
     assert len(counts) == 1 and '1100' in counts
@@ -34,6 +35,7 @@ def test_qubit_list():
         qs1, qs2 = cudaq.qvector(2), cudaq.qvector(2)
         qs = [*qs2, *qs1]
         x(qs[:2])
+        cudaq.record(qs1, qs2)
 
     counts = cudaq.sample(kernel2)
     assert len(counts) == 1 and '0011' in counts
@@ -44,6 +46,7 @@ def test_qubit_list():
         qs1, qs2 = cudaq.qvector(2), cudaq.qvector(2)
         qs = [*qs1, q1, *qs2, q2]
         x(qs[2], qs[-1])
+        cudaq.record(q1, q2, qs1, qs2)
 
     counts = cudaq.sample(kernel3)
     assert len(counts) == 1 and '110000' in counts
@@ -54,6 +57,7 @@ def test_qubit_list():
         qs1, qs2 = cudaq.qvector(2), cudaq.qvector(2)
         qs = [q1, *qs1, *qs2, q2]
         x(qs[2], qs[-1])
+        cudaq.record(q1, q2, qs1, qs2)
 
     counts = cudaq.sample(kernel4)
     assert len(counts) == 1 and '010100' in counts
@@ -63,6 +67,7 @@ def test_qubit_list():
         qs1, qs2 = cudaq.qvector(3), cudaq.qvector(3)
         qs = [*qs1[1:], *qs2[:-1]]
         x(qs)
+        cudaq.record(qs1, qs2)
 
     counts = cudaq.sample(kernel5)
     assert len(counts) == 1 and '011110' in counts
@@ -78,6 +83,7 @@ def test_qubit_list():
         p = patch(qs1, qs2)
         qs = [*p.reg1[:-1], *p.reg2[1:]]
         x(qs)
+        cudaq.record(qs1, qs2)
 
     counts = cudaq.sample(kernel6)
     assert len(counts) == 1 and '110011' in counts

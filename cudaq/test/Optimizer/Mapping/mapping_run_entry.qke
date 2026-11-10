@@ -25,7 +25,7 @@ module {
     return
   }
 
-  // CHECK-LABEL: func.func @bool_return.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0], quake.cudaq_run = [i1]}
+  // CHECK-LABEL: func.func @bool_return.run() attributes {mapping_v2p = [0], quake.cudaq_run = [i1]}
   // CHECK:         quake.borrow_wire @mapped_wireset[0] : !quake.wire
   // CHECK:         quake.evince {{.*}} : (i1) -> ()
 
@@ -39,7 +39,7 @@ module {
     return
   }
 
-  // CHECK-LABEL: func.func @int_return.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0], quake.cudaq_run = [i32]}
+  // CHECK-LABEL: func.func @int_return.run() attributes {mapping_v2p = [0], quake.cudaq_run = [i32]}
   // CHECK:         quake.borrow_wire @mapped_wireset[0] : !quake.wire
   // CHECK:         quake.evince {{.*}} : (i32) -> ()
 
@@ -53,7 +53,7 @@ module {
     return
   }
 
-  // CHECK-LABEL: func.func @float_return.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0], quake.cudaq_run = [f32]}
+  // CHECK-LABEL: func.func @float_return.run() attributes {mapping_v2p = [0], quake.cudaq_run = [f32]}
   // CHECK:         quake.borrow_wire @mapped_wireset[0] : !quake.wire
   // CHECK:         quake.evince {{.*}} : (f32) -> ()
 
@@ -70,7 +70,7 @@ module {
     return
   }
 
-  // CHECK-LABEL: func.func @scoped_return.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0], quake.cudaq_run = [i1]}
+  // CHECK-LABEL: func.func @scoped_return.run() attributes {mapping_v2p = [0], quake.cudaq_run = [i1]}
   // CHECK:         cc.scope
   // CHECK:           quake.borrow_wire @mapped_wireset[0] : !quake.wire
   // CHECK:         quake.evince {{.*}} : (i1) -> ()
@@ -95,7 +95,7 @@ module {
     return
   }
 
-  // CHECK-LABEL: func.func @measurement_feedforward.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0, 1], quake.cudaq_run = [i1]}
+  // CHECK-LABEL: func.func @measurement_feedforward.run() attributes {mapping_v2p = [0, 1], quake.cudaq_run = [i1]}
   // CHECK:         %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
   // CHECK:         %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
   // CHECK:         %[[MEAS:.*]], %[[WIRE:.*]] = quake.mz %[[Q0]] : (!quake.wire) -> (!quake.measure, !quake.wire)

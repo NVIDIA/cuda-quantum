@@ -43,6 +43,7 @@ def test_attribute_access():
     def kernel2():
         qs = MyTuple(cudaq.qubit(), cudaq.qvector(3))
         x(qs.targets.front())
+        cudaq.record(qs.control, qs.targets)
 
     out = cudaq.sample(kernel2, shots_count=100)
     assert (len(out) == 1 and out.most_probable() == '0100')
@@ -52,6 +53,7 @@ def test_attribute_access():
     def kernel3():
         qs = MyTuple(cudaq.qubit(), cudaq.qvector(3))
         x(qs.targets.back())
+        cudaq.record(qs.control, qs.targets)
 
     out = cudaq.sample(kernel3, shots_count=100)
     assert (len(out) == 1 and out.most_probable() == '0001')

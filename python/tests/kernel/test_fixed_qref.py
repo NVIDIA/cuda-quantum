@@ -29,6 +29,7 @@ def test_reuses_repeated_fixed_qrefs_by_vector_identity():
         x(alias[0])
         x(other[0])
         x(other[0])
+        cudaq.record(q, other)
 
     assert count_extract_refs(kernel) == 2
     counts = cudaq.sample(kernel)
@@ -99,12 +100,14 @@ def test_dynamic_and_negative_qrefs_are_not_reused():
         q = cudaq.qvector(2)
         x(q[index])
         x(q[index])
+        cudaq.record(q)
 
     @cudaq.kernel
     def negative_index():
         q = cudaq.qvector(2)
         x(q[-1])
         x(q[-1])
+        cudaq.record(q)
 
     assert count_extract_refs(dynamic_index) == 2
     assert count_extract_refs(negative_index) == 2

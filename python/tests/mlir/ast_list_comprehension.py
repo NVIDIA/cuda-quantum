@@ -617,6 +617,7 @@ def test_list_comprehension_tuple():
         qs = cudaq.qvector(6)
         x(qs[0:len(first_idx)])
         [x.ctrl(qs[i1], qs[i2]) for i1, i2 in pairs]
+        cudaq.record(qs)
 
     out = cudaq.sample(lenrek2)
     assert (len(out) == 1 and '111111' in out)
@@ -847,6 +848,7 @@ def test_list_comprehension_void():
         [apply_x(r) for r in q1]
         for i in range(3):
             x.ctrl(q1[i], q2[i])
+        cudaq.record(q1, q2)
 
     out = cudaq.sample(kernelz2)
     print("out is", out)
@@ -879,6 +881,7 @@ def test_list_comprehension_expressions():
         for idx, v in enumerate(negated):
             if v:
                 x(qs[idx + len(orig)])
+        cudaq.record(qs)
 
     out = cudaq.sample(kernelm1)
     assert (len(out) == 1 and '10101010' in out)
@@ -896,6 +899,7 @@ def test_list_comprehension_expressions():
         for idx, v in enumerate(negated):
             if v:
                 x(qs[idx + len(orig)])
+        cudaq.record(qs)
 
     out = cudaq.sample(kernelm2)
     assert (len(out) == 1 and '10100101' in out)
@@ -914,6 +918,7 @@ def test_list_comprehension_expressions():
         for idx, v in enumerate(negated):
             if v:
                 x(qs[idx + len(orig)])
+        cudaq.record(qs)
 
     out = cudaq.sample(kernelm3)
     assert (len(out) == 1 and '10100100' in out)
@@ -971,6 +976,7 @@ def test_list_comprehension_expressions():
     def kernelm7(adj: list[bool]):
         targets = cudaq.qvector(len(adj))
         apply_rotations(targets, 1, [not b for b in adj])
+        cudaq.record(targets)
 
     out = cudaq.sample(kernelm7, [True, False, True])
     assert len(out) == 8
@@ -1011,6 +1017,7 @@ def test_list_comprehension_qubit_refs():
         x(qs)
         target = cudaq.qubit()
         x.ctrl([q for q in qs], target)
+        cudaq.record(qs, target)
 
     out = cudaq.sample(kerneln1)
     assert len(out) == 1 and '1111' in out
@@ -1024,6 +1031,7 @@ def test_list_comprehension_qubit_refs():
         x(qs[1])
         target = cudaq.qubit()
         x.ctrl([qs[i] for i in [0, 1]], target)
+        cudaq.record(qs, target)
 
     out = cudaq.sample(kerneln2)
     assert len(out) == 1 and '111' in out
@@ -1037,6 +1045,7 @@ def test_list_comprehension_qubit_refs():
         x(qs[1])
         target = cudaq.qubit()
         x.ctrl([qs[i] for i in range(2)], target)
+        cudaq.record(qs, target)
 
     out = cudaq.sample(kerneln3)
     assert len(out) == 1 and '111' in out
@@ -1051,6 +1060,7 @@ def test_list_comprehension_qubit_refs():
         target = cudaq.qubit()
         indices = [0, 1]
         x.ctrl([qs[i] for i in indices], target)
+        cudaq.record(qs, target)
 
     out = cudaq.sample(kerneln4)
     assert len(out) == 1 and '111' in out
@@ -1065,6 +1075,7 @@ def test_list_comprehension_qubit_refs():
         x(qs[2])
         cont = [0, 1, 2]
         x.ctrl([qs[i] for i in cont], qs[3])
+        cudaq.record(qs)
 
     out = cudaq.sample(kerneln5)
     assert len(out) == 1 and '1111' in out
@@ -1151,6 +1162,7 @@ def test_list_comprehension_filter():
         qs = cudaq.qvector(4)
         flips = [qs[i] for i in range(4) if i % 2 == 1]
         x(flips)
+        cudaq.record(qs)
 
     out = cudaq.sample(kernel5)
     assert len(out) == 1 and '0101' in out
@@ -1162,6 +1174,7 @@ def test_list_comprehension_filter():
         x(qs)
         target = cudaq.qubit()
         x.ctrl([qs[i] for i in range(4) if ((1 << i) & mask) != 0], target)
+        cudaq.record(qs, target)
 
     out = cudaq.sample(kernel6, 0b1001)
     assert len(out) == 1 and '11111' in out

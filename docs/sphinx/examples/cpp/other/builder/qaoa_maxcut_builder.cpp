@@ -68,6 +68,7 @@ int main() {
       kernel.rx(2.0 * theta[i + n_layers], q[j]);
     }
   }
+  kernel.record(q);
 
   // Instantiate the optimizer
   cudaq::optimizers::lbfgs optimizer;                    // gradient-based

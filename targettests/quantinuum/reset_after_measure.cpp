@@ -20,6 +20,7 @@ void explicit_reset_after_mz() __qpu__ {
   mz(q);
   reset(q);
   x(q);
+  mz(q);
 }
 
 void auto_reset_injection() __qpu__ {

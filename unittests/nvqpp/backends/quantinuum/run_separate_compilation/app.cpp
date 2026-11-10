@@ -22,7 +22,7 @@ __qpu__ void sample_app(int num_qubits) {
   entangle_all(qubits);
 
   // Measure all qubits
-  mz(qubits);
+  cudaq::record(qubits);
 }
 
 __qpu__ int run_app(int a, int b) { return run_ghz(a) + run_ghz(b); }

@@ -19,7 +19,7 @@ struct test_kernel {
   auto operator()() __qpu__ {
     cudaq::qubit q;
     h(q);
-    auto res = mz(q);
+    cudaq::record(q);
   }
 };
 
@@ -46,20 +46,8 @@ int main() {
   return 0;
 }
 
-// clang-format off
-// CHECK-SIM: WARNING: Kernel "test_kernel" uses named measurement results
-// CHECK-SIM-NOT: WARNING: Kernel "test_kernel" uses named measurement results
 // CHECK-SIM: before cudaq::run
-// CHECK-SIM-NOT: WARNING: Kernel "test_kernel" uses named measurement results
 // CHECK-SIM: before cudaq::ptsbe::sample
-// CHECK-SIM: WARNING: Kernel "test_kernel" uses named measurement results
-// CHECK-SIM-NOT: WARNING: Kernel "test_kernel" uses named measurement results
-// clang-format on
 
-// clang-format off
-// CHECK-EMUL: WARNING: Kernel "test_kernel" uses named measurement results
-// CHECK-EMUL-NOT: WARNING: Kernel "test_kernel" uses named measurement results
 // CHECK-EMUL: before cudaq::run
-// CHECK-EMUL-NOT: WARNING: Kernel "test_kernel" uses named measurement results
 // CHECK-EMUL: before cudaq::ptsbe::sample
-// clang-format on

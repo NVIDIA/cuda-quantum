@@ -63,7 +63,7 @@ void bindTestUtils(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
   testingSubmodule.def(
       "sampleKernel",
       [&](std::size_t numQubits, std::size_t numShots,
-          std::function<void()> kernel) {
+          std::function<void()> kernel, bool measureAll) {
         auto simName = holder.getTarget().simulatorName;
         auto *sim = holder.getSimulator(simName);
         nvqir::toggleDynamicQubitManagement();
@@ -72,15 +72,20 @@ void bindTestUtils(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
         policy.options.shots = numShots;
         cudaq::ExecutionContext ctx(cudaq::sample_policy::name, numShots);
         auto result = cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
-          return cudaq::ExecutionManager::with_default_em(policy,
-                                                          [&]() { kernel(); });
+          return cudaq::ExecutionManager::with_default_em(policy, [&]() {
+            kernel();
+            // Emulate a device that measures every qubit.
+            if (measureAll)
+              for (auto q : qubits)
+                sim->mz(q);
+          });
         });
         nvqir::toggleDynamicQubitManagement();
         sim->deallocateQubits(qubits);
         return result;
       },
       nanobind::arg("numQubits"), nanobind::arg("numShots"),
-      nanobind::arg("kernel"));
+      nanobind::arg("kernel"), nanobind::arg("measureAll") = false);
 
   // Run a mock-QPU kernel once under a run policy and return the raw QIR output
   // log for that shot (from run_result), rather than reading the simulator's

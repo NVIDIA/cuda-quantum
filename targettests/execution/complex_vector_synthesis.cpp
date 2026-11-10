@@ -23,6 +23,7 @@ __qpu__ void test(std::vector<std::complex<double>> &v) {
   for (std::size_t i = 0; i < v.size(); i++) {
     cudaq::exp_pauli(v[i].real(), q, "XX");
   }
+  cudaq::record(q);
 }
 
 void printCounts(cudaq::sample_result &result) {

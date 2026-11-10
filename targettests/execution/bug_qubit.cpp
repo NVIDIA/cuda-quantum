@@ -32,7 +32,7 @@ struct simple_x {
   void operator()() __qpu__ {
     cudaq::qubit q;
     x(q);
-    mz(q);
+    cudaq::record(q);
   }
 };
 

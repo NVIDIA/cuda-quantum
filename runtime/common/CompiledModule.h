@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -331,6 +332,10 @@ public:
     bool hasConditionalsOnMeasureResults = false;
     /// The quantum optimization level at which the kernel was compiled.
     OptimizationLevel optimizationLevel = defaultOptimizationLevel;
+    /// Per MLIR artifact: for each qubit the kernel recorded, in record order,
+    /// the qubit index the backend reports it under. A backend that measures
+    /// every qubit uses this to slice its readout down to the record.
+    std::map<std::string, std::vector<std::size_t>> recordedQubits;
   };
 
   // The choice of constructors is intentionally limited to:

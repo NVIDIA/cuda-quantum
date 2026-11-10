@@ -28,6 +28,7 @@ def test_synthesize():
         h(qubits.front())
         for i, qubitIdx in enumerate(range(numQubits - 1)):
             x.ctrl(qubits[i], qubits[qubitIdx + 1])
+        cudaq.record(qubits)
 
     print(ghz)
     ghz_synth = cudaq.synthesize(ghz, 5)
@@ -46,6 +47,7 @@ def test_synthesize_2():
         x(q[0])
         ry(angle, q[1])
         x.ctrl(q[1], q[0])
+        cudaq.record(q)
 
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
@@ -64,6 +66,7 @@ def test_synthesize_param_list():
         x(q[0])
         ry(angle[0], q[1])
         x.ctrl(q[1], q[0])
+        cudaq.record(q)
 
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
@@ -81,6 +84,7 @@ def test_synthesize_param_List():
         x(q[0])
         ry(angle[0], q[1])
         x.ctrl(q[1], q[0])
+        cudaq.record(q)
 
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)

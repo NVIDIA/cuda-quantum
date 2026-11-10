@@ -130,6 +130,7 @@ def test_normal_function_still_compiles():
         q = cudaq.qvector(2)
         h(q[0])
         x.ctrl(q[0], q[1])
+        cudaq.record(q)
 
     result = cudaq.sample(bell_pair, shots_count=100)
     # The test passes if decoration and sampling succeed; specific counts

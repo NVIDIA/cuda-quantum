@@ -24,6 +24,7 @@ CUDAQ_TEST(QuantumMachinesTester, minimal3Hadamard) {
   kernel.h(qubit[0]);
   kernel.h(qubit[1]);
   kernel.h(qubit[2]);
+  kernel.record(qubit);
 
   auto counts = cudaq::sample(1000, kernel);
   counts.dump();
@@ -39,6 +40,7 @@ CUDAQ_TEST(QuantumMachinesTester, resetAndH) {
   for (int i = 0; i < 3; i++) {
     kernel.h(qubit[1]);
   }
+  kernel.record(qubit);
 
   auto counts = cudaq::sample(1000, kernel);
   counts.dump();
@@ -58,6 +60,7 @@ CUDAQ_TEST(QuantumMachinesTester, gates) {
   kernel.r1(1.1853982, qvector[2]);
   kernel.x(qvector[3]);
   kernel.y(qvector[4]);
+  kernel.record(qvector);
 
   auto counts = cudaq::sample(1001, kernel);
   counts.dump();

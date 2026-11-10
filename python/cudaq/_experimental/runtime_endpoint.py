@@ -84,8 +84,7 @@ class SupportsSample(RuntimeEndpoint, Protocol):
                **kwargs) -> SampleResult:
         """Execute a compiled kernel and return its measurement counts.
 
-        Keyword arguments: ``shots_count`` (int) and ``explicit_measurements``
-        (bool).
+        Keyword arguments: ``shots_count`` (int).
         """
         ...
 

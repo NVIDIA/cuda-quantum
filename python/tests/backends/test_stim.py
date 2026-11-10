@@ -27,6 +27,7 @@ def test_stim_non_clifford():
     def kernel():
         qubits = cudaq.qvector(10)
         rx(0.1, qubits[0])
+        cudaq.record(qubits)
 
     with pytest.raises(RuntimeError) as e:
         # Cannot perform non-Clifford gates in Stim simulator
@@ -40,6 +41,7 @@ def test_stim_toffoli_gates():
     def kernel():
         qubits = cudaq.qvector(10)
         cx(qubits[0:9], qubits[9])
+        cudaq.record(qubits)
 
     with pytest.raises(RuntimeError) as e:
         # Cannot perform Toffoli gates in Stim simulator
@@ -56,7 +58,7 @@ def test_stim_sample():
         # Stim is a Clifford-only simulator, so it can do many qubits.
         for i in range(1, 250):
             cx(qubits[i - 1], qubits[i])
-        mz(qubits)
+        cudaq.record(qubits)
 
     counts = cudaq.sample(kernel)
     assert (len(counts) == 2)
@@ -86,7 +88,8 @@ def test_stim_all_mz_types():
         my(qubits)
         mz(qubits)
 
-    counts = cudaq.sample(kernel)
+    # The kernel's own measurements are the point here, so report them all.
+    counts = cudaq.sample(kernel, explicit_measurements=True)
     assert (len(counts) > 1)
 
 

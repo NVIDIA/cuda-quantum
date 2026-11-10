@@ -92,6 +92,8 @@ struct testBool {
     if (f64 == 1.0) {
       x(qf64);
     }
+    cudaq::record(qb4, qb_4, qb, qu8, qi8, qu16, qi16, qu32, qi32, qu64, qi64,
+                  qf32, qf64);
   }
 };
 
@@ -159,6 +161,7 @@ struct testInt8 {
     if (f64 == -1.0) {
       x(qf64);
     }
+    cudaq::record(qb, qu8, qi8, qu16, qi16, qu32, qi32, qu64, qi64, qf32, qf64);
   }
 };
 
@@ -226,6 +229,7 @@ struct testUInt8 {
     if (f64 == 255.0) {
       x(qf64);
     }
+    cudaq::record(qb, qu8, qi8, qu16, qi16, qu32, qi32, qu64, qi64, qf32, qf64);
   }
 };
 
@@ -292,6 +296,7 @@ struct testInt16 {
     if (f64 == -1.0) {
       x(qf64);
     }
+    cudaq::record(qb, qu8, qi8, qu16, qi16, qu32, qi32, qu64, qi64, qf32, qf64);
   }
 };
 
@@ -358,6 +363,7 @@ struct testUInt16 {
     if (f64 == 65335.0) {
       x(qf64);
     }
+    cudaq::record(qb, qu8, qi8, qu16, qi16, qu32, qi32, qu64, qi64, qf32, qf64);
   }
 };
 
@@ -424,6 +430,7 @@ struct testInt32 {
     if (f64 == -1.0) {
       x(qf64);
     }
+    cudaq::record(qb, qu8, qi8, qu16, qi16, qu32, qi32, qu64, qi64, qf32, qf64);
   }
 };
 
@@ -490,6 +497,7 @@ struct testUInt32 {
     if (f64 == 4294967295.0) {
       x(qf64);
     }
+    cudaq::record(qb, qu8, qi8, qu16, qi16, qu32, qi32, qu64, qi64, qf32, qf64);
   }
 };
 
@@ -556,6 +564,7 @@ struct testInt64 {
     if (f64 == -1) {
       x(qf64);
     }
+    cudaq::record(qb, qu8, qi8, qu16, qi16, qu32, qi32, qu64, qi64, qf32, qf64);
   }
 };
 
@@ -596,6 +605,7 @@ struct testConsecutiveCasts {
     if (u64 == 65535) {
       x(qu64);
     }
+    cudaq::record(qi32, qu32, qi64, qu64);
   }
 };
 
@@ -612,6 +622,7 @@ struct testUnsignedTruncation {
     if (i64 == 4294967295) {
       x(qi64);
     }
+    cudaq::record(qi32, qi64);
   }
 };
 
@@ -628,6 +639,7 @@ struct testUnsignedExtension {
     if (i32 == 4294967295) {
       x(qi32);
     }
+    cudaq::record(qi8, qi32);
   }
 };
 
@@ -644,6 +656,7 @@ struct testSignedToUnsignedTruncation {
     if (i64 == 4294967295) {
       x(qi64);
     }
+    cudaq::record(qi32, qi64);
   }
 };
 
@@ -660,6 +673,7 @@ struct testSignedToUnsignedExtension {
     if (i32 == 18446744073709551615UL) {
       x(qi32);
     }
+    cudaq::record(qi8, qi32);
   }
 };
 
@@ -676,6 +690,7 @@ struct testUnsignedToSignedTruncation {
     if (i64 == std::int32_t(-1)) {
       x(qi64);
     }
+    cudaq::record(qi32, qi64);
   }
 };
 
@@ -692,6 +707,7 @@ struct testUnsignedToSignedExtension {
     if (i32 == 4294967295) {
       x(qi32);
     }
+    cudaq::record(qi8, qi32);
   }
 };
 

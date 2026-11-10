@@ -102,8 +102,8 @@ public:
             cudaq::quake::ExtractRefOp::create(rewriter, loc, vector, i));
     }
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
-        evin, newArgs, evin.getCompilerGenerated());
+    // Only references are replaced, so the results are unchanged.
+    rewriter.modifyOpInPlace(evin, [&]() { evin->setOperands(newArgs); });
     return success();
   }
 };

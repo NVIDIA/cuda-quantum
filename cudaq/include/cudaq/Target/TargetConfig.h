@@ -110,6 +110,7 @@ struct BackendEndConfigEntry {
   /// Whether the target supports pre-computing resource counts for faster
   /// resource estimation.
   bool SupportResourceCounts = true;
+  bool SupportExplicitMeasurements = false;
   /// Compilation target, including the ordered target IR profiles and the
   /// selected final code generation format.
   cudaq::CompileTarget CompileTarget;

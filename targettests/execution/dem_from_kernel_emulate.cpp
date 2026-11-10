@@ -13,6 +13,7 @@
 // RUN: nvq++ --target oqc        --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target qbraid     --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s --check-prefixes=CHECK,RUNOK; fi
 // clang-format on
 
 #include <cctype>
@@ -28,6 +29,17 @@ struct singleDetector {
     cudaq::qubit q;
     auto m = mz(q);
     cudaq::detector(m);
+  }
+};
+
+// `cudaq::sample` cannot take a kernel that measures, so the emulation check
+// below uses `cudaq::run` on this returning twin of `singleDetector`.
+struct singleDetectorRun {
+  bool operator()() __qpu__ {
+    cudaq::qubit q;
+    auto m = mz(q);
+    cudaq::detector(m);
+    return m;
   }
 };
 
@@ -105,13 +117,13 @@ static void runCase(const char *label, Kernel &&kernel) {
   }
 }
 
-// Unlike dem_from_kernel, cudaq::sample routes through
-// createEmulationTargetPrepPipeline, which must strip QEC ops.
+// Unlike dem_from_kernel, cudaq::run goes through the emulation pipeline, which
+// must strip QEC ops.
 template <typename Kernel>
-static void runSampleCase(const char *label, Kernel &&kernel) {
+static void runRunCase(const char *label, Kernel &&kernel) {
   try {
-    auto counts = cudaq::sample(std::forward<Kernel>(kernel));
-    std::printf("%s most_probable=%s\n", label, counts.most_probable().c_str());
+    auto results = cudaq::run(1, std::forward<Kernel>(kernel));
+    std::printf("%s result=%d\n", label, static_cast<int>(results[0]));
   } catch (const std::exception &e) {
     std::printf("%s THREW: %s\n", label, e.what());
   }
@@ -144,7 +156,7 @@ int main() {
   runCase("SINGLE", singleDetector{});
   runCase("THREE_MZ", threeMzMultiDetector{});
   runDecomposeCase("CORRELATED_XX", correlatedXXHyperedge{});
-  runSampleCase("SAMPLE_QEC_KERNEL", singleDetector{});
+  runRunCase("RUN_QEC_KERNEL", singleDetectorRun{});
   return 0;
 }
 
@@ -152,4 +164,5 @@ int main() {
 // CHECK: THREE_MZ detectors=1 observables=1
 // CHECK: CORRELATED_XX_RAW hyperedge=1 caret=0
 // CHECK: CORRELATED_XX_DECOMPOSED hyperedge=0 caret=1
-// CHECK: SAMPLE_QEC_KERNEL most_probable=0
+// `run` is only supported on some emulated targets.
+// RUNOK: RUN_QEC_KERNEL result=0

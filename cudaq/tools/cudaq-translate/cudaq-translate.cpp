@@ -14,6 +14,7 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Optimizer/InitAllPasses.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -165,6 +166,8 @@ int main(int argc, char **argv) {
   bool targetUsesLlvm = emitLLVM;
   auto *modOp = module->getOperation();
   auto modLoc = module->getLoc();
+  // Without a launch, a `cudaq::record` has no meaning.
+  cudaq::quake::eraseUserRecords(modOp);
   // Declare actions here to avoid outer closure going out of scope below.
   auto iqmAction = [&]() {
     if (failed(cudaq::translateToIQMJson(modOp, out.os()))) {
