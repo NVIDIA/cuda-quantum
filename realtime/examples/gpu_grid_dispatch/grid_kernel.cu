@@ -24,6 +24,10 @@
 ///   ring    the whole grid, a grid-stride loop over the request's argument
 ///           bytes in the RX slot, one 32-bit word per thread per pass,
 ///           writing the reply into the TX slot.
+///
+/// The handoff (--notify, --poll, --request) is fixed before launch, so the
+/// kernel is a template over the three choices and the host launches the one
+/// instance that matches: no mode test on the request path.
 
 #include "grid_common.h"
 
@@ -43,10 +47,10 @@ namespace {
 // writes it in pinned host memory, and at GPU scope when it is device memory
 // written through gdrcopy.  The done line is host memory: system scope.
 //------------------------------------------------------------------------------
-__device__ __forceinline__ std::uint64_t load_acquire(const std::uint64_t *p,
-                                                      bool sys) {
+template <bool kSys>
+__device__ __forceinline__ std::uint64_t load_acquire(const std::uint64_t *p) {
   std::uint64_t v;
-  if (sys)
+  if constexpr (kSys)
     asm volatile("ld.acquire.sys.global.u64 %0, [%1];"
                  : "=l"(v)
                  : "l"(p)
@@ -59,10 +63,10 @@ __device__ __forceinline__ std::uint64_t load_acquire(const std::uint64_t *p,
   return v;
 }
 
-__device__ __forceinline__ std::uint64_t load_relaxed(const std::uint64_t *p,
-                                                      bool sys) {
+template <bool kSys>
+__device__ __forceinline__ std::uint64_t load_relaxed(const std::uint64_t *p) {
   std::uint64_t v;
-  if (sys)
+  if constexpr (kSys)
     asm volatile("ld.relaxed.sys.global.u64 %0, [%1];"
                  : "=l"(v)
                  : "l"(p)
@@ -154,8 +158,9 @@ __device__ Broadcast g_broadcast;
 constexpr std::uint64_t kShutdown = ~std::uint64_t{0};
 
 /// Fan-in counter: thread 0 of every block adds one once its block's work is
-/// done.  It only ever counts up; the block whose add brings the count to a
-/// multiple of gridDim.x is the last arriver of that request.
+/// done.  It only ever counts up and is never reset: every block knows the
+/// count the current request completes at (gridDim.x, 2 gridDim.x, ...), so
+/// the block whose add reaches it is the last arriver.
 __device__ unsigned long long g_arrived;
 
 /// Spin until the mailbox holds a sequence newer than `last`; return it and
@@ -163,24 +168,24 @@ __device__ unsigned long long g_arrived;
 /// every load crosses the bus).  Returns seq 0 once the shutdown flag is
 /// raised, which is read only every 1024 polls: it is host memory, and the
 /// mailbox poll is the hot loop.
+template <bool kSys, bool kRing>
 __device__ Req wait_for_request(const GridCtx &ctx, std::uint64_t last) {
-  const bool sys = ctx.notify == NOTIFY_PINNED;
   unsigned spins = 0;
   while (true) {
-    std::uint64_t seq = load_acquire(&ctx.mailbox->seq, sys);
+    std::uint64_t seq = load_acquire<kSys>(&ctx.mailbox->seq);
     if (seq <= last && (++spins & 1023u) == 0 && *ctx.shutdown) {
       // One last look, so a request published just before the flag is still
       // served by every block rather than by some of them.
-      seq = load_acquire(&ctx.mailbox->seq, sys);
+      seq = load_acquire<kSys>(&ctx.mailbox->seq);
       if (seq <= last)
         return Req{0, 0, 0};
     }
     if (seq > last) {
       Req r{seq, 0, 0};
-      if (ctx.request == REQUEST_RING)
-        r.slot_len = load_relaxed(&ctx.mailbox->slot_len, sys);
+      if constexpr (kRing)
+        r.slot_len = load_relaxed<kSys>(&ctx.mailbox->slot_len);
       else
-        r.payload = load_relaxed(&ctx.mailbox->payload, sys);
+        r.payload = load_relaxed<kSys>(&ctx.mailbox->payload);
       return r;
     }
   }
@@ -188,26 +193,32 @@ __device__ Req wait_for_request(const GridCtx &ctx, std::uint64_t last) {
 
 /// POLL_LEADER, blocks other than 0: spin on the broadcast line in device
 /// memory until it carries a sequence newer than `last` (or kShutdown).
-__device__ Req wait_for_broadcast(const GridCtx &ctx, std::uint64_t last) {
+template <bool kRing>
+__device__ Req wait_for_broadcast(std::uint64_t last) {
   std::uint64_t seq;
   do {
-    seq = load_acquire(&g_broadcast.seq, false);
+    seq = load_acquire<false>(&g_broadcast.seq);
   } while (seq <= last);
   if (seq == kShutdown)
     return Req{0, 0, 0};
   Req r{seq, 0, 0};
-  if (ctx.request == REQUEST_RING)
-    r.slot_len = load_relaxed(&g_broadcast.slot_len, false);
+  if constexpr (kRing)
+    r.slot_len = load_relaxed<false>(&g_broadcast.slot_len);
   else
-    r.payload = load_relaxed(&g_broadcast.payload, false);
+    r.payload = load_relaxed<false>(&g_broadcast.payload);
   return r;
 }
 
-/// The resident grid.  The dynamic shared memory is never touched: it is only
-/// reserved, so that two blocks cannot share an SM (see configure_grid).
+/// The resident grid, one instance per handoff:
+///   kSys     the mailbox is pinned host memory (NOTIFY_PINNED), polled at
+///            system scope; otherwise device memory (gdrcopy), GPU scope;
+///   kLeader  block 0 alone polls the mailbox and re-publishes (POLL_LEADER);
+///   kRing    the request bytes live in the NIC rings (REQUEST_RING).
+/// The dynamic shared memory is never touched: it is only reserved, so that
+/// two blocks cannot share an SM (see configure_grid).
+template <bool kSys, bool kLeader, bool kRing>
 __global__ void __launch_bounds__(1024) grid_worker(GridCtx ctx) {
   cg::grid_group grid = cg::this_grid();
-  const bool ring = ctx.request == REQUEST_RING;
   __shared__ std::uint64_t s_seq;
   __shared__ std::uint64_t s_payload;  // inline
   __shared__ std::uint64_t s_slot_len; // ring: pack_slot_len(slot, len)
@@ -221,23 +232,25 @@ __global__ void __launch_bounds__(1024) grid_worker(GridCtx ctx) {
     store_release_sys(&ctx.done->ready, 1);
 
   std::uint64_t last = 0;
+  // The arrival count that completes the current request (thread 0 only).
+  unsigned long long target = gridDim.x;
   while (true) {
     // 1. Wait for the next request: {seq, payload | slot_len} into shared
     //    memory.  Two mailbox loads (seq, then the field); no ring header
     //    read: the CPU has already validated and clamped the request.
     if (threadIdx.x == 0) {
       Req r;
-      if (ctx.poll == POLL_ALL) {
-        r = wait_for_request(ctx, last);
+      if constexpr (!kLeader) {
+        r = wait_for_request<kSys, kRing>(ctx, last);
       } else if (blockIdx.x == 0) {
         // Leader: the only poller of the mailbox.  Re-publish the request
         // in device memory for the other blocks: fields first, seq last.
-        r = wait_for_request(ctx, last);
+        r = wait_for_request<kSys, kRing>(ctx, last);
         g_broadcast.payload = r.payload;
         g_broadcast.slot_len = r.slot_len;
         store_release_gpu(&g_broadcast.seq, r.seq == 0 ? kShutdown : r.seq);
       } else {
-        r = wait_for_broadcast(ctx, last);
+        r = wait_for_broadcast<kRing>(last);
       }
       s_seq = r.seq;
       s_payload = r.payload;
@@ -249,7 +262,7 @@ __global__ void __launch_bounds__(1024) grid_worker(GridCtx ctx) {
       return; // shutdown: uniform across the block
 
     // 2. The work: the inlined rpc_increment body.
-    if (ring) {
+    if constexpr (kRing) {
       //    Ring: the whole grid, one 32-bit argument word per thread per
       //    pass, read from the RX slot the NIC wrote, each byte plus one, and
       //    stored straight into the paired TX slot behind the response
@@ -294,21 +307,27 @@ __global__ void __launch_bounds__(1024) grid_worker(GridCtx ctx) {
     __syncthreads();
     if (threadIdx.x == 0) {
       const unsigned long long old = arrive_acq_rel(&g_arrived);
-      if ((old + 1) % gridDim.x == 0) {
+      if (old + 1 == target) {
         // 4. Last arriver: completion, in pinned host memory the CPU handler
-        //    spins on.  Inline, this block also does the work: the 8 payload
-        //    bytes it read from the mailbox, each plus one, stored as one
-        //    word into the done line.  The system-scope fence then release
-        //    store make everything in causality order before this point,
-        //    including the other blocks' TX-slot stores (ring) and the reply
-        //    just stored (inline), visible to the CPU's acquire of done.seq,
-        //    and to the NIC it posts to.
-        if (!ring)
+        //    spins on.  The system-scope release store of done.seq publishes
+        //    everything in causality order before it, the other blocks' work
+        //    included, to the CPU's acquire load.
+        if constexpr (kRing) {
+          //    Ring: the TX-slot stores of every SM will be read by the NIC's
+          //    DMA engine, not by a CPU thread that synchronizes with us, so
+          //    a system-scope fence first: it makes them performed at system
+          //    scope before the flag, rather than visible to an acquirer.
+          __threadfence_system();
+        } else {
+          //    Inline: the reply travels in the done line itself and only
+          //    the CPU reads it, so the release store alone orders the reply
+          //    before seq.  No separate fence.
           *reinterpret_cast<volatile std::uint64_t *>(&ctx.done->reply) =
               increment_bytes(s_payload);
-        __threadfence_system();
+        }
         store_release_sys(&ctx.done->seq, seq);
       }
+      target += gridDim.x;
     }
     last = seq;
   }
@@ -321,10 +340,28 @@ bool check(cudaError_t err, const char *what) {
   return false;
 }
 
+/// The instance that serves a handoff.
+using Kernel = void (*)(GridCtx);
+Kernel select_kernel(std::uint32_t notify, std::uint32_t poll,
+                     std::uint32_t request) {
+  static const Kernel table[8] = {
+      grid_worker<false, false, false>, grid_worker<false, false, true>,
+      grid_worker<false, true, false>,  grid_worker<false, true, true>,
+      grid_worker<true, false, false>,  grid_worker<true, false, true>,
+      grid_worker<true, true, false>,   grid_worker<true, true, true>,
+  };
+  const unsigned i = (notify == NOTIFY_PINNED ? 4u : 0u) |
+                     (poll == POLL_LEADER ? 2u : 0u) |
+                     (request == REQUEST_RING ? 1u : 0u);
+  return table[i];
+}
+
 } // namespace
 
-bool configure_grid(int device, unsigned threads, unsigned &shared_bytes,
-                    int &blocks_per_sm) {
+bool configure_grid(std::uint32_t notify, std::uint32_t poll,
+                    std::uint32_t request, int device, unsigned threads,
+                    unsigned &shared_bytes, int &blocks_per_sm) {
+  const Kernel kernel = select_kernel(notify, poll, request);
   int per_sm = 0, per_block_optin = 0;
   if (!check(cudaDeviceGetAttribute(
                  &per_sm, cudaDevAttrMaxSharedMemoryPerMultiprocessor, device),
@@ -339,13 +376,13 @@ bool configure_grid(int device, unsigned threads, unsigned &shared_bytes,
   unsigned want = static_cast<unsigned>(per_sm) / 2 + 1024;
   if (want > static_cast<unsigned>(per_block_optin))
     want = static_cast<unsigned>(per_block_optin);
-  if (!check(cudaFuncSetAttribute(reinterpret_cast<const void *>(grid_worker),
+  if (!check(cudaFuncSetAttribute(reinterpret_cast<const void *>(kernel),
                                   cudaFuncAttributeMaxDynamicSharedMemorySize,
                                   static_cast<int>(want)),
              "raising the grid's dynamic shared memory limit"))
     return false;
   if (!check(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-                 &blocks_per_sm, grid_worker, static_cast<int>(threads),
+                 &blocks_per_sm, kernel, static_cast<int>(threads),
                  static_cast<std::size_t>(want)),
              "grid occupancy"))
     return false;
@@ -355,10 +392,11 @@ bool configure_grid(int device, unsigned threads, unsigned &shared_bytes,
 
 bool launch_grid(const GridCtx &ctx, unsigned blocks, unsigned threads,
                  unsigned shared_bytes, cudaStream_t stream) {
+  const Kernel kernel = select_kernel(ctx.notify, ctx.poll, ctx.request);
   GridCtx arg = ctx;
   void *args[] = {&arg};
   return check(cudaLaunchCooperativeKernel(
-                   reinterpret_cast<const void *>(grid_worker), dim3(blocks),
+                   reinterpret_cast<const void *>(kernel), dim3(blocks),
                    dim3(threads), args, static_cast<std::size_t>(shared_bytes),
                    stream),
                "launching the resident cooperative grid");

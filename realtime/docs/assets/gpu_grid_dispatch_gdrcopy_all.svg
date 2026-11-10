@@ -99,7 +99,7 @@
 <text x="56" y="870" font-size="12" fill="#1a1a1a">Fan-in: each block checks in when its work is done; the last one to do so carries on, nobody waits.</text>
 <circle cx="34" cy="890" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
 <text x="34" y="894" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">7</text>
-<text x="56" y="894" font-size="12" fill="#1a1a1a">The last arriver increments the 8 payload bytes, stores the reply into the done line, then a fence and a</text>
+<text x="56" y="894" font-size="12" fill="#1a1a1a">The last arriver increments the 8 payload bytes, stores the reply into the done line, then a system-scope</text>
 <text x="56" y="908" font-size="12" fill="#1a1a1a">release store of seq into the done line (mapped pinned host memory).</text>
 <circle cx="34" cy="928" r="11" fill="#fff" stroke="#333" stroke-width="1.5"/>
 <text x="34" y="932" text-anchor="middle" font-size="11" font-weight="bold" fill="#1a1a1a">8</text>

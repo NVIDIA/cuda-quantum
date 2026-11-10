@@ -565,7 +565,8 @@ int main(int argc, char **argv) {
 
   unsigned shared_bytes = 0;
   int per_sm = 0;
-  if (!configure_grid(opt.gpu, opt.threads, shared_bytes, per_sm))
+  if (!configure_grid(notify, poll, request, opt.gpu, opt.threads, shared_bytes,
+                      per_sm))
     return 1;
   if (per_sm < 1 || blocks > static_cast<unsigned>(per_sm * sms)) {
     std::fprintf(stderr,

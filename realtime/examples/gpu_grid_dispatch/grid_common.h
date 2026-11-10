@@ -29,8 +29,8 @@
 ///                                           the work (below)
 ///                                           fan-in: thread 0 of each block
 ///                                           adds 1 to a device counter
-///   spin on done.seq >= seq  (acquire)  <-  last arriver: [done.reply],
-///   finish the TX slot                      fence, done.seq (release, sys)
+///   spin on done.seq >= seq  (acquire)  <-  last arriver: [done.reply] or
+///   finish the TX slot                      [fence], done.seq (release, sys)
 ///
 /// Where the request and the reply bytes live is `--request=`:
 ///
@@ -175,14 +175,18 @@ ring_payload_len(std::uint32_t arg_len, std::uint32_t rx_stride,
 }
 
 /// Reserve just over half an SM's shared memory per block (so the grid runs
-/// one block per SM) and report the occupancy that results.  Call before
-/// launch_grid, with the device selected.  Returns false on a CUDA error.
-bool configure_grid(int device, unsigned threads, unsigned &shared_bytes,
-                    int &blocks_per_sm);
+/// one block per SM) and report the occupancy that results, for the kernel
+/// instance that serves this handoff (the kernel is a template over
+/// notify/poll/request; see grid_kernel.cu).  Call before launch_grid, with
+/// the device selected and the same three values that go into GridCtx.
+/// Returns false on a CUDA error.
+bool configure_grid(std::uint32_t notify, std::uint32_t poll,
+                    std::uint32_t request, int device, unsigned threads,
+                    unsigned &shared_bytes, int &blocks_per_sm);
 
-/// Launch the resident grid with cudaLaunchCooperativeKernel.  Every CUDA
-/// allocation of the process has to be made before this: a resident
-/// cooperative grid blocks later allocations.
+/// Launch the resident grid (the instance for ctx.notify/poll/request) with
+/// cudaLaunchCooperativeKernel.  Every CUDA allocation of the process has to
+/// be made before this: a resident cooperative grid blocks later allocations.
 bool launch_grid(const GridCtx &ctx, unsigned blocks, unsigned threads,
                  unsigned shared_bytes, cudaStream_t stream);
 

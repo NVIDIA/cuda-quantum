@@ -45,14 +45,20 @@ Request and reply use the standard `rpc_increment` RPC:
 The grid's work is deliberately that increment, and the request ends with a
 fan-in instead of a grid-wide barrier: once a block's work is done, its thread
 0 adds one to an arrival counter in device memory with an acquire-release
-atomic at GPU scope, and the block whose add completes the count for this
-request is the last arriver. It alone executes a system-scope fence and the
-release store of `seq` into the done line. In inline mode the stand-in work is
-so small that the last arriver does it too: it increments the 8 payload bytes
-it read from the mailbox and stores the reply as one 8-byte word into the done
-line just before `seq`; every other thread stands in for a real decoder's work
-and does nothing. In ring mode the whole grid increments the bytes in place, a
-32-bit word per thread (see below), before arriving. No block waits for any
+atomic at GPU scope. The counter only counts up and is never reset: each block
+knows the count the current request completes at, and the block whose add
+reaches it is the last arriver. It alone performs the system-scope release
+store of `seq` into the done line, which publishes every block's work to the
+CPU's acquire load. In inline mode the stand-in work is so small that the last
+arriver does it too: it increments the 8 payload bytes it read from the mailbox
+and stores the reply as one 8-byte word into the done line just before `seq`;
+every other thread stands in for a real decoder's work and does nothing. In
+ring mode the whole grid increments the bytes in place, a 32-bit word per
+thread (see below), before arriving, and the last arriver adds a system-scope
+fence before the release store, because the TX slot is read by the NIC's DMA
+engine rather than by a CPU thread. The three switches below are template
+parameters of the kernel: the host launches the one instance that matches, so
+no mode is tested on the request path. No block waits for any
 other, and `grid.sync()` is used only once, at startup, to report placement and
 raise the ready flag. Every block reserves just over half of an SM's shared
 memory as dynamic shared memory, so occupancy is exactly one block per SM.
@@ -165,7 +171,7 @@ Selected with `--notify=gdrcopy --poll=all`.
    memory (an acquire-release atomic at GPU scope). Nobody waits.
 7. The block whose add completes the count increments the 8 payload bytes and
    stores the reply as one 8-byte word into the done line (mapped pinned host
-   memory), then executes a system-scope fence and a release store of `seq`.
+   memory), then a system-scope release store of `seq`.
 8. The CPU handler sees `done.seq`, reads the reply from the done line and
    copies it into the TX slot, and writes the `RPCResponse` header. The
    transport posts the SEND.
@@ -193,7 +199,7 @@ Selected with `--notify=pinned --poll=all`.
    memory (an acquire-release atomic at GPU scope). Nobody waits.
 7. The block whose add completes the count increments the 8 payload bytes and
    stores the reply as one 8-byte word into the done line (mapped pinned host
-   memory), then executes a system-scope fence and a release store of `seq`.
+   memory), then a system-scope release store of `seq`.
 8. The CPU handler sees `done.seq`, reads the reply from the done line and
    copies it into the TX slot, and writes the `RPCResponse` header. The
    transport posts the SEND.
@@ -225,7 +231,7 @@ Selected with `--notify=pinned --poll=leader`.
    memory (an acquire-release atomic at GPU scope). Nobody waits.
 7. The block whose add completes the count increments the 8 payload bytes and
    stores the reply as one 8-byte word into the done line (mapped pinned host
-   memory), then executes a system-scope fence and a release store of `seq`.
+   memory), then a system-scope release store of `seq`.
 8. The CPU handler sees `done.seq`, reads the reply from the done line and
    copies it into the TX slot, and writes the `RPCResponse` header. The
    transport posts the SEND.
