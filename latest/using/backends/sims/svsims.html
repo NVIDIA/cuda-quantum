@@ -1237,7 +1237,7 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_FUSION_MAX_QUBITS</span></code></p></td>
 <td><p>integer (maximum effective value: 10)</p></td>
-<td><p>The maximum number of qubits used for dense gate fusion. When unset, <code class="docutils literal notranslate"><span class="pre">cuStateVecEx</span></code> <a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/api-reference/custatevecex/index.html#svupdater-api">automatically selects the fusion size</a>. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion.</p></td>
+<td><p>The maximum number of qubits used for dense gate fusion. When unset, <code class="docutils literal notranslate"><span class="pre">cuStateVecEx</span></code> <a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/api-reference/custatevecex/index.html#svupdater-api">automatically selects the fusion size</a>. On compute capability 10.7 (Rubin) with <code class="docutils literal notranslate"><span class="pre">cuStateVec</span></code> 1.15 or earlier, CUDA-Q instead selects 3 in <code class="code docutils literal notranslate"><span class="pre">FP64</span></code> and 4 in <code class="code docutils literal notranslate"><span class="pre">FP32</span></code>, which measured faster than the library choice there. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_FUSION_DIAGONAL_GATE_MAX_QUBITS</span></code></p></td>
 <td><p>integer greater than or equal to -1 (maximum effective value: 20)</p></td>
@@ -1388,7 +1388,7 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code></p></td>
 <td><p>integer (maximum effective value: 10)</p></td>
-<td><p>Legacy multi-GPU alias for <code class="docutils literal notranslate"><span class="pre">CUDAQ_FUSION_MAX_QUBITS</span></code>. The generic variable takes precedence when both are set. When neither variable is set, <code class="docutils literal notranslate"><span class="pre">cuStateVecEx</span></code> automatically selects the dense fusion size. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion.</p></td>
+<td><p>Legacy multi-GPU alias for <code class="docutils literal notranslate"><span class="pre">CUDAQ_FUSION_MAX_QUBITS</span></code>. The generic variable takes precedence when both are set. When neither variable is set, <code class="docutils literal notranslate"><span class="pre">cuStateVecEx</span></code> automatically selects the dense fusion size. The Rubin exception described for <code class="docutils literal notranslate"><span class="pre">CUDAQ_FUSION_MAX_QUBITS</span></code> applies. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_P2P_DEVICE_BITS</span></code></p></td>
 <td><p>non-negative integer</p></td>
