@@ -127,17 +127,11 @@ ServerJobPayload BraketExecutor::checkHelperAndCreateJob(
   return braketServerHelper->createJob(codesToExecute);
 }
 
-void BraketExecutor::setOutputNames(const KernelExecution &codeToExecute,
-                                    const std::string &taskId) {
+void BraketExecutor::setRecordedQubits(const KernelExecution &codeToExecute,
+                                       const std::string &taskId) {
   auto braketServerHelper = dynamic_cast<BraketServerHelper *>(serverHelper);
   assert(braketServerHelper);
-  auto config = braketServerHelper->getConfig();
-
-  auto output_names = codeToExecute.output_names->dump();
-  config["output_names." + taskId] = output_names;
-
-  braketServerHelper->setOutputNames(taskId, output_names,
-                                     codeToExecute.recordedQubits);
+  braketServerHelper->setRecordedQubits(taskId, codeToExecute.recordedQubits);
 }
 
 detail::future
@@ -190,7 +184,7 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
           std::string taskArn = createResponse.GetResult().GetQuantumTaskArn();
 
           CUDAQ_INFO("Created Braket quantum task {}", taskArn);
-          setOutputNames(codesToExecute[i], taskArn);
+          setRecordedQubits(codesToExecute[i], taskArn);
 
           Aws::Braket::Model::GetQuantumTaskRequest req;
           req.SetQuantumTaskArn(taskArn);

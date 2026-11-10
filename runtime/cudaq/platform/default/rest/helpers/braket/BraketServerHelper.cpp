@@ -153,22 +153,8 @@ sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
   return sliceToRecord(fullSampleResults, recorded);
 }
 
-void BraketServerHelper::setOutputNames(
-    const std::string &taskId, const std::string &output_names,
-    const std::vector<std::size_t> &recorded) {
-  // Parse `output_names` into jobOutputNames.
-  // Note: See `ExtendMeasurePattern` of `CombineMeasurements.cpp
-  // for an example of how this was populated.
-  OutputNamesType jobOutputNames;
-  nlohmann::json outputNamesJSON = nlohmann::json::parse(output_names);
-  for (const auto &el : outputNamesJSON[0]) {
-    auto result = el[0].get<std::size_t>();
-    auto qubitNum = el[1][0].get<std::size_t>();
-    auto registerName = el[1][1].get<std::string>();
-    jobOutputNames[result] = {qubitNum, registerName};
-  }
-
-  outputNames[taskId] = jobOutputNames;
+void BraketServerHelper::setRecordedQubits(
+    const std::string &taskId, const std::vector<std::size_t> &recorded) {
   recordedQubits[taskId] = recorded;
 }
 

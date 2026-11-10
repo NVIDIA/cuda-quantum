@@ -188,18 +188,6 @@ InfleqtionServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   if (backendConfig.count("method"))
     job["method"] = backendConfig.at("method");
 
-  // Store output names and reorder indices if necessary
-  OutputNamesType outputNamesMap;
-  for (auto &item : circuitCode.output_names->items()) {
-    std::size_t idx = std::stoul(item.key());
-    ResultInfoType info;
-    info.qubitNum = idx;
-    info.registerName = item.value();
-    outputNamesMap[idx] = info;
-  }
-  outputNames[circuitCode.name] = outputNamesMap;
-  reorderIdx[circuitCode.name] = circuitCode.mapping_reorder_idx;
-
   // Prepare headers
   RestHeaders headers = getHeaders();
 

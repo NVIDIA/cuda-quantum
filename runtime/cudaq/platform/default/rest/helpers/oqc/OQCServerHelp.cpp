@@ -372,15 +372,6 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     }
   }
 
-  if (outputNames.find(jobId) == outputNames.end())
-    throw std::runtime_error("Could not find output names for job " + jobId);
-
-  auto &output_names = outputNames[jobId];
-  for (auto &[result, info] : output_names) {
-    CUDAQ_INFO("Qubit {} Result {} Name {}", info.qubitNum, result,
-               info.registerName);
-  }
-
   CountsDictionary countsDict;
   if (hasResultNames) {
     // The following code only supports 1 object in the returned results because
@@ -406,35 +397,6 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     for (auto &element : jsonResults.items())
       countsDict[element.key()] = element.value();
     ExecutionResult executionResult{countsDict, GlobalRegisterName};
-    sampleResult.append(executionResult);
-  }
-
-  // First reorder the global register by QIR qubit number.
-  std::vector<std::size_t> qirQubitMeasurements;
-  qirQubitMeasurements.reserve(output_names.size());
-  for (auto &[result, info] : output_names)
-    qirQubitMeasurements.push_back(info.qubitNum);
-
-  std::vector<std::size_t> idx(output_names.size());
-  std::iota(idx.begin(), idx.end(), 0);
-  std::sort(idx.begin(), idx.end(), [&](std::size_t i1, std::size_t i2) {
-    return qirQubitMeasurements[i1] < qirQubitMeasurements[i2];
-  });
-  CUDAQ_INFO("Reordering global result to map QIR result order to QIR qubit "
-             "allocation order is {}",
-             idx);
-  sampleResult.reorder(idx);
-
-  // Now reorder from physical qubit order into the order the kernel recorded.
-  auto recordedIt = recordedQubits.find(jobId);
-  if (recordedIt != recordedQubits.end() && !recordedIt->second.empty())
-    sampleResult.reorder(reorderIdxFromRecord(recordedIt->second));
-
-  // We will also make registers for each result using output_names.
-  for (auto &[result, info] : output_names) {
-    sample_result singleBitResult = sampleResult.get_marginal({result});
-    ExecutionResult executionResult{singleBitResult.to_map(),
-                                    info.registerName};
     sampleResult.append(executionResult);
   }
 

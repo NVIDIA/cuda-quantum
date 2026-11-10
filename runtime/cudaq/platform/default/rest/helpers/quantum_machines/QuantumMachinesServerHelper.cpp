@@ -144,7 +144,6 @@ public:
     ss << "  resourceCounts: "
        << (ke.resourceCounts.has_value() ? "<present>" : "<none>") << "\n";
 
-    ss << "  output_names: " << ke.output_names.get().dump(2) << "\n";
     ss << "  user_data: " << ke.user_data.get().dump(2) << "\n";
 
     ss << "  mapping_reorder_idx: [";

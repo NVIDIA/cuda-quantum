@@ -41,15 +41,6 @@ using RestCookies = std::map<std::string, std::string>;
 using ServerJobPayload =
     std::tuple<std::string, RestHeaders, std::vector<ServerMessage>>;
 
-/// @brief Information about a result coming from a backend
-struct ResultInfoType {
-  std::size_t qubitNum;
-  std::string registerName;
-};
-
-/// @brief Results information, indexed by 0-based result number
-using OutputNamesType = std::map<std::size_t, ResultInfoType>;
-
 /// @brief The ServerHelper is a Plugin type that abstracts away the
 /// server-specific information needed for submitting quantum jobs
 /// to a remote server. It enables clients to create server-specific job
@@ -65,11 +56,8 @@ protected:
   std::size_t shots = 100;
 
   /// @brief Parse a `config` for common parameters in a server helper (i.e.
-  /// `outputNames` and `reorderIdx`)
+  /// `reorderIdx` and `recordedQubits`)
   void parseConfigForCommonParams(const BackendConfig &config);
-
-  /// @brief Output names indexed by jobID/taskID
-  std::map<std::string, OutputNamesType> outputNames;
 
   /// @brief Reordering indices indexed by jobID/taskID (used by mapping pass)
   std::map<std::string, std::vector<std::size_t>> reorderIdx;
