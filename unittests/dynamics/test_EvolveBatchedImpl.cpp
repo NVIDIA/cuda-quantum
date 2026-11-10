@@ -244,7 +244,7 @@ TEST(BatchedEvolveTester, checkBatchedCollapseOps) {
 
 TEST(BatchedEvolveTester, checkBatchedDifferentCollapseOps) {
   auto annihilate_matrix =
-      [](const std::vector<int64_t> &dimensions,
+      [](const std::vector<std::int64_t> &dimensions,
          const std::unordered_map<std::string, std::complex<double>>
              &parameters) -> cudaq::complex_matrix {
     std::size_t dimension = dimensions[0];
@@ -457,7 +457,7 @@ TEST(BatchedEvolveTester, checkTimeDependentCollapsedOps) {
 
 TEST(BatchedEvolveTester, checkCallbackTensorOpSimple) {
   auto tensorFunction =
-      [](const std::vector<int64_t> &dimensions,
+      [](const std::vector<std::int64_t> &dimensions,
          const std::unordered_map<std::string, std::complex<double>>
              &parameters) -> cudaq::complex_matrix {
     cudaq::complex_matrix mat(2, 2);
@@ -519,7 +519,7 @@ TEST(BatchedEvolveTester, checkCallbackTensorOpSimple) {
 
 TEST(BatchedEvolveTester, checkCallbackTensorOpDifferentFuncs) {
   auto tensorFunction =
-      [](const std::vector<int64_t> &dimensions,
+      [](const std::vector<std::int64_t> &dimensions,
          const std::unordered_map<std::string, std::complex<double>>
              &parameters,
          double resonantFreq) -> cudaq::complex_matrix {
@@ -540,7 +540,7 @@ TEST(BatchedEvolveTester, checkCallbackTensorOpDifferentFuncs) {
     const std::string opName = "CustomPauliX_" + std::to_string(count++);
     cudaq::matrix_handler::define(
         opName, {2},
-        [&](const std::vector<int64_t> &dimensions,
+        [&](const std::vector<std::int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters) {
           return tensorFunction(dimensions, parameters, resonanceFreq);

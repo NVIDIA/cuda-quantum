@@ -69,19 +69,19 @@ extern "C" {
 // Implementation of cudensitymat distributed interface by delegating to CUDA-Q
 // MPI plugin API.
 int cudensitymatMpiCommSize(const cudensitymatDistributedCommunicator_t *comm,
-                            int32_t *numRanks) {
+                            std::int32_t *numRanks) {
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->getNumRanks(&cudaqComm, numRanks);
 }
 
 int cudensitymatMpiCommSizeShared(
-    const cudensitymatDistributedCommunicator_t *comm, int32_t *numRanks) {
+    const cudensitymatDistributedCommunicator_t *comm, std::int32_t *numRanks) {
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->getCommSizeShared(&cudaqComm, numRanks);
 }
 
 int cudensitymatMpiCommRank(const cudensitymatDistributedCommunicator_t *comm,
-                            int32_t *procRank) {
+                            std::int32_t *procRank) {
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->getProcRank(&cudaqComm, procRank);
 }
@@ -105,7 +105,7 @@ int cudensitymatMpiWaitRequest(cudensitymatDistributedRequest_t request) {
 }
 
 int cudensitymatMpiTestRequest(cudensitymatDistributedRequest_t request,
-                               int32_t *completed) {
+                               std::int32_t *completed) {
   return getMpiPluginInterface()->TestRequest(request, completed);
 }
 
@@ -121,9 +121,9 @@ int cudensitymatMpiGroupEnd() {
 }
 
 int cudensitymatMpiSend(const cudensitymatDistributedCommunicator_t *comm,
-                        const void *buffer, int32_t count,
-                        cudaDataType_t datatype, int32_t destination,
-                        int32_t tag) {
+                        const void *buffer, std::int32_t count,
+                        cudaDataType_t datatype, std::int32_t destination,
+                        std::int32_t tag) {
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Send(&cudaqComm, buffer, count,
                                        convertCudaToMpiDataType(datatype),
@@ -131,9 +131,9 @@ int cudensitymatMpiSend(const cudensitymatDistributedCommunicator_t *comm,
 }
 
 int cudensitymatMpiSendAsync(const cudensitymatDistributedCommunicator_t *comm,
-                             const void *buffer, int32_t count,
-                             cudaDataType_t datatype, int32_t destination,
-                             int32_t tag,
+                             const void *buffer, std::int32_t count,
+                             cudaDataType_t datatype, std::int32_t destination,
+                             std::int32_t tag,
                              cudensitymatDistributedRequest_t request) {
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->SendAsync(&cudaqComm, buffer, count,
@@ -142,8 +142,9 @@ int cudensitymatMpiSendAsync(const cudensitymatDistributedCommunicator_t *comm,
 }
 
 int cudensitymatMpiRecv(const cudensitymatDistributedCommunicator_t *comm,
-                        void *buffer, int32_t count, cudaDataType_t datatype,
-                        int32_t source, int32_t tag) {
+                        void *buffer, std::int32_t count,
+                        cudaDataType_t datatype, std::int32_t source,
+                        std::int32_t tag) {
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Recv(&cudaqComm, buffer, count,
                                        convertCudaToMpiDataType(datatype),
@@ -151,9 +152,9 @@ int cudensitymatMpiRecv(const cudensitymatDistributedCommunicator_t *comm,
 }
 
 int cudensitymatMpiRecvAsync(const cudensitymatDistributedCommunicator_t *comm,
-                             void *buffer, int32_t count,
-                             cudaDataType_t datatype, int32_t source,
-                             int32_t tag,
+                             void *buffer, std::int32_t count,
+                             cudaDataType_t datatype, std::int32_t source,
+                             std::int32_t tag,
                              cudensitymatDistributedRequest_t request) {
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->RecvAsync(&cudaqComm, buffer, count,
@@ -162,8 +163,8 @@ int cudensitymatMpiRecvAsync(const cudensitymatDistributedCommunicator_t *comm,
 }
 
 int cudensitymatMpiBcast(const cudensitymatDistributedCommunicator_t *comm,
-                         void *buffer, int32_t count, cudaDataType_t datatype,
-                         int32_t root) {
+                         void *buffer, std::int32_t count,
+                         cudaDataType_t datatype, std::int32_t root) {
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Bcast(
       &cudaqComm, buffer, count, convertCudaToMpiDataType(datatype), root);
@@ -171,7 +172,7 @@ int cudensitymatMpiBcast(const cudensitymatDistributedCommunicator_t *comm,
 
 int cudensitymatMpiAllreduce(const cudensitymatDistributedCommunicator_t *comm,
                              const void *bufferIn, void *bufferOut,
-                             int32_t count, cudaDataType_t datatype) {
+                             std::int32_t count, cudaDataType_t datatype) {
   // cudensitymat expects MPI_SUM in this API
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Allreduce(
@@ -181,7 +182,7 @@ int cudensitymatMpiAllreduce(const cudensitymatDistributedCommunicator_t *comm,
 
 int cudensitymatMpiAllreduceInPlace(
     const cudensitymatDistributedCommunicator_t *comm, void *buffer,
-    int32_t count, cudaDataType_t datatype) {
+    std::int32_t count, cudaDataType_t datatype) {
   auto cudaqComm = convertMpiCommunicator(comm);
   // cudensitymat expects MPI_SUM in this API
   return getMpiPluginInterface()->AllreduceInPlace(
@@ -190,7 +191,7 @@ int cudensitymatMpiAllreduceInPlace(
 
 int cudensitymatMpiAllreduceInPlaceMin(
     const cudensitymatDistributedCommunicator_t *comm, void *buffer,
-    int32_t count, cudaDataType_t datatype) {
+    std::int32_t count, cudaDataType_t datatype) {
   auto cudaqComm = convertMpiCommunicator(comm);
   // cudensitymat expects MPI_SUM in this API
   return getMpiPluginInterface()->AllreduceInPlace(
@@ -207,7 +208,7 @@ int cudensitymatMpiAllreduceDoubleIntMinloc(
 
 int cudensitymatMpiAllgather(const cudensitymatDistributedCommunicator_t *comm,
                              const void *bufferIn, void *bufferOut,
-                             int32_t count, cudaDataType_t datatype) {
+                             std::int32_t count, cudaDataType_t datatype) {
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Allgather(&cudaqComm, bufferIn, bufferOut,
                                             count,

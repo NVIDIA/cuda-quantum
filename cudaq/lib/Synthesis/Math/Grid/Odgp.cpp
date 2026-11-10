@@ -127,7 +127,7 @@ const LambdaPowers &get_lambda_powers(const Integer &n) {
 // OdgpStepper
 //===----------------------------------------------------------------------===//
 
-OdgpStepper::OdgpStepper(Interval I, Interval J, uint64_t max_scan_steps)
+OdgpStepper::OdgpStepper(Interval I, Interval J, std::uint64_t max_scan_steps)
     : max_scan_steps_(max_scan_steps) {
   CUDAQ_SYNTH_OPEN_SUB("OdgpStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
@@ -521,7 +521,7 @@ Interval scaled_parity_J(const Interval &J, int p) {
 
 OdgpWithParityStepper::OdgpWithParityStepper(Interval I, Interval J,
                                              ZSqrt2 parity_hint,
-                                             uint64_t max_scan_steps)
+                                             std::uint64_t max_scan_steps)
     : inner_(scaled_parity_I(I, parity_hint.parity()),
              scaled_parity_J(J, parity_hint.parity()), max_scan_steps),
       parity_p_(parity_hint.parity()) {
@@ -558,11 +558,11 @@ const ZSqrt2 *OdgpWithParityStepper::next() {
 //===----------------------------------------------------------------------===//
 
 OdgpScaledStepper::OdgpScaledStepper(Interval I, Interval J, Integer denom_exp,
-                                     uint64_t max_scan_steps)
+                                     std::uint64_t max_scan_steps)
     : denom_exp_(std::move(denom_exp)) {
   CUDAQ_SYNTH_OPEN_SUB("OdgpScaledStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
-             << "denom_exp=" << static_cast<int64_t>(denom_exp_)
+             << "denom_exp=" << static_cast<std::int64_t>(denom_exp_)
              << ", I_width=" << I.width() << ", J_width=" << J.width() << '\n');
   // Scale I and J by sqrt(2)^denom_exp; the J side picks up a sign flip for
   // odd exponents because the sqrt(2)-conjugation sends sqrt(2) -> -sqrt(2).
@@ -594,10 +594,10 @@ const DSqrt2 *OdgpScaledStepper::next() {
 
 OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(
     Interval I, Interval J, Integer denom_exp, DSqrt2 parity_hint,
-    uint64_t max_scan_steps) {
+    std::uint64_t max_scan_steps) {
   CUDAQ_SYNTH_OPEN_SUB("OdgpScaledWithParityStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
-             << "denom_exp=" << static_cast<int64_t>(denom_exp)
+             << "denom_exp=" << static_cast<std::int64_t>(denom_exp)
              << ", parity=" << parity_hint << '\n');
 
   // denom_exp == 0 is the parity-only base case; positive exponents reduce

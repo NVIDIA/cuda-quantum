@@ -160,11 +160,11 @@ bool fabricAttributeIsAFloorplan(MlirAttribute attr) {
 
 MlirAttribute fabricFloorplanAttrGet(MlirContext ctx, MlirStringRef layout,
                                      intptr_t numParams,
-                                     const int64_t *params) {
+                                     const std::int64_t *params) {
   auto sym = qlx::fabric::symbolizeLayout(unwrap(layout));
   if (!sym)
     return MlirAttribute{nullptr};
-  llvm::ArrayRef<int64_t> ref(params, static_cast<size_t>(numParams));
+  llvm::ArrayRef<std::int64_t> ref(params, static_cast<size_t>(numParams));
   return wrap(qlx::fabric::FloorplanAttr::get(unwrap(ctx), *sym, ref));
 }
 

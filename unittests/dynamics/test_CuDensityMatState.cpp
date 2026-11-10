@@ -46,7 +46,7 @@ protected:
 
   void TearDown() override { cudensitymatDestroy(handle); }
 
-  std::vector<int64_t> hilbertSpaceDims;
+  std::vector<std::int64_t> hilbertSpaceDims;
   std::vector<std::complex<double>> stateVectorData;
   std::vector<std::complex<double>> densityMatrixData;
 };
@@ -92,7 +92,7 @@ TEST_F(CuDensityMatStateTest, ToDensityMatrixConversion) {
 
 TEST_F(CuDensityMatStateTest, ToDensityMatrixConversionCorrectnessCheck) {
   // Check a range of dimensions
-  for (int64_t N = 2; N < 10; N += 2) {
+  for (std::int64_t N = 2; N < 10; N += 2) {
     Eigen::VectorXcd randomVec = Eigen::VectorXcd::Random(N);
     std::vector<std::complex<double>> initialState(
         randomVec.data(), randomVec.data() + randomVec.size());
@@ -302,7 +302,7 @@ TEST_F(CuDensityMatStateTest, DensityMatrixOverlapPartial) {
   // Single-qubit system: |0><0| vs |+><+| where |+> = (|0>+|1>)/sqrt(2)
   // |0><0| = {{1,0},{0,0}}, |+><+| = {{0.5,0.5},{0.5,0.5}}
   // Tr(|0><0| * |+><+|) = 0.5
-  std::vector<int64_t> dims1q = {2};
+  std::vector<std::int64_t> dims1q = {2};
 
   // |0><0| in column-major: [1, 0, 0, 0]
   std::vector<std::complex<double>> dm0 = {
@@ -326,7 +326,7 @@ TEST_F(CuDensityMatStateTest, DensityMatrixOverlapPartial) {
 // complex-valued density matrix pins down the conjugation. Dropping it would
 // make the self-overlap below 0 instead of 1.
 TEST_F(CuDensityMatStateTest, DensityMatrixOverlapComplex) {
-  std::vector<int64_t> dims1q = {2};
+  std::vector<std::int64_t> dims1q = {2};
 
   std::vector<std::complex<double>> dmPlusI = {
       {0.5, 0.0}, {0.0, 0.5}, {0.0, -0.5}, {0.5, 0.0}};
@@ -473,7 +473,7 @@ TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
 }
 
 TEST_F(CuDensityMatStateTest, SplitBatchedStatePreservesLayoutMetadata) {
-  const std::vector<int64_t> dims{2};
+  const std::vector<std::int64_t> dims{2};
   const std::vector<std::complex<double>> dm = {
       {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}, {4.0, 0.0}};
 

@@ -20,10 +20,10 @@
 #include <set>
 
 namespace {
-std::vector<int64_t>
-getSubspaceExtents(const std::vector<int64_t> &modeExtents,
+std::vector<std::int64_t>
+getSubspaceExtents(const std::vector<std::int64_t> &modeExtents,
                    const std::vector<std::size_t> &degrees) {
-  std::vector<int64_t> subspaceExtents;
+  std::vector<std::int64_t> subspaceExtents;
 
   for (std::size_t degree : degrees) {
     if (degree >= modeExtents.size())
@@ -36,7 +36,7 @@ getSubspaceExtents(const std::vector<int64_t> &modeExtents,
 }
 
 cudaq::dimension_map
-convertDimensions(const std::vector<int64_t> &modeExtents) {
+convertDimensions(const std::vector<std::int64_t> &modeExtents) {
 
   cudaq::dimension_map dimensions;
   for (size_t i = 0; i < modeExtents.size(); ++i)
@@ -49,10 +49,11 @@ convertDimensions(const std::vector<int64_t> &modeExtents) {
 // on `degrees`. Both degree lists are ascending and `subDegrees` is a subset
 // of `degrees`; matrices use the CUDA-Q canonical order (first degree varying
 // fastest).
-cudaq::complex_matrix embedMatrix(const cudaq::complex_matrix &matrix,
-                                  const std::vector<std::size_t> &subDegrees,
-                                  const std::vector<std::size_t> &degrees,
-                                  const std::vector<int64_t> &modeExtents) {
+cudaq::complex_matrix
+embedMatrix(const cudaq::complex_matrix &matrix,
+            const std::vector<std::size_t> &subDegrees,
+            const std::vector<std::size_t> &degrees,
+            const std::vector<std::int64_t> &modeExtents) {
   if (subDegrees == degrees)
     return matrix;
 
@@ -136,7 +137,7 @@ std::vector<std::vector<std::size_t>> foldSubsetGroups(DegreeGroups &groups) {
 }
 
 std::size_t subspaceDimension(const std::vector<std::size_t> &degrees,
-                              const std::vector<int64_t> &modeExtents) {
+                              const std::vector<std::int64_t> &modeExtents) {
   std::size_t dim = 1;
   for (auto degree : degrees)
     dim *= static_cast<std::size_t>(modeExtents[degree]);
@@ -149,8 +150,9 @@ std::size_t subspaceDimension(const std::vector<std::size_t> &degrees,
 // are zero in the product are dropped.
 cudaq::mdiag_sparse_matrix
 multiplyDiagonalMatrices(const cudaq::mdiag_sparse_matrix &a,
-                         const cudaq::mdiag_sparse_matrix &b, int64_t dim) {
-  std::map<int64_t, std::vector<std::complex<double>>> diagonals;
+                         const cudaq::mdiag_sparse_matrix &b,
+                         std::int64_t dim) {
+  std::map<std::int64_t, std::vector<std::complex<double>>> diagonals;
   for (std::size_t i = 0; i < a.second.size(); ++i) {
     const auto offsetA = a.second[i];
     for (std::size_t j = 0; j < b.second.size(); ++j) {
@@ -159,7 +161,7 @@ multiplyDiagonalMatrices(const cudaq::mdiag_sparse_matrix &a,
       if (offset <= -dim || offset >= dim)
         continue;
       auto &diagonal = diagonals.try_emplace(offset, dim).first->second;
-      for (int64_t row = 0; row < dim; ++row) {
+      for (std::int64_t row = 0; row < dim; ++row) {
         const auto mid = row + offsetA;
         const auto col = mid + offsetB;
         if (mid < 0 || mid >= dim || col < 0 || col >= dim)
@@ -344,10 +346,10 @@ bool cudaq::dynamics::CuDensityMatOpConverter::requiresTensorCallback(
 
 bool cudaq::dynamics::CuDensityMatOpConverter::isFusableSubspace(
     const std::vector<std::size_t> &degrees,
-    const std::vector<int64_t> &modeExtents, bool bothSides) const {
+    const std::vector<std::int64_t> &modeExtents, bool bothSides) const {
   if (m_maxFusedDimension <= 0 || degrees.empty())
     return false;
-  int64_t dim = 1;
+  std::int64_t dim = 1;
   for (auto degree : degrees) {
     dim *= modeExtents.at(degree);
     if (dim > m_maxFusedDimension)
@@ -360,7 +362,7 @@ std::optional<cudaq::dynamics::CuDensityMatOpConverter::FusedTerm>
 cudaq::dynamics::CuDensityMatOpConverter::computeFusableProductTerm(
     const product_op<cudaq::matrix_handler> &prodOp,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    const std::vector<int64_t> &modeExtents, bool bothSides) {
+    const std::vector<std::int64_t> &modeExtents, bool bothSides) {
   if (!prodOp.get_coefficient().is_constant() ||
       !isFusableSubspace(prodOp.degrees(), modeExtents, bothSides))
     return std::nullopt;
@@ -384,7 +386,7 @@ std::vector<cudaq::dynamics::CuDensityMatOpConverter::FusedTerm>
 cudaq::dynamics::CuDensityMatOpConverter::fuseProductTerms(
     const sum_op<cudaq::matrix_handler> &op,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    const std::vector<int64_t> &modeExtents,
+    const std::vector<std::int64_t> &modeExtents,
     const std::vector<FusedTerm> &extraTerms,
     std::vector<product_op<cudaq::matrix_handler>> &remaining) {
   struct Piece {
@@ -441,7 +443,7 @@ std::optional<cudaq::dynamics::CuDensityMatOpConverter::FusedTerm>
 cudaq::dynamics::CuDensityMatOpConverter::computeFusableCollapseOperator(
     const sum_op<cudaq::matrix_handler> &collapseOp,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    const std::vector<int64_t> &modeExtents, bool bothSides) {
+    const std::vector<std::int64_t> &modeExtents, bool bothSides) {
   const auto degrees = collapseOp.degrees();
   if (collapseOp.num_terms() == 0 ||
       !isFusableSubspace(degrees, modeExtents, bothSides))
@@ -462,7 +464,7 @@ cudaq::dynamics::CuDensityMatOpConverter::computeFusableCollapseOperator(
 void cudaq::dynamics::CuDensityMatOpConverter::appendFusedSuperoperatorTerms(
     cudensitymatOperator_t cudmOperator,
     const std::vector<FusedSuperoperatorTerm> &terms,
-    const std::vector<int64_t> &modeExtents) {
+    const std::vector<std::int64_t> &modeExtents) {
   if (terms.empty())
     return;
 
@@ -560,14 +562,14 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendFusedSuperoperatorTerms(
 cudensitymatElementaryOperator_t
 cudaq::dynamics::CuDensityMatOpConverter::createDenseElementaryOperator(
     const cudaq::complex_matrix &matrix,
-    const std::vector<int64_t> &subspaceExtents) {
+    const std::vector<std::int64_t> &subspaceExtents) {
   auto *elementaryMat_d =
       cudaq::dynamics::createArrayGpu(flattenMatrixColumnMajor(matrix));
   m_deviceBuffers.emplace(elementaryMat_d);
 
   cudensitymatElementaryOperator_t cudmElemOp = nullptr;
   HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
-      m_handle, static_cast<int32_t>(subspaceExtents.size()),
+      m_handle, static_cast<std::int32_t>(subspaceExtents.size()),
       subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
       CUDA_C_64F, elementaryMat_d, cudensitymatTensorCallbackNone,
       cudensitymatTensorGradientCallbackNone, &cudmElemOp));
@@ -579,12 +581,12 @@ cudensitymatElementaryOperator_t
 cudaq::dynamics::CuDensityMatOpConverter::createFusedMultidiagonalOperator(
     const std::vector<cudaq::matrix_handler> &factors,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    const std::vector<int64_t> &modeExtents) {
+    const std::vector<std::int64_t> &modeExtents) {
   if (m_maxFusedDimension <= 0 || factors.size() < 2)
     return nullptr;
   const auto degrees = factors[0].degrees();
   const auto dim =
-      static_cast<int64_t>(subspaceDimension(degrees, modeExtents));
+      static_cast<std::int64_t>(subspaceDimension(degrees, modeExtents));
   if (dim < m_minDimensionDiag)
     return nullptr;
 
@@ -605,14 +607,14 @@ cudaq::dynamics::CuDensityMatOpConverter::createFusedMultidiagonalOperator(
     return nullptr;
 
   const auto subspaceExtents = getSubspaceExtents(modeExtents, degrees);
-  const std::vector<int32_t> offsets(product->second.begin(),
-                                     product->second.end());
+  const std::vector<std::int32_t> offsets(product->second.begin(),
+                                          product->second.end());
   auto *elementaryMat_d = cudaq::dynamics::createArrayGpu(product->first);
   m_deviceBuffers.emplace(elementaryMat_d);
 
   cudensitymatElementaryOperator_t cudmElemOp = nullptr;
   HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
-      m_handle, static_cast<int32_t>(subspaceExtents.size()),
+      m_handle, static_cast<std::int32_t>(subspaceExtents.size()),
       subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_MULTIDIAGONAL,
       offsets.size(), offsets.data(), CUDA_C_64F, elementaryMat_d,
       cudensitymatTensorCallbackNone, cudensitymatTensorGradientCallbackNone,
@@ -626,7 +628,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createFusedMultidiagonalOperator(
 
 void cudaq::dynamics::CuDensityMatOpConverter::appendFusedTerm(
     cudensitymatOperator_t cudmOperator, const FusedTerm &fusedTerm,
-    const std::vector<int64_t> &modeExtents, int32_t duality) {
+    const std::vector<std::int64_t> &modeExtents, std::int32_t duality) {
   auto cudmElemOp = createDenseElementaryOperator(
       fusedTerm.matrix, getSubspaceExtents(modeExtents, fusedTerm.degrees));
   auto term = createProductOperatorTerm({cudmElemOp}, modeExtents,
@@ -640,7 +642,7 @@ cudensitymatElementaryOperator_t
 cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     const std::vector<cudaq::matrix_handler> &elemOps,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    const std::vector<int64_t> &modeExtents) {
+    const std::vector<std::int64_t> &modeExtents) {
   if (elemOps.empty()) {
     throw std::invalid_argument(
         "Elementary operator cannot be created from an empty vector of "
@@ -677,7 +679,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
 
   const auto batchSize = elemOps.size();
   bool shouldUseDia = false;
-  std::vector<int32_t> diagonalOffsets;
+  std::vector<std::int32_t> diagonalOffsets;
   auto *elementaryMat_d = [&]() {
     if (!isBatched) {
       auto &elemOp = elemOps[0];
@@ -687,7 +689,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
         if (diags.empty())
           return false;
         const auto dim = std::accumulate(
-            subspaceExtents.begin(), subspaceExtents.end(), int64_t{1},
+            subspaceExtents.begin(), subspaceExtents.end(), std::int64_t{1},
             std::multiplies<decltype(subspaceExtents)::value_type>());
         if (dim < m_minDimensionDiag)
           return false;
@@ -708,9 +710,9 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
       return cudaq::dynamics::createArrayGpu(flatMatrix);
     }
 
-    const int64_t totalDim =
+    const std::int64_t totalDim =
         std::accumulate(subspaceExtents.begin(), subspaceExtents.end(),
-                        int64_t{1}, std::multiplies<int64_t>());
+                        std::int64_t{1}, std::multiplies<std::int64_t>());
     std::vector<std::complex<double>> tensorData;
     tensorData.reserve(totalDim * totalDim * batchSize);
     for (const auto &elementaryOp : elemOps) {
@@ -725,7 +727,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
   if (shouldUseDia) {
     assert(!isBatched);
     HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
-        m_handle, static_cast<int32_t>(subspaceExtents.size()),
+        m_handle, static_cast<std::int32_t>(subspaceExtents.size()),
         subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_MULTIDIAGONAL,
         diagonalOffsets.size(), diagonalOffsets.data(), CUDA_C_64F,
         elementaryMat_d, wrappedTensorCallback,
@@ -733,14 +735,14 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
   } else {
     if (isBatched) {
       HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperatorBatch(
-          m_handle, static_cast<int32_t>(subspaceExtents.size()),
+          m_handle, static_cast<std::int32_t>(subspaceExtents.size()),
           subspaceExtents.data(), batchSize,
           CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr, CUDA_C_64F,
           elementaryMat_d, wrappedTensorCallback,
           cudensitymatTensorGradientCallbackNone, &cudmElemOp));
     } else {
       HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
-          m_handle, static_cast<int32_t>(subspaceExtents.size()),
+          m_handle, static_cast<std::int32_t>(subspaceExtents.size()),
           subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0,
           nullptr, CUDA_C_64F, elementaryMat_d, wrappedTensorCallback,
           cudensitymatTensorGradientCallbackNone, &cudmElemOp));
@@ -761,14 +763,14 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
 cudensitymatOperatorTerm_t
 cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
     const std::vector<cudensitymatElementaryOperator_t> &elemOps,
-    const std::vector<int64_t> &modeExtents,
+    const std::vector<std::int64_t> &modeExtents,
     const std::vector<std::vector<std::size_t>> &degrees,
     const std::vector<std::vector<int>> &dualModalities) {
 
   cudensitymatOperatorTerm_t term;
   HANDLE_CUDM_ERROR(cudensitymatCreateOperatorTerm(
-      m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
-      &term));
+      m_handle, static_cast<std::int32_t>(modeExtents.size()),
+      modeExtents.data(), &term));
   m_operatorTerms.emplace(term);
   if (degrees.empty())
     throw std::invalid_argument("Degrees vector cannot be empty.");
@@ -785,8 +787,8 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
     throw std::invalid_argument(
         "degrees and dualModalities must have the same size.");
 
-  std::vector<int32_t> allDegrees;
-  std::vector<int32_t> allModeActionDuality;
+  std::vector<std::int32_t> allDegrees;
+  std::vector<std::int32_t> allModeActionDuality;
   for (size_t i = 0; i < degrees.size(); i++) {
     const auto &sub_degrees = degrees[i];
     const auto &modalities = hasDualModalities
@@ -807,7 +809,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
 
   assert(elemOps.size() == degrees.size());
   HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
-      m_handle, term, static_cast<int32_t>(elemOps.size()), elemOps.data(),
+      m_handle, term, static_cast<std::int32_t>(elemOps.size()), elemOps.data(),
       allDegrees.data(), allModeActionDuality.data(),
       make_cuDoubleComplex(1.0, 0.0), cudensitymatScalarCallbackNone,
       cudensitymatScalarGradientCallbackNone));
@@ -818,7 +820,7 @@ cudensitymatOperator_t
 cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymatOperator(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<sum_op<cudaq::matrix_handler>> &ops,
-    const std::vector<int64_t> &modeExtents) {
+    const std::vector<std::int64_t> &modeExtents) {
   if (ops.empty())
     throw std::invalid_argument(
         "Operator sum cannot be empty. At least one operator is required.");
@@ -836,8 +838,8 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymatOperator(
 
   cudensitymatOperator_t cudmOperator;
   HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
-      m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
-      &cudmOperator));
+      m_handle, static_cast<std::int32_t>(modeExtents.size()),
+      modeExtents.data(), &cudmOperator));
 
   appendToCudensitymatOperator(cudmOperator, parameters, ops, modeExtents,
                                /*duality=*/0);
@@ -849,7 +851,7 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
     cudensitymatOperator_t &cudmOperator,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<sum_op<cudaq::matrix_handler>> &ops,
-    const std::vector<int64_t> &modeExtents, int32_t duality,
+    const std::vector<std::int64_t> &modeExtents, std::int32_t duality,
     const std::vector<FusedTerm> &extraFusableTerms) {
   if (ops.empty())
     throw std::invalid_argument(
@@ -998,7 +1000,7 @@ cudensitymatOperatorTerm_t
 cudaq::dynamics::CuDensityMatOpConverter::createBatchedProductTerm(
     const std::vector<product_op<cudaq::matrix_handler>> &prodTerms,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    const std::vector<int64_t> &modeExtents) {
+    const std::vector<std::int64_t> &modeExtents) {
   if (prodTerms.empty())
     throw std::invalid_argument("Product terms cannot be empty. At least one "
                                 "product term is required.");
@@ -1037,7 +1039,7 @@ std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
 cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymat(
     const sum_op<cudaq::matrix_handler> &op,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    const std::vector<int64_t> &modeExtents) {
+    const std::vector<std::int64_t> &modeExtents) {
   if (op.num_terms() == 0)
     throw std::invalid_argument("Operator sum cannot be empty.");
 

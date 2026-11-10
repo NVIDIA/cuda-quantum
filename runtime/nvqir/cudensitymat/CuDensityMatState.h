@@ -29,7 +29,7 @@ private:
 
   cudensitymatState_t cudmState = nullptr;
   cudensitymatHandle_t cudmHandle = nullptr;
-  std::vector<int64_t> hilbertSpaceDims;
+  std::vector<std::int64_t> hilbertSpaceDims;
   std::size_t batchSize = 1;
   // The dimension of a single state in the batch (used for distributed mode).
   // For non-batched states, this equals dimension.
@@ -60,7 +60,7 @@ public:
   static std::unique_ptr<CuDensityMatState>
   createBatchedState(cudensitymatHandle_t handle,
                      const std::vector<CuDensityMatState *> initial_states,
-                     const std::vector<int64_t> &dimensions,
+                     const std::vector<std::int64_t> &dimensions,
                      bool createDensityState);
 
   // Split a batched state into individual states.
@@ -177,7 +177,7 @@ public:
   /// @return A new initialized CuDensityMatState representing the density
   /// matrix.
   CuDensityMatState
-  to_density_matrix(const std::vector<int64_t> &hilbertSpaceDims) const;
+  to_density_matrix(const std::vector<std::int64_t> &hilbertSpaceDims) const;
 
   /// @brief Return the number of elements in the current storage buffer.
   std::size_t get_element_count() const { return dimension; }
@@ -192,7 +192,7 @@ public:
 
   /// @brief Get a copy of the `hilbert` space dimensions for the quantum state.
   /// @return A copy of the `hilbert` space dimensions of a vector of integers.
-  std::vector<int64_t> get_hilbert_space_dims() const;
+  std::vector<std::int64_t> get_hilbert_space_dims() const;
 
   /// @brief Returns the handle
   /// @return The handle associated with the state
@@ -203,8 +203,8 @@ public:
 
   // Initialize a state with cudensitymat
   void initialize_cudm(cudensitymatHandle_t handleToSet,
-                       const std::vector<int64_t> &hilbertSpaceDims,
-                       int64_t batchSize);
+                       const std::vector<std::int64_t> &hilbertSpaceDims,
+                       std::int64_t batchSize);
 
   /// @brief Accumulation in-place with a coefficient
   void accumulate_inplace(const CuDensityMatState &other,
@@ -222,14 +222,14 @@ private:
   /// Helper method to transform a state vector states to density matrix states.
   // The caller takes ownership of the returned states.
   static std::vector<CuDensityMatState *> convertStateVecToDensityMatrix(
-      const std::vector<CuDensityMatState *> svStates, int64_t dmSize);
+      const std::vector<CuDensityMatState *> svStates, std::int64_t dmSize);
 
   /// Helper to aggregate multiple input states into a distributed batched
   /// state.
   static void
   distributeBatchedStateData(CuDensityMatState &batchedState,
                              const std::vector<CuDensityMatState *> inputStates,
-                             int64_t singleStateDimension);
+                             std::int64_t singleStateDimension);
 };
 /// @endcond
 } // namespace cudaq

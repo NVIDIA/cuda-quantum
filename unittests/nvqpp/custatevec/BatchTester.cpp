@@ -265,11 +265,11 @@ TYPED_TEST(CuStateVecBatchExpectationTester,
   using Scalar = TypeParam;
   using Complex = std::complex<Scalar>;
   constexpr std::size_t batchSize = 4;
-  constexpr int32_t numWires = 9;
+  constexpr std::int32_t numWires = 9;
   CuStateVecBatch<Scalar> batch(numWires, batchSize, false);
   const Scalar scale = std::sqrt(Scalar{0.5});
 
-  const auto task = [](std::vector<Complex> matrix, int32_t target) {
+  const auto task = [](std::vector<Complex> matrix, std::int32_t target) {
     MatrixTask<Scalar> result;
     result.matrix = std::move(matrix);
     result.targets = {target};
@@ -287,7 +287,7 @@ TYPED_TEST(CuStateVecBatchExpectationTester,
   batch.apply({identityOnOne, identityOnOne, hOnOne, hOnOne});
 
   std::vector<custatevecPauli_t> widePaulis(numWires, CUSTATEVEC_PAULI_Z);
-  std::vector<int32_t> wideTargets(numWires);
+  std::vector<std::int32_t> wideTargets(numWires);
   std::iota(wideTargets.begin(), wideTargets.end(), 0);
   const std::vector<std::vector<custatevecPauli_t>> paulis{
       {},
@@ -297,7 +297,7 @@ TYPED_TEST(CuStateVecBatchExpectationTester,
       {CUSTATEVEC_PAULI_X, CUSTATEVEC_PAULI_X},
       {CUSTATEVEC_PAULI_Y, CUSTATEVEC_PAULI_X},
       widePaulis};
-  const std::vector<std::vector<int32_t>> targets{
+  const std::vector<std::vector<std::int32_t>> targets{
       {}, {0}, {0}, {0}, {0, 1}, {0, 1}, wideTargets};
 
   const auto values = batch.expectationPauli(paulis, targets);

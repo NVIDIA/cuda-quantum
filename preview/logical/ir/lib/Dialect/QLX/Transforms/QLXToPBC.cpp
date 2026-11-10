@@ -150,18 +150,18 @@ static DictionaryAttr pauliParams(OpBuilder &b,
                                   const Generator &g, bool withAngle) {
   MLIRContext *ctx = b.getContext();
   auto i64 = IntegerType::get(ctx, 64);
-  uint64_t xm = 0, zm = 0;
+  std::uint64_t xm = 0, zm = 0;
   for (auto [bit, q] : llvm::enumerate(support)) {
     if (g.x[q])
-      xm |= (uint64_t{1} << bit);
+      xm |= (std::uint64_t{1} << bit);
     if (g.z[q])
-      zm |= (uint64_t{1} << bit);
+      zm |= (std::uint64_t{1} << bit);
   }
   llvm::SmallVector<NamedAttribute> fields;
   fields.emplace_back(b.getStringAttr("x_mask"),
-                      IntegerAttr::get(i64, static_cast<int64_t>(xm)));
+                      IntegerAttr::get(i64, static_cast<std::int64_t>(xm)));
   fields.emplace_back(b.getStringAttr("z_mask"),
-                      IntegerAttr::get(i64, static_cast<int64_t>(zm)));
+                      IntegerAttr::get(i64, static_cast<std::int64_t>(zm)));
   fields.emplace_back(b.getStringAttr("sign"),
                       IntegerAttr::get(i64, g.sign ? -1 : 1));
   if (withAngle) {
@@ -180,7 +180,7 @@ static DictionaryAttr pauliParams(OpBuilder &b,
 static LogicalResult requireRepresentableMask(Operation *source,
                                               size_t supportSize,
                                               llvm::StringRef kind) {
-  constexpr size_t maxSupport = std::numeric_limits<int64_t>::digits;
+  constexpr size_t maxSupport = std::numeric_limits<std::int64_t>::digits;
   if (supportSize <= maxSupport)
     return success();
   return source->emitOpError()
@@ -203,8 +203,8 @@ static llvm::SmallVector<unsigned> supportOf(const Generator &g) {
 /// represented as one count-one phase chunk. Large counts require residual
 /// signed-Clifford closure within the same bound. A second operation budget
 /// protects nested or unusually large bodies from multiplicative cloning.
-static constexpr int64_t maxDirectRepeatPhases = 64;
-static constexpr int64_t maxRepeatFramePeriod = 64;
+static constexpr std::int64_t maxDirectRepeatPhases = 64;
+static constexpr std::int64_t maxRepeatFramePeriod = 64;
 static constexpr size_t maxPeriodicClonedOperations = 4096;
 
 struct Measurement {
@@ -647,10 +647,10 @@ private:
     return identity;
   }
 
-  FailureOr<int64_t> findResidualPeriod(cflow::RepeatOp repeat) {
+  FailureOr<std::int64_t> findResidualPeriod(cflow::RepeatOp repeat) {
     Frame basis(initValues.size());
     basis.seedCanonicalBasis();
-    for (int64_t period = 1; period <= maxRepeatFramePeriod; ++period) {
+    for (std::int64_t period = 1; period <= maxRepeatFramePeriod; ++period) {
       if (failed(walkReverse(repeat.getBody().front(), basis,
                              /*recordRotations=*/false)))
         return failure();
@@ -679,9 +679,11 @@ private:
     return count;
   }
 
-  FailureOr<cflow::RepeatOp>
-  createPhaseChunk(OpBuilder &builder, cflow::RepeatOp source,
-                   int64_t repeatCount, int64_t phaseCopies, ValueRange inits) {
+  FailureOr<cflow::RepeatOp> createPhaseChunk(OpBuilder &builder,
+                                              cflow::RepeatOp source,
+                                              std::int64_t repeatCount,
+                                              std::int64_t phaseCopies,
+                                              ValueRange inits) {
     auto chunk = cflow::RepeatOp::create(
         builder, source.getLoc(), source.getResultTypes(),
         builder.getI64IntegerAttr(repeatCount), inits, StringAttr{});
@@ -706,7 +708,7 @@ private:
     llvm::SmallVector<Value> current(chunkBody->getArguments().begin(),
                                      chunkBody->getArguments().end());
     auto sourceYield = cast<cflow::YieldOp>(sourceBody.getTerminator());
-    for (int64_t phase = 0; phase < phaseCopies; ++phase) {
+    for (std::int64_t phase = 0; phase < phaseCopies; ++phase) {
       IRMapping mapping;
       for (auto [argument, value] :
            llvm::zip(sourceBody.getArguments(), current))
@@ -755,12 +757,12 @@ private:
   }
 
   LogicalResult expandPeriodicRepeat(cflow::RepeatOp repeat) {
-    int64_t sourceCount = repeat.getCount();
-    int64_t chunkCount = 1;
-    int64_t chunkPhases = sourceCount;
-    int64_t remainderPhases = 0;
+    std::int64_t sourceCount = repeat.getCount();
+    std::int64_t chunkCount = 1;
+    std::int64_t chunkPhases = sourceCount;
+    std::int64_t remainderPhases = 0;
     if (sourceCount > maxDirectRepeatPhases) {
-      FailureOr<int64_t> period = findResidualPeriod(repeat);
+      FailureOr<std::int64_t> period = findResidualPeriod(repeat);
       if (failed(period))
         return failure();
       chunkPhases = *period;
@@ -768,8 +770,8 @@ private:
       remainderPhases = sourceCount % *period;
     }
 
-    uint64_t materializedPhases =
-        static_cast<uint64_t>(chunkPhases + remainderPhases);
+    std::uint64_t materializedPhases =
+        static_cast<std::uint64_t>(chunkPhases + remainderPhases);
     size_t bodyOperations = countBodyOperations(repeat);
     if (bodyOperations != 0 &&
         materializedPhases > maxPeriodicClonedOperations / bodyOperations) {

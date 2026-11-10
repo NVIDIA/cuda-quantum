@@ -19,7 +19,7 @@ cudaq::product_op<cudaq::matrix_handler>
 computeDagger(const cudaq::matrix_handler &op) {
   const std::string daggerOpName = op.to_string(false) + "_dagger";
   try {
-    auto func = [op](const std::vector<int64_t> &dimensions,
+    auto func = [op](const std::vector<std::int64_t> &dimensions,
                      const std::unordered_map<std::string, std::complex<double>>
                          &params) {
       cudaq::dimension_map dims;
@@ -34,7 +34,7 @@ computeDagger(const cudaq::matrix_handler &op) {
     };
 
     auto dia_func =
-        [op](const std::vector<int64_t> &dimensions,
+        [op](const std::vector<std::int64_t> &dimensions,
              const std::unordered_map<std::string, std::complex<double>>
                  &params) {
           cudaq::dimension_map dims;
@@ -111,7 +111,7 @@ std::vector<
     std::pair<std::vector<cudaq::scalar_operator>, cudensitymatOperatorTerm_t>>
 cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
     const std::vector<sum_op<cudaq::matrix_handler>> &batchedCollapseOps,
-    const std::vector<int64_t> &modeExtents,
+    const std::vector<std::int64_t> &modeExtents,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool includeAntiCommutator) {
   if (batchedCollapseOps.empty())
@@ -309,7 +309,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     const std::vector<sum_op<cudaq::matrix_handler>> &hamOperators,
     const std::vector<std::vector<sum_op<cudaq::matrix_handler>>>
         &collapseOperators,
-    const std::vector<int64_t> &modeExtents,
+    const std::vector<std::int64_t> &modeExtents,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool isMasterEquation) {
   LOG_API_TIME();
@@ -347,8 +347,8 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     CUDAQ_INFO("Construct density matrix Liouvillian");
     cudensitymatOperator_t liouvillian;
     HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
-        m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
-        &liouvillian));
+        m_handle, static_cast<std::int32_t>(modeExtents.size()),
+        modeExtents.data(), &liouvillian));
     // Append an operator term to the operator (super-operator)
     // Handle the Hamiltonian
     const std::map<std::string, std::complex<double>> sortedParameters(
@@ -480,7 +480,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
 cudensitymatOperator_t
 cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     const std::vector<super_op> &superOps,
-    const std::vector<int64_t> &modeExtents,
+    const std::vector<std::int64_t> &modeExtents,
     const std::unordered_map<std::string, std::complex<double>> &parameters) {
   LOG_API_TIME();
   if (superOps.empty())
@@ -490,8 +490,8 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
 
   cudensitymatOperator_t liouvillian;
   HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
-      m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
-      &liouvillian));
+      m_handle, static_cast<std::int32_t>(modeExtents.size()),
+      modeExtents.data(), &liouvillian));
   // Append an operator term to the operator (super-operator)
   // Handle the Hamiltonian
   const std::map<std::string, std::complex<double>> sortedParameters(

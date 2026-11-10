@@ -36,7 +36,7 @@ struct CUDAQLibraryData {
 #if defined(__APPLE__) && defined(__MACH__)
 inline static void getCUDAQLibraryPath(CUDAQLibraryData *data) {
   auto nLibs = _dyld_image_count();
-  for (uint32_t i = 0; i < nLibs; i++) {
+  for (std::uint32_t i = 0; i < nLibs; i++) {
     auto ptr = _dyld_get_image_name(i);
     std::string libName(ptr);
     if (libName.find("libcudaq.") != std::string::npos) {
@@ -310,9 +310,10 @@ inline void trim(std::string &s) {
 std::vector<double> linspace(const double a, const double b, std::size_t size);
 
 // Override the seed if you want repeatably random numbers
-std::vector<double> random_vector(const double l_range, const double r_range,
-                                  const std::size_t size,
-                                  const uint32_t seed = std::random_device{}());
+std::vector<double>
+random_vector(const double l_range, const double r_range,
+              const std::size_t size,
+              const std::uint32_t seed = std::random_device{}());
 
 /// @brief Return a vector of integers. The first element is the
 /// user-specified `start` value. The remaining values are all values

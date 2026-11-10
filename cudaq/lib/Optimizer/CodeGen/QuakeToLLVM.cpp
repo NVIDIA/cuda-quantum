@@ -504,7 +504,8 @@ public:
     auto pauliWord = operands.back();
     if (isa<LLVM::LLVMPointerType>(pauliWord.getType())) {
       // With opaque pointers we get the string length from the literal
-      auto numElements = static_cast<int64_t>(instOp.getPauliLiteral()->size());
+      auto numElements =
+          static_cast<std::int64_t>(instOp.getPauliLiteral()->size());
 
       // Remove the old operand
       operands.pop_back();

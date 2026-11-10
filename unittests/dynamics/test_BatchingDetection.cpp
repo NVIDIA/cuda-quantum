@@ -88,7 +88,7 @@ TEST(BatchingDetectionTester, checkPositive) {
   {
     // user-defined op
     auto displacement_matrix =
-        [](const std::vector<int64_t> &dimensions,
+        [](const std::vector<std::int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>>
                &parameters) -> cudaq::complex_matrix {
       std::size_t dimension = dimensions[0];
@@ -157,7 +157,7 @@ TEST(BatchingDetectionTester, checkNegative) {
     // Same degrees, but not compatible (2-body op vs multiplication of 1-body
     // ops)
     auto two_body_matrix =
-        [](const std::vector<int64_t> &dimensions,
+        [](const std::vector<std::int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>>
                &parameters) -> cudaq::complex_matrix {
       if (dimensions.size() != 2)

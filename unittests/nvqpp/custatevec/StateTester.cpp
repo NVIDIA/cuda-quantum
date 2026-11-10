@@ -42,7 +42,7 @@ TEST(CuStateVecState, ImportsDevicePointerState) {
                                     expected.size() * sizeof(Complex),
                                     cudaMemcpyHostToDevice));
 
-  int32_t device = 0;
+  std::int32_t device = 0;
   ASSERT_EQ(cudaSuccess, cudaGetDevice(&device));
   auto state = cudaq::cusv::CuStateVecState<double>::createSingleDevice(
       1, 1, device, false);
@@ -65,7 +65,7 @@ TEST(CuStateVecState, AppendsDeviceStateWithKroneckerProduct) {
     const auto initial = randomState(generator);
     const auto added = randomState(generator);
 
-    int32_t device = 0;
+    std::int32_t device = 0;
     ASSERT_EQ(cudaSuccess, cudaGetDevice(&device));
     auto state = cudaq::cusv::CuStateVecState<double>::createSingleDevice(
         2, 2, device, false);
@@ -103,7 +103,7 @@ TEST(CuStateVecState, AppendsHostStateWithKroneckerProduct) {
     const auto initial = randomState(generator);
     const auto added = randomState(generator);
 
-    int32_t device = 0;
+    std::int32_t device = 0;
     ASSERT_EQ(cudaSuccess, cudaGetDevice(&device));
     auto state = cudaq::cusv::CuStateVecState<double>::createSingleDevice(
         2, 2, device, false);
@@ -136,7 +136,7 @@ TYPED_TEST(CuStateVecMigratedCopyTester,
            CopiesMigratedStateWithoutChangingPlacement) {
   using Scalar = TypeParam;
   using Complex = std::complex<Scalar>;
-  int32_t device = 0;
+  std::int32_t device = 0;
   ASSERT_EQ(cudaSuccess, cudaGetDevice(&device));
   auto source = cudaq::cusv::CuStateVecState<Scalar>::createSingleDevice(
       4, 2, device, false);
@@ -159,12 +159,14 @@ TYPED_TEST(CuStateVecMigratedCopyTester,
   destination.synchronize();
   source.stageSubStateVector(0);
   destination.stageSubStateVector(0);
-  EXPECT_EQ(source.deviceSubStateIndices(), (std::vector<int32_t>{0}));
-  EXPECT_EQ(destination.deviceSubStateIndices(), (std::vector<int32_t>{0}));
+  EXPECT_EQ(source.deviceSubStateIndices(), (std::vector<std::int32_t>{0}));
+  EXPECT_EQ(destination.deviceSubStateIndices(),
+            (std::vector<std::int32_t>{0}));
 
   destination.copyFrom(source);
-  EXPECT_EQ(source.deviceSubStateIndices(), (std::vector<int32_t>{0}));
-  EXPECT_EQ(destination.deviceSubStateIndices(), (std::vector<int32_t>{0}));
+  EXPECT_EQ(source.deviceSubStateIndices(), (std::vector<std::int32_t>{0}));
+  EXPECT_EQ(destination.deviceSubStateIndices(),
+            (std::vector<std::int32_t>{0}));
   std::vector<Complex> actual(first.size());
   destination.getState(actual.data(), 0, actual.size());
   destination.synchronize();
@@ -178,12 +180,14 @@ TYPED_TEST(CuStateVecMigratedCopyTester,
   source.synchronize();
   source.stageSubStateVector(1);
   destination.stageSubStateVector(2);
-  EXPECT_EQ(source.deviceSubStateIndices(), (std::vector<int32_t>{1}));
-  EXPECT_EQ(destination.deviceSubStateIndices(), (std::vector<int32_t>{2}));
+  EXPECT_EQ(source.deviceSubStateIndices(), (std::vector<std::int32_t>{1}));
+  EXPECT_EQ(destination.deviceSubStateIndices(),
+            (std::vector<std::int32_t>{2}));
 
   destination.copyFrom(source);
-  EXPECT_EQ(source.deviceSubStateIndices(), (std::vector<int32_t>{1}));
-  EXPECT_EQ(destination.deviceSubStateIndices(), (std::vector<int32_t>{2}));
+  EXPECT_EQ(source.deviceSubStateIndices(), (std::vector<std::int32_t>{1}));
+  EXPECT_EQ(destination.deviceSubStateIndices(),
+            (std::vector<std::int32_t>{2}));
   destination.getState(actual.data(), 0, actual.size());
   destination.synchronize();
   EXPECT_EQ(actual, second);
@@ -194,7 +198,7 @@ TYPED_TEST(CuStateVecMigratedCopyTester,
 TYPED_TEST(CuStateVecMigratedCopyTester, ComputesMigratedOverlap) {
   using Scalar = TypeParam;
   using Complex = std::complex<Scalar>;
-  int32_t device = 0;
+  std::int32_t device = 0;
   ASSERT_EQ(cudaSuccess, cudaGetDevice(&device));
   auto left = cudaq::cusv::CuStateVecState<Scalar>::createSingleDevice(
       4, 2, device, false);
@@ -306,7 +310,7 @@ TYPED_TEST(CuStateVecScalarStateTester, CopiesDeviceInput) {
 // Checks that migrated storage is not array-like but still supports logical
 // amplitude access.
 TEST(CuStateVecSimulationState, MigratedStorageIsNotArrayLike) {
-  int32_t device = 0;
+  std::int32_t device = 0;
   ASSERT_EQ(cudaSuccess, cudaGetDevice(&device));
   auto state = cudaq::cusv::CuStateVecState<double>::createSingleDevice(
       2, 1, device, false);

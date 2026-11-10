@@ -140,7 +140,7 @@ TEST(DynamicsBatchingMpi, checkDistributedExplicitStateWithCollapse) {
   EXPECT_GT(cudaq::mpi::num_ranks(), 1);
 
   const cudaq::dimension_map dimensions{{0, 16}, {1, 2}};
-  constexpr int64_t targetLevel = 9;
+  constexpr std::int64_t targetLevel = 9;
   std::vector<std::complex<double>> stateData(32, 0.0);
   stateData[targetLevel + 16] = 1.0;
   auto initialState = cudaq::state::from_data(stateData);
@@ -170,7 +170,7 @@ TEST(DynamicsBatchingMpi,
   EXPECT_GT(cudaq::mpi::num_ranks(), 1);
 
   const cudaq::dimension_map dimensions{{0, 16}, {1, 2}};
-  constexpr int64_t targetLevel = 9;
+  constexpr std::int64_t targetLevel = 9;
   std::vector<std::complex<double>> stateData(32, 0.0);
   stateData[targetLevel + 16] = 1.0;
   auto initialState = cudaq::state::from_data(stateData);
@@ -207,7 +207,7 @@ TEST(DynamicsBatchingMpi,
   EXPECT_GT(cudaq::mpi::num_ranks(), 1);
 
   const cudaq::dimension_map dimensions{{0, 16}, {1, 2}};
-  constexpr int64_t targetLevel = 9;
+  constexpr std::int64_t targetLevel = 9;
   std::vector<std::complex<double>> stateData(32, 0.0);
   stateData[targetLevel + 16] = 1.0;
   auto initialState = cudaq::state::from_data(stateData);
@@ -242,7 +242,7 @@ TEST(DynamicsBatchingMpi, checkDistributedExplicitStateSuperOp) {
   EXPECT_GT(cudaq::mpi::num_ranks(), 1);
 
   const cudaq::dimension_map dimensions{{0, 16}, {1, 2}};
-  constexpr int64_t targetLevel = 9;
+  constexpr std::int64_t targetLevel = 9;
   std::vector<std::complex<double>> stateData(32, 0.0);
   stateData[targetLevel + 16] = 1.0;
   auto initialState = cudaq::state::from_data(stateData);

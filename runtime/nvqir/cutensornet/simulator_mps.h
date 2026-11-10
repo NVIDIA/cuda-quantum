@@ -60,7 +60,7 @@ public:
       std::vector<MPSTensor> copiedTensors;
       copiedTensors.reserve(casted->getMpsTensors().size());
       for (const auto &mpsTensor : casted->getMpsTensors()) {
-        std::vector<int64_t> extents = mpsTensor.extents;
+        std::vector<std::int64_t> extents = mpsTensor.extents;
         const auto numElements =
             std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
         const auto tensorSizeBytes =
@@ -91,7 +91,7 @@ public:
       auto mpsTensors = casted->getMpsTensors();
       for (std::size_t i = 0; i < mpsTensors.size(); ++i) {
         auto &tensor = mpsTensors[i];
-        std::vector<int64_t> extents = tensor.extents;
+        std::vector<std::int64_t> extents = tensor.extents;
         if (i == 0) {
           // First tensor: add a bond (dim 1 since no entanglement) to the
           // existing state
@@ -250,18 +250,19 @@ public:
 
     LOG_API_TIME();
     cudaq::ExecutionResult counts;
-    std::vector<int32_t> measuredBitIds(measuredBits.begin(),
-                                        measuredBits.end());
+    std::vector<std::int32_t> measuredBitIds(measuredBits.begin(),
+                                             measuredBits.end());
 
     setUpFactorizeForTrajectoryRuns();
-    std::map<std::vector<int64_t>, std::pair<cutensornetStateSampler_t,
-                                             cutensornetWorkspaceDescriptor_t>>
+    std::map<
+        std::vector<std::int64_t>,
+        std::pair<cutensornetStateSampler_t, cutensornetWorkspaceDescriptor_t>>
         samplerCache;
     for (int i = 0; i < shots; ++i) {
       // As the Kraus operator sampling may change the MPS state, we need to
       // re-compute the factorization in each trajectory.
       m_state->computeMPSFactorize(m_mpsTensors_d);
-      std::vector<int64_t> samplerKey;
+      std::vector<std::int64_t> samplerKey;
       for (const auto &tensor : m_mpsTensors_d)
         samplerKey.insert(samplerKey.end(), tensor.extents.begin(),
                           tensor.extents.end());
@@ -399,9 +400,9 @@ public:
         constexpr std::complex<ScalarType> tensorBody[2]{1.0, 0.0};
         constexpr auto tensorSizeBytes = 2 * sizeof(std::complex<ScalarType>);
         for (std::size_t i = 0; i < numQubits; ++i) {
-          const std::vector<int64_t> extents =
-              (i != numQubits - 1) ? std::vector<int64_t>{1, 2, 1}
-                                   : std::vector<int64_t>{1, 2};
+          const std::vector<std::int64_t> extents =
+              (i != numQubits - 1) ? std::vector<std::int64_t>{1, 2, 1}
+                                   : std::vector<std::int64_t>{1, 2};
           void *mpsTensor{nullptr};
           HANDLE_CUDA_ERROR(cudaMalloc(&mpsTensor, tensorSizeBytes));
           HANDLE_CUDA_ERROR(cudaMemcpy(mpsTensor, tensorBody, tensorSizeBytes,
@@ -458,7 +459,7 @@ public:
     assert(numElements == 2);
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;
-    stateTensor.extents = {static_cast<int64_t>(numElements)};
+    stateTensor.extents = {static_cast<std::int64_t>(numElements)};
 
     return std::make_unique<MPSSimulationState<ScalarType>>(
         std::move(m_state), std::vector<MPSTensor>{stateTensor}, scratchPad,

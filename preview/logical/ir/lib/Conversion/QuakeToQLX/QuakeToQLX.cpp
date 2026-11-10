@@ -63,7 +63,7 @@ struct ImportState {
   // independent quantum owner.  Resolve these handles through the slot's
   // current P0 owner at each operation so the emitted QLX remains linear.
   DenseMap<Value, unsigned> wireReferenceSlots;
-  DenseMap<Value, SmallVector<int64_t>> cableReferenceSlots;
+  DenseMap<Value, SmallVector<std::int64_t>> cableReferenceSlots;
   // CUDA-Q's reference helper ABI unwraps each scalar !quake.ref argument to
   // one wire and wraps the successor wire back to the same reference before
   // returning.  These maps make that implicit mutation an explicit linear P0
@@ -72,7 +72,7 @@ struct ImportState {
   DenseMap<Value, std::pair<unsigned, unsigned>> vectorArgumentSlices;
   SmallVector<Value> referenceResults;
   bool referenceABI = false;
-  int64_t nextAllocation = 0;
+  std::int64_t nextAllocation = 0;
 };
 
 // Which op set a region accepts. Repeat bodies additionally permit closed
@@ -82,12 +82,12 @@ enum class RegionPolicy { Entry, RepeatBody, IfBranch };
 
 // A cc.loop proven to be a normalized constant-trip counted loop.
 struct NormalizedCountedLoop {
-  int64_t tripCount;
+  std::int64_t tripCount;
   unsigned inductionIndex;
   SmallVector<unsigned> wireCarries; // indices into initialArgs that are wires
 };
 
-static std::optional<int64_t> constInt(Value v) {
+static std::optional<std::int64_t> constInt(Value v) {
   if (auto c = v.getDefiningOp<mlir::arith::ConstantOp>())
     if (auto ia = dyn_cast<IntegerAttr>(c.getValue()))
       return ia.getInt();
@@ -145,7 +145,7 @@ matchNormalizedCountedLoop(cudaq::cc::LoopOp loop) {
   auto lhsArg = dyn_cast<BlockArgument>(cmp.getLhs());
   auto rhsArg = dyn_cast<BlockArgument>(cmp.getRhs());
   BlockArgument indArg;
-  std::optional<int64_t> trip;
+  std::optional<std::int64_t> trip;
   if (cmp.getPredicate() == mlir::arith::CmpIPredicate::ne) {
     if (lhsArg && lhsArg.getOwner() == &whileBlk &&
         (trip = constInt(cmp.getRhs())))
@@ -560,7 +560,7 @@ private:
   DenseSet<Operation *> objectiveDeclarations;
   llvm::StringMap<std::string> qlxSymbols;
   llvm::StringMap<bool> objectiveSymbols;
-  llvm::StringMap<SmallVector<uint64_t>> helperArgumentWidths;
+  llvm::StringMap<SmallVector<std::uint64_t>> helperArgumentWidths;
 
   static std::string portableSymbol(StringRef source) {
     source.consume_front("__nvqpp__mlirgen__");
@@ -622,7 +622,7 @@ private:
           result = failure();
           return;
         }
-        SmallVector<uint64_t> widths;
+        SmallVector<std::uint64_t> widths;
         for (auto [argument, parameter] :
              llvm::zip(call.getActuals(), callee.getArgumentTypes())) {
           if (isa<cudaq::quake::RefType>(parameter) &&
@@ -914,7 +914,7 @@ private:
   template <typename GateOp>
   static LogicalResult convertRotation(GateOp gate, OpBuilder &builder,
                                        DenseMap<Value, Value> &values,
-                                       int64_t xMask, int64_t zMask) {
+                                       std::int64_t xMask, std::int64_t zMask) {
     if (!gate.getControls().empty())
       return gate.emitOpError(
           "controlled rotations are outside the Quake-to-P0 "
@@ -936,7 +936,7 @@ private:
     // then normalize both adjoint and negative-source angles into that single
     // canonical representation.
     double signedAngle = gate.getIsAdj() ? -*angle : *angle;
-    int64_t sign = signedAngle < 0.0 ? -1 : 1;
+    std::int64_t sign = signedAngle < 0.0 ? -1 : 1;
     double magnitude = std::abs(signedAngle);
 
     auto found = values.find(gate.getTargets()[0]);
@@ -1047,7 +1047,7 @@ private:
       if (owners == state.cableOwners.end())
         continue;
       for (auto [index, aliasSlot] : llvm::enumerate(slots))
-        if (aliasSlot == static_cast<int64_t>(slot))
+        if (aliasSlot == static_cast<std::int64_t>(slot))
           owners->second[index] = owner;
     }
   }
@@ -1104,8 +1104,8 @@ private:
   template <typename GateOp>
   static LogicalResult
   convertReferenceAwareRotation(GateOp gate, OpBuilder &builder,
-                                ImportState &state, int64_t xMask,
-                                int64_t zMask) {
+                                ImportState &state, std::int64_t xMask,
+                                std::int64_t zMask) {
     SmallVector<Value> inputs(gate.getTargets().begin(),
                               gate.getTargets().end());
     if (failed(hydrateReferenceWires(gate, inputs, state)))
@@ -1132,7 +1132,7 @@ private:
     if (failed(requirePlainApply(call)))
       return failure();
     SmallVector<Value> inputs;
-    SmallVector<int64_t> inputSlots;
+    SmallVector<std::int64_t> inputSlots;
     for (Value argument : call.getActuals()) {
       if (isa<cudaq::quake::WireType>(argument.getType())) {
         if (failed(hydrateReferenceWires(call, ValueRange{argument}, state)))
@@ -1144,7 +1144,7 @@ private:
         auto slot = state.wireReferenceSlots.find(argument);
         inputSlots.push_back(slot == state.wireReferenceSlots.end()
                                  ? -1
-                                 : static_cast<int64_t>(slot->second));
+                                 : static_cast<std::int64_t>(slot->second));
         state.wireOwners.erase(found);
         continue;
       }
@@ -1168,7 +1168,7 @@ private:
           "helper arguments must be scalar wires or statically sized cables");
     }
 
-    uint64_t flattenedResults = 0;
+    std::uint64_t flattenedResults = 0;
     for (Type type : call.getResultTypes()) {
       if (isa<cudaq::quake::WireType>(type)) {
         ++flattenedResults;
@@ -1220,8 +1220,8 @@ private:
       }
       auto cable = cast<cudaq::quake::CableType>(source.getType());
       SmallVector<Value> owners;
-      SmallVector<int64_t> slots;
-      for (uint64_t index = 0; index < cable.getSize(); ++index) {
+      SmallVector<std::int64_t> slots;
+      for (std::uint64_t index = 0; index < cable.getSize(); ++index) {
         Value result = importedResults[offset];
         owners.push_back(result);
         slots.push_back(inputSlots[offset]);
@@ -1275,7 +1275,7 @@ private:
         })
         .Case<cudaq::quake::BundleCableOp>([&](auto bundle) -> LogicalResult {
           SmallVector<Value> owners;
-          SmallVector<int64_t> slots;
+          SmallVector<std::int64_t> slots;
           if (failed(hydrateReferenceWires(bundle, bundle.getWires(), state)))
             return failure();
           for (Value wire : bundle.getWires()) {
@@ -1287,7 +1287,7 @@ private:
             auto slot = state.wireReferenceSlots.find(wire);
             slots.push_back(slot == state.wireReferenceSlots.end()
                                 ? -1
-                                : static_cast<int64_t>(slot->second));
+                                : static_cast<std::int64_t>(slot->second));
             state.wireOwners.erase(found);
           }
           auto type =
@@ -1329,7 +1329,7 @@ private:
           if (slice == state.vectorArgumentSlices.end())
             return extract.emitOpError(
                 "vector source is not a specialized helper argument");
-          uint64_t index = extract.getRawIndex();
+          std::uint64_t index = extract.getRawIndex();
           if (index >= slice->second.second)
             return extract.emitOpError(
                 "static vector index exceeds the specialized cable width");
@@ -1946,8 +1946,8 @@ private:
     if (failed(symbol))
       return failure();
 
-    uint64_t flattenedWidth = 0;
-    for (uint64_t width : specialization->second)
+    std::uint64_t flattenedWidth = 0;
+    for (std::uint64_t width : specialization->second)
       flattenedWidth += width;
     auto logicalType = qlx::LogicalQubitType::get(function.getContext());
     SmallVector<Type> boundaryTypes(flattenedWidth, logicalType);
@@ -1999,8 +1999,8 @@ private:
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPoint(function);
     auto logicalType = qlx::LogicalQubitType::get(function.getContext());
-    uint64_t flattenedWidth = 0;
-    for (uint64_t width : specialization->second)
+    std::uint64_t flattenedWidth = 0;
+    for (std::uint64_t width : specialization->second)
       flattenedWidth += width;
     SmallVector<Type> boundaryTypes(flattenedWidth, logicalType);
     auto functionType =

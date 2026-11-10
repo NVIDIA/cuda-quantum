@@ -40,8 +40,8 @@ state migrateState(const state &inputState) {
 
   CUDAQ_INFO("Migrate state data from device {} to {}\n", stateDeviceId,
              currentDeviceId);
-  const int64_t dim = inputState.get_tensor().get_num_elements();
-  const int64_t arraySizeBytes = dim * sizeof(std::complex<double>);
+  const std::int64_t dim = inputState.get_tensor().get_num_elements();
+  const std::int64_t arraySizeBytes = dim * sizeof(std::complex<double>);
   auto localizedState =
       cudaq::dynamics::DeviceAllocator::allocate(arraySizeBytes);
   HANDLE_CUDA_ERROR(cudaMemcpy(localizedState, inputState.get_tensor().data,
@@ -206,7 +206,7 @@ static CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
 
 static state prepareInitialState(cudensitymatHandle_t handle,
                                  const state &initialState,
-                                 const std::vector<int64_t> &dims,
+                                 const std::vector<std::int64_t> &dims,
                                  bool requireDensityMatrix) {
   auto *cudmState = asCudmState(const_cast<state &>(initialState));
   if (!cudmState->is_initialized()) {
@@ -229,8 +229,8 @@ static bool requiresDensityMatrix(const super_op &superOp) {
 }
 
 static evolve_result
-evolveSingleImpl(const std::vector<int64_t> &dims, const schedule &schedule,
-                 base_integrator &integrator,
+evolveSingleImpl(const std::vector<std::int64_t> &dims,
+                 const schedule &schedule, base_integrator &integrator,
                  const std::vector<sum_op<cudaq::matrix_handler>> &observables,
                  IntermediateResultSave storeIntermediateResults) {
   LOG_API_TIME();
@@ -313,9 +313,9 @@ evolve_result evolveSingle(
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
-  std::map<std::size_t, int64_t> dimensions =
+  std::map<std::size_t, std::int64_t> dimensions =
       convertToOrderedMap(dimensionsMap);
-  std::vector<int64_t> dims;
+  std::vector<std::int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);
 
@@ -358,8 +358,9 @@ evolve_result evolveSingle(
 }
 
 static std::vector<evolve_result>
-evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
-                  std::size_t batchSize, base_integrator &integrator,
+evolveBatchedImpl(const std::vector<std::int64_t> dims,
+                  const schedule &schedule, std::size_t batchSize,
+                  base_integrator &integrator,
                   const std::vector<sum_op<cudaq::matrix_handler>> &observables,
                   IntermediateResultSave storeIntermediateResults) {
   LOG_API_TIME();
@@ -527,9 +528,9 @@ std::vector<evolve_result> evolveBatched(
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
-  std::map<std::size_t, int64_t> dimensions =
+  std::map<std::size_t, std::int64_t> dimensions =
       convertToOrderedMap(dimensionsMap);
-  std::vector<int64_t> dims;
+  std::vector<std::int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);
   std::vector<CuDensityMatState *> states;
@@ -555,9 +556,9 @@ evolveSingle(const super_op &superOp, const cudaq::dimension_map &dimensionsMap,
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
-  std::map<std::size_t, int64_t> dimensions =
+  std::map<std::size_t, std::int64_t> dimensions =
       convertToOrderedMap(dimensionsMap);
-  std::vector<int64_t> dims;
+  std::vector<std::int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);
 
@@ -601,9 +602,9 @@ evolveBatched(const super_op &superOp,
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
-  std::map<std::size_t, int64_t> dimensions =
+  std::map<std::size_t, std::int64_t> dimensions =
       convertToOrderedMap(dimensionsMap);
-  std::vector<int64_t> dims;
+  std::vector<std::int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);
   std::vector<CuDensityMatState *> states;
@@ -645,7 +646,7 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
 
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
-  std::vector<int64_t> dims;
+  std::vector<std::int64_t> dims;
   for (const auto &[id, dim] : convertToOrderedMap(dimensions))
     dims.emplace_back(dim);
 
@@ -759,7 +760,7 @@ evolveBatched(const std::vector<super_op> &superOps,
 
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
-  std::vector<int64_t> dims;
+  std::vector<std::int64_t> dims;
   for (const auto &[id, dim] : convertToOrderedMap(dimensions))
     dims.emplace_back(dim);
 

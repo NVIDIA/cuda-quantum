@@ -46,7 +46,7 @@ static std::string sha256(StringRef text) {
   std::string result = "sha256:";
   llvm::raw_string_ostream stream(result);
   static constexpr char hex[] = "0123456789abcdef";
-  for (uint8_t byte : bytes)
+  for (std::uint8_t byte : bytes)
     stream << hex[byte >> 4] << hex[byte & 0xf];
   return result;
 }
@@ -74,16 +74,16 @@ public:
 private:
   struct SpaceState {
     qlx::lvm::SpaceOp op;
-    std::optional<int64_t> capacity;
-    std::set<int64_t> occupied;
-    std::set<int64_t> recycled;
-    int64_t nextUnused = 0;
+    std::optional<std::int64_t> capacity;
+    std::set<std::int64_t> occupied;
+    std::set<std::int64_t> recycled;
+    std::int64_t nextUnused = 0;
     bool compatible = false;
   };
 
   struct Allocation {
     unsigned space = 0;
-    int64_t slot = 0;
+    std::int64_t slot = 0;
     SymbolRefAttr reference;
   };
 
@@ -100,11 +100,11 @@ private:
   struct BindingRecord {
     std::string source;
     std::string space;
-    int64_t slot;
+    std::int64_t slot;
   };
   SmallVector<BindingRecord> bindingRecords;
   llvm::StringSet<> requiredCapabilities;
-  int64_t nextSite = 0;
+  std::int64_t nextSite = 0;
 
   LogicalResult indexSpaces() {
     for (auto space : domain.getBody().getOps<qlx::lvm::SpaceOp>()) {
@@ -139,8 +139,8 @@ private:
   /// Take the lowest available slot without rescanning the occupied prefix.
   /// Virgin slots form a monotonic frontier; released slots are kept ordered.
   /// Allocation is therefore O(log n), rather than O(n) per live owner.
-  FailureOr<int64_t> takeSlot(SpaceState &space) {
-    int64_t slot = 0;
+  FailureOr<std::int64_t> takeSlot(SpaceState &space) {
+    std::int64_t slot = 0;
     if (!space.recycled.empty()) {
       auto first = space.recycled.begin();
       slot = *first;

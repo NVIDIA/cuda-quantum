@@ -212,12 +212,12 @@ CUDAQ_TEST(FrameRunner, GeneratedCircuitsHaveDisjointSerializedTargets) {
 CUDAQ_TEST(FrameRunner, IncreasingShotCountReplaysCachedCircuit) {
   nvqir::CustabilizerFrameRunner runner(2);
   runner.apply(stim::Circuit("R 0 1\nX_ERROR(1) 1\nM 0 1"));
-  for (int64_t shots : {33, 65, 129}) {
+  for (std::int64_t shots : {33, 65, 129}) {
     SCOPED_TRACE(shots);
     const auto table = runner.getMeasurementTable(shots, 13);
     const auto words = (shots + 31) / 32;
     ASSERT_EQ(table.size(), 2 * words);
-    for (int64_t shot = 0; shot < shots; ++shot) {
+    for (std::int64_t shot = 0; shot < shots; ++shot) {
       EXPECT_EQ((table[shot / 32] >> (shot % 32)) & 1u, 0u);
       EXPECT_EQ((table[words + shot / 32] >> (shot % 32)) & 1u, 1u);
     }
@@ -227,12 +227,12 @@ CUDAQ_TEST(FrameRunner, IncreasingShotCountReplaysCachedCircuit) {
 CUDAQ_TEST(FrameRunner, DecreasingShotCountPreservesMeasurementRows) {
   nvqir::CustabilizerFrameRunner runner(2);
   runner.apply(stim::Circuit("R 0 1\nX_ERROR(1) 1\nM 0 1"));
-  for (int64_t shots : {129, 65, 33, 1}) {
+  for (std::int64_t shots : {129, 65, 33, 1}) {
     SCOPED_TRACE(shots);
     const auto table = runner.getMeasurementTable(shots, 13);
     const auto words = (shots + 31) / 32;
     ASSERT_EQ(table.size(), 2 * words);
-    for (int64_t shot = 0; shot < shots; ++shot) {
+    for (std::int64_t shot = 0; shot < shots; ++shot) {
       EXPECT_EQ((table[shot / 32] >> (shot % 32)) & 1u, 0u);
       EXPECT_EQ((table[words + shot / 32] >> (shot % 32)) & 1u, 1u);
     }
@@ -258,7 +258,7 @@ CUDAQ_TEST(FrameRunner, ReusesHandleAndCircuitBufferAcrossReplays) {
   auto table = runner.getMeasurementTable(65, 13);
   EXPECT_EQ(runner.preparedCircuit->buffer_d, buffer);
   ASSERT_EQ(table.size(), 6);
-  for (int64_t shot = 0; shot < 65; ++shot) {
+  for (std::int64_t shot = 0; shot < 65; ++shot) {
     EXPECT_EQ((table[shot / 32] >> (shot % 32)) & 1u, 1u);
     EXPECT_EQ((table[3 + shot / 32] >> (shot % 32)) & 1u, 0u);
   }
@@ -267,7 +267,7 @@ CUDAQ_TEST(FrameRunner, ReusesHandleAndCircuitBufferAcrossReplays) {
   runner.apply(stim::Circuit("M 0"));
   table = runner.getMeasurementTable(65, 13);
   ASSERT_EQ(table.size(), 9);
-  for (int64_t shot = 0; shot < 65; ++shot)
+  for (std::int64_t shot = 0; shot < 65; ++shot)
     EXPECT_EQ((table[6 + shot / 32] >> (shot % 32)) & 1u, 1u);
 }
 

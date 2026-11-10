@@ -47,7 +47,7 @@ __device__ std::int32_t nativeCountPackedBitsHandler(const void *rxSlot,
   if (maxResultLen < sizeof(std::int32_t) || argLen < sizeof(std::uint64_t))
     return -1;
 
-  // The `(vector<bool>, uint64_t) -> int` signature marshals a bit count and
+  // The `(vector<bool>, std::uint64_t) -> int` signature marshals a bit count and
   // packed bytes, followed by alignment padding and the scalar bias.
   const auto *const bytes = reinterpret_cast<const std::uint8_t *>(request + 1);
   const auto bitCount = *reinterpret_cast<const std::uint64_t *>(bytes);

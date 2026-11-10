@@ -22,12 +22,13 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
   m_scalarCallbacks.push_back(ScalarCallBackContext(scalarOps, paramNames));
   ScalarCallBackContext *storedCallbackContext = &m_scalarCallbacks.back();
   using WrapperFuncType =
-      int32_t (*)(cudensitymatScalarCallback_t, double, int64_t, int32_t,
-                  const double[], cudaDataType_t, void *);
+      std::int32_t (*)(cudensitymatScalarCallback_t, double, std::int64_t,
+                       std::int32_t, const double[], cudaDataType_t, void *);
 
   auto wrapper = [](cudensitymatScalarCallback_t callback, double time,
-                    int64_t batchSize, int32_t numParams, const double params[],
-                    cudaDataType_t dataType, void *scalarStorage) -> int32_t {
+                    std::int64_t batchSize, std::int32_t numParams,
+                    const double params[], cudaDataType_t dataType,
+                    void *scalarStorage) -> std::int32_t {
     try {
       ScalarCallBackContext *context =
           reinterpret_cast<ScalarCallBackContext *>(callback);
@@ -52,7 +53,7 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
                   context->paramNames[i], batchSize,
                   param_map[context->paramNames[i]]);
       }
-      for (int64_t i = 0; i < batchSize; ++i) {
+      for (std::int64_t i = 0; i < batchSize; ++i) {
         scalar_operator &storedOp = context->scalarOps[i];
         tdCoef[i] = storedOp.is_constant() ? storedOp.evaluate()
                                            : storedOp.evaluate(param_map);
@@ -82,18 +83,19 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
   m_tensorCallbacks.push_back(
       TensorCallBackContext(matrixOps, paramNames, dims));
   TensorCallBackContext *storedCallbackContext = &m_tensorCallbacks.back();
-  using WrapperFuncType = int32_t (*)(
+  using WrapperFuncType = std::int32_t (*)(
       cudensitymatTensorCallback_t, cudensitymatElementaryOperatorSparsity_t,
-      int32_t, const int64_t[], const int32_t[], double, int64_t, int32_t,
-      const double[], cudaDataType_t, void *, cudaStream_t);
+      std::int32_t, const std::int64_t[], const std::int32_t[], double,
+      std::int64_t, std::int32_t, const double[], cudaDataType_t, void *,
+      cudaStream_t);
 
   auto wrapper = [](cudensitymatTensorCallback_t callback,
                     cudensitymatElementaryOperatorSparsity_t sparsity,
-                    int32_t num_modes, const int64_t modeExtents[],
-                    const int32_t diagonal_offsets[], double time,
-                    int64_t batchSize, int32_t num_params,
+                    std::int32_t num_modes, const std::int64_t modeExtents[],
+                    const std::int32_t diagonal_offsets[], double time,
+                    std::int64_t batchSize, std::int32_t num_params,
                     const double params[], cudaDataType_t data_type,
-                    void *tensor_storage, cudaStream_t stream) -> int32_t {
+                    void *tensor_storage, cudaStream_t stream) -> std::int32_t {
     try {
       auto *context = reinterpret_cast<TensorCallBackContext *>(callback);
       std::vector<matrix_handler> &storedOps = context->tensorOps;

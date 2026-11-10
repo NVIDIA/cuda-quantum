@@ -28,34 +28,34 @@ namespace {
 // (i.e. the trailing-zero count). BIT_COUNT[r] is the popcount of r. The
 // reduce_denomexp dispatch uses both to choose the right T^m * H prefix
 // that drops the denominator exponent of a DOmegaUnitary by one.
-inline constexpr std::array<int32_t, 16> BIT_SHIFT = {0, 0, 1, 0, 2, 0, 1, 3,
-                                                      3, 3, 0, 2, 2, 1, 0, 0};
+inline constexpr std::array<std::int32_t, 16> BIT_SHIFT = {
+    0, 0, 1, 0, 2, 0, 1, 3, 3, 3, 0, 2, 2, 1, 0, 0};
 
-inline constexpr std::array<int32_t, 16> BIT_COUNT = {0, 1, 1, 2, 1, 2, 2, 3,
-                                                      1, 2, 2, 3, 2, 3, 3, 4};
+inline constexpr std::array<std::int32_t, 16> BIT_COUNT = {
+    0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4};
 
 // CONJ_SQUARED_RESIDUE[r] is the residue of conj(z) * z when z has residue r.
 //
 // Mod-2 reduction is a ring homomorphism on Z[omega], so a product's residue
 // depends only on its factors' residues and sixteen entries cover every
 // input.
-inline constexpr std::array<int32_t, 16> CONJ_SQUARED_RESIDUE = [] {
-  std::array<int32_t, 16> table{};
-  for (int32_t r = 0; r < 16; ++r) {
+inline constexpr std::array<std::int32_t, 16> CONJ_SQUARED_RESIDUE = [] {
+  std::array<std::int32_t, 16> table{};
+  for (std::int32_t r = 0; r < 16; ++r) {
     // residue() packs (a, b, c, d) as a<<3 | b<<2 | c<<1 | d, and
     // conj((a, b, c, d)) = (-c, -b, -a, d) swaps the outer pair mod 2.
-    const int32_t a0 = (r >> 3) & 1, b0 = (r >> 2) & 1, c0 = (r >> 1) & 1,
-                  d0 = r & 1;
-    const int32_t a1 = c0, b1 = b0, c1 = a0, d1 = d0;
+    const std::int32_t a0 = (r >> 3) & 1, b0 = (r >> 2) & 1, c0 = (r >> 1) & 1,
+                       d0 = r & 1;
+    const std::int32_t a1 = c0, b1 = b0, c1 = a0, d1 = d0;
 
     // The convolution ZOmega::operator* performs, over GF(2).
-    const int32_t r0 = d0 & d1;
-    const int32_t r1 = (d0 & c1) ^ (c0 & d1);
-    const int32_t r2 = (d0 & b1) ^ (c0 & c1) ^ (b0 & d1);
-    const int32_t r3 = (d0 & a1) ^ (c0 & b1) ^ (b0 & c1) ^ (a0 & d1);
-    const int32_t r4 = (c0 & a1) ^ (b0 & b1) ^ (a0 & c1);
-    const int32_t r5 = (b0 & a1) ^ (a0 & b1);
-    const int32_t r6 = a0 & a1;
+    const std::int32_t r0 = d0 & d1;
+    const std::int32_t r1 = (d0 & c1) ^ (c0 & d1);
+    const std::int32_t r2 = (d0 & b1) ^ (c0 & c1) ^ (b0 & d1);
+    const std::int32_t r3 = (d0 & a1) ^ (c0 & b1) ^ (b0 & c1) ^ (a0 & d1);
+    const std::int32_t r4 = (c0 & a1) ^ (b0 & b1) ^ (a0 & c1);
+    const std::int32_t r5 = (b0 & a1) ^ (a0 & b1);
+    const std::int32_t r6 = a0 & a1;
 
     table[static_cast<size_t>(r)] =
         (r3 << 3) | ((r2 ^ r6) << 2) | ((r1 ^ r5) << 1) | (r0 ^ r4);
@@ -100,18 +100,18 @@ const Circuit T_POWER_and_H[] = {
     Circuit({Gate::T, Gate::S, Gate::H}),
 };
 
-int32_t reduce_denomexp(DOmegaUnitary &unitary, ZOmega &scratch) {
+std::int32_t reduce_denomexp(DOmegaUnitary &unitary, ZOmega &scratch) {
   // residue() encodes (a%2, b%2, c%2, d%2) of the ZOmega numerator into a
   // 4-bit integer. residue_squared_z carries the case label below.
-  int32_t residue_z = unitary.z().residue();
-  int32_t residue_w = unitary.w().residue();
-  int32_t residue_squared_z =
+  std::int32_t residue_z = unitary.z().residue();
+  std::int32_t residue_w = unitary.w().residue();
+  std::int32_t residue_squared_z =
       CONJ_SQUARED_RESIDUE[static_cast<size_t>(residue_z)];
 
   // T-power offset that aligns the lowest set bit of w to that of z. The
   // negative branch wraps mod 4 since T has order 8 modulo a sign.
-  int32_t m = BIT_SHIFT[static_cast<size_t>(residue_w)] -
-              BIT_SHIFT[static_cast<size_t>(residue_z)];
+  std::int32_t m = BIT_SHIFT[static_cast<size_t>(residue_w)] -
+                   BIT_SHIFT[static_cast<size_t>(residue_z)];
   if (m < 0)
     m += 4;
 
@@ -207,8 +207,8 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
 
   // After the X step z is forced to be a unit in Z[omega], i.e. an
   // omega-power. Find that exponent and divide it out as a global W power.
-  int32_t m_W = 0;
-  for (int32_t m = 0; m < 8; ++m) {
+  std::int32_t m_W = 0;
+  for (std::int32_t m = 0; m < 8; ++m) {
     if (unitary.z().u() == mul_by_omega_power(ZOmega::from_int(1), m)) {
       m_W = m;
       unitary = unitary.mul_by_W_power_from_left(-m_W);
@@ -217,8 +217,8 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
   }
 
   // n is now even; S adds 2 to n, so n / 2 S-gates clear it.
-  int32_t m_S = unitary.n() >> 1;
-  for (int32_t i = 0; i < m_S; ++i)
+  std::int32_t m_S = unitary.n() >> 1;
+  for (std::int32_t i = 0; i < m_S; ++i)
     gates.push_back(Gate::S);
   unitary = unitary.mul_by_S_power_from_left(-m_S);
 
@@ -226,7 +226,7 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
          "unitary should be the identity after Clifford decomposition");
 
   // Emit the trailing global-phase W gates in the order they were peeled.
-  for (int32_t i = 0; i < m_W; ++i)
+  for (std::int32_t i = 0; i < m_W; ++i)
     gates.push_back(Gate::W);
 
   // Phase 3: normalize. Cannot fail.

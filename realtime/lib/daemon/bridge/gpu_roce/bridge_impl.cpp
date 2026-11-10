@@ -119,12 +119,12 @@ cudaq_status_t stage_device_transport_ctx(GpuRoceBridgeContext *ctx) {
   auto &transceiver = ctx->transceiver;
   gpu_roce_doca_transport_ctx doca_ctx{};
   doca_ctx.gpu_dev_qp = gpu_roce_get_gpu_dev_qp(transceiver);
-  doca_ctx.rx_ring_data =
-      reinterpret_cast<uint8_t *>(gpu_roce_get_rx_ring_data_addr(transceiver));
+  doca_ctx.rx_ring_data = reinterpret_cast<std::uint8_t *>(
+      gpu_roce_get_rx_ring_data_addr(transceiver));
   doca_ctx.rx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
   doca_ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
-  doca_ctx.tx_ring_data =
-      reinterpret_cast<uint8_t *>(gpu_roce_get_tx_ring_data_addr(transceiver));
+  doca_ctx.tx_ring_data = reinterpret_cast<std::uint8_t *>(
+      gpu_roce_get_tx_ring_data_addr(transceiver));
   doca_ctx.tx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
   doca_ctx.tx_ring_mkey = htonl(gpu_roce_get_tx_ring_lkey(transceiver));
   doca_ctx.frame_size = ctx->config.frame_size;
@@ -233,19 +233,19 @@ gpu_roce_bridge_get_ring_buffer(cudaq_realtime_bridge_handle_t handle,
     return CUDAQ_ERR_UNSUPPORTED;
 
   auto &transceiver = ctx->transceiver;
-  uint8_t *rx_ring_data =
-      reinterpret_cast<uint8_t *>(gpu_roce_get_rx_ring_data_addr(transceiver));
-  uint64_t *rx_ring_flag = gpu_roce_get_rx_ring_flag_addr(transceiver);
-  uint8_t *tx_ring_data =
-      reinterpret_cast<uint8_t *>(gpu_roce_get_tx_ring_data_addr(transceiver));
-  uint64_t *tx_ring_flag = gpu_roce_get_tx_ring_flag_addr(transceiver);
+  std::uint8_t *rx_ring_data = reinterpret_cast<std::uint8_t *>(
+      gpu_roce_get_rx_ring_data_addr(transceiver));
+  std::uint64_t *rx_ring_flag = gpu_roce_get_rx_ring_flag_addr(transceiver);
+  std::uint8_t *tx_ring_data = reinterpret_cast<std::uint8_t *>(
+      gpu_roce_get_tx_ring_data_addr(transceiver));
+  std::uint64_t *tx_ring_flag = gpu_roce_get_tx_ring_flag_addr(transceiver);
   if (!rx_ring_data || !rx_ring_flag || !tx_ring_data || !tx_ring_flag) {
     std::cerr << "ERROR: Failed to get ring buffer pointers" << std::endl;
     return CUDAQ_ERR_INTERNAL;
   }
 
-  out_ring->rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
-  out_ring->tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
+  out_ring->rx_flags = reinterpret_cast<volatile std::uint64_t *>(rx_ring_flag);
+  out_ring->tx_flags = reinterpret_cast<volatile std::uint64_t *>(tx_ring_flag);
   out_ring->rx_data = rx_ring_data;
   out_ring->tx_data = tx_ring_data;
   out_ring->rx_stride_sz = ctx->config.page_size;
@@ -280,9 +280,9 @@ gpu_roce_bridge_connect(cudaq_realtime_bridge_handle_t handle) {
 
   auto &transceiver = ctx->transceiver;
 
-  uint32_t our_qp = gpu_roce_get_qp_number(transceiver);
-  uint32_t our_rkey = gpu_roce_get_rkey(transceiver);
-  uint64_t our_buffer = gpu_roce_get_buffer_addr(transceiver);
+  std::uint32_t our_qp = gpu_roce_get_qp_number(transceiver);
+  std::uint32_t our_rkey = gpu_roce_get_rkey(transceiver);
+  std::uint64_t our_buffer = gpu_roce_get_buffer_addr(transceiver);
 
   // FIXME: Figure out a better way to share this info with the caller (e.g. via
   // output params or context struct) rather than printing to stdout. Print QP
@@ -361,17 +361,17 @@ gpu_roce_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t handle,
 
 static cudaq_status_t
 gpu_roce_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t handle,
-                                  uint32_t *out_num_slots,
-                                  uint32_t *out_slot_size) {
+                                  std::uint32_t *out_num_slots,
+                                  std::uint32_t *out_slot_size) {
   if (!handle || !out_num_slots || !out_slot_size)
     return CUDAQ_ERR_INVALID_ARG;
   auto *ctx = reinterpret_cast<GpuRoceBridgeContext *>(handle);
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
   *out_num_slots =
-      static_cast<uint32_t>(gpu_roce_get_num_pages(ctx->transceiver));
+      static_cast<std::uint32_t>(gpu_roce_get_num_pages(ctx->transceiver));
   *out_slot_size =
-      static_cast<uint32_t>(gpu_roce_get_page_size(ctx->transceiver));
+      static_cast<std::uint32_t>(gpu_roce_get_page_size(ctx->transceiver));
   return CUDAQ_OK;
 }
 

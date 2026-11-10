@@ -100,11 +100,11 @@ void enqueueNoise(custatevecExSVUpdaterDescriptor_t updater,
         /*svUpdater=*/updater, /*unitaries=*/matrices.data(),
         /*unitariesDataType=*/cudaq::cusv::complexDataType<double>(),
         /*exMatrixTypes=*/task.matrixTypes.data(),
-        /*numUnitaries=*/static_cast<int32_t>(matrices.size()),
+        /*numUnitaries=*/static_cast<std::int32_t>(matrices.size()),
         /*layout=*/CUSTATEVEC_MATRIX_LAYOUT_ROW,
         /*probabilities=*/task.probabilities.data(),
         /*channelWires=*/dataOrNull(task.wires),
-        /*numChannelWires=*/static_cast<int32_t>(task.wires.size())));
+        /*numChannelWires=*/static_cast<std::int32_t>(task.wires.size())));
     return;
   }
 
@@ -112,10 +112,10 @@ void enqueueNoise(custatevecExSVUpdaterDescriptor_t updater,
       /*svUpdater=*/updater, /*matrices=*/matrices.data(),
       /*matrixDataType=*/cudaq::cusv::complexDataType<double>(),
       /*exMatrixTypes=*/task.matrixTypes.data(),
-      /*numMatrices=*/static_cast<int32_t>(matrices.size()),
+      /*numMatrices=*/static_cast<std::int32_t>(matrices.size()),
       /*layout=*/CUSTATEVEC_MATRIX_LAYOUT_ROW,
       /*channelWires=*/dataOrNull(task.wires),
-      /*numChannelWires=*/static_cast<int32_t>(task.wires.size())));
+      /*numChannelWires=*/static_cast<std::int32_t>(task.wires.size())));
 }
 
 template <typename Scalar>
@@ -133,10 +133,12 @@ void enqueueTask(custatevecExSVUpdaterDescriptor_t updater,
               /*exMatrixType=*/operation.matrixType,
               /*layout=*/operation.layout, /*adjoint=*/operation.adjoint,
               /*targets=*/dataOrNull(operation.targets),
-              /*numTargets=*/static_cast<int32_t>(operation.targets.size()),
+              /*numTargets=*/
+              static_cast<std::int32_t>(operation.targets.size()),
               /*controls=*/dataOrNull(operation.controls),
               /*controlBitValues=*/dataOrNull(operation.controlValues),
-              /*numControls=*/static_cast<int32_t>(operation.controls.size())));
+              /*numControls=*/
+              static_cast<std::int32_t>(operation.controls.size())));
         } else if constexpr (std::is_same_v<Operation,
                                             cudaq::cusv::NoiseTask<Scalar>>) {
           enqueueNoise(updater, operation);
@@ -156,7 +158,7 @@ void enqueueTask(custatevecExSVUpdaterDescriptor_t updater,
 void applyUpdater(custatevecExSVUpdaterDescriptor_t updater,
                   custatevecExStateVectorDescriptor_t state,
                   std::span<const double> randomNumbers) {
-  int32_t required = 0;
+  std::int32_t required = 0;
   HANDLE_CUSTATEVEC_ERROR(custatevecExSVUpdaterGetMaxNumRequiredRandnums(
       /*svUpdater=*/updater, /*maxNumRequiredRandnums=*/&required));
   if (randomNumbers.size() < static_cast<std::size_t>(required))
@@ -186,19 +188,23 @@ void DirectGateEngine<Scalar>::apply(CuStateVecState<Scalar> &state,
               /*exMatrixType=*/operation.matrixType,
               /*layout=*/operation.layout, /*adjoint=*/operation.adjoint,
               /*targets=*/dataOrNull(operation.targets),
-              /*numTargets=*/static_cast<int32_t>(operation.targets.size()),
+              /*numTargets=*/
+              static_cast<std::int32_t>(operation.targets.size()),
               /*controls=*/dataOrNull(operation.controls),
               /*controlBitValues=*/dataOrNull(operation.controlValues),
-              /*numControls=*/static_cast<int32_t>(operation.controls.size())));
+              /*numControls=*/
+              static_cast<std::int32_t>(operation.controls.size())));
         } else if constexpr (std::is_same_v<Operation, PauliRotationTask>) {
           HANDLE_CUSTATEVEC_ERROR(custatevecExApplyPauliRotation(
               /*stateVector=*/state.descriptor(), /*theta=*/operation.angle,
               /*paulis=*/dataOrNull(operation.paulis),
               /*targets=*/dataOrNull(operation.targets),
-              /*numTargets=*/static_cast<int32_t>(operation.targets.size()),
+              /*numTargets=*/
+              static_cast<std::int32_t>(operation.targets.size()),
               /*controls=*/dataOrNull(operation.controls),
               /*controlBitValues=*/dataOrNull(operation.controlValues),
-              /*numControls=*/static_cast<int32_t>(operation.controls.size())));
+              /*numControls=*/
+              static_cast<std::int32_t>(operation.controls.size())));
         } else {
           // cuStateVecEx exposes noise channels only through the SV updater, so
           // noise is applied by the fused engine. The direct engine applies
@@ -235,7 +241,7 @@ FusedGateEngine<Scalar>::FusedGateEngine(const CuStateVecConfig &config) {
   HANDLE_CUSTATEVEC_ERROR(custatevecExConfigureSVUpdater(
       /*svUpdaterConfig=*/&m_configuration,
       /*dataType=*/complexDataType<Scalar>(), /*configItems=*/items.data(),
-      /*numConfigItems=*/static_cast<int32_t>(items.size())));
+      /*numConfigItems=*/static_cast<std::int32_t>(items.size())));
   try {
     HANDLE_CUSTATEVEC_ERROR(custatevecExSVUpdaterCreate(
         /*svUpdater=*/&m_updater, /*svUpdaterConfig=*/m_configuration,

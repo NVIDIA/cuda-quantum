@@ -28,7 +28,7 @@ constexpr std::int64_t InvalidTensorIndexValue = -1;
 /// tensor device data and the tensor extents.
 struct MPSTensor {
   void *deviceData = nullptr;
-  std::vector<int64_t> extents;
+  std::vector<std::int64_t> extents;
 };
 
 // Struct captures noise channel data.
@@ -45,14 +45,14 @@ struct NoiseChannelData {
 struct AppliedTensorOp {
   void *deviceData = nullptr;
   std::optional<NoiseChannelData> noiseChannel;
-  std::vector<int32_t> targetQubitIds;
-  std::vector<int32_t> controlQubitIds;
+  std::vector<std::int32_t> targetQubitIds;
+  std::vector<std::int32_t> controlQubitIds;
   bool isAdjoint = false;
   bool isUnitary = false;
 
   /// Constructor for gate/projector operations.
-  AppliedTensorOp(void *dataPtr, const std::vector<int32_t> &targetQubits,
-                  const std::vector<int32_t> &controlQubits, bool adjoint,
+  AppliedTensorOp(void *dataPtr, const std::vector<std::int32_t> &targetQubits,
+                  const std::vector<std::int32_t> &controlQubits, bool adjoint,
                   bool unitary)
       : deviceData(dataPtr), targetQubitIds(targetQubits),
         controlQubitIds(controlQubits), isAdjoint(adjoint), isUnitary(unitary) {
@@ -62,7 +62,7 @@ struct AppliedTensorOp {
   /// Note: isAdjoint and isUnitary use default initialization (false) and
   /// should not be read for noise channel ops - check noiseChannel.has_value()
   /// first.
-  AppliedTensorOp(const std::vector<int32_t> &qubits,
+  AppliedTensorOp(const std::vector<std::int32_t> &qubits,
                   const std::vector<void *> &krausOps,
                   const std::vector<double> &probabilities)
       : targetQubitIds(qubits),
@@ -151,21 +151,22 @@ public:
   /// @param targetQubits Target qubit operands
   /// @param gateDeviceMem Gate unitary matrix in device memory
   /// @param adjoint Apply the adjoint of gate matrix if true
-  void applyGate(const std::vector<int32_t> &controlQubits,
-                 const std::vector<int32_t> &targetQubits, void *gateDeviceMem,
-                 bool adjoint = false);
+  void applyGate(const std::vector<std::int32_t> &controlQubits,
+                 const std::vector<std::int32_t> &targetQubits,
+                 void *gateDeviceMem, bool adjoint = false);
 
   /// @brief Apply a unitary channel
-  void applyUnitaryChannel(const std::vector<int32_t> &qubits,
+  void applyUnitaryChannel(const std::vector<std::int32_t> &qubits,
                            const std::vector<void *> &krausOps,
                            const std::vector<double> &probabilities);
   /// @brief Apply a general noise channel
-  void applyGeneralChannel(const std::vector<int32_t> &qubits,
+  void applyGeneralChannel(const std::vector<std::int32_t> &qubits,
                            const std::vector<void *> &krausOps);
   /// @brief Apply a projector matrix (non-unitary)
   /// @param proj_d Projector matrix (expected a 2x2 matrix in column major)
   /// @param qubitIdx Qubit operand
-  void applyQubitProjector(void *proj_d, const std::vector<int32_t> &qubitIdx);
+  void applyQubitProjector(void *proj_d,
+                           const std::vector<std::int32_t> &qubitIdx);
 
   /// @brief Add a number of qubits to the state.
   /// The qubits will be initialized to zero.
@@ -183,27 +184,27 @@ public:
 
   /// @brief Perform measurement sampling on the quantum state.
   std::unordered_map<std::string, size_t>
-  sample(const std::vector<int32_t> &measuredBitIds, int32_t shots,
+  sample(const std::vector<std::int32_t> &measuredBitIds, std::int32_t shots,
          bool enableCacheWorkspace);
 
   /// @brief Contract the tensor network representation to retrieve the state
   /// vector.
   std::vector<DataType>
-  getStateVector(const std::vector<int32_t> &projectedModes = {},
-                 const std::vector<int64_t> &projectedModeValues = {});
+  getStateVector(const std::vector<std::int32_t> &projectedModes = {},
+                 const std::vector<std::int64_t> &projectedModeValues = {});
 
   /// @brief Compute the reduce density matrix on a set of qubits
   ///
   /// The order of the specified qubits (`cutensornet` open state modes) will be
   /// respected when computing the RDM.
-  std::vector<DataType> computeRDM(const std::vector<int32_t> &qubits);
+  std::vector<DataType> computeRDM(const std::vector<std::int32_t> &qubits);
 
   /// Factorize the `cutensornetState_t` into matrix product state form.
   /// Returns MPS tensors in GPU device memory.
   /// Note: the caller assumes the ownership of these pointers, thus needs to
   /// clean them up properly (with cudaFree).
   std::vector<MPSTensor>
-  factorizeMPS(int64_t maxExtent, double absCutoff, double relCutoff,
+  factorizeMPS(std::int64_t maxExtent, double absCutoff, double relCutoff,
                cutensornetTensorSVDAlgo_t algo,
                const std::optional<cutensornetStateMPSGaugeOption_t> &gauge);
 
@@ -252,28 +253,28 @@ private:
   /// Internal method to contract the tensor network.
   /// Returns device memory pointer and size (number of elements).
   std::pair<void *, std::size_t> contractStateVectorInternal(
-      const std::vector<int32_t> &projectedModes,
-      const std::vector<int64_t> &projectedModeValues = {});
+      const std::vector<std::int32_t> &projectedModes,
+      const std::vector<std::int64_t> &projectedModeValues = {});
 
   /// Internal methods to perform MPS factorize.
   // Note: `factorizeMPS` is an end-to-end API for factorization.
   // This factorization can be split into `cutensornetStateFinalizeMPS` and
   // `cutensornetStateCompute` to facilitate reuse.
   std::vector<MPSTensor> setupMPSFactorize(
-      int64_t maxExtent, double absCutoff, double relCutoff,
+      std::int64_t maxExtent, double absCutoff, double relCutoff,
       cutensornetTensorSVDAlgo_t algo,
       const std::optional<cutensornetStateMPSGaugeOption_t> &gauge);
   void computeMPSFactorize(std::vector<MPSTensor> &mpsTensors);
 
   /// Internal methods for sampling
   std::pair<cutensornetStateSampler_t, cutensornetWorkspaceDescriptor_t>
-  prepareSample(const std::vector<int32_t> &measuredBitIds);
+  prepareSample(const std::vector<std::int32_t> &measuredBitIds);
 
   std::unordered_map<std::string, size_t>
   executeSample(cutensornetStateSampler_t &sampler,
                 cutensornetWorkspaceDescriptor_t &workspaceDesc,
-                const std::vector<int32_t> &measuredBitIds, int32_t shots,
-                bool enableCacheWorkspace);
+                const std::vector<std::int32_t> &measuredBitIds,
+                std::int32_t shots, bool enableCacheWorkspace);
 };
 } // namespace nvqir
 

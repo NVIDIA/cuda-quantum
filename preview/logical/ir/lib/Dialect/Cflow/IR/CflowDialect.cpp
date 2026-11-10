@@ -82,7 +82,7 @@ LogicalResult WhileOp::verifyRegions() {
 //
 
 ParseResult RepeatOp::parse(OpAsmParser &parser, OperationState &result) {
-  int64_t count;
+  std::int64_t count;
   if (parser.parseInteger(count))
     return failure();
   result.addAttribute("count", parser.getBuilder().getI64IntegerAttr(count));

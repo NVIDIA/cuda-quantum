@@ -60,10 +60,11 @@ bool cudaq::FatQuakeModule::isFullySpecialized() const {
   return getArgsCreator() == nullptr;
 }
 
-int64_t (*cudaq::FatQuakeModule::getArgsCreator() const)(const void *,
-                                                         void **) {
+std::int64_t (*cudaq::FatQuakeModule::getArgsCreator() const)(const void *,
+                                                              void **) {
   auto jit = getJit(name + ".argsCreator");
-  return jit ? reinterpret_cast<int64_t (*)(const void *, void **)>(jit->fn)
+  return jit ? reinterpret_cast<std::int64_t (*)(const void *, void **)>(
+                   jit->fn)
              : nullptr;
 }
 

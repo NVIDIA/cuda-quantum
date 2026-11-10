@@ -26,7 +26,7 @@ extern "C" {
 extern bool verbose;
 
 // Runtime Init / Finalize
-void __quantum__rt__initialize(int argc, int8_t **argv);
+void __quantum__rt__initialize(int argc, std::int8_t **argv);
 void __quantum__rt__finalize();
 
 int info(const char *format, ...);
@@ -36,7 +36,7 @@ class Array;
 class Qubit;
 using Result = bool;
 
-using TuplePtr = int8_t *;
+using TuplePtr = std::int8_t *;
 
 // Quantum instruction set - quantum intrinsic operations
 void __quantum__qis__swap(Qubit *src, Qubit *tgt);
@@ -131,7 +131,7 @@ void __nvqir__qis__custom_unitary__adj__ctl_values(
     std::int64_t count, Array *targets, const char *name);
 
 void __quantum__qis__apply__general_qubit_array(Array *data, Array *qubits);
-void __quantum__qis__apply__general(Array *data, int64_t n_qubits, ...);
+void __quantum__qis__apply__general(Array *data, std::int64_t n_qubits, ...);
 
 void __quantum__qis__apply_kraus_channel_generalized(
     std::int64_t dataKind, std::int64_t krausChannelKey, std::size_t numSpans,
@@ -141,11 +141,11 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
                                                 std::size_t numParams,
                                                 Array *qubits);
 // Qubit array allocation / deallocation
-Array *__quantum__rt__qubit_allocate_array(uint64_t idx);
+Array *__quantum__rt__qubit_allocate_array(std::uint64_t idx);
 Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
     std::uint64_t size, std::complex<double> *data);
 Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
-    uint64_t size, std::complex<float> *data);
+    std::uint64_t size, std::complex<float> *data);
 Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
     cudaq::SimulationState *state);
 void __quantum__rt__qubit_release_array(Array *q);
@@ -158,16 +158,19 @@ Qubit *__quantum__rt__qubit_allocate();
 // a void* pointer to result data.
 
 // Array utility functions
-Array *__quantum__rt__array_create_1d(int32_t itemSizeInBytes,
-                                      int64_t count_items);
+Array *__quantum__rt__array_create_1d(std::int32_t itemSizeInBytes,
+                                      std::int64_t count_items);
 void __quantum__rt__array_release(Array *);
-int64_t __quantum__rt__array_get_size_1d(Array *array);
-int8_t *__quantum__rt__array_get_element_ptr_1d(Array *q, uint64_t idx);
-Array *__quantum__rt__array_slice(Array *array, int32_t dim,
-                                  int64_t range_start, int64_t range_step,
-                                  int64_t range_end);
-Array *__quantum__rt__array_slice_1d(Array *array, int64_t range_start,
-                                     int64_t range_step, int64_t range_end);
+std::int64_t __quantum__rt__array_get_size_1d(Array *array);
+std::int8_t *__quantum__rt__array_get_element_ptr_1d(Array *q,
+                                                     std::uint64_t idx);
+Array *__quantum__rt__array_slice(Array *array, std::int32_t dim,
+                                  std::int64_t range_start,
+                                  std::int64_t range_step,
+                                  std::int64_t range_end);
+Array *__quantum__rt__array_slice_1d(Array *array, std::int64_t range_start,
+                                     std::int64_t range_step,
+                                     std::int64_t range_end);
 Array *__quantum__rt__array_copy(Array *array, bool forceNewInstance);
 Array *__quantum__rt__array_concatenate(Array *head, Array *tail);
 void __nvqpp_cleanup_arrays();

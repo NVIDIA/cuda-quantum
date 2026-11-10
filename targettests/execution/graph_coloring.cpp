@@ -64,7 +64,8 @@ __qpu__ void reflect_uniform(cudaq::qvector<> &qubits, double theta) {
   init_state(qubits, theta);
 }
 
-bool oracle_classical(uint8_t v0, uint8_t v1, uint8_t v2, uint8_t v3) {
+bool oracle_classical(std::uint8_t v0, std::uint8_t v1, std::uint8_t v2,
+                      std::uint8_t v3) {
   bool c_01 = v0 != v1;
   bool c_123 = (v1 != v2) && (v1 != v3) && (v2 != v3);
   return c_01 && c_123;

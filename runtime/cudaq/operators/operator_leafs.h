@@ -405,7 +405,7 @@ private:
     struct term_data {
       std::string encoding;
       std::complex<double> coefficient;
-      std::vector<int64_t> relevant_dimensions;
+      std::vector<std::int64_t> relevant_dimensions;
     };
     std::vector<term_data> terms;
 
@@ -413,14 +413,14 @@ private:
     canonical_evaluation();
     canonical_evaluation(std::complex<double> &&coefficient);
     canonical_evaluation(std::string &&encoding,
-                         std::vector<int64_t> &&relevant_dims);
+                         std::vector<std::int64_t> &&relevant_dims);
     canonical_evaluation(canonical_evaluation &&other);
     canonical_evaluation &operator=(canonical_evaluation &&other);
     // delete copy constructor and copy assignment to avoid unnecessary copies
     canonical_evaluation(const canonical_evaluation &other) = delete;
     canonical_evaluation &operator=(const canonical_evaluation &other) = delete;
     void push_back(const std::string &op,
-                   const std::vector<int64_t> &relevant_dimensions);
+                   const std::vector<std::int64_t> &relevant_dimensions);
   };
 
 public:

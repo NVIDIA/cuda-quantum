@@ -42,8 +42,8 @@ public:
   /// @param time The time at which the expectation value is computed
   /// @param batchSize The batched size of the input state
   /// @return The expectation value(s)
-  std::vector<std::complex<double>> compute(cudensitymatState_t state,
-                                            double time, int64_t batchSize);
+  std::vector<std::complex<double>>
+  compute(cudensitymatState_t state, double time, std::int64_t batchSize);
 };
 
 } // namespace cudaq

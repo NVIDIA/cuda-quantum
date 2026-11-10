@@ -42,12 +42,14 @@ namespace {
 struct Resource {
   struct Allocation {
     void *data = nullptr;
-    uint64_t size = 0;
+    std::uint64_t size = 0;
   };
   std::array<Allocation, 64> ledger{};
-  uint64_t attempts = 0, allocations = 0, releases = 0, live = 0, fail_at = 0;
+  std::uint64_t attempts = 0, allocations = 0, releases = 0, live = 0,
+                fail_at = 0;
 
-  static void *allocate(void *context, uint64_t size, uint32_t alignment) {
+  static void *allocate(void *context, std::uint64_t size,
+                        std::uint32_t alignment) {
     auto &self = *static_cast<Resource *>(context);
     CHECK(alignment == CUDAQ_EDEM_PACKED_ALIGNMENT && size <= SIZE_MAX);
     if (++self.attempts == self.fail_at)
@@ -65,8 +67,8 @@ struct Resource {
     }
     return nullptr;
   }
-  static void deallocate(void *context, void *data, uint64_t size,
-                         uint32_t alignment) {
+  static void deallocate(void *context, void *data, std::uint64_t size,
+                         std::uint32_t alignment) {
     auto &self = *static_cast<Resource *>(context);
     CHECK(alignment == CUDAQ_EDEM_PACKED_ALIGNMENT);
     for (auto &entry : self.ledger)
@@ -84,8 +86,8 @@ struct Resource {
 };
 
 const cudaq_edem_description &description() {
-  static const uint32_t id[] = {0}, sizes[] = {1};
-  static const uint64_t offsets[] = {0, 1};
+  static const std::uint32_t id[] = {0}, sizes[] = {1};
+  static const std::uint64_t offsets[] = {0, 1};
   static const double probability[] = {0.125};
   static const cudaq_edem_fault_group group = {CUDAQ_EDEM_INDEPENDENT, 1, id,
                                                probability};
@@ -106,7 +108,7 @@ const cudaq_edem_description &description() {
 }
 
 void apply(const cudaq_edem_view &view) {
-  uint8_t input = 1, output = 0;
+  std::uint8_t input = 1, output = 0;
   CHECK(cudaq_gf2_map_apply(&view.map, &input, 1, &output, 1) == CUDAQ_GF2_OK);
   CHECK(output == 1);
 }
@@ -242,7 +244,7 @@ void test_failures_preserve_owners() {
 }
 
 void test_bounded_scratch_reuse() {
-  alignas(std::max_align_t) std::array<uint8_t, 16384> scratch{}, result{};
+  alignas(std::max_align_t) std::array<std::uint8_t, 16384> scratch{}, result{};
   cudaq_gf2_bump_allocator temporary{scratch.data(), scratch.size(), 0};
   cudaq_gf2_bump_allocator retained{result.data(), result.size(), 0};
   cudaq_gf2_memory memory{cudaq_gf2_bump_resource(&temporary),

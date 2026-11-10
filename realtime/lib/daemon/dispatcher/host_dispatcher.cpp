@@ -27,8 +27,9 @@
 static inline std::atomic_ref<int> as_atomic_int(volatile int *p) {
   return std::atomic_ref<int>(*const_cast<int *>(p));
 }
-static inline std::atomic_ref<uint64_t> as_atomic_u64(volatile uint64_t *p) {
-  return std::atomic_ref<uint64_t>(*const_cast<uint64_t *>(p));
+static inline std::atomic_ref<std::uint64_t>
+as_atomic_u64(volatile std::uint64_t *p) {
+  return std::atomic_ref<std::uint64_t>(*const_cast<std::uint64_t *>(p));
 }
 
 namespace {
@@ -41,7 +42,7 @@ using namespace cudaq::realtime;
 
 const cudaq_function_entry_t *lookup_function(cudaq_function_entry_t *table,
                                               size_t count,
-                                              uint32_t function_id) {
+                                              std::uint32_t function_id) {
   for (size_t i = 0; i < count; ++i) {
     if (table[i].function_id == function_id)
       return &table[i];
@@ -96,7 +97,7 @@ size_t invoke_host_call(const cudaq_function_entry_t *entry,
 // A request the loop is about to dispatch: its ring slot index and a host
 // pointer to the inbound request bytes.
 struct RxItem {
-  uint32_t slot = 0;
+  std::uint32_t slot = 0;
   void *rx_host = nullptr;
 };
 
@@ -148,16 +149,16 @@ struct RingTransport {
   // cursor's slot is empty, scan the ring for any pending slot (a peer may have
   // consumed ours) and jump the cursor there.  Returns false when idle.
   bool poll_request(RxItem &out) {
-    uint64_t rx_value = as_atomic_u64(&rb->rx_flags_host[current_slot])
-                            .load(std::memory_order_acquire);
+    std::uint64_t rx_value = as_atomic_u64(&rb->rx_flags_host[current_slot])
+                                 .load(std::memory_order_acquire);
     if (rx_value == 0) {
       if (!config->shared_ring_mode)
         return false;
       size_t probe = (current_slot + 1) % num_slots;
       size_t scanned = 0;
       while (scanned < num_slots - 1) {
-        uint64_t v = as_atomic_u64(&rb->rx_flags_host[probe])
-                         .load(std::memory_order_acquire);
+        std::uint64_t v = as_atomic_u64(&rb->rx_flags_host[probe])
+                              .load(std::memory_order_acquire);
         if (v != 0) {
           current_slot = probe;
           break;
@@ -172,7 +173,7 @@ struct RingTransport {
       if (rx_value == 0)
         return false;
     }
-    out.slot = static_cast<uint32_t>(current_slot);
+    out.slot = static_cast<std::uint32_t>(current_slot);
     out.rx_host = reinterpret_cast<void *>(rx_value);
     return true;
   }
@@ -181,7 +182,8 @@ struct RingTransport {
   // signals fresh response data to the consumer transport thread.
   void send_response(const RxItem &it, void *tx_host) {
     as_atomic_u64(&rb->tx_flags_host[it.slot])
-        .store(reinterpret_cast<uint64_t>(tx_host), std::memory_order_release);
+        .store(reinterpret_cast<std::uint64_t>(tx_host),
+               std::memory_order_release);
   }
 
   // Release the slot and step the cursor.  Foreign under shared_ring_mode
@@ -208,7 +210,7 @@ struct UnifiedTransport {
 
   // Claim the next ready request via the transport's rx_poll hook.
   bool poll_request(RxItem &out) {
-    uint32_t slot = 0;
+    std::uint32_t slot = 0;
     if (dp->rx_poll(dp->ctx, &slot) != CUDAQ_RX_READY)
       return false;
     out.slot = slot;
@@ -248,7 +250,7 @@ static_assert(satisfies_transport_policy<UnifiedTransport>(),
 // retired as Foreign.
 template <class Transport>
 void dispatch_core(Transport &tp, const cudaq_function_table_t *table,
-                   volatile int *shutdown_flag, uint64_t *stats) {
+                   volatile int *shutdown_flag, std::uint64_t *stats) {
   const cudaq_ringbuffer_t *rb = tp.ringbuffer();
   // The dispatcher operates on a registered function table; there is nothing to
   // dispatch without one.
@@ -258,7 +260,7 @@ void dispatch_core(Transport &tp, const cudaq_function_table_t *table,
   // handlers defensively against a future asymmetric layout.
   const size_t slot_size =
       rb->rx_stride_sz < rb->tx_stride_sz ? rb->rx_stride_sz : rb->tx_stride_sz;
-  uint64_t count = 0;
+  std::uint64_t count = 0;
 
   while (as_atomic_int(shutdown_flag).load(std::memory_order_relaxed) == 0) {
     RxItem it;
@@ -297,11 +299,10 @@ void dispatch_core(Transport &tp, const cudaq_function_table_t *table,
 
 } // anonymous namespace
 
-extern "C" void
-cudaq_host_ring_dispatch_loop(const cudaq_ringbuffer_t *ringbuffer,
-                              const cudaq_function_table_t *table,
-                              const cudaq_dispatcher_config_t *config,
-                              volatile int *shutdown_flag, uint64_t *stats) {
+extern "C" void cudaq_host_ring_dispatch_loop(
+    const cudaq_ringbuffer_t *ringbuffer, const cudaq_function_table_t *table,
+    const cudaq_dispatcher_config_t *config, volatile int *shutdown_flag,
+    std::uint64_t *stats) {
   assert(ringbuffer && "ringbuffer must be non-null");
   assert(table && "table must be non-null");
   assert(config && "config must be non-null");
@@ -314,7 +315,7 @@ cudaq_host_ring_dispatch_loop(const cudaq_ringbuffer_t *ringbuffer,
 extern "C" void cudaq_host_unified_loop(cudaq_cpu_dataplane_t *cpu_dataplane,
                                         const cudaq_function_table_t *table,
                                         volatile int *shutdown_flag,
-                                        uint64_t *stats) {
+                                        std::uint64_t *stats) {
   assert(cpu_dataplane && "cpu_dataplane must be non-null");
   assert(cpu_dataplane->rx_poll && "data-plane must provide rx_poll");
   assert(cpu_dataplane->tx_publish && "data-plane must provide tx_publish");

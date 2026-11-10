@@ -203,7 +203,7 @@ getOrCacheMat(const std::string &key, MakeMat &&makeMat,
 
 template <typename ScalarType>
 void SimulatorTensorNetBase<ScalarType>::applyKrausChannel(
-    const std::vector<int32_t> &qubits,
+    const std::vector<std::int32_t> &qubits,
     const cudaq::kraus_channel &krausChannel) {
   LOG_API_TIME();
   if (krausChannel.is_unitary_mixture()) {
@@ -275,7 +275,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoise(
   LOG_API_TIME();
 
   // Apply all prior gates before applying noise.
-  std::vector<int32_t> qubits{targets.begin(), targets.end()};
+  std::vector<std::int32_t> qubits{targets.begin(), targets.end()};
   CUDAQ_INFO("[SimulatorTensorNetBase] Applying kraus channel {} on qubits: {}",
              cudaq::get_noise_model_type_name(channel.noise_type), qubits);
 
@@ -301,7 +301,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
 
   // Get the name as a string
   std::string gName(gateName);
-  std::vector<int32_t> qubits{controls.begin(), controls.end()};
+  std::vector<std::int32_t> qubits{controls.begin(), controls.end()};
   qubits.insert(qubits.end(), targets.begin(), targets.end());
 
   // Get the Kraus channels specified for this gate and qubits
@@ -329,7 +329,7 @@ void SimulatorTensorNetBase<ScalarType>::resetQubit(
   LOG_API_TIME();
   // Prepare the state before RDM calculation
   prepareQubitTensorState();
-  const auto rdm = m_state->computeRDM({static_cast<int32_t>(qubitIdx)});
+  const auto rdm = m_state->computeRDM({static_cast<std::int32_t>(qubitIdx)});
   assert(rdm.size() == 4);
   const ScalarType prob0 = rdm[0].real();
   CUDAQ_INFO("Reset qubit {} with prob(|0>) = {}", qubitIdx, prob0);
@@ -365,7 +365,7 @@ void SimulatorTensorNetBase<ScalarType>::resetQubit(
   }
 
   m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
-                               {static_cast<int32_t>(qubitIdx)});
+                               {static_cast<std::int32_t>(qubitIdx)});
 }
 
 /// @brief Device synchronization
@@ -381,7 +381,7 @@ bool SimulatorTensorNetBase<ScalarType>::measureQubit(
   LOG_API_TIME();
   // Prepare the state before RDM calculation
   prepareQubitTensorState();
-  const auto rdm = m_state->computeRDM({static_cast<int32_t>(qubitIdx)});
+  const auto rdm = m_state->computeRDM({static_cast<std::int32_t>(qubitIdx)});
   assert(rdm.size() == 4);
   const ScalarType prob0 = rdm[0].real();
   const ScalarType prob1 = rdm[3].real();
@@ -413,7 +413,7 @@ bool SimulatorTensorNetBase<ScalarType>::measureQubit(
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
   m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
-                               {static_cast<int32_t>(qubitIdx)});
+                               {static_cast<std::int32_t>(qubitIdx)});
   return resultBool;
 }
 
@@ -423,7 +423,7 @@ cudaq::ExecutionResult SimulatorTensorNetBase<ScalarType>::sample(
     const std::vector<std::size_t> &measuredBits, const int shots,
     bool includeSequentialData) {
   LOG_API_TIME();
-  std::vector<int32_t> measuredBitIds(measuredBits.begin(), measuredBits.end());
+  std::vector<std::int32_t> measuredBitIds(measuredBits.begin(), measuredBits.end());
   if (shots < 1) {
     auto allZ = cudaq::spin_op::identity();
     for (std::size_t t = 0; t < m_state->getNumQubits(); ++t)
@@ -611,9 +611,9 @@ void SimulatorTensorNetBase<ScalarType>::setRandomSeed(std::size_t randomSeed) {
   m_randomEngine = std::mt19937(randomSeed);
   // Although we set the pathfinder seed here, it is only deterministic when
   // the number of pathfinding threads is 1. Note that this does not override a
-  // user setting for this environment variable. cutensornet uses int32_t but
+  // user setting for this environment variable. cutensornet uses std::int32_t but
   // requires the environment variable to be positive
-  int32_t rndSeed = m_randomEngine();
+  std::int32_t rndSeed = m_randomEngine();
   rndSeed = std::abs(rndSeed);
   if (rndSeed == 0)
     rndSeed++;

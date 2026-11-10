@@ -92,8 +92,9 @@ cc::StructType::getTypeSizeInBits(const DataLayout &dataLayout,
   return llvm::TypeSize::getFixed(getBitSize());
 }
 
-uint64_t cc::StructType::getABIAlignment(const DataLayout &dataLayout,
-                                         DataLayoutEntryListRef params) const {
+std::uint64_t
+cc::StructType::getABIAlignment(const DataLayout &dataLayout,
+                                DataLayoutEntryListRef params) const {
   return getAlignment();
 }
 

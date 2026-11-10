@@ -410,7 +410,7 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   // Process the results
   for (const auto &element : results.items()) {
     // Convert base-10 ASCII key to bitstring and perform endian swap
-    uint64_t s = std::stoull(element.key());
+    std::uint64_t s = std::stoull(element.key());
     std::string newkey = std::bitset<64>(s).to_string();
     std::reverse(newkey.begin(), newkey.end()); // perform endian swap
     newkey.resize(nQubits);

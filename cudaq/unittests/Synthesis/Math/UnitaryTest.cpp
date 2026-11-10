@@ -35,7 +35,7 @@ std::vector<DOmegaUnitary> sample_unitaries() {
   static const Gate alphabet[] = {Gate::H, Gate::T, Gate::S,
                                   Gate::X, Gate::W, Gate::H};
   std::vector<DOmegaUnitary> unitaries;
-  uint64_t state = 0x243f6a8885a308d3ull;
+  std::uint64_t state = 0x243f6a8885a308d3ull;
   for (int length = 1; length <= 40; ++length) {
     Circuit word;
     for (int i = 0; i < length; ++i) {
@@ -53,7 +53,7 @@ TEST(DOmegaUnitaryRungTest, ReducingRungMatchesOutOfPlace) {
   for (const DOmegaUnitary &u : sample_unitaries()) {
     if (u.k() < 1)
       continue;
-    for (int32_t m = 0; m < 8; ++m) {
+    for (std::int32_t m = 0; m < 8; ++m) {
       DOmegaUnitary turned = u.mul_by_T_power_from_left(m);
       const ZOmega &z = turned.z().u();
       const ZOmega &w = turned.w().u();
@@ -76,7 +76,7 @@ TEST(DOmegaUnitaryRungTest, BonusRungMatchesOutOfPlace) {
   ZOmega scratch;
   int compared = 0;
   for (const DOmegaUnitary &u : sample_unitaries()) {
-    for (int32_t m = 0; m < 8; ++m) {
+    for (std::int32_t m = 0; m < 8; ++m) {
       DOmegaUnitary turned = u.mul_by_T_power_from_left(m);
       const ZOmega &z = turned.z().u();
       const ZOmega &w = turned.w().u();
@@ -100,7 +100,7 @@ TEST(DOmegaUnitaryRungTest, BonusRungMatchesOutOfPlace) {
 TEST(DOmegaUnitaryRungTest, RungsIgnoreIncomingScratchContents) {
   int compared = 0;
   for (const DOmegaUnitary &u : sample_unitaries()) {
-    for (int32_t m = 0; m < 8; ++m) {
+    for (std::int32_t m = 0; m < 8; ++m) {
       DOmegaUnitary turned = u.mul_by_T_power_from_left(m);
       const ZOmega &z = turned.z().u();
       const ZOmega &w = turned.w().u();

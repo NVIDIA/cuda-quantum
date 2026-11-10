@@ -200,7 +200,7 @@ static std::string join(ArrayRef<StringRef> values) {
 
 static std::string serialize(const ScheduleRow &row,
                              ArrayRef<std::string> resourceLabels) {
-  auto integer = [](std::optional<int64_t> value) {
+  auto integer = [](std::optional<std::int64_t> value) {
     return value ? std::to_string(*value) : std::string{};
   };
   std::string result;
@@ -944,7 +944,7 @@ private:
     if (isa<qlx::phys::AcquireOp, qlx::phys::ReleaseOp, qlx::phys::RetryOp,
             qlx::event::FenceOp, qlx::phys::BarrierOp>(operation))
       return 0.0;
-    std::optional<int64_t> codeDistance;
+    std::optional<std::int64_t> codeDistance;
     bool unresolvedPhysicalDistance = false;
     for (Type type : operation->getOperandTypes()) {
       if (!isa<qlx::phys::StateType>(type))
@@ -1212,7 +1212,7 @@ private:
                               StringRef parent = {}, StringRef branch = {},
                               StringRef inheritedCondition = {},
                               double earliest = 0.0,
-                              int64_t repeatMultiplicity = 1,
+                              std::int64_t repeatMultiplicity = 1,
                               double *directFinish = nullptr) {
     for (Operation &operation : block) {
       std::chrono::steady_clock::time_point operationStarted;
@@ -1563,7 +1563,7 @@ private:
   LogicalResult scheduleCall(qlx::phys::CallOp call, ScheduleState &current,
                              SmallVectorImpl<ScheduleRow> &sink,
                              ScheduleRow base, StringRef condition,
-                             int64_t repeatMultiplicity) {
+                             std::int64_t repeatMultiplicity) {
     std::chrono::steady_clock::time_point callStarted;
     if (profileEnabled)
       callStarted = std::chrono::steady_clock::now();
@@ -1855,9 +1855,9 @@ private:
       for (Attribute raw : claims) {
         auto claim = cast<DictionaryAttr>(raw);
         auto reference = claim.getAs<SymbolRefAttr>("resource_class");
-        int64_t offset = claim.getAs<IntegerAttr>("offset").getInt();
-        int64_t count = claim.getAs<IntegerAttr>("count").getInt();
-        for (int64_t index = offset; index < offset + count; ++index) {
+        std::int64_t offset = claim.getAs<IntegerAttr>("offset").getInt();
+        std::int64_t count = claim.getAs<IntegerAttr>("count").getInt();
+        for (std::int64_t index = offset; index < offset + count; ++index) {
           ResourceId identity =
               registerResourceKey((reference.getLeafReference().getValue() +
                                    "[" + std::to_string(index) + "]")
@@ -2075,13 +2075,13 @@ private:
                                ScheduleState &current,
                                SmallVectorImpl<ScheduleRow> &sink,
                                ScheduleRow base, StringRef condition,
-                               int64_t repeatMultiplicity) {
-    int64_t count = repeat.getCountAttr().getInt();
+                               std::int64_t repeatMultiplicity) {
+    std::int64_t count = repeat.getCountAttr().getInt();
     if (count != 0 &&
-        repeatMultiplicity > std::numeric_limits<int64_t>::max() / count)
+        repeatMultiplicity > std::numeric_limits<std::int64_t>::max() / count)
       return repeat.emitOpError(
           "composed repeat multiplicity exceeds signed 64-bit range");
-    int64_t nestedMultiplicity = repeatMultiplicity * count;
+    std::int64_t nestedMultiplicity = repeatMultiplicity * count;
     base.repeatCount = count;
     size_t rowIndex = sink.size();
     sink.push_back(base);
@@ -2155,7 +2155,7 @@ private:
   LogicalResult scheduleIf(qlx::cflow::IfOp branchOp, ScheduleState &current,
                            SmallVectorImpl<ScheduleRow> &sink, ScheduleRow base,
                            StringRef inheritedCondition,
-                           int64_t repeatMultiplicity) {
+                           std::int64_t repeatMultiplicity) {
     StringRef condition = valueProducer(branchOp.getCondition());
     base.condition = condition.empty() ? inheritedCondition : condition;
     size_t rowIndex = sink.size();
@@ -2229,13 +2229,13 @@ private:
   LogicalResult scheduleWhile(qlx::cflow::WhileOp loop, ScheduleState &current,
                               SmallVectorImpl<ScheduleRow> &sink,
                               ScheduleRow base, StringRef inheritedCondition,
-                              int64_t repeatMultiplicity) {
+                              std::int64_t repeatMultiplicity) {
     auto bound = loop.getMaxIterationsAttr();
     if (!bound)
       return loop.emitOpError(
           "the generic physical scheduler requires a bounded cflow.while; use "
           "a symbolic controller scheduler for an unbounded runtime loop");
-    int64_t maxIterations = bound.getInt();
+    std::int64_t maxIterations = bound.getInt();
     base.maxIterations = maxIterations;
     size_t rowIndex = sink.size();
     sink.push_back(base);
@@ -2311,7 +2311,7 @@ private:
                                      SmallVectorImpl<ScheduleRow> &sink,
                                      ScheduleRow base,
                                      StringRef inheritedCondition,
-                                     int64_t repeatMultiplicity) {
+                                     std::int64_t repeatMultiplicity) {
     StringRef inputProducer = valueProducer(dispatch.getEvent());
     base.condition = inputProducer.empty() ? inheritedCondition : inputProducer;
     size_t rowIndex = sink.size();
@@ -2624,9 +2624,9 @@ private:
                        .getLeafReference()
                        .getValue()
                  : claim.getAs<FlatSymbolRefAttr>("resource_class").getValue();
-      int64_t offset = claim.getAs<IntegerAttr>("offset").getInt();
-      int64_t count = claim.getAs<IntegerAttr>("count").getInt();
-      for (int64_t index = offset; index < offset + count; ++index) {
+      std::int64_t offset = claim.getAs<IntegerAttr>("offset").getInt();
+      std::int64_t count = claim.getAs<IntegerAttr>("count").getInt();
+      for (std::int64_t index = offset; index < offset + count; ++index) {
         ResourceId identity = registerResourceKey(
             (resourceName + "[" + std::to_string(index) + "]").str());
         if (!llvm::is_contained(physicalResourceIds, identity))
@@ -2645,8 +2645,8 @@ private:
     if (!interconnect)
       return operation.emitOpError(
           "transport model has an unresolved selected interconnect");
-    auto registerLanes = [&](StringRef prefix, int64_t capacity) {
-      for (int64_t lane = 0; lane < capacity; ++lane)
+    auto registerLanes = [&](StringRef prefix, std::int64_t capacity) {
+      for (std::int64_t lane = 0; lane < capacity; ++lane)
         registerResourceKey((prefix + std::to_string(lane)).str());
     };
     registerLanes(
@@ -2681,7 +2681,7 @@ private:
       return result;
     StringRef identity =
         *model ? (*model).getSymName() : (*binding).getSymName();
-    uint64_t occurrence = transportOccurrences[identity]++;
+    std::uint64_t occurrence = transportOccurrences[identity]++;
     auto append = [&](std::string key) {
       result.push_back(registerResourceKey(key));
     };
@@ -2692,18 +2692,18 @@ private:
                        .getLeafReference()
                        .getValue()
                  : claim.getAs<FlatSymbolRefAttr>("resource_class").getValue();
-      int64_t offset = claim.getAs<IntegerAttr>("offset").getInt();
-      int64_t count = claim.getAs<IntegerAttr>("count").getInt();
-      int64_t units = claim.getAs<IntegerAttr>("units").getInt();
-      int64_t lanes = count / units;
+      std::int64_t offset = claim.getAs<IntegerAttr>("offset").getInt();
+      std::int64_t count = claim.getAs<IntegerAttr>("count").getInt();
+      std::int64_t units = claim.getAs<IntegerAttr>("units").getInt();
+      std::int64_t lanes = count / units;
       if (lanes <= 0) {
         operation.emitOpError(
             "transport resource claim has no complete acquisition lane");
         return failure();
       }
-      int64_t selected =
-          offset + static_cast<int64_t>(occurrence % lanes) * units;
-      for (int64_t index = selected; index < selected + units; ++index)
+      std::int64_t selected =
+          offset + static_cast<std::int64_t>(occurrence % lanes) * units;
+      for (std::int64_t index = selected; index < selected + units; ++index)
         append((resourceName + "[" + std::to_string(index) + "]").str());
     }
     auto qecReference = (*binding).getQecChannelAttr();
@@ -2720,18 +2720,20 @@ private:
           "transport model has an unresolved selected interconnect");
       return failure();
     }
-    int64_t sourceUnits =
+    std::int64_t sourceUnits =
         *model ? (*model).getSourceEndpointOccupancy()
                : (*binding).getSourceEndpointOccupancyAttr().getInt();
-    int64_t destinationUnits =
+    std::int64_t destinationUnits =
         *model ? (*model).getDestinationEndpointOccupancy()
                : (*binding).getDestinationEndpointOccupancyAttr().getInt();
-    auto appendPort = [&](StringRef name, int64_t capacity, int64_t units) {
-      int64_t lanes = capacity / units;
+    auto appendPort = [&](StringRef name, std::int64_t capacity,
+                          std::int64_t units) {
+      std::int64_t lanes = capacity / units;
       if (lanes <= 0)
         return failure();
-      int64_t first = static_cast<int64_t>(occurrence % lanes) * units;
-      for (int64_t lane = first; lane < first + units; ++lane)
+      std::int64_t first =
+          static_cast<std::int64_t>(occurrence % lanes) * units;
+      for (std::int64_t lane = first; lane < first + units; ++lane)
         append(("control:transport-port:" + name + ":" + std::to_string(lane))
                    .str());
       return success();
@@ -2769,7 +2771,7 @@ private:
   llvm::StringMap<ResourceId> resourceIdsByKey;
   llvm::StringMap<ResourceId> resourceIdsBySymbol;
   DenseMap<Type, ResourceId> resourceIdsByStateType;
-  DenseMap<Type, int64_t> codeDistancesByStateType;
+  DenseMap<Type, std::int64_t> codeDistancesByStateType;
   llvm::StringMap<SmallVector<StringRef, 4>> allocationAfterDependencies;
   SmallVector<std::string, 0> resourceLabels;
   SmallVector<unsigned, 0> resourceLabelRanks;
@@ -2781,7 +2783,7 @@ private:
   std::map<std::string, double> usedTimings;
   llvm::StringMap<CallTemplateSummary> callTemplates;
   llvm::StringMap<OperationResultState> pipelineInitiation;
-  llvm::StringMap<uint64_t> transportOccurrences;
+  llvm::StringMap<std::uint64_t> transportOccurrences;
   SmallVector<PipelineChangeScope *, 8> pipelineChangeScopes;
   DenseMap<Operation *, StringRef> pipelineIdentities;
   DenseMap<ResourceId, ResourceId> emptyTemplateResourceAliases;
@@ -2798,11 +2800,11 @@ private:
   SmallVector<ScheduleRow, 0> rows;
   std::chrono::steady_clock::time_point profileStarted =
       std::chrono::steady_clock::now();
-  uint64_t scheduledOperations = 0;
-  uint64_t scheduledCalls = 0;
-  uint64_t scheduledTemplateCalls = 0;
-  uint64_t scheduledAliasEntries = 0;
-  uint64_t scheduledSummaryEntries = 0;
+  std::uint64_t scheduledOperations = 0;
+  std::uint64_t scheduledCalls = 0;
+  std::uint64_t scheduledTemplateCalls = 0;
+  std::uint64_t scheduledAliasEntries = 0;
+  std::uint64_t scheduledSummaryEntries = 0;
   double scheduledAliasSeconds = 0.0;
   double scheduledApplySeconds = 0.0;
   double scheduledPreludeSeconds = 0.0;
@@ -2811,13 +2813,13 @@ private:
   double scheduledLeafPreludeSeconds = 0.0;
   double scheduledCallSeconds = 0.0;
   double scheduledCallFinalizeSeconds = 0.0;
-  uint64_t scheduledCallChangeEntries = 0;
+  std::uint64_t scheduledCallChangeEntries = 0;
   size_t scheduledCallMaxDepth = 0;
   double scheduledTemplateTotalSeconds = 0.0;
   double scheduledTemplateRowSeconds = 0.0;
   double scheduledTemplatePushSeconds = 0.0;
   double scheduledTemplateResultSeconds = 0.0;
-  uint64_t scheduledTemplateResults = 0;
+  std::uint64_t scheduledTemplateResults = 0;
   double cycle = 1.0;
   bool deferOutputVerification = false;
   bool deferEntryMaterialization = false;

@@ -32,15 +32,15 @@ inline cudaq_gf2_allocator result_allocator(const cudaq_gf2_memory *memory) {
 class allocation {
   cudaq_gf2_allocator resource_;
   void *data_ = nullptr;
-  uint64_t bytes_ = 0;
-  uint32_t alignment_ = 0;
+  std::uint64_t bytes_ = 0;
+  std::uint32_t alignment_ = 0;
 
 public:
   explicit allocation(cudaq_gf2_allocator resource) : resource_(resource) {}
   allocation(const allocation &) = delete;
   allocation &operator=(const allocation &) = delete;
   ~allocation() { reset(); }
-  cudaq_gf2_status reserve(uint64_t bytes, uint32_t alignment) {
+  cudaq_gf2_status reserve(std::uint64_t bytes, std::uint32_t alignment) {
     if (!valid_allocator(resource_) || bytes > SIZE_MAX || !alignment ||
         (alignment & (alignment - 1)))
       return CUDAQ_GF2_INVALID_ARGUMENT;

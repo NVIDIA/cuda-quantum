@@ -127,7 +127,7 @@ public:
 
   /// Residue: 4-bit parity pattern of the Z[omega] numerator (Remark D.2,
   /// Lemma 7.3). Drives the denominator-exponent reduction.
-  int32_t residue() const { return _u.residue(); }
+  std::int32_t residue() const { return _u.residue(); }
 
   Real real() const { return _u.real() / scale(); }
   Real imag() const { return _u.imag() / scale(); }
@@ -176,7 +176,7 @@ inline DOmega mul_by_omega_inv(const DOmega &x) noexcept {
   return DOmega(mul_by_omega_inv(x.u()), x.k());
 }
 
-inline DOmega mul_by_omega_power(const DOmega &x, int32_t n) noexcept {
+inline DOmega mul_by_omega_power(const DOmega &x, std::int32_t n) noexcept {
   return DOmega(mul_by_omega_power(x.u(), n), x.k());
 }
 

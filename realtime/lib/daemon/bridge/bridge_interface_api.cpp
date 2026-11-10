@@ -260,8 +260,8 @@ cudaq_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t bridge, char *buf,
 
 cudaq_status_t
 cudaq_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t bridge,
-                               uint32_t *out_num_slots,
-                               uint32_t *out_slot_size) {
+                               std::uint32_t *out_num_slots,
+                               std::uint32_t *out_slot_size) {
   auto *bridge_interface = find_interface(bridge, "get_ring_geometry");
   if (!bridge_interface)
     return CUDAQ_ERR_INVALID_ARG;

@@ -22,13 +22,13 @@
 /// the QIR specification types here (Qubit, Array, TuplePtr, Result, etc.)
 
 // The TuplePtr is just a i8 pointer.
-using TuplePtr = int8_t *;
+using TuplePtr = std::int8_t *;
 
 /// QIR Range type
 struct Range {
-  int64_t start;
-  int64_t step;
-  int64_t end;
+  std::int64_t start;
+  std::int64_t step;
+  std::int64_t end;
 };
 
 /// The Qubit is a simple wrapper around
@@ -42,7 +42,7 @@ struct Qubit {
 class Array {
 private:
   const int element_size_bytes;
-  std::vector<int8_t> storage;
+  std::vector<std::int8_t> storage;
   // Note: this currently is unused.
   // We should use this to track array references and clean arrays appropriately
   // (e.g., `__quantum__rt__array_update_reference_count`).
@@ -50,10 +50,10 @@ private:
 
 public:
   // Get the element pointer at given index
-  int8_t *operator[](std::size_t index);
+  std::int8_t *operator[](std::size_t index);
   // Ctors
   // Default items are pointers.
-  Array(std::size_t _nitems, int _item_size = sizeof(int8_t *));
+  Array(std::size_t _nitems, int _item_size = sizeof(std::int8_t *));
 
   Array(const Array &other);
 
@@ -70,19 +70,22 @@ public:
 
 /// Array Runtime Functions
 extern "C" {
-Array *__quantum__rt__array_create_1d(int32_t itemSizeInBytes,
-                                      int64_t count_items);
+Array *__quantum__rt__array_create_1d(std::int32_t itemSizeInBytes,
+                                      std::int64_t count_items);
 void __quantum__rt__array_release(Array *);
-int64_t __quantum__rt__array_get_size_1d(Array *array);
-int8_t *__quantum__rt__array_get_element_ptr_1d(Array *q, uint64_t idx);
+std::int64_t __quantum__rt__array_get_size_1d(Array *array);
+std::int8_t *__quantum__rt__array_get_element_ptr_1d(Array *q,
+                                                     std::uint64_t idx);
 Array *__quantum__rt__array_copy(Array *array, bool forceNewInstance);
 Array *__quantum__rt__array_concatenate(Array *head, Array *tail);
-Array *__quantum__rt__array_slice(Array *array, int32_t dim,
-                                  int64_t range_start, int64_t range_step,
-                                  int64_t range_end);
-Array *__quantum__rt__array_slice_1d(Array *array, int64_t range_start,
-                                     int64_t range_step, int64_t range_end);
-Array *quantum__rt__array_slice(Array *array, int32_t dim, Range range);
+Array *__quantum__rt__array_slice(Array *array, std::int32_t dim,
+                                  std::int64_t range_start,
+                                  std::int64_t range_step,
+                                  std::int64_t range_end);
+Array *__quantum__rt__array_slice_1d(Array *array, std::int64_t range_start,
+                                     std::int64_t range_step,
+                                     std::int64_t range_end);
+Array *quantum__rt__array_slice(Array *array, std::int32_t dim, Range range);
 
 // Internal method to clean up any dangling arrays
 void __nvqpp_cleanup_arrays();
@@ -96,7 +99,7 @@ inline Result *ResultZero = const_cast<Result *>(&ResultZeroVal);
 inline Result *ResultOne = const_cast<Result *>(&ResultOneVal);
 
 // Pauli type.
-enum Pauli : int8_t {
+enum Pauli : std::int8_t {
   Pauli_I = 0,
   Pauli_X,
   Pauli_Z,

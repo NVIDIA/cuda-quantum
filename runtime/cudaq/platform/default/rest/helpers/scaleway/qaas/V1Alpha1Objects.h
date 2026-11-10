@@ -33,9 +33,9 @@ struct Platform {
   std::string backend_name = "";
   std::string type = "";
   std::string technology = "";
-  int64_t max_qubit_count = 0;
-  int64_t max_shot_count = 0;
-  int64_t max_circuit_count = 0;
+  std::int64_t max_qubit_count = 0;
+  std::int64_t max_shot_count = 0;
+  std::int64_t max_circuit_count = 0;
   std::string availability = "";
   std::string metadata = "";
 };

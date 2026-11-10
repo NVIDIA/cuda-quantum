@@ -40,8 +40,9 @@ namespace qlx::fabric {
 
 namespace {
 
-static FailureOr<int64_t> dictionaryInteger(DictionaryAttr dictionary,
-                                            StringRef name, Operation *source) {
+static FailureOr<std::int64_t> dictionaryInteger(DictionaryAttr dictionary,
+                                                 StringRef name,
+                                                 Operation *source) {
   auto value = dictionary.getAs<IntegerAttr>(name);
   if (!value) {
     source->emitError() << "analytical estimate requires integer count '"
@@ -52,8 +53,8 @@ static FailureOr<int64_t> dictionaryInteger(DictionaryAttr dictionary,
 }
 
 struct SiteCounts {
-  int64_t weighted = 0;
-  int64_t idleRounds = 0;
+  std::int64_t weighted = 0;
+  std::int64_t idleRounds = 0;
 };
 
 struct FactorySummary {
@@ -61,7 +62,7 @@ struct FactorySummary {
   double wallclock = 0.0;
   bool conservativeOutputError = false;
   bool singleShot = false;
-  std::map<std::string, int64_t> physicalResources;
+  std::map<std::string, std::int64_t> physicalResources;
   llvm::SmallSetVector<StringRef, 4> producers;
 };
 
@@ -77,9 +78,9 @@ struct RetryEstimate {
   double successProbability = 1.0;
   double expectedAttempts = 1.0;
   double exhaustionProbability = 0.0;
-  int64_t maxAttempts = 1;
-  int64_t occurrences = 1;
-  std::map<std::string, int64_t> requestsPerAttempt;
+  std::int64_t maxAttempts = 1;
+  std::int64_t occurrences = 1;
+  std::map<std::string, std::int64_t> requestsPerAttempt;
 };
 
 static LogicalResult verifyDeterministicTransportClosure(DictionaryAttr counts,
@@ -170,18 +171,18 @@ static FailureOr<double> finiteMetadataNumber(DictionaryAttr metadata,
   return value;
 }
 
-static FailureOr<int64_t> integerMetadataNumber(DictionaryAttr metadata,
-                                                StringRef name,
-                                                Operation *source) {
+static FailureOr<std::int64_t> integerMetadataNumber(DictionaryAttr metadata,
+                                                     StringRef name,
+                                                     Operation *source) {
   auto value = finiteMetadataNumber(metadata, name, source);
   if (failed(value) || std::floor(*value) != *value || *value < 0.0 ||
-      *value > static_cast<double>(std::numeric_limits<int64_t>::max())) {
+      *value > static_cast<double>(std::numeric_limits<std::int64_t>::max())) {
     if (succeeded(value))
       source->emitError() << "analytical factory metadata requires integer '"
                           << name << "'";
     return failure();
   }
-  return static_cast<int64_t>(*value);
+  return static_cast<std::int64_t>(*value);
 }
 
 static double independentUnion(double left, double right) {
@@ -310,8 +311,9 @@ static FailureOr<RetrySummary> boundedRetrySummary(DictionaryAttr counts,
       }
       summary.resourceAdjustments.push_back(
           RetryResourceAdjustment{kind, stream, extraRequests});
-      int64_t &perKind = estimate.requestsPerAttempt[kind.getValue().str()];
-      if (count.getInt() > std::numeric_limits<int64_t>::max() - perKind) {
+      std::int64_t &perKind =
+          estimate.requestsPerAttempt[kind.getValue().str()];
+      if (count.getInt() > std::numeric_limits<std::int64_t>::max() - perKind) {
         source->emitError(
             "analytical retry per-kind resource demand overflows i64");
         return failure();
@@ -365,7 +367,7 @@ static FailureOr<SiteCounts> operationSites(DictionaryAttr counts,
     if (operation.getName().strref() == "idle")
       continue;
     if (count.getInt() >
-        std::numeric_limits<int64_t>::max() - result.weighted) {
+        std::numeric_limits<std::int64_t>::max() - result.weighted) {
       source->emitError("analytical operation-site count overflows signed i64");
       return failure();
     }
@@ -385,8 +387,9 @@ static FailureOr<SiteCounts> operationSites(DictionaryAttr counts,
       continue;
     if (idle.getInt() < 0 ||
         idle.getInt() >
-            std::numeric_limits<int64_t>::max() - result.idleRounds ||
-        idle.getInt() > std::numeric_limits<int64_t>::max() - result.weighted) {
+            std::numeric_limits<std::int64_t>::max() - result.idleRounds ||
+        idle.getInt() >
+            std::numeric_limits<std::int64_t>::max() - result.weighted) {
       source->emitError("analytical idle-round count overflows signed i64");
       return failure();
     }
@@ -401,7 +404,7 @@ static FailureOr<FactorySummary> resourceFactorySummary(
     qlx::LogicalToQECBindingOp logicalToQec,
     qlx::QECToPhysicalBindingOp qecToPhysical, double physicalError,
     double cycleTime,
-    const std::map<std::string, int64_t> &physicalUnitCapacity,
+    const std::map<std::string, std::int64_t> &physicalUnitCapacity,
     const RetrySummary &retrySummary, Operation *source) {
   auto requests = counts.getAs<ArrayAttr>("resource_requests");
   auto operations = counts.getAs<DictionaryAttr>("operation_counts");
@@ -411,10 +414,10 @@ static FailureOr<FactorySummary> resourceFactorySummary(
     return failure();
   }
 
-  int64_t countedRequests = 0;
+  std::int64_t countedRequests = 0;
   if (auto count = operations.getAs<IntegerAttr>("resource_request"))
     countedRequests = count.getInt();
-  int64_t detailedRequests = 0;
+  std::int64_t detailedRequests = 0;
   for (Attribute raw : requests) {
     auto entry = dyn_cast<DictionaryAttr>(raw);
     auto count = entry ? entry.getAs<IntegerAttr>("count") : IntegerAttr{};
@@ -422,7 +425,7 @@ static FailureOr<FactorySummary> resourceFactorySummary(
         !dyn_cast_or_null<SymbolRefAttr>(entry.get("stream")) || !count ||
         count.getInt() <= 0 ||
         count.getInt() >
-            std::numeric_limits<int64_t>::max() - detailedRequests) {
+            std::numeric_limits<std::int64_t>::max() - detailedRequests) {
       source->emitError(
           "analytical resource_requests entries require kind, stream, and "
           "positive nonoverflowing count");
@@ -592,9 +595,9 @@ static FailureOr<FactorySummary> resourceFactorySummary(
       return failure();
     }
 
-    int64_t depth = 1;
+    std::int64_t depth = 1;
     double outputError = 1.0;
-    int64_t qubits = 0;
+    std::int64_t qubits = 0;
     if (hasAnalyticalModel) {
       auto producerError =
           finiteMetadataNumber(metadata, "physical_error_rate", producer);
@@ -657,7 +660,7 @@ static FailureOr<FactorySummary> resourceFactorySummary(
           "analytical factory requires one dedicated physical resource");
       return failure();
     }
-    int64_t selectedUnits = physicalUnitCapacity.at(physicalResource);
+    std::int64_t selectedUnits = physicalUnitCapacity.at(physicalResource);
     if (qubits == 0) {
       if (selectedUnits % laneCount.getInt() != 0) {
         device.emitOpError(
@@ -667,7 +670,8 @@ static FailureOr<FactorySummary> resourceFactorySummary(
       qubits = selectedUnits / laneCount.getInt();
     }
     if (qubits <= 0 ||
-        qubits > std::numeric_limits<int64_t>::max() / laneCount.getInt() ||
+        qubits >
+            std::numeric_limits<std::int64_t>::max() / laneCount.getInt() ||
         selectedUnits < qubits * laneCount.getInt()) {
       device.emitOpError(
           "factory physical resource must contain at least lane_count times "
@@ -872,17 +876,17 @@ struct FabricEstimateAnalyticalPass
           "analytical physical machine or operating point is unresolved");
       return signalPassFailure();
     }
-    std::map<std::string, int64_t> physicalUnitCapacity;
-    std::map<std::string, int64_t> resourceMemberCapacity;
-    std::map<std::string, int64_t> physicalUnitsPerMember;
+    std::map<std::string, std::int64_t> physicalUnitCapacity;
+    std::map<std::string, std::int64_t> resourceMemberCapacity;
+    std::map<std::string, std::int64_t> physicalUnitsPerMember;
     for (auto resource :
          physical.getBody().getOps<qlx::phys::ResourceClassOp>()) {
-      int64_t count = resource.getCountAttr().getInt();
+      std::int64_t count = resource.getCountAttr().getInt();
       if (count < 0) {
         resource.emitOpError("physical resource capacity is invalid");
         return signalPassFailure();
       }
-      int64_t memberUnits = 1;
+      std::int64_t memberUnits = 1;
       auto granularity = resource->getAttrOfType<StringAttr>("granularity");
       if (granularity && granularity.getValue() == "patch") {
         auto units = resource->getAttrOfType<IntegerAttr>("physical_units");
@@ -896,7 +900,7 @@ struct FabricEstimateAnalyticalPass
         continue;
       }
       if (count != 0 &&
-          memberUnits > std::numeric_limits<int64_t>::max() / count) {
+          memberUnits > std::numeric_limits<std::int64_t>::max() / count) {
         resource.emitOpError("physical-unit footprint overflows signed i64");
         return signalPassFailure();
       }
@@ -934,9 +938,9 @@ struct FabricEstimateAnalyticalPass
       return signalPassFailure();
     }
     std::map<std::string, std::string> physicalHomeByRegion;
-    std::map<std::string, int64_t> patchCapacityByRegion;
-    std::map<std::string, std::set<int64_t>> boundCarriersByRegion;
-    std::map<std::string, SmallVector<int64_t>> carrierGroupSizesByRegion;
+    std::map<std::string, std::int64_t> patchCapacityByRegion;
+    std::map<std::string, std::set<std::int64_t>> boundCarriersByRegion;
+    std::map<std::string, SmallVector<std::int64_t>> carrierGroupSizesByRegion;
     std::set<std::string> regionsWithoutPatchTopology;
     for (Attribute raw : qecToPhysical.getEntries()) {
       auto entry = dyn_cast<DictionaryAttr>(raw);
@@ -1000,7 +1004,7 @@ struct FabricEstimateAnalyticalPass
     }
 
     llvm::SmallSetVector<StringRef, 4> codeNames;
-    std::map<std::string, std::set<int64_t>> activeCarriersByResource;
+    std::map<std::string, std::set<std::int64_t>> activeCarriersByResource;
     std::set<std::string> activeWholePoolResources;
     for (NamedAttribute region : regions) {
       auto data = dyn_cast<DictionaryAttr>(region.getValue());
@@ -1046,8 +1050,8 @@ struct FabricEstimateAnalyticalPass
       return signalPassFailure();
     }
 
-    int64_t distance = std::numeric_limits<int64_t>::max();
-    llvm::StringMap<int64_t> carriersByCode;
+    std::int64_t distance = std::numeric_limits<std::int64_t>::max();
+    llvm::StringMap<std::int64_t> carriersByCode;
     llvm::SmallSetVector<StringRef, 4> distanceEvidenceNames;
     std::string distanceStatus;
     bool allDistancesEstablished = true;
@@ -1058,12 +1062,14 @@ struct FabricEstimateAnalyticalPass
             << name;
         return signalPassFailure();
       }
-      distance = std::min(distance, static_cast<int64_t>(code.getDistance()));
-      int64_t carriers = 0;
+      distance =
+          std::min(distance, static_cast<std::int64_t>(code.getDistance()));
+      std::int64_t carriers = 0;
       for (NamedAttribute partition : code.getPartitions()) {
         auto count = dyn_cast<IntegerAttr>(partition.getValue());
         if (!count || count.getInt() < 0 ||
-            count.getInt() > std::numeric_limits<int64_t>::max() - carriers) {
+            count.getInt() >
+                std::numeric_limits<std::int64_t>::max() - carriers) {
           code.emitOpError("partitions contain an invalid carrier count");
           return signalPassFailure();
         }
@@ -1124,8 +1130,8 @@ struct FabricEstimateAnalyticalPass
     double logicalError = independentFailure(siteError, expectedSites);
     logicalError = independentUnion(logicalError, retries->logicalError);
     logicalError = independentUnion(logicalError, factorySummary.resourceError);
-    int64_t minimumPhysicalQubits = 0;
-    std::map<std::string, int64_t> requiredByResource;
+    std::int64_t minimumPhysicalQubits = 0;
+    std::map<std::string, std::int64_t> requiredByResource;
     for (NamedAttribute region : regions) {
       auto data = dyn_cast<DictionaryAttr>(region.getValue());
       auto code = data ? data.getAs<StringAttr>("code") : StringAttr{};
@@ -1143,23 +1149,23 @@ struct FabricEstimateAnalyticalPass
         return signalPassFailure();
       }
       std::string resource = physicalHomeByRegion.at(region.getName().str());
-      int64_t unitsPerPatch = physicalUnitsPerMember.at(resource) > 1
-                                  ? physicalUnitsPerMember.at(resource)
-                                  : carrier->second;
+      std::int64_t unitsPerPatch = physicalUnitsPerMember.at(resource) > 1
+                                       ? physicalUnitsPerMember.at(resource)
+                                       : carrier->second;
       if (patches.getInt() != 0 &&
           unitsPerPatch >
-              std::numeric_limits<int64_t>::max() / patches.getInt()) {
+              std::numeric_limits<std::int64_t>::max() / patches.getInt()) {
         module.emitError(
             "analytical physical-qubit count overflows signed i64");
         return signalPassFailure();
       }
-      int64_t contribution = unitsPerPatch * patches.getInt();
+      std::int64_t contribution = unitsPerPatch * patches.getInt();
       if (physicalUnitsPerMember.at(resource) == 1) {
         if (auto groups =
                 carrierGroupSizesByRegion.find(region.getName().str());
             groups != carrierGroupSizesByRegion.end()) {
-          int64_t compatibleSlots =
-              llvm::count_if(groups->second, [&](int64_t size) {
+          std::int64_t compatibleSlots =
+              llvm::count_if(groups->second, [&](std::int64_t size) {
                 return size >= carrier->second;
               });
           if (compatibleSlots < patches.getInt()) {
@@ -1173,7 +1179,7 @@ struct FabricEstimateAnalyticalPass
         }
         if (auto bound = boundCarriersByRegion.find(region.getName().str());
             bound != boundCarriersByRegion.end() &&
-            static_cast<uint64_t>(contribution) > bound->second.size()) {
+            static_cast<std::uint64_t>(contribution) > bound->second.size()) {
           countsResult.emitOpError("active QEC region '")
               << region.getName() << "' requires " << contribution
               << " physical carriers but its selected patch topology binds "
@@ -1182,7 +1188,7 @@ struct FabricEstimateAnalyticalPass
         }
       }
       if (contribution >
-          std::numeric_limits<int64_t>::max() - minimumPhysicalQubits) {
+          std::numeric_limits<std::int64_t>::max() - minimumPhysicalQubits) {
         module.emitError(
             "analytical physical-qubit count overflows signed i64");
         return signalPassFailure();
@@ -1192,16 +1198,16 @@ struct FabricEstimateAnalyticalPass
       // patch layout.  Summing every region's independent peak is a safe
       // joint-liveness upper bound; the capacity check below authenticates
       // that the shared class can hold that conservative total.
-      int64_t &required = requiredByResource[resource];
-      if (contribution > std::numeric_limits<int64_t>::max() - required) {
+      std::int64_t &required = requiredByResource[resource];
+      if (contribution > std::numeric_limits<std::int64_t>::max() - required) {
         module.emitError(
             "analytical bound-resource demand overflows signed i64");
         return signalPassFailure();
       }
       required += contribution;
     }
-    int64_t configuredPhysicalQubits = 0;
-    std::map<std::string, int64_t> selectedCapacity;
+    std::int64_t configuredPhysicalQubits = 0;
+    std::map<std::string, std::int64_t> selectedCapacity;
     for (const auto &[resource, required] : requiredByResource) {
       if (activeWholePoolResources.count(resource) &&
           activeCarriersByResource.count(resource)) {
@@ -1210,9 +1216,10 @@ struct FabricEstimateAnalyticalPass
             << resource;
         return signalPassFailure();
       }
-      int64_t available = activeCarriersByResource.count(resource)
-                              ? activeCarriersByResource.at(resource).size()
-                              : physicalUnitCapacity.at(resource);
+      std::int64_t available =
+          activeCarriersByResource.count(resource)
+              ? activeCarriersByResource.at(resource).size()
+              : physicalUnitCapacity.at(resource);
       if (available < required) {
         device.emitOpError("bound physical resource @")
             << resource << " provides " << available
@@ -1221,7 +1228,7 @@ struct FabricEstimateAnalyticalPass
         return signalPassFailure();
       }
       if (available >
-          std::numeric_limits<int64_t>::max() - configuredPhysicalQubits) {
+          std::numeric_limits<std::int64_t>::max() - configuredPhysicalQubits) {
         module.emitError("bound physical-qubit capacity overflows signed i64");
         return signalPassFailure();
       }
@@ -1235,10 +1242,10 @@ struct FabricEstimateAnalyticalPass
             << " must be dedicated rather than shared with active compute";
         return signalPassFailure();
       }
-      if (footprint >
-              std::numeric_limits<int64_t>::max() - minimumPhysicalQubits ||
-          footprint >
-              std::numeric_limits<int64_t>::max() - configuredPhysicalQubits) {
+      if (footprint > std::numeric_limits<std::int64_t>::max() -
+                          minimumPhysicalQubits ||
+          footprint > std::numeric_limits<std::int64_t>::max() -
+                          configuredPhysicalQubits) {
         module.emitError("factory physical-qubit footprint overflows i64");
         return signalPassFailure();
       }
@@ -1278,8 +1285,8 @@ struct FabricEstimateAnalyticalPass
             builder.getF64FloatAttr(static_cast<double>(retry.occurrences) *
                                     retry.expectedAttempts *
                                     static_cast<double>(count)));
-        int64_t maximumPerOccurrence = 0;
-        int64_t maximum = 0;
+        std::int64_t maximumPerOccurrence = 0;
+        std::int64_t maximum = 0;
         if (llvm::MulOverflow(count, retry.maxAttempts, maximumPerOccurrence) ||
             llvm::MulOverflow(maximumPerOccurrence, retry.occurrences,
                               maximum)) {

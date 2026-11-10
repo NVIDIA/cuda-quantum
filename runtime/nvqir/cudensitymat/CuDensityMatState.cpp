@@ -64,7 +64,7 @@ CuDensityMatState::overlap(const cudaq::SimulationState &other) {
   cuDoubleComplex dotResult;
   const auto status = cublasZdotc_64(
       dynamics::Context::getCurrentContext()->getCublasHandle(),
-      static_cast<int64_t>(dimension),
+      static_cast<std::int64_t>(dimension),
       static_cast<const cuDoubleComplex *>(devicePtr), 1,
       static_cast<const cuDoubleComplex *>(otherData), 1, &dotResult);
   if (stagedData)
@@ -262,21 +262,21 @@ void CuDensityMatState::destroyState() {
 namespace {
 
 size_t
-calculate_state_vector_size(const std::vector<int64_t> &hilbertSpaceDims) {
+calculate_state_vector_size(const std::vector<std::int64_t> &hilbertSpaceDims) {
   return std::accumulate(hilbertSpaceDims.begin(), hilbertSpaceDims.end(),
                          std::size_t{1}, std::multiplies<>());
 }
 
-size_t
-calculate_density_matrix_size(const std::vector<int64_t> &hilbertSpaceDims) {
+size_t calculate_density_matrix_size(
+    const std::vector<std::int64_t> &hilbertSpaceDims) {
   size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims);
   return vectorSize * vectorSize;
 }
 
-std::vector<int64_t>
-get_global_component_extents(const std::vector<int64_t> &hilbertSpaceDims,
-                             bool isDensityMatrix, int64_t batchSize) {
-  std::vector<int64_t> globalExtents = hilbertSpaceDims;
+std::vector<std::int64_t>
+get_global_component_extents(const std::vector<std::int64_t> &hilbertSpaceDims,
+                             bool isDensityMatrix, std::int64_t batchSize) {
+  std::vector<std::int64_t> globalExtents = hilbertSpaceDims;
   if (isDensityMatrix)
     globalExtents.insert(globalExtents.end(), hilbertSpaceDims.begin(),
                          hilbertSpaceDims.end());
@@ -296,14 +296,14 @@ std::size_t checked_multiply(std::size_t lhs, std::size_t rhs,
 struct GlobalSliceLayout {
   std::size_t startIdx;
   std::size_t localVolume;
-  std::vector<int64_t> globalStrides;
+  std::vector<std::int64_t> globalStrides;
   bool isContiguous;
 };
 
 GlobalSliceLayout
-get_global_slice_layout(const std::vector<int64_t> &globalExtents,
-                        const std::vector<int64_t> &localExtents,
-                        const std::vector<int64_t> &offsets,
+get_global_slice_layout(const std::vector<std::int64_t> &globalExtents,
+                        const std::vector<std::int64_t> &localExtents,
+                        const std::vector<std::int64_t> &offsets,
                         std::size_t storageVolume, std::size_t globalVolume) {
   if (globalExtents.size() != localExtents.size() ||
       globalExtents.size() != offsets.size())
@@ -313,7 +313,7 @@ get_global_slice_layout(const std::vector<int64_t> &globalExtents,
   std::size_t localVolume = 1;
   std::size_t stride = 1;
   std::size_t startIdx = 0;
-  std::vector<int64_t> globalStrides(globalExtents.size());
+  std::vector<std::int64_t> globalStrides(globalExtents.size());
   bool foundPartialMode = false;
   bool isContiguous = true;
 
@@ -339,7 +339,7 @@ get_global_slice_layout(const std::vector<int64_t> &globalExtents,
       throw std::overflow_error(
           "Overflow while computing distributed state offset");
     startIdx += offsetContribution;
-    globalStrides[i] = static_cast<int64_t>(stride);
+    globalStrides[i] = static_cast<std::int64_t>(stride);
 
     const bool isFullMode = offset == 0 && localExtent == globalExtent;
     if (!foundPartialMode && !isFullMode)
@@ -403,17 +403,17 @@ struct CutensorGatherResources {
   }
 };
 
-uint32_t get_pointer_alignment(const void *ptr) {
-  constexpr uint32_t maxAlignment = 256;
+std::uint32_t get_pointer_alignment(const void *ptr) {
+  constexpr std::uint32_t maxAlignment = 256;
   const auto address = reinterpret_cast<std::uintptr_t>(ptr);
-  uint32_t alignment = 1;
+  std::uint32_t alignment = 1;
   while (alignment < maxAlignment && (address & alignment) == 0)
     alignment <<= 1;
   return alignment;
 }
 
 void gather_global_slice(void *devicePtr,
-                         const std::vector<int64_t> &localExtents,
+                         const std::vector<std::int64_t> &localExtents,
                          const GlobalSliceLayout &layout) {
   const auto copySize = checked_multiply(
       layout.localVolume, sizeof(std::complex<double>), "local copy size");
@@ -421,7 +421,7 @@ void gather_global_slice(void *devicePtr,
   try {
     CutensorGatherResources resources;
     HANDLE_CUTENSOR_ERROR(cutensorCreate(&resources.handle));
-    const auto numModes = static_cast<uint32_t>(localExtents.size());
+    const auto numModes = static_cast<std::uint32_t>(localExtents.size());
     const auto *sourcePtr =
         static_cast<const std::complex<double> *>(devicePtr) + layout.startIdx;
     HANDLE_CUTENSOR_ERROR(cutensorCreateTensorDescriptor(
@@ -433,7 +433,7 @@ void gather_global_slice(void *devicePtr,
         localExtents.data(), /*stride=*/nullptr, CUDA_C_64F,
         get_pointer_alignment(temporaryPtr)));
 
-    std::vector<int32_t> modes(numModes);
+    std::vector<std::int32_t> modes(numModes);
     std::iota(modes.begin(), modes.end(), 0);
     HANDLE_CUTENSOR_ERROR(cutensorCreatePermutation(
         resources.handle, &resources.operationDescriptor,
@@ -493,7 +493,7 @@ std::unique_ptr<CuDensityMatState> CuDensityMatState::createInitialState(
 
   HANDLE_CUDM_ERROR(cudensitymatCreateState(
       state->cudmHandle, purity,
-      static_cast<int32_t>(state->hilbertSpaceDims.size()),
+      static_cast<std::int32_t>(state->hilbertSpaceDims.size()),
       state->hilbertSpaceDims.data(), 1, CUDA_C_64F, &state->cudmState));
 
   std::size_t storageSize;
@@ -511,18 +511,18 @@ std::unique_ptr<CuDensityMatState> CuDensityMatState::createInitialState(
       if (stateVolume == totalDim || stateVolume == totalDim * totalDim)
         return true;
 
-      int32_t numComponents = 0;
+      std::int32_t numComponents = 0;
       HANDLE_CUDM_ERROR(cudensitymatStateGetNumComponents(
           state->cudmHandle, state->cudmState, &numComponents));
       assert(numComponents == 1);
-      int32_t numModes{0};
-      int32_t stateComponentGlobalId{-1};
-      int32_t batchModeLocation{-1};
+      std::int32_t numModes{0};
+      std::int32_t stateComponentGlobalId{-1};
+      std::int32_t batchModeLocation{-1};
       HANDLE_CUDM_ERROR(cudensitymatStateGetComponentNumModes(
           state->cudmHandle, state->cudmState, /*stateComponentLocalId=*/0,
           &stateComponentGlobalId, &numModes, &batchModeLocation));
-      std::vector<int64_t> stateComponentModeExtents(numModes);
-      std::vector<int64_t> stateComponentModeOffsets(numModes);
+      std::vector<std::int64_t> stateComponentModeExtents(numModes);
+      std::vector<std::int64_t> stateComponentModeOffsets(numModes);
 
       HANDLE_CUDM_ERROR(cudensitymatStateGetComponentInfo(
           state->cudmHandle, state->cudmState, /*stateComponentLocalId=*/0,
@@ -531,7 +531,7 @@ std::unique_ptr<CuDensityMatState> CuDensityMatState::createInitialState(
       // All the offsets are zero
       return std::all_of(stateComponentModeOffsets.cbegin(),
                          stateComponentModeOffsets.cend(),
-                         [](int64_t i) { return i == 0; });
+                         [](std::int64_t i) { return i == 0; });
     }();
 
     state->devicePtr = cudaq::dynamics::DeviceAllocator::allocate(storageSize);
@@ -584,7 +584,7 @@ CuDensityMatState CuDensityMatState::zero_like(const CuDensityMatState &other) {
                                                : CUDENSITYMAT_STATE_PURITY_PURE;
   HANDLE_CUDM_ERROR(cudensitymatCreateState(
       state.cudmHandle, purity,
-      static_cast<int32_t>(state.hilbertSpaceDims.size()),
+      static_cast<std::int32_t>(state.hilbertSpaceDims.size()),
       state.hilbertSpaceDims.data(), state.batchSize, CUDA_C_64F,
       &state.cudmState));
 
@@ -619,7 +619,7 @@ CuDensityMatState::clone(const CuDensityMatState &other) {
                                                : CUDENSITYMAT_STATE_PURITY_PURE;
   HANDLE_CUDM_ERROR(cudensitymatCreateState(
       state->cudmHandle, purity,
-      static_cast<int32_t>(state->hilbertSpaceDims.size()),
+      static_cast<std::int32_t>(state->hilbertSpaceDims.size()),
       state->hilbertSpaceDims.data(), /*batchSize=*/state->batchSize,
       CUDA_C_64F, &state->cudmState));
 
@@ -654,7 +654,7 @@ CuDensityMatState::mpi_buffer_like(const CuDensityMatState &other) {
                                                : CUDENSITYMAT_STATE_PURITY_PURE;
   HANDLE_CUDM_ERROR(cudensitymatCreateState(
       state->cudmHandle, purity,
-      static_cast<int32_t>(state->hilbertSpaceDims.size()),
+      static_cast<std::int32_t>(state->hilbertSpaceDims.size()),
       state->hilbertSpaceDims.data(), /*batchSize=*/state->batchSize,
       CUDA_C_64F, &state->cudmState));
   HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
@@ -806,7 +806,7 @@ CuDensityMatState cudaq::CuDensityMatState::to_density_matrix() const {
 }
 
 CuDensityMatState cudaq::CuDensityMatState::to_density_matrix(
-    const std::vector<int64_t> &dims) const {
+    const std::vector<std::int64_t> &dims) const {
   if (is_initialized())
     throw std::runtime_error("State is already initialized.");
   if (batchSize > 1)
@@ -847,7 +847,8 @@ cudensitymatState_t cudaq::CuDensityMatState::get_impl() const {
 
 void *cudaq::CuDensityMatState::get_device_pointer() const { return devicePtr; }
 
-std::vector<int64_t> cudaq::CuDensityMatState::get_hilbert_space_dims() const {
+std::vector<std::int64_t>
+cudaq::CuDensityMatState::get_hilbert_space_dims() const {
   return hilbertSpaceDims;
 }
 
@@ -856,8 +857,8 @@ cudensitymatHandle_t cudaq::CuDensityMatState::get_handle() const {
 }
 
 void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
-                                        const std::vector<int64_t> &dims,
-                                        int64_t batchSize) {
+                                        const std::vector<std::int64_t> &dims,
+                                        std::int64_t batchSize) {
   assert(!is_initialized());
   cudmHandle = handleToSet;
   hilbertSpaceDims = dims;
@@ -865,7 +866,7 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
       calculate_density_matrix_size(hilbertSpaceDims);
   size_t expectedStateVectorSize =
       calculate_state_vector_size(hilbertSpaceDims);
-  const int64_t totalDistributedDimension =
+  const std::int64_t totalDistributedDimension =
       dynamics::Context::getCurrentContext()->getNumRanks() * dimension;
   if (dimension != batchSize * expectedDensityMatrixSize &&
       dimension != batchSize * expectedStateVectorSize &&
@@ -882,7 +883,7 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
                                                : CUDENSITYMAT_STATE_PURITY_PURE;
   this->batchSize = batchSize;
   HANDLE_CUDM_ERROR(cudensitymatCreateState(
-      cudmHandle, purity, static_cast<int32_t>(hilbertSpaceDims.size()),
+      cudmHandle, purity, static_cast<std::int32_t>(hilbertSpaceDims.size()),
       hilbertSpaceDims.data(), batchSize, CUDA_C_64F, &cudmState));
 
   std::size_t storageSize;
@@ -894,18 +895,18 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
       storageSize / sizeof(std::complex<double>); // quantum state tensor volume
                                                   // (number of elements)
   if (stateVolume < dimension) {
-    int32_t numComponents = 0;
+    std::int32_t numComponents = 0;
     HANDLE_CUDM_ERROR(cudensitymatStateGetNumComponents(cudmHandle, cudmState,
                                                         &numComponents));
     assert(numComponents == 1);
-    int32_t numModes{0};
-    int32_t stateComponentGlobalId{-1};
-    int32_t batchModeLocation{-1};
+    std::int32_t numModes{0};
+    std::int32_t stateComponentGlobalId{-1};
+    std::int32_t batchModeLocation{-1};
     HANDLE_CUDM_ERROR(cudensitymatStateGetComponentNumModes(
         cudmHandle, cudmState, /*stateComponentLocalId=*/0,
         &stateComponentGlobalId, &numModes, &batchModeLocation));
-    std::vector<int64_t> stateComponentModeExtents(numModes);
-    std::vector<int64_t> stateComponentModeOffsets(numModes);
+    std::vector<std::int64_t> stateComponentModeExtents(numModes);
+    std::vector<std::int64_t> stateComponentModeOffsets(numModes);
 
     HANDLE_CUDM_ERROR(cudensitymatStateGetComponentInfo(
         cudmHandle, cudmState, /*stateComponentLocalId=*/0,
@@ -1001,7 +1002,7 @@ cudaq::CuDensityMatState::operator*=(const std::complex<double> &scalar) {
 
 std::vector<CuDensityMatState *>
 CuDensityMatState::convertStateVecToDensityMatrix(
-    const std::vector<CuDensityMatState *> svStates, int64_t dmSize) {
+    const std::vector<CuDensityMatState *> svStates, std::int64_t dmSize) {
   std::vector<CuDensityMatState *> dmStates;
   const auto dmSizeBytes = dmSize * sizeof(std::complex<double>);
   for (auto *stateVecState : svStates) {
@@ -1027,20 +1028,20 @@ CuDensityMatState::convertStateVecToDensityMatrix(
 void CuDensityMatState::distributeBatchedStateData(
     CuDensityMatState &batchedState,
     const std::vector<CuDensityMatState *> inputStates,
-    int64_t singleStateDimension) {
-  int32_t numComponents = 0;
+    std::int64_t singleStateDimension) {
+  std::int32_t numComponents = 0;
   HANDLE_CUDM_ERROR(cudensitymatStateGetNumComponents(
       batchedState.cudmHandle, batchedState.cudmState, &numComponents));
   assert(numComponents == 1);
-  int32_t numModes{0};
-  int32_t stateComponentGlobalId{-1};
-  int32_t batchModeLocation{-1};
+  std::int32_t numModes{0};
+  std::int32_t stateComponentGlobalId{-1};
+  std::int32_t batchModeLocation{-1};
   HANDLE_CUDM_ERROR(cudensitymatStateGetComponentNumModes(
       batchedState.cudmHandle, batchedState.cudmState,
       /*stateComponentLocalId=*/0, &stateComponentGlobalId, &numModes,
       &batchModeLocation));
-  std::vector<int64_t> stateComponentModeExtents(numModes);
-  std::vector<int64_t> stateComponentModeOffsets(numModes);
+  std::vector<std::int64_t> stateComponentModeExtents(numModes);
+  std::vector<std::int64_t> stateComponentModeOffsets(numModes);
 
   HANDLE_CUDM_ERROR(cudensitymatStateGetComponentInfo(
       batchedState.cudmHandle, batchedState.cudmState,
@@ -1053,11 +1054,12 @@ void CuDensityMatState::distributeBatchedStateData(
   const int batchIdx =
       static_cast<int>(stateComponentModeOffsets[batchModeLocation]);
 
-  const int64_t stateVolume = batchedState.dimension;
+  const std::int64_t stateVolume = batchedState.dimension;
   const int numStatesPerGpu = stateVolume / singleStateDimension;
 
   // Validate that we won't access out-of-bounds indices in inputStates.
-  const int64_t totalInputStates = static_cast<int64_t>(inputStates.size());
+  const std::int64_t totalInputStates =
+      static_cast<std::int64_t>(inputStates.size());
   if (batchIdx < 0 || batchIdx + numStatesPerGpu > totalInputStates) {
     throw std::runtime_error(
         "Distributed batched state data access would exceed input states "
@@ -1086,7 +1088,7 @@ void CuDensityMatState::distributeBatchedStateData(
 std::unique_ptr<CuDensityMatState> CuDensityMatState::createBatchedState(
     cudensitymatHandle_t handle,
     const std::vector<CuDensityMatState *> initial_states,
-    const std::vector<int64_t> &dimensions, bool createDensityState) {
+    const std::vector<std::int64_t> &dimensions, bool createDensityState) {
   if (initial_states.size() < 2)
     throw std::invalid_argument(
         "Batched state needs more than 1 input states.");
@@ -1131,7 +1133,7 @@ std::unique_ptr<CuDensityMatState> CuDensityMatState::createBatchedState(
                                                : CUDENSITYMAT_STATE_PURITY_PURE;
   HANDLE_CUDM_ERROR(cudensitymatCreateState(
       cudmState->cudmHandle, purity,
-      static_cast<int32_t>(cudmState->hilbertSpaceDims.size()),
+      static_cast<std::int32_t>(cudmState->hilbertSpaceDims.size()),
       cudmState->hilbertSpaceDims.data(), cudmState->batchSize, CUDA_C_64F,
       &cudmState->cudmState));
 
@@ -1187,7 +1189,7 @@ CuDensityMatState::splitBatchedState(CuDensityMatState &batchedState) {
   // Use the stored single state dimension if available, otherwise fall back to
   // the old calculation (for backward compatibility with non-distributed
   // states).
-  const int64_t stateSize =
+  const std::int64_t stateSize =
       (batchedState.singleStateDimension > 0)
           ? batchedState.singleStateDimension
           : batchedState.dimension / batchedState.batchSize;
@@ -1195,7 +1197,7 @@ CuDensityMatState::splitBatchedState(CuDensityMatState &batchedState) {
   // Calculate the number of states stored locally on this rank.
   // In distributed mode, dimension < batchSize * singleStateDimension.
   // In non-distributed mode, dimension == batchSize * singleStateDimension.
-  const int64_t localNumStates = batchedState.dimension / stateSize;
+  const std::int64_t localNumStates = batchedState.dimension / stateSize;
 
   if (localNumStates <= 0) {
     throw std::runtime_error(
@@ -1207,7 +1209,7 @@ CuDensityMatState::splitBatchedState(CuDensityMatState &batchedState) {
   std::vector<CuDensityMatState *> splitStates;
 
   // Only iterate over the states that are actually stored locally.
-  for (int64_t i = 0; i < localNumStates; ++i) {
+  for (std::int64_t i = 0; i < localNumStates; ++i) {
     // Each split state needs to own its memory
     // Allocate memory for the split state
     void *splitStateMemPtr = cudaq::dynamics::DeviceAllocator::allocate(

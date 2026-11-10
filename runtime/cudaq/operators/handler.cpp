@@ -96,7 +96,7 @@ operator_handler::canonical_evaluation::canonical_evaluation(
 }
 
 operator_handler::canonical_evaluation::canonical_evaluation(
-    std::string &&encoding, std::vector<int64_t> &&relevant_dims) {
+    std::string &&encoding, std::vector<std::int64_t> &&relevant_dims) {
   term_data data;
   data.coefficient = std::complex<double>(1.);
   data.encoding = std::move(encoding);
@@ -117,7 +117,8 @@ operator_handler::canonical_evaluation::operator=(
 }
 
 void operator_handler::canonical_evaluation::push_back(
-    const std::string &op, const std::vector<int64_t> &relevant_dimensions) {
+    const std::string &op,
+    const std::vector<std::int64_t> &relevant_dimensions) {
   assert(this->terms.size() != 0);
   auto &current_term = this->terms.back();
   current_term.encoding.append(op);

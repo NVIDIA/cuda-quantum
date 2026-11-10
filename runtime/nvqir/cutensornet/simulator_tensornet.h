@@ -155,8 +155,8 @@ public:
       const auto currentSize = m_state->getNumQubits();
       // Add qubits in zero state
       m_state->addQubits(in_state.getNumQubits());
-      auto mapQubitIdxs = [currentSize](const std::vector<int32_t> &idxs) {
-        std::vector<int32_t> mapped(idxs);
+      auto mapQubitIdxs = [currentSize](const std::vector<std::int32_t> &idxs) {
+        std::vector<std::int32_t> mapped(idxs);
         for (auto &x : mapped)
           x += currentSize;
         return mapped;

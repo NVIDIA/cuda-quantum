@@ -576,7 +576,7 @@ inline SpinMeasureResult measure(const cudaq::spin_op &term) {
   return getExecutionManager()->measure(term);
 }
 
-// Cast a measure register to an int64_t.
+// Cast a measure register to an std::int64_t.
 // This function is classic control code that may run on a QPU.
 inline std::int64_t to_integer(const std::vector<measure_result> &bits) {
   std::int64_t ret = 0;

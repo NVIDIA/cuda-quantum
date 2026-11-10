@@ -10,12 +10,12 @@
 #include "common/FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
 
-std::vector<double> randomValues(uint64_t num_samples, double max_value,
+std::vector<double> randomValues(std::uint64_t num_samples, double max_value,
                                  std::mt19937 &randomEngine) {
   std::vector<double> rs;
   rs.reserve(num_samples);
   std::uniform_real_distribution<double> distr(0.0, max_value);
-  for (uint64_t i = 0; i < num_samples; ++i) {
+  for (std::uint64_t i = 0; i < num_samples; ++i) {
     rs.emplace_back(distr(randomEngine));
   }
   std::sort(rs.begin(), rs.end());

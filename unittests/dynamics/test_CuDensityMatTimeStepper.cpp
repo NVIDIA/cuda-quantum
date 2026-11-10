@@ -86,7 +86,7 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepLargeTimeValues) {
 TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
   const std::vector<std::complex<double>> initialState = {
       {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
-  const std::vector<int64_t> dims = {4};
+  const std::vector<std::int64_t> dims = {4};
   auto inputState = cudaq::state::from_data(initialState);
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -120,7 +120,7 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
   initial_state.resize(100, {0.0, 0.0});
   initial_state[5 * 10 + 5] = {1.0, 0.0};
 
-  const std::vector<int64_t> dims = {10};
+  const std::vector<std::int64_t> dims = {10};
   auto input_state = cudaq::state::from_data(initial_state);
   auto *simState = cudaq::state_helper::getSimulationState(&input_state);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -154,7 +154,7 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
 TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
   const std::vector<std::complex<double>> initialState = {
       {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
-  const std::vector<int64_t> dims = {4};
+  const std::vector<std::int64_t> dims = {4};
   auto inputState = cudaq::state::from_data(initialState);
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -201,7 +201,7 @@ TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
 TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
   const std::vector<std::complex<double>> initialState = {{1.0, 0.0},
                                                           {1.0, 0.0}};
-  const std::vector<int64_t> dims = {2};
+  const std::vector<std::int64_t> dims = {2};
   auto inputState = cudaq::state::from_data(initialState);
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -214,7 +214,7 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
       {paramName, paramValue}};
 
   auto tensorFunction =
-      [paramName](const std::vector<int64_t> &dimensions,
+      [paramName](const std::vector<std::int64_t> &dimensions,
                   const std::unordered_map<std::string, std::complex<double>>
                       &parameters) -> complex_matrix {
     if (dimensions.empty())
@@ -267,7 +267,7 @@ static CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
 TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrder) {
   const std::vector<std::complex<double>> initialState = {
       {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}};
-  const std::vector<int64_t> dims = {4};
+  const std::vector<std::int64_t> dims = {4};
   auto inputState = cudaq::state::from_data(initialState);
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -307,7 +307,7 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrder) {
 TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrderDensityMatrix) {
   constexpr int N = 4;
   const std::vector<std::complex<double>> initialState(N * N, 1.0);
-  const std::vector<int64_t> dims = {N};
+  const std::vector<std::int64_t> dims = {N};
   auto inputState = cudaq::state::from_data(initialState);
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -346,7 +346,7 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrderDensityMatrix) {
 }
 
 TEST_F(CuDensityMatTimeStepperTest, BatchedOperatorSimple) {
-  const std::vector<int64_t> dims = {2};
+  const std::vector<std::int64_t> dims = {2};
   cudaq::product_op<cudaq::matrix_handler> ham_1 =
       (2.0 * M_PI * 0.1 * cudaq::spin_op::x(0));
   cudaq::sum_op<cudaq::matrix_handler> ham1(ham_1);

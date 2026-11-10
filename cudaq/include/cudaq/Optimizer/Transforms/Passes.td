@@ -355,7 +355,7 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
   let options = [
     Option<"epsilon", "epsilon", "double", /*default=*/"1e-10",
       "Approximation tolerance epsilon for Clifford+T synthesis.">,
-    Option<"maxFactoringIterations", "max-factoring-iterations", "int64_t",
+    Option<"maxFactoringIterations", "max-factoring-iterations", "std::int64_t",
       /*default=*/"500000",
       "Gridsynth tests a candidate circuit by factoring an integer derived "
       "from it (Algorithm 7.6, step 2b). This implementation factors with "
@@ -366,7 +366,7 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       "candidate pushes the answer onto a later one, whose denominator "
       "exponent -- and so T-count -- is at least as large. Raise this one to "
       "trade compile time for shorter circuits.">,
-    Option<"maxCandidateIterations", "max-candidate-iterations", "int64_t",
+    Option<"maxCandidateIterations", "max-candidate-iterations", "std::int64_t",
       /*default=*/"2000000",
       "Total factoring iterations allowed for one candidate circuit, summed "
       "over its attempts. This is the cap on a whole candidate, and so on the "
@@ -374,14 +374,14 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       "applies to a single attempt, and max-factoring-restarts to a single "
       "composite within it. Doubling this costs ~1.8x compile time for the "
       "same T-count, so it bounds the tail rather than tuning quality.">,
-    Option<"maxFactoringRestarts", "max-factoring-restarts", "int32_t",
+    Option<"maxFactoringRestarts", "max-factoring-restarts", "std::int32_t",
       /*default=*/"8",
       "Consecutive failed factoring attempts allowed on one composite before "
       "the candidate is abandoned. Each attempt re-rolls a random parameter, "
       "so a retry searches differently rather than repeating. Measured "
       "restart chains succeed within a depth of 3, so the default of 8 leaves "
       "ample margin.">,
-    Option<"maxOdgpScanSteps", "max-odgp-scan-steps", "int64_t",
+    Option<"maxOdgpScanSteps", "max-odgp-scan-steps", "std::int64_t",
       /*default=*/"65536",
       "Steps one candidate-enumeration line scan may take without producing a "
       "candidate. Gridsynth finds candidate circuits by scanning along grid "
@@ -389,7 +389,7 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       "indefinitely. This governs the supply of candidates rather than the "
       "effort spent on each, so starving it makes synthesis fail outright "
       "rather than return a longer circuit.">,
-    Option<"retryCount", "retry-count", "int32_t", /*default=*/"3",
+    Option<"retryCount", "retry-count", "std::int32_t", /*default=*/"3",
       "Extra synthesis attempts for an angle gridsynth failed to synthesize. "
       "Geometric backoff: the budget options above are the baseline, and "
       "retry N re-runs the whole synthesis with them scaled by 2^N, so the "
@@ -409,7 +409,7 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       /*default=*/"false",
       "Fail instead of preserving a controlled rotation that cannot be "
       "synthesized without global-phase support.">,
-    Option<"seed", "seed", "uint64_t", /*default=*/"0",
+    Option<"seed", "seed", "std::uint64_t", /*default=*/"0",
       "Seed for the randomized integer factoring gridsynth uses to test a "
       "candidate circuit. Set this to make synthesis reproducible. The same "
       "seed, angle, epsilon, and budgets always produce the same circuit. 0 "

@@ -443,7 +443,7 @@ protected:
   /// @brief Apply operation to all Stim simulators and append it to the
   /// persistent `recordedCircuit` log.
   virtual void applyOpToSims(const std::string &gate_name,
-                             const std::vector<uint32_t> &targets) {
+                             const std::vector<std::uint32_t> &targets) {
     if (targets.empty())
       return;
     stim::Circuit tempCircuit;
@@ -472,7 +472,7 @@ protected:
     // Get the name as a string
     std::string gName(gateName);
 
-    // Cast size_t to uint32_t
+    // Cast size_t to std::uint32_t
     std::vector<std::uint32_t> stimTargets;
     stimTargets.reserve(controls.size() + targets.size());
     for (auto q : controls)

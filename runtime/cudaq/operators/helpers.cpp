@@ -229,16 +229,17 @@ mdiag_sparse_matrix create_mdiag_sparse_matrix(
         &create) {
   std::vector<std::complex<double>> diaData;
   diaData.reserve(dim);
-  std::vector<int64_t> offset;
+  std::vector<std::int64_t> offset;
 
   auto process_entry = [&diaData, &offset, &coeff,
                         dim](std::size_t new_state, std::size_t old_state,
                              std::complex<double> entry) {
-    const int64_t diaOffset = static_cast<int64_t>(old_state) -
-                              static_cast<int64_t>(new_state); // column - row
+    const std::int64_t diaOffset =
+        static_cast<std::int64_t>(old_state) -
+        static_cast<std::int64_t>(new_state); // column - row
     // lower diagonals: column id is the index; upper diagonals: row id is the
     // index
-    const int64_t dia_vec_idx = diaOffset <= 0 ? old_state : new_state;
+    const std::int64_t dia_vec_idx = diaOffset <= 0 ? old_state : new_state;
     const auto iter = std::find(offset.begin(), offset.end(), diaOffset);
     const auto idx = (iter == offset.end())
                          ? offset.size()

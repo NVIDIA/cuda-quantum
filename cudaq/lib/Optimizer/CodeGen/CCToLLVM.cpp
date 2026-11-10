@@ -110,7 +110,7 @@ public:
     SmallVector<Value> results;
     for (std::size_t i = 0, N = callable.getResults().size(); i < N; ++i) {
       auto idx = DenseI64ArrayAttr::get(
-          ctx, ArrayRef<std::int64_t>{static_cast<int64_t>(i)});
+          ctx, ArrayRef<std::int64_t>{static_cast<std::int64_t>(i)});
       results.push_back(LLVM::ExtractValueOp::create(rewriter, loc, resTy[i],
                                                      loadOp.getResult(), idx));
     }

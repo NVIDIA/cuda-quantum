@@ -19,7 +19,7 @@ SpdlogTraceBackend::~SpdlogTraceBackend() = default;
 
 void SpdlogTraceBackend::onBegin(const TraceEvent &) {}
 
-void SpdlogTraceBackend::onEnd(const TraceEvent &e, uint64_t durUs) {
+void SpdlogTraceBackend::onEnd(const TraceEvent &e, std::uint64_t durUs) {
   const bool tagFound = (e.tag != 0) && cudaq::isTimingTagEnabled(e.tag);
   if (!tagFound && !detail::should_log(detail::LogLevel::trace))
     return;

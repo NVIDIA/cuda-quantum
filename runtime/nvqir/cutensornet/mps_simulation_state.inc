@@ -57,16 +57,16 @@ std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
   if (currentDevice != dataDevice)
     cudaSetDevice(dataDevice);
 
-  const int32_t mpsNumTensors = m_mpsTensors.size();
+  const std::int32_t mpsNumTensors = m_mpsTensors.size();
   assert(mpsNumTensors > 0);
   auto cutnHandle = state->getInternalContext();
 
   // Create a tensor network descriptor for the overlap
-  const int32_t numTensors =
+  const std::int32_t numTensors =
       mpsNumTensors *
       2; // the overlap tensor network contains two MPS tensor networks
-  std::vector<int32_t> numModes(numTensors);
-  std::vector<std::vector<int64_t>> tensExtents(numTensors);
+  std::vector<std::int32_t> numModes(numTensors);
+  std::vector<std::vector<std::int64_t>> tensExtents(numTensors);
   std::vector<cutensornetTensorQualifiers_t> tensAttr(numTensors);
   for (int i = 0; i < mpsNumTensors; ++i) {
     numModes[i] = m_mpsTensors[i].extents.size();
@@ -76,46 +76,46 @@ std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
     tensAttr[i] = cutensornetTensorQualifiers_t{0, 0, 0};
     tensAttr[mpsNumTensors + i] = cutensornetTensorQualifiers_t{1, 0, 0};
   }
-  std::vector<std::vector<int32_t>> tensModes(numTensors);
-  int32_t umode = 0;
+  std::vector<std::vector<std::int32_t>> tensModes(numTensors);
+  std::int32_t umode = 0;
   for (int i = 0; i < mpsNumTensors; ++i) {
     if (i == 0) {
       if (mpsNumTensors > 1) {
-        tensModes[i] = std::initializer_list<int32_t>{umode, umode + 1};
+        tensModes[i] = std::initializer_list<std::int32_t>{umode, umode + 1};
         umode += 2;
       } else {
-        tensModes[i] = std::initializer_list<int32_t>{umode};
+        tensModes[i] = std::initializer_list<std::int32_t>{umode};
         umode += 1;
       }
     } else if (i == (mpsNumTensors - 1)) {
-      tensModes[i] = std::initializer_list<int32_t>{umode - 1, umode};
+      tensModes[i] = std::initializer_list<std::int32_t>{umode - 1, umode};
       umode += 1;
     } else {
       tensModes[i] =
-          std::initializer_list<int32_t>{umode - 1, umode, umode + 1};
+          std::initializer_list<std::int32_t>{umode - 1, umode, umode + 1};
       umode += 2;
     }
   }
-  int32_t lmode = umode;
+  std::int32_t lmode = umode;
   umode = 0;
   for (int i = 0; i < mpsNumTensors; ++i) {
     if (i == 0) {
       if (mpsNumTensors > 1) {
         tensModes[mpsNumTensors + i] =
-            std::initializer_list<int32_t>{umode, lmode};
+            std::initializer_list<std::int32_t>{umode, lmode};
         umode += 2;
         lmode += 1;
       } else {
-        tensModes[mpsNumTensors + i] = std::initializer_list<int32_t>{umode};
+        tensModes[mpsNumTensors + i] = std::initializer_list<std::int32_t>{umode};
         umode += 1;
       }
     } else if (i == (mpsNumTensors - 1)) {
       tensModes[mpsNumTensors + i] =
-          std::initializer_list<int32_t>{lmode - 1, umode};
+          std::initializer_list<std::int32_t>{lmode - 1, umode};
       umode += 1;
     } else {
       tensModes[mpsNumTensors + i] =
-          std::initializer_list<int32_t>{lmode - 1, umode, lmode};
+          std::initializer_list<std::int32_t>{lmode - 1, umode, lmode};
       umode += 2;
       lmode += 1;
     }
@@ -135,11 +135,11 @@ std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
   } else {
     throw std::runtime_error("[tensornet-state] unknown precision.");
   }
-  std::vector<const int64_t *> extentsIn(numTensors);
+  std::vector<const std::int64_t *> extentsIn(numTensors);
   for (int i = 0; i < numTensors; ++i) {
     extentsIn[i] = tensExtents[i].data();
   }
-  std::vector<const int32_t *> modesIn(numTensors);
+  std::vector<const std::int32_t *> modesIn(numTensors);
   for (int i = 0; i < numTensors; ++i) {
     modesIn[i] = tensModes[i].data();
   }
@@ -148,10 +148,10 @@ std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
   // Set up tensor network
   HANDLE_CUTN_ERROR(cutensornetCreateNetwork(cutnHandle, &m_tnDescr));
 
-  int64_t tensorIDs[numTensors]; // for input tensors
+  std::int64_t tensorIDs[numTensors]; // for input tensors
 
   // attach the input tensors to the network
-  for (int32_t t = 0; t < numTensors; ++t) {
+  for (std::int32_t t = 0; t < numTensors; ++t) {
     HANDLE_CUTN_ERROR(cutensornetNetworkAppendTensor(
         cutnHandle, m_tnDescr, tensModes[t].size(), tensExtents[t].data(),
         tensModes[t].data(), &tensAttr[t], dataType, &tensorIDs[t]));
@@ -190,7 +190,7 @@ std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
   cutensornetWorkspaceDescriptor_t workDesc;
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(cutnHandle, &workDesc));
-  int64_t requiredWorkspaceSize = 0;
+  std::int64_t requiredWorkspaceSize = 0;
   HANDLE_CUTN_ERROR(cutensornetWorkspaceComputeContractionSizes(
       cutnHandle, m_tnDescr, m_tnPath, workDesc));
   HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
@@ -219,7 +219,7 @@ std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
   HANDLE_CUDA_ERROR(cudaMalloc(&m_dOverlap, overlapSize));
 
   // Set tensor's data buffers and strides
-  for (int32_t t = 0; t < numTensors; ++t) {
+  for (std::int32_t t = 0; t < numTensors; ++t) {
     HANDLE_CUTN_ERROR(cutensornetNetworkSetInputTensorMemory(
         cutnHandle, m_tnDescr, tensorIDs[t], rawDataIn[t], NULL));
   }
@@ -439,7 +439,7 @@ MPSSimulationState<ScalarType>::createFromStateVec(
                                  cudaMemcpyHostToDevice));
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;
-    stateTensor.extents = std::vector<int64_t>{2};
+    stateTensor.extents = std::vector<std::int64_t>{2};
     auto state = TensorNetState<ScalarType>::createFromMpsTensors(
         {stateTensor}, inScratchPad, cutnHandle, randomEngine);
     return {std::move(state), std::vector<MPSTensor>{stateTensor}};
@@ -455,7 +455,7 @@ MPSSimulationState<ScalarType>::createFromStateVec(
   Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
       reshapedMat = reshapeStateVec(stateVec);
   std::vector<MPSTensor> mpsTensors;
-  std::vector<int64_t> numSingularValues;
+  std::vector<std::int64_t> numSingularValues;
   const auto enforceBondDim =
       [bondDim](const Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
                                     Eigen::Dynamic> &U,
@@ -514,8 +514,8 @@ MPSSimulationState<ScalarType>::createFromStateVec(
     stateTensor.deviceData = d_tensor;
     // Note: this loop doesn't cover the last MPS tensor
     stateTensor.extents = (i == 0)
-                              ? std::vector<int64_t>{2, numSingularValues[i]}
-                              : std::vector<int64_t>{numSingularValues[i - 1],
+                              ? std::vector<std::int64_t>{2, numSingularValues[i]}
+                              : std::vector<std::int64_t>{numSingularValues[i - 1],
                                                      2, numSingularValues[i]};
     mpsTensors.emplace_back(stateTensor);
   }
@@ -530,7 +530,7 @@ MPSSimulationState<ScalarType>::createFromStateVec(
                  cudaMemcpyHostToDevice));
   MPSTensor stateTensor;
   stateTensor.deviceData = d_tensor;
-  stateTensor.extents = std::vector<int64_t>{numSingularValues.back(), 2};
+  stateTensor.extents = std::vector<std::int64_t>{numSingularValues.back(), 2};
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
   auto state = TensorNetState<ScalarType>::createFromMpsTensors(
@@ -560,7 +560,7 @@ MPSSimulationState<ScalarType>::createFromSizeAndPtr(std::size_t size,
       HANDLE_CUDA_ERROR(cudaMemcpy(
           d_tensor, dataPtr, numElements * sizeof(std::complex<ScalarType>),
           cudaMemcpyDefault));
-      std::vector<int64_t> mpsExtents(extents.begin(), extents.end());
+      std::vector<std::int64_t> mpsExtents(extents.begin(), extents.end());
       MPSTensor stateTensor{d_tensor, mpsExtents};
       mpsTensors.emplace_back(stateTensor);
     }

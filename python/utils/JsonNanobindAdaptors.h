@@ -23,7 +23,8 @@ template <>
 struct type_caster<nlohmann::json> {
   NB_TYPE_CASTER(nlohmann::json, const_name("object"))
 
-  bool from_python(handle src, uint8_t flags, cleanup_list *cleanup) noexcept {
+  bool from_python(handle src, std::uint8_t flags,
+                   cleanup_list *cleanup) noexcept {
     try {
       value = python_to_json(src);
       return true;
@@ -48,7 +49,7 @@ private:
     if (PyBool_Check(src.ptr()))
       return src.equal(nanobind::bool_(true));
     if (PyLong_Check(src.ptr()))
-      return nanobind::cast<int64_t>(src);
+      return nanobind::cast<std::int64_t>(src);
     if (PyFloat_Check(src.ptr()))
       return nanobind::cast<double>(src);
     if (PyUnicode_Check(src.ptr()))
@@ -76,7 +77,7 @@ private:
       return nanobind::bool_(j.get<bool>());
     case nlohmann::json::value_t::number_integer:
     case nlohmann::json::value_t::number_unsigned:
-      return nanobind::int_(j.get<int64_t>());
+      return nanobind::int_(j.get<std::int64_t>());
     case nlohmann::json::value_t::number_float:
       return nanobind::float_(j.get<double>());
     case nlohmann::json::value_t::string: {

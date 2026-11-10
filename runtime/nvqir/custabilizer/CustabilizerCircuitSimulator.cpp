@@ -117,12 +117,12 @@ struct CustabilizerCircuit {
   custabilizerHandle_t handle;
   custabilizerCircuit_t circuit = nullptr;
   void *buffer_d = nullptr;
-  int64_t buffer_size = 0;
+  std::int64_t buffer_size = 0;
 
   explicit CustabilizerCircuit(custabilizerHandle_t handle) : handle(handle) {}
 
   void update(const std::string &stim_circuit_str) {
-    int64_t required_size = 0;
+    std::int64_t required_size = 0;
     HANDLE_CUST_ERROR(custabilizerCircuitSizeFromString(
         handle, stim_circuit_str.c_str(), &required_size));
     if (circuit) {
@@ -166,13 +166,13 @@ struct CustabilizerFrameRunner {
   // Packed GPU measurement flips, with one row per measurement.
   custabilizerBitInt_t *m_table_d = nullptr;
   // Number of qubits represented by the frame tables.
-  int64_t num_qubits = 0;
+  std::int64_t num_qubits = 0;
   // Shot count configured for the frame simulator and allocated tables.
-  int64_t allocated_shots = 0;
+  std::int64_t allocated_shots = 0;
   // Row capacity of the measurement table.
-  int64_t allocated_measurements = 0;
+  std::int64_t allocated_measurements = 0;
   // Byte offset between adjacent rows in each GPU table.
-  int64_t stride_bytes = 0;
+  std::int64_t stride_bytes = 0;
   // Circuit already converted for cuStabilizer, replayed to generate flips.
   stim::Circuit circuitCache;
   // Whether the recorded circuit has run and its measurement table is valid.
@@ -181,7 +181,7 @@ struct CustabilizerFrameRunner {
   // replay.
   std::unique_ptr<CustabilizerCircuit> preparedCircuit;
 
-  explicit CustabilizerFrameRunner(int64_t num_qubits)
+  explicit CustabilizerFrameRunner(std::int64_t num_qubits)
       : num_qubits(num_qubits) {
     if (num_qubits <= 0)
       throw std::runtime_error(
@@ -253,7 +253,7 @@ struct CustabilizerFrameRunner {
 
   // More qubits require larger frame tables. Retain the recorded circuit so
   // the next replay reconstructs the state, including earlier measurements.
-  void growQubits(int64_t new_qubits) {
+  void growQubits(std::int64_t new_qubits) {
     if (new_qubits > num_qubits) {
       deallocate();
       num_qubits = new_qubits;
@@ -271,12 +271,13 @@ struct CustabilizerFrameRunner {
   /// tableau reference. Each measurement has a row of (num_shots + 31) / 32
   /// words; shot s occupies bit (s % 32) of word (s / 32) in that row. XOR a
   /// flip with the corresponding reference bit to obtain the sampled outcome.
-  std::vector<uint32_t> getMeasurementTable(int64_t num_shots, uint64_t seed) {
+  std::vector<std::uint32_t> getMeasurementTable(std::int64_t num_shots,
+                                                 std::uint64_t seed) {
     if (num_shots <= 0)
       throw std::runtime_error("num_shots must be > 0");
     // Number of measurement bits produced by one shot of the entire circuit.
     // For example, "M 0 1" followed by "M 0" counts as three measurement bits.
-    int64_t measurement_count = circuitCache.count_measurements();
+    std::int64_t measurement_count = circuitCache.count_measurements();
 
     // Keep the simulator's shot count and packed row stride consistent with
     // the requested output. Measurement capacity can still be reused.
@@ -306,8 +307,8 @@ struct CustabilizerFrameRunner {
     const size_t words_per_row = static_cast<size_t>((num_shots + 31) / 32);
     const size_t total_words =
         words_per_row * static_cast<size_t>(measurement_count);
-    std::vector<uint32_t> out(total_words);
-    const size_t total_bytes = total_words * sizeof(uint32_t);
+    std::vector<std::uint32_t> out(total_words);
+    const size_t total_bytes = total_words * sizeof(std::uint32_t);
     if (total_bytes > 0)
       HANDLE_CUDA_ERROR(cudaMemcpy(out.data(), m_table_d, total_bytes,
                                    cudaMemcpyDeviceToHost));
@@ -346,7 +347,7 @@ private:
   /// whole 32-bit words containing one bit per shot.
   /// @param[in] new_shots Number of shots to allocate in each table row.
   /// @param[in] new_measurements Number of measurement bits produced per shot.
-  void reallocate(int64_t new_shots, int64_t new_measurements) {
+  void reallocate(std::int64_t new_shots, std::int64_t new_measurements) {
     // Debug-only checks; callers ensure positive dimensions.
     assert(num_qubits > 0);
     assert(new_shots > 0);
@@ -358,8 +359,8 @@ private:
     allocated_measurements = new_measurements;
     // Each row stores one bit per shot. Round up to whole 32-bit words, then
     // convert the row length to bytes for cuStabilizer's table stride.
-    stride_bytes =
-        ((new_shots + 31) / 32) * static_cast<int64_t>(sizeof(uint32_t));
+    stride_bytes = ((new_shots + 31) / 32) *
+                   static_cast<std::int64_t>(sizeof(std::uint32_t));
 
     // Each X/Z table has one row per qubit; this is the size of either table.
     const size_t xz_bytes =
@@ -408,9 +409,9 @@ protected:
       return;
     if (nQubitsAllocated > 0 && !frameRunner) {
       frameRunner = std::make_unique<CustabilizerFrameRunner>(
-          static_cast<int64_t>(nQubitsAllocated));
+          static_cast<std::int64_t>(nQubitsAllocated));
     } else if (frameRunner) {
-      frameRunner->growQubits(static_cast<int64_t>(nQubitsAllocated));
+      frameRunner->growQubits(static_cast<std::int64_t>(nQubitsAllocated));
     }
     // Allocated qubits start in |0>. Record resets so every replay initializes
     // their X frames to zero and Z frames randomly, as Stim does for new
@@ -433,7 +434,7 @@ protected:
 
   /// @brief Apply original gates to the tableau and record supported GPU gates.
   void applyOpToSims(const std::string &gate_name,
-                     const std::vector<uint32_t> &targets) override {
+                     const std::vector<std::uint32_t> &targets) override {
     if (getBatchSize() == 1) {
       StimCircuitSimulator::applyOpToSims(gate_name, targets);
       return;
@@ -545,7 +546,7 @@ protected:
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
                                 const int shots,
                                 bool includeSequentialData = true) override {
-    const auto batch_size = static_cast<int64_t>(getBatchSize());
+    const auto batch_size = static_cast<std::int64_t>(getBatchSize());
     // Validate before delegating: Stim only asserts this bound, and contexts
     // such as observe can request more shots than their single-frame capacity.
     if (shots > batch_size)

@@ -59,7 +59,7 @@ static std::string normalizeInlineName(Attribute attribute, StringRef prefix,
 
 static DictionaryAttr
 countDictionary(MLIRContext *context,
-                const std::map<std::string, int64_t> &counts) {
+                const std::map<std::string, std::int64_t> &counts) {
   SmallVector<NamedAttribute> fields;
   fields.reserve(counts.size());
   for (const auto &[name, count] : counts)
@@ -74,7 +74,7 @@ public:
       : module(module), symbols(symbols) {}
 
   LogicalResult run(ProgramOp root) {
-    int64_t live = 0;
+    std::int64_t live = 0;
     if (!root.getBody().empty())
       for (BlockArgument argument : root.getBody().front().getArguments())
         live += isLogicalQubit(argument.getType());
@@ -86,32 +86,33 @@ public:
     return success();
   }
 
-  std::map<std::string, int64_t> actions;
-  std::map<std::string, int64_t> instruments;
-  std::map<std::string, int64_t> synthesis;
-  std::map<std::string, int64_t> resourceRequests;
-  std::map<std::string, int64_t> resourceConsumptions;
-  int64_t idleSites = 0;
-  int64_t discards = 0;
-  int64_t depth = 0;
-  int64_t peak = 0;
+  std::map<std::string, std::int64_t> actions;
+  std::map<std::string, std::int64_t> instruments;
+  std::map<std::string, std::int64_t> synthesis;
+  std::map<std::string, std::int64_t> resourceRequests;
+  std::map<std::string, std::int64_t> resourceConsumptions;
+  std::int64_t idleSites = 0;
+  std::int64_t discards = 0;
+  std::int64_t depth = 0;
+  std::int64_t peak = 0;
 
 private:
   ModuleOp module;
   SymbolTable &symbols;
   llvm::SmallPtrSet<Operation *, 8> callStack;
 
-  LogicalResult add(int64_t &target, int64_t value, Operation *source,
+  LogicalResult add(std::int64_t &target, std::int64_t value, Operation *source,
                     StringRef what) {
-    int64_t result;
+    std::int64_t result;
     if (llvm::AddOverflow(target, value, result))
       return source->emitOpError() << what << " count overflows signed i64";
     target = result;
     return success();
   }
 
-  LogicalResult bump(std::map<std::string, int64_t> &target, std::string name,
-                     int64_t value, Operation *source, StringRef what) {
+  LogicalResult bump(std::map<std::string, std::int64_t> &target,
+                     std::string name, std::int64_t value, Operation *source,
+                     StringRef what) {
     auto iterator = target.find(name);
     if (iterator == target.end()) {
       target.emplace(std::move(name), value);
@@ -120,8 +121,9 @@ private:
     return add(iterator->second, value, source, what);
   }
 
-  FailureOr<int64_t> multiply(int64_t left, int64_t right, Operation *source) {
-    int64_t result;
+  FailureOr<std::int64_t> multiply(std::int64_t left, std::int64_t right,
+                                   Operation *source) {
+    std::int64_t result;
     if (llvm::MulOverflow(left, right, result)) {
       source->emitOpError("folded multiplicity overflows signed i64");
       return failure();
@@ -129,22 +131,23 @@ private:
     return result;
   }
 
-  LogicalResult walkBlock(Block &block, int64_t multiplier, int64_t &live) {
+  LogicalResult walkBlock(Block &block, std::int64_t multiplier,
+                          std::int64_t &live) {
     for (Operation &operation : block)
       if (failed(walkOperation(&operation, multiplier, live)))
         return failure();
     return success();
   }
 
-  LogicalResult walkOperation(Operation *operation, int64_t multiplier,
-                              int64_t &live) {
+  LogicalResult walkOperation(Operation *operation, std::int64_t multiplier,
+                              std::int64_t &live) {
     if (auto repeat = dyn_cast<cflow::RepeatOp>(operation)) {
       auto nested = multiply(multiplier, repeat.getCount(), operation);
       if (failed(nested))
         return failure();
       if (repeat.getCount() == 0)
         return success();
-      int64_t before = live;
+      std::int64_t before = live;
       if (failed(walkBlock(repeat.getBody().front(), *nested, live)))
         return failure();
       if (live != before)
@@ -168,8 +171,8 @@ private:
     }
 
     if (auto conditional = dyn_cast<cflow::IfOp>(operation)) {
-      int64_t thenLive = live;
-      int64_t elseLive = live;
+      std::int64_t thenLive = live;
+      std::int64_t elseLive = live;
       if (failed(walkBlock(conditional.getThenRegion().front(), multiplier,
                            thenLive)) ||
           failed(walkBlock(conditional.getElseRegion().front(), multiplier,
@@ -280,7 +283,7 @@ private:
           "qlx-estimate-logical native v1 has no typed cost semantics for "
           "this operation on logical quantum values");
 
-    int64_t delta = 0;
+    std::int64_t delta = 0;
     for (Value operand : operation->getOperands())
       delta -= isLogicalQubit(operand.getType());
     for (Value result : operation->getResults())

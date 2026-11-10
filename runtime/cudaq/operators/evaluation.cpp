@@ -97,7 +97,7 @@ operator_arithmetics<operator_handler::matrix_evaluation>::add(
 operator_handler::canonical_evaluation
 operator_arithmetics<operator_handler::canonical_evaluation>::evaluate(
     const operator_handler &op) {
-  std::vector<int64_t> relevant_dims;
+  std::vector<std::int64_t> relevant_dims;
   auto canon_str = op.canonical_form(this->dimensions, relevant_dims);
   return operator_handler::canonical_evaluation(std::move(canon_str),
                                                 std::move(relevant_dims));

@@ -55,7 +55,7 @@ static MeasuredPauli pauliOf(Operation *op, ValueRange qubits,
                              DictionaryAttr params,
                              const llvm::DenseMap<Value, unsigned> &qidx) {
   MeasuredPauli p;
-  int64_t xm = 0, zm = 0;
+  std::int64_t xm = 0, zm = 0;
   if (params) {
     if (auto x = dyn_cast_or_null<IntegerAttr>(params.get("x_mask")))
       xm = x.getInt();
@@ -123,7 +123,7 @@ static LogicalResult verifyPauliProduct(Operation *op, ValueRange operands,
   size_t arity = 0;
   for (Value operand : operands)
     arity += isa<LogicalQubitType>(operand.getType());
-  constexpr size_t maxArity = std::numeric_limits<int64_t>::digits;
+  constexpr size_t maxArity = std::numeric_limits<std::int64_t>::digits;
   if (arity > maxArity)
     return fail(op,
                 llvm::Twine("PBC ") + kind + " has " + llvm::Twine(arity) +
@@ -131,12 +131,12 @@ static LogicalResult verifyPauliProduct(Operation *op, ValueRange operands,
                     "i64 Pauli-mask limit",
                 error);
 
-  uint64_t used = static_cast<uint64_t>(xMask.getInt()) |
-                  static_cast<uint64_t>(zMask.getInt());
-  uint64_t allowed =
+  std::uint64_t used = static_cast<std::uint64_t>(xMask.getInt()) |
+                       static_cast<std::uint64_t>(zMask.getInt());
+  std::uint64_t allowed =
       arity == maxArity
-          ? static_cast<uint64_t>(std::numeric_limits<int64_t>::max())
-          : ((uint64_t{1} << arity) - 1);
+          ? static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())
+          : ((std::uint64_t{1} << arity) - 1);
   if (used & ~allowed)
     return fail(op,
                 llvm::Twine("PBC ") + kind +
