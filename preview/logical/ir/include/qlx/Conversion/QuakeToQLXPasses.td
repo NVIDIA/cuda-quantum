@@ -11,29 +11,6 @@
 
 include "mlir/Pass/PassBase.td"
 
-def PruneDeadCCLoopCarries :
-    Pass<"prune-dead-cc-loop-carries", "mlir::ModuleOp"> {
-  let summary = "Remove dead classical carries from supported CUDA-Q CC loops";
-  let description = [{
-    Prepares CUDA-Q CC loops with cc.undef initial carries for Quake-to-P0
-    conversion without duplicating MLIR's dead-value analysis. The pass runs
-    MLIR's remove-dead-values pass on each affected function, then applies
-    MLIR's generic region-branch canonicalization patterns to cc.loop. This
-    supplies the generic cleanup that CUDA-Q's current cc.loop canonicalization
-    hook does not register, while leaving unrelated functions untouched.
-
-    Affected functions must not retain cc.scope. CUDA-Q canonicalizes that op
-    through the CF dialect; this focused preparation deliberately does not
-    register or introduce CF.
-
-    Cleanup is restricted to the structured loop subset accepted by the QLX
-    importer: pre-condition, single-block while/do/step regions with no break
-    or Python else. Other loop forms fail closed before the module is changed.
-    This pass removes only carries proven dead; live classical carries remain
-    and may subsequently be rejected by convert-quake-to-qlx.
-  }];
-}
-
 def ConvertQuakeToQLX : Pass<"convert-quake-to-qlx", "mlir::ModuleOp"> {
   let summary = "Import value-semantics CUDA-Q Quake as QLX P0";
   let description = [{
@@ -48,7 +25,18 @@ def ConvertQuakeToQLX : Pass<"convert-quake-to-qlx", "mlir::ModuleOp"> {
         apply with the axis in `{x_mask,z_mask,sign}`; uncontrolled,
         constant-angle only; `<adj>` negates the angle; uncontrolled R1 and Rz
         are equivalent up to global phase);
-      - X/Y/Z measurement, discrimination, sink, and return;
+      - no `quake.phase`: `prepare-quake-for-qlx` erases global phases, and a
+        controlled phase is rejected;
+      - helpers taking `!quake.ref` or specialized `!quake.veq` arguments, in
+        the form `convert-to-linear-values` produces: each reference is
+        unwrapped once and its last wire is wrapped back to it once;
+      - X/Y/Z measurement, discrimination, sink, and return of discriminated
+        measurements. A result is one measurement or a `!cc.struct` of `i1`
+        (the Python frontend's `tuple[bool, ...]`) that `cc.undef` and
+        `cc.insert_value` of measurements build in the region that returns
+        it. P0 returns one result per member, in member order. Reading a
+        member back (`cc.extract_value`) and a struct yielded from a region
+        are rejected;
       - `cc.scope` (transparent) and a normalized constant-trip `cc.loop`,
         folded to `cflow.repeat` (never unrolled) with `!quake.wire` carries;
         repeat bodies may prepare iteration-local qubits when they are
@@ -56,6 +44,14 @@ def ConvertQuakeToQLX : Pass<"convert-quake-to-qlx", "mlir::ModuleOp"> {
       - `cc.if` with a constant condition (the selected branch is inlined,
         feedback-free) or a measurement-derived (`quake.discriminate`) condition
         (lowered to an adaptive `cflow.if`).
+
+    CUDA-Q's `kernel-execution` pass registers an entry point with the host
+    runtime from a constructor, `<kernel>.kernelRegFunc`, listed in
+    `llvm.mlir.global_ctors`. P0 has no host side, so the conversion drops
+    the registration when the constructor only passes the constant
+    `<kernel>.kernelName` string and the kernel's `.argsCreator` to
+    `cudaqRegisterKernelName` and `cudaqRegisterArgsCreator`. Any other
+    constructor is rejected.
 
     All quantum operands/results must already have type `!quake.wire`; reference,
     vector, control, and cable types are rejected. Loops must be constant-trip
@@ -80,6 +76,41 @@ def ConvertQuakeToQLX : Pass<"convert-quake-to-qlx", "mlir::ModuleOp"> {
     "qlx::QLXDialect",
     "mlir::func::FuncDialect"
   ];
+}
+
+def EraseQuakeGlobalPhase :
+    Pass<"erase-quake-global-phase", "mlir::ModuleOp"> {
+  let summary = "Erase uncontrolled quake.phase operations";
+  let description = [{
+    An uncontrolled `quake.phase` is a global phase. It does not change the
+    qubit it is anchored to, and P0 has no global phase, so this pass erases it
+    and forwards its anchor wire to the users of its result. A controlled
+    `quake.phase` applies a relative phase and is left in place, to be
+    rejected by `convert-quake-to-qlx`.
+  }];
+}
+
+def PruneDeadCCLoopCarries :
+    Pass<"prune-dead-cc-loop-carries", "mlir::ModuleOp"> {
+  let summary = "Remove dead classical carries from supported CUDA-Q CC loops";
+  let description = [{
+    Prepares CUDA-Q CC loops with cc.undef initial carries for Quake-to-P0
+    conversion without duplicating MLIR's dead-value analysis. The pass runs
+    MLIR's remove-dead-values pass on each affected function, then applies
+    MLIR's generic region-branch canonicalization patterns to cc.loop. This
+    supplies the generic cleanup that CUDA-Q's current cc.loop canonicalization
+    hook does not register, while leaving unrelated functions untouched.
+
+    Affected functions must not retain cc.scope. CUDA-Q canonicalizes that op
+    through the CF dialect; this focused preparation deliberately does not
+    register or introduce CF.
+
+    Cleanup is restricted to the structured loop subset accepted by the QLX
+    importer: pre-condition, single-block while/do/step regions with no break
+    or Python else. Other loop forms fail closed before the module is changed.
+    This pass removes only carries proven dead; live classical carries remain
+    and may subsequently be rejected by convert-quake-to-qlx.
+  }];
 }
 
 #endif // QLX_CONVERSION_QUAKETOQLX_PASSES_TD

@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -41,26 +42,27 @@ std::shared_ptr<TraceBackend> &backendSlot() {
 
 std::atomic<bool> programmaticCapture{false};
 
-uint64_t nowMicroseconds() {
+std::uint64_t nowMicroseconds() {
   auto now = std::chrono::system_clock::now().time_since_epoch();
-  return static_cast<uint64_t>(
+  return static_cast<std::uint64_t>(
       std::chrono::duration_cast<std::chrono::microseconds>(now).count());
 }
 
-uint32_t currentThreadId() {
+std::uint32_t currentThreadId() {
   // Cache per thread. gettid is a kernel round trip and we call this on
   // every admitted span.
-  thread_local uint32_t cached = 0;
+  thread_local std::uint32_t cached = 0;
   thread_local bool cacheInitialized = false;
   if (!cacheInitialized) {
 #if defined(__linux__)
-    cached = static_cast<uint32_t>(syscall(SYS_gettid));
+    cached = static_cast<std::uint32_t>(syscall(SYS_gettid));
 #elif defined(__APPLE__)
-    uint64_t tid = 0;
+    std::uint64_t tid = 0;
     pthread_threadid_np(nullptr, &tid);
-    cached = static_cast<uint32_t>(tid);
+    cached = static_cast<std::uint32_t>(tid);
 #else
-    cached = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(pthread_self()));
+    cached =
+        static_cast<std::uint32_t>(reinterpret_cast<uintptr_t>(pthread_self()));
 #endif
     cacheInitialized = true;
   }
@@ -136,8 +138,8 @@ void Tracer::endSpan(SpanHandle handle) {
     return;
   }
 
-  const uint64_t endTs = nowMicroseconds();
-  const uint64_t durUs =
+  const std::uint64_t endTs = nowMicroseconds();
+  const std::uint64_t durUs =
       endTs > handle.beginTsUs ? endTs - handle.beginTsUs : 0;
 
   TraceEvent e{handle.ctx,  handle.name,      handle.category, handle.tag,

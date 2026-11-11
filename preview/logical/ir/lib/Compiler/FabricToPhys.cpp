@@ -36,6 +36,7 @@
 #include "llvm/Support/MathExtras.h"
 
 #include <cassert>
+#include <cstdint>
 #include <cstdlib>
 #include <functional>
 #include <initializer_list>
@@ -58,18 +59,19 @@ using namespace mlir;
 
 namespace {
 
-static std::optional<int64_t>
-checkedProduct(std::initializer_list<int64_t> factors) {
-  int64_t result = 1;
-  for (int64_t factor : factors)
+static std::optional<std::int64_t>
+checkedProduct(std::initializer_list<std::int64_t> factors) {
+  std::int64_t result = 1;
+  for (std::int64_t factor : factors)
     if (llvm::MulOverflow(result, factor, result))
       return std::nullopt;
   return result;
 }
 
-static std::optional<int64_t> checkedSum(std::initializer_list<int64_t> terms) {
-  int64_t result = 0;
-  for (int64_t term : terms)
+static std::optional<std::int64_t>
+checkedSum(std::initializer_list<std::int64_t> terms) {
+  std::int64_t result = 0;
+  for (std::int64_t term : terms)
     if (llvm::AddOverflow(result, term, result))
       return std::nullopt;
   return result;
@@ -82,8 +84,8 @@ static bool isLinearPhysicalDefinitionType(Type type) {
   return event && event.getOwnership() == "linear";
 }
 
-static int64_t countLinearPhysicalDefinitions(Operation *owner) {
-  int64_t count = 0;
+static std::int64_t countLinearPhysicalDefinitions(Operation *owner) {
+  std::int64_t count = 0;
   owner->walk([&](Operation *operation) {
     for (Region &region : operation->getRegions())
       for (Block &block : region)
@@ -237,7 +239,7 @@ struct RegionBinding {
   std::string physicalBinding;
   std::string kind;
   std::string granularity;
-  int64_t capacity = 0;
+  std::int64_t capacity = 0;
   qlx::phys::QECBindingOp binding;
 };
 
@@ -253,18 +255,19 @@ using CarrierHomeMap = DenseMap<Value, CarrierHomes>;
 
 struct ResourceInfo {
   std::string resourceClass;
-  int64_t index = 0;
+  std::int64_t index = 0;
 };
 
 struct AllocationPlanStep {
   bool acquire = false;
   std::string resourceClass;
-  int64_t capacity = 0;
-  SmallVector<int64_t> indices;
+  std::int64_t capacity = 0;
+  SmallVector<std::int64_t> indices;
 };
 
 struct CanonicalCallTemplate {
   Operation *sourceCall = nullptr;
+  Operation *physicalCall = nullptr;
   FlatSymbolRefAttr callee;
   FlatSymbolRefAttr profile;
   // A call whose result directly seeds fabric.retry must retain its complete
@@ -295,23 +298,24 @@ struct CanonicalCallTemplate {
 struct StateAliasCacheKey {
   size_t templateIndex = 0;
   size_t inputCount = 0;
-  // The key owns its layout tokens and compares them by address. A freed
-  // token's address can be reused by an unrelated layout, which would then
-  // hit this entry.
-  SmallVector<PhysicalGroup::LayoutIdentity, 4> layouts;
+  // Keep the control block for every layout token alive without increasing
+  // its strong reference count. A raw pointee address is not a durable
+  // identity here: once a temporary PhysicalGroup releases its token, the
+  // allocator may reuse that address for an unrelated layout and turn a
+  // cache miss into a false hit. Weak ownership preserves identity across
+  // such reuse while leaving PhysicalGroup's copy-on-write use_count intact.
+  SmallVector<std::weak_ptr<const char>, 4> layouts;
 
   bool operator<(const StateAliasCacheKey &other) const {
     if (templateIndex != other.templateIndex)
       return templateIndex < other.templateIndex;
     if (inputCount != other.inputCount)
       return inputCount < other.inputCount;
+    std::owner_less<std::weak_ptr<const char>> less;
     return std::lexicographical_compare(
         layouts.begin(), layouts.end(), other.layouts.begin(),
         other.layouts.end(),
-        [](const PhysicalGroup::LayoutIdentity &left,
-           const PhysicalGroup::LayoutIdentity &right) {
-          return std::less<const char *>()(left.get(), right.get());
-        });
+        [&](const auto &left, const auto &right) { return less(left, right); });
   }
 };
 
@@ -319,14 +323,14 @@ struct AllocationRecord {
   std::string name;
   std::string resourceClass;
   SmallVector<Attribute> resources;
-  SmallVector<int64_t> indices;
+  SmallVector<std::int64_t> indices;
   std::string acquire;
   std::string release;
   SmallVector<std::string> after;
 };
 
 struct PhysicalPauliProduct {
-  SmallVector<std::pair<unsigned, int64_t>> carriers;
+  SmallVector<std::pair<unsigned, std::int64_t>> carriers;
   SmallVector<char> paulis;
   bool invert = false;
 };
@@ -335,7 +339,7 @@ struct PendingSidecar {
   std::string kind;
   Operation *declaration = nullptr;
   FlatSymbolRefAttr sourceProfile;
-  int64_t sourceRow = 0;
+  std::int64_t sourceRow = 0;
   std::string sourceInstance;
   SmallVector<std::string> sourceRecords;
   SmallVector<std::string> physicalRecords;
@@ -343,7 +347,7 @@ struct PendingSidecar {
 
 using RecordProjectionKey = std::pair<std::string, std::string>;
 using RecordProjectionLane = std::tuple<std::string, std::string, std::string>;
-using RepeatContext = SmallVector<std::pair<std::string, int64_t>, 2>;
+using RepeatContext = SmallVector<std::pair<std::string, std::int64_t>, 2>;
 
 struct RecordProjectionState {
   SmallVector<std::string> records;
@@ -356,18 +360,18 @@ constexpr StringLiteral kSpacetimeProvider = "qlx.compiler.spacetime";
 constexpr StringLiteral kSpacetimeProviderVersion = "1";
 constexpr StringLiteral kSurfaceFactoryRecurrence =
     "surface_autoccz_factory_recurrence";
-constexpr int64_t kSurfaceFactoryRecurrenceVersion = 3;
+constexpr std::int64_t kSurfaceFactoryRecurrenceVersion = 3;
 constexpr StringLiteral kSurfaceFactoryRecurrenceEvidence =
     "fabric.factory-circuit/v2+gidney-fowler-autoccz-layout/v3+selected-"
     "device-closure/v1";
 constexpr StringLiteral kSurfaceAutoCCZApplication =
     "surface_autoccz_application";
-constexpr int64_t kSurfaceAutoCCZApplicationVersion = 1;
+constexpr std::int64_t kSurfaceAutoCCZApplicationVersion = 1;
 constexpr StringLiteral kSurfaceAutoCCZApplicationEvidence =
     "fabric.autoccz-consumer/v1+selected-device-reaction-pipeline/v1";
 constexpr StringLiteral kSurfaceSpacelikeCallable =
     "surface_spacelike_callable";
-constexpr int64_t kSurfaceSpacelikeCallableVersion = 1;
+constexpr std::int64_t kSurfaceSpacelikeCallableVersion = 1;
 constexpr StringLiteral kSurfaceSpacelikeCallableEvidence =
     "fabric.autoccz-reaction-layer/v1+surface-alternating-access/v1+"
     "selected-device-closure/v1";
@@ -379,21 +383,21 @@ constexpr StringLiteral kNativePauliProductRotation =
     "qlx.physical/native_pauli_product_rotation";
 
 struct SurfaceFactoryRecurrenceLayout {
-  int64_t level1Distance;
-  int64_t level2Distance;
-  int64_t level1Lanes;
-  int64_t tStatesPerCCZ;
-  int64_t fixupBoxes;
-  int64_t level1PatchesPerLane;
-  int64_t cczPatches;
-  int64_t autoCCZPatches;
-  int64_t factoryPatches;
-  int64_t level1ResourceOffset;
-  int64_t level2ResourceOffset;
+  std::int64_t level1Distance;
+  std::int64_t level2Distance;
+  std::int64_t level1Lanes;
+  std::int64_t tStatesPerCCZ;
+  std::int64_t fixupBoxes;
+  std::int64_t level1PatchesPerLane;
+  std::int64_t cczPatches;
+  std::int64_t autoCCZPatches;
+  std::int64_t factoryPatches;
+  std::int64_t level1ResourceOffset;
+  std::int64_t level2ResourceOffset;
   std::string level1ResourceClass;
   std::string level2ResourceClass;
 
-  SmallVector<int64_t, 9> geometry() const {
+  SmallVector<std::int64_t, 9> geometry() const {
     return {level1Distance, level2Distance, level1Lanes,
             tStatesPerCCZ,  fixupBoxes,     level1PatchesPerLane,
             cczPatches,     autoCCZPatches, factoryPatches};
@@ -401,9 +405,9 @@ struct SurfaceFactoryRecurrenceLayout {
 };
 
 struct SurfaceFactoryStageShape {
-  int64_t level1QuarterLayers;
-  int64_t level2Layers;
-  int64_t autoCCZLayers;
+  std::int64_t level1QuarterLayers;
+  std::int64_t level2Layers;
+  std::int64_t autoCCZLayers;
 };
 
 using SpacetimeProviderKind = qlx::spacetime::BuiltinProviderKind;
@@ -988,7 +992,7 @@ private:
       if (!region || !factoryMode ||
           factoryMode.getValue() != "scheduled_macro" || !footprintText)
         continue;
-      int64_t footprint = 0;
+      std::int64_t footprint = 0;
       if (footprintText.getValue().getAsInteger(10, footprint) ||
           footprint <= 0)
         continue;
@@ -1208,11 +1212,11 @@ private:
     return failure();
   }
 
-  FailureOr<int64_t> patchWidth(Type type) const {
+  FailureOr<std::int64_t> patchWidth(Type type) const {
     auto partitions = patchPartitions(type);
     if (failed(partitions))
       return failure();
-    int64_t width = 0;
+    std::int64_t width = 0;
     for (NamedAttribute partition : *partitions) {
       auto count = dyn_cast<IntegerAttr>(partition.getValue());
       if (!count || count.getInt() < 0)
@@ -1222,8 +1226,8 @@ private:
     return width;
   }
 
-  FailureOr<int64_t> regionCodeDistance(StringRef region,
-                                        Location location) const {
+  FailureOr<std::int64_t> regionCodeDistance(StringRef region,
+                                             Location location) const {
     auto qecRef = device->getAttrOfType<FlatSymbolRefAttr>("qec");
     auto machine = dyn_cast_or_null<qlx::fabric::DeviceOp>(
         qecRef ? symbols.lookup(qecRef.getValue()) : nullptr);
@@ -1278,19 +1282,19 @@ private:
     return *selected;
   }
 
-  FailureOr<SmallVector<std::pair<std::string, int64_t>>>
+  FailureOr<SmallVector<std::pair<std::string, std::int64_t>>>
   orderedPartitionSizes(Type type) const {
     auto partitions = patchPartitions(type);
     if (failed(partitions))
       return failure();
-    std::map<std::string, int64_t> counts;
+    std::map<std::string, std::int64_t> counts;
     for (NamedAttribute partition : *partitions) {
       auto count = dyn_cast<IntegerAttr>(partition.getValue());
       if (!count || count.getInt() < 0)
         return failure();
       counts[partition.getName().strref().str()] = count.getInt();
     }
-    SmallVector<std::pair<std::string, int64_t>> ordered;
+    SmallVector<std::pair<std::string, std::int64_t>> ordered;
     for (StringRef name :
          {StringRef("data"), StringRef("sx"), StringRef("sz")}) {
       auto found = counts.find(name.str());
@@ -1330,7 +1334,7 @@ private:
     return failure();
   }
 
-  FailureOr<int64_t> projectedWidth(Type type) const {
+  FailureOr<std::int64_t> projectedWidth(Type type) const {
     if (auto patch = dyn_cast<qlx::fabric::PatchType>(type)) {
       auto granularity = patchResourceGranularity(patch);
       if (failed(granularity))
@@ -1387,24 +1391,24 @@ private:
                           << region;
       return failure();
     }
-    FailureOr<int64_t> carrierWidth = patchWidth(patchType);
+    FailureOr<std::int64_t> carrierWidth = patchWidth(patchType);
     if (failed(carrierWidth)) {
       emitError(location) << "has an unresolved or malformed patch code";
       return failure();
     }
-    FailureOr<int64_t> codeDistance = regionCodeDistance(region, location);
+    FailureOr<std::int64_t> codeDistance = regionCodeDistance(region, location);
     if (failed(codeDistance))
       return failure();
     RegionBinding &binding = bindingIt->second;
-    int64_t width = binding.granularity == "patch" ? 1 : *carrierWidth;
-    std::set<int64_t> &active = activeIndices[binding.resourceClass];
-    std::set<int64_t> &ever = everAllocatedIndices[binding.resourceClass];
-    SmallVector<int64_t> selected;
-    for (int64_t index = 0;
+    std::int64_t width = binding.granularity == "patch" ? 1 : *carrierWidth;
+    std::set<std::int64_t> &active = activeIndices[binding.resourceClass];
+    std::set<std::int64_t> &ever = everAllocatedIndices[binding.resourceClass];
+    SmallVector<std::int64_t> selected;
+    for (std::int64_t index = 0;
          index < binding.capacity && selected.size() < size_t(width); ++index)
       if (!active.count(index) && !ever.count(index))
         selected.push_back(index);
-    for (int64_t index = 0;
+    for (std::int64_t index = 0;
          index < binding.capacity && selected.size() < size_t(width); ++index)
       if (!active.count(index) && !llvm::is_contained(selected, index))
         selected.push_back(index);
@@ -1419,7 +1423,7 @@ private:
 
     SmallVector<Attribute> references;
     SmallVector<Type> resultTypes;
-    for (int64_t index : selected) {
+    for (std::int64_t index : selected) {
       active.insert(index);
       ever.insert(index);
       std::string resourceName =
@@ -1471,9 +1475,9 @@ private:
     record.resourceClass = binding.resourceClass;
     record.indices = selected;
     record.acquire = acquireEvent.getValue().str();
-    for (int64_t index : selected) {
+    for (std::int64_t index : selected) {
       auto previous = lastReleaseByBinding.find(
-          std::pair<std::string, int64_t>{binding.resourceClass, index});
+          std::pair<std::string, std::int64_t>{binding.resourceClass, index});
       if (previous != lastReleaseByBinding.end() &&
           !llvm::is_contained(record.after, previous->second))
         record.after.push_back(previous->second);
@@ -1554,8 +1558,9 @@ private:
     return closure;
   }
 
-  FailureOr<int64_t> closureCodeDistance(ArrayRef<Operation *> closure) const {
-    std::optional<int64_t> selected;
+  FailureOr<std::int64_t>
+  closureCodeDistance(ArrayRef<Operation *> closure) const {
+    std::optional<std::int64_t> selected;
     auto inspect = [&](Type type, Operation *owner) -> LogicalResult {
       auto patch = dyn_cast<qlx::fabric::PatchType>(type);
       if (!patch)
@@ -1600,9 +1605,9 @@ private:
     return *selected;
   }
 
-  FailureOr<SmallVector<int64_t>>
+  FailureOr<SmallVector<std::int64_t>>
   closureCodeDistances(ArrayRef<Operation *> closure) const {
-    std::set<int64_t> selected;
+    std::set<std::int64_t> selected;
     auto inspect = [&](Type type, Operation *owner) -> LogicalResult {
       auto patch = dyn_cast<qlx::fabric::PatchType>(type);
       if (!patch)
@@ -1640,7 +1645,7 @@ private:
           "factory-model closure contains no encoded patch type");
       return failure();
     }
-    return SmallVector<int64_t>(selected.begin(), selected.end());
+    return SmallVector<std::int64_t>(selected.begin(), selected.end());
   }
 
   FailureOr<SmallVector<std::string>>
@@ -1738,8 +1743,8 @@ private:
   FailureOr<SurfaceFactoryRecurrenceLayout>
   surfaceFactoryRecurrenceLayout(qlx::fabric::ProtocolOp protocol,
                                  ArrayRef<Operation *> closure) {
-    std::map<int64_t, std::string> classByDistance;
-    std::map<int64_t, int64_t> capacityByDistance;
+    std::map<std::int64_t, std::string> classByDistance;
+    std::map<std::int64_t, std::int64_t> capacityByDistance;
     bool failedAllocation = false;
     for (Operation *callable : closure) {
       callableBody(callable).walk([&](qlx::fabric::AllocOp allocation) {
@@ -1801,8 +1806,8 @@ private:
 
     auto first = classByDistance.begin();
     auto second = std::next(first);
-    int64_t level1Distance = first->first;
-    int64_t level2Distance = second->first;
+    std::int64_t level1Distance = first->first;
+    std::int64_t level2Distance = second->first;
     auto level1 = resourceClasses.find(first->second);
     auto level2 = resourceClasses.find(second->second);
     auto validPatchClass = [](qlx::phys::ResourceClassOp resource) {
@@ -1818,22 +1823,22 @@ private:
           "surface factory recurrence requires two positive-capacity patch "
           "bindings");
 
-    constexpr int64_t level1PatchesPerLane = 5;
-    constexpr int64_t cczPatches = 11;
-    constexpr int64_t autoCCZPatches = 9;
-    int64_t level1Capacity = capacityByDistance[level1Distance];
-    int64_t level2Capacity = capacityByDistance[level2Distance];
+    constexpr std::int64_t level1PatchesPerLane = 5;
+    constexpr std::int64_t cczPatches = 11;
+    constexpr std::int64_t autoCCZPatches = 9;
+    std::int64_t level1Capacity = capacityByDistance[level1Distance];
+    std::int64_t level2Capacity = capacityByDistance[level2Distance];
     if (level1Capacity % level1PatchesPerLane != 0)
       return protocol.emitOpError(
           "surface factory level-1 patch capacity must contain a whole "
           "number of five-patch 15-to-1 lanes");
-    int64_t level1Lanes = level1Capacity / level1PatchesPerLane;
+    std::int64_t level1Lanes = level1Capacity / level1PatchesPerLane;
     if (level1Lanes <= 0 || level2Capacity <= cczPatches ||
         (level2Capacity - cczPatches) % autoCCZPatches != 0)
       return protocol.emitOpError(
           "surface factory level-2 patch capacity must contain one "
           "eleven-patch CCZ stage and whole nine-patch AutoCCZ workspaces");
-    int64_t fixupBoxes = (level2Capacity - cczPatches) / autoCCZPatches;
+    std::int64_t fixupBoxes = (level2Capacity - cczPatches) / autoCCZPatches;
     if (level1Lanes != 6)
       return protocol.emitOpError(
           "the registered Gidney--Fowler layout requires exactly six "
@@ -1843,7 +1848,7 @@ private:
           "the registered AutoCCZ layout requires exactly two nine-patch "
           "fixup workspaces");
 
-    int64_t factoryPatches = level1->second.getCount();
+    std::int64_t factoryPatches = level1->second.getCount();
     auto distanceWidth = checkedSum({level2Distance, 1});
     auto patchPhysicalUnits =
         distanceWidth ? checkedProduct({2, *distanceWidth, *distanceWidth})
@@ -1878,7 +1883,7 @@ private:
 
   FailureOr<double> surfaceFactoryTiming(qlx::fabric::ProtocolOp protocol,
                                          StringRef action,
-                                         int64_t distance) const {
+                                         std::int64_t distance) const {
     if (!operatingTiming || action.empty() || distance <= 0)
       return protocol.emitOpError(
           "surface factory recurrence requires an explicit selected-device "
@@ -1921,20 +1926,20 @@ private:
           "surface factory recurrence cannot derive its authenticated stage "
           "shape");
 
-    int64_t rotations = 0;
+    std::int64_t rotations = 0;
     for (auto ignored : level1.getBody()
                             .front()
                             .getOps<qlx::fabric::ResourceRotateProductOp>()) {
       (void)ignored;
       ++rotations;
     }
-    int64_t checks = 0;
+    std::int64_t checks = 0;
     for (auto ignored :
          level2.getBody().front().getOps<qlx::fabric::MeasureProductOp>()) {
       (void)ignored;
       ++checks;
     }
-    int64_t ringEdges = 0;
+    std::int64_t ringEdges = 0;
     for (auto call : protocol.getBody().front().getOps<qlx::fabric::CallOp>()) {
       Operation *callee = symbols.lookup(call.getCallee());
       auto candidate = dyn_cast_or_null<qlx::fabric::GadgetOp>(callee);
@@ -1963,9 +1968,9 @@ private:
     // block has one layer per measured check plus the output layer.  The exact
     // odd CZ ring needs three disjoint matchings; derive that chromatic depth
     // from the authenticated ring rather than copying a cadence scalar.
-    int64_t quarterLayers = 2 * rotations + 1;
-    int64_t level2Layers = checks + 1;
-    int64_t autoCCZLayers = ringEdges % 2 == 0 ? 2 : 3;
+    std::int64_t quarterLayers = 2 * rotations + 1;
+    std::int64_t level2Layers = checks + 1;
+    std::int64_t autoCCZLayers = ringEdges % 2 == 0 ? 2 : 3;
     return SurfaceFactoryStageShape{quarterLayers, level2Layers, autoCCZLayers};
   }
 
@@ -2058,10 +2063,11 @@ private:
       return SymbolRefAttr::get(context, architecture.getSymName(),
                                 {FlatSymbolRefAttr::get(context, resource)});
     };
-    auto event = [&](StringRef eventName, StringRef kind, int64_t iteration,
-                     double start, double duration, StringRef resourceClass,
-                     int64_t resourceOffset, int64_t resourceCount,
-                     qlx::phys::FactoryModelOp model, int64_t factoryUnits,
+    auto event = [&](StringRef eventName, StringRef kind,
+                     std::int64_t iteration, double start, double duration,
+                     StringRef resourceClass, std::int64_t resourceOffset,
+                     std::int64_t resourceCount,
+                     qlx::phys::FactoryModelOp model, std::int64_t factoryUnits,
                      ArrayRef<std::string> after, StringRef outputKind) {
       SmallVector<Attribute> dependencies;
       for (const std::string &dependency : after)
@@ -2103,8 +2109,8 @@ private:
     // Materialize three consecutive outputs of the published interleaved
     // patch-macro layout. The final cadence is deliberately absent: generic
     // characterization derives it from the typed output-event separation.
-    constexpr int64_t outputsToProve = 3;
-    constexpr int64_t tStatesPerOutput = 8;
+    constexpr std::int64_t outputsToProve = 3;
+    constexpr std::int64_t tStatesPerOutput = 8;
     const double level1Duration =
         static_cast<double>(stageShape->level1QuarterLayers) *
         *level1RotationTiming / 4.0;
@@ -2121,9 +2127,9 @@ private:
     SmallVector<double, 6> laneReady(layout->level1Lanes, rawStartup);
     SmallVector<std::string, 24> tEvents;
     SmallVector<double, 24> tReady;
-    for (int64_t index = 0; index < outputsToProve * tStatesPerOutput;
+    for (std::int64_t index = 0; index < outputsToProve * tStatesPerOutput;
          ++index) {
-      int64_t lane = index % layout->level1Lanes;
+      std::int64_t lane = index % layout->level1Lanes;
       double start = laneReady[lane];
       double finish = start + level1Duration;
       std::string eventName = llvm::formatv("level1_t{0:00}", index).str();
@@ -2140,17 +2146,17 @@ private:
     double coreReady = 0.0;
     SmallVector<double, 2> fixupReady(layout->fixupBoxes, 0.0);
     SmallVector<std::string, 2> fixupTail(layout->fixupBoxes);
-    for (int64_t iteration = 0; iteration < outputsToProve; ++iteration) {
+    for (std::int64_t iteration = 0; iteration < outputsToProve; ++iteration) {
       SmallVector<std::string> dependencies;
       double inputsReady = 0.0;
-      for (int64_t offset = 0; offset < tStatesPerOutput; ++offset) {
-        int64_t index = iteration * tStatesPerOutput + offset;
+      for (std::int64_t offset = 0; offset < tStatesPerOutput; ++offset) {
+        std::int64_t index = iteration * tStatesPerOutput + offset;
         dependencies.push_back(tEvents[index]);
         inputsReady = std::max(inputsReady, tReady[index]);
       }
       double layerStart = std::max(coreReady, inputsReady);
       std::string previous;
-      for (int64_t layer = 0; layer < stageShape->level2Layers; ++layer) {
+      for (std::int64_t layer = 0; layer < stageShape->level2Layers; ++layer) {
         std::string eventName =
             llvm::formatv("ccz_{0}_layer_{1}", iteration, layer).str();
         SmallVector<std::string> after =
@@ -2165,10 +2171,10 @@ private:
       }
       coreReady = layerStart;
 
-      int64_t workspace = iteration % layout->fixupBoxes;
+      std::int64_t workspace = iteration % layout->fixupBoxes;
       layerStart = std::max(coreReady, fixupReady[workspace]);
       previous.clear();
-      for (int64_t layer = 0; layer < stageShape->autoCCZLayers; ++layer) {
+      for (std::int64_t layer = 0; layer < stageShape->autoCCZLayers; ++layer) {
         std::string eventName =
             llvm::formatv("autoccz_{0}_layer_{1}", iteration, layer).str();
         SmallVector<std::string> after;
@@ -2238,7 +2244,7 @@ private:
       return protocol.emitOpError(
           "surface AutoCCZ application requires one patch-granularity "
           "routing binding with capacity six");
-    int64_t lanes = binding->second.capacity / 6;
+    std::int64_t lanes = binding->second.capacity / 6;
     double factoryInterval = (*model).getOutputIntervalNs().convertToDouble();
     if (!std::isfinite(factoryInterval) || factoryInterval <= 0.0)
       return protocol.emitOpError(
@@ -2378,7 +2384,7 @@ private:
           "surface spacelike callable requires one patch-granularity "
           "routing binding with capacity six per concurrent AutoCCZ "
           "application");
-    int64_t lanes = binding->second.capacity / 6;
+    std::int64_t lanes = binding->second.capacity / 6;
     if (shape.peakReactionWidth > static_cast<unsigned>(lanes))
       return protocol.emitOpError(
           "surface spacelike callable exceeds selected routing "
@@ -2527,7 +2533,7 @@ private:
     if (!record.release.empty())
       return failure();
     record.release = releaseEvent.str();
-    for (int64_t index : record.indices)
+    for (std::int64_t index : record.indices)
       lastReleaseByBinding[{record.resourceClass, index}] = record.release;
     for (Value value : values) {
       auto state = dyn_cast<qlx::phys::StateType>(value.getType());
@@ -2626,12 +2632,12 @@ private:
         });
   }
 
-  FailureOr<std::pair<int64_t, int64_t>> partitionRange(Type type,
-                                                        StringRef selected) {
+  FailureOr<std::pair<std::int64_t, std::int64_t>>
+  partitionRange(Type type, StringRef selected) {
     auto partitions = patchPartitions(type);
     if (failed(partitions))
       return failure();
-    std::map<std::string, int64_t> counts;
+    std::map<std::string, std::int64_t> counts;
     for (NamedAttribute partition : *partitions) {
       auto count = dyn_cast<IntegerAttr>(partition.getValue());
       if (!count || count.getInt() < 0)
@@ -2646,22 +2652,22 @@ private:
       if (!llvm::is_contained(order, name))
         order.push_back(name);
     if (selected == "all") {
-      int64_t total = 0;
+      std::int64_t total = 0;
       for (const std::string &name : order)
         total += counts[name];
-      return std::pair<int64_t, int64_t>{0, total};
+      return std::pair<std::int64_t, std::int64_t>{0, total};
     }
-    int64_t offset = 0;
+    std::int64_t offset = 0;
     for (const std::string &name : order) {
       if (name == selected)
-        return std::pair<int64_t, int64_t>{offset, counts[name]};
+        return std::pair<std::int64_t, std::int64_t>{offset, counts[name]};
       offset += counts[name];
     }
     return failure();
   }
 
-  FailureOr<SmallVector<int64_t>> selectedPositions(Operation *operation,
-                                                    Type patchType) {
+  FailureOr<SmallVector<std::int64_t>> selectedPositions(Operation *operation,
+                                                         Type patchType) {
     auto partition =
         operation->getAttrOfType<qlx::fabric::PartitionAttr>("partition");
     if (!partition)
@@ -2671,15 +2677,15 @@ private:
     if (failed(range))
       return failure();
     auto [offset, count] = *range;
-    SmallVector<int64_t> positions;
+    SmallVector<std::int64_t> positions;
     if (auto indices = operation->getAttrOfType<DenseI64ArrayAttr>("indices")) {
-      for (int64_t index : indices.asArrayRef()) {
+      for (std::int64_t index : indices.asArrayRef()) {
         if (index < 0 || index >= count)
           return failure();
         positions.push_back(offset + index);
       }
     } else {
-      for (int64_t index = 0; index < count; ++index)
+      for (std::int64_t index = 0; index < count; ++index)
         positions.push_back(offset + index);
     }
     if (auto patch = dyn_cast<qlx::fabric::PatchType>(patchType)) {
@@ -2687,13 +2693,13 @@ private:
       if (failed(granularity))
         return failure();
       if (*granularity == "patch" && !positions.empty())
-        return SmallVector<int64_t>{0};
+        return SmallVector<std::int64_t>{0};
     }
     return positions;
   }
 
-  FailureOr<SmallVector<int64_t>> wholePartitionPositions(Type patchType,
-                                                          StringRef partition) {
+  FailureOr<SmallVector<std::int64_t>>
+  wholePartitionPositions(Type patchType, StringRef partition) {
     auto range = partitionRange(patchType, partition);
     if (failed(range))
       return failure();
@@ -2702,18 +2708,18 @@ private:
       if (failed(granularity))
         return failure();
       if (*granularity == "patch")
-        return SmallVector<int64_t>{0};
+        return SmallVector<std::int64_t>{0};
     }
     return llvm::to_vector(
         llvm::seq(range->first, range->first + range->second));
   }
 
   FailureOr<PhysicalGroup> prepareSelected(PhysicalGroup values,
-                                           ArrayRef<int64_t> positions,
+                                           ArrayRef<std::int64_t> positions,
                                            StringRef state, Location location,
                                            OpBuilder &builder) {
     SmallVector<Value> selected;
-    for (int64_t position : positions) {
+    for (std::int64_t position : positions) {
       if (position < 0 || size_t(position) >= values.size())
         return failure();
       selected.push_back(values[position]);
@@ -2724,13 +2730,129 @@ private:
     return values;
   }
 
+  FailureOr<PhysicalGroup> prepareEncoded(PhysicalGroup values,
+                                          qlx::fabric::PatchType patchType,
+                                          StringRef state, Location location,
+                                          OpBuilder &builder) {
+    auto positions = wholePartitionPositions(patchType, "data");
+    if (failed(positions) || positions->empty())
+      return failure();
+    auto granularity = patchResourceGranularity(patchType);
+    if (failed(granularity))
+      return failure();
+    if (*granularity == "patch")
+      return prepareSelected(std::move(values), *positions, state, location,
+                             builder);
+
+    auto code = dyn_cast_or_null<qlx::fabric::CodeOp>(
+        symbols.lookup(patchType.getCodeType().getValue()));
+    if (state != "zero" && state != "plus")
+      return failure();
+    // An omitted HX family is the empty stabilizer family. It is still a CSS
+    // presentation and may need a logical-X encoder for |+_L>. Do not turn an
+    // unsupported encoding into independent physical preparation: that state
+    // need not lie in the code space.
+    if (!code)
+      return failure();
+    // A one-carrier patch with no stabilizer or logical presentation is the
+    // existing identity encoding. Independent preparation is exact there.
+    const bool identityEncoding =
+        positions->size() == 1 && !code.getHx() && !code.getHz() &&
+        !code.getLx() && !code.getLz() && (!code.getR() || *code.getR() == 0);
+    if (identityEncoding)
+      return prepareSelected(std::move(values), *positions, state, location,
+                             builder);
+    if ((state == "plus" && !code.getLx()) ||
+        (code.getR() && *code.getR() != 0))
+      return failure();
+
+    // Starting from |0>^n, synthesize the uniform superposition over the
+    // X-stabilizer row space for |0_L>. Adding every canonical logical-X row
+    // fixes logical X to +1 and therefore prepares |+_L>. RREF chooses one
+    // control per independent generator and produces a direct H/CX encoder.
+    const std::int64_t width = positions->size();
+    SmallVector<llvm::BitVector> rows;
+    auto appendSupports = [&](ArrayAttr family) -> LogicalResult {
+      for (Attribute raw : family) {
+        auto support = dyn_cast<DenseI64ArrayAttr>(raw);
+        if (!support)
+          return failure();
+        llvm::BitVector row(width);
+        for (std::int64_t index : support.asArrayRef()) {
+          if (index < 0 || index >= width || row.test(index))
+            return failure();
+          row.set(index);
+        }
+        if (row.any())
+          rows.push_back(std::move(row));
+      }
+      return success();
+    };
+    if ((code.getHx() && failed(appendSupports(*code.getHx()))) ||
+        (state == "plus" && failed(appendSupports(*code.getLx()))))
+      return failure();
+
+    auto prepared = prepareSelected(std::move(values), *positions, "zero",
+                                    location, builder);
+    if (failed(prepared))
+      return failure();
+    SmallVector<std::int64_t> columns;
+    columns.reserve(width);
+    for (std::int64_t column = 0; column < width; ++column)
+      columns.push_back(column);
+    llvm::sort(columns, [&](std::int64_t left, std::int64_t right) {
+      auto weight = [&](std::int64_t column) {
+        return llvm::count_if(
+            rows, [&](const llvm::BitVector &row) { return row.test(column); });
+      };
+      return std::pair{weight(left), left} < std::pair{weight(right), right};
+    });
+
+    SmallVector<std::int64_t> pivots;
+    size_t rank = 0;
+    for (std::int64_t column : columns) {
+      size_t selected = rank;
+      while (selected < rows.size() && !rows[selected].test(column))
+        ++selected;
+      if (selected == rows.size())
+        continue;
+      std::swap(rows[rank], rows[selected]);
+      for (size_t row = 0; row < rows.size(); ++row)
+        if (row != rank && rows[row].test(column))
+          rows[row] ^= rows[rank];
+      pivots.push_back(column);
+      if (++rank == rows.size())
+        break;
+    }
+    for (std::int64_t pivot : pivots) {
+      prepared = applyAction(std::move(*prepared), {(*positions)[pivot]}, "h",
+                             location, builder);
+      if (failed(prepared))
+        return failure();
+    }
+    for (auto [pivot, row] :
+         llvm::zip(ArrayRef<std::int64_t>(pivots).take_front(rank),
+                   ArrayRef<llvm::BitVector>(rows).take_front(rank))) {
+      for (std::int64_t target = 0; target < width; ++target) {
+        if (target == pivot || !row.test(target))
+          continue;
+        prepared = applyAction(std::move(*prepared),
+                               {(*positions)[pivot], (*positions)[target]},
+                               "cx", location, builder);
+        if (failed(prepared))
+          return failure();
+      }
+    }
+    return prepared;
+  }
+
   FailureOr<PhysicalGroup> resetSelected(PhysicalGroup values,
-                                         ArrayRef<int64_t> positions,
+                                         ArrayRef<std::int64_t> positions,
                                          Location location,
                                          OpBuilder &builder) {
     SmallVector<Value> selected;
     SmallVector<Type> types;
-    for (int64_t position : positions) {
+    for (std::int64_t position : positions) {
       if (position < 0 || size_t(position) >= values.size())
         return failure();
       selected.push_back(values[position]);
@@ -2798,7 +2920,7 @@ private:
   }
 
   FailureOr<PhysicalGroup> applyAction(PhysicalGroup values,
-                                       ArrayRef<int64_t> positions,
+                                       ArrayRef<std::int64_t> positions,
                                        StringRef action, Location location,
                                        OpBuilder &builder) {
     actionFailure.clear();
@@ -2808,7 +2930,7 @@ private:
                                        : foundAction->second;
     SmallVector<Value> selected;
     SmallVector<Attribute> resourceRefs;
-    for (int64_t position : positions) {
+    for (std::int64_t position : positions) {
       if (position < 0 || size_t(position) >= values.size())
         return failure();
       auto state = dyn_cast<qlx::phys::StateType>(values[position].getType());
@@ -2835,13 +2957,13 @@ private:
     if (selected.empty())
       return values;
 
-    int64_t batchLanes = 1;
+    std::int64_t batchLanes = 1;
     if (actionOp) {
-      int64_t arity = actionOp.getArityAttr().getInt();
+      std::int64_t arity = actionOp.getArityAttr().getInt();
       if (!actionOp.getBroadcastAttr()) {
-        if (arity <= 0 || int64_t(selected.size()) % arity != 0)
+        if (arity <= 0 || std::int64_t(selected.size()) % arity != 0)
           return failure();
-        batchLanes = int64_t(selected.size()) / arity;
+        batchLanes = std::int64_t(selected.size()) / arity;
       }
     }
     // Compatibility action names deliberately have no standalone phys.action
@@ -2866,28 +2988,28 @@ private:
     return values;
   }
 
-  FailureOr<SmallVector<std::pair<int64_t, int64_t>>>
-  explicitPairs(Operation *operation, int64_t controlCount,
-                int64_t targetCount) const {
+  FailureOr<SmallVector<std::pair<std::int64_t, std::int64_t>>>
+  explicitPairs(Operation *operation, std::int64_t controlCount,
+                std::int64_t targetCount) const {
     auto pairs = operation->getAttrOfType<StringAttr>("pairs");
     if (!pairs)
       return failure();
     if (pairs.getValue() == "index") {
       if (controlCount != targetCount)
         return failure();
-      SmallVector<std::pair<int64_t, int64_t>> result;
-      for (int64_t index = 0; index < controlCount; ++index)
+      SmallVector<std::pair<std::int64_t, std::int64_t>> result;
+      for (std::int64_t index = 0; index < controlCount; ++index)
         result.push_back({index, index});
       return result;
     }
     SmallVector<StringRef> entries;
     pairs.getValue().split(entries, ',', /*MaxSplit=*/-1,
                            /*KeepEmpty=*/false);
-    SmallVector<std::pair<int64_t, int64_t>> result;
+    SmallVector<std::pair<std::int64_t, std::int64_t>> result;
     for (StringRef entry : entries) {
       auto [left, right] = entry.trim().split(':');
-      int64_t control = -1;
-      int64_t target = -1;
+      std::int64_t control = -1;
+      std::int64_t target = -1;
       if (right.empty() || left.trim().getAsInteger(10, control) ||
           right.trim().getAsInteger(10, target) || control < 0 ||
           control >= controlCount || target < 0 || target >= targetCount)
@@ -2929,12 +3051,12 @@ private:
     SmallVector<PhysicalGroup> groups;
     for (Value operand : operation->getOperands())
       groups.push_back(takeProjected(projected, operand, operation));
-    SmallVector<std::pair<int64_t, int64_t>> positions;
+    SmallVector<std::pair<std::int64_t, std::int64_t>> positions;
     llvm::DenseSet<Value> batchedStates;
     bool disjoint = true;
     for (auto [control, target] : *pairs) {
-      int64_t controlPosition = controlRange->first + control;
-      int64_t targetPosition = targetRange->first + target;
+      std::int64_t controlPosition = controlRange->first + control;
+      std::int64_t targetPosition = targetRange->first + target;
       if (targetOperand == 0 && controlPosition == targetPosition)
         return failure();
       if (controlPosition < 0 || size_t(controlPosition) >= groups[0].size() ||
@@ -2953,7 +3075,7 @@ private:
         batched.push_back(groups[targetOperand][targetPosition]);
       }
       auto applied = applyAction(
-          batched, llvm::to_vector(llvm::seq<int64_t>(0, batched.size())),
+          batched, llvm::to_vector(llvm::seq<std::int64_t>(0, batched.size())),
           action, operation->getLoc(), builder);
       if (failed(applied))
         return failure();
@@ -3005,7 +3127,7 @@ private:
   }
 
   FailureOr<std::pair<PhysicalGroup, PhysicalGroup>>
-  measureZ(PhysicalGroup values, ArrayRef<int64_t> positions,
+  measureZ(PhysicalGroup values, ArrayRef<std::int64_t> positions,
            StringRef recordBase, StringRef sourceSymbol,
            StringRef sourceInstance, StringRef lanePrefix, Location location,
            OpBuilder &builder) {
@@ -3223,7 +3345,7 @@ private:
 
     Block &thenSource = conditional.getThenRegion().front();
     SmallVector<Type> resultTypes;
-    SmallVector<int64_t> resultWidths;
+    SmallVector<std::int64_t> resultWidths;
     for (auto [result, yielded] :
          llvm::zip(conditional.getResults(),
                    thenSource.getTerminator()->getOperands())) {
@@ -3234,7 +3356,7 @@ private:
           resultTypes.push_back(value.getType());
       } else if (auto tensor = dyn_cast<RankedTensorType>(result.getType())) {
         resultWidths.push_back(tensor.getNumElements());
-        for (int64_t index = 0; index < tensor.getNumElements(); ++index)
+        for (std::int64_t index = 0; index < tensor.getNumElements(); ++index)
           resultTypes.push_back(
               qlx::phys::RecordType::get(context, symbolAttr(context, "bit")));
       } else {
@@ -3281,7 +3403,7 @@ private:
       return retry.emitOpError(
           "requires carries plus attempt and profile symbols");
     PhysicalGroup states;
-    SmallVector<int64_t> resultWidths;
+    SmallVector<std::int64_t> resultWidths;
     Operation *sourceAttempt = nullptr;
     for (Value carry : retry.getCarries()) {
       Operation *owner = carry.getDefiningOp();
@@ -3375,8 +3497,8 @@ private:
     return success();
   }
 
-  FailureOr<SmallVector<int64_t>> supportRow(Operation *code, StringRef name,
-                                             int64_t row) const {
+  FailureOr<SmallVector<std::int64_t>>
+  supportRow(Operation *code, StringRef name, std::int64_t row) const {
     auto matrix = code->getAttrOfType<ArrayAttr>(name);
     if (!matrix || row < 0 || size_t(row) >= matrix.size())
       return failure();
@@ -3386,7 +3508,7 @@ private:
     auto array = dyn_cast<ArrayAttr>(raw);
     if (!array)
       return failure();
-    SmallVector<int64_t> result;
+    SmallVector<std::int64_t> result;
     for (Attribute value : array) {
       auto integer = dyn_cast<IntegerAttr>(value);
       if (!integer)
@@ -3435,13 +3557,13 @@ private:
         std::cmp_not_equal(patchIndices.size(), word.size()))
       return failure();
 
-    std::map<std::pair<unsigned, int64_t>, char> factors;
-    auto add = [&](unsigned patch, int64_t carrier,
+    std::map<std::pair<unsigned, std::int64_t>, char> factors;
+    auto add = [&](unsigned patch, std::int64_t carrier,
                    char pauli) -> LogicalResult {
       if (patch >= patches.size() || carrier < 0 ||
           size_t(carrier) >= patches[patch].size())
         return failure();
-      auto key = std::pair<unsigned, int64_t>{patch, carrier};
+      auto key = std::pair<unsigned, std::int64_t>{patch, carrier};
       auto found = factors.find(key);
       auto product = multiplyPauli(found == factors.end()
                                        ? std::optional<char>{}
@@ -3458,8 +3580,8 @@ private:
     };
 
     for (size_t term = 0; term < word.size(); ++term) {
-      int64_t patchIndex = patchIndices.asArrayRef()[term];
-      int64_t logical = logicalIndices.asArrayRef()[term];
+      std::int64_t patchIndex = patchIndices.asArrayRef()[term];
+      std::int64_t logical = logicalIndices.asArrayRef()[term];
       char pauli = word[term];
       if (patchIndex < 0 || size_t(patchIndex) >= patches.size() ||
           (pauli != 'X' && pauli != 'Y' && pauli != 'Z'))
@@ -3475,10 +3597,10 @@ private:
                       : qlx::fabric::CodeOp{};
       if (!code)
         return failure();
-      int64_t protectedCount = 1;
+      std::int64_t protectedCount = 1;
       if (auto k = code->getAttrOfType<IntegerAttr>("k"))
         protectedCount = k.getInt();
-      int64_t basis = logical;
+      std::int64_t basis = logical;
       StringRef xName = "lx";
       StringRef zName = "lz";
       if (logical >= protectedCount) {
@@ -3511,7 +3633,7 @@ private:
         auto support = supportRow(code, xName, basis);
         if (failed(support))
           return failure();
-        for (int64_t carrier : *support)
+        for (std::int64_t carrier : *support)
           if (failed(add(patchIndex, carrier, 'X')))
             return failure();
       }
@@ -3519,7 +3641,7 @@ private:
         auto support = supportRow(code, zName, basis);
         if (failed(support))
           return failure();
-        for (int64_t carrier : *support)
+        for (std::int64_t carrier : *support)
           if (failed(add(patchIndex, carrier, 'Z')))
             return failure();
       }
@@ -3607,7 +3729,7 @@ private:
     SmallVector<Value> inputs;
     SmallVector<Type> resultTypes;
     SmallVector<Attribute> paulis;
-    DenseSet<int64_t> selected;
+    DenseSet<std::int64_t> selected;
     for (auto [position, label] : llvm::zip(*positions, labels)) {
       if (position < 0 || size_t(position) >= patch.size() ||
           !selected.insert(position).second)
@@ -3739,7 +3861,7 @@ private:
     return success();
   }
 
-  FailureOr<PhysicalGroup> delay(PhysicalGroup values, int64_t rounds,
+  FailureOr<PhysicalGroup> delay(PhysicalGroup values, std::int64_t rounds,
                                  Location location, OpBuilder &builder) {
     if (rounds < 0)
       return failure();
@@ -3950,8 +4072,8 @@ private:
     if (macro.kind == PatchMacroKind::Action) {
       auto sources = transformOutputSources(
           spec, arguments.size(), block.getTerminator()->getNumOperands());
-      SmallVector<int64_t> positions =
-          llvm::to_vector(llvm::seq<int64_t>(0, values.size()));
+      SmallVector<std::int64_t> positions =
+          llvm::to_vector(llvm::seq<std::int64_t>(0, values.size()));
       auto applied = applyAction(values, positions, macro.physicalOperation,
                                  gadget.getLoc(), builder);
       if (failed(sources) || failed(applied))
@@ -4035,7 +4157,7 @@ private:
       return emitError(UnknownLoc::get(context))
              << "physical call references missing gadget contract @"
              << profileRef.getValue();
-    std::map<std::string, int64_t> rowOrdinals;
+    std::map<std::string, std::int64_t> rowOrdinals;
     for (Operation *declarationPointer : **declarations) {
       Operation &declaration = *declarationPointer;
       StringRef operationName = declaration.getName().getStringRef();
@@ -4075,7 +4197,7 @@ private:
           return declaration.emitOpError(
               "profile row has incompatible folded record multiplicities");
 
-      int64_t sourceRow = rowOrdinals[kind.str()]++;
+      std::int64_t sourceRow = rowOrdinals[kind.str()]++;
       for (size_t occurrence = 0; occurrence < multiplicity; ++occurrence) {
         PendingSidecar pending;
         pending.kind = kind.str();
@@ -4130,14 +4252,56 @@ private:
     return generatedBy ? generatedBy.getValue() : calleeRef.getValue();
   }
 
-  uint64_t physicalTemplateFingerprint(Operation *callable) {
+  static bool hasInvocationVariantRPPProvenance(Operation *callable) {
+    if (!callable || !callable->hasAttr("generated_by"))
+      return false;
+    auto specialization =
+        callable->getAttrOfType<DictionaryAttr>("specialization");
+    return specialization && specialization.getAs<StringAttr>("rpp_strategy");
+  }
+
+  void classifyCallTemplateEligibility() {
+    if (callTemplateEligibilityClassified)
+      return;
+    callTemplateEligibilityClassified = true;
+
+    // A physical template may omit only provenance that cannot affect its
+    // body or boundary. Generated RPP adapters carry a typed rpp_strategy
+    // implementation-selection witness, so the adapter itself always fails
+    // that test. With an action_site, the directly selected implementation is
+    // site-specific as well and must also remain explicit. Without an
+    // action_site (as in synthesized injection and RUS adapters), the selected
+    // implementation is a fixed-body callable that may still be shared; its
+    // adapter retains the invocation-specific specialization boundary. Generic
+    // generated callables without an RPP specialization (including AutoCCZ)
+    // remain eligible for intentional fixed-body sharing. A compiler-name
+    // metadata string is not semantic evidence.
+    for (Operation &candidate : module.getBody()->getOperations()) {
+      if (!hasInvocationVariantRPPProvenance(&candidate))
+        continue;
+      callTemplateIneligible.insert(&candidate);
+      if (!candidate.hasAttr("action_site"))
+        continue;
+      candidate.walk([&](qlx::fabric::CallOp call) {
+        if (Operation *implementation = symbols.lookup(call.getCallee()))
+          callTemplateIneligible.insert(implementation);
+      });
+    }
+  }
+
+  bool isCallTemplateEligible(Operation *callee) {
+    classifyCallTemplateEligibility();
+    return !callTemplateIneligible.contains(callee);
+  }
+
+  std::uint64_t physicalTemplateFingerprint(Operation *callable) {
     auto found = physicalTemplateFingerprints.find(callable);
     if (found != physicalTemplateFingerprints.end())
       return found->second;
 
     DenseSet<Operation *> active;
-    std::function<uint64_t(Operation *)> compute =
-        [&](Operation *current) -> uint64_t {
+    std::function<std::uint64_t(Operation *)> compute =
+        [&](Operation *current) -> std::uint64_t {
       if (!current)
         return 0;
       auto cached = physicalTemplateFingerprints.find(current);
@@ -4147,7 +4311,7 @@ private:
         return 1;
       llvm::scope_exit clearActive([&] { active.erase(current); });
 
-      uint64_t fingerprint = 0;
+      std::uint64_t fingerprint = 0;
       auto combine = [&](auto value) {
         fingerprint =
             static_cast<size_t>(llvm::hash_combine(fingerprint, value));
@@ -4246,14 +4410,14 @@ private:
     // aliasing them would recreate the very O(full patch width) boundary that
     // the compact form removes.
     size_t retained = 0;
-    for (int64_t index = candidate.retainedInputs.find_first(); index >= 0;
+    for (std::int64_t index = candidate.retainedInputs.find_first(); index >= 0;
          index = candidate.retainedInputs.find_next(index))
       if (!align(candidate.retainedInputTypes[retained++],
                  inputs[index].getType()))
         return std::nullopt;
     retained = 0;
-    for (int64_t index = candidate.retainedOutputs.find_first(); index >= 0;
-         index = candidate.retainedOutputs.find_next(index))
+    for (std::int64_t index = candidate.retainedOutputs.find_first();
+         index >= 0; index = candidate.retainedOutputs.find_next(index))
       if (!align(candidate.retainedOutputTypes[retained++], outputTypes[index]))
         return std::nullopt;
 
@@ -4277,9 +4441,10 @@ private:
 
   static bool
   supportsElidedStateBoundary(const CanonicalCallTemplate &candidate) {
-    return !candidate.retainedInputTypes.empty() &&
-           candidate.retainedInputTypes == candidate.retainedOutputTypes &&
-           llvm::all_of(candidate.retainedInputTypes, [](Type type) {
+    auto call = dyn_cast_or_null<qlx::phys::CallOp>(candidate.physicalCall);
+    return call && !call.getInputs().empty() &&
+           call.getInputs().getTypes() == call.getOutputs().getTypes() &&
+           llvm::all_of(call.getInputs().getTypes(), [](Type type) {
              return isa<qlx::phys::StateType>(type);
            });
   }
@@ -4308,7 +4473,8 @@ private:
     key.layouts.reserve(inputGroups.size() + outputGroupLayouts.size());
     for (const PhysicalGroup &group : inputGroups)
       key.layouts.push_back(group.getLayoutIdentity());
-    llvm::append_range(key.layouts, outputGroupLayouts);
+    for (const PhysicalGroup::LayoutIdentity &layout : outputGroupLayouts)
+      key.layouts.push_back(layout);
     return key;
   }
 
@@ -4399,7 +4565,8 @@ private:
     auto source = sourceDataDependencySources.find(sourceCall);
     if (source == sourceDataDependencySources.end())
       return false;
-    auto dependenciesFor = [&](Value root) -> const SmallVector<uint64_t, 1> & {
+    auto dependenciesFor =
+        [&](Value root) -> const SmallVector<std::uint64_t, 1> & {
       SmallVector<Value, 16> pending{root};
       while (!pending.empty()) {
         Value value = pending.back();
@@ -4426,7 +4593,7 @@ private:
         }
         if (queued)
           continue;
-        SmallVector<uint64_t, 1> dependencies;
+        SmallVector<std::uint64_t, 1> dependencies;
         for (Value operand : definition->getOperands()) {
           const auto &operandDependencies =
               sourceDataDependencies.find(operand)->second;
@@ -4440,7 +4607,7 @@ private:
           size_t word = ownSource->second / 64;
           if (dependencies.size() <= word)
             dependencies.resize(word + 1);
-          dependencies[word] |= uint64_t{1} << (ownSource->second % 64);
+          dependencies[word] |= std::uint64_t{1} << (ownSource->second % 64);
         }
         sourceDataDependencies.try_emplace(value, std::move(dependencies));
         pending.pop_back();
@@ -4448,7 +4615,7 @@ private:
       return sourceDataDependencies.find(root)->second;
     };
     size_t word = source->second / 64;
-    uint64_t mask = uint64_t{1} << (source->second % 64);
+    std::uint64_t mask = std::uint64_t{1} << (source->second % 64);
     return llvm::any_of(call.getOperands(), [&](Value operand) {
       const auto &dependencies = dependenciesFor(operand);
       return word < dependencies.size() && (dependencies[word] & mask);
@@ -4460,7 +4627,7 @@ private:
                              bool preferExactReuse) const {
     if (candidate.allocationPlan.empty())
       return true;
-    using ResourceIdentity = std::pair<std::string, int64_t>;
+    using ResourceIdentity = std::pair<std::string, std::int64_t>;
     std::map<ResourceIdentity, ResourceIdentity> aliases;
     for (Attribute rawAlias : stateAliases) {
       auto alias = dyn_cast<DictionaryAttr>(rawAlias);
@@ -4480,35 +4647,35 @@ private:
     }
 
     auto mappedIdentity = [&](StringRef resourceClass,
-                              int64_t index) -> ResourceIdentity {
+                              std::int64_t index) -> ResourceIdentity {
       ResourceIdentity identity{resourceClass.str(), index};
       auto found = aliases.find(identity);
       return found == aliases.end() ? identity : found->second;
     };
-    std::map<std::string, std::set<int64_t>> localActive;
-    std::map<std::string, std::set<int64_t>> localEver;
-    std::map<std::string, std::set<int64_t>> releasedBase;
+    std::map<std::string, std::set<std::int64_t>> localActive;
+    std::map<std::string, std::set<std::int64_t>> localEver;
+    std::map<std::string, std::set<std::int64_t>> releasedBase;
     for (const AllocationPlanStep &step : candidate.allocationPlan) {
       SmallVector<ResourceIdentity> expected;
       expected.reserve(step.indices.size());
-      for (int64_t index : step.indices)
+      for (std::int64_t index : step.indices)
         expected.push_back(mappedIdentity(step.resourceClass, index));
       if (llvm::any_of(expected, [&](const ResourceIdentity &identity) {
             return identity.first != step.resourceClass;
           }))
         return false;
 
-      std::set<int64_t> &active = localActive[step.resourceClass];
-      std::set<int64_t> &ever = localEver[step.resourceClass];
+      std::set<std::int64_t> &active = localActive[step.resourceClass];
+      std::set<std::int64_t> &ever = localEver[step.resourceClass];
       auto baseActive = activeIndices.find(step.resourceClass);
       auto baseEver = everAllocatedIndices.find(step.resourceClass);
-      auto isActive = [&](int64_t index) {
+      auto isActive = [&](std::int64_t index) {
         return active.count(index) ||
                (baseActive != activeIndices.end() &&
                 baseActive->second.count(index) &&
                 !releasedBase[step.resourceClass].count(index));
       };
-      auto wasEverAllocated = [&](int64_t index) {
+      auto wasEverAllocated = [&](std::int64_t index) {
         return ever.count(index) || (baseEver != everAllocatedIndices.end() &&
                                      baseEver->second.count(index));
       };
@@ -4524,7 +4691,7 @@ private:
         continue;
       }
 
-      SmallVector<int64_t> selected;
+      SmallVector<std::int64_t> selected;
       if (preferExactReuse) {
         for (const ResourceIdentity &identity : expected) {
           if (identity.second < 0 || identity.second >= step.capacity ||
@@ -4534,12 +4701,12 @@ private:
           selected.push_back(identity.second);
         }
       } else {
-        for (int64_t index = 0;
+        for (std::int64_t index = 0;
              index < step.capacity && selected.size() < step.indices.size();
              ++index)
           if (!isActive(index) && !wasEverAllocated(index))
             selected.push_back(index);
-        for (int64_t index = 0;
+        for (std::int64_t index = 0;
              index < step.capacity && selected.size() < step.indices.size();
              ++index)
           if (!isActive(index) && !llvm::is_contained(selected, index))
@@ -4561,7 +4728,7 @@ private:
   LogicalResult replayAllocationPlan(const CanonicalCallTemplate &candidate,
                                      ArrayRef<Attribute> stateAliases,
                                      StringRef completionEvent) {
-    using ResourceIdentity = std::pair<std::string, int64_t>;
+    using ResourceIdentity = std::pair<std::string, std::int64_t>;
     std::map<ResourceIdentity, ResourceIdentity> aliases;
     for (Attribute rawAlias : stateAliases) {
       auto alias = dyn_cast<DictionaryAttr>(rawAlias);
@@ -4581,7 +4748,7 @@ private:
           invocationInfo->second.resourceClass, invocationInfo->second.index};
     }
     auto mappedIdentity = [&](StringRef resourceClass,
-                              int64_t index) -> ResourceIdentity {
+                              std::int64_t index) -> ResourceIdentity {
       ResourceIdentity identity{resourceClass.str(), index};
       auto found = aliases.find(identity);
       return found == aliases.end() ? identity : found->second;
@@ -4591,9 +4758,9 @@ private:
     for (const AllocationPlanStep &step : candidate.allocationPlan) {
       SmallVector<ResourceIdentity> identities;
       identities.reserve(step.indices.size());
-      SmallVector<int64_t> replayedIndices;
+      SmallVector<std::int64_t> replayedIndices;
       replayedIndices.reserve(step.indices.size());
-      for (int64_t index : step.indices) {
+      for (std::int64_t index : step.indices) {
         ResourceIdentity identity = mappedIdentity(step.resourceClass, index);
         if (identity.first != step.resourceClass)
           return failure();
@@ -4674,10 +4841,10 @@ private:
   }
 
   void emitAnalysisSidecars(OpBuilder &builder, Location location) {
-    std::map<std::tuple<std::string, std::string, std::string>, int64_t>
+    std::map<std::tuple<std::string, std::string, std::string>, std::int64_t>
         projectionIndices;
     SmallVector<Attribute> projectionEntries;
-    int64_t sidecarIdentity = 0;
+    std::int64_t sidecarIdentity = 0;
     std::string projectionName = graphName + "_record_projection";
     for (const PendingSidecar &pending : pendingSidecars) {
       SmallVector<Attribute> records = llvm::map_to_vector(
@@ -4699,12 +4866,12 @@ private:
             pending.sourceRecords, [&](const std::string &record) {
               return Attribute(stringAttr(context, record));
             });
-        SmallVector<int64_t> indices;
+        SmallVector<std::int64_t> indices;
         for (auto [source, physical] :
              llvm::zip(pending.sourceRecords, pending.physicalRecords)) {
           auto key = std::tuple{pending.sourceInstance, source, physical};
           auto [found, inserted] = projectionIndices.try_emplace(
-              key, static_cast<int64_t>(projectionEntries.size()));
+              key, static_cast<std::int64_t>(projectionEntries.size()));
           if (inserted) {
             SmallVector<NamedAttribute> projectionAttrs{
                 builder.getNamedAttr(
@@ -4718,7 +4885,7 @@ private:
             if (repeat != recordProjectionRepeats.end() &&
                 !repeat->second.empty()) {
               SmallVector<Attribute> events;
-              SmallVector<int64_t> counts;
+              SmallVector<std::int64_t> counts;
               for (const auto &[event, count] : repeat->second) {
                 events.push_back(stringAttr(context, event));
                 counts.push_back(count);
@@ -4854,9 +5021,9 @@ private:
     if (failed(sourceData) || failed(frameWidth))
       return failure();
     auto [dataOffset, dataCount] = *sourceData;
-    ArrayRef<int64_t> support = transform.getSourceSupport();
-    if (dataCount != int64_t(support.size()) || dataOffset < 0 ||
-        dataOffset + dataCount > int64_t(source.size()))
+    ArrayRef<std::int64_t> support = transform.getSourceSupport();
+    if (dataCount != std::int64_t(support.size()) || dataOffset < 0 ||
+        dataOffset + dataCount > std::int64_t(source.size()))
       return failure();
 
     SmallVector<std::optional<Value>> frame(*frameWidth);
@@ -4913,7 +5080,7 @@ private:
                                                       : replacement->second);
     }
 
-    ArrayRef<int64_t> support = transform.getDestinationSupport();
+    ArrayRef<std::int64_t> support = transform.getDestinationSupport();
     auto destinationPartitions =
         orderedPartitionSizes(end.getDestination().getType());
     if (failed(destinationPartitions))
@@ -4923,13 +5090,13 @@ private:
           return partition.first == "data";
         });
     if (data == destinationPartitions->end() ||
-        data->second != int64_t(support.size()))
+        data->second != std::int64_t(support.size()))
       return failure();
 
     PhysicalGroup destinationData;
     std::set<std::string> dataResources;
-    for (int64_t index : support) {
-      if (index < 0 || index >= int64_t(frame.size()))
+    for (std::int64_t index : support) {
+      if (index < 0 || index >= std::int64_t(frame.size()))
         return failure();
       Value value = frame[index];
       auto state = dyn_cast<qlx::phys::StateType>(value.getType());
@@ -4963,9 +5130,9 @@ private:
 
   LogicalResult emitBlock(Block &block, ProjectedValues &projected,
                           OpBuilder &builder) {
-    int64_t operationOrdinal = 0;
+    std::int64_t operationOrdinal = 0;
     for (Operation &operation : block.without_terminator()) {
-      int64_t sourceOrdinal = operationOrdinal++;
+      std::int64_t sourceOrdinal = operationOrdinal++;
       if (operation.getName().getStringRef() == "arith.constant") {
         auto resultType = physicalScalarType(operation.getResult(0).getType());
         if (failed(resultType))
@@ -5088,8 +5255,8 @@ private:
                          : StringAttr{};
             double cycles = 0.0;
             double acceptance = 0.0;
-            int64_t depth = 0;
-            int64_t footprint = 0;
+            std::int64_t depth = 0;
+            std::int64_t footprint = 0;
             if (!factoryMode || factoryMode.getValue() != "scheduled_macro" ||
                 !cyclesText || cyclesText.getValue().getAsDouble(cycles) ||
                 !depthText || depthText.getValue().getAsInteger(10, depth) ||
@@ -5174,7 +5341,7 @@ private:
         SmallVector<PhysicalGroup> anchors;
         SmallVector<PhysicalGroup> payloads;
         SmallVector<Value> payloadStates;
-        SmallVector<int64_t> segments{0};
+        SmallVector<std::int64_t> segments{0};
         FlatSymbolRefAttr encoding;
         anchors.reserve(count);
         payloads.reserve(count);
@@ -5237,7 +5404,7 @@ private:
           return pack.emitOpError("requires at least one payload patch");
         SmallVector<Value> payloadStates;
         SmallVector<PhysicalGroup> payloadGroups;
-        SmallVector<int64_t> segments{0};
+        SmallVector<std::int64_t> segments{0};
         for (Value payload : pack.getPayloads()) {
           PhysicalGroup group = takeProjected(projected, payload, pack);
           if (group.empty())
@@ -5336,28 +5503,28 @@ private:
         continue;
       }
       if (auto prep = dyn_cast<qlx::fabric::PrepZOp>(operation)) {
-        auto positions =
-            wholePartitionPositions(prep.getPatch().getType(), "data");
-        if (failed(positions))
-          return prep.emitOpError("has no data partition");
+        auto patchType =
+            dyn_cast<qlx::fabric::PatchType>(prep.getPatch().getType());
         auto prepared =
-            prepareSelected(takeProjected(projected, prep.getPatch(), prep),
-                            *positions, "zero", prep.getLoc(), builder);
+            patchType ? prepareEncoded(
+                            takeProjected(projected, prep.getPatch(), prep),
+                            patchType, "zero", prep.getLoc(), builder)
+                      : FailureOr<PhysicalGroup>(failure());
         if (failed(prepared))
-          return prep.emitOpError("failed physical data preparation");
+          return prep.emitOpError("failed physical encoded-zero preparation");
         projected[prep.getResult()] = *prepared;
         continue;
       }
       if (auto prep = dyn_cast<qlx::fabric::PrepXOp>(operation)) {
-        auto positions =
-            wholePartitionPositions(prep.getPatch().getType(), "data");
-        if (failed(positions))
-          return prep.emitOpError("has no data partition");
+        auto patchType =
+            dyn_cast<qlx::fabric::PatchType>(prep.getPatch().getType());
         auto prepared =
-            prepareSelected(takeProjected(projected, prep.getPatch(), prep),
-                            *positions, "plus", prep.getLoc(), builder);
+            patchType ? prepareEncoded(
+                            takeProjected(projected, prep.getPatch(), prep),
+                            patchType, "plus", prep.getLoc(), builder)
+                      : FailureOr<PhysicalGroup>(failure());
         if (failed(prepared))
-          return prep.emitOpError("failed physical data preparation");
+          return prep.emitOpError("failed physical encoded-plus preparation");
         projected[prep.getResult()] = *prepared;
         continue;
       }
@@ -5648,7 +5815,7 @@ private:
                               SmallVector<std::string>(records.begin() + start,
                                                        records.end())});
         }
-        int64_t count = repeat.getCount();
+        std::int64_t count = repeat.getCount();
         std::string sourcePrefix = currentCallable + ".";
         // Detached profiles name the finite stable-record coordinates they
         // consume. Select those coordinates algebraically instead of
@@ -5698,7 +5865,7 @@ private:
           std::string relativeSuffix = (Twine(".") + relative).str();
           std::string repeatSegment =
               (Twine("__qlx_repeat") + Twine(sourceOrdinal) + "_").str();
-          std::set<int64_t> selectedIterations;
+          std::set<std::int64_t> selectedIterations;
           for (const std::string &selected : selectedProfileRecords) {
             StringRef candidate(selected);
             if (!candidate.consume_front(sourcePrefix) ||
@@ -5710,13 +5877,13 @@ private:
                                     : candidate.drop_front(segmentStart + 1);
             if (!segment.consume_front(repeatSegment))
               continue;
-            int64_t iteration = -1;
+            std::int64_t iteration = -1;
             if (segment.getAsInteger(10, iteration) || iteration < 0 ||
                 iteration >= count)
               continue;
             selectedIterations.insert(iteration);
           }
-          for (int64_t iteration : selectedIterations) {
+          for (std::int64_t iteration : selectedIterations) {
             std::string qualifiedSource =
                 llvm::formatv("{0}.__qlx_repeat{1}_{2}.{3}", currentCallable,
                               sourceOrdinal, iteration, relative)
@@ -5811,6 +5978,7 @@ private:
       FlatSymbolRefAttr callProfile = call.getProfileAttr();
       auto callProvider = spacetimeProviderFor(callee);
       auto componentPlan = componentSpacetimePlans.find(call.getCallee());
+      bool templateEligible = isCallTemplateEligible(callee);
       bool closesRetryBoundary =
           llvm::any_of(call.getResults(), [](Value result) {
             return llvm::any_of(result.getUsers(), [](Operation *user) {
@@ -5819,7 +5987,7 @@ private:
           });
       StringRef templateBucket =
           callTemplateBucket(callee, call.getCalleeAttr());
-      uint64_t templateFingerprint = physicalTemplateFingerprint(callee);
+      std::uint64_t templateFingerprint = physicalTemplateFingerprint(callee);
 
       // The dominant compiler-lowered path threads complete physical patches
       // through a previously verified template. Once a layout pair has been
@@ -5846,7 +6014,7 @@ private:
         CanonicalCallTemplate *compatible = nullptr;
         ArrayAttr stateAliases;
         auto indexedTemplates = callTemplateIndices.find(templateBucket);
-        if (indexedTemplates != callTemplateIndices.end()) {
+        if (templateEligible && indexedTemplates != callTemplateIndices.end()) {
           auto fingerprintedTemplates =
               indexedTemplates->second.find(templateFingerprint);
           if (fingerprintedTemplates != indexedTemplates->second.end())
@@ -5943,7 +6111,7 @@ private:
           stateInputPositions.push_back(position);
       }
       size_t stateOffset = 0;
-      SmallVector<int64_t> resultWidths;
+      SmallVector<std::int64_t> resultWidths;
       resultWidths.reserve(call.getNumResults());
       size_t resultCount = 0;
       SmallVector<size_t> patchInputWidths;
@@ -5975,17 +6143,17 @@ private:
         resultCount += resultWidths.back();
       }
       resultTypes.reserve(resultCount);
-      SmallVector<int64_t> outputInputPositions;
+      SmallVector<std::int64_t> outputInputPositions;
       outputInputPositions.reserve(resultCount);
       for (size_t resultIndex = 0; resultIndex < call.getNumResults();
            ++resultIndex) {
         Type type = call.getResult(resultIndex).getType();
-        int64_t width = resultWidths[resultIndex];
+        std::int64_t width = resultWidths[resultIndex];
         if (isa<qlx::fabric::PatchType, qlx::fabric::PatchFrameType>(type)) {
           if (stateOffset + width > stateInputPositions.size())
             return call.emitOpError(
                 "creates physical patch states across a call boundary");
-          for (int64_t index = 0; index < width; ++index) {
+          for (std::int64_t index = 0; index < width; ++index) {
             unsigned inputPosition = stateInputPositions[stateOffset + index];
             resultTypes.push_back(flattenedInputs[inputPosition].getType());
             outputInputPositions.push_back(inputPosition);
@@ -5994,7 +6162,8 @@ private:
           continue;
         }
         if (auto tensor = dyn_cast<RankedTensorType>(type)) {
-          for (int64_t index = 0; index < tensor.getNumElements(); ++index) {
+          for (std::int64_t index = 0; index < tensor.getNumElements();
+               ++index) {
             resultTypes.push_back(qlx::phys::RecordType::get(
                 context, symbolAttr(context, "bit")));
             outputInputPositions.push_back(-1);
@@ -6123,7 +6292,7 @@ private:
       CanonicalCallTemplate *compatible = nullptr;
       ArrayAttr stateAliases;
       auto indexedTemplates = callTemplateIndices.find(templateBucket);
-      if (indexedTemplates != callTemplateIndices.end()) {
+      if (templateEligible && indexedTemplates != callTemplateIndices.end()) {
         auto fingerprintedTemplates =
             indexedTemplates->second.find(templateFingerprint);
         if (fingerprintedTemplates != indexedTemplates->second.end())
@@ -6223,11 +6392,11 @@ private:
       SmallVector<Type> physicalResultTypes;
       if (compatible) {
         if (!elideStateBoundary) {
-          for (int64_t position = compatible->retainedInputs.find_first();
+          for (std::int64_t position = compatible->retainedInputs.find_first();
                position >= 0;
                position = compatible->retainedInputs.find_next(position))
             physicalInputs.push_back(flattenedInputs[position]);
-          for (int64_t position = compatible->retainedOutputs.find_first();
+          for (std::int64_t position = compatible->retainedOutputs.find_first();
                position >= 0;
                position = compatible->retainedOutputs.find_next(position))
             physicalResultTypes.push_back(resultTypes[position]);
@@ -6248,7 +6417,7 @@ private:
         ++templateInvocations;
         templateBoundaryValues +=
             physicalInputs.size() + physicalResultTypes.size();
-        maxTemplateBoundaryValues = std::max<int64_t>(
+        maxTemplateBoundaryValues = std::max<std::int64_t>(
             maxTemplateBoundaryValues,
             physicalInputs.size() + physicalResultTypes.size());
         if (elideStateBoundary)
@@ -6270,7 +6439,7 @@ private:
         for (size_t position = 0; position < resultTypes.size(); ++position) {
           if (compatible->retainedOutputs.test(position)) {
             if (elideStateBoundary) {
-              int64_t input = outputInputPositions[position];
+              std::int64_t input = outputInputPositions[position];
               if (input < 0)
                 return call.emitOpError(
                     "cannot elide a non-state shared call result");
@@ -6280,7 +6449,7 @@ private:
             }
             continue;
           }
-          int64_t input = outputInputPositions[position];
+          std::int64_t input = outputInputPositions[position];
           if (input < 0)
             return call.emitOpError(
                 "omits a non-state physical result from a shared boundary");
@@ -6333,7 +6502,7 @@ private:
       llvm::BitVector retainedInputs(inputTypes.size(), true);
       llvm::BitVector retainedOutputs(resultTypes.size(), true);
       for (size_t position = 0; position < resultTypes.size(); ++position) {
-        int64_t input = outputInputPositions[position];
+        std::int64_t input = outputInputPositions[position];
         if (input < 0)
           continue;
         BlockArgument argument = body->getArgument(input);
@@ -6353,11 +6522,11 @@ private:
       if (!closesRetryBoundary && retainedInputs.count() != inputTypes.size()) {
         SmallVector<Value> compactInputs;
         SmallVector<Type> compactResults;
-        for (int64_t position = retainedInputs.find_first(); position >= 0;
+        for (std::int64_t position = retainedInputs.find_first(); position >= 0;
              position = retainedInputs.find_next(position))
           compactInputs.push_back(flattenedInputs[position]);
-        for (int64_t position = retainedOutputs.find_first(); position >= 0;
-             position = retainedOutputs.find_next(position))
+        for (std::int64_t position = retainedOutputs.find_first();
+             position >= 0; position = retainedOutputs.find_next(position))
           compactResults.push_back(resultTypes[position]);
 
         llvm::BitVector erasedOutputs = retainedOutputs;
@@ -6392,11 +6561,11 @@ private:
         canonicalRecords.try_emplace(found->first.second,
                                      found->second.records);
       SmallVector<Type> retainedInputTypes;
-      for (int64_t position = retainedInputs.find_first(); position >= 0;
+      for (std::int64_t position = retainedInputs.find_first(); position >= 0;
            position = retainedInputs.find_next(position))
         retainedInputTypes.push_back(inputTypes[position]);
       SmallVector<Type> retainedOutputTypes;
-      for (int64_t position = retainedOutputs.find_first(); position >= 0;
+      for (std::int64_t position = retainedOutputs.find_first(); position >= 0;
            position = retainedOutputs.find_next(position))
         retainedOutputTypes.push_back(resultTypes[position]);
       SmallVector<PhysicalGroup::LayoutIdentity> inputGroupLayouts;
@@ -6406,23 +6575,39 @@ private:
       SmallVector<AllocationPlanStep> canonicalAllocationPlan(
           allocationPlanTrace.begin() + allocationPlanStart,
           allocationPlanTrace.end());
-      callTemplates.push_back(CanonicalCallTemplate{
-          call.getOperation(), call.getCalleeAttr(), callProfile,
-          closesRetryBoundary, inputTypes.size(), resultTypes.size(),
-          std::move(retainedInputs), std::move(retainedOutputs),
-          std::move(retainedInputTypes), std::move(retainedOutputTypes),
-          std::move(inputGroupLayouts), resultGroupLayouts, callEvent,
-          instance.getValue().str(), std::move(canonicalRecords),
-          std::move(canonicalAllocationPlan)});
-      if (!callTemplates.back().allocationPlan.empty())
-        sourceDataDependencySources.try_emplace(
-            call.getOperation(), sourceDataDependencySources.size());
-      callTemplateIndices[templateBucket][templateFingerprint].push_back(
-          callTemplates.size() - 1);
-      if (std::getenv("QLX_PROFILE_P2_TO_P3") &&
-          callTemplates.size() % 50 == 0) {
-        llvm::StringMap<int64_t> specializations;
-        int64_t maximumSpecializations = 0;
+      // A fully erased physical boundary and an empty physical body have no
+      // state, record, or event identity that can authenticate an elided
+      // invocation. Keep that no-op explicit. Boundary-free fixed bodies that
+      // still contain physical work (for example a reusable scratch
+      // allocation) remain eligible, as do stateful inner RUS bodies.
+      bool hasPhysicalTemplateIdentity = physicalCall->getNumOperands() != 0 ||
+                                         physicalCall->getNumResults() != 0;
+      if (templateEligible && !hasPhysicalTemplateIdentity) {
+        Block &body = cast<qlx::phys::CallOp>(physicalCall).getBody().front();
+        hasPhysicalTemplateIdentity = llvm::any_of(body, [](Operation &nested) {
+          return !isa<qlx::phys::YieldOp>(nested);
+        });
+      }
+      if (templateEligible && hasPhysicalTemplateIdentity) {
+        callTemplates.push_back(CanonicalCallTemplate{
+            call.getOperation(), physicalCall, call.getCalleeAttr(),
+            callProfile, closesRetryBoundary, inputTypes.size(),
+            resultTypes.size(), std::move(retainedInputs),
+            std::move(retainedOutputs), std::move(retainedInputTypes),
+            std::move(retainedOutputTypes), std::move(inputGroupLayouts),
+            resultGroupLayouts, callEvent, instance.getValue().str(),
+            std::move(canonicalRecords), std::move(canonicalAllocationPlan)});
+        if (!callTemplates.back().allocationPlan.empty())
+          sourceDataDependencySources.try_emplace(
+              call.getOperation(), sourceDataDependencySources.size());
+        callTemplateIndices[templateBucket][templateFingerprint].push_back(
+            callTemplates.size() - 1);
+      }
+      if (templateEligible && hasPhysicalTemplateIdentity &&
+          callTemplates.size() % 50 == 0 &&
+          std::getenv("QLX_PROFILE_P2_TO_P3")) {
+        llvm::StringMap<std::int64_t> specializations;
+        std::int64_t maximumSpecializations = 0;
         for (const CanonicalCallTemplate &candidate : callTemplates)
           maximumSpecializations =
               std::max(maximumSpecializations,
@@ -6763,7 +6948,7 @@ private:
         topBuilder.getI64IntegerAttr(countLinearPhysicalDefinitions(graph)));
 
     if (std::getenv("QLX_PROFILE_P2_TO_P3")) {
-      llvm::StringMap<int64_t> operationCounts;
+      llvm::StringMap<std::int64_t> operationCounts;
       graph->walk([&](Operation *operation) {
         ++operationCounts[operation->getName().getStringRef()];
       });
@@ -6911,44 +7096,47 @@ private:
   llvm::StringMap<qlx::phys::ResourceClassOp> resourceClasses;
   DenseSet<std::pair<Attribute, Attribute>> advertisedNativeActions;
   llvm::StringMap<qlx::phys::ActionOp> physicalActions;
-  std::map<std::string, std::set<int64_t>> activeIndices;
-  std::map<std::string, std::set<int64_t>> everAllocatedIndices;
+  std::map<std::string, std::set<std::int64_t>> activeIndices;
+  std::map<std::string, std::set<std::int64_t>> everAllocatedIndices;
   DenseMap<Attribute, ResourceInfo> resources;
-  std::map<std::pair<std::string, int64_t>, FlatSymbolRefAttr>
+  std::map<std::pair<std::string, std::int64_t>, FlatSymbolRefAttr>
       resourceByIdentity;
   llvm::StringMap<std::string> resourceRegions;
   SmallVector<AllocationRecord, 0> allocations;
   SmallVector<AllocationPlanStep, 0> allocationPlanTrace;
   llvm::StringMap<size_t> resourceToAllocation;
-  std::map<std::pair<std::string, int64_t>, std::string> lastReleaseByBinding;
+  std::map<std::pair<std::string, std::int64_t>, std::string>
+      lastReleaseByBinding;
   SmallVector<CanonicalCallTemplate, 0> callTemplates;
-  llvm::StringMap<DenseMap<uint64_t, SmallVector<size_t, 1>>>
+  llvm::StringMap<DenseMap<std::uint64_t, SmallVector<size_t, 1>>>
       callTemplateIndices;
-  DenseMap<Operation *, uint64_t> physicalTemplateFingerprints;
+  DenseMap<Operation *, std::uint64_t> physicalTemplateFingerprints;
   DenseMap<std::pair<Operation *, Operation *>, bool>
       physicalTemplateEquivalenceCache;
+  bool callTemplateEligibilityClassified = false;
+  DenseSet<Operation *> callTemplateIneligible;
   std::map<StateAliasCacheKey, ArrayAttr> stateAliasCache;
   DenseMap<Operation *, unsigned> sourceDataDependencySources;
-  DenseMap<Value, SmallVector<uint64_t, 1>> sourceDataDependencies;
+  DenseMap<Value, SmallVector<std::uint64_t, 1>> sourceDataDependencies;
   DenseMap<Attribute, SmallVector<Operation *>> profileSidecarDeclarationCache;
-  int64_t templateCompatibilityProbes = 0;
-  int64_t templateEquivalenceRejects = 0;
-  int64_t templateEquivalenceCacheHits = 0;
-  int64_t templateEquivalenceCacheMisses = 0;
-  int64_t templateProfileRejects = 0;
-  int64_t templateAliasRejects = 0;
-  int64_t templateAllocationRejects = 0;
-  int64_t templateExactLayoutHits = 0;
-  int64_t templateAliasCacheHits = 0;
-  int64_t templateAliasCacheMisses = 0;
-  int64_t templateFastPathInvocations = 0;
-  int64_t sourceDataDependencyVisits = 0;
-  int64_t sourceDataDependencyCacheHits = 0;
-  int64_t templateInvocations = 0;
-  int64_t elidedTemplateInvocations = 0;
-  int64_t aliasedTemplateInvocations = 0;
-  int64_t templateBoundaryValues = 0;
-  int64_t maxTemplateBoundaryValues = 0;
+  std::int64_t templateCompatibilityProbes = 0;
+  std::int64_t templateEquivalenceRejects = 0;
+  std::int64_t templateEquivalenceCacheHits = 0;
+  std::int64_t templateEquivalenceCacheMisses = 0;
+  std::int64_t templateProfileRejects = 0;
+  std::int64_t templateAliasRejects = 0;
+  std::int64_t templateAllocationRejects = 0;
+  std::int64_t templateExactLayoutHits = 0;
+  std::int64_t templateAliasCacheHits = 0;
+  std::int64_t templateAliasCacheMisses = 0;
+  std::int64_t templateFastPathInvocations = 0;
+  std::int64_t sourceDataDependencyVisits = 0;
+  std::int64_t sourceDataDependencyCacheHits = 0;
+  std::int64_t templateInvocations = 0;
+  std::int64_t elidedTemplateInvocations = 0;
+  std::int64_t aliasedTemplateInvocations = 0;
+  std::int64_t templateBoundaryValues = 0;
+  std::int64_t maxTemplateBoundaryValues = 0;
   RecordProjectionMap recordProjection;
   SmallVector<RecordProjectionScope *, 2> activeRecordProjectionScopes;
   std::map<RecordProjectionLane, RepeatContext> recordProjectionRepeats;
@@ -6968,13 +7156,13 @@ private:
   llvm::StringMap<FlatSymbolRefAttr> spacetimePlans;
   llvm::StringMap<FlatSymbolRefAttr> componentSpacetimePlans;
   llvm::StringMap<FlatSymbolRefAttr> spacelikePlanTemplates;
-  int64_t event = 0;
-  int64_t applyEvents = 0;
-  int64_t callInstance = 0;
-  int64_t resourceIdentity = 0;
-  int64_t allocationIdentity = 0;
-  int64_t measurementRecord = 0;
-  int64_t templateRecordIdentity = 0;
+  std::int64_t event = 0;
+  std::int64_t applyEvents = 0;
+  std::int64_t callInstance = 0;
+  std::int64_t resourceIdentity = 0;
+  std::int64_t allocationIdentity = 0;
+  std::int64_t measurementRecord = 0;
+  std::int64_t templateRecordIdentity = 0;
 };
 
 class FabricToPhysPass

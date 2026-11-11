@@ -149,8 +149,6 @@ void quantum_platform::reset_noise(std::size_t qpu_id) {
     platformQPU->setNoiseModel(nullptr);
 }
 
-std::size_t get_random_seed();
-
 cudaq::CompileTarget createDefaultCompileTarget(const RuntimeTarget *rt) {
   const bool enablePythonCodegenDump =
       cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
@@ -164,8 +162,6 @@ cudaq::CompileTarget createDefaultCompileTarget(const RuntimeTarget *rt) {
     targetConfig = rt->config;
     runtimeConfig = rt->runtimeConfig;
   }
-  if (auto seed = cudaq::get_random_seed(); seed != 0)
-    runtimeConfig.emplace("seed", std::to_string(seed));
   auto ct = cudaq::CompileTarget::createFromConfig(targetConfig, runtimeConfig);
 
   ct.supportDeviceCalls = true;
@@ -358,7 +354,20 @@ void quantum_platform::addQPU(const CompileTarget &target,
   runtimeEndpoints.push_back(endpoint);
 }
 
-void quantum_platform::clearQPUs() {
+void quantum_platform::clearQPUs() { clearQPUs({}); }
+
+void quantum_platform::clearQPUs(
+    const std::vector<RuntimeEndpoint> &retainedEndpoints) {
+  // Stop removed QPUs before releasing their resources. Compile-target
+  // overrides reinstall the same endpoints, so their queues must stay usable.
+  std::unordered_set<const QPU *> retained;
+  for (const auto &endpoint : retainedEndpoints)
+    if (auto *qpu = endpoint.getQPU())
+      retained.insert(qpu);
+  for (auto &endpoint : runtimeEndpoints)
+    if (auto *qpu = endpoint.getQPU())
+      if (!retained.contains(qpu))
+        qpu->shutdownExecutionQueue();
   runtimeEndpoints.clear();
   compileTargets.clear();
 }
@@ -375,8 +384,6 @@ void quantum_platform::onRandomSeedSet(std::size_t seed) {
     if (!qpu)
       continue;
     qpu->onRandomSeedSet(seed);
-    if (compileTargets[qpuId].resetOnRandomSeedSet)
-      compileTargets[qpuId] = qpu->getCompileTarget(runtimeTarget.get());
   }
 }
 

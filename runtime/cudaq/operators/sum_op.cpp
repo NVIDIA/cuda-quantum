@@ -11,6 +11,7 @@
 #include "helpers.h"
 #include "cudaq/operators.h"
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <set>
 #include <tuple>
@@ -494,7 +495,7 @@ complex_matrix sum_op<HandlerTy>::to_matrix(
 
 template <>
 complex_matrix sum_op<matrix_handler>::to_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
   auto evaluated =
@@ -1893,11 +1894,11 @@ template csr_spmatrix sum_op<spin_handler>::to_sparse_matrix(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 template csr_spmatrix sum_op<fermion_handler>::to_sparse_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 template csr_spmatrix sum_op<boson_handler>::to_sparse_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 template mdiag_sparse_matrix sum_op<spin_handler>::to_diagonal_matrix(
@@ -1905,11 +1906,11 @@ template mdiag_sparse_matrix sum_op<spin_handler>::to_diagonal_matrix(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 template mdiag_sparse_matrix sum_op<fermion_handler>::to_diagonal_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 template mdiag_sparse_matrix sum_op<boson_handler>::to_diagonal_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 

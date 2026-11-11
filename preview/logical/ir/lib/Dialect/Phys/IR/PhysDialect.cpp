@@ -43,6 +43,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <deque>
 #include <functional>
@@ -63,7 +64,7 @@ struct SpacetimeVerifierRegistration {
   std::string provider;
   std::string providerVersion;
   std::string derivation;
-  int64_t derivationVersion;
+  std::int64_t derivationVersion;
   qlx::phys::SpacetimePlanVerifier verifier;
   qlx::phys::SpacetimeCallVerifier callVerifier;
 };
@@ -82,7 +83,7 @@ static SmallVector<SpacetimeVerifierRegistration> &spacetimeVerifiers() {
 
 void qlx::phys::registerSpacetimePlanVerifier(
     StringRef provider, StringRef providerVersion, StringRef derivation,
-    int64_t derivationVersion, SpacetimePlanVerifier verifier,
+    std::int64_t derivationVersion, SpacetimePlanVerifier verifier,
     SpacetimeCallVerifier callVerifier) {
   if (provider.empty() || providerVersion.empty() || derivation.empty() ||
       derivationVersion <= 0 || !verifier)
@@ -493,7 +494,7 @@ LogicalResult SpacetimePlanOp::verify() {
     return emitOpError(
         "operating_point must resolve for the selected architecture");
   if (auto geometry = getGeometryAttr())
-    for (int64_t extent : geometry.asArrayRef())
+    for (std::int64_t extent : geometry.asArrayRef())
       if (extent <= 0)
         return emitOpError("geometry extents must be positive");
   bool hasRecurrenceKind = static_cast<bool>(getRecurrenceResourceKindAttr());
@@ -587,7 +588,8 @@ LogicalResult SpacetimePhaseOp::verify() {
              << reference << " must resolve in the selected architecture";
   }
   if (auto claims = getResourceClaimsAttr()) {
-    llvm::StringMap<SmallVector<std::pair<int64_t, int64_t>, 2>> intervals;
+    llvm::StringMap<SmallVector<std::pair<std::int64_t, std::int64_t>, 2>>
+        intervals;
     for (Attribute raw : claims) {
       auto claim = dyn_cast<DictionaryAttr>(raw);
       auto reference = claim ? claim.getAs<SymbolRefAttr>("resource_class")
@@ -606,8 +608,8 @@ LogicalResult SpacetimePhaseOp::verify() {
       auto resource =
           SymbolTable(architecture)
               .lookup<ResourceClassOp>(reference.getLeafReference().getValue());
-      int64_t begin = offset.getInt();
-      int64_t width = count.getInt();
+      std::int64_t begin = offset.getInt();
+      std::int64_t width = count.getInt();
       if (!resource || begin < 0 || width <= 0 ||
           begin > resource.getCountAttr().getInt() ||
           width > resource.getCountAttr().getInt() - begin)
@@ -616,7 +618,7 @@ LogicalResult SpacetimePhaseOp::verify() {
       if (units.getInt() != width)
         return emitOpError(
             "synchronous phase claims must acquire their complete slice");
-      int64_t end = begin + width;
+      std::int64_t end = begin + width;
       auto &selected = intervals[reference.getLeafReference().getValue()];
       for (auto [otherBegin, otherEnd] : selected)
         if (begin < otherEnd && otherBegin < end)
@@ -709,8 +711,8 @@ LogicalResult SpacetimeEventOp::verify() {
     resource =
         SymbolTable(architecture)
             .lookup<ResourceClassOp>(reference.getLeafReference().getValue());
-    int64_t offset = getResourceOffsetAttr().getInt();
-    int64_t count = getResourceCountAttr().getInt();
+    std::int64_t offset = getResourceOffsetAttr().getInt();
+    std::int64_t count = getResourceCountAttr().getInt();
     if (!resource || offset < 0 || count <= 0 ||
         offset > resource.getCountAttr().getInt() ||
         count > resource.getCountAttr().getInt() - offset)
@@ -756,15 +758,16 @@ LogicalResult SpacetimeEventOp::verify() {
   }
 
   if (resource) {
-    int64_t offset = getResourceOffsetAttr().getInt();
-    int64_t end = offset + getResourceCountAttr().getInt();
+    std::int64_t offset = getResourceOffsetAttr().getInt();
+    std::int64_t end = offset + getResourceCountAttr().getInt();
     double finish = start + duration;
     for (const auto &entry : earlier) {
       SpacetimeEventOp prior = entry.getValue();
       if (prior.getResourceClassAttr() != getResourceClassAttr())
         continue;
-      int64_t priorOffset = prior.getResourceOffsetAttr().getInt();
-      int64_t priorEnd = priorOffset + prior.getResourceCountAttr().getInt();
+      std::int64_t priorOffset = prior.getResourceOffsetAttr().getInt();
+      std::int64_t priorEnd =
+          priorOffset + prior.getResourceCountAttr().getInt();
       double priorStart = prior.getStartNs().convertToDouble();
       double priorFinish = priorStart + prior.getDurationNs().convertToDouble();
       if (offset < priorEnd && priorOffset < end && start < priorFinish &&
@@ -841,18 +844,18 @@ LogicalResult ResourceClassOp::verify() {
   return success();
 }
 
-static FailureOr<std::pair<int64_t, int64_t>>
+static FailureOr<std::pair<std::int64_t, std::int64_t>>
 physicalEdgeEndpoints(Operation *owner, Attribute value) {
   auto edge = dyn_cast<DenseI64ArrayAttr>(value);
   if (!edge || edge.size() != 2) {
     owner->emitOpError("topology edges must be two-element i64 arrays");
     return failure();
   }
-  return std::pair<int64_t, int64_t>{edge[0], edge[1]};
+  return std::pair<std::int64_t, std::int64_t>{edge[0], edge[1]};
 }
 
-static bool physicalTopologyHasEdge(TopologyOp topology, int64_t source,
-                                    int64_t target) {
+static bool physicalTopologyHasEdge(TopologyOp topology, std::int64_t source,
+                                    std::int64_t target) {
   auto edges = topology.getEdges();
   if (!edges)
     return false;
@@ -871,7 +874,7 @@ static bool physicalTopologyHasEdge(TopologyOp topology, int64_t source,
 LogicalResult TopologyOp::verify() {
   if (getKind().empty())
     return emitOpError("kind must be nonempty");
-  std::optional<int64_t> numNodes;
+  std::optional<std::int64_t> numNodes;
   if (auto value = getNumNodesAttr()) {
     if (value.getInt() < 0)
       return emitOpError("num_nodes must be nonnegative");
@@ -879,7 +882,7 @@ LogicalResult TopologyOp::verify() {
   }
   if (getStrict() && !numNodes)
     return emitOpError("strict topology requires num_nodes");
-  llvm::DenseSet<std::pair<int64_t, int64_t>> seen;
+  llvm::DenseSet<std::pair<std::int64_t, std::int64_t>> seen;
   if (auto edges = getEdges()) {
     if (!numNodes)
       return emitOpError("canonical topology edges require num_nodes");
@@ -900,7 +903,7 @@ LogicalResult TopologyOp::verify() {
     if (std::cmp_not_equal(coordinates->size(), *numNodes))
       return emitOpError(
           "coordinates must contain one entry per topology node");
-    llvm::DenseSet<std::pair<int64_t, int64_t>> occupied;
+    llvm::DenseSet<std::pair<std::int64_t, std::int64_t>> occupied;
     for (Attribute value : *coordinates) {
       auto coordinate = dyn_cast<DenseI64ArrayAttr>(value);
       if (!coordinate || coordinate.size() != 2)
@@ -913,7 +916,7 @@ LogicalResult TopologyOp::verify() {
 }
 
 LogicalResult PatchTopologyOp::verify() {
-  int64_t capacity = getCapacity();
+  std::int64_t capacity = getCapacity();
   if (capacity <= 0)
     return emitOpError("capacity must be positive");
   if (std::cmp_not_equal(getCarrierGroups().size(), capacity) ||
@@ -935,14 +938,14 @@ LogicalResult PatchTopologyOp::verify() {
   auto carrierNodeCount = carrierTopology.getNumNodesAttr();
   if (!carrierTopology.getStrict() || !carrierNodeCount)
     return emitOpError("carrier_topology must be strict with num_nodes");
-  llvm::DenseMap<int64_t, int64_t> owner;
-  llvm::SmallVector<llvm::SmallVector<int64_t>> groups;
+  llvm::DenseMap<std::int64_t, std::int64_t> owner;
+  llvm::SmallVector<llvm::SmallVector<std::int64_t>> groups;
   for (auto [slot, value] : llvm::enumerate(getCarrierGroups())) {
     auto group = dyn_cast<DenseI64ArrayAttr>(value);
     if (!group || group.empty())
       return emitOpError("carrier_groups entries must be nonempty i64 arrays");
-    llvm::SmallVector<int64_t> members;
-    for (int64_t carrier : group.asArrayRef()) {
+    llvm::SmallVector<std::int64_t> members;
+    for (std::int64_t carrier : group.asArrayRef()) {
       if (carrier < 0 || carrier >= resourceClass.getCountAttr().getInt() ||
           carrier >= carrierNodeCount.getInt())
         return emitOpError("carrier group references an unavailable carrier");
@@ -956,18 +959,18 @@ LogicalResult PatchTopologyOp::verify() {
     if (!isa<StringAttr>(value))
       return emitOpError("categories entries must be strings");
 
-  llvm::DenseSet<std::pair<int64_t, int64_t>> declaredEdges;
+  llvm::DenseSet<std::pair<std::int64_t, std::int64_t>> declaredEdges;
   for (Attribute value : getEdges()) {
     auto edge = dyn_cast<DenseI64ArrayAttr>(value);
     if (!edge || edge.size() != 2)
       return emitOpError("edges must be two-element i64 arrays");
-    int64_t left = edge[0], right = edge[1];
+    std::int64_t left = edge[0], right = edge[1];
     if (left < 0 || right <= left || right >= capacity ||
         !declaredEdges.insert({left, right}).second)
       return emitOpError("edges must be unique ordered pairs of valid slots");
   }
 
-  llvm::DenseMap<int64_t, llvm::SmallVector<int64_t>> neighbors;
+  llvm::DenseMap<std::int64_t, llvm::SmallVector<std::int64_t>> neighbors;
   if (auto edges = carrierTopology.getEdges()) {
     for (Attribute value : *edges) {
       auto endpoints = physicalEdgeEndpoints(carrierTopology, value);
@@ -977,16 +980,16 @@ LogicalResult PatchTopologyOp::verify() {
       neighbors[endpoints->second].push_back(endpoints->first);
     }
   }
-  for (int64_t left = 0; left < capacity; ++left) {
-    for (int64_t right = left + 1; right < capacity; ++right) {
-      llvm::DenseSet<int64_t> targets(groups[right].begin(),
-                                      groups[right].end());
-      llvm::SmallVector<int64_t> queue(groups[left].begin(),
-                                       groups[left].end());
-      llvm::DenseSet<int64_t> visited(queue.begin(), queue.end());
+  for (std::int64_t left = 0; left < capacity; ++left) {
+    for (std::int64_t right = left + 1; right < capacity; ++right) {
+      llvm::DenseSet<std::int64_t> targets(groups[right].begin(),
+                                           groups[right].end());
+      llvm::SmallVector<std::int64_t> queue(groups[left].begin(),
+                                            groups[left].end());
+      llvm::DenseSet<std::int64_t> visited(queue.begin(), queue.end());
       bool connected = false;
       for (size_t cursor = 0; cursor < queue.size() && !connected; ++cursor) {
-        for (int64_t next : neighbors[queue[cursor]]) {
+        for (std::int64_t next : neighbors[queue[cursor]]) {
           if (targets.contains(next)) {
             connected = true;
             break;
@@ -1124,15 +1127,17 @@ LogicalResult QECChannelBindingOp::verify() {
   if (!interconnect)
     return emitOpError(
         "detailed transport facts require a resolved fabric.interconnect");
-  int64_t sourceUnits = getSourceEndpointOccupancyAttr().getInt();
-  int64_t destinationUnits = getDestinationEndpointOccupancyAttr().getInt();
+  std::int64_t sourceUnits = getSourceEndpointOccupancyAttr().getInt();
+  std::int64_t destinationUnits =
+      getDestinationEndpointOccupancyAttr().getInt();
   if (sourceUnits <= 0 || destinationUnits <= 0 ||
       sourceUnits > interconnect.getPortAConcurrency() ||
       destinationUnits > interconnect.getPortBConcurrency() ||
       std::max(sourceUnits, destinationUnits) > interconnect.getConcurrency())
     return emitOpError(
         "endpoint occupancy must fit the selected channel and ports");
-  llvm::StringMap<SmallVector<std::pair<int64_t, int64_t>, 2>> intervals;
+  llvm::StringMap<SmallVector<std::pair<std::int64_t, std::int64_t>, 2>>
+      intervals;
   for (Attribute raw : getTransportClaimsAttr()) {
     auto claim = dyn_cast<DictionaryAttr>(raw);
     auto reference = claim ? claim.getAs<FlatSymbolRefAttr>("resource_class")
@@ -1147,15 +1152,15 @@ LogicalResult QECChannelBindingOp::verify() {
           "count, and units records");
     auto resource =
         architectureSymbols.lookup<ResourceClassOp>(reference.getValue());
-    int64_t begin = offset.getInt();
-    int64_t width = count.getInt();
-    int64_t acquired = units.getInt();
+    std::int64_t begin = offset.getInt();
+    std::int64_t width = count.getInt();
+    std::int64_t acquired = units.getInt();
     if (!resource || begin < 0 || width <= 0 || acquired <= 0 ||
         acquired > width || begin > resource.getCountAttr().getInt() ||
         width > resource.getCountAttr().getInt() - begin)
       return emitOpError(
           "transport claim slice/acquisition must fit its physical class");
-    int64_t end = begin + width;
+    std::int64_t end = begin + width;
     for (auto [otherBegin, otherEnd] : intervals[reference.getValue()])
       if (begin < otherEnd && otherBegin < end)
         return emitOpError("transport_claims must not overlap");
@@ -1258,7 +1263,7 @@ LogicalResult ResourceOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
 }
 
 static LogicalResult verifyApplyActionShape(ApplyOp apply, ActionOp action) {
-  int64_t batchLanes =
+  std::int64_t batchLanes =
       apply.getBatchLanesAttr() ? apply.getBatchLanesAttr().getInt() : 1;
   if (action.getBroadcast() && apply.getBatchLanesAttr())
     return apply.emitOpError("broadcast actions cannot also carry batch_lanes");
@@ -1371,14 +1376,14 @@ LogicalResult MappingOp::verify() {
 }
 
 static FailureOr<
-    std::pair<StringRef, SmallVector<std::pair<StringRef, int64_t>, 4>>>
+    std::pair<StringRef, SmallVector<std::pair<StringRef, std::int64_t>, 4>>>
 parseQualifiedRecord(StringRef value) {
   constexpr StringLiteral marker = ".__qlx_repeat[";
   size_t first = value.find(marker);
   StringRef base = first == StringRef::npos ? value : value.take_front(first);
   StringRef remaining =
       first == StringRef::npos ? StringRef{} : value.drop_front(first);
-  SmallVector<std::pair<StringRef, int64_t>, 4> qualifiers;
+  SmallVector<std::pair<StringRef, std::int64_t>, 4> qualifiers;
   while (!remaining.empty()) {
     if (!remaining.consume_front(marker))
       return failure();
@@ -1390,7 +1395,7 @@ parseQualifiedRecord(StringRef value) {
     size_t iterationEnd = remaining.find(']');
     if (event.empty() || iterationEnd == StringRef::npos)
       return failure();
-    int64_t iteration = -1;
+    std::int64_t iteration = -1;
     if (remaining.take_front(iterationEnd).getAsInteger(10, iteration) ||
         iteration < 0)
       return failure();
@@ -1401,9 +1406,9 @@ parseQualifiedRecord(StringRef value) {
 }
 
 static bool qualifiedRecordMatchesProducer(
-    Operation *producer, ArrayRef<std::pair<StringRef, int64_t>> qualified,
+    Operation *producer, ArrayRef<std::pair<StringRef, std::int64_t>> qualified,
     Operation *exclusiveBoundary = nullptr) {
-  SmallVector<std::pair<StringRef, int64_t>, 4> expected;
+  SmallVector<std::pair<StringRef, std::int64_t>, 4> expected;
   for (Operation *ancestor = producer->getParentOp();
        ancestor && ancestor != exclusiveBoundary;
        ancestor = ancestor->getParentOp()) {
@@ -1502,7 +1507,8 @@ LogicalResult RecordProjectionOp::verify() {
           std::cmp_not_equal(sourceRecords.size(), indices.size()))
         continue;
       for (auto [lane, rawIndex] : llvm::enumerate(indices.asArrayRef())) {
-        if (rawIndex < 0 || static_cast<uint64_t>(rawIndex) >= entries.size())
+        if (rawIndex < 0 ||
+            static_cast<std::uint64_t>(rawIndex) >= entries.size())
           continue;
         auto source = dyn_cast<StringAttr>(sourceRecords[lane]);
         auto physical = dyn_cast<StringAttr>(physicalRecords[lane]);
@@ -1581,8 +1587,8 @@ LogicalResult RecordProjectionOp::verify() {
            << rootInstance << "' collides with the graph source_protocol";
   auto repeatContextMatches =
       [&](const Entry &entry, Operation *producer,
-          ArrayRef<std::pair<StringRef, int64_t>> qualified) -> bool {
-    SmallVector<std::pair<StringRef, int64_t>, 4> expected;
+          ArrayRef<std::pair<StringRef, std::int64_t>> qualified) -> bool {
+    SmallVector<std::pair<StringRef, std::int64_t>, 4> expected;
     for (auto repeat = producer->getParentOfType<qlx::cflow::RepeatOp>();
          repeat; repeat = repeat->getParentOfType<qlx::cflow::RepeatOp>()) {
       auto event = repeat.getEventIdAttr();
@@ -1914,10 +1920,10 @@ private:
   }
 
   llvm::DenseMap<Operation *, OperandIndex> operandIndices;
-  uint64_t queries = 0;
-  uint64_t lineageValues = 0;
-  uint64_t operandCandidates = 0;
-  uint64_t operandIndexHits = 0;
+  std::uint64_t queries = 0;
+  std::uint64_t lineageValues = 0;
+  std::uint64_t operandCandidates = 0;
+  std::uint64_t operandIndexHits = 0;
 };
 
 LogicalResult AllocationMappingOp::verify() {
@@ -2010,7 +2016,7 @@ LogicalResult AllocationMappingOp::verify() {
     StringAttr releaseEvent;
     ArrayAttr after;
   };
-  llvm::DenseMap<std::pair<Operation *, int64_t>,
+  llvm::DenseMap<std::pair<Operation *, std::int64_t>,
                  SmallVector<AllocationLifetime, 2>>
       physicalLifetimes;
   llvm::DenseMap<std::pair<Operation *, Operation *>, bool> causalOrder;
@@ -2028,17 +2034,17 @@ LogicalResult AllocationMappingOp::verify() {
     causalOrder.try_emplace(key, result);
     return result;
   };
-  llvm::StringMap<SmallVector<std::pair<Operation *, int64_t>, 4>>
+  llvm::StringMap<SmallVector<std::pair<Operation *, std::int64_t>, 4>>
       releasedPhysicalIdentities;
   struct ExplicitResourceOrder {
     StringAttr allocation;
     StringAttr release;
     Operation *acquireOp;
-    SmallVector<std::pair<Operation *, int64_t>, 4> physicalIdentities;
+    SmallVector<std::pair<Operation *, std::int64_t>, 4> physicalIdentities;
   };
   SmallVector<ExplicitResourceOrder, 8> explicitResourceOrders;
   PhysicalStateLineage physicalStateLineage;
-  int64_t verifiedAllocationEntries = 0;
+  std::int64_t verifiedAllocationEntries = 0;
   for (Attribute value : getEntries()) {
     ++verifiedAllocationEntries;
     auto record = dyn_cast<DictionaryAttr>(value);
@@ -2116,7 +2122,7 @@ LogicalResult AllocationMappingOp::verify() {
                << physicalBinding.getValue();
     }
 
-    SmallVector<std::pair<Operation *, int64_t>, 16> physicalIdentities;
+    SmallVector<std::pair<Operation *, std::int64_t>, 16> physicalIdentities;
     for (auto [ordinal, resourceValue] : llvm::enumerate(resources)) {
       auto reference = dyn_cast<FlatSymbolRefAttr>(resourceValue);
       auto found =
@@ -2468,7 +2474,7 @@ LogicalResult RoutingOp::verify() {
     if (!events.insert(event.getValue()).second)
       return emitOpError("contains duplicate routing event '")
              << event.getValue() << "'";
-    ArrayRef<int64_t> nodes = path.asArrayRef();
+    ArrayRef<std::int64_t> nodes = path.asArrayRef();
     for (size_t i = 0; i + 2 < nodes.size(); ++i)
       if (!physicalTopologyHasEdge(topology, nodes[i], nodes[i + 1]))
         return emitOpError("routing event '")
@@ -2585,7 +2591,7 @@ LogicalResult RoutingOp::verify() {
           return emitOpError("routing native event '")
                  << eventID.getValue()
                  << "' must act on exactly two physical resources";
-        int64_t actualNodes[2];
+        std::int64_t actualNodes[2];
         for (auto [inputOrdinal, input] : llvm::enumerate(apply.getInputs())) {
           auto state = dyn_cast<StateType>(input.getType());
           auto resource = state ? dyn_cast_or_null<ResourceOp>(
@@ -3072,8 +3078,8 @@ static LogicalResult verifyLinearPhysicalValue(GraphOp graph, Value value,
   return success();
 }
 
-static LogicalResult verifyPhysicalStateLinearity(GraphOp graph,
-                                                  int64_t &linearValueCount) {
+static LogicalResult
+verifyPhysicalStateLinearity(GraphOp graph, std::int64_t &linearValueCount) {
   struct StateCheck {
     Value value;
     bool verifyResource;
@@ -3728,7 +3734,7 @@ LogicalResult GraphOp::verifyRegions() {
                    << physVerifySecondsSince(*profiledGraphLocalDone) << "s";
     llvm::errs() << "\n";
   }
-  int64_t linearValueCount = 0;
+  std::int64_t linearValueCount = 0;
   if (failed(verifyPhysicalStateLinearity(*this, linearValueCount)))
     return failure();
   if (auto authored = (*this)->getAttrOfType<IntegerAttr>("linear_value_count"))
@@ -3824,10 +3830,10 @@ LogicalResult GraphOp::verifyRegions() {
       ArrayRef<Operation *> operations;
       size_t next = 0;
     };
-    llvm::SmallDenseMap<Operation *, uint8_t, 16> closureState;
+    llvm::SmallDenseMap<Operation *, std::uint8_t, 16> closureState;
     llvm::SmallVector<ClosureFrame, 16> closureFrames;
     auto pushClosureCallable = [&](Operation *callable) -> LogicalResult {
-      uint8_t &state = closureState[callable];
+      std::uint8_t &state = closureState[callable];
       if (state == 1)
         return emitOpError(
             "recursive Fabric call graph cannot define physical call "
@@ -3890,7 +3896,7 @@ LogicalResult GraphOp::verifyRegions() {
         size_t next = 0;
       };
 
-      int64_t invocationOrdinal = 0;
+      std::int64_t invocationOrdinal = 0;
       llvm::SmallPtrSet<Operation *, 16> activeCallables;
       llvm::SmallVector<CallableFrame, 16> frames;
       auto pushCallable = [&](Operation *callable,
@@ -4020,7 +4026,7 @@ LogicalResult GraphOp::verifyRegions() {
     auto action = dyn_cast<ActionOp>(target);
     if (!action)
       return apply.emitOpError("action reference must resolve to phys.action");
-    int64_t batchLanes =
+    std::int64_t batchLanes =
         apply.getBatchLanesAttr() ? apply.getBatchLanesAttr().getInt() : 1;
     if (failed(verifyApplyActionShape(apply, action)))
       return failure();
@@ -4064,10 +4070,10 @@ LogicalResult GraphOp::verifyRegions() {
     if (!topology)
       return apply.emitOpError(
           "topology reference must resolve in graph architecture");
-    for (int64_t lane = 0; lane < batchLanes; ++lane) {
-      int64_t indices[2];
+    for (std::int64_t lane = 0; lane < batchLanes; ++lane) {
+      std::int64_t indices[2];
       bool completeTopology = true;
-      for (int64_t ordinal = 0; ordinal < 2; ++ordinal) {
+      for (std::int64_t ordinal = 0; ordinal < 2; ++ordinal) {
         Value input = apply.getInputs()[2 * lane + ordinal];
         auto state = cast<StateType>(input.getType());
         ResourceOp resource = resolveResource(state.getResource());
@@ -4326,7 +4332,7 @@ static std::string selectedProtocolDigest(qlx::fabric::ProtocolOp source) {
   auto bytes = digest.final();
   std::string result = "sha256:";
   static constexpr char hex[] = "0123456789abcdef";
-  for (uint8_t byte : bytes) {
+  for (std::uint8_t byte : bytes) {
     result.push_back(hex[byte >> 4]);
     result.push_back(hex[byte & 0xf]);
   }
@@ -4339,7 +4345,7 @@ static std::string sha256Hex(StringRef text) {
   auto bytes = digest.final();
   std::string result;
   static constexpr char hex[] = "0123456789abcdef";
-  for (uint8_t byte : bytes) {
+  for (std::uint8_t byte : bytes) {
     result.push_back(hex[byte >> 4]);
     result.push_back(hex[byte & 0xf]);
   }
@@ -4407,8 +4413,8 @@ LogicalResult TransportModelOp::verify() {
                        "component_source_sha256") != getProtocolSha256Attr())
     return emitOpError(
         "protocol_sha256 must equal the exact retained selected protocol");
-  int64_t sourceOccupancy = getSourceEndpointOccupancy();
-  int64_t destinationOccupancy = getDestinationEndpointOccupancy();
+  std::int64_t sourceOccupancy = getSourceEndpointOccupancy();
+  std::int64_t destinationOccupancy = getDestinationEndpointOccupancy();
   if (sourceOccupancy <= 0 || destinationOccupancy <= 0 ||
       sourceOccupancy > interconnect.getPortAConcurrency() ||
       destinationOccupancy > interconnect.getPortBConcurrency() ||
@@ -4423,8 +4429,10 @@ LogicalResult TransportModelOp::verify() {
       bound.insert(reference.getValue());
   if (getResourceClaims().empty())
     return emitOpError("resource_claims must be nonempty");
-  llvm::StringMap<SmallVector<std::pair<int64_t, int64_t>, 2>> intervals;
-  SmallVector<std::tuple<std::string, int64_t, int64_t, int64_t>, 4>
+  llvm::StringMap<SmallVector<std::pair<std::int64_t, std::int64_t>, 2>>
+      intervals;
+  SmallVector<std::tuple<std::string, std::int64_t, std::int64_t, std::int64_t>,
+              4>
       modelClaims;
   for (Attribute raw : getResourceClaims()) {
     auto claim = dyn_cast<DictionaryAttr>(raw);
@@ -4445,15 +4453,15 @@ LogicalResult TransportModelOp::verify() {
     auto resource =
         SymbolTable(architecture)
             .lookup<ResourceClassOp>(reference.getLeafReference().getValue());
-    int64_t begin = offset.getInt();
-    int64_t width = count.getInt();
-    int64_t acquired = units.getInt();
+    std::int64_t begin = offset.getInt();
+    std::int64_t width = count.getInt();
+    std::int64_t acquired = units.getInt();
     if (!resource || begin < 0 || width <= 0 || acquired <= 0 ||
         acquired > width || begin > resource.getCountAttr().getInt() ||
         width > resource.getCountAttr().getInt() - begin)
       return emitOpError(
           "transport resource slice/acquisition must fit its physical class");
-    int64_t end = begin + width;
+    std::int64_t end = begin + width;
     auto &selected = intervals[reference.getLeafReference().getValue()];
     for (auto [otherBegin, otherEnd] : selected)
       if (begin < otherEnd && otherBegin < end)
@@ -4469,7 +4477,8 @@ LogicalResult TransportModelOp::verify() {
       return emitOpError(
           "transport model endpoint occupancy differs from its detailed P3 "
           "binding");
-    SmallVector<std::tuple<std::string, int64_t, int64_t, int64_t>, 4>
+    SmallVector<
+        std::tuple<std::string, std::int64_t, std::int64_t, std::int64_t>, 4>
         detailedClaims;
     for (Attribute raw : detailed) {
       auto claim = cast<DictionaryAttr>(raw);
@@ -4774,7 +4783,7 @@ static std::optional<unsigned> builtinActionArity(qlx::BuiltinAction action) {
 
 static LogicalResult verifyPhysicalPayloadRoles(Operation *owner,
                                                 ArrayAttr roles,
-                                                int64_t payloadCount) {
+                                                std::int64_t payloadCount) {
   if (!roles)
     return success();
   if (std::cmp_not_equal(roles.size(), payloadCount))
@@ -4820,13 +4829,14 @@ LogicalResult UnpackResourceOp::verify() {
     if (!code)
       return emitOpError(
           "encoding code must resolve unambiguously to fabric.code");
-    int64_t carrierWidth = 0;
+    std::int64_t carrierWidth = 0;
     for (NamedAttribute partition : code.getPartitions()) {
       auto size = dyn_cast<IntegerAttr>(partition.getValue());
       if (!size || size.getInt() < 0)
         return emitOpError(
             "encoding code partitions must define nonnegative carrier widths");
-      if (size.getInt() > std::numeric_limits<int64_t>::max() - carrierWidth)
+      if (size.getInt() >
+          std::numeric_limits<std::int64_t>::max() - carrierWidth)
         return emitOpError(
             "encoding code carrier count exceeds the supported signed i64 "
             "range");
@@ -4835,8 +4845,8 @@ LogicalResult UnpackResourceOp::verify() {
     if (carrierWidth <= 0)
       return emitOpError(
           "encoding code must declare a positive canonical carrier count");
-    auto segmentWidth = [&](int64_t begin, int64_t end) {
-      int64_t expected = carrierWidth;
+    auto segmentWidth = [&](std::int64_t begin, std::int64_t end) {
+      std::int64_t expected = carrierWidth;
       if (end - begin != 1)
         return expected;
       auto state = dyn_cast<StateType>(getInputs()[begin].getType());
@@ -4883,8 +4893,8 @@ LogicalResult UnpackResourceOp::verify() {
   if (blocks && (blocks.size() == 0 || blocks.size() != ports.size()))
     return emitOpError(
         "payload logical block and port maps must have equal nonzero length");
-  int64_t payloadCount =
-      segments ? static_cast<int64_t>(segments.size()) - 1 : 1;
+  std::int64_t payloadCount =
+      segments ? static_cast<std::int64_t>(segments.size()) - 1 : 1;
   if (failed(verifyPhysicalPayloadRoles(*this, getPayloadRolesAttr(),
                                         payloadCount)))
     return failure();
@@ -4931,12 +4941,12 @@ LogicalResult UnpackResourceOp::verify() {
     if (blocks.size() != *arity)
       return emitOpError(
           "payload logical maps must exactly cover the action arity");
-    llvm::SmallDenseSet<std::pair<int64_t, int64_t>, 8> mappings;
-    llvm::SmallDenseSet<int64_t, 8> coveredBlocks;
-    llvm::StringMap<int64_t> indexByBlockID;
+    llvm::SmallDenseSet<std::pair<std::int64_t, std::int64_t>, 8> mappings;
+    llvm::SmallDenseSet<std::int64_t, 8> coveredBlocks;
+    llvm::StringMap<std::int64_t> indexByBlockID;
     SmallVector<StringRef, 8> blockIDByIndex(payloadCount);
     auto rawBlockIDs = blockIDs ? blockIDs.getValue() : ArrayRef<Attribute>{};
-    int64_t logicalCapacity = encoding.getLogicalPorts().size();
+    std::int64_t logicalCapacity = encoding.getLogicalPorts().size();
     for (auto [ordinal, pair] :
          llvm::enumerate(llvm::zip(blocks.asArrayRef(), ports.asArrayRef()))) {
       auto [block, port] = pair;
@@ -4984,7 +4994,7 @@ LogicalResult PackResourceOp::verify() {
     return emitOpError("requires at least one encoded payload carrier");
   if (getResource().getType().getKind() != getResourceKindAttr())
     return emitOpError("resource_kind must match the result resource type");
-  int64_t payloadCount = 1;
+  std::int64_t payloadCount = 1;
   if (auto segments = getPayloadCarrierSegmentsAttr()) {
     if (segments.size() < 2 || segments.asArrayRef().front() != 0 ||
         std::cmp_not_equal(segments.asArrayRef().back(), getInputs().size()))
@@ -4995,7 +5005,7 @@ LogicalResult PackResourceOp::verify() {
       if (std::get<0>(pair) >= std::get<1>(pair))
         return emitOpError(
             "payload carrier segments must be strictly increasing");
-    payloadCount = static_cast<int64_t>(segments.size()) - 1;
+    payloadCount = static_cast<std::int64_t>(segments.size()) - 1;
   }
   if (failed(verifyPhysicalPayloadRoles(*this, getPayloadRolesAttr(),
                                         payloadCount)))
@@ -5120,7 +5130,7 @@ LogicalResult FactoryModelOp::verify() {
   if (!resourceClass)
     return emitOpError(
         "physical_resource_class must resolve in the selected machine");
-  int64_t memberWeight = 1;
+  std::int64_t memberWeight = 1;
   if (auto granularity =
           resourceClass->getAttrOfType<StringAttr>("granularity");
       granularity && granularity.getValue() == "patch") {
@@ -5132,10 +5142,10 @@ LogicalResult FactoryModelOp::verify() {
     memberWeight = footprint.getInt();
   }
   if (resourceClass.getCount() != 0 &&
-      memberWeight > std::numeric_limits<int64_t>::max() /
+      memberWeight > std::numeric_limits<std::int64_t>::max() /
                          resourceClass.getCountAttr().getInt())
     return emitOpError("factory physical footprint overflows i64");
-  int64_t expectedPhysicalUnits =
+  std::int64_t expectedPhysicalUnits =
       resourceClass.getCountAttr().getInt() * memberWeight;
   if (expectedPhysicalUnits != getPhysicalUnitsAttr().getInt())
     return emitOpError(
@@ -5309,7 +5319,7 @@ LogicalResult FactoryModelOp::verify() {
         sourceUnits.getInt() <= 0 || sourceUnitKind.getValue().empty() ||
         sourceDistances.empty() ||
         llvm::any_of(sourceDistances.asArrayRef(),
-                     [](int64_t distance) { return distance <= 0; }) ||
+                     [](std::int64_t distance) { return distance <= 0; }) ||
         !llvm::is_sorted(sourceDistances.asArrayRef()) ||
         std::adjacent_find(sourceDistances.asArrayRef().begin(),
                            sourceDistances.asArrayRef().end()) !=
@@ -5349,7 +5359,7 @@ LogicalResult FactoryModelOp::verify() {
           "compiled factory source producer must match the retained P1 "
           "factory semantics commitment");
     if (sourceUnits.getInt() >
-        std::numeric_limits<int64_t>::max() / getLaneCountAttr().getInt())
+        std::numeric_limits<std::int64_t>::max() / getLaneCountAttr().getInt())
       return emitOpError("compiled factory source footprint overflows i64");
     if (sourceUnits.getInt() * getLaneCountAttr().getInt() >
         expectedPhysicalUnits)
@@ -5601,7 +5611,7 @@ LogicalResult ResourceRequestOp::verify() {
             "evidence");
       double attemptNs = attemptDuration.getValueAsDouble();
       double probability = acceptance.getValueAsDouble();
-      int64_t pipelineDepth = depth.getInt();
+      std::int64_t pipelineDepth = depth.getInt();
       if (!std::isfinite(attemptNs) || attemptNs <= 0.0 ||
           !std::isfinite(probability) || probability <= 0.0 ||
           probability > 1.0 || pipelineDepth <= 0)
@@ -5630,8 +5640,8 @@ LogicalResult ResourceRequestOp::verify() {
               : StringAttr{};
       double providerCycles = 0.0;
       double providerAcceptance = 0.0;
-      int64_t providerDepth = 0;
-      int64_t providerFootprint = 0;
+      std::int64_t providerDepth = 0;
+      std::int64_t providerFootprint = 0;
       if (!providerMode || providerMode.getValue() != "scheduled_macro" ||
           !cyclesText || cyclesText.getValue().getAsDouble(providerCycles) ||
           !acceptanceText ||
@@ -5651,7 +5661,7 @@ LogicalResult ResourceRequestOp::verify() {
             "factory_mode must equal the retained provider metadata");
 
       SymbolTable architectureSymbols(architecture);
-      std::optional<int64_t> bindingFootprint;
+      std::optional<std::int64_t> bindingFootprint;
       for (Attribute rawResource : binding.getResources()) {
         auto resourceRef = dyn_cast<FlatSymbolRefAttr>(rawResource);
         auto resourceClass =
@@ -6333,8 +6343,10 @@ static LogicalResult verifyCallTemplateAgainstCanonical(
         !llvm::all_of(canonical.getInputs().getTypes(),
                       [](Type type) { return isa<StateType>(type); }))
       return invocation.emitOpError(
-          "state_boundary_elided requires an all-state, type-identical "
-          "canonical call boundary");
+                 "state_boundary_elided requires an all-state, type-identical "
+                 "canonical call boundary; resolved canonical @")
+             << canonical.getCallee() << " has " << canonical.getNumOperands()
+             << " inputs and " << canonical.getNumResults() << " outputs";
     llvm::DenseSet<Attribute> canonicalResources;
     for (Type type : canonical.getInputs().getTypes())
       canonicalResources.insert(cast<StateType>(type).getResource());
@@ -6879,11 +6891,11 @@ static FailureOr<ScheduleClaim> parseScheduleEntry(ScheduleOp schedule,
   };
   auto parseInteger =
       [&](StringRef name,
-          std::optional<int64_t> &destination) -> LogicalResult {
+          std::optional<std::int64_t> &destination) -> LogicalResult {
     StringRef value = detail(name);
     if (value.empty())
       return success();
-    int64_t parsed = 0;
+    std::int64_t parsed = 0;
     if (value.getAsInteger(10, parsed))
       return schedule.emitOpError()
              << "schedule " << name << " must be an integer";
@@ -6950,21 +6962,21 @@ static FailureOr<ScheduleClaim> parseScheduleEntry(ScheduleOp schedule,
 }
 
 struct ScheduleVerifierProfileStats {
-  uint64_t expectedResourceCalls = 0;
-  uint64_t expectedResourceTypes = 0;
-  uint64_t expectedResourceDedupComparisons = 0;
-  uint64_t expectedResourceHashProbes = 0;
-  uint64_t expectedResourceMaxWidth = 0;
-  uint64_t dataDependencyDerivations = 0;
-  uint64_t aliasMapBuilds = 0;
-  uint64_t aliasMapCacheHits = 0;
-  uint64_t aliasMapEntries = 0;
-  uint64_t expectedResourceCacheHits = 0;
-  uint64_t expectedResourceCacheBuilds = 0;
-  uint64_t collectFirstUseVisits = 0;
-  uint64_t ancestryCalls = 0;
-  uint64_t journalKeyBytes = 0;
-  uint64_t overlapCandidates = 0;
+  std::uint64_t expectedResourceCalls = 0;
+  std::uint64_t expectedResourceTypes = 0;
+  std::uint64_t expectedResourceDedupComparisons = 0;
+  std::uint64_t expectedResourceHashProbes = 0;
+  std::uint64_t expectedResourceMaxWidth = 0;
+  std::uint64_t dataDependencyDerivations = 0;
+  std::uint64_t aliasMapBuilds = 0;
+  std::uint64_t aliasMapCacheHits = 0;
+  std::uint64_t aliasMapEntries = 0;
+  std::uint64_t expectedResourceCacheHits = 0;
+  std::uint64_t expectedResourceCacheBuilds = 0;
+  std::uint64_t collectFirstUseVisits = 0;
+  std::uint64_t ancestryCalls = 0;
+  std::uint64_t journalKeyBytes = 0;
+  std::uint64_t overlapCandidates = 0;
 };
 
 struct ScheduleGraphFacts {
@@ -7150,9 +7162,9 @@ expectedSpacetimePhaseResources(ScheduleOp schedule, SpacetimePhaseOp phase,
     for (Attribute raw : claims) {
       auto claim = cast<DictionaryAttr>(raw);
       auto reference = claim.getAs<SymbolRefAttr>("resource_class");
-      int64_t offset = claim.getAs<IntegerAttr>("offset").getInt();
-      int64_t count = claim.getAs<IntegerAttr>("count").getInt();
-      for (int64_t index = offset; index < offset + count; ++index)
+      std::int64_t offset = claim.getAs<IntegerAttr>("offset").getInt();
+      std::int64_t count = claim.getAs<IntegerAttr>("count").getInt();
+      for (std::int64_t index = offset; index < offset + count; ++index)
         result.push_back((reference.getLeafReference().getValue() + "[" +
                           std::to_string(index) + "]")
                              .str());
@@ -7342,7 +7354,7 @@ deriveCanonicalScheduleResources(
 static FailureOr<ArrayRef<StringRef>> expectedScheduleResources(
     ScheduleOp schedule, Operation *operation, StringRef eventId,
     llvm::StringMap<std::string> &resourceKeys,
-    llvm::StringMap<uint64_t> &transportOccurrences,
+    llvm::StringMap<std::uint64_t> &transportOccurrences,
     ArrayRef<std::string> concreteResourceKeys,
     ArrayRef<std::string> factoryResourceKeys,
     llvm::UniqueStringSaver &resourceStrings,
@@ -7474,7 +7486,7 @@ static FailureOr<ArrayRef<StringRef>> expectedScheduleResources(
               : (binding ? binding.getTransportClaimsAttr() : ArrayAttr{});
     if (claims) {
       StringRef identity = model ? model.getSymName() : binding.getSymName();
-      uint64_t occurrence = transportOccurrences[identity]++;
+      std::uint64_t occurrence = transportOccurrences[identity]++;
       for (Attribute raw : claims) {
         auto claim = cast<DictionaryAttr>(raw);
         StringRef resource =
@@ -7482,13 +7494,13 @@ static FailureOr<ArrayRef<StringRef>> expectedScheduleResources(
                         .getLeafReference()
                         .getValue()
                   : claim.getAs<FlatSymbolRefAttr>("resource_class").getValue();
-        int64_t offset = claim.getAs<IntegerAttr>("offset").getInt();
-        int64_t count = claim.getAs<IntegerAttr>("count").getInt();
-        int64_t units = claim.getAs<IntegerAttr>("units").getInt();
-        int64_t lanes = count / units;
-        int64_t selected =
-            offset + static_cast<int64_t>(occurrence % lanes) * units;
-        for (int64_t index = selected; index < selected + units; ++index)
+        std::int64_t offset = claim.getAs<IntegerAttr>("offset").getInt();
+        std::int64_t count = claim.getAs<IntegerAttr>("count").getInt();
+        std::int64_t units = claim.getAs<IntegerAttr>("units").getInt();
+        std::int64_t lanes = count / units;
+        std::int64_t selected =
+            offset + static_cast<std::int64_t>(occurrence % lanes) * units;
+        for (std::int64_t index = selected; index < selected + units; ++index)
           appendResource((resource + "[" + std::to_string(index) + "]").str());
       }
       auto qecReference = binding.getQecChannelAttr();
@@ -7505,16 +7517,18 @@ static FailureOr<ArrayRef<StringRef>> expectedScheduleResources(
         return schedule.emitOpError(
                    "cannot resolve selected interconnect for transport event '")
                << eventId << "'";
-      int64_t sourceUnits =
+      std::int64_t sourceUnits =
           model ? model.getSourceEndpointOccupancy()
                 : binding.getSourceEndpointOccupancyAttr().getInt();
-      int64_t destinationUnits =
+      std::int64_t destinationUnits =
           model ? model.getDestinationEndpointOccupancy()
                 : binding.getDestinationEndpointOccupancyAttr().getInt();
-      auto appendPort = [&](StringRef name, int64_t capacity, int64_t units) {
-        int64_t lanes = capacity / units;
-        int64_t first = static_cast<int64_t>(occurrence % lanes) * units;
-        for (int64_t lane = first; lane < first + units; ++lane)
+      auto appendPort = [&](StringRef name, std::int64_t capacity,
+                            std::int64_t units) {
+        std::int64_t lanes = capacity / units;
+        std::int64_t first =
+            static_cast<std::int64_t>(occurrence % lanes) * units;
+        for (std::int64_t lane = first; lane < first + units; ++lane)
           appendResource(
               ("control:transport-port:" + name + ":" + std::to_string(lane))
                   .str());
@@ -7606,7 +7620,7 @@ static FailureOr<ArrayRef<StringRef>> expectedScheduleResources(
     result.push_back(resourceStrings.save("control:" + eventId));
   llvm::sort(result);
   if (profileStats)
-    profileStats->expectedResourceMaxWidth = std::max<uint64_t>(
+    profileStats->expectedResourceMaxWidth = std::max<std::uint64_t>(
         profileStats->expectedResourceMaxWidth, result.size());
   resourceStorage.emplace_back(std::move(result));
   ArrayRef<StringRef> stored = resourceStorage.back();
@@ -8002,7 +8016,7 @@ static LogicalResult verifyScheduleDomainDependencies(
   };
   llvm::StringMap<CallClockEffect> callClockEffects;
   CanonicalScheduleResourceCache canonicalResourceCache;
-  llvm::StringMap<uint64_t> transportOccurrences;
+  llvm::StringMap<std::uint64_t> transportOccurrences;
   SmallVector<ActiveGlobalBarrierEffect *, 4> activeCallEffects;
   auto noteGlobalBarrier = [&](double firstUse, double availability) {
     for (ActiveGlobalBarrierEffect *effect : activeCallEffects) {
@@ -8667,8 +8681,8 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
     return {};
   };
   auto eventCodeDistance = [&](Operation *operation)
-      -> FailureOr<std::pair<std::optional<int64_t>, bool>> {
-    std::optional<int64_t> selected;
+      -> FailureOr<std::pair<std::optional<std::int64_t>, bool>> {
+    std::optional<std::int64_t> selected;
     bool unresolved = false;
     for (Type type : operation->getOperandTypes()) {
       auto state = dyn_cast<StateType>(type);
@@ -9306,7 +9320,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
     if (children[index].empty())
       hierarchyReady.push_back(index);
   }
-  uint64_t hierarchyVisits = 0;
+  std::uint64_t hierarchyVisits = 0;
   while (!hierarchyReady.empty()) {
     unsigned child = hierarchyReady.pop_back_val();
     ++hierarchyVisits;
@@ -10199,7 +10213,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
       double conditionFinish = conditionDescendantFinish[index];
       double bodyFinish = bodyDescendantFinish[index];
       bodyFinish = std::max(bodyFinish, conditionFinish);
-      int64_t bound = entry.maxIterations.value_or(0);
+      std::int64_t bound = entry.maxIterations.value_or(0);
       double conditionDuration = conditionFinish - entry.start;
       double bodyDuration = bodyFinish - conditionFinish;
       expectedDuration = conditionDuration * (bound + 1) + bodyDuration * bound;
@@ -10243,7 +10257,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                  << entry.id
                  << "' epilogue must equal the canonical final-iteration "
                     "span";
-        int64_t count = entry.repeatCount.value_or(0);
+        std::int64_t count = entry.repeatCount.value_or(0);
         expectedDuration = count == 0 ? 0.0
                                       : (static_cast<double>(count) - 1.0) *
                                                 *entry.repeatPeriod +
@@ -10448,7 +10462,7 @@ verifyStringSupport(Operation *owner, StringRef name, ArrayAttr values,
 static LogicalResult verifyInputSyndromes(Operation *owner, ArrayAttr terms) {
   if (!terms)
     return success();
-  llvm::SmallDenseSet<std::pair<int64_t, int64_t>, 8> unique;
+  llvm::SmallDenseSet<std::pair<std::int64_t, std::int64_t>, 8> unique;
   for (Attribute value : terms) {
     auto term = dyn_cast<DictionaryAttr>(value);
     if (!term)
@@ -10462,7 +10476,7 @@ static LogicalResult verifyInputSyndromes(Operation *owner, ArrayAttr terms) {
       return owner->emitOpError(
           "input_syndromes entries require exactly index and one of port or "
           "port_index");
-    int64_t portValue = port ? port.getInt() : portIndex.getInt();
+    std::int64_t portValue = port ? port.getInt() : portIndex.getInt();
     if (portValue < 0 || index.getInt() < 0)
       return owner->emitOpError(
           "input_syndromes port and index must be nonnegative");
@@ -10491,13 +10505,13 @@ static bool sameArrayOrEmpty(ArrayAttr actual, ArrayAttr expected) {
   return actual == expected;
 }
 
-static FailureOr<int64_t> profileDeclarationWidth(Operation *declaration) {
+static FailureOr<std::int64_t> profileDeclarationWidth(Operation *declaration) {
   (void)declaration;
   return 1;
 }
 
 static FailureOr<AffineSourceRow>
-resolveProfileDeclarationRow(Operation *declaration, int64_t ordinal) {
+resolveProfileDeclarationRow(Operation *declaration, std::int64_t ordinal) {
   if (ordinal < 0)
     return failure();
   auto inputSyndromes =
@@ -10525,8 +10539,9 @@ resolveProfileDeclarationRow(Operation *declaration, int64_t ordinal) {
   return row;
 }
 
-static FailureOr<AffineSourceRow>
-findProfileRow(Operation *profile, StringRef operationName, int64_t sourceRow) {
+static FailureOr<AffineSourceRow> findProfileRow(Operation *profile,
+                                                 StringRef operationName,
+                                                 std::int64_t sourceRow) {
   if (sourceRow < 0 || profile->getNumRegions() != 1 ||
       profile->getRegion(0).empty())
     return failure();
@@ -10536,7 +10551,7 @@ findProfileRow(Operation *profile, StringRef operationName, int64_t sourceRow) {
     if (candidate.getName().getStringRef() == operationName)
       declarations.push_back(&candidate);
 
-  int64_t remaining = sourceRow;
+  std::int64_t remaining = sourceRow;
   for (Operation *candidate : declarations) {
     auto width = profileDeclarationWidth(candidate);
     if (failed(width))
@@ -10550,7 +10565,7 @@ findProfileRow(Operation *profile, StringRef operationName, int64_t sourceRow) {
 
 static FailureOr<AffineSourceRow> findOutcomeRow(Operation *sidecar,
                                                  Operation *profile,
-                                                 int64_t sourceRow,
+                                                 std::int64_t sourceRow,
                                                  StringRef role) {
   auto gadgetRef = profile->getAttrOfType<FlatSymbolRefAttr>("gadget");
   Operation *gadget =
@@ -10581,7 +10596,7 @@ static FailureOr<AffineSourceRow> findOutcomeRow(Operation *sidecar,
   if ((roles && roles.size() != static_cast<size_t>(type.getShape()[0])) ||
       records.size() != static_cast<size_t>(type.getShape()[1]))
     return failure();
-  auto hasRole = [&](int64_t row, StringRef wanted) {
+  auto hasRole = [&](std::int64_t row, StringRef wanted) {
     if (!roles)
       return wanted == "result";
     auto values = dyn_cast<ArrayAttr>(roles[row]);
@@ -10594,11 +10609,11 @@ static FailureOr<AffineSourceRow> findOutcomeRow(Operation *sidecar,
     return failure();
 
   AffineSourceRow row;
-  int64_t columns = type.getShape()[1];
-  int64_t flatIndex = 0;
+  std::int64_t columns = type.getShape()[1];
+  std::int64_t flatIndex = 0;
   for (APInt selected : matrix.getValues<APInt>()) {
-    int64_t recordRow = flatIndex / columns;
-    int64_t recordColumn = flatIndex % columns;
+    std::int64_t recordRow = flatIndex / columns;
+    std::int64_t recordColumn = flatIndex % columns;
     if (recordRow == sourceRow && selected.getBoolValue()) {
       auto name = dyn_cast<StringAttr>(records[recordColumn]);
       if (!name)
@@ -10756,7 +10771,7 @@ static LogicalResult verifyRecordProjection(Operation *sidecar,
     return sidecar->emitOpError(
         "projection_indices must align one-to-one with source_records and "
         "records");
-  for (int64_t index : projectionIndices.asArrayRef())
+  for (std::int64_t index : projectionIndices.asArrayRef())
     if (index < 0)
       return sidecar->emitOpError("projection_indices must be nonnegative");
 
@@ -10796,7 +10811,7 @@ static LogicalResult verifyRecordProjection(Operation *sidecar,
   ArrayAttr entries = projection.getEntries();
   for (auto [lane, rawIndex] :
        llvm::enumerate(projectionIndices.asArrayRef())) {
-    if (static_cast<uint64_t>(rawIndex) >= entries.size())
+    if (static_cast<std::uint64_t>(rawIndex) >= entries.size())
       return sidecar->emitOpError("projection index ")
              << rawIndex << " is outside record_projection @"
              << projection.getSymName();

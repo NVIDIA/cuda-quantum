@@ -13,6 +13,7 @@
 #include "llvm/Support/LogicalResult.h"
 
 #include <cassert>
+#include <cstdint>
 #include <utility>
 
 namespace cudaq::synth {
@@ -163,7 +164,7 @@ public:
   //===--------------------------------------------------------------------===//
 
   /// Parity of the constant coefficient: 0 or 1.
-  int32_t parity() const { return int32_t(_a.is_odd()); }
+  std::int32_t parity() const { return std::int32_t(_a.is_odd()); }
 
   /// "(a, b)" rendering for debug logging.
   std::string to_string() const {

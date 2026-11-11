@@ -474,7 +474,7 @@ __global__ void dispatch_kernel_with_graph(
 // Force eager CUDA module loading for the dispatch kernel.
 // Call before launching persistent kernels to avoid lazy-loading deadlocks.
 extern "C" cudaError_t cudaq_dispatch_kernel_query_occupancy(
-    int* out_blocks, uint32_t threads_per_block) {
+    int* out_blocks, std::uint32_t threads_per_block) {
   int num_blocks = 0;
   cudaError_t err = cudaOccupancyMaxActiveBlocksPerMultiprocessor(
       &num_blocks, cudaq::realtime::dispatch_kernel_device_call_only,
@@ -485,7 +485,7 @@ extern "C" cudaError_t cudaq_dispatch_kernel_query_occupancy(
 }
 
 extern "C" CUDAQ_REALTIME_DISPATCH_API cudaError_t
-cudaq_dispatch_kernel_set_shared_ring_mode(uint32_t enabled) {
+cudaq_dispatch_kernel_set_shared_ring_mode(std::uint32_t enabled) {
   return cudaMemcpyToSymbol(cudaq::realtime::g_dispatch_shared_ring_mode,
                             &enabled, sizeof(enabled), 0,
                             cudaMemcpyHostToDevice);

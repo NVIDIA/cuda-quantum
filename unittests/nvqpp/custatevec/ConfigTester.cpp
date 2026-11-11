@@ -12,6 +12,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
+
 namespace {
 
 class Environment {
@@ -63,6 +65,26 @@ TEST(CuStateVecConfigTester, ClampsCuStateVecExUpdaterLimits) {
 }
 
 } // namespace
+
+TEST(CuStateVecDeviceTester,
+     RecommendsDenseFusionOnRubinWithMeasuredCuStateVec) {
+  using cudaq::cusv::recommendedDenseFusionQubits;
+  EXPECT_EQ(recommendedDenseFusionQubits(10, 7, true, 11500), 3);
+  EXPECT_EQ(recommendedDenseFusionQubits(10, 7, false, 11500), 4);
+  EXPECT_EQ(recommendedDenseFusionQubits(10, 7, true, 11599), 3);
+}
+
+TEST(CuStateVecDeviceTester, DefersDenseFusionToCuStateVecElsewhere) {
+  using cudaq::cusv::recommendedDenseFusionQubits;
+  // Other architectures keep the cuStateVecEx default.
+  EXPECT_FALSE(recommendedDenseFusionQubits(10, 0, true, 11500));
+  EXPECT_FALSE(recommendedDenseFusionQubits(10, 3, false, 11500));
+  EXPECT_FALSE(recommendedDenseFusionQubits(9, 0, true, 11500));
+  EXPECT_FALSE(recommendedDenseFusionQubits(11, 7, true, 11500));
+  // The sizes were not measured on cuStateVec 1.16 or later.
+  EXPECT_FALSE(recommendedDenseFusionQubits(10, 7, true, 11600));
+  EXPECT_FALSE(recommendedDenseFusionQubits(10, 7, false, 12000));
+}
 
 TEST(CuStateVecDeviceTester, AccountsForReusableMemoryPoolBytes) {
   cudaq::cusv::DeviceMemoryCapacity capacity;
@@ -181,7 +203,7 @@ TEST(CuStateVecConfigTester, ParsesCompleteUserSurface) {
   EXPECT_EQ(config.maxGpuMemoryGb, 16);
   EXPECT_EQ(config.maxCpuMemoryGb, 64);
   EXPECT_EQ(config.migrationLevel, 2);
-  EXPECT_EQ(config.globalIndexBits, (std::vector<int32_t>{1, 2}));
+  EXPECT_EQ(config.globalIndexBits, (std::vector<std::int32_t>{1, 2}));
   EXPECT_EQ(config.p2pDeviceBits, 1);
   EXPECT_EQ(config.dataTransferBufferBits, 24);
   EXPECT_EQ(config.observeTrajectories, 17);

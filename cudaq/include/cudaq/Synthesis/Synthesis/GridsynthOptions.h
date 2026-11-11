@@ -24,7 +24,7 @@ namespace details {
 /// solver's own bound, L = 1.1774 * 10^(digits/4), is unreachable at deep
 /// epsilon (1.2e10 for a 40-digit composite), so without this cap only a
 /// clock ends a hard attempt and the result depends on host speed.
-inline constexpr uint64_t DEFAULT_MAX_FACTORING_ITERATIONS = 500000;
+inline constexpr std::uint64_t DEFAULT_MAX_FACTORING_ITERATIONS = 500000;
 
 /// The same, summed over every factoring attempt one grid candidate makes.
 ///
@@ -39,20 +39,20 @@ inline constexpr uint64_t DEFAULT_MAX_FACTORING_ITERATIONS = 500000;
 /// restarts 222 -> 560 while changing the summed T-count by +2 in 64830. The
 /// implied bound (per-attempt x restarts = 4M) recovers almost none of that,
 /// so the useful value is well below it.
-inline constexpr uint64_t DEFAULT_MAX_CANDIDATE_ITERATIONS =
+inline constexpr std::uint64_t DEFAULT_MAX_CANDIDATE_ITERATIONS =
     4 * DEFAULT_MAX_FACTORING_ITERATIONS;
 
 /// Consecutive failed attempts allowed on one composite. Each re-rolls a fresh
 /// random `a`, so retrying is worth something, but with steep diminishing
 /// returns: over 1191 restart chains, 98.8% factored on the first attempt and
 /// none exceeded depth 3.
-inline constexpr uint32_t DEFAULT_MAX_FACTORING_RESTARTS = 8;
+inline constexpr std::uint32_t DEFAULT_MAX_FACTORING_RESTARTS = 8;
 
 /// Steps one ODGP line scan may take without yielding. The scan's a-range is
 /// finite but can be astronomically wide (past 1e15 at k=100), harmless only
 /// because a solution normally turns up in a few steps; on a line that has
 /// none the scan never finishes. `gridsynth(pi/4, 1e-15)` hung on exactly that.
-inline constexpr uint64_t DEFAULT_MAX_ODGP_SCAN_STEPS = 1 << 16;
+inline constexpr std::uint64_t DEFAULT_MAX_ODGP_SCAN_STEPS = 1 << 16;
 
 } // namespace details
 
@@ -111,7 +111,7 @@ struct GridsynthOptions {
   /// stream). Unset draws from `std::random_device`, so two calls on
   /// identical inputs try different attempts and their runtimes can differ by
   /// orders of magnitude. Set it when a run has to replay exactly.
-  std::optional<uint64_t> seed = std::nullopt;
+  std::optional<std::uint64_t> seed = std::nullopt;
 
   /// Pollard-Brent rho iterations one factoring attempt may spend before
   /// giving up on its composite.
@@ -121,19 +121,21 @@ struct GridsynthOptions {
   /// essentially all per-candidate time goes. Lower abandons hard composites
   /// sooner (cheaper on every call, at the cost of T gates on the candidates it
   /// gives up on).
-  uint64_t maxFactoringIterations = details::DEFAULT_MAX_FACTORING_ITERATIONS;
+  std::uint64_t maxFactoringIterations =
+      details::DEFAULT_MAX_FACTORING_ITERATIONS;
 
   /// The same iterations, summed over every factoring attempt made for one
   /// grid candidate. Bounds the candidate as a whole, which neither the
   /// per-attempt cap nor `maxFactoringRestarts` does (see
   /// `DEFAULT_MAX_CANDIDATE_ITERATIONS` for why, and for the measurement).
-  uint64_t maxCandidateIterations = details::DEFAULT_MAX_CANDIDATE_ITERATIONS;
+  std::uint64_t maxCandidateIterations =
+      details::DEFAULT_MAX_CANDIDATE_ITERATIONS;
 
   /// Consecutive failed attempts allowed on one composite before the candidate
   /// is abandoned. Each attempt re-rolls the random parameter, so a retry is a
   /// genuinely different search rather than a repeat (but with steep
   /// diminishing returns, hence a default far above the observed need).
-  uint32_t maxFactoringRestarts = details::DEFAULT_MAX_FACTORING_RESTARTS;
+  std::uint32_t maxFactoringRestarts = details::DEFAULT_MAX_FACTORING_RESTARTS;
 
   /// Steps one one-dimensional grid-problem scan may take without yielding a
   /// solution.
@@ -145,7 +147,7 @@ struct GridsynthOptions {
   /// than the effort spent on each, and trades against the factoring budgets
   /// rather than with them. A call starved here fails with `KExhausted` having
   /// solved nothing, instead of returning a longer circuit.
-  uint64_t maxOdgpScanSteps = details::DEFAULT_MAX_ODGP_SCAN_STEPS;
+  std::uint64_t maxOdgpScanSteps = details::DEFAULT_MAX_ODGP_SCAN_STEPS;
 
   /// Optional wall-clock limit on the whole call. Unset -- the reproducible
   /// configuration -- leaves the budgets above as the only limits; a run that

@@ -26,6 +26,7 @@
 #include "mlir/Analysis/TopologicalSortUtils.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Diagnostics.h"
+#include <cstdint>
 #include <iterator>
 
 namespace cudaq::opt {
@@ -2546,7 +2547,8 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
         RankedTensorType::get({numEdges, 2}, IntegerType::get(ctx, 64));
     auto indices = DenseIntElementsAttr::get(indicesType, edgeVector);
     auto intValue = mlir::DenseIntElementsAttr::get(
-        mlir::RankedTensorType::get({static_cast<int64_t>(numEdges)}, boolTy),
+        mlir::RankedTensorType::get({static_cast<std::int64_t>(numEdges)},
+                                    boolTy),
         true);
     auto sparseInt = SparseElementsAttr::get(tensorI1, indices, intValue);
 

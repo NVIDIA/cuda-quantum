@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #pragma once
+#include <cstdint>
 #include <unordered_map>
 
 #include "cutensornet.h"
@@ -19,7 +20,7 @@
 namespace nvqir {
 struct MPSSettings {
   // Default max bond dim
-  int64_t maxBond = 64;
+  std::int64_t maxBond = 64;
   // Default absolute cutoff
   double absCutoff = 1e-5;
   // Default relative cutoff

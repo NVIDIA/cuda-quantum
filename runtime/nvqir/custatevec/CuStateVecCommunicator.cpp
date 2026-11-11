@@ -10,11 +10,13 @@
 
 #include "CuStateVecError.h"
 #include "cudaq/cudaq_mpi.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
 
 #include <custatevecEx_ext.h>
 #include <dlfcn.h>
 
+#include <cstdint>
 #include <exception>
 #include <mutex>
 #include <stdexcept>
@@ -111,6 +113,12 @@ private:
 struct SharedProviderState {
   std::mutex mutex;
   std::shared_ptr<CuStateVecCommunicatorProvider> provider;
+
+  ~SharedProviderState() {
+    // Join workers before destroying the provider, while MPI is still alive.
+    // This releases their thread-local simulators and communicators safely.
+    cudaq::detail::shutdownExecutionQueues();
+  }
 };
 
 // cuStateVecEx permits multiple communicator descriptors, but its provider is
@@ -237,8 +245,8 @@ CuStateVecCommunicator::descriptor() const {
   return communicator();
 }
 
-int32_t CuStateVecCommunicator::size() const {
-  int32_t value = 0;
+std::int32_t CuStateVecCommunicator::size() const {
+  std::int32_t value = 0;
   auto *const valueCommunicator = communicator();
   checkCommunicatorStatus(
       valueCommunicator->intf->getSize(valueCommunicator, &value),
@@ -246,8 +254,8 @@ int32_t CuStateVecCommunicator::size() const {
   return value;
 }
 
-int32_t CuStateVecCommunicator::rank() const {
-  int32_t value = 0;
+std::int32_t CuStateVecCommunicator::rank() const {
+  std::int32_t value = 0;
   auto *const valueCommunicator = communicator();
   checkCommunicatorStatus(
       valueCommunicator->intf->getRank(valueCommunicator, &value),
@@ -255,9 +263,9 @@ int32_t CuStateVecCommunicator::rank() const {
   return value;
 }
 
-void CuStateVecCommunicator::broadcast(void *buffer, int32_t count,
+void CuStateVecCommunicator::broadcast(void *buffer, std::int32_t count,
                                        cudaDataType_t dataType,
-                                       int32_t root) const {
+                                       std::int32_t root) const {
   auto *const valueCommunicator = communicator();
   checkCommunicatorStatus(valueCommunicator->intf->bcast(
                               valueCommunicator, buffer, count, dataType, root),
@@ -265,7 +273,7 @@ void CuStateVecCommunicator::broadcast(void *buffer, int32_t count,
 }
 
 void CuStateVecCommunicator::allReduce(const void *sendBuffer,
-                                       void *receiveBuffer, int32_t count,
+                                       void *receiveBuffer, std::int32_t count,
                                        cudaDataType_t dataType) const {
   auto *const valueCommunicator = communicator();
   checkCommunicatorStatus(
@@ -275,7 +283,7 @@ void CuStateVecCommunicator::allReduce(const void *sendBuffer,
 }
 
 void CuStateVecCommunicator::allGather(const void *sendBuffer,
-                                       void *receiveBuffer, int32_t count,
+                                       void *receiveBuffer, std::int32_t count,
                                        cudaDataType_t dataType) const {
   auto *const valueCommunicator = communicator();
   checkCommunicatorStatus(

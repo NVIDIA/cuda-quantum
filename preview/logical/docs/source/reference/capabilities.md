@@ -33,6 +33,7 @@ Every row cites its exercising evidence in this repository.
 | Gadget verification — code-automorphism and kernel-backed action matching, fail-closed claims                                                       | shipped, exercised | `examples/04_carbon_code.py`; verifier-error lit suites                                                                |
 | Protocols — `@protocol`, typed resources, postselection, bounded retry, 15-to-1 distillation                                                            | shipped, exercised | `examples/standalone/07_magic_state_distillation.py`, `examples/standalone/09_gidney_ekera_lookup_addition.py`; tests   |
 | Clifford+T synthesis — rotation lowering with provenance                                                                                                | shipped, exercised | `examples/01_clifford_t_resource_estimate.py`, `examples/03_fermi_hubbard.py`                                           |
+| Folded PBC normalization — exact static-repeat periods, ownership closure, and immutable source Builds                                                   | shipped, exercised | `test_pbc_api.py`; `to-pbc*.mlir` and `verify-pbc*.mlir`                                                               |
 | CUDA-Q ingress — `@cudaq.kernel` programs through CUDA-Q Logical targets                                                                                | shipped, exercised | all top-level numbered examples                                                                                        |
 | Static P2 estimation — gadget/operation counts with folding                                                                                             | shipped, exercised | `examples/02_surface_code_resource_estimate.py`, `examples/standalone/07_magic_state_distillation.py`                   |
 | P3 physical lowering, routing, native legalization, and scheduling                                                                                      | shipped, exercised | `examples/04_carbon_code.py`, `examples/standalone/03_physical_schedule.py`, `examples/standalone/09_gidney_ekera_lookup_addition.py` |
@@ -61,6 +62,14 @@ and a `list[bool]` in return order for several. No implicit final measurements
 or decoding are added. See the
 [Steane Bernstein–Vazirani](../use-cases/examples/steane-bernstein-vazirani.md)
 and [T-factory](../use-cases/examples/t-factory-evaluation.md) execution examples.
+
+**A CUDA-Q kernel returns measured bits.** A `@cudaq.kernel` compiled for a
+Logical target can return nothing, a measurement as a `bool`, or a
+`tuple[bool, ...]` of measurements. P0 keeps one result per member, in order.
+Where the kernel returns a tuple, `cudaq.run` on the P3 Build returns a
+`list[bool]`. Compilation rejects a `list[bool]` result, a constant or computed
+bit such as `not m`, a member read back with `t[0]`, a branch on a measurement,
+and a gate after a measurement.
 
 **Execution covers a subset of P3.** Forms such as resource and factory flows,
 in-graph postselection, bounded retry, code epoch changes, and patch-granularity
