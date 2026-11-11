@@ -45,9 +45,11 @@ __device__ int rpc_increment_handler(const void *rx_slot, void *tx_slot,
   std::uint32_t len = (arg_len < max_result_len) ? arg_len : max_result_len;
   // Every thread of the dispatch block runs this; each increments its own
   // bytes.
-  for (std::uint32_t i = threadIdx.x; i < len; i += blockDim.x)
+  const std::uint32_t thread = blockIdx.x * blockDim.x + threadIdx.x;
+  const std::uint32_t stride = gridDim.x * blockDim.x;
+  for (std::uint32_t i = thread; i < len; i += stride)
     out_data[i] = static_cast<std::uint8_t>(in_data[i] + 1);
-  if (threadIdx.x == 0)
+  if (thread == 0)
     response->result_len = len;
   return 0;
 }
