@@ -13,3 +13,6 @@
 # No python 3.13 support below iqm-client 34.
 iqm-client==28.0.0; python_version < "3.13"
 qio~=0.1.33
+# openqasm3 1.0.2 rejects `OPENQASM 2.0` in parse(), which breaks qio's
+# QASM2 -> QASM3 conversion (via pyqasm) used by the Scaleway mock server.
+openqasm3[parser]<1.0.2
