@@ -6,7 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.
  ******************************************************************************/
 
-#include "utils/hsb_emulator_timing.h"
+#include "../validation/hsb_emulator_timing.h"
+#include "../validation/hsb_capture.h"
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -116,5 +117,92 @@ TEST(HsbEmulatorTiming, OneClockForRequestEchoAndCapture) {
   EXPECT_GE(unpack_timestamp(receive),
             unpack_timestamp(response.ptp_timestamp));
   EXPECT_LT(std::uint32_t(receive), timing::nanoseconds_per_second);
+}
+} // namespace
+
+namespace {
+namespace capture = cudaq::realtime::validation::hsb;
+using cudaq::realtime::validation::Record;
+
+TEST(HsbCapture, DecodesBytesAndTimestampRollover) {
+  capture::CaptureDecoder decoder;
+  std::deque<Record> records;
+  // Independent wire sample: TX=(7 s, 999999990 ns), RX=(8 s, 30 ns).
+  std::vector<uint32_t> sample(19);
+  sample[0] = 0x03020100;
+  sample[4] = 999999990;
+  sample[5] = 7;
+  sample[7] = 0xfffefdfc;
+  sample[16] = 0x00003c7f; // valid | last | (31 << 2) | (30 << 9)
+  sample[17] = 0x00001000; // RX seconds=8 across ILA words.
+  decoder.append(sample, records);
+  ASSERT_EQ(records.size(), 1);
+  ASSERT_EQ(records[0].bytes.size(), 32);
+  EXPECT_EQ(records[0].bytes[0], 0);
+  EXPECT_EQ(records[0].bytes[3], 3);
+  EXPECT_EQ(records[0].bytes[31], 255);
+  EXPECT_EQ(records[0].rtt_ticks, 40);
+  EXPECT_NO_THROW(decoder.finish());
+}
+
+TEST(HsbCapture, MissingTimestampsPreserveReplyBytes) {
+  // TX and RX, when present, both encode (8 s, 30 ns): a valid zero RTT.
+  // An absent stamp must leave timing unavailable without discarding the reply.
+  for (bool has_transmit : {false, true}) {
+    for (bool has_receive : {false, true}) {
+      capture::CaptureDecoder decoder;
+      std::deque<Record> records;
+      std::vector<uint32_t> sample(19);
+      sample[0] = 0x03020100;
+      sample[4] = has_transmit ? 30 : 0;
+      sample[5] = has_transmit ? 8 : 0;
+      sample[7] = 0xfffefdfc;
+      sample[16] = has_receive ? 0x00003c7f : 0x7f;
+      sample[17] = has_receive ? 0x00001000 : 0;
+      decoder.append(sample, records);
+      ASSERT_EQ(records.size(), 1);
+      ASSERT_EQ(records[0].bytes.size(), 32);
+      EXPECT_EQ(records[0].bytes[0], 0);
+      EXPECT_EQ(records[0].bytes[31], 255);
+      EXPECT_EQ(records[0].rtt_ticks,
+                has_transmit && has_receive
+                    ? 0u
+                    : CUDAQ_PLAYBACK_PROVIDER_RTT_UNAVAILABLE);
+      EXPECT_NO_THROW(decoder.finish());
+    }
+  }
+}
+
+TEST(HsbCapture, PreservesPacketBoundariesAndRejectsCaptureLoss) {
+  capture::CaptureDecoder decoder;
+  std::deque<Record> records;
+  std::vector<uint32_t> sample(19);
+  sample[16] = 0xfd; // A full first beat without a final beat is incomplete.
+  decoder.append(sample, records);
+  EXPECT_TRUE(records.empty());
+  EXPECT_THROW(decoder.finish(), std::runtime_error);
+  sample[0] = 0x00ccbbaa;
+  sample[16] = 0xb; // Three-byte final beat completes one 67-byte packet.
+  decoder.append(sample, records);
+  ASSERT_EQ(records.size(), 1);
+  ASSERT_EQ(records[0].bytes.size(), 67);
+  EXPECT_EQ(records[0].bytes[64], 0xaa);
+  EXPECT_EQ(records[0].bytes[66], 0xcc);
+  EXPECT_NO_THROW(decoder.finish());
+  sample[16] = 2; // Ignore invalid beats, but preserve complete short packets.
+  decoder.append(sample, records);
+  EXPECT_EQ(records.size(), 1);
+  sample[16] = 3;
+  decoder.append(sample, records);
+  ASSERT_EQ(records.size(), 2);
+  EXPECT_EQ(records.back().bytes.size(), 1);
+  EXPECT_EQ(records.back().rtt_ticks, CUDAQ_PLAYBACK_PROVIDER_RTT_UNAVAILABLE);
+  sample[16] = 0x103; // Byte index 64 exceeds the 512-bit bus.
+  EXPECT_THROW(decoder.append(sample, records), std::runtime_error);
+  EXPECT_NO_THROW(capture::check_capture_extent(100, 0, 99));
+  // Full flag, full pointer and a backwards count each indicate capture loss.
+  EXPECT_THROW(capture::check_capture_extent(0, 2, 0), std::runtime_error);
+  EXPECT_THROW(capture::check_capture_extent(8191, 0, 0), std::runtime_error);
+  EXPECT_THROW(capture::check_capture_extent(5, 0, 6), std::runtime_error);
 }
 } // namespace

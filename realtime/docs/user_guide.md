@@ -22,11 +22,12 @@ may not have all the required capabilities.
 
 - CUDA Runtime (12.6+ and 13.0+)
 
-- [`DOCA` 3.4.0 installation](https://developer.nvidia.com/doca-downloads)
+- For GPU RoCE: [`DOCA` 3.4.0 installation](https://developer.nvidia.com/doca-downloads)
 with `gpunetio` support.
 
-> **_NOTE:_** `DOCA` is required to run the end-to-end validation with FPGA
-using the built-in `HSB` support of CUDA-Q Realtime.
+> **_NOTE:_** `DOCA` is required for GPU RoCE validation. CPU RoCE requires
+`libibverbs` instead. HSB playback requires the CUDA driver library
+(`libcuda.so.1`) with either bridge.
 
 <!--- -->
 
@@ -70,6 +71,9 @@ Please refer to this [section](#using-docker) for instructions.
     >  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/nvidia/cudaq/realtime/lib
     > ```
 
+    The installed validation applications locate their libraries automatically
+    and do not require this environment setting.
+
 2. Program the FPGA with `HSB`
 
     See the [CUDA-Q Realtime installation docs](https://nvidia.github.io/cuda-quantum/latest/using/realtime/installation.html#realtime-hsb-fpga-artifacts)
@@ -85,48 +89,56 @@ Please refer to this [section](#using-docker) for instructions.
     The validation script is located at `/opt/nvidia/cudaq/realtime/validate.sh`.
 
     ```bash
-    bash /opt/nvidia/cudaq/realtime/validate.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified 
+    bash /opt/nvidia/cudaq/realtime/validate.sh --dispatch=unified \
+      --bridge-arg="--device=mlx5_0 --peer-ip=192.168.0.2"
     ```
 
     > **_NOTE:_**
     > The command line arguments need to be adjusted based on the system setup:
     >
     > - `--device` is the `IB` device name that is connected to the FPGA.
-    > - `--gpu` is the GPU device Id that we want to run the RPC callback on.
-    > - `--fpga-ip` is the IP address of the `HSB` FPGA.
-    > - `--bridge-ip` is the IP address of the NIC on the host machine.
-    > - `--page-size` is the ring buffer slot size in bytes.
-    > - `--unified` is the flag to enable the unified dispatch mode.
+    > - `--peer-ip` is the IP address of the `HSB` FPGA.
+    > - `--gpu-id N` selects the GPU device (default: 0); `--cpu` selects CPU dispatch.
+    > - `--dispatch=unified` enables unified dispatch.
     > - `--threads N` is the block size (threads per block) that every
     >   DEVICE_CALL handler runs on, in both dispatch modes (default: 32).
-    The other option is `--forward`, which skips the RPC callback.
-    Without either of these flags, we will run the test in
+    The other option is `--dispatch=forward`, which skips the RPC callback.
+    Without a dispatch option, we will run the test in
     the three-kernel mode with the RPC handler.
 
+    RoCE with GPU execution is the default. For a local `UDP` check without an FPGA, run:
+
+    ```bash
+    bash /opt/nvidia/cudaq/realtime/validate.sh --udp
+    ```
+
     Upon successful completion, the above validation script should
-    print out the following:
+    print out a report such as the following (latency records abbreviated):
 
     ```text
-    === Verification Summary ===
-      ILA samples captured:   100
-      tvalid=0 (idle):        0
-      RPC responses:          100
-      Non-RPC frames:         0
-      Unique messages verified: 100 of 100
-      Responses matched:    100
-      Header errors:        0
-      Payload errors:       0
+    REPLIES PASS: 100/100 packets received correctly
+    CLOCK tick_period_numerator=1 tick_period_denominator=1000000000 tick_period_seconds=1e-09
+    LATENCY request_id=1 ticks=6348 ns=6348
+    ...
+    LATENCY request_id=100 ticks=3589 ns=3589
 
     === PTP Round-Trip Latency ===
       Samples:  100
       Min:      3589 ns
       Max:      6348 ns
       Avg:      3872.0 ns
-      CSV written: ptp_latency.csv
-      RESULT: PASS
-
-    === Shutting down ===
+      Median:   3800 ns
+    PASS: 100/100 replies; latency_samples=100/100; provider=libcudaq-playback-provider-hsb.so
+    VALIDATION PASS execution=gpu dispatch=unified samples=100
     ```
+
+    Latency statistics are in nanoseconds; the clock time base is in seconds per tick.
+    Unavailable timing is reported separately and does not fail packet validation.
+    Use `--num-messages`, `--message-size` (header plus payload bytes), and
+    `--spacing-ns` to vary the workload. Defaults are 100 requests, 32 bytes and
+    120,000 ns spacing. Run `validate.sh --help` for all options; see the
+    [validation architecture](validation_workflow.md#reading-the-validation-output)
+    for output details.
 
 Congratulations! You have successfully validated the CUDA-Q Realtime installation.
 
@@ -154,7 +166,8 @@ will transfer the local CUDA-Q installation into that containerized environment.
 Inside the container, we can then run the validation check, i.e.,
 
 ```bash
-bash /opt/nvidia/cudaq/realtime/validate.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified 
+bash /opt/nvidia/cudaq/realtime/validate.sh --dispatch=unified \
+  --bridge-arg="--device=mlx5_0 --peer-ip=192.168.0.2"
 ```
 
 ### Manual Installation in Docker Container
@@ -169,7 +182,7 @@ bash /opt/nvidia/cudaq/realtime/validate.sh --page-size 512 --device mlx5_0 --gp
 
 2. Install CUDA runtime.
 
-3. Install [`DOCA`](https://developer.nvidia.com/doca-downloads)
+3. For GPU RoCE, install [`DOCA`](https://developer.nvidia.com/doca-downloads)
 with `gpunetio` (`doca-sdk-gpunetio`) support.
 
 4. Download and install CUDA-Q Installer as described in the [setup](#setup) section.
@@ -182,7 +195,8 @@ in addition to one based on Holoscan Sensor Bridge.
 
 Please refer to this [guide](cudaq_realtime_network_interface.md)
 for more information about extending the networking interface
-for your custom transport protocol.
+for your custom transport protocol. To use the shared validation applications,
+see the [validation architecture and playback API](validation_workflow.md).
 
 ### Measuring latency
 
@@ -216,7 +230,9 @@ for a sample of data generation tools.
 
 ### Error "`error while loading shared libraries: libcudaq-realtime-bridge-gpu-roce.so cannot open shared object file: No such file or directory`"
 
-This can be resolved by following the post-installation step in the [setup](#setup) section to set the `LD_LIBRARY_PATH`.
+Check that the GPU RoCE bridge library is present in the installation's `lib/`
+directory and that `bin/` and `lib/` remain together. The installed validation
+applications locate these libraries automatically.
 
 ### Error "`error while loading shared libraries: libdoca_gpunetio.so.2: cannot open shared object file: No such file or directory`"
 

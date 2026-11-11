@@ -12,8 +12,8 @@
 ///
 /// Parallels init_rpc_increment_function_table.cu (device-side, dispatch
 /// mode CUDAQ_DISPATCH_DEVICE_CALL) but compiled by the C++ host compiler
-/// — no nvcc, no CUDA, no graph.  Used by hsb_bridge_cpu (Phase 1) which
-/// is GPU-less by design.
+/// — no nvcc, no CUDA, no graph.  Shared by roce_app --cpu and the transport
+/// test server.
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
@@ -80,7 +80,7 @@ extern "C" void rpc_increment_handler_host(const void *rx_slot, void *tx_slot,
 } // anonymous namespace
 
 //==============================================================================
-// Setup function for hsb_bridge_cpu (and future host-call test binaries)
+// Setup function for host-call validation and test binaries
 //==============================================================================
 
 /// Populate one cudaq_function_entry_t with the host-side increment handler.

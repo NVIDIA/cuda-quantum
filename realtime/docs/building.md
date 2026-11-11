@@ -123,7 +123,7 @@ using CUDA-Q Realtime and Holoscan Sensor Bridge,
   for the reusable `nv_hsb_ip` RTL source, the RFSoC PYNQ source example,
   and the pre-built RFSoC bit-file.
 
-- Run the test script (at `cuda-quantum/realtime/unittests/utils/gpu_roce_test.sh`).
+- Run the test script (at `cuda-quantum/realtime/validation/gpu_roce_test.sh`).
 For example,
 
 ```bash
@@ -181,3 +181,25 @@ the report as shown above.
 > and CUDA-Q, respectively.
 > Please note that `$CUDAQ_DIR` here is the parent directory
 > that contains the `realtime` sub-directory.
+
+For CPU dispatch, replace `--gpu 0` with `--cpu` in the test commands above.
+Both execution paths use `roce_app` through the bridge API. HSB playback requires the CUDA driver
+library (`libcuda.so.1`); CPU RoCE also requires `libibverbs`.
+
+With `CUDAQ_REALTIME_BUILD_TESTS=ON`, `validation_app`
+requires the CUDA compiler and dispatcher, but does not require HSB tools.
+`roce_app` additionally requires `CUDAQ_REALTIME_ENABLE_HSB_TOOLS=ON`.
+After building, run local validation from the repository root:
+
+```bash
+bash realtime/validation/validation_test.sh --udp
+bash realtime/validation/validation_test.sh --udp --dispatch=unified
+```
+
+For FPGA validation, omit `--udp` and supply the device/FPGA settings shown in the
+[installation guide](user_guide.md#setup). Both runners accept the same options.
+See the [validation architecture](validation_workflow.md) for plugin integration.
+
+Validation applications, playback providers and runners live in
+`realtime/validation/`; their unit tests live in `realtime/unittests/validation/`.
+Local validation tools are built under `realtime/build/validation/`.
