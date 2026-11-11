@@ -39,6 +39,7 @@ qlx.program @bad_ccz : () -> i1 attributes {qlx.stage = "p0"} {
       : (!qlx.logical_qubit, !qlx.logical_qubit, !qlx.logical_qubit)
      -> (!qlx.logical_qubit, !qlx.logical_qubit, !qlx.logical_qubit)
   %m = qlx.measure #qlx.pauli<Z> %r0 : !qlx.logical_qubit -> i1
+  qlx.discard %r1, %r2 : !qlx.logical_qubit, !qlx.logical_qubit
   qlx.return %m : i1
 }
 
@@ -125,7 +126,8 @@ qlx.program @bad_repeat_measurement : () -> i1 attributes {qlx.stage = "p0"} {
       iter(%arg : !qlx.logical_qubit = %q) {
     // expected-error@+1 {{qlx-to-pbc repeat bodies do not support measurement or feed-forward}}
     %m = qlx.measure #qlx.pauli<Z> %arg : !qlx.logical_qubit -> i1
-    cflow.yield %arg : !qlx.logical_qubit
+    %fresh = qlx.prepare "zero" {allocation = 0 : i64, value_index = 1 : i64} : !qlx.logical_qubit
+    cflow.yield %fresh : !qlx.logical_qubit
   }
   %m = qlx.measure #qlx.pauli<Z> %r : !qlx.logical_qubit -> i1
   qlx.return %m : i1
@@ -138,7 +140,8 @@ qlx.program @bad_repeat_capture : () -> i1 attributes {qlx.stage = "p0"} {
   %q1 = qlx.prepare "zero" {allocation = 1 : i64, value_index = 1 : i64} : !qlx.logical_qubit
   %r = cflow.repeat 4
       iter(%arg : !qlx.logical_qubit = %q0) {
-    // expected-error@+1 {{repeat bodies may use only explicitly carried logical qubits}}
+    // The P0 linear-ownership verifier rejects the capture before the pass.
+    // expected-error@+1 {{defined outside cflow.repeat is consumed inside its body by qlx.apply}}
     %c0, %c1 = qlx.apply #qlx.action<cx>(%arg, %q1)
         : (!qlx.logical_qubit, !qlx.logical_qubit)
        -> (!qlx.logical_qubit, !qlx.logical_qubit)
@@ -157,7 +160,8 @@ qlx.program @bad_repeat_same_identity_capture : () -> i1 attributes {qlx.stage =
   %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
   %r = cflow.repeat 4
       iter(%arg : !qlx.logical_qubit = %q) {
-    // expected-error@+1 {{apply input must consume the current logical-qubit SSA owner}}
+    // The P0 linear-ownership verifier rejects the capture before the pass.
+    // expected-error@+1 {{defined outside cflow.repeat is consumed inside its body by qlx.apply}}
     %t = qlx.apply #qlx.action<t>(%q) : (!qlx.logical_qubit) -> !qlx.logical_qubit
     cflow.yield %t : !qlx.logical_qubit
   }
@@ -169,7 +173,9 @@ qlx.program @bad_repeat_same_identity_capture : () -> i1 attributes {qlx.stage =
 
 qlx.program @bad_duplicate_action_owner : () -> i1 attributes {qlx.stage = "p0"} {
   %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
-  // expected-error@+1 {{qlx-to-pbc requires distinct logical-qubit action operands}}
+  // The P0 linear-ownership verifier rejects the duplicate before the pass.
+  // expected-note@+2 {{earlier consume here}}
+  // expected-error@+1 {{is consumed more than once: by qlx.apply and again by qlx.apply}}
   %a, %b = qlx.apply #qlx.action<cx>(%q, %q)
       : (!qlx.logical_qubit, !qlx.logical_qubit)
      -> (!qlx.logical_qubit, !qlx.logical_qubit)
@@ -184,10 +190,11 @@ qlx.program @bad_duplicate_action_owner : () -> i1 attributes {qlx.stage = "p0"}
 /// that the author left open.
 qlx.program @bad_open_source_owner : () -> i1 attributes {qlx.stage = "p0"} {
   %q0 = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+  // The P0 linear-ownership verifier rejects the leak before the pass.
+  // expected-error@+1 {{is never consumed}}
   %q1 = qlx.prepare "zero" {allocation = 1 : i64, value_index = 1 : i64} : !qlx.logical_qubit
   %t = qlx.apply #qlx.action<t>(%q0) : (!qlx.logical_qubit) -> !qlx.logical_qubit
   %m = qlx.measure #qlx.pauli<Z> %t : !qlx.logical_qubit -> i1
-  // expected-error@+1 {{qlx-to-pbc requires every source logical-qubit owner to be measured or explicitly discarded before return}}
   qlx.return %m : i1
 }
 

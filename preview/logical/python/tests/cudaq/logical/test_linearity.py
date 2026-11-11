@@ -162,9 +162,12 @@ def test_use_after_destructive_measure_fails_at_the_ir_level():
   }
 """)
 
-    # The portable layer agrees: measuring a logical qubit consumes it.
-    program = mlir_ir.Module.parse(
-        """
+    # The portable layer agrees: measuring a logical qubit consumes it, and
+    # the qlx.program verifier rejects the second measurement.
+    with pytest.raises(mlir_ir.MLIRError,
+                       match="consumed more than once: by qlx.measure"):
+        mlir_ir.Module.parse(
+            """
 module {
   qlx.program @p : () -> i1 attributes {qlx.profile = "p0", qlx.stage = "p0"} {
     %q = qlx.prepare "zero" : !qlx.logical_qubit
@@ -175,10 +178,8 @@ module {
   }
 }
 """,
-        mlir_ir.Context(),
-    )
-    with pytest.raises(LinearityError, match="qlx.measure"):
-        verify_linearity(program)
+            mlir_ir.Context(),
+        )
 
 
 def test_linear_state_may_not_be_consumed_inside_an_unowned_loop_body():

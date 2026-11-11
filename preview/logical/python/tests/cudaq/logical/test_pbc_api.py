@@ -373,11 +373,14 @@ module {
     assert "parameter bindings" in capfd.readouterr().err
 
 
-def test_native_pbc_lowering_rejects_open_source_owner(capfd):
-    from cudaq.mlir._mlir_libs import _qlxRuntime as runtime
-
-    module = mlir_ir.Module.parse(
-        r"""
+def test_p0_verifier_rejects_open_source_owner_before_pbc_lowering():
+    # An owner the author left open is a linear-ownership leak. The
+    # qlx.program verifier rejects it at parse time, so PBC lowering never
+    # sees it.
+    with pytest.raises(mlir_ir.MLIRError,
+                       match="is never consumed; every linear owner"):
+        mlir_ir.Module.parse(
+            r"""
 module {
   qlx.program @bad_open_source_owner : () -> i1 attributes {qlx.stage = "p0"} {
     %q0 = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64}
@@ -391,14 +394,8 @@ module {
   }
 }
 """,
-        mlir_ir.Context(),
-    )
-    assert module.operation.verify()
-    assert runtime.verify_clifford_t_module(module) is True
-    with pytest.raises(RuntimeError, match="QLX PBC lowering failed"):
-        runtime.lower_to_pbc_module(module)
-
-    assert "requires every source logical-qubit owner" in capfd.readouterr().err
+            mlir_ir.Context(),
+        )
 
 
 def test_standalone_source_entrypoints_reject_negative_repeat_count(capfd):

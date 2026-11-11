@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
+#include "qlx/Analysis/LinearOwnership.h"
 #include "qlx/Dialect/Event/IR/EventTypes.h"
 #include "qlx/Dialect/QLX/IR/QLXAttrs.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
@@ -1090,6 +1091,10 @@ LogicalResult ProgramOp::verify() {
   return legality;
 }
 
+LogicalResult ProgramOp::verifyRegions() {
+  return qlx::verifyLinearOwnership(getOperation());
+}
+
 LogicalResult ObjectiveBodyOp::verify() {
   auto stage = (*this)->getAttrOfType<StringAttr>("qlx.stage");
   auto profile = (*this)->getAttrOfType<StringAttr>("qlx.profile");
@@ -1151,6 +1156,10 @@ LogicalResult ObjectiveBodyOp::verify() {
     }
   });
   return legality;
+}
+
+LogicalResult ObjectiveBodyOp::verifyRegions() {
+  return qlx::verifyLinearOwnership(getOperation());
 }
 
 // Frame state has no disposal op; the terminal frame is dropped.

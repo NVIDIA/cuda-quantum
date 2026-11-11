@@ -34,7 +34,10 @@ def QLX_LogicalQubitType : QLX_Type<"LogicalQubit", "logical_qubit",
     code, encoding, placement, timing, or cost information.  The type is
     linear, and its values are in SSI form: every value has exactly one use.
     Every transforming operation consumes one value and produces exactly one
-    successor value on every reachable path.
+    successor value on every reachable path.  The type implements
+    `LinearTypeInterface`, and the `qlx.program` and `qlx.objective_body`
+    verifiers reject a value that is consumed twice, captured into a loop,
+    or never consumed.
   }];
 }
 
