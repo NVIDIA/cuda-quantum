@@ -29,7 +29,7 @@ MLIR_CAPI_EXPORTED MlirLogicalResult qlxLowerToPBCModule(MlirModule module);
 MLIR_CAPI_EXPORTED MlirLogicalResult qlxVerifyPBCModule(MlirModule module);
 
 /// True when values of `type` are single-owner linear values: the type
-/// implements qlx::LinearTypeInterface and reports isLinear().
+/// implements cudaq::LinearTypeInterface and reports isLinear().
 MLIR_CAPI_EXPORTED bool qlxTypeIsLinear(MlirType type);
 
 /// Run the linear-ownership analysis over every LinearOwnershipScope op in

@@ -218,7 +218,7 @@ def QLX_ReturnOp : QLX_Op<"return", [Terminator]> {
 
 def QLX_ProgramOp : QLX_Op<"program", [
     IsolatedFromAbove,
-    QLX_LinearOwnershipScope,
+    LinearOwnershipScope,
     Symbol,
     SymbolTable,
     SingleBlockImplicitTerminator<"ReturnOp">
@@ -248,7 +248,7 @@ def QLX_ProgramOp : QLX_Op<"program", [
 
 def QLX_ObjectiveBodyOp : QLX_Op<"objective_body", [
     IsolatedFromAbove,
-    QLX_LinearOwnershipScope,
+    LinearOwnershipScope,
     Symbol,
     SymbolTable,
     SingleBlockImplicitTerminator<"ReturnOp">

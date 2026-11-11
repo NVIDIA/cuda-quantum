@@ -11,7 +11,7 @@
 
 include "qlx/Dialect/Phys/IR/PhysDialect.td"
 include "qlx/Dialect/Event/IR/EventInterfaces.td"
-include "qlx/Interfaces/LinearOwnershipInterfaces.td"
+include "cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.td"
 include "mlir/IR/AttrTypeBase.td"
 
 class Phys_Type<string name, string typeMnemonic, list<Trait> traits = []>
@@ -21,7 +21,7 @@ class Phys_Type<string name, string typeMnemonic, list<Trait> traits = []>
 
 def Phys_StateType : TypeDef<Phys_Dialect, "State", [
     DeclareTypeInterfaceMethods<Event_UniqueCarryOwnerInterface>,
-    QLX_LinearTypeInterface
+    LinearTypeInterface
   ]> {
   let mnemonic = "state";
   let parameters = (ins "mlir::FlatSymbolRefAttr":$resource);
@@ -34,7 +34,7 @@ def Phys_RecordType : Phys_Type<"Record", "record"> {
 }
 
 def Phys_ResourcePayloadType : Phys_Type<"ResourcePayload", "resource_payload",
-    [QLX_LinearTypeInterface]> {
+    [LinearTypeInterface]> {
   let summary = "linear payload delivered by a physical resource provider";
   let parameters = (ins "mlir::FlatSymbolRefAttr":$kind);
   let assemblyFormat = "`<` $kind `>`";

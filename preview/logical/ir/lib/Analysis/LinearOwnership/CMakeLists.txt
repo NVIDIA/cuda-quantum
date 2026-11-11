@@ -16,7 +16,6 @@ add_mlir_library(MLIRQLXLinearOwnership
 
   ADDITIONAL_HEADER_DIRS
   ${PROJECT_SOURCE_DIR}/ir/include/qlx/Analysis
-  ${PROJECT_SOURCE_DIR}/ir/include/qlx/Interfaces
 
   DEPENDS
   MLIRQLXLinearOwnershipInterfacesIncGen

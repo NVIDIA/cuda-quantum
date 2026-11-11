@@ -13,7 +13,7 @@
 
 #include "qlx/Dialect/Event/IR/EventInterfaces.h"
 
-#include "qlx/Interfaces/LinearOwnershipInterfaces.h"
+#include "cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.h"
 
 #define GET_TYPEDEF_CLASSES
 #include "qlx/Dialect/Phys/IR/PhysTypes.h.inc"

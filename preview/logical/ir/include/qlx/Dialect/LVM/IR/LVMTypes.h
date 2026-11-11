@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "qlx/Interfaces/LinearOwnershipInterfaces.h"
+#include "cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Types.h"
 

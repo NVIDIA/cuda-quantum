@@ -10,7 +10,7 @@
 #define QLX_TYPES_TD
 
 include "qlx/Dialect/QLX/IR/QLXDialect.td"
-include "qlx/Interfaces/LinearOwnershipInterfaces.td"
+include "cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.td"
 include "mlir/IR/AttrTypeBase.td"
 
 //===----------------------------------------------------------------------===//
@@ -27,7 +27,7 @@ class QLX_Type<string name, string typeMnemonic, list<Trait> traits = []>
 //===----------------------------------------------------------------------===//
 
 def QLX_LogicalQubitType : QLX_Type<"LogicalQubit", "logical_qubit",
-    [QLX_LinearTypeInterface]> {
+    [LinearTypeInterface]> {
   let summary = "one unplaced logical quantum degree of freedom";
   let description = [{
     The canonical QLX P0 quantum value.  It carries no machine, region,
@@ -42,14 +42,14 @@ def QLX_LogicalQubitType : QLX_Type<"LogicalQubit", "logical_qubit",
 }
 
 def QLX_LogicalResourceType : QLX_Type<"LogicalResource", "logical_resource",
-    [QLX_LinearTypeInterface]> {
+    [LinearTypeInterface]> {
   let summary = "one portable linear logical resource payload";
   let parameters = (ins StringRefParameter<"resource kind">:$kind);
   let assemblyFormat = "`<` $kind `>`";
 }
 
 def QLX_LogicalFrameType : QLX_Type<"LogicalFrame", "logical_frame", [
-    DeclareTypeInterfaceMethods<QLX_LinearTypeInterface, ["mayDrop"]>]> {
+    DeclareTypeInterfaceMethods<LinearTypeInterface, ["mayDrop"]>]> {
   let summary = "portable symbolic logical-frame state";
   let parameters = (ins StringRefParameter<"frame domain">:$domain);
   let assemblyFormat = "`<` $domain `>`";

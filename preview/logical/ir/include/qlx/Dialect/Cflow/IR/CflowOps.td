@@ -11,7 +11,7 @@
 
 include "qlx/Dialect/Cflow/IR/CflowDialect.td"
 include "mlir/IR/OpBase.td"
-include "qlx/Interfaces/LinearOwnershipInterfaces.td"
+include "cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.td"
 
 class Cflow_Op<string mnemonic, list<Trait> traits = []> :
     Op<Cflow_Dialect, mnemonic, traits>;
@@ -22,7 +22,7 @@ class Cflow_Op<string mnemonic, list<Trait> traits = []> :
 
 def Cflow_RepeatOp : Cflow_Op<"repeat", [
     SingleBlockImplicitTerminator<"YieldOp">,
-    QLX_LinearRepeatedRegions
+    LinearRepeatedRegions
   ]> {
   let summary = "Repeat a body N times with loop-carried values";
   let description = [{
@@ -112,7 +112,7 @@ def Cflow_WhileConditionOp : Cflow_Op<"while_condition", [
 //===----------------------------------------------------------------------===//
 
 def Cflow_WhileOp : Cflow_Op<"while", [
-    SingleBlock, QLX_LinearRepeatedRegions
+    SingleBlock, LinearRepeatedRegions
   ]> {
   let summary = "Dynamic loop with typed linear carries";
   let description = [{
@@ -157,7 +157,7 @@ def Cflow_WhileOp : Cflow_Op<"while", [
 
 def Cflow_IfOp : Cflow_Op<"if", [
     SingleBlockImplicitTerminator<"YieldOp">,
-    QLX_LinearExclusiveRegions
+    LinearExclusiveRegions
   ]> {
   let summary = "Conditional execution on a classical bit";
   let description = [{

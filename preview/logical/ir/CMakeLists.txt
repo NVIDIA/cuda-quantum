@@ -7,7 +7,14 @@
 # ============================================================================ #
 
 include(HandleLLVMOptions)
-add_subdirectory(include/qlx/Interfaces)
+# The linear-ownership type interface and op traits live in CUDA-Q core
+# (cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.td). In-tree, wait for
+# their generated headers; against an installed SDK they already exist.
+add_custom_target(MLIRQLXLinearOwnershipInterfacesIncGen)
+if(TARGET LinearOwnershipInterfacesIncGen)
+  add_dependencies(MLIRQLXLinearOwnershipInterfacesIncGen
+    LinearOwnershipInterfacesIncGen)
+endif()
 add_subdirectory(include/qlx/Conversion)
 add_subdirectory(include/qlx/Dialect/Cflow)
 add_subdirectory(include/qlx/Dialect/Event)

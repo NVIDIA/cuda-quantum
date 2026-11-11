@@ -23,7 +23,7 @@
 
 include "qlx/Dialect/Fabric/IR/FabricDialect.td"
 include "qlx/Dialect/Fabric/IR/FabricAttrs.td"
-include "qlx/Interfaces/LinearOwnershipInterfaces.td"
+include "cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.td"
 include "mlir/IR/AttrTypeBase.td"
 
 //===----------------------------------------------------------------------===//
@@ -31,7 +31,7 @@ include "mlir/IR/AttrTypeBase.td"
 //===----------------------------------------------------------------------===//
 
 def Fabric_PatchType : TypeDef<Fabric_Dialect, "Patch",
-    [QLX_LinearTypeInterface]> {
+    [LinearTypeInterface]> {
   let mnemonic = "patch";
   let summary = "linear QEC block value parameterized by code and optional encoding";
   let description = [{
@@ -72,7 +72,7 @@ def Fabric_PatchType : TypeDef<Fabric_Dialect, "Patch",
 }
 
 def Fabric_PatchFrameType : TypeDef<Fabric_Dialect, "PatchFrame",
-    [QLX_LinearTypeInterface]> {
+    [LinearTypeInterface]> {
   let mnemonic = "patch_frame";
   let summary = "linear carrier frame during one code/encoding transformation";
   let description = [{
@@ -152,7 +152,7 @@ def Fabric_GaugeRecordsType : TypeDef<Fabric_Dialect, "GaugeRecords"> {
 }
 
 def Fabric_PatchBundleType : TypeDef<Fabric_Dialect, "PatchBundle",
-    [QLX_LinearTypeInterface]> {
+    [LinearTypeInterface]> {
   let mnemonic = "patch_bundle";
   let summary = "linear folded child-patch aggregate for an encoding hierarchy";
   let description = [{
@@ -175,7 +175,7 @@ def Fabric_RecordBundleType : TypeDef<Fabric_Dialect, "RecordBundle"> {
 }
 
 def Fabric_ResourceStateType : TypeDef<Fabric_Dialect, "ResourceState",
-    [QLX_LinearTypeInterface]> {
+    [LinearTypeInterface]> {
   let mnemonic = "resource";
   let summary = "distilled resource state for non-Clifford gates";
   let description = [{
@@ -227,7 +227,7 @@ def Fabric_BitType : Fabric_SimpleType<"Bit", "bit"> {
 }
 
 def Fabric_FrameType : TypeDef<Fabric_Dialect, "Frame", [
-    DeclareTypeInterfaceMethods<QLX_LinearTypeInterface, ["mayDrop"]>]> {
+    DeclareTypeInterfaceMethods<LinearTypeInterface, ["mayDrop"]>]> {
   let mnemonic = "frame";
   let summary = "Pauli frame tracker";
   let description = [{

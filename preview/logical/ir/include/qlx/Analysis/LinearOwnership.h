@@ -8,11 +8,12 @@
 //
 // Linear single-ownership analysis.
 //
-// Values whose type implements `qlx::LinearTypeInterface` (logical qubits,
+// Values whose type implements `cudaq::LinearTypeInterface` (logical qubits,
 // patches, resource payloads, physical states, linear event handles, frames)
 // must have exactly one consuming use on every execution path. Plain SSA does
 // not enforce this. The analysis below does, driven only by the interface and
-// the op traits declared in LinearOwnershipInterfaces.td, so it names no
+// the op traits declared in CUDA-Q core
+// (cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.td), so it names no
 // dialect.
 //
 // Per value it checks four rules:
@@ -35,7 +36,7 @@
 
 #pragma once
 
-#include "qlx/Interfaces/LinearOwnershipInterfaces.h"
+#include "cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.h"
 
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/IR/Operation.h"

@@ -60,7 +60,9 @@ MlirLogicalResult qlxVerifyPBCModule(MlirModule module) {
              : mlirLogicalResultFailure();
 }
 
-bool qlxTypeIsLinear(MlirType type) { return qlx::isLinearType(unwrap(type)); }
+bool qlxTypeIsLinear(MlirType type) {
+  return cudaq::isLinearOwnershipType(unwrap(type));
+}
 
 void qlxAnalyzeLinearOwnershipJSON(MlirOperation root,
                                    MlirStringCallback callback,

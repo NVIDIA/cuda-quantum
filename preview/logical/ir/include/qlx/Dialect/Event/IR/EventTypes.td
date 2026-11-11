@@ -16,11 +16,11 @@
 
 include "qlx/Dialect/Event/IR/EventDialect.td"
 include "qlx/Dialect/Event/IR/EventInterfaces.td"
-include "qlx/Interfaces/LinearOwnershipInterfaces.td"
+include "cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.td"
 include "mlir/IR/AttrTypeBase.td"
 
 def Event_HandleType : TypeDef<Event_Dialect, "Handle", [
-    DeclareTypeInterfaceMethods<QLX_LinearTypeInterface, ["isLinear"]>]> {
+    DeclareTypeInterfaceMethods<LinearTypeInterface, ["isLinear"]>]> {
   let mnemonic = "handle";
   let summary = "one outstanding asynchronous delivery of a typed payload";
   let description = [{

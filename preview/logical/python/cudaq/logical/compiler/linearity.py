@@ -15,7 +15,7 @@ execution path.
 The rule lives in C++ (``qlx/Analysis/LinearOwnership.h``) and is driven by
 the IR itself rather than by names:
 
-- A type is linear when it implements ``qlx::LinearTypeInterface``.
+- A type is linear when it implements ``cudaq::LinearTypeInterface``.
   ``mayDrop()`` types (frames) may go unconsumed.
 - An op with the ``LinearBorrowsOperands`` trait observes its operands;
   every other use consumes.

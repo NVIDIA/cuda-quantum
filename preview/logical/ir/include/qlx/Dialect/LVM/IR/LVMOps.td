@@ -113,7 +113,7 @@ def LVM_ReturnOp : LVM_Op<"return", [Terminator]> {
 }
 
 def LVM_KernelOp : LVM_Op<"kernel", [
-    Symbol, IsolatedFromAbove, QLX_LinearOwnershipScope, SingleBlockImplicitTerminator<"ReturnOp">
+    Symbol, IsolatedFromAbove, LinearOwnershipScope, SingleBlockImplicitTerminator<"ReturnOp">
   ]> {
   let summary = "P1 logical kernel statically bound to one domain";
   let description = [{

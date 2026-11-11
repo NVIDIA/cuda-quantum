@@ -12,7 +12,7 @@
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Types.h"
 
-#include "qlx/Interfaces/LinearOwnershipInterfaces.h"
+#include "cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.h"
 
 #define GET_TYPEDEF_CLASSES
 #include "qlx/Dialect/QLX/IR/QLXTypes.h.inc"

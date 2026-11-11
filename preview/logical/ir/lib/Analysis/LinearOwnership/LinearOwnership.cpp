@@ -21,8 +21,6 @@
 
 using namespace mlir;
 
-#include "qlx/Interfaces/LinearOwnershipInterfaces.cpp.inc"
-
 namespace {
 
 /// One use of a linear value, positioned relative to the region that defines
@@ -73,7 +71,7 @@ LinearUse makeUse(Region *defining, Operation *owner) {
 }
 
 bool borrows(Operation *owner) {
-  return owner->hasTrait<qlx::LinearBorrowsOperands>();
+  return owner->hasTrait<cudaq::LinearBorrowsOperands>();
 }
 
 /// True when both consuming uses can execute for one owner.
@@ -90,7 +88,7 @@ bool consumesConflict(const LinearUse &left, const LinearUse &right) {
     if (left.endsAt(depth) || right.endsAt(depth))
       return true;
     if (left.chain[depth].second != right.chain[depth].second)
-      return !leftOp->hasTrait<qlx::LinearExclusiveRegions>();
+      return !leftOp->hasTrait<cudaq::LinearExclusiveRegions>();
   }
 }
 
@@ -144,7 +142,7 @@ public:
 
   void run() {
     scope->walk<WalkOrder::PreOrder>([&](Operation *op) {
-      if (op != scope && op->hasTrait<qlx::LinearOwnershipScope>())
+      if (op != scope && op->hasTrait<cudaq::LinearOwnershipScope>())
         return WalkResult::skip();
       for (Region &region : op->getRegions())
         for (Block &block : region)
@@ -161,7 +159,7 @@ private:
   bool done() const { return firstOnly && !report.violations.empty(); }
 
   void checkValue(Value value) {
-    if (done() || !qlx::isLinearType(value.getType()))
+    if (done() || !cudaq::isLinearOwnershipType(value.getType()))
       return;
     ++report.linearValues;
 
@@ -185,7 +183,7 @@ private:
     std::reverse(consumes.begin(), consumes.end());
     std::reverse(observations.begin(), observations.end());
 
-    bool mayDrop = cast<qlx::LinearTypeInterface>(value.getType()).mayDrop();
+    bool mayDrop = cast<cudaq::LinearTypeInterface>(value.getType()).mayDrop();
     Operation *definer = value.getDefiningOp();
     Location definitionLoc =
         definer
@@ -195,7 +193,7 @@ private:
     // Rule 1: no consume inside a repeated region that does not own it.
     for (const LinearUse &use : consumes)
       for (auto [ancestor, region] : use.chain)
-        if (ancestor->hasTrait<qlx::LinearRepeatedRegions>()) {
+        if (ancestor->hasTrait<cudaq::LinearRepeatedRegions>()) {
           report_("loop-capture-consume", value, use.owner->getLoc(),
                   std::nullopt, [&](raw_ostream &os) {
                     os << " defined outside " << ancestor->getName()
@@ -254,7 +252,7 @@ private:
     llvm::MapVector<Operation *, llvm::SmallSet<unsigned, 4>> covered;
     for (const LinearUse &use : consumes)
       for (auto [ancestor, region] : use.chain)
-        if (ancestor->hasTrait<qlx::LinearExclusiveRegions>())
+        if (ancestor->hasTrait<cudaq::LinearExclusiveRegions>())
           covered[ancestor].insert(region);
     for (auto &[op, regions] : covered)
       if (regions.size() < nonEmptyRegionCount(op)) {
@@ -338,7 +336,8 @@ bool qlx::isDeclarationOnlyScope(Operation *scope) {
 qlx::LinearOwnershipReport qlx::analyzeLinearOwnership(Operation *root) {
   LinearOwnershipReport report;
   root->walk<WalkOrder::PreOrder>([&](Operation *op) {
-    if (op->hasTrait<LinearOwnershipScope>() && !isDeclarationOnlyScope(op))
+    if (op->hasTrait<cudaq::LinearOwnershipScope>() &&
+        !isDeclarationOnlyScope(op))
       analyzeLinearOwnershipScope(op, report);
   });
   return report;
