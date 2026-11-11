@@ -23,6 +23,7 @@ add_mlir_library(MLIRQLXTransforms
   QLXVerifyPBC.cpp
   QLXSynthesize.cpp
   QLXToPBC.cpp
+  QLXVerifyLinearity.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${PROJECT_SOURCE_DIR}/ir/include/qlx/Dialect/QLX/Transforms
@@ -33,6 +34,7 @@ add_mlir_library(MLIRQLXTransforms
 
   LINK_LIBS PUBLIC
   MLIRQLXDialect
+  MLIRQLXLinearOwnership
   MLIRCflowDialect
   GMP::gmp
   MPFR::mpfr
