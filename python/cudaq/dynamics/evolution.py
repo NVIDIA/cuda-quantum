@@ -32,7 +32,17 @@ def _taylor_series_expm(op_matrix: NDArray[numpy.complexfloating],
                         order: int = 20) -> NDArray[numpy.complexfloating]:
     """
     Approximate the matrix exponential using the Taylor series expansion.
+
+    The truncated series is only accurate for matrices with a small norm.
+    Matrices with a larger norm are scaled down by a power of two first, and
+    the result is squared back up (scaling and squaring).
     """
+    num_squarings = 0
+    norm = numpy.linalg.norm(op_matrix, ord=1)
+    if numpy.isfinite(norm) and norm > 0.5:
+        num_squarings = int(numpy.ceil(numpy.log2(norm / 0.5)))
+        op_matrix = op_matrix / 2**num_squarings
+
     result = numpy.eye(op_matrix.shape[0], dtype=op_matrix.dtype)
     op_matrix_n = numpy.eye(op_matrix.shape[0], dtype=op_matrix.dtype)
     factorial = 1
@@ -41,6 +51,9 @@ def _taylor_series_expm(op_matrix: NDArray[numpy.complexfloating],
         op_matrix_n = numpy.dot(op_matrix_n, op_matrix)
         factorial *= n
         result += op_matrix_n / factorial
+
+    for _ in range(num_squarings):
+        result = numpy.dot(result, result)
 
     return result
 

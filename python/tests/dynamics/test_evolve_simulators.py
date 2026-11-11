@@ -632,6 +632,38 @@ def test_evolve_reuses_single_hamiltonian_for_batched_initial_states(target):
 
 
 @pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])
+@pytest.mark.parametrize("omega", [1.0, 10.0, 40.0])
+def test_evolve_large_time_step(target, omega):
+    """A single step under a constant Hamiltonian is exact for any step size."""
+
+    cudaq.reset_target()
+    cudaq.set_target(target)
+
+    initial_data = np.array([1.0, 0.0], dtype=np.complex128)
+    if target == "density-matrix-cpu":
+        initial_data = np.outer(initial_data, np.conj(initial_data))
+
+    result = cudaq.evolve(
+        omega * spin.x(0), {0: 2},
+        Schedule([0.0, 1.0], ["time"]),
+        cudaq.State.from_data(initial_data),
+        observables=[spin.z(0)],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+
+    # exp(-i * omega * X) |0> = cos(omega) |0> - i * sin(omega) |1>
+    expected_state = np.array([np.cos(omega), -1j * np.sin(omega)])
+    if target == "density-matrix-cpu":
+        expected_state = np.outer(expected_state, np.conj(expected_state))
+    np.testing.assert_allclose(result.final_state().to_numpy(),
+                               expected_state,
+                               atol=1e-9)
+    np.testing.assert_allclose(
+        result.final_expectation_values()[0].expectation(),
+        np.cos(2 * omega),
+        atol=1e-9)
+
+
+@pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])
 def test_evolve_preserves_qubits_not_in_hamiltonian(target):
     """A local Hamiltonian should not shrink the full system state."""
 
