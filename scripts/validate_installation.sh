@@ -22,6 +22,7 @@
 #   Launch the NVIDIA CUDA-Q Docker container,
 #   and run this script from the home directory.
 #   Check the logged output.
+#   If the image has CUDA-Q Logical, its examples in logical-examples/ are run too.
 
 this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -671,6 +672,41 @@ then
             fi
         fi
     done
+fi
+
+# CUDA-Q Logical examples. The release image ships them in logical-examples/
+# when the Logical wheel is installed, so the folder is the signal. The numbered
+# examples and the Steane workflow are the ones the Logical docs CI runs, and
+# helper modules and the MLIR/README files in the folder are not run.
+if [ -d "logical-examples/" ];
+then
+    if ! python3 -c "import cudaq.logical" 2>/dev/null; then
+        echo -e "\e[01;31mError: logical-examples/ is present but cudaq.logical cannot be imported.\e[0m" >&2
+        let "samples+=1"
+        let "failed+=1"
+        echo ":x: logical-examples: cudaq.logical is not importable." >> "${tmpFile}"
+    else
+        for ex in `find logical-examples/ \( -name '[0-9]*.py' -o -name 'steane_bell_e2e_workflow.py' \) | sort`;
+        do
+            filename=$(basename -- "$ex")
+            filename="${filename%.*}"
+            echo "Testing $filename:"
+            echo "Source: $ex"
+            let "samples+=1"
+
+            python3 $ex 1> /dev/null
+            status=$?
+            echo "Exited with code $status"
+            if [ "$status" -eq "0" ]; then
+                let "passed+=1"
+                echo ":white_check_mark: Successfully ran $ex." >> "${tmpFile}"
+            else
+                let "failed+=1"
+                echo ":x: Failed to run $ex." >> "${tmpFile}"
+            fi
+            echo "============================="
+        done
+    fi
 fi
 
 fi # CUDAQ_VALIDATION_TARGET_TESTS_ONLY
