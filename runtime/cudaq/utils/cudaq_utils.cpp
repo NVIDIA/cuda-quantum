@@ -8,6 +8,7 @@
 
 #include "cudaq_utils.h"
 
+#include <cstdint>
 #include <random>
 
 namespace cudaq {
@@ -22,7 +23,8 @@ std::vector<double> linspace(double a, double b, size_t N) {
 }
 
 std::vector<double> random_vector(const double l_range, const double r_range,
-                                  const std::size_t size, const uint32_t seed) {
+                                  const std::size_t size,
+                                  const std::uint32_t seed) {
   // Generate a random initial parameter set
   std::mt19937 mersenne_engine{seed};
   std::uniform_real_distribution<double> dist{l_range, r_range};

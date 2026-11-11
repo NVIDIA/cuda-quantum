@@ -40,12 +40,12 @@ struct NativeScheduleRow {
   llvm::StringRef parent;
   llvm::StringRef branch;
   llvm::StringRef condition;
-  std::optional<int64_t> maxAttempts;
+  std::optional<std::int64_t> maxAttempts;
   llvm::StringRef commitPoint;
-  std::optional<int64_t> repeatCount;
+  std::optional<std::int64_t> repeatCount;
   std::optional<double> repeatPeriod;
   std::optional<double> repeatEpilogue;
-  std::optional<int64_t> maxIterations;
+  std::optional<std::int64_t> maxIterations;
   llvm::StringRef callee;
   llvm::StringRef instance;
   llvm::StringRef profile;

@@ -11,6 +11,7 @@
 #include <atomic>
 #include <barrier>
 #include <chrono>
+#include <cstdint>
 #include <future>
 #include <gtest/gtest.h>
 #include <thread>
@@ -263,14 +264,14 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
 
   {
     auto func0 =
-        [](const std::vector<int64_t> &dimensions,
+        [](const std::vector<std::int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           return cudaq::kronecker(utils::position_matrix(dimensions[1]),
                                   utils::momentum_matrix(dimensions[0]));
           ;
         };
     auto func1 =
-        [](const std::vector<int64_t> &dimensions,
+        [](const std::vector<std::int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           return cudaq::kronecker(utils::number_matrix(dimensions[1]),
                                   utils::position_matrix(dimensions[0]));
@@ -828,14 +829,14 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
 
   {
     auto func0 =
-        [](const std::vector<int64_t> &dimensions,
+        [](const std::vector<std::int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           return cudaq::kronecker(utils::momentum_matrix(dimensions[0]),
                                   utils::position_matrix(dimensions[1]));
           ;
         };
     auto func1 =
-        [](const std::vector<int64_t> &dimensions,
+        [](const std::vector<std::int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           return cudaq::kronecker(utils::position_matrix(dimensions[0]),
                                   utils::number_matrix(dimensions[1]));

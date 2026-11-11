@@ -67,8 +67,8 @@ struct DispatchConfig {
   /// One block of `threads_per_block` threads (default 32) is the block every
   /// DEVICE_CALL handler runs on, in unified mode as in 3-kernel mode.
   cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_REGULAR;
-  uint32_t num_blocks = 1;
-  uint32_t threads_per_block = 32;
+  std::uint32_t num_blocks = 1;
+  std::uint32_t threads_per_block = 32;
   // Forward mode: use GpuRoceTransceiver's built-in forward kernel (echo)
   // instead of separate RX + dispatch + TX kernels.  Useful for baseline
   // latency testing.
@@ -187,9 +187,9 @@ int main(int argc, char *argv[]) {
     volatile int *shutdown_flag = static_cast<volatile int *>(tmp_shutdown);
 
     // CUDA-Q realtime variables
-    uint64_t *d_stats = nullptr;
-    BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
-    BRIDGE_CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(uint64_t)));
+    std::uint64_t *d_stats = nullptr;
+    BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(std::uint64_t)));
+    BRIDGE_CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(std::uint64_t)));
     cudaq_function_entry_t *d_function_entries = nullptr;
     cudaq_dispatch_manager_t *manager = nullptr;
     cudaq_dispatcher_t *dispatcher = nullptr;
@@ -293,7 +293,7 @@ int main(int argc, char *argv[]) {
         cudaStreamCreateWithFlags(&diag_stream, cudaStreamNonBlocking));
 
     auto start_time = std::chrono::steady_clock::now();
-    uint64_t last_processed = 0;
+    std::uint64_t last_processed = 0;
 
     while (!g_shutdown) {
       auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
@@ -307,8 +307,8 @@ int main(int argc, char *argv[]) {
 
       // Progress report every 5 seconds
       if (!config.forward && d_stats && elapsed > 0 && elapsed % 5 == 0) {
-        uint64_t processed = 0;
-        cudaMemcpyAsync(&processed, d_stats, sizeof(uint64_t),
+        std::uint64_t processed = 0;
+        cudaMemcpyAsync(&processed, d_stats, sizeof(std::uint64_t),
                         cudaMemcpyDeviceToHost, diag_stream);
         cudaStreamSynchronize(diag_stream);
         if (processed != last_processed) {
@@ -330,7 +330,7 @@ int main(int argc, char *argv[]) {
       __sync_synchronize();
       cudaq_dispatcher_stop(dispatcher);
 
-      uint64_t total_processed = 0;
+      std::uint64_t total_processed = 0;
       cudaq_dispatcher_get_processed(dispatcher, &total_processed);
       std::cout << "  Total packets processed (dispatch RX): "
                 << total_processed << std::endl;

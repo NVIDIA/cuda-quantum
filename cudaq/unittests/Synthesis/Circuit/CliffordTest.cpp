@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "Circuit/Clifford.h"
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <sstream>
 
@@ -33,10 +34,10 @@ static std::string describe(const Clifford &c) {
 // rather than the identity. The synthesis path only calls inv() on the fixed
 // H and SH values, so nothing downstream exercised the defective row.
 TEST(CliffordInverseTest, InverseIsTwoSidedForAllElements) {
-  for (int32_t a = 0; a < 3; ++a)
-    for (int32_t b = 0; b < 2; ++b)
-      for (int32_t c = 0; c < 4; ++c)
-        for (int32_t d = 0; d < 8; ++d) {
+  for (std::int32_t a = 0; a < 3; ++a)
+    for (std::int32_t b = 0; b < 2; ++b)
+      for (std::int32_t c = 0; c < 4; ++c)
+        for (std::int32_t d = 0; d < 8; ++d) {
           Clifford elem(a, b, c, d);
           Clifford inverse = elem.inv();
 
@@ -51,10 +52,10 @@ TEST(CliffordInverseTest, InverseIsTwoSidedForAllElements) {
 
 // The inverse is unique in a group, so inverting twice is the identity map.
 TEST(CliffordInverseTest, InverseIsAnInvolution) {
-  for (int32_t a = 0; a < 3; ++a)
-    for (int32_t b = 0; b < 2; ++b)
-      for (int32_t c = 0; c < 4; ++c)
-        for (int32_t d = 0; d < 8; ++d) {
+  for (std::int32_t a = 0; a < 3; ++a)
+    for (std::int32_t b = 0; b < 2; ++b)
+      for (std::int32_t c = 0; c < 4; ++c)
+        for (std::int32_t d = 0; d < 8; ++d) {
           Clifford elem(a, b, c, d);
           EXPECT_EQ(elem.inv().inv(), elem) << describe(elem);
         }

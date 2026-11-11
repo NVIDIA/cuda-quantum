@@ -76,7 +76,7 @@ cudaq_status_t launch_own_dispatcher(void *transport_ctx, size_t tx_stride_sz,
                                      cudaq_function_entry_t *function_table,
                                      size_t func_count,
                                      volatile int *shutdown_flag,
-                                     uint64_t *stats, uint32_t,
+                                     std::uint64_t *stats, std::uint32_t,
                                      cudaStream_t stream) {
   void *args[] = {&transport_ctx,  &tx_stride_sz, &shutdown_flag,
                   &function_table, &func_count,   &stats};
@@ -103,7 +103,8 @@ cudaEvent_t own_dispatcher_done = nullptr;
 cudaq_status_t launch_then_fail(void *transport_ctx, size_t tx_stride_sz,
                                 cudaq_function_entry_t *function_table,
                                 size_t func_count, volatile int *shutdown_flag,
-                                uint64_t *stats, uint32_t threads_per_block,
+                                std::uint64_t *stats,
+                                std::uint32_t threads_per_block,
                                 cudaStream_t stream) {
   if (launch_own_dispatcher(transport_ctx, tx_stride_sz, function_table,
                             func_count, shutdown_flag, stats, threads_per_block,

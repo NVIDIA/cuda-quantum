@@ -45,14 +45,14 @@ namespace cudaq::synth {
 /// absolute deadline so that every solve in a search shares one clock.
 struct DiophantineBudget {
   /// Rho iterations one factoring attempt may spend.
-  uint64_t maxFactoringIterations;
+  std::uint64_t maxFactoringIterations;
 
   /// Rho iterations this whole solve may spend across its attempts.
-  uint64_t maxCandidateIterations;
+  std::uint64_t maxCandidateIterations;
 
   /// Consecutive failed attempts allowed on one composite before the solve
   /// gives up on it.
-  uint32_t maxFactoringRestarts;
+  std::uint32_t maxFactoringRestarts;
 
   /// Wall-clock deadline for the enclosing search, or unset for none. Unset
   /// is the reproducible configuration, see `GridsynthOptions::timeout`.
@@ -98,7 +98,7 @@ llvm::FailureOr<DOmega> diophantine_dyadic(const DSqrt2 &xi,
 /// remains machine-dependent.
 class ScopedFactoringRngSeed {
 public:
-  explicit ScopedFactoringRngSeed(uint64_t seed);
+  explicit ScopedFactoringRngSeed(std::uint64_t seed);
   ~ScopedFactoringRngSeed();
 
   ScopedFactoringRngSeed(const ScopedFactoringRngSeed &) = delete;

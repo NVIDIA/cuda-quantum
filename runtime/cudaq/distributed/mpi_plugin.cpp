@@ -149,7 +149,7 @@ void MPIPlugin::all_gather(std::vector<double> &global,
 
 void MPIPlugin::all_gather(std::vector<int> &global,
                            const std::vector<int> &local) {
-  const auto dataType = (sizeof(int) == sizeof(int64_t)) ? INT_64 : INT_32;
+  const auto dataType = (sizeof(int) == sizeof(std::int64_t)) ? INT_64 : INT_32;
   allGatherV(m_distributedInterface, m_comm, global, local, dataType);
 }
 

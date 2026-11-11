@@ -10,6 +10,8 @@
 
 #include "cudaq/runtime/logger/tracer.h"
 
+#include <cstdint>
+
 namespace cudaq {
 
 class SpdlogTraceBackend : public TraceBackend {
@@ -18,7 +20,7 @@ public:
   ~SpdlogTraceBackend() override;
 
   void onBegin(const TraceEvent &) override;
-  void onEnd(const TraceEvent &e, uint64_t durUs) override;
+  void onEnd(const TraceEvent &e, std::uint64_t durUs) override;
 };
 
 } // namespace cudaq

@@ -348,7 +348,7 @@ void __quantum__rt__set_dynamic_qubit_management(bool isDynamic) {
 }
 
 /// @brief QIR Initialization function
-void __quantum__rt__initialize(int argc, int8_t **argv) {
+void __quantum__rt__initialize(int argc, std::int8_t **argv) {
   if (!initialized) {
     // We may need this init function later....
     initialized = true;
@@ -438,7 +438,7 @@ __quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(std::uint64_t,
 }
 
 Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
-    uint64_t numQubits, std::complex<float> *data) {
+    std::uint64_t numQubits, std::complex<float> *data) {
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex32",
                          numQubits);
   __quantum__rt__initialize(0, nullptr);
@@ -458,8 +458,9 @@ Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
   return vectorSizetToArray(qubitIdxs);
 }
 
-Array *__quantum__rt__qubit_allocate_array_with_state_fp32(uint64_t numQubits,
-                                                           float *data) {
+Array *
+__quantum__rt__qubit_allocate_array_with_state_fp32(std::uint64_t numQubits,
+                                                    float *data) {
   ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp32",
                          numQubits);
   if (nvqir::getCircuitSimulatorInternal()->isSinglePrecision()) {
@@ -537,37 +538,41 @@ void __quantum__rt__array_record_output(std::uint64_t len, const char *label) {
 // Runtime helpers for logging a dynamic-size span of primitive values. These
 // are called from kernels whose return type is a vector with a size that is
 // only known at runtime (i.e. not a compile-time constant).
-void __quantum__rt__bool_span_record_output(int8_t *data, int64_t count) {
+void __quantum__rt__bool_span_record_output(std::int8_t *data,
+                                            std::int64_t count) {
   std::string arrLabel =
       std::string("array<i1 x ") + std::to_string(count) + ">";
   __quantum__rt__array_record_output(count, arrLabel.c_str());
-  for (int64_t i = 0; i < count; ++i) {
+  for (std::int64_t i = 0; i < count; ++i) {
     std::string elemLabel = std::string("[") + std::to_string(i) + "]";
     __quantum__rt__bool_record_output(data[i] != 0, elemLabel.c_str());
   }
 }
 
-void __quantum__rt__int_span_record_output(int8_t *data, int64_t count,
-                                           int32_t elemSizeBytes) {
+void __quantum__rt__int_span_record_output(std::int8_t *data,
+                                           std::int64_t count,
+                                           std::int32_t elemSizeBytes) {
   std::string typeStr = std::string("i") + std::to_string(elemSizeBytes * 8);
   std::string arrLabel =
       std::string("array<") + typeStr + " x " + std::to_string(count) + ">";
   __quantum__rt__array_record_output(count, arrLabel.c_str());
-  for (int64_t i = 0; i < count; ++i) {
+  for (std::int64_t i = 0; i < count; ++i) {
     std::string elemLabel = std::string("[") + std::to_string(i) + "]";
-    int64_t val = 0;
+    std::int64_t val = 0;
     switch (elemSizeBytes) {
     case 1:
-      val = static_cast<int64_t>(data[i]);
+      val = static_cast<std::int64_t>(data[i]);
       break;
     case 2:
-      val = static_cast<int64_t>(*reinterpret_cast<int16_t *>(data + i * 2));
+      val = static_cast<std::int64_t>(
+          *reinterpret_cast<std::int16_t *>(data + i * 2));
       break;
     case 4:
-      val = static_cast<int64_t>(*reinterpret_cast<int32_t *>(data + i * 4));
+      val = static_cast<std::int64_t>(
+          *reinterpret_cast<std::int32_t *>(data + i * 4));
       break;
     case 8:
-      val = *reinterpret_cast<int64_t *>(data + i * 8);
+      val = *reinterpret_cast<std::int64_t *>(data + i * 8);
       break;
     default:
       throw std::runtime_error("int_span_record_output: unknown data kind.");
@@ -576,13 +581,14 @@ void __quantum__rt__int_span_record_output(int8_t *data, int64_t count,
   }
 }
 
-void __quantum__rt__float_span_record_output(int8_t *data, int64_t count,
-                                             int32_t elemSizeBytes) {
+void __quantum__rt__float_span_record_output(std::int8_t *data,
+                                             std::int64_t count,
+                                             std::int32_t elemSizeBytes) {
   std::string typeStr = std::string("f") + std::to_string(elemSizeBytes * 8);
   std::string arrLabel =
       std::string("array<") + typeStr + " x " + std::to_string(count) + ">";
   __quantum__rt__array_record_output(count, arrLabel.c_str());
-  for (int64_t i = 0; i < count; ++i) {
+  for (std::int64_t i = 0; i < count; ++i) {
     std::string elemLabel = std::string("[") + std::to_string(i) + "]";
     double val = 0.0;
     switch (elemSizeBytes) {
@@ -892,7 +898,7 @@ static void applyExpPauli(double theta, Array *ctrls, Array *qubits,
                           const std::vector<std::int32_t> &controlValues = {}) {
   struct CLikeString {
     char *ptr = nullptr;
-    int64_t length = 0;
+    std::int64_t length = 0;
   };
   auto *castedString = reinterpret_cast<CLikeString *>(pauliWord);
   std::string pauliWordStr(castedString->ptr, castedString->length);
@@ -925,7 +931,7 @@ void __quantum__qis__exp_pauli__body(double theta, Array *qubits,
   return __quantum__qis__exp_pauli(theta, qubits, pauliWord);
 }
 
-void __quantum__rt__result_record_output(Result *r, int8_t *name) {
+void __quantum__rt__result_record_output(Result *r, std::int8_t *name) {
   if (nvqir::getCircuitSimulatorInternal()->getExecutionContextType() ==
       cudaq::detail::ExecutionContextType::run) {
 
@@ -960,7 +966,7 @@ static inline std::int64_t resultPtrToMeasureIndex(Result *r) {
 }
 
 // Validate the `(results, count)` pair from the QIR side and return the
-// indices as `std::vector<int64_t>`.
+// indices as `std::vector<std::int64_t>`.
 static std::vector<std::int64_t> resultArrayToIndices(Result **results,
                                                       std::int64_t count) {
   if (count < 0)

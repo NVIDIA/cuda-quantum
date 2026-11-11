@@ -24,6 +24,7 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <string>
 
@@ -67,7 +68,7 @@ struct ImportState {
   DenseMap<Value, std::pair<unsigned, unsigned>> vectorArgumentSlices;
   SmallVector<Value> referenceResults;
   bool referenceABI = false;
-  int64_t nextAllocation = 0;
+  std::int64_t nextAllocation = 0;
 };
 
 // Which op set a region accepts. Repeat bodies additionally permit closed
@@ -77,12 +78,12 @@ enum class RegionPolicy { Entry, RepeatBody, IfBranch };
 
 // A cc.loop proven to be a normalized constant-trip counted loop.
 struct NormalizedCountedLoop {
-  int64_t tripCount;
+  std::int64_t tripCount;
   unsigned inductionIndex;
   SmallVector<unsigned> wireCarries; // indices into initialArgs that are wires
 };
 
-static std::optional<int64_t> constInt(Value v) {
+static std::optional<std::int64_t> constInt(Value v) {
   if (auto c = v.getDefiningOp<mlir::arith::ConstantOp>())
     if (auto ia = dyn_cast<IntegerAttr>(c.getValue()))
       return ia.getInt();
@@ -140,7 +141,7 @@ matchNormalizedCountedLoop(cudaq::cc::LoopOp loop) {
   auto lhsArg = dyn_cast<BlockArgument>(cmp.getLhs());
   auto rhsArg = dyn_cast<BlockArgument>(cmp.getRhs());
   BlockArgument indArg;
-  std::optional<int64_t> trip;
+  std::optional<std::int64_t> trip;
   if (cmp.getPredicate() == mlir::arith::CmpIPredicate::ne) {
     if (lhsArg && lhsArg.getOwner() == &whileBlk &&
         (trip = constInt(cmp.getRhs())))
@@ -555,7 +556,7 @@ private:
   DenseSet<Operation *> objectiveDeclarations;
   llvm::StringMap<std::string> qlxSymbols;
   llvm::StringMap<bool> objectiveSymbols;
-  llvm::StringMap<SmallVector<uint64_t>> helperArgumentWidths;
+  llvm::StringMap<SmallVector<std::uint64_t>> helperArgumentWidths;
 
   static std::string portableSymbol(StringRef source) {
     source.consume_front("__nvqpp__mlirgen__");
@@ -617,7 +618,7 @@ private:
           result = failure();
           return;
         }
-        SmallVector<uint64_t> widths;
+        SmallVector<std::uint64_t> widths;
         for (auto [argument, parameter] :
              llvm::zip(call.getActuals(), callee.getArgumentTypes())) {
           if (isa<cudaq::quake::RefType>(parameter) &&
@@ -907,7 +908,7 @@ private:
   template <typename GateOp>
   static LogicalResult convertRotation(GateOp gate, OpBuilder &builder,
                                        DenseMap<Value, Value> &values,
-                                       int64_t xMask, int64_t zMask) {
+                                       std::int64_t xMask, std::int64_t zMask) {
     if (!gate.getControls().empty())
       return gate.emitOpError(
           "controlled rotations are outside the Quake-to-P0 "
@@ -929,7 +930,7 @@ private:
     // then normalize both adjoint and negative-source angles into that single
     // canonical representation.
     double signedAngle = gate.getIsAdj() ? -*angle : *angle;
-    int64_t sign = signedAngle < 0.0 ? -1 : 1;
+    std::int64_t sign = signedAngle < 0.0 ? -1 : 1;
     double magnitude = std::abs(signedAngle);
 
     auto found = values.find(gate.getTargets()[0]);

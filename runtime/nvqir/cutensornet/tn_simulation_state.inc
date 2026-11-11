@@ -11,6 +11,8 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include <cuComplex.h>
 
+#include <cstdint>
+
 namespace nvqir {
 int deviceFromPointer(void *ptr) {
   cudaPointerAttributes attributes;
@@ -54,14 +56,14 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   // Append them to ket
   // Note: we clone a new ket tensor network to keep this ket as-is.
   const auto nbQubits = std::max(getNumQubits(), other.getNumQubits());
-  const std::vector<int64_t> qubitDims(nbQubits, 2);
+  const std::vector<std::int64_t> qubitDims(nbQubits, 2);
   cutensornetState_t tempQuantumState;
   auto &cutnHandle = m_state->m_cutnHandle;
   HANDLE_CUTN_ERROR(cutensornetCreateState(
       cutnHandle, CUTENSORNET_STATE_PURITY_PURE, nbQubits, qubitDims.data(),
       cudaDataType, &tempQuantumState));
 
-  int64_t tensorId = 0;
+  std::int64_t tensorId = 0;
   // Append ket-side gate tensors + conjugated (reverse + adjoint) bra-side
   // tensors
   auto allTensorOps = m_state->m_tensorOps;
@@ -73,8 +75,8 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
         HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
             cutnHandle, tempQuantumState, op.targetQubitIds.size(),
             op.targetQubitIds.data(), op.deviceData, nullptr, /*immutable*/ 1,
-            /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
-            /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+            /*adjoint*/ static_cast<std::int32_t>(op.isAdjoint),
+            /*unitary*/ static_cast<std::int32_t>(op.isUnitary), &tensorId));
       } else {
         HANDLE_CUTN_ERROR(cutensornetStateApplyControlledTensorOperator(
             cutnHandle, tempQuantumState,
@@ -85,8 +87,8 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
             /*stateTargetModes*/ op.targetQubitIds.data(), op.deviceData,
             nullptr,
             /*immutable*/ 1,
-            /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
-            /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+            /*adjoint*/ static_cast<std::int32_t>(op.isAdjoint),
+            /*unitary*/ static_cast<std::int32_t>(op.isUnitary), &tensorId));
       }
     } else if (op.noiseChannel.has_value()) {
       const bool isGeneralChannel = op.noiseChannel->tensorData.size() !=
@@ -116,9 +118,9 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   }
 
   // Cap off with all zero projection (initial state of bra)
-  std::vector<int32_t> projectedModes(nbQubits);
+  std::vector<std::int32_t> projectedModes(nbQubits);
   std::iota(projectedModes.begin(), projectedModes.end(), 0);
-  std::vector<int64_t> projectedModeValues(nbQubits, 0);
+  std::vector<std::int64_t> projectedModeValues(nbQubits, 0);
   void *d_overlap;
   HANDLE_CUDA_ERROR(cudaMalloc(&d_overlap, sizeof(std::complex<ScalarType>)));
   // Create the quantum state amplitudes accessor
@@ -130,7 +132,7 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
         projectedModes.data(), nullptr, &accessor));
   }
 
-  const int32_t numHyperSamples = TensorNetState<ScalarType>::numHyperSamples;
+  const std::int32_t numHyperSamples = TensorNetState<ScalarType>::numHyperSamples;
   {
     ScopedTraceWithContext("cutensornetAccessorConfigure");
     HANDLE_CUTN_ERROR(cutensornetAccessorConfigure(
@@ -149,11 +151,11 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   }
 
   // Attach the workspace buffer
-  int64_t worksize = 0;
+  std::int64_t worksize = 0;
   HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
       cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
       CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH, &worksize));
-  if (worksize <= static_cast<int64_t>(scratchPad.scratchSize)) {
+  if (worksize <= static_cast<std::int64_t>(scratchPad.scratchSize)) {
     HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
         cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
         CUTENSORNET_WORKSPACE_SCRATCH, scratchPad.d_scratch, worksize));
@@ -214,9 +216,9 @@ std::complex<double> TensorNetSimulationState<ScalarType>::getAmplitude(
     return m_contractedStateVec[idx];
   }
 
-  std::vector<int32_t> projectedModes(m_state->getNumQubits());
+  std::vector<std::int32_t> projectedModes(m_state->getNumQubits());
   std::iota(projectedModes.begin(), projectedModes.end(), 0);
-  std::vector<int64_t> projectedModeValues;
+  std::vector<std::int64_t> projectedModeValues;
   projectedModeValues.assign(basisState.begin(), basisState.end());
   auto subStateVec =
       m_state->getStateVector(projectedModes, projectedModeValues);

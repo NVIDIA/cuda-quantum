@@ -26,6 +26,7 @@
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <unordered_set>
 
@@ -556,9 +557,9 @@ ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
     return failure();
   result.addAttribute(cudaq::runtime::operandSegmentSizes,
                       parser.getBuilder().getDenseI32ArrayAttr(
-                          {static_cast<int32_t>(calleeOperand.size()),
-                           static_cast<int32_t>(controlOperands.size()),
-                           static_cast<int32_t>(miscOperands.size())}));
+                          {static_cast<std::int32_t>(calleeOperand.size()),
+                           static_cast<std::int32_t>(controlOperands.size()),
+                           static_cast<std::int32_t>(miscOperands.size())}));
   result.addTypes(applyTy.getResults());
   if (isDirect) {
     if (parser.resolveOperands(
@@ -636,9 +637,9 @@ ParseResult cudaq::quake::ApplyNoiseOp::parse(OpAsmParser &parser,
     return failure();
   result.addAttribute(cudaq::runtime::operandSegmentSizes,
                       parser.getBuilder().getDenseI32ArrayAttr(
-                          {static_cast<int32_t>(keyOperand.size()),
-                           static_cast<int32_t>(parameterOperands.size()),
-                           static_cast<int32_t>(targetOperands.size())}));
+                          {static_cast<std::int32_t>(keyOperand.size()),
+                           static_cast<std::int32_t>(parameterOperands.size()),
+                           static_cast<std::int32_t>(targetOperands.size())}));
   result.addTypes(applyTy.getResults());
   if (parser.resolveOperands(llvm::concat<const OpAsmParser::UnresolvedOperand>(
                                  keyOperand, parameterOperands, targetOperands),

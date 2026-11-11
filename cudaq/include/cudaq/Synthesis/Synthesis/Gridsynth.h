@@ -41,7 +41,7 @@ namespace details {
 /// caller can retry with larger budgets, instead of an unbounded loop.
 ///
 /// Exposed for testing; `epsilon` must be finite and strictly positive.
-int64_t max_denominator_exponent(const Real &epsilon);
+std::int64_t max_denominator_exponent(const Real &epsilon);
 
 /// Working precision, in bits, that the MPFR-backed reals need for a synthesis
 /// run targeting `epsilon`.

@@ -49,9 +49,9 @@ inline std::string formatBitString(custatevecIndex_t value,
 template <typename Scalar>
 struct MatrixTask {
   std::vector<std::complex<Scalar>> matrix;
-  std::vector<int32_t> targets;
-  std::vector<int32_t> controls;
-  std::vector<int32_t> controlValues;
+  std::vector<std::int32_t> targets;
+  std::vector<std::int32_t> controls;
+  std::vector<std::int32_t> controlValues;
   custatevecExMatrixType_t matrixType = CUSTATEVEC_EX_MATRIX_DENSE;
   custatevecMatrixLayout_t layout = CUSTATEVEC_MATRIX_LAYOUT_ROW;
   bool adjoint = false;
@@ -110,9 +110,9 @@ void compactMatrixTask(MatrixTask<Scalar> &task) {
 struct PauliRotationTask {
   double angle = 0.0;
   std::vector<custatevecPauli_t> paulis;
-  std::vector<int32_t> targets;
-  std::vector<int32_t> controls;
-  std::vector<int32_t> controlValues;
+  std::vector<std::int32_t> targets;
+  std::vector<std::int32_t> controls;
+  std::vector<std::int32_t> controlValues;
 };
 
 /// Identifies whether noise probabilities are fixed or state dependent.
@@ -125,7 +125,7 @@ struct NoiseTask {
   std::vector<std::vector<std::complex<double>>> matrices;
   std::vector<custatevecExMatrixType_t> matrixTypes;
   std::vector<double> probabilities;
-  std::vector<int32_t> wires;
+  std::vector<std::int32_t> wires;
 };
 
 /// Compact each Kraus matrix of `task` to cuStateVecEx's diagonal or

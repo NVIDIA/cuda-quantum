@@ -13,25 +13,26 @@
 #include "csc_xor.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <span>
 #include <stddef.h>
 #include <string.h>
 
-uint32_t cudaq_gf2_abi_version(void) { return CUDAQ_GF2_ABI_VERSION; }
+std::uint32_t cudaq_gf2_abi_version(void) { return CUDAQ_GF2_ABI_VERSION; }
 
 cudaq_gf2_status cudaq_gf2_csc_validate(const cudaq_gf2_csc_view *m) {
   if (!m || !m->column_offsets || (m->nonzeros && !m->row_indices))
     return CUDAQ_GF2_INVALID_ARGUMENT;
-  if (m->nonzeros > SIZE_MAX / sizeof(uint32_t) ||
-      (uint64_t)m->columns + 1 > SIZE_MAX / sizeof(uint64_t))
+  if (m->nonzeros > SIZE_MAX / sizeof(std::uint32_t) ||
+      (std::uint64_t)m->columns + 1 > SIZE_MAX / sizeof(std::uint64_t))
     return CUDAQ_GF2_INVALID_ARGUMENT;
   if (m->column_offsets[0] != 0 || m->column_offsets[m->columns] != m->nonzeros)
     return CUDAQ_GF2_INVALID_CONTENT;
-  for (uint64_t c = 0; c < m->columns; ++c) {
-    uint64_t begin = m->column_offsets[c], end = m->column_offsets[c + 1];
+  for (std::uint64_t c = 0; c < m->columns; ++c) {
+    std::uint64_t begin = m->column_offsets[c], end = m->column_offsets[c + 1];
     if (begin > end || end > m->nonzeros)
       return CUDAQ_GF2_INVALID_CONTENT;
-    for (uint64_t p = begin; p < end; ++p)
+    for (std::uint64_t p = begin; p < end; ++p)
       if (m->row_indices[p] >= m->rows ||
           (p > begin && m->row_indices[p - 1] >= m->row_indices[p]))
         return CUDAQ_GF2_INVALID_CONTENT;
@@ -44,19 +45,20 @@ static bool entry_less(cudaq_gf2_entry a, cudaq_gf2_entry b) noexcept {
 }
 
 cudaq_gf2_status cudaq_gf2_csc_construct(
-    uint32_t rows, uint32_t columns, const cudaq_gf2_entry *entries,
-    uint64_t count, uint64_t *offsets, uint64_t offsets_capacity,
-    uint32_t *indices, uint64_t indices_capacity, void *scratch,
-    uint64_t scratch_bytes, cudaq_gf2_csc_view *result) {
+    std::uint32_t rows, std::uint32_t columns, const cudaq_gf2_entry *entries,
+    std::uint64_t count, std::uint64_t *offsets, std::uint64_t offsets_capacity,
+    std::uint32_t *indices, std::uint64_t indices_capacity, void *scratch,
+    std::uint64_t scratch_bytes, cudaq_gf2_csc_view *result) {
   if (!result || !offsets || (count && (!entries || !indices || !scratch)) ||
       count > SIZE_MAX / sizeof(cudaq_gf2_entry) ||
-      (uint64_t)columns + 1 > SIZE_MAX / sizeof(uint64_t) ||
+      (std::uint64_t)columns + 1 > SIZE_MAX / sizeof(std::uint64_t) ||
       (scratch && (uintptr_t)scratch % alignof(cudaq_gf2_entry)))
     return CUDAQ_GF2_INVALID_ARGUMENT;
-  if (offsets_capacity < (uint64_t)columns + 1 || indices_capacity < count ||
+  if (offsets_capacity < (std::uint64_t)columns + 1 ||
+      indices_capacity < count ||
       scratch_bytes < count * sizeof(cudaq_gf2_entry))
     return CUDAQ_GF2_INSUFFICIENT_CAPACITY;
-  for (uint64_t i = 0; i < count; ++i)
+  for (std::uint64_t i = 0; i < count; ++i)
     if (entries[i].row >= rows || entries[i].column >= columns)
       return CUDAQ_GF2_INVALID_CONTENT;
   cudaq_gf2_entry *ordered = (cudaq_gf2_entry *)scratch;
@@ -68,11 +70,11 @@ cudaq_gf2_status cudaq_gf2_csc_construct(
   }
   // Sorting makes equal coordinates adjacent. In GF(2), repeated entries
   // cancel in pairs, so only runs with odd multiplicity produce a nonzero.
-  uint64_t p = 0, nonzeros = 0;
-  for (uint64_t c = 0; c < columns; ++c) {
+  std::uint64_t p = 0, nonzeros = 0;
+  for (std::uint64_t c = 0; c < columns; ++c) {
     offsets[c] = nonzeros;
     while (p < count && ordered[p].column == c) {
-      uint64_t begin = p++;
+      std::uint64_t begin = p++;
       while (p < count && ordered[p].column == c &&
              ordered[p].row == ordered[begin].row)
         ++p;
@@ -85,22 +87,22 @@ cudaq_gf2_status cudaq_gf2_csc_construct(
   return CUDAQ_GF2_OK;
 }
 
-cudaq_gf2_status cudaq_gf2_csc_apply(const cudaq_gf2_csc_view *m,
-                                     const uint8_t *input, uint64_t input_size,
-                                     const uint8_t *offset, uint8_t *output,
-                                     uint64_t output_size) {
+cudaq_gf2_status
+cudaq_gf2_csc_apply(const cudaq_gf2_csc_view *m, const std::uint8_t *input,
+                    std::uint64_t input_size, const std::uint8_t *offset,
+                    std::uint8_t *output, std::uint64_t output_size) {
   if (!m || !m->column_offsets || (m->nonzeros && !m->row_indices) ||
       input_size != m->columns || output_size != m->rows ||
       (input_size && !input) || (output_size && !output) ||
       (input_size && input == output))
     return CUDAQ_GF2_INVALID_ARGUMENT;
-  for (uint64_t i = 0; i < input_size; ++i)
+  for (std::uint64_t i = 0; i < input_size; ++i)
     if (input[i] > 1)
       return CUDAQ_GF2_INVALID_ARGUMENT;
-  for (uint64_t i = 0; i < output_size; ++i)
+  for (std::uint64_t i = 0; i < output_size; ++i)
     if (offset && offset[i] > 1)
       return CUDAQ_GF2_INVALID_ARGUMENT;
-  for (uint64_t i = 0; i < output_size; ++i)
+  for (std::uint64_t i = 0; i < output_size; ++i)
     output[i] = offset ? offset[i] : 0;
   cudaq_gf2_csc_xor_kernel(m->columns, m->column_offsets, m->row_indices, input,
                            output);

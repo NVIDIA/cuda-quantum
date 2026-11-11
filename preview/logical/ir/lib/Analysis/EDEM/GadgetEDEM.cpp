@@ -94,7 +94,8 @@ readPorts(qlx::fabric::GadgetContractOp profile,
     auto index = entry ? entry.getAs<IntegerAttr>("endpoint") : IntegerAttr{};
     auto ref =
         entry ? entry.getAs<FlatSymbolRefAttr>("profile") : FlatSymbolRefAttr{};
-    if (!index || index.getInt() != static_cast<int64_t>(ordinal) || !ref) {
+    if (!index || index.getInt() != static_cast<std::int64_t>(ordinal) ||
+        !ref) {
       profile.emitOpError()
           << "EDEM " << label << " requires ordered endpoint and code profile";
       return failure();
@@ -796,8 +797,8 @@ struct SourceSlice {
 };
 
 struct MatrixStorage {
-  std::vector<uint64_t> offsets;
-  std::vector<uint32_t> indices;
+  std::vector<std::uint64_t> offsets;
+  std::vector<std::uint32_t> indices;
 };
 
 FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetContractOp profile,
@@ -899,7 +900,7 @@ FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetContractOp profile,
   }
 
   std::vector<cudaq_edem_code_presentation> codes;
-  std::vector<uint32_t> inputCodes, outputCodes;
+  std::vector<std::uint32_t> inputCodes, outputCodes;
   std::unordered_map<std::string, unsigned> codeIds;
   auto addCode = [&](const BoundaryPort &port) {
     const auto &name = port.boundary.name();
@@ -920,7 +921,7 @@ FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetContractOp profile,
   for (const auto &port : outputs)
     outputCodes.push_back(addCode(port));
 
-  std::vector<std::vector<uint32_t>> groupIds;
+  std::vector<std::vector<std::uint32_t>> groupIds;
   std::vector<std::vector<double>> probabilities;
   std::vector<bool> claimed(faults.faults.size());
   for (const auto &group : faults.exclusiveGroups) {
@@ -928,7 +929,7 @@ FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetContractOp profile,
     for (auto id : group)
       claimed[id] = true;
   }
-  std::vector<uint32_t> independent;
+  std::vector<std::uint32_t> independent;
   for (unsigned id = 0; id < claimed.size(); ++id)
     if (!claimed[id])
       independent.push_back(id);
@@ -946,9 +947,9 @@ FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetContractOp profile,
   }
   cudaq_edem_fault_distribution distribution{
       unsigned(faults.faults.size()), unsigned(groups.size()), groups.data()};
-  uint32_t detectorSize = profileRows.detectors.size();
-  uint32_t observableSize = profileRows.observables.size();
-  uint32_t successSize = profileRows.success.size();
+  std::uint32_t detectorSize = profileRows.detectors.size();
+  std::uint32_t observableSize = profileRows.observables.size();
+  std::uint32_t successSize = profileRows.success.size();
   cudaq_edem_description description{
       .shape = {.input_code_count = unsigned(inputs.size()),
                 .output_code_count = unsigned(outputs.size()),
@@ -1003,7 +1004,7 @@ buildGadgetEDEM(qlx::fabric::GadgetContractOp profile,
   // an addressability check, not a fixed memory budget; actual allocation
   // failures are handled at the C boundary.
   const auto propagationRows =
-      2 * uint64_t{projection.carrierCount} + projection.measurementCount;
+      2 * std::uint64_t{projection.carrierCount} + projection.measurementCount;
   const auto rowBytes = std::max(sizeof(Bits), (layout->sourceCount + 7) / 8);
   if (propagationRows > std::numeric_limits<std::size_t>::max() / rowBytes) {
     profile.emitOpError(
@@ -1878,7 +1879,8 @@ FailureOr<ObjectiveResolution> resolveGadgetObjective(
                              : DenseI64ArrayAttr{};
     if (!records || !rows || !constants || rows.getType().getRank() != 2 ||
         rows.getType().getShape()[0] != 1 || constants.size() != 1 ||
-        rows.getType().getShape()[1] != static_cast<int64_t>(records.size())) {
+        rows.getType().getShape()[1] !=
+            static_cast<std::int64_t>(records.size())) {
       spec.emitOpError("measurement verification requires one complete affine "
                        "outcome-map row");
       return failure();
@@ -1926,7 +1928,7 @@ FailureOr<ObjectiveResolution> resolveGadgetObjective(
             term ? term.getAs<IntegerAttr>("index") : IntegerAttr{};
         if (!portAttr || !indexAttr || portAttr.getInt() < 0 ||
             indexAttr.getInt() < 0 ||
-            static_cast<uint64_t>(portAttr.getInt()) >= inputs.size())
+            static_cast<std::uint64_t>(portAttr.getInt()) >= inputs.size())
           return spec.emitOpError(
                      "measurement syndrome term has an invalid endpoint"),
                  failure();
@@ -1970,7 +1972,7 @@ FailureOr<std::optional<IdealLogicalAction>> parseAction(ModuleOp module,
   auto *matrix = object ? object->getArray("matrix") : nullptr;
   auto *phases = object ? object->getArray("phases") : nullptr;
   if (!arity || *arity <= 0 ||
-      static_cast<uint64_t>(*arity) >
+      static_cast<std::uint64_t>(*arity) >
           std::numeric_limits<unsigned>::max() / 2 ||
       !matrix || !phases) {
     module.emitError("logical action requires arity, matrix, and phases");
@@ -2131,23 +2133,26 @@ FailureOr<std::string> verifyGadgetContract(ModuleOp module,
     llvm::json::Object entry;
     entry["kind"] = failure.kind;
     if (failure.index)
-      entry["index"] = static_cast<int64_t>(*failure.index);
+      entry["index"] = static_cast<std::int64_t>(*failure.index);
     entry["message"] = failure.message;
     failures.push_back(std::move(entry));
   }
   llvm::json::Object contract;
   contract["ok"] = report->failures.empty();
-  contract["outcome_count"] = static_cast<int64_t>(report->outcomeCount);
-  contract["random_bits"] = static_cast<int64_t>(report->randomBits);
-  contract["outcome_code_rank"] = static_cast<int64_t>(report->outcomeCodeRank);
-  contract["detector_rank"] = static_cast<int64_t>(report->detectorRank);
+  contract["outcome_count"] = static_cast<std::int64_t>(report->outcomeCount);
+  contract["random_bits"] = static_cast<std::int64_t>(report->randomBits);
+  contract["outcome_code_rank"] =
+      static_cast<std::int64_t>(report->outcomeCodeRank);
+  contract["detector_rank"] = static_cast<std::int64_t>(report->detectorRank);
   contract["deterministic_logical_outcome_rank"] =
-      static_cast<int64_t>(report->logicalOutcomeRank);
-  contract["detector_count"] = static_cast<int64_t>(rows->detectors.size());
+      static_cast<std::int64_t>(report->logicalOutcomeRank);
+  contract["detector_count"] =
+      static_cast<std::int64_t>(rows->detectors.size());
   contract["output_relation_count"] =
-      static_cast<int64_t>(rows->outputVirtual.size());
-  contract["observable_count"] = static_cast<int64_t>(rows->observables.size());
-  contract["success_count"] = static_cast<int64_t>(rows->success.size());
+      static_cast<std::int64_t>(rows->outputVirtual.size());
+  contract["observable_count"] =
+      static_cast<std::int64_t>(rows->observables.size());
+  contract["success_count"] = static_cast<std::int64_t>(rows->success.size());
   contract["failures"] = std::move(failures);
 
   llvm::json::Object logical;
@@ -2173,7 +2178,7 @@ FailureOr<std::string> verifyGadgetContract(ModuleOp module,
       break;
     case IdealActionReport::Status::Checked: {
       logical["status"] = report->action.verified() ? "verified" : "failed";
-      logical["logical_rank"] = static_cast<int64_t>(
+      logical["logical_rank"] = static_cast<std::int64_t>(
           llvm::count(report->action.rows, IdealActionRowStatus::Verified));
       llvm::json::Array statuses;
       for (IdealActionRowStatus row : report->action.rows)
