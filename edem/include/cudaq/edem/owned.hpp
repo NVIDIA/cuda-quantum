@@ -63,7 +63,7 @@ public:
   ~PackedEDEM() noexcept { reset(); }
 
   [[nodiscard]] bool empty() const noexcept { return owner_.data == nullptr; }
-  [[nodiscard]] uint64_t size() const noexcept { return owner_.size; }
+  [[nodiscard]] std::uint64_t size() const noexcept { return owner_.size; }
   [[nodiscard]] const void *data() const & noexcept { return owner_.data; }
   const void *data() const && = delete;
 

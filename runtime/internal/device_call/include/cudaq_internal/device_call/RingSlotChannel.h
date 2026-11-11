@@ -281,7 +281,7 @@ protected:
 
   // Parse a UDP/TCP port argument, rejecting non-numeric input and values
   // outside [1, 65535] with a DeviceCallError instead of letting std::stoul's
-  // raw exceptions (or a silent uint16_t truncation) escape.
+  // raw exceptions (or a silent std::uint16_t truncation) escape.
   std::uint16_t parsePort(const std::string &value, const char *key) const {
     unsigned long port = 0;
     std::size_t consumed = 0;

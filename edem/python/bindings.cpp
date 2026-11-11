@@ -20,6 +20,7 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
+#include <cstdint>
 #include <cstring>
 #include <limits>
 #include <new>
@@ -53,13 +54,14 @@ static void check_gf2(cudaq_gf2_status status) {
 }
 
 struct SparseMatrix {
-  uint32_t rows = 0, columns = 0;
-  std::vector<uint64_t> offsets{0};
-  std::vector<uint32_t> indices;
+  std::uint32_t rows = 0, columns = 0;
+  std::vector<std::uint64_t> offsets{0};
+  std::vector<std::uint32_t> indices;
 
   SparseMatrix() = default;
-  SparseMatrix(uint32_t r, uint32_t c,
-               const std::vector<std::pair<uint32_t, uint32_t>> &entries)
+  SparseMatrix(
+      std::uint32_t r, std::uint32_t c,
+      const std::vector<std::pair<std::uint32_t, std::uint32_t>> &entries)
       : rows(r), columns(c), offsets(static_cast<size_t>(c) + 1),
         indices(entries.size()) {
     std::vector<cudaq_gf2_entry> input, scratch(entries.size());
@@ -76,8 +78,9 @@ struct SparseMatrix {
 
   explicit SparseMatrix(cudaq_gf2_csc_view matrix)
       : rows(matrix.rows), columns(matrix.columns),
-        offsets(matrix.column_offsets,
-                matrix.column_offsets + static_cast<uint64_t>(columns) + 1) {
+        offsets(matrix.column_offsets, matrix.column_offsets +
+                                           static_cast<std::uint64_t>(columns) +
+                                           1) {
     if (matrix.nonzeros)
       indices.assign(matrix.row_indices, matrix.row_indices + matrix.nonzeros);
   }
@@ -86,22 +89,22 @@ struct SparseMatrix {
     return {rows, columns, indices.size(), offsets.data(), indices.data()};
   }
 
-  std::vector<std::pair<uint32_t, uint32_t>> entries() const {
-    std::vector<std::pair<uint32_t, uint32_t>> result;
+  std::vector<std::pair<std::uint32_t, std::uint32_t>> entries() const {
+    std::vector<std::pair<std::uint32_t, std::uint32_t>> result;
     result.reserve(indices.size());
-    for (uint64_t c = 0; c < columns; ++c)
-      for (uint64_t p = offsets[c]; p < offsets[c + 1]; ++p)
-        result.emplace_back(indices[p], static_cast<uint32_t>(c));
+    for (std::uint64_t c = 0; c < columns; ++c)
+      for (std::uint64_t p = offsets[c]; p < offsets[c + 1]; ++p)
+        result.emplace_back(indices[p], static_cast<std::uint32_t>(c));
     return result;
   }
 
-  std::vector<uint8_t>
-  apply(const std::vector<uint8_t> &input,
-        const std::optional<std::vector<uint8_t>> &offset) const {
+  std::vector<std::uint8_t>
+  apply(const std::vector<std::uint8_t> &input,
+        const std::optional<std::vector<std::uint8_t>> &offset) const {
     if (offset && offset->size() != rows)
       throw nb::value_error("affine offset must have one bit per matrix row");
     auto matrix = view();
-    std::vector<uint8_t> output(rows);
+    std::vector<std::uint8_t> output(rows);
     check_gf2(cudaq_gf2_csc_apply(&matrix, input.data(), input.size(),
                                   offset ? offset->data() : nullptr,
                                   output.data(), output.size()));
@@ -109,7 +112,7 @@ struct SparseMatrix {
   }
 };
 
-enum class PortKind : uint32_t {
+enum class PortKind : std::uint32_t {
   FAULT = CUDAQ_EDEM_FAULT,
   VIRTUAL = CUDAQ_EDEM_VIRTUAL,
   SYNDROME = CUDAQ_EDEM_SYNDROME,
@@ -119,59 +122,59 @@ enum class PortKind : uint32_t {
   SUCCESS = CUDAQ_EDEM_SUCCESS
 };
 
-enum class EndpointDirection : uint32_t {
+enum class EndpointDirection : std::uint32_t {
   INPUT = CUDAQ_EDEM_INPUT,
   OUTPUT = CUDAQ_EDEM_OUTPUT
 };
 
 struct Endpoint {
   PortKind kind;
-  uint32_t index;
+  std::uint32_t index;
   cudaq_edem_endpoint view() const {
-    return {static_cast<uint32_t>(kind), index};
+    return {static_cast<std::uint32_t>(kind), index};
   }
 };
 
 struct CodePresentation {
   std::string name;
-  uint32_t syndrome_count, virtual_outcome_count, logical_qubit_count;
+  std::uint32_t syndrome_count, virtual_outcome_count, logical_qubit_count;
   cudaq_edem_code_presentation view() const {
     return {name.data(), name.size(), syndrome_count, virtual_outcome_count,
             logical_qubit_count};
   }
 };
 
-enum class GroupKind : uint32_t {
+enum class GroupKind : std::uint32_t {
   INDEPENDENT = CUDAQ_EDEM_INDEPENDENT,
   EXCLUSIVE = CUDAQ_EDEM_EXCLUSIVE
 };
 
 struct FaultGroup {
   GroupKind kind;
-  std::vector<uint32_t> fault_ids;
+  std::vector<std::uint32_t> fault_ids;
   std::vector<double> probabilities;
   cudaq_edem_fault_group view() const {
     if (fault_ids.size() != probabilities.size() ||
         fault_ids.size() > UINT32_MAX)
       throw nb::value_error(
           "fault IDs and probabilities must have equal widths");
-    return {static_cast<uint32_t>(kind),
-            static_cast<uint32_t>(fault_ids.size()), fault_ids.data(),
+    return {static_cast<std::uint32_t>(kind),
+            static_cast<std::uint32_t>(fault_ids.size()), fault_ids.data(),
             probabilities.data()};
   }
 };
 
 struct FaultDistribution {
-  uint32_t size;
+  std::uint32_t size;
   std::vector<FaultGroup> groups;
 
   static FaultDistribution
   independent(const std::vector<double> &probabilities) {
     if (probabilities.size() > UINT32_MAX)
       throw nb::value_error("too many fault indicators");
-    std::vector<uint32_t> ids(probabilities.size());
+    std::vector<std::uint32_t> ids(probabilities.size());
     std::iota(ids.begin(), ids.end(), 0);
-    FaultDistribution result{static_cast<uint32_t>(ids.size()), {}};
+    FaultDistribution result{static_cast<std::uint32_t>(ids.size()), {}};
     if (!ids.empty())
       result.groups.push_back(
           {GroupKind::INDEPENDENT, std::move(ids), probabilities});
@@ -200,10 +203,10 @@ class EDEM {
 
   cudaq_edem_view view() const { return checked; }
 
-  static uint32_t count(size_t size) {
+  static std::uint32_t count(size_t size) {
     if (size > UINT32_MAX)
       throw nb::value_error("too many EDEM ports");
-    return static_cast<uint32_t>(size);
+    return static_cast<std::uint32_t>(size);
   }
 
 public:
@@ -247,18 +250,18 @@ public:
 
   bool is_dem() const {
     auto value = view();
-    uint32_t result;
+    std::uint32_t result;
     check(cudaq_edem_is_dem(&value, &result));
     return result != 0;
   }
 
   EDEM(const std::vector<CodePresentation> &codes,
-       const std::vector<uint32_t> &inputs,
-       const std::vector<uint32_t> &outputs,
+       const std::vector<std::uint32_t> &inputs,
+       const std::vector<std::uint32_t> &outputs,
        const std::vector<FaultDistribution> &faults,
-       const std::vector<uint32_t> &detectors,
-       const std::vector<uint32_t> &observables,
-       const std::vector<uint32_t> &successes,
+       const std::vector<std::uint32_t> &detectors,
+       const std::vector<std::uint32_t> &observables,
+       const std::vector<std::uint32_t> &successes,
        const std::vector<MatrixBlock> &blocks) {
     std::vector<cudaq_edem_code_presentation> code_views;
     std::vector<std::vector<cudaq_edem_fault_group>> group_views(faults.size());
@@ -351,9 +354,9 @@ public:
     return result;
   }
 
-  uint32_t code_count() const {
+  std::uint32_t code_count() const {
     auto value = view();
-    uint32_t result;
+    std::uint32_t result;
     check(cudaq_edem_get_code_count(&value, &result));
     return result;
   }
@@ -362,9 +365,9 @@ public:
     auto value = view();
     std::vector<CodePresentation> result;
     auto n = code_count();
-    for (uint64_t i = 0; i < n; ++i) {
+    for (std::uint64_t i = 0; i < n; ++i) {
       cudaq_edem_code_presentation code;
-      check(cudaq_edem_get_code(&value, static_cast<uint32_t>(i), &code));
+      check(cudaq_edem_get_code(&value, static_cast<std::uint32_t>(i), &code));
       result.push_back({std::string(code.name, code.name_size),
                         code.syndrome_count, code.virtual_outcome_count,
                         code.logical_qubit_count});
@@ -372,16 +375,16 @@ public:
     return result;
   }
 
-  std::vector<uint32_t> boundaries(EndpointDirection direction) const {
+  std::vector<std::uint32_t> boundaries(EndpointDirection direction) const {
     auto value = view();
     auto side = static_cast<cudaq_edem_endpoint_direction>(direction);
     cudaq_gf2_map_shape map;
     check_gf2(cudaq_gf2_map_get_shape(&value.map, &map));
-    uint32_t n = side == CUDAQ_EDEM_OUTPUT ? map.output_bundle_count
-                                           : map.input_bundle_count;
+    std::uint32_t n = side == CUDAQ_EDEM_OUTPUT ? map.output_bundle_count
+                                                : map.input_bundle_count;
     auto codes = code_count();
-    std::vector<uint32_t> result;
-    for (uint32_t i = 0; i < n; ++i) {
+    std::vector<std::uint32_t> result;
+    for (std::uint32_t i = 0; i < n; ++i) {
       cudaq_gf2_bundle bundle;
       check_gf2(cudaq_gf2_map_get_bundle(&value.map, side, i, &bundle));
       if (bundle.type < codes)
@@ -396,24 +399,25 @@ public:
     auto codes = code_count();
     cudaq_gf2_map_shape map;
     check_gf2(cudaq_gf2_map_get_shape(&value.map, &map));
-    for (uint64_t p = 0; p < map.input_bundle_count; ++p) {
+    for (std::uint64_t p = 0; p < map.input_bundle_count; ++p) {
       cudaq_gf2_bundle bundle;
       check_gf2(cudaq_gf2_map_get_bundle(&value.map, CUDAQ_EDEM_INPUT,
-                                         static_cast<uint32_t>(p), &bundle));
+                                         static_cast<std::uint32_t>(p),
+                                         &bundle));
       if (bundle.type != codes + 1)
         continue;
-      uint32_t size, groups;
-      check(cudaq_edem_get_fault(&value, static_cast<uint32_t>(p), &size,
+      std::uint32_t size, groups;
+      check(cudaq_edem_get_fault(&value, static_cast<std::uint32_t>(p), &size,
                                  &groups));
       FaultDistribution distribution{size, {}};
-      for (uint64_t i = 0; i < groups; ++i) {
+      for (std::uint64_t i = 0; i < groups; ++i) {
         cudaq_edem_fault_group group;
-        check(cudaq_edem_get_group(&value, static_cast<uint32_t>(p),
-                                   static_cast<uint32_t>(i), &group));
+        check(cudaq_edem_get_group(&value, static_cast<std::uint32_t>(p),
+                                   static_cast<std::uint32_t>(i), &group));
         distribution.groups.push_back(
             {static_cast<GroupKind>(group.kind),
-             std::vector<uint32_t>(group.fault_ids,
-                                   group.fault_ids + group.size),
+             std::vector<std::uint32_t>(group.fault_ids,
+                                        group.fault_ids + group.size),
              std::vector<double>(group.probabilities,
                                  group.probabilities + group.size)});
       }
@@ -427,7 +431,7 @@ public:
     std::vector<MatrixBlock> result;
     cudaq_gf2_map_shape map;
     check_gf2(cudaq_gf2_map_get_shape(&value.map, &map));
-    for (uint64_t i = 0; i < map.block_count; ++i) {
+    for (std::uint64_t i = 0; i < map.block_count; ++i) {
       cudaq_gf2_map_matrix_block block;
       cudaq_edem_endpoint output, input;
       check_gf2(cudaq_gf2_map_get_matrix_block(&value.map, i, &block));
@@ -442,42 +446,44 @@ public:
     return result;
   }
 
-  std::pair<uint32_t, uint64_t> port(Endpoint endpoint,
-                                     EndpointDirection direction) const {
+  std::pair<std::uint32_t, std::uint64_t>
+  port(Endpoint endpoint, EndpointDirection direction) const {
     auto value = view();
     auto side = static_cast<cudaq_edem_endpoint_direction>(direction);
-    uint32_t width;
-    uint64_t offset;
+    std::uint32_t width;
+    std::uint64_t offset;
     cudaq_gf2_wire wire;
     check(cudaq_edem_resolve_endpoint(&value, side, endpoint.view(), &wire));
     check_gf2(cudaq_gf2_map_get_wire(&value.map, side, wire, &width, &offset));
     return {width, offset};
   }
 
-  std::vector<uint32_t> port_sizes(PortKind kind) const {
+  std::vector<std::uint32_t> port_sizes(PortKind kind) const {
     auto s = shape();
-    uint32_t size = kind == PortKind::DETECTOR ? s.detector_ports_count
-                                               : (kind == PortKind::OBSERVABLE
-                                                      ? s.observable_ports_count
-                                                      : s.success_ports_count);
-    std::vector<uint32_t> result(size);
-    for (uint64_t i = 0; i < size; ++i)
+    std::uint32_t size =
+        kind == PortKind::DETECTOR
+            ? s.detector_ports_count
+            : (kind == PortKind::OBSERVABLE ? s.observable_ports_count
+                                            : s.success_ports_count);
+    std::vector<std::uint32_t> result(size);
+    for (std::uint64_t i = 0; i < size; ++i)
       result[i] =
-          port({kind, static_cast<uint32_t>(i)}, EndpointDirection::OUTPUT)
+          port({kind, static_cast<std::uint32_t>(i)}, EndpointDirection::OUTPUT)
               .first;
     return result;
   }
 
-  std::pair<uint64_t, uint64_t> vector_sizes() const {
+  std::pair<std::uint64_t, std::uint64_t> vector_sizes() const {
     auto value = view();
-    uint64_t inputs, outputs;
+    std::uint64_t inputs, outputs;
     check_gf2(cudaq_gf2_map_vector_sizes(&value.map, &inputs, &outputs));
     return {inputs, outputs};
   }
 
-  std::vector<uint8_t> apply(const std::vector<uint8_t> &input) const {
+  std::vector<std::uint8_t>
+  apply(const std::vector<std::uint8_t> &input) const {
     auto value = view();
-    std::vector<uint8_t> output(vector_sizes().second);
+    std::vector<std::uint8_t> output(vector_sizes().second);
     check_gf2(cudaq_gf2_map_apply(&value.map, input.data(), input.size(),
                                   output.data(), output.size()));
     return output;
@@ -534,8 +540,9 @@ public:
         &input, nullptr, &result.value.storage, &checked, &mapping.storage));
     result.value.checked = checked.edem;
     nb::list columns;
-    auto *indices = static_cast<const uint64_t *>(mapping.storage.data);
-    for (uint64_t i = 0; i < mapping.storage.size / sizeof(uint64_t); ++i)
+    auto *indices = static_cast<const std::uint64_t *>(mapping.storage.data);
+    for (std::uint64_t i = 0; i < mapping.storage.size / sizeof(std::uint64_t);
+         ++i)
       columns.append(indices[i] == UINT64_MAX ? nb::none()
                                               : nb::cast(indices[i]));
     return nb::make_tuple(std::move(result), std::move(columns));
@@ -583,7 +590,7 @@ static void bind_value(nb::class_<Value> &type) {
           "endpoint"_a, nb::kw_only(), "direction"_a = EndpointDirection::INPUT)
       .def(
           "apply",
-          [](const Value &v, const std::vector<uint8_t> &input) {
+          [](const Value &v, const std::vector<std::uint8_t> &input) {
             return v.model().apply(input);
           },
           "input"_a);
@@ -614,34 +621,37 @@ NB_MODULE(_core, m) {
       .value("INDEPENDENT", GroupKind::INDEPENDENT)
       .value("EXCLUSIVE", GroupKind::EXCLUSIVE);
   nb::class_<Endpoint>(m, "Endpoint")
-      .def(nb::init<PortKind, uint32_t>(), "kind"_a, "index"_a = 0)
+      .def(nb::init<PortKind, std::uint32_t>(), "kind"_a, "index"_a = 0)
       .def_ro("kind", &Endpoint::kind)
       .def_ro("index", &Endpoint::index);
   nb::class_<CodePresentation>(m, "CodePresentation")
-      .def(nb::init<std::string, uint32_t, uint32_t, uint32_t>(), "name"_a,
-           "syndrome_count"_a, "virtual_outcome_count"_a,
+      .def(nb::init<std::string, std::uint32_t, std::uint32_t, std::uint32_t>(),
+           "name"_a, "syndrome_count"_a, "virtual_outcome_count"_a,
            "logical_qubit_count"_a)
       .def_ro("name", &CodePresentation::name)
       .def_ro("syndrome_count", &CodePresentation::syndrome_count)
       .def_ro("virtual_outcome_count", &CodePresentation::virtual_outcome_count)
       .def_ro("logical_qubit_count", &CodePresentation::logical_qubit_count);
   nb::class_<FaultGroup>(m, "FaultGroup")
-      .def(nb::init<GroupKind, std::vector<uint32_t>, std::vector<double>>(),
+      .def(nb::init<GroupKind, std::vector<std::uint32_t>,
+                    std::vector<double>>(),
            "kind"_a, "fault_ids"_a, "probabilities"_a)
       .def_ro("kind", &FaultGroup::kind)
       .def_ro("fault_ids", &FaultGroup::fault_ids)
       .def_ro("probabilities", &FaultGroup::probabilities);
   nb::class_<FaultDistribution>(m, "FaultDistribution")
-      .def(nb::init<uint32_t, std::vector<FaultGroup>>(), "size"_a, "groups"_a)
+      .def(nb::init<std::uint32_t, std::vector<FaultGroup>>(), "size"_a,
+           "groups"_a)
       .def_static("independent", &FaultDistribution::independent,
                   "probabilities"_a)
       .def_ro("size", &FaultDistribution::size)
       .def_ro("groups", &FaultDistribution::groups);
   nb::class_<SparseMatrix>(m, "SparseMatrix")
-      .def(nb::init<uint32_t, uint32_t,
-                    const std::vector<std::pair<uint32_t, uint32_t>> &>(),
+      .def(nb::init<
+               std::uint32_t, std::uint32_t,
+               const std::vector<std::pair<std::uint32_t, std::uint32_t>> &>(),
            "rows"_a, "columns"_a,
-           "entries"_a = std::vector<std::pair<uint32_t, uint32_t>>{})
+           "entries"_a = std::vector<std::pair<std::uint32_t, std::uint32_t>>{})
       .def_prop_ro("shape",
                    [](const SparseMatrix &v) {
                      return std::make_pair(v.rows, v.columns);
@@ -655,21 +665,22 @@ NB_MODULE(_core, m) {
       .def_ro("input", &MatrixBlock::input)
       .def_ro("matrix", &MatrixBlock::matrix);
   auto edem = nb::class_<EDEM>(m, "EDEM");
-  edem.def(
-          nb::init<const std::vector<CodePresentation> &,
-                   const std::vector<uint32_t> &, const std::vector<uint32_t> &,
-                   const std::vector<FaultDistribution> &,
-                   const std::vector<uint32_t> &, const std::vector<uint32_t> &,
-                   const std::vector<uint32_t> &,
-                   const std::vector<MatrixBlock> &>(),
-          nb::kw_only(), "codes"_a = std::vector<CodePresentation>{},
-          "inputs"_a = std::vector<uint32_t>{},
-          "outputs"_a = std::vector<uint32_t>{},
-          "faults"_a = std::vector<FaultDistribution>{},
-          "detectors"_a = std::vector<uint32_t>{},
-          "observables"_a = std::vector<uint32_t>{},
-          "successes"_a = std::vector<uint32_t>{},
-          "blocks"_a = std::vector<MatrixBlock>{})
+  edem.def(nb::init<const std::vector<CodePresentation> &,
+                    const std::vector<std::uint32_t> &,
+                    const std::vector<std::uint32_t> &,
+                    const std::vector<FaultDistribution> &,
+                    const std::vector<std::uint32_t> &,
+                    const std::vector<std::uint32_t> &,
+                    const std::vector<std::uint32_t> &,
+                    const std::vector<MatrixBlock> &>(),
+           nb::kw_only(), "codes"_a = std::vector<CodePresentation>{},
+           "inputs"_a = std::vector<std::uint32_t>{},
+           "outputs"_a = std::vector<std::uint32_t>{},
+           "faults"_a = std::vector<FaultDistribution>{},
+           "detectors"_a = std::vector<std::uint32_t>{},
+           "observables"_a = std::vector<std::uint32_t>{},
+           "successes"_a = std::vector<std::uint32_t>{},
+           "blocks"_a = std::vector<MatrixBlock>{})
       .def_static("from_bytes", &EDEM::from_bytes, "data"_a)
       .def_static("adopt", &EDEM::adopt, "capsule"_a,
                   "Validate and adopt an owned-buffer capsule without copying "

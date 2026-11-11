@@ -12,6 +12,8 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/Passes.h"
 
+#include <cstdint>
+
 using namespace mlir;
 
 namespace {
@@ -125,7 +127,7 @@ struct CliffordTSynthesisPipelineOptions
       *this, "approximation-tolerance",
       llvm::cl::desc("Approximation tolerance for Clifford+T synthesis."),
       llvm::cl::init(1e-10)};
-  PassOptions::Option<uint64_t> seed{
+  PassOptions::Option<std::uint64_t> seed{
       *this, "seed",
       llvm::cl::desc("Seed for Clifford+T synthesis. 0 leaves it unseeded."),
       llvm::cl::init(0)};
@@ -271,7 +273,7 @@ static void addTwoQubitGateCountOptimization(
   if (options.level == 1)
     return;
   funcPM.addPass(cudaq::opt::createPhaseFolding());
-  funcPM.addPass(createCanonicalizerPass());
+  addSharedCleanup(funcPM, /*approximationTolerance=*/0.0);
 }
 
 void cudaq::opt::registerTwoQubitGateCountOptimizationPipeline() {

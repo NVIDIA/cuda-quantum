@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <cstdint>
 #include <cstdlib>
 #include <memory>
 #include <mutex>
@@ -98,8 +99,9 @@ static cudaqDistributedCommunicator_t *getMpiCommWrapper() {
   return comm;
 }
 
-int32_t detail::gpuFabricDomainSize(std::string fabric, int32_t numRanks,
-                                    int32_t ranksPerNode) {
+std::int32_t detail::gpuFabricDomainSize(std::string fabric,
+                                         std::int32_t numRanks,
+                                         std::int32_t ranksPerNode) {
   std::transform(fabric.begin(), fabric.end(), fabric.begin(),
                  [](unsigned char c) { return std::toupper(c); });
   if (fabric == "MNNVL")
@@ -108,7 +110,7 @@ int32_t detail::gpuFabricDomainSize(std::string fabric, int32_t numRanks,
     return ranksPerNode;
   if (fabric == "NONE")
     return 1;
-  int32_t domainSize = 0;
+  std::int32_t domainSize = 0;
   const char *const begin = fabric.data();
   const char *const end = begin + fabric.size();
   const auto [position, error] = std::from_chars(begin, end, domainSize);
@@ -119,11 +121,11 @@ int32_t detail::gpuFabricDomainSize(std::string fabric, int32_t numRanks,
   return domainSize;
 }
 
-bool detail::requestsFabricMemory(const char *fabric, int32_t numRanks,
-                                  int32_t ranksPerNode) {
+bool detail::requestsFabricMemory(const char *fabric, std::int32_t numRanks,
+                                  std::int32_t ranksPerNode) {
   if (!fabric)
     return false;
-  const int32_t domainSize =
+  const std::int32_t domainSize =
       gpuFabricDomainSize(fabric, numRanks, ranksPerNode);
   return ranksPerNode < numRanks && domainSize >= numRanks;
 }
@@ -138,9 +140,9 @@ static bool useFabricMemory(cudaqDistributedInterface_t *mpiInterface,
   const char *fabric = std::getenv("CUDAQ_GPU_FABRIC");
   if (!fabric)
     return false;
-  int32_t numRanks = 0;
-  int32_t rank = 0;
-  int32_t ranksPerNode = 0;
+  std::int32_t numRanks = 0;
+  std::int32_t rank = 0;
+  std::int32_t ranksPerNode = 0;
   if (mpiInterface->getNumRanks(comm, &numRanks) != 0 ||
       mpiInterface->getProcRank(comm, &rank) != 0 ||
       mpiInterface->getCommSizeShared(comm, &ranksPerNode) != 0)
@@ -149,7 +151,7 @@ static bool useFabricMemory(cudaqDistributedInterface_t *mpiInterface,
     return false;
 
   const auto failure = DeviceAllocator::testFabricAllocation();
-  int32_t firstFailedRank = failure ? rank : numRanks;
+  std::int32_t firstFailedRank = failure ? rank : numRanks;
   if (mpiInterface->AllreduceInPlace(comm, &firstFailedRank, 1, INT_32, MIN) !=
       0)
     throw std::runtime_error("Failed to reduce the fabric memory test result");

@@ -11,6 +11,8 @@
 #include "tensornet_utils.h"
 #include "timing_utils.h"
 
+#include <cstdint>
+
 namespace nvqir {
 
 template <typename ScalarType>
@@ -26,7 +28,7 @@ TensorNetworkSpinOp<ScalarType>::TensorNetworkSpinOp(
   const std::size_t maxQubitIdx =
       *std::max_element(degrees.begin(), degrees.end());
   const std::size_t numQubits = maxQubitIdx + 1;
-  const std::vector<int64_t> qubitDims(numQubits, 2);
+  const std::vector<std::int64_t> qubitDims(numQubits, 2);
   HANDLE_CUTN_ERROR(cutensornetCreateNetworkOperator(
       m_cutnHandle, qubitDims.size(), qubitDims.data(), cudaDataType,
       &m_cutnNetworkOperator));
@@ -50,11 +52,11 @@ TensorNetworkSpinOp<ScalarType>::TensorNetworkSpinOp(
         opMat_d, opMat.data(), opMat.size() * sizeof(std::complex<ScalarType>),
         cudaMemcpyHostToDevice));
     m_mat_d.emplace_back(opMat_d);
-    const std::vector<int32_t> numModes = {
-        static_cast<int32_t>(degrees.size())};
+    const std::vector<std::int32_t> numModes = {
+        static_cast<std::int32_t>(degrees.size())};
     std::vector<const void *> pauliTensorData = {opMat_d};
-    std::vector<int32_t> stateModes(degrees.begin(), degrees.end());
-    std::vector<const int32_t *> dataStateModes = {stateModes.data()};
+    std::vector<std::int32_t> stateModes(degrees.begin(), degrees.end());
+    std::vector<const std::int32_t *> dataStateModes = {stateModes.data()};
     HANDLE_CUTN_ERROR(cutensornetNetworkOperatorAppendProduct(
         m_cutnHandle, m_cutnNetworkOperator,
         /*coefficient*/ cuDoubleComplex(1.0, 0.0), pauliTensorData.size(),
@@ -109,7 +111,7 @@ TensorNetworkSpinOp<ScalarType>::TensorNetworkSpinOp(
 
       const cuDoubleComplex termCoeff{coeff.real(), coeff.imag()};
       std::vector<const void *> pauliTensorData;
-      std::vector<std::vector<int32_t>> stateModes;
+      std::vector<std::vector<std::int32_t>> stateModes;
       for (const auto &p : term) {
         auto pauli = p.as_pauli();
         // FIXME: used (only) for observe -
@@ -118,13 +120,13 @@ TensorNetworkSpinOp<ScalarType>::TensorNetworkSpinOp(
         auto target = p.target();
         if (pauli != cudaq::pauli::I) {
           stateModes.emplace_back(
-              std::vector<int32_t>{static_cast<int32_t>(target)});
+              std::vector<std::int32_t>{static_cast<std::int32_t>(target)});
           pauliTensorData.emplace_back(m_pauli_d[pauli]);
         }
       }
 
-      std::vector<int32_t> numModes(pauliTensorData.size(), 1);
-      std::vector<const int32_t *> dataStateModes;
+      std::vector<std::int32_t> numModes(pauliTensorData.size(), 1);
+      std::vector<const std::int32_t *> dataStateModes;
       for (const auto &stateMode : stateModes) {
         dataStateModes.emplace_back(stateMode.data());
       }

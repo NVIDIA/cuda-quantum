@@ -109,16 +109,16 @@ constexpr std::uint32_t ROCEV2_UDP_PORT = 4791;
 
 struct PlaybackArgs {
   std::string hsb_ip = "192.168.0.2";
-  uint16_t control_port = 8192;
-  uint32_t bridge_qp = 0;
-  uint32_t bridge_rkey = 0;
-  uint64_t bridge_buffer = 0;
+  std::uint16_t control_port = 8192;
+  std::uint32_t bridge_qp = 0;
+  std::uint32_t bridge_rkey = 0;
+  std::uint64_t bridge_buffer = 0;
   size_t page_size = 384;
   unsigned num_pages = 128;
-  uint32_t num_messages = 100;
-  uint32_t payload_size = 8;
-  uint32_t vp_address = 0x1000;
-  uint32_t hif_address = 0x0800;
+  std::uint32_t num_messages = 100;
+  std::uint32_t payload_size = 8;
+  std::uint32_t vp_address = 0x1000;
+  std::uint32_t hif_address = 0x0800;
   std::string bridge_ip = "10.0.0.1";
   bool verify = true;
   bool loop = false;
@@ -228,12 +228,12 @@ std::uint32_t load_le_u32(const std::uint8_t *p) {
 /// Layout: [RPCHeader (24 bytes, ptp_timestamp zeroed)][data bytes...]
 /// The FPGA overwrites header bytes 16-23 (ptp_timestamp field) with the PTP
 /// send timestamp at transmit time.
-std::vector<std::uint8_t> build_rpc_message(uint32_t msg_index,
-                                            uint32_t payload_size) {
+std::vector<std::uint8_t> build_rpc_message(std::uint32_t msg_index,
+                                            std::uint32_t payload_size) {
   using cudaq::realtime::fnv1a_hash;
   using cudaq::realtime::RPCHeader;
 
-  constexpr uint32_t FUNC_ID = fnv1a_hash("rpc_increment");
+  constexpr std::uint32_t FUNC_ID = fnv1a_hash("rpc_increment");
 
   std::vector<std::uint8_t> msg(sizeof(RPCHeader) + payload_size, 0);
   auto *hdr = reinterpret_cast<RPCHeader *>(msg.data());
@@ -243,9 +243,9 @@ std::vector<std::uint8_t> build_rpc_message(uint32_t msg_index,
   hdr->request_id = msg_index;
   hdr->ptp_timestamp = 0;
 
-  uint8_t *payload = msg.data() + sizeof(RPCHeader);
-  for (uint32_t i = 0; i < payload_size; i++)
-    payload[i] = static_cast<uint8_t>((msg_index + i) & 0xFF);
+  std::uint8_t *payload = msg.data() + sizeof(RPCHeader);
+  for (std::uint32_t i = 0; i < payload_size; i++)
+    payload[i] = static_cast<std::uint8_t>((msg_index + i) & 0xFF);
 
   return msg;
 }
@@ -415,9 +415,9 @@ std::vector<std::vector<std::uint32_t>> ila_dump(hololink::Hololink &hl,
 }
 
 /// Extract a single bit from a 585-bit ILA sample stored as 19 uint32 words.
-bool get_bit(const std::vector<std::uint32_t> &sample, uint32_t bit_pos) {
-  uint32_t word = bit_pos / 32;
-  uint32_t offset = bit_pos % 32;
+bool get_bit(const std::vector<std::uint32_t> &sample, std::uint32_t bit_pos) {
+  std::uint32_t word = bit_pos / 32;
+  std::uint32_t offset = bit_pos % 32;
   return (sample[word] >> offset) & 1;
 }
 
@@ -427,7 +427,7 @@ extract_payload_bytes(const std::vector<std::uint32_t> &sample,
                       std::size_t num_bytes) {
   std::vector<std::uint8_t> bytes(num_bytes, 0);
   for (std::size_t i = 0; i < num_bytes && i < 64; ++i) {
-    uint32_t word = sample[i / 4];
+    std::uint32_t word = sample[i / 4];
     bytes[i] = static_cast<std::uint8_t>((word >> ((i % 4) * 8)) & 0xFF);
   }
   return bytes;
@@ -440,13 +440,13 @@ extract_ila_ptp_timestamp(const std::vector<std::uint32_t> &sample) {
   // Bits 521..584 span words 16 and 17 (and partially 18).
   // bit 521 = word 16, offset 9
   // We need 64 bits starting at bit 521.
-  uint64_t raw = 0;
+  std::uint64_t raw = 0;
   for (int b = 0; b < 64; ++b) {
-    uint32_t bit_pos = 521 + b;
-    uint32_t w = bit_pos / 32;
-    uint32_t off = bit_pos % 32;
+    std::uint32_t bit_pos = 521 + b;
+    std::uint32_t w = bit_pos / 32;
+    std::uint32_t off = bit_pos % 32;
     if ((sample[w] >> off) & 1)
-      raw |= (uint64_t(1) << b);
+      raw |= (std::uint64_t(1) << b);
   }
   return raw;
 }
@@ -459,20 +459,20 @@ extract_echoed_ptp_timestamp(const cudaq::realtime::RPCResponse *resp) {
 }
 
 struct PtpTimestamp {
-  uint32_t sec;
-  uint32_t nsec;
+  std::uint32_t sec;
+  std::uint32_t nsec;
 };
 
-PtpTimestamp decode_ptp(uint64_t raw) {
+PtpTimestamp decode_ptp(std::uint64_t raw) {
   // {sec[31:0], nsec[31:0]} -- sec in upper 32 bits, nsec in lower 32
-  return {static_cast<uint32_t>(raw >> 32),
-          static_cast<uint32_t>(raw & 0xFFFF'FFFF)};
+  return {static_cast<std::uint32_t>(raw >> 32),
+          static_cast<std::uint32_t>(raw & 0xFFFF'FFFF)};
 }
 
 /// Compute signed nanosecond difference (recv - send).
-int64_t ptp_delta_ns(PtpTimestamp send, PtpTimestamp recv) {
-  int64_t d_sec = static_cast<int64_t>(recv.sec) - send.sec;
-  int64_t d_nsec = static_cast<int64_t>(recv.nsec) - send.nsec;
+std::int64_t ptp_delta_ns(PtpTimestamp send, PtpTimestamp recv) {
+  std::int64_t d_sec = static_cast<std::int64_t>(recv.sec) - send.sec;
+  std::int64_t d_nsec = static_cast<std::int64_t>(recv.nsec) - send.nsec;
   return d_sec * 1'000'000'000LL + d_nsec;
 }
 
@@ -549,9 +549,10 @@ int main(int argc, char *argv[]) {
   std::cout << "  Frame size: " << bytes_per_window << " bytes" << std::endl;
 
   hsb_channel.authenticate(args.bridge_qp, args.bridge_rkey);
-  hsb_channel.configure_roce(
-      args.bridge_buffer, static_cast<uint32_t>(bytes_per_window),
-      static_cast<uint32_t>(args.page_size), args.num_pages, ROCEV2_UDP_PORT);
+  hsb_channel.configure_roce(args.bridge_buffer,
+                             static_cast<std::uint32_t>(bytes_per_window),
+                             static_cast<std::uint32_t>(args.page_size),
+                             args.num_pages, ROCEV2_UDP_PORT);
 
   std::cout << "  RDMA target configured" << std::endl;
 
@@ -578,7 +579,7 @@ int main(int argc, char *argv[]) {
   // Build and load RPC messages
   std::vector<std::vector<std::uint8_t>> windows;
   windows.reserve(args.num_messages);
-  for (uint32_t i = 0; i < args.num_messages; i++) {
+  for (std::uint32_t i = 0; i < args.num_messages; i++) {
     auto msg = build_rpc_message(i, args.payload_size);
     msg.resize(bytes_per_window, 0); // pad to window boundary
     windows.push_back(std::move(msg));
@@ -687,24 +688,24 @@ int main(int argc, char *argv[]) {
     std::cout << "  Read " << samples.size() << " samples from ILA"
               << std::endl;
 
-    uint32_t matched = 0;
-    uint32_t header_errors = 0;
-    uint32_t payload_errors = 0;
-    uint32_t tvalid_zero = 0;
-    uint32_t rpc_responses = 0;
-    uint32_t non_rpc_frames = 0;
-    std::set<uint32_t> seen_request_ids;
+    std::uint32_t matched = 0;
+    std::uint32_t header_errors = 0;
+    std::uint32_t payload_errors = 0;
+    std::uint32_t tvalid_zero = 0;
+    std::uint32_t rpc_responses = 0;
+    std::uint32_t non_rpc_frames = 0;
+    std::set<std::uint32_t> seen_request_ids;
 
-    int64_t lat_min = std::numeric_limits<int64_t>::max();
-    int64_t lat_max = std::numeric_limits<int64_t>::min();
-    int64_t lat_sum = 0;
-    uint32_t lat_count = 0;
+    std::int64_t lat_min = std::numeric_limits<std::int64_t>::max();
+    std::int64_t lat_max = std::numeric_limits<std::int64_t>::min();
+    std::int64_t lat_sum = 0;
+    std::uint32_t lat_count = 0;
 
     struct LatencySample {
-      uint32_t shot;
-      uint32_t send_sec, send_nsec;
-      uint32_t recv_sec, recv_nsec;
-      int64_t delta_ns;
+      std::uint32_t shot;
+      std::uint32_t send_sec, send_nsec;
+      std::uint32_t recv_sec, recv_nsec;
+      std::int64_t delta_ns;
     };
     std::vector<LatencySample> lat_samples;
 
@@ -719,9 +720,9 @@ int main(int argc, char *argv[]) {
       auto *resp = reinterpret_cast<const cudaq::realtime::RPCResponse *>(
           payload.data());
 
-      uint32_t expected_magic = args.forward
-                                    ? cudaq::realtime::RPC_MAGIC_REQUEST
-                                    : cudaq::realtime::RPC_MAGIC_RESPONSE;
+      std::uint32_t expected_magic = args.forward
+                                         ? cudaq::realtime::RPC_MAGIC_REQUEST
+                                         : cudaq::realtime::RPC_MAGIC_RESPONSE;
 
       if (resp->magic != expected_magic) {
         ++non_rpc_frames;
@@ -737,17 +738,18 @@ int main(int argc, char *argv[]) {
         continue;
       }
 
-      uint32_t rid = resp->request_id;
+      std::uint32_t rid = resp->request_id;
       seen_request_ids.insert(rid);
 
       if (!args.forward) {
-        const uint8_t *result_data =
+        const std::uint8_t *result_data =
             payload.data() + sizeof(cudaq::realtime::RPCResponse);
         bool ok = true;
-        uint32_t check_len = std::min(resp->result_len, args.payload_size);
+        std::uint32_t check_len = std::min(resp->result_len, args.payload_size);
 
-        for (uint32_t j = 0; j < check_len && ok; j++) {
-          uint8_t expected = static_cast<uint8_t>(((rid + j) & 0xFF) + 1);
+        for (std::uint32_t j = 0; j < check_len && ok; j++) {
+          std::uint8_t expected =
+              static_cast<std::uint8_t>(((rid + j) & 0xFF) + 1);
           if (result_data[j] != expected) {
             if (payload_errors < 5) {
               std::cerr << "  Shot " << rid << " byte " << j << ": expected "
@@ -769,12 +771,12 @@ int main(int argc, char *argv[]) {
       // PTP round-trip latency: send timestamp from response header,
       // receive timestamp from ILA bits [584:521].
       {
-        uint64_t send_raw = extract_echoed_ptp_timestamp(resp);
-        uint64_t recv_raw = extract_ila_ptp_timestamp(sample);
+        std::uint64_t send_raw = extract_echoed_ptp_timestamp(resp);
+        std::uint64_t recv_raw = extract_ila_ptp_timestamp(sample);
         if (send_raw != 0 && recv_raw != 0) {
           auto send_ts = decode_ptp(send_raw);
           auto recv_ts = decode_ptp(recv_raw);
-          int64_t delta = ptp_delta_ns(send_ts, recv_ts);
+          std::int64_t delta = ptp_delta_ns(send_ts, recv_ts);
           lat_sum += delta;
           ++lat_count;
           if (delta < lat_min)

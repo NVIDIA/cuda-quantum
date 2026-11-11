@@ -123,6 +123,7 @@ exclude_patterns = [
     'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb',
     'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md',
     'examples/plugins/mlir_extension/README.md',
+    'examples/python/dynamics/benchmarks/README.md',
 ]
 
 compiler_developer_docs = (

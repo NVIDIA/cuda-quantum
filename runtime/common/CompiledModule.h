@@ -260,7 +260,7 @@ public:
   /// Get the argument-marshaling function, or `nullptr` if it does not exist.
   ///
   /// Assumes the artifact is named `kernelName + ".argsCreator"`.
-  int64_t (*getArgsCreator() const)(const void *, void **);
+  std::int64_t (*getArgsCreator() const)(const void *, void **);
 
   /// Get the offset (in bytes) of the result field within the
   /// `argsCreator`-packed buffer, evaluating the stored JIT function.

@@ -37,7 +37,7 @@ config=FakeCppQuantinuum.config
 cp -r @CMAKE_CURRENT_SOURCE_DIR@/$config .
 
 # Run the tests (gtest-based, not using nvq++)
-./test_quantinuum
+"./${1:-test_quantinuum}" "${@:2}"
 # Did they fail? 
 testsPassed=$?
 # Clean up the config file

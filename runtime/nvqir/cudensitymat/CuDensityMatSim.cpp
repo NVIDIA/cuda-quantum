@@ -16,6 +16,8 @@
 #include "cudaq/distributed/mpi_plugin.h"
 #include <dlfcn.h>
 
+#include <cstdint>
+
 namespace {
 // Hook to query this shared lib file location at runtime.
 extern "C" {
@@ -116,7 +118,7 @@ public:
         } else {
           cudaMemPool_t memPool;
           HANDLE_CUDA_ERROR(cudaDeviceGetDefaultMemPool(&memPool, device));
-          uint64_t uMax = UINT64_MAX;
+          std::uint64_t uMax = UINT64_MAX;
           HANDLE_CUDA_ERROR(cudaMemPoolSetAttribute(
               memPool, cudaMemPoolAttrReleaseThreshold, &uMax));
         }

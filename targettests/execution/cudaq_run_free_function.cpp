@@ -12,9 +12,11 @@
 
 #include <cudaq.h>
 
+#include <cstdint>
+
 struct foo_test_result {
-  int64_t a;
-  int64_t b;
+  std::int64_t a;
+  std::int64_t b;
 };
 
 foo_test_result foo_test(int x) __qpu__ {
@@ -35,7 +37,7 @@ bar_test_result bar_test() __qpu__ { return {true}; }
 struct baz_test_result {
   bool a;
   int b;
-  int64_t c;
+  std::int64_t c;
 };
 
 baz_test_result baz_test() __qpu__ {

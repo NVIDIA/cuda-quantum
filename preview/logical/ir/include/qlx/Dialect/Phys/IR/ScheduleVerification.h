@@ -47,11 +47,11 @@ struct ScheduleClaim {
   llvm::StringRef exhaustion;
   llvm::StringRef successProbabilitySource;
   llvm::StringRef successProbabilityEvidence;
-  std::optional<int64_t> maxAttempts;
-  std::optional<int64_t> repeatCount;
+  std::optional<std::int64_t> maxAttempts;
+  std::optional<std::int64_t> repeatCount;
   std::optional<double> repeatPeriod;
   std::optional<double> repeatEpilogue;
-  std::optional<int64_t> maxIterations;
+  std::optional<std::int64_t> maxIterations;
   std::optional<double> successProbability;
   bool hasDataDependencies = false;
   bool hasResourceDependencies = false;
@@ -62,11 +62,11 @@ struct ScheduleClaim {
 
 /// Structural work evidence from one invocation of the common semantic core.
 struct ScheduleVerificationStats {
-  uint64_t semanticVerifierRuns = 0;
-  uint64_t claimsVisited = 0;
-  uint64_t hierarchyPostorderVisits = 0;
-  uint64_t frontierStateCopies = 0;
-  uint64_t frontierJournalTouches = 0;
+  std::uint64_t semanticVerifierRuns = 0;
+  std::uint64_t claimsVisited = 0;
+  std::uint64_t hierarchyPostorderVisits = 0;
+  std::uint64_t frontierStateCopies = 0;
+  std::uint64_t frontierJournalTouches = 0;
 };
 
 /// Independently reconstruct and verify all schedule semantics from claims.

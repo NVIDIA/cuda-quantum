@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <complex>
+#include <cstdint>
 #include <vector>
 
 namespace cudaq {
@@ -124,11 +125,11 @@ inline bool isApproxEqual(const UnitaryBuilder::UMatrix &lhs,
   using Complex = std::complex<double>;
   assert(rhs.size() == lhs.size());
   bool is_close = true;
-  uint32_t const end = rhs.size();
+  std::uint32_t const end = rhs.size();
   auto const *r_data = rhs.data();
   auto const *l_data = lhs.data();
   if (!up_to_global_phase) {
-    for (uint32_t i = 0u; i < end && is_close; ++i) {
+    for (std::uint32_t i = 0u; i < end && is_close; ++i) {
       is_close &= isApproxEqual(l_data[i].real(), r_data[i].real(), rtol, atol);
       is_close &= isApproxEqual(l_data[i].imag(), r_data[i].imag(), rtol, atol);
     }
@@ -139,7 +140,7 @@ inline bool isApproxEqual(const UnitaryBuilder::UMatrix &lhs,
   // for both the LHS and RHS matrices. Will return 1.0 if no global phase
   Complex lhsMultiplier = getGlobalPhaseConjugate(lhs, atol);
   Complex rhsMultiplier = getGlobalPhaseConjugate(rhs, atol);
-  for (uint32_t i = 0u; i < end && is_close; ++i) {
+  for (std::uint32_t i = 0u; i < end && is_close; ++i) {
     auto lhsEle = lhsMultiplier * l_data[i];
     auto rhsEle = rhsMultiplier * r_data[i];
     is_close &= isApproxEqual(lhsEle.real(), rhsEle.real(), rtol, atol);

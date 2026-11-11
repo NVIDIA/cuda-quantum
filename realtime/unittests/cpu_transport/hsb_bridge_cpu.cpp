@@ -129,11 +129,11 @@ void on_signal(int) { g_shutdown.store(1, std::memory_order_release); }
 // Unified-mode data-plane hooks: translate the transceiver's 1/0 returns into
 // the cudaq_cpu_dataplane_t status enums.  `ctx` is the transceiver handle.
 // ============================================================================
-cudaq_rx_status_t dp_rx_poll(void *ctx, uint32_t *out_slot) {
+cudaq_rx_status_t dp_rx_poll(void *ctx, std::uint32_t *out_slot) {
   return cpu_roce_rx_poll(ctx, out_slot) ? CUDAQ_RX_READY : CUDAQ_RX_EMPTY;
 }
 
-cudaq_status_t dp_tx_publish(void *ctx, uint32_t slot) {
+cudaq_status_t dp_tx_publish(void *ctx, std::uint32_t slot) {
   return cpu_roce_tx_publish(ctx, slot) ? CUDAQ_OK : CUDAQ_ERR_INTERNAL;
 }
 
@@ -205,11 +205,12 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  const uint32_t our_qp = cpu_roce_get_qp_number(xcvr);
-  const uint32_t our_rkey = cpu_roce_get_rkey(xcvr);
-  const uint64_t our_buffer = cpu_roce_get_buffer_addr(xcvr); // always 0 with
-                                                              // iova=0 MR
-                                                              // registration
+  const std::uint32_t our_qp = cpu_roce_get_qp_number(xcvr);
+  const std::uint32_t our_rkey = cpu_roce_get_rkey(xcvr);
+  const std::uint64_t our_buffer =
+      cpu_roce_get_buffer_addr(xcvr); // always 0 with
+                                      // iova=0 MR
+                                      // registration
 
   // ------------------------------------------------------------------------
   // [2] Set up the HOST_CALL function table.  Skipped in forward mode (no
@@ -230,16 +231,16 @@ int main(int argc, char **argv) {
   cudaq_cpu_dataplane_t dataplane{};
   cudaq_function_table_t table{};
   cudaq_dispatcher_config_t dcfg{};
-  uint64_t packets_dispatched = 0;
+  std::uint64_t packets_dispatched = 0;
   if (!cfg.forward) {
-    ring.rx_flags_host = reinterpret_cast<volatile uint64_t *>(
+    ring.rx_flags_host = reinterpret_cast<volatile std::uint64_t *>(
         cpu_roce_get_rx_ring_flag_addr(xcvr));
-    ring.tx_flags_host = reinterpret_cast<volatile uint64_t *>(
+    ring.tx_flags_host = reinterpret_cast<volatile std::uint64_t *>(
         cpu_roce_get_tx_ring_flag_addr(xcvr));
     ring.rx_data_host =
-        reinterpret_cast<uint8_t *>(cpu_roce_get_rx_ring_data_addr(xcvr));
+        reinterpret_cast<std::uint8_t *>(cpu_roce_get_rx_ring_data_addr(xcvr));
     ring.tx_data_host =
-        reinterpret_cast<uint8_t *>(cpu_roce_get_tx_ring_data_addr(xcvr));
+        reinterpret_cast<std::uint8_t *>(cpu_roce_get_tx_ring_data_addr(xcvr));
     ring.rx_stride_sz = cfg.page_size;
     ring.tx_stride_sz = cfg.page_size;
     table.entries = h_entries;
@@ -267,7 +268,7 @@ int main(int argc, char **argv) {
     // publishes them), invokes our HOST_CALL handler synchronously, and
     // publishes tx_flags_host (the transceiver's TX thread consumes them).
     dcfg.num_slots = cfg.num_pages;
-    dcfg.slot_size = static_cast<uint32_t>(cfg.page_size);
+    dcfg.slot_size = static_cast<std::uint32_t>(cfg.page_size);
     dcfg.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
     dcfg.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
 

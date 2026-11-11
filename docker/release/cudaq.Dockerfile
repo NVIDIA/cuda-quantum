@@ -154,6 +154,12 @@ ADD ./docs/sphinx/examples/ /home/cudaq/examples/
 ADD ./docs/sphinx/applications/ /home/cudaq/applications/
 ADD ./docs/sphinx/targets/ /home/cudaq/targets/
 ADD ./docker/release/README.md /home/cudaq/README.md
+# The CUDA-Q Logical examples are only useful when the Logical wheel is installed.
+RUN --mount=type=bind,source=preview/logical/examples,target=/tmp/logical-examples \
+    if [ "$include_logical" = true ]; then \
+        mkdir -p /home/cudaq/logical-examples \
+        && cp -r /tmp/logical-examples/. /home/cudaq/logical-examples/; \
+    fi
 RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
 
 USER cudaq

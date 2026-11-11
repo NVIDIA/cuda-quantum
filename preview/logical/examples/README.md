@@ -26,10 +26,12 @@ target.
    `estimate_physically()` is the direct, opt-in paper-scale compilation and
    scheduling path.
 
-`steane_bell_e2e_workflow.py` follows a Bell pair through logical compilation,
-placement, QEC realization, and physical scheduling using Steane. It then
-exposes the same device as a CUDA-Q target and verifies that both entry
-points report the same resources. Its excerpts supply the
+`steane_bell_e2e_workflow.py` follows a Bell pair, written as a CUDA-Q kernel,
+through logical compilation, placement, QEC realization, and physical
+scheduling using Steane. It then estimates the kernel through a CUDA-Q target
+built from the same device, verifies that both entry points report the same
+resources, and runs the kernel and its P3 build with `cudaq.run`. Its excerpts
+supply the
 [logical programming stack walkthrough](../docs/source/getting-started/cudaq-logical-in-practice.md).
 
 The `standalone/` examples use `cudaq.logical` directly and expose each
