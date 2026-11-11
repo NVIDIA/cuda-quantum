@@ -2677,7 +2677,7 @@ C++
 ::: {.highlight-cpp .notranslate}
 ::: highlight
         auto displacement_matrix =
-            [](const std::vector<int64_t> &dimensions,
+            [](const std::vector<std::int64_t> &dimensions,
                const std::unordered_map<std::string, std::complex<double>>
                    &parameters) -> cudaq::complex_matrix {
           // Returns the displacement operator matrix.
@@ -3716,6 +3716,13 @@ The [[Dynamics Examples]{.std
 .internal} section of the docs contains a number of excellent dynamics
 examples demonstrating how to simulate basic physics models, specific
 qubit modalities, and utilize multi-GPU multi-Node capabilities.
+
+Benchmarks for measuring the performance of the [`dynamics`{.docutils
+.literal .notranslate}]{.pre} target on one or more GPUs, using a
+Heisenberg spin chain with dissipation and a Jaynes-Cummings cavity QED
+model, are described in the [benchmarks
+README](https://github.com/NVIDIA/cuda-quantum/blob/main/docs/sphinx/examples/python/dynamics/benchmarks/README.md){.reference
+.external}.
 :::
 :::
 :::

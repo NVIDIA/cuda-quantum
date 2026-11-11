@@ -1852,13 +1852,13 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14matrix_handler26get_parameter_descriptionsEv">
 <span class="target" id="classcudaq_1_1matrix__handler_1a1b1a5581467f8d3bd8d1aa94e22e7bc0"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_parameter_descriptions</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14matrix_handler26get_parameter_descriptionsEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Returns a map with parameter names and their description if such a map was provided when the operator was defined. </p>
+<dd><p>Returns a map with parameter names and their description if such a map was provided when the operator was defined. The returned reference is invalidated by removing the definition. Callers must synchronize removal with use of this reference. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14matrix_handler23get_expected_dimensionsEv">
 <span class="target" id="classcudaq_1_1matrix__handler_1a5cf3c65165d83c92b5cedb6aee495d70"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">int64_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_expected_dimensions</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14matrix_handler23get_expected_dimensionsEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Returns a vector of integers representing the expected dimension for each degree of freedom. A negative value indicates that the operator is defined for any dimension of that degree. </p>
+<dd><p>Returns a vector of integers representing the expected dimension for each degree of freedom. A negative value indicates that the operator is defined for any dimension of that degree. The returned reference is invalidated by removing the definition. Callers must synchronize removal with use of this reference. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -8430,6 +8430,12 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPUD0Ev">
 <span class="target" id="classcudaq_1_1QPU_1a3a66227bdbd3c46981cd068ae1814057"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~QPU</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq3QPUD0Ev" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The destructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU22shutdownExecutionQueueEv">
+<span class="target" id="classcudaq_1_1QPU_1a56b2826f23c2bb61e29fdb43e1386c72"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shutdownExecutionQueue</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU22shutdownExecutionQueueEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Stop pending work and join the active task before destroying the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp function">

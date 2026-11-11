@@ -2208,10 +2208,20 @@ simulation performance which is discussed in greater detail
 | ate}]{.pre} |                    | om/cuda/cuquantum/latest/custatev |
 |             |                    | ec/api-reference/custatevecex/ind |
 |             |                    | ex.html#svupdater-api){.reference |
-|             |                    | .external}. Values greater than   |
-|             |                    | 10 are clamped to 10, while a     |
-|             |                    | non-positive value disables gate  |
-|             |                    | fusion.                           |
+|             |                    | .external}. On compute capability |
+|             |                    | 10.7 (Rubin) with                 |
+|             |                    | [`cuStateVec`{.docutils .literal  |
+|             |                    | .notranslate}]{.pre} 1.15 or      |
+|             |                    | earlier, CUDA-Q instead selects 3 |
+|             |                    | in [`FP64`{.code .docutils        |
+|             |                    | .literal .notranslate}]{.pre} and |
+|             |                    | 4 in [`FP32`{.code .docutils      |
+|             |                    | .literal .notranslate}]{.pre},    |
+|             |                    | which measured faster than the    |
+|             |                    | library choice there. Values      |
+|             |                    | greater than 10 are clamped to    |
+|             |                    | 10, while a non-positive value    |
+|             |                    | disables gate fusion.             |
 +-------------+--------------------+-----------------------------------+
 | [`CUDA      | integer greater    | The maximum number of qubits used |
 | Q_FUSION_DI | than or equal to   | for diagonal gate fusion. When    |
@@ -2570,8 +2580,13 @@ environment variables must be set prior to setting the target or running
 |             |                    | [`cuStateVecEx`{.docutils         |
 |             |                    | .literal .notranslate}]{.pre}     |
 |             |                    | automatically selects the dense   |
-|             |                    | fusion size. Values greater than  |
-|             |                    | 10 are clamped to 10, while a     |
+|             |                    | fusion size. The Rubin exception  |
+|             |                    | described for                     |
+|             |                    | [`C                               |
+|             |                    | UDAQ_FUSION_MAX_QUBITS`{.docutils |
+|             |                    | .literal .notranslate}]{.pre}     |
+|             |                    | applies. Values greater than 10   |
+|             |                    | are clamped to 10, while a        |
 |             |                    | non-positive value disables gate  |
 |             |                    | fusion.                           |
 +-------------+--------------------+-----------------------------------+

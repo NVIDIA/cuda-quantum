@@ -1339,9 +1339,11 @@ handlers into one CUDA module with <code class="docutils literal notranslate"><s
 example, the <code class="docutils literal notranslate"><span class="pre">GpuRoceTransceiver</span></code>/<code class="docutils literal notranslate"><span class="pre">DOCA</span></code> bridge packs <code class="docutils literal notranslate"><span class="pre">DOCA</span></code> <code class="docutils literal notranslate"><span class="pre">QP</span></code> handles,
 memory keys and ring buffer addresses into its context, and its hooks poll the
 <code class="docutils literal notranslate"><span class="pre">DOCA</span></code> completion queue and send with <code class="docutils literal notranslate"><span class="pre">BlueFlame</span></code>.</p>
-<p>A transport may instead replace the whole dispatch loop: its unified transport
-context then names a <code class="docutils literal notranslate"><span class="pre">cudaq_unified_launch_fn_t</span></code>, which the dispatcher calls in
-place of its own kernel.</p>
+<p>A transport could instead replace the whole dispatch loop: its unified
+transport context then named a <code class="docutils literal notranslate"><span class="pre">cudaq_unified_launch_fn_t</span></code>, which the
+dispatcher called in place of its own kernel.  That transport-side override is
+deprecated together with <code class="docutils literal notranslate"><span class="pre">cudaq_bridge_get_transport_context</span></code>; an application
+that wants its own loop installs it with <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_unified_launch</span></code>.</p>
 </section>
 <section id="when-to-use-which-mode">
 <h3>When to Use Which Mode<a class="headerlink" href="#when-to-use-which-mode" title="Permalink to this heading">¶</a></h3>

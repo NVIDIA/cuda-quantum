@@ -54,12 +54,15 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html">The logical programming stack</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#compile-and-estimate-the-logical-program">1. Compile and estimate the logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#write-the-kernel">1. Write the kernel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#choose-the-code-and-its-implementations">2. Choose the code and its implementations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#describe-the-device">3. Describe the device</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#place-and-realize-the-program">4. Place and realize the program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#schedule-and-estimate-the-physical-resources">5. Schedule and estimate the physical resources</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#expose-the-device-as-a-cuda-q-target">6. Expose the device as a CUDA-Q target</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#compile-the-kernel-for-cuda-q-logical">4. Compile the kernel for CUDA-Q Logical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#place-and-realize-the-program">5. Place and realize the program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#schedule-and-estimate-the-physical-resources">6. Schedule and estimate the physical resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#estimate-the-kernel-through-the-target">7. Estimate the kernel through the target</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#run-the-kernel-and-its-physical-build">8. Run the kernel and its physical build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#optional-inspect-the-executed-quake">9. Optional: inspect the executed Quake</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
@@ -439,6 +442,13 @@ and a <code class="docutils literal notranslate"><span class="pre">list[bool]</s
 or decoding are added. See the
 <a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html"><span class="std std-doc">Steane Bernstein–Vazirani</span></a>
 and <a class="reference internal" href="../use-cases/examples/t-factory-evaluation.html"><span class="std std-doc">T-factory</span></a> execution examples.</p>
+<p><strong>A CUDA-Q kernel returns measured bits.</strong> A <code class="docutils literal notranslate"><span class="pre">&#64;cudaq.kernel</span></code> compiled for a
+Logical target can return nothing, a measurement as a <code class="docutils literal notranslate"><span class="pre">bool</span></code>, or a
+<code class="docutils literal notranslate"><span class="pre">tuple[bool,</span> <span class="pre">...]</span></code> of measurements. P0 keeps one result per member, in order.
+Where the kernel returns a tuple, <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code> on the P3 Build returns a
+<code class="docutils literal notranslate"><span class="pre">list[bool]</span></code>. Compilation rejects a <code class="docutils literal notranslate"><span class="pre">list[bool]</span></code> result, a constant or computed
+bit such as <code class="docutils literal notranslate"><span class="pre">not</span> <span class="pre">m</span></code>, a member read back with <code class="docutils literal notranslate"><span class="pre">t[0]</span></code>, a branch on a measurement,
+and a gate after a measurement.</p>
 <p><strong>Execution covers a subset of P3.</strong> Forms such as resource and factory flows,
 in-graph postselection, bounded retry, code epoch changes, and patch-granularity
 resources produce diagnostics instead of executable Quake. Support for compiling

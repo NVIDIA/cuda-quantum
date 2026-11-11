@@ -1571,7 +1571,7 @@ that operator.</p>
 </div>
 <input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">displacement_matrix</span><span class="w"> </span><span class="o">=</span>
-<span class="w">        </span><span class="p">[](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int64_t</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dimensions</span><span class="p">,</span>
+<span class="w">        </span><span class="p">[](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">int64_t</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dimensions</span><span class="p">,</span>
 <span class="w">           </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span>
 <span class="w">               </span><span class="o">&amp;</span><span class="n">parameters</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">complex_matrix</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="c1">// Returns the displacement operator matrix.</span>
@@ -2323,6 +2323,7 @@ then each process (GPU) will simulate a batch size of 2. Errors will be raised i
 <section id="examples">
 <h2>Examples<a class="headerlink" href="#examples" title="Permalink to this heading">¶</a></h2>
 <p>The <a class="reference internal" href="examples/dynamics_examples.html#dynamics-examples"><span class="std std-ref">Dynamics Examples</span></a> section of the docs contains a number of excellent dynamics examples demonstrating how to simulate basic physics models, specific qubit modalities, and utilize multi-GPU multi-Node capabilities.</p>
+<p>Benchmarks for measuring the performance of the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> target on one or more GPUs, using a Heisenberg spin chain with dissipation and a Jaynes-Cummings cavity QED model, are described in the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/docs/sphinx/examples/python/dynamics/benchmarks/README.md">benchmarks README</a>.</p>
 </section>
 </section>
 

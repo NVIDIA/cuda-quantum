@@ -3012,7 +3012,9 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     []{#classcudaq_1_1matrix__handler_1a1b1a5581467f8d3bd8d1aa94e22e7bc0 .target}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[unordered_map]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[[get_parameter_descriptions]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq14matrix_handler26get_parameter_descriptionsEv "Permalink to this definition"){.headerlink}\
 
     :   Returns a map with parameter names and their description if such
-        a map was provided when the operator was defined.
+        a map was provided when the operator was defined. The returned
+        reference is invalidated by removing the definition. Callers
+        must synchronize removal with use of this reference.
 
     ```{=html}
     <!-- -->
@@ -3022,7 +3024,9 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     :   Returns a vector of integers representing the expected dimension
         for each degree of freedom. A negative value indicates that the
-        operator is defined for any dimension of that degree.
+        operator is defined for any dimension of that degree. The
+        returned reference is invalidated by removing the definition.
+        Callers must synchronize removal with use of this reference.
 
     ```{=html}
     <!-- -->
@@ -13102,6 +13106,16 @@ them they are erased before execution.
     []{#classcudaq_1_1QPU_1a3a66227bdbd3c46981cd068ae1814057 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[[\~QPU]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq3QPUD0Ev "Permalink to this definition"){.headerlink}\
 
     :   The destructor.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1QPU_1a56b2826f23c2bb61e29fdb43e1386c72 .target}[[inline]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[shutdownExecutionQueue]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU22shutdownExecutionQueueEv "Permalink to this definition"){.headerlink}\
+
+    :   Stop pending work and join the active task before destroying the
+        [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
+        .internal}.
 
     ```{=html}
     <!-- -->
