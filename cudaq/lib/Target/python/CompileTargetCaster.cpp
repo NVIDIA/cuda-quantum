@@ -88,7 +88,7 @@ struct struct_caster {
           return;
 
         using Field = std::remove_reference_t<decltype(field)>;
-        make_caster<Field> caster;
+        make_caster<Field> caster{};
         ok = caster.from_python(getattr(src, pythonName(name).c_str(), none()),
                                 flags, cleanup);
         if (!ok || !caster.template can_cast<Field>()) {
