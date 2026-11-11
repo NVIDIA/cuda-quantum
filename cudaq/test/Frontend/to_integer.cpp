@@ -12,12 +12,14 @@
 
 #include "cudaq/qis/qubit_qis.h"
 
+#include <cstdint>
+
 void external_call_to_keep_result(std::int64_t results_int) {}
 
 struct kernel {
   void operator()() __qpu__ {
     cudaq::qvector q(16);
-    int64_t results_int = cudaq::to_integer(cudaq::to_bools(mz(q)));
+    std::int64_t results_int = cudaq::to_integer(cudaq::to_bools(mz(q)));
     external_call_to_keep_result(results_int);
   }
 };

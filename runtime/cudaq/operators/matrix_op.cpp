@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include <complex>
+#include <cstdint>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
@@ -85,7 +86,7 @@ void matrix_handler::define(
 }
 
 void matrix_handler::define(std::string operator_id,
-                            std::vector<int64_t> expected_dimensions,
+                            std::vector<std::int64_t> expected_dimensions,
                             matrix_callback &&create,
                             const std::unordered_map<std::string, std::string>
                                 &parameter_descriptions) {
@@ -158,7 +159,8 @@ matrix_handler::get_parameter_descriptions() const {
   return get_definition(this->op_code)->parameter_descriptions;
 }
 
-const std::vector<int64_t> &matrix_handler::get_expected_dimensions() const {
+const std::vector<std::int64_t> &
+matrix_handler::get_expected_dimensions() const {
   return get_definition(this->op_code)->expected_dimensions;
 }
 

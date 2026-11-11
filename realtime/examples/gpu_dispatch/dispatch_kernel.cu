@@ -130,12 +130,12 @@ __global__ void init_rpc_function_table(cudaq_function_entry_t *entries) {
 }
 
 bool allocate_ring_buffer(std::size_t num_slots, std::size_t slot_size,
-                          volatile uint64_t **host_flags_out,
-                          volatile uint64_t **device_flags_out,
+                          volatile std::uint64_t **host_flags_out,
+                          volatile std::uint64_t **device_flags_out,
                           std::uint8_t **host_data_out,
                           std::uint8_t **device_data_out) {
   void *host_flags_ptr = nullptr;
-  cudaError_t err = cudaHostAlloc(&host_flags_ptr, num_slots * sizeof(uint64_t),
+  cudaError_t err = cudaHostAlloc(&host_flags_ptr, num_slots * sizeof(std::uint64_t),
                                   cudaHostAllocMapped);
   if (err != cudaSuccess)
     return false;
@@ -163,18 +163,18 @@ bool allocate_ring_buffer(std::size_t num_slots, std::size_t slot_size,
     return false;
   }
 
-  memset(host_flags_ptr, 0, num_slots * sizeof(uint64_t));
+  memset(host_flags_ptr, 0, num_slots * sizeof(std::uint64_t));
 
-  *host_flags_out = static_cast<volatile uint64_t *>(host_flags_ptr);
-  *device_flags_out = static_cast<volatile uint64_t *>(device_flags_ptr);
+  *host_flags_out = static_cast<volatile std::uint64_t *>(host_flags_ptr);
+  *device_flags_out = static_cast<volatile std::uint64_t *>(device_flags_ptr);
   *host_data_out = static_cast<std::uint8_t *>(host_data_ptr);
   *device_data_out = static_cast<std::uint8_t *>(device_data_ptr);
   return true;
 }
 
-void free_ring_buffer(volatile uint64_t *host_flags, std::uint8_t *host_data) {
+void free_ring_buffer(volatile std::uint64_t *host_flags, std::uint8_t *host_data) {
   if (host_flags)
-    cudaFreeHost(const_cast<uint64_t *>(host_flags));
+    cudaFreeHost(const_cast<std::uint64_t *>(host_flags));
   if (host_data)
     cudaFreeHost(host_data);
 }
@@ -206,10 +206,10 @@ __device__ HandlerFunc d_increment_handler = increment_handler;
 int main() {
   constexpr std::size_t num_slots_ = 2;
   constexpr std::size_t slot_size_ = 256;
-  volatile uint64_t *rx_flags_host = nullptr;
-  volatile uint64_t *tx_flags_host = nullptr;
-  volatile uint64_t *rx_flags_device = nullptr;
-  volatile uint64_t *tx_flags_device = nullptr;
+  volatile std::uint64_t *rx_flags_host = nullptr;
+  volatile std::uint64_t *tx_flags_host = nullptr;
+  volatile std::uint64_t *rx_flags_device = nullptr;
+  volatile std::uint64_t *tx_flags_device = nullptr;
   std::uint8_t *rx_data_host = nullptr;
   std::uint8_t *tx_data_host = nullptr;
   std::uint8_t *rx_data_device = nullptr;
@@ -217,7 +217,7 @@ int main() {
 
   volatile int *shutdown_flag_ = nullptr;
   volatile int *d_shutdown_flag_ = nullptr;
-  uint64_t *d_stats_ = nullptr;
+  std::uint64_t *d_stats_ = nullptr;
 
   cudaq_function_entry_t *d_function_entries_ = nullptr;
   std::size_t func_count_ = 0;
@@ -253,8 +253,8 @@ int main() {
   CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag_), &zero, sizeof(int),
                         cudaMemcpyHostToDevice));
 
-  CUDA_CHECK(cudaMalloc(&d_stats_, sizeof(uint64_t)));
-  CUDA_CHECK(cudaMemset(d_stats_, 0, sizeof(uint64_t)));
+  CUDA_CHECK(cudaMalloc(&d_stats_, sizeof(std::uint64_t)));
+  CUDA_CHECK(cudaMemset(d_stats_, 0, sizeof(std::uint64_t)));
 
   CUDA_CHECK(cudaMalloc(&d_function_entries_, sizeof(cudaq_function_entry_t)));
   init_rpc_function_table<<<1, 1>>>(d_function_entries_);
@@ -266,8 +266,8 @@ int main() {
   config.device_id = 0;
   config.num_blocks = 1;
   config.threads_per_block = 64;
-  config.num_slots = static_cast<uint32_t>(num_slots_);
-  config.slot_size = static_cast<uint32_t>(slot_size_);
+  config.num_slots = static_cast<std::uint32_t>(num_slots_);
+  config.slot_size = static_cast<std::uint32_t>(slot_size_);
   config.vp_id = 0;
   config.kernel_type = CUDAQ_KERNEL_REGULAR;
   config.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
@@ -337,7 +337,7 @@ int main() {
 
   std::cout << "RPC request sent, waiting for response..." << std::endl;
   __sync_synchronize();
-  const_cast<volatile uint64_t *>(rx_flags_host)[0] =
+  const_cast<volatile std::uint64_t *>(rx_flags_host)[0] =
       reinterpret_cast<std::uint64_t>(rx_data_device);
 
   int timeout = 50;

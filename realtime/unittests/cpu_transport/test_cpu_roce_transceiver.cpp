@@ -65,7 +65,7 @@ TEST(CpuRoceUnifiedContract, UnifiedExcludesTheOtherModes) {
 }
 
 TEST(CpuRoceUnifiedContract, HooksRefuseNullHandle) {
-  uint32_t slot = 0;
+  std::uint32_t slot = 0;
   EXPECT_EQ(0, cpu_roce_rx_poll(nullptr, &slot));
   EXPECT_EQ(0, cpu_roce_tx_publish(nullptr, 0));
 }
@@ -73,7 +73,7 @@ TEST(CpuRoceUnifiedContract, HooksRefuseNullHandle) {
 TEST(CpuRoceUnifiedContract, HooksRefuseBeforeConnect) {
   auto xcvr = create_unconnected(0, 0, 0, /*unified=*/1);
   ASSERT_NE(nullptr, xcvr);
-  uint32_t slot = 0;
+  std::uint32_t slot = 0;
   EXPECT_EQ(0, cpu_roce_rx_poll(xcvr, &slot));
   EXPECT_EQ(0, cpu_roce_tx_publish(xcvr, 0));
   cpu_roce_destroy_transceiver(xcvr);
@@ -82,7 +82,7 @@ TEST(CpuRoceUnifiedContract, HooksRefuseBeforeConnect) {
 TEST(CpuRoceUnifiedContract, HooksRefuseTheThreadedShape) {
   auto xcvr = create_unconnected(0, 0, 0, /*unified=*/0);
   ASSERT_NE(nullptr, xcvr);
-  uint32_t slot = 0;
+  std::uint32_t slot = 0;
   EXPECT_EQ(0, cpu_roce_rx_poll(xcvr, &slot));
   EXPECT_EQ(0, cpu_roce_tx_publish(xcvr, 0));
   cpu_roce_destroy_transceiver(xcvr);
@@ -174,7 +174,7 @@ protected:
   }
 
   // Service side: spin on the hook until it hands out a slot.
-  bool servicePoll(uint32_t &slot,
+  bool servicePoll(std::uint32_t &slot,
                    std::chrono::milliseconds timeout = kTimeout) {
     const auto deadline = std::chrono::steady_clock::now() + timeout;
     while (std::chrono::steady_clock::now() < deadline)
@@ -184,14 +184,14 @@ protected:
   }
 
   // Service side: respond to `slot` with `text` through the publish hook.
-  void serviceRespond(uint32_t slot, const std::string &text) {
+  void serviceRespond(std::uint32_t slot, const std::string &text) {
     std::uint8_t *tx = slot_data(svcTxData, slot, kSlotSize);
     std::memset(tx, 0, kSlotSize);
     std::memcpy(tx, text.data(), text.size());
     ASSERT_EQ(1, cpu_roce_tx_publish(service, slot));
   }
 
-  std::string serviceRequest(uint32_t slot, std::size_t len) const {
+  std::string serviceRequest(std::uint32_t slot, std::size_t len) const {
     return std::string(
         reinterpret_cast<const char *>(slot_data(svcRxData, slot, kSlotSize)),
         len);
@@ -221,7 +221,7 @@ TEST_F(CpuRoceUnifiedServiceTest, BlockingMonitorStartsNoThreads) {
 
 TEST_F(CpuRoceUnifiedServiceTest, HooksRoundTripToCaller) {
   callerSend("ping");
-  uint32_t slot = kNumSlots;
+  std::uint32_t slot = kNumSlots;
   ASSERT_TRUE(servicePoll(slot));
   EXPECT_EQ(0u, slot);
   EXPECT_EQ("ping", serviceRequest(slot, 4));
@@ -239,7 +239,7 @@ TEST_F(CpuRoceUnifiedServiceTest, RxPollFollowsRingOrderAcrossWrap) {
   for (unsigned i = 0; i < 3 * kNumSlots; ++i) {
     const std::string request = "req-" + std::to_string(i);
     callerSend(request);
-    uint32_t slot = kNumSlots;
+    std::uint32_t slot = kNumSlots;
     ASSERT_TRUE(servicePoll(slot)) << "request " << i;
     EXPECT_EQ(i % kNumSlots, slot);
     EXPECT_EQ(request, serviceRequest(slot, request.size()));
@@ -254,7 +254,7 @@ TEST_F(CpuRoceUnifiedServiceTest, RxPollHoldsRequestWhileTxFlagSet) {
   // Stand-in for a consumer still holding slot 0: its tx_flag is non-zero.
   store_flag(svcTxFlags, 0, 1);
   callerSend("held");
-  uint32_t slot = kNumSlots;
+  std::uint32_t slot = kNumSlots;
   EXPECT_FALSE(servicePoll(slot, std::chrono::milliseconds(200)));
 
   // Held, not lost: it is delivered as soon as the slot frees.

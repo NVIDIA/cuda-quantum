@@ -31,6 +31,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/SymbolTable.h"
 
+#include <cstdint>
 #include <functional>
 
 using namespace mlir;
@@ -973,12 +974,12 @@ LogicalResult
 CliffordActionAttr::verify(llvm::function_ref<InFlightDiagnostic()> emitError,
                            DenseI64ArrayAttr matrix, DenseI64ArrayAttr phases,
                            ArrayAttr ports) {
-  const int64_t arity = static_cast<int64_t>(ports.size());
-  const int64_t width = 2 * arity;
-  if (static_cast<int64_t>(matrix.size()) != width * width)
+  const std::int64_t arity = static_cast<std::int64_t>(ports.size());
+  const std::int64_t width = 2 * arity;
+  if (static_cast<std::int64_t>(matrix.size()) != width * width)
     return emitError() << "matrix must contain " << width * width
                        << " row-major entries for " << arity << " ports";
-  if (static_cast<int64_t>(phases.size()) != width)
+  if (static_cast<std::int64_t>(phases.size()) != width)
     return emitError() << "phases must contain one sign for each of the "
                        << width << " generator images";
 
@@ -990,25 +991,25 @@ CliffordActionAttr::verify(llvm::function_ref<InFlightDiagnostic()> emitError,
     if (!seenPorts.insert(name.getValue()).second)
       return emitError() << "ports must be unique";
   }
-  for (int64_t bit : matrix.asArrayRef())
+  for (std::int64_t bit : matrix.asArrayRef())
     if (bit != 0 && bit != 1)
       return emitError() << "matrix entries must be binary";
-  for (int64_t bit : phases.asArrayRef())
+  for (std::int64_t bit : phases.asArrayRef())
     if (bit != 0 && bit != 1)
       return emitError() << "phase entries must be binary";
 
-  ArrayRef<int64_t> values = matrix.asArrayRef();
-  auto at = [&](int64_t row, int64_t column) {
+  ArrayRef<std::int64_t> values = matrix.asArrayRef();
+  auto at = [&](std::int64_t row, std::int64_t column) {
     return values[row * width + column];
   };
-  for (int64_t left = 0; left < width; ++left) {
-    for (int64_t right = 0; right < width; ++right) {
-      int64_t pairing = 0;
-      for (int64_t qubit = 0; qubit < arity; ++qubit)
+  for (std::int64_t left = 0; left < width; ++left) {
+    for (std::int64_t right = 0; right < width; ++right) {
+      std::int64_t pairing = 0;
+      for (std::int64_t qubit = 0; qubit < arity; ++qubit)
         pairing ^= (at(left, qubit) & at(right, arity + qubit)) ^
                    (at(left, arity + qubit) & at(right, qubit));
-      const int64_t expected = (left < arity && right == arity + left) ||
-                               (right < arity && left == arity + right);
+      const std::int64_t expected = (left < arity && right == arity + left) ||
+                                    (right < arity && left == arity + right);
       if (pairing != expected)
         return emitError()
                << "matrix does not preserve the binary symplectic form";

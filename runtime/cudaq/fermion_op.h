@@ -9,6 +9,7 @@
 #pragma once
 
 #include <complex>
+#include <cstdint>
 #include <unordered_map>
 #include <vector>
 
@@ -37,7 +38,7 @@ private:
   // 4 = 0100 = Ad
   // 8 = 1000 = N
   // 9 = 1001 = I
-  int8_t op_code;
+  std::int8_t op_code;
   bool commutes;
   std::size_t degree;
 

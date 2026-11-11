@@ -76,9 +76,9 @@ struct Entry {
   StringRef attemptEvent;
   StringRef decisionEvent;
   StringRef exhaustion;
-  std::optional<int64_t> maxAttempts;
-  std::optional<int64_t> repeatCount;
-  std::optional<int64_t> maxIterations;
+  std::optional<std::int64_t> maxAttempts;
+  std::optional<std::int64_t> repeatCount;
+  std::optional<std::int64_t> maxIterations;
   std::optional<double> successProbability;
 
   double finish() const { return start + duration; }
@@ -106,7 +106,7 @@ struct MetricContribution {
 struct SummaryPeakAtom {
   double start = 0.0;
   double duration = 0.0;
-  int64_t leaves = 0;
+  std::int64_t leaves = 0;
   ResourceSetId resourceSet = 0;
   SummaryPathId path = 0;
 };
@@ -115,7 +115,7 @@ struct NestedCallSummary {
   size_t invocation = 0;
   size_t root = 0;
   double start = 0.0;
-  int64_t metricFactor = 1;
+  std::int64_t metricFactor = 1;
   SummaryPathId prefix = 0;
   unsigned conditionBase = 0;
 };
@@ -140,7 +140,7 @@ struct SummaryOccurrence {
   size_t source = 0;
   const CallSummary *summary = nullptr;
   double topStart = 0.0;
-  int64_t metricFactor = 1;
+  std::int64_t metricFactor = 1;
   size_t conditionBase = 0;
   SmallVector<double, 4> offsets;
   SmallVector<size_t, 4> aliases;
@@ -156,7 +156,7 @@ struct OccurrenceResourceMapping {
 struct PeakAtom {
   double start = 0.0;
   double duration = 0.0;
-  int64_t leaves = 0;
+  std::int64_t leaves = 0;
   PhysicalResourceSetId physicalSet = 0;
   QubitSetId qubitSet = 0;
   SmallVector<Constraint, 4> constraints;
@@ -165,8 +165,8 @@ struct PeakAtom {
 struct ReplaySlice {
   size_t retry = 0;
   size_t attempt = 0;
-  int64_t occurrences = 1;
-  SmallVector<std::pair<size_t, int64_t>, 16> weighted;
+  std::int64_t occurrences = 1;
+  SmallVector<std::pair<size_t, std::int64_t>, 16> weighted;
   double replayDuration = 0.0;
   double attemptStart = 0.0;
   double retryStart = 0.0;
@@ -183,7 +183,7 @@ struct DynamicFoldIdentity {
   size_t event = 0;
   SmallVector<size_t, 4> expansion;
   StringRef branch;
-  int64_t count = 1;
+  std::int64_t count = 1;
   double iterationFinish = 0.0;
   double envelopeFinish = 0.0;
 };
@@ -235,8 +235,8 @@ public:
   }
 
 private:
-  std::vector<uint64_t> marks;
-  uint64_t generation = 1;
+  std::vector<std::uint64_t> marks;
+  std::uint64_t generation = 1;
 };
 
 /// Derive truncated-geometric statistics without subtracting nearly equal
@@ -244,7 +244,8 @@ private:
 /// of the completion probability when p is below half an ulp at one.  The
 /// log1p/expm1 spelling stays stable at both probability boundaries, and the
 /// direct extra-attempt formula avoids a second cancellation at p ~= 1.
-static RetryStatistics retryStatistics(double probability, int64_t attempts) {
+static RetryStatistics retryStatistics(double probability,
+                                       std::int64_t attempts) {
   RetryStatistics result;
   if (probability == 1.0)
     return result;
@@ -277,15 +278,15 @@ static RetryStatistics retryStatistics(double probability, int64_t attempts) {
 /// algorithm structurally bounded and fail closed before allocating when the
 /// authenticated support exceeds this limit.  Serial retry estimation remains
 /// O(1) for every signed-64-bit attempt bound.
-static constexpr int64_t kMaximumParallelRetrySupportPoints = 262144;
+static constexpr std::int64_t kMaximumParallelRetrySupportPoints = 262144;
 
 /// Exact physical-footprint accounting currently interns one identity per
 /// selected binding member.  Fail closed before allocating when a valid
 /// machine description exceeds the estimator's bounded representation.  This
 /// keeps unsupported machine scale a typed evidence limitation rather than an
 /// allocator failure; ordinary schedules and retry bounds remain unaffected.
-static constexpr int64_t kMaximumExpandedPhysicalBindingMembers = 262144;
-static constexpr bool isBoundedPhysicalExpansion(int64_t members) {
+static constexpr std::int64_t kMaximumExpandedPhysicalBindingMembers = 262144;
+static constexpr bool isBoundedPhysicalExpansion(std::int64_t members) {
   return members >= 0 && members <= kMaximumExpandedPhysicalBindingMembers;
 }
 static_assert(isBoundedPhysicalExpansion(262144));
@@ -334,11 +335,11 @@ static FailureOr<Entry> parseEntry(StringAttr raw, Operation *source) {
     return found == details.end() ? StringRef{} : found->second;
   };
   auto integer = [&](StringRef key,
-                     std::optional<int64_t> &result) -> LogicalResult {
+                     std::optional<std::int64_t> &result) -> LogicalResult {
     auto found = details.find(key);
     if (found == details.end() || found->second.empty())
       return success();
-    int64_t value = 0;
+    std::int64_t value = 0;
     if (found->second.getAsInteger(10, value) || value < 0)
       return source->emitError("schedule estimate found invalid ") << key;
     result = value;
@@ -405,7 +406,7 @@ public:
     architecture.walk([&](ResourceClassOp resourceClass) {
       classCounts[resourceClass.getSymName()] = resourceClass.getCount();
       classKinds[resourceClass.getSymName()] = resourceClass.getKind().str();
-      int64_t physicalWeight = resourceClass.getKind() == "qubit" ? 1 : 0;
+      std::int64_t physicalWeight = resourceClass.getKind() == "qubit" ? 1 : 0;
       if (auto granularity =
               resourceClass->getAttrOfType<StringAttr>("granularity");
           granularity && granularity.getValue() == "patch") {
@@ -508,7 +509,7 @@ public:
       }
       if (failed(checkClassExpansion(className)))
         return failure();
-      for (int64_t index = 0; index < count->second; ++index)
+      for (std::int64_t index = 0; index < count->second; ++index)
         result.insert((className + "[" + Twine(index) + "]").str());
       resourceMembers[resource] = result;
       return &resourceMembers.find(resource)->second;
@@ -563,7 +564,7 @@ public:
       if (failed(checkClassExpansion(className)))
         return failure();
       if (weight->second > 0)
-        for (int64_t index = 0; index < count->second; ++index) {
+        for (std::int64_t index = 0; index < count->second; ++index) {
           std::string member = (className + "[" + Twine(index) + "]").str();
           result.insert(member);
           directProvisioned.insert(member);
@@ -638,7 +639,7 @@ public:
     return result;
   }
 
-  FailureOr<int64_t> physicalWeightFor(StringRef resource) {
+  FailureOr<std::int64_t> physicalWeightFor(StringRef resource) {
     auto concrete = parseConcreteResource(resource);
     if (failed(concrete))
       return failure();
@@ -677,7 +678,7 @@ private:
              << binding;
     }
 
-    int64_t members = 0;
+    std::int64_t members = 0;
     for (const std::string &className : classes->second) {
       auto count = classCounts.find(className);
       if (count == classCounts.end()) {
@@ -708,7 +709,7 @@ private:
     return success();
   }
 
-  FailureOr<std::pair<StringRef, int64_t>>
+  FailureOr<std::pair<StringRef, std::int64_t>>
   parseConcreteResource(StringRef resource) {
     size_t open = resource.rfind('[');
     if (open == StringRef::npos || !resource.ends_with("]")) {
@@ -718,7 +719,7 @@ private:
       return failure();
     }
     StringRef className = resource.take_front(open);
-    int64_t index = 0;
+    std::int64_t index = 0;
     if (resource.slice(open + 1, resource.size() - 1).getAsInteger(10, index) ||
         index < 0) {
       diagnostic->emitError("scheduled physical resource index is invalid: ")
@@ -757,7 +758,7 @@ private:
             << className;
         return failure();
       }
-      for (int64_t index = 0; index < count->second; ++index)
+      for (std::int64_t index = 0; index < count->second; ++index)
         result.insert(className + "[" + std::to_string(index) + "]");
     }
     bindingResources[binding] = result;
@@ -794,7 +795,7 @@ private:
         return failure();
       }
       if (weight->second > 0)
-        for (int64_t index = 0; index < count->second; ++index)
+        for (std::int64_t index = 0; index < count->second; ++index)
           result.insert(className + "[" + std::to_string(index) + "]");
     }
     bindingQubits[binding] = result;
@@ -807,9 +808,9 @@ private:
   SymbolTable symbols;
   ArchitectureOp architecture;
   DeviceOp device;
-  llvm::StringMap<int64_t> classCounts;
+  llvm::StringMap<std::int64_t> classCounts;
   llvm::StringMap<std::string> classKinds;
-  llvm::StringMap<int64_t> classPhysicalWeights;
+  llvm::StringMap<std::int64_t> classPhysicalWeights;
   llvm::StringMap<SmallVector<std::string, 2>> bindingClasses;
   llvm::StringMap<SmallVector<std::string, 2>> classBindings;
   llvm::StringMap<std::string> factoryModelBindings;
@@ -861,7 +862,7 @@ static void maximizeMetrics(MetricTotals &target, const MetricTotals &source) {
 
 static void accumulateMetric(MetricNode &root, StringRef kind,
                              double weightedDuration, size_t resourceCount,
-                             int64_t qubitCount,
+                             std::int64_t qubitCount,
                              ArrayRef<Constraint> constraints) {
   if (weightedDuration == 0.0)
     return;
@@ -950,7 +951,7 @@ pruneUnions(std::vector<llvm::BitVector> candidates, size_t &work) {
 /// nodes on the changed ancestry path.
 class ActiveOccupancy {
 public:
-  explicit ActiveOccupancy(ArrayRef<int64_t> qubitWeights)
+  explicit ActiveOccupancy(ArrayRef<std::int64_t> qubitWeights)
       : qubitWeights(qubitWeights), qubitCount(qubitWeights.size()),
         baseQubits(qubitCount), qubitUniverse(qubitCount),
         maximumQubits(qubitCount) {}
@@ -959,7 +960,7 @@ public:
     return update(atom.leaves, atom.constraints, qubits, direction);
   }
 
-  bool update(int64_t leaves, ArrayRef<Constraint> constraints,
+  bool update(std::int64_t leaves, ArrayRef<Constraint> constraints,
               ArrayRef<unsigned> qubits, int direction) {
     // The overwhelmingly common case is an unconditional schedule.  Keep its
     // occupancy directly on the root instead of rebuilding and copying the
@@ -972,7 +973,7 @@ public:
         return false;
       if (direction != 0)
         for (unsigned qubit : qubits) {
-          int64_t &count = baseQubitCounts[qubit];
+          std::int64_t &count = baseQubitCounts[qubit];
           count += direction;
           if (count < 0)
             return false;
@@ -996,7 +997,7 @@ public:
 
 private:
   bool update(ArrayRef<Constraint> constraints, ArrayRef<unsigned> qubits,
-              int64_t leafDelta, int qubitDelta) {
+              std::int64_t leafDelta, int qubitDelta) {
     SmallVector<ActiveOccupancy *, 8> path{this};
     ActiveOccupancy *node = this;
     for (const auto &[condition, branch] : constraints) {
@@ -1011,7 +1012,7 @@ private:
       return false;
     if (qubitDelta != 0)
       for (unsigned qubit : qubits) {
-        int64_t &count = node->baseQubitCounts[qubit];
+        std::int64_t &count = node->baseQubitCounts[qubit];
         count += qubitDelta;
         if (count < 0)
           return false;
@@ -1045,9 +1046,9 @@ private:
   }
 
 public:
-  int64_t leaves() const { return activeLeaves; }
+  std::int64_t leaves() const { return activeLeaves; }
 
-  FailureOr<int64_t> qubits() {
+  FailureOr<std::int64_t> qubits() {
     if (groups.empty()) {
       maximumWork = 0;
       return baseQubitWeight;
@@ -1070,9 +1071,9 @@ public:
   size_t lastMaximumWork() const { return maximumWork; }
 
 private:
-  int64_t weightedCount(const llvm::BitVector &qubits) const {
-    int64_t result = 0;
-    for (int64_t index = qubits.find_first(); index >= 0;
+  std::int64_t weightedCount(const llvm::BitVector &qubits) const {
+    std::int64_t result = 0;
+    for (std::int64_t index = qubits.find_first(); index >= 0;
          index = qubits.find_next(index))
       result += qubitWeights[index];
     return result;
@@ -1088,7 +1089,7 @@ private:
     maximumValid = false;
     for (const auto &[condition, branches] : groups) {
       (void)condition;
-      int64_t branchLeaves = 0;
+      std::int64_t branchLeaves = 0;
       for (const auto &[branch, child] : branches) {
         (void)branch;
         branchLeaves = std::max(branchLeaves, child->activeLeaves);
@@ -1272,15 +1273,15 @@ private:
     return success();
   }
 
-  ArrayRef<int64_t> qubitWeights;
+  ArrayRef<std::int64_t> qubitWeights;
   unsigned qubitCount;
-  int64_t baseLeaves = 0;
-  llvm::DenseMap<unsigned, int64_t> baseQubitCounts;
+  std::int64_t baseLeaves = 0;
+  llvm::DenseMap<unsigned, std::int64_t> baseQubitCounts;
   llvm::BitVector baseQubits;
-  int64_t baseQubitTotal = 0;
-  int64_t baseQubitWeight = 0;
+  std::int64_t baseQubitTotal = 0;
+  std::int64_t baseQubitWeight = 0;
   std::map<size_t, Branches> groups;
-  int64_t activeLeaves = 0;
+  std::int64_t activeLeaves = 0;
   llvm::BitVector qubitUniverse;
   llvm::BitVector maximumQubits;
   size_t maximumWork = 0;
@@ -1360,7 +1361,7 @@ public:
               "runtime abort semantics"
             : "expected metrics follow runtime abort semantics");
     llvm::json::Object result;
-    result["event_count"] = static_cast<int64_t>(entries.size());
+    result["event_count"] = static_cast<std::int64_t>(entries.size());
     result["event_counts"] = std::move(counts);
     result["makespan_ns"] = makespan;
     result["expected_makespan_ns"] = expectedMakespan;
@@ -1371,7 +1372,8 @@ public:
     result["active_physical_qubit_time_ns"] = activeQubitTime;
     result["expected_active_physical_qubit_time_ns"] = expectedQubitTime;
     result["maximum_active_physical_qubit_time_ns"] = maximumQubitTime;
-    result["physical_resources"] = static_cast<int64_t>(allResources.size());
+    result["physical_resources"] =
+        static_cast<std::int64_t>(allResources.size());
     result["physical_qubits"] = provisionedPhysicalQubits;
     result["peak_concurrency"] = peakConcurrency;
     result["peak_active_physical_qubits"] = peakActiveQubits;
@@ -1539,8 +1541,8 @@ private:
     return result.wasInterrupted() ? failure() : success();
   }
 
-  FailureOr<int64_t> multiplicity(size_t index) const {
-    int64_t result = 1;
+  FailureOr<std::int64_t> multiplicity(size_t index) const {
+    std::int64_t result = 1;
     size_t child = index;
     llvm::SmallDenseSet<size_t, 8> visited;
     while (!entries[child].parent.empty()) {
@@ -1548,7 +1550,7 @@ private:
       if (found == byId.end() || !visited.insert(found->second).second)
         return failure();
       const Entry &parent = entries[found->second];
-      int64_t factor = 1;
+      std::int64_t factor = 1;
       if (parent.kind == "repeat") {
         if (entries[child].branch != "body" || !parent.repeatCount)
           return failure();
@@ -1557,7 +1559,7 @@ private:
         if (!parent.maxIterations)
           return failure();
         if (entries[child].branch == "condition") {
-          if (*parent.maxIterations == std::numeric_limits<int64_t>::max())
+          if (*parent.maxIterations == std::numeric_limits<std::int64_t>::max())
             return failure();
           factor = *parent.maxIterations + 1;
         } else if (entries[child].branch == "body") {
@@ -1566,7 +1568,8 @@ private:
           return failure();
         }
       }
-      if (factor != 0 && result > std::numeric_limits<int64_t>::max() / factor)
+      if (factor != 0 &&
+          result > std::numeric_limits<std::int64_t>::max() / factor)
         return failure();
       result *= factor;
       child = found->second;
@@ -1791,15 +1794,16 @@ private:
     provisionedPhysicalQubits = 0;
     for (const std::string &qubit : provisionedQubits) {
       auto weight = physical->physicalWeightFor(qubit);
-      if (failed(weight) || *weight > std::numeric_limits<int64_t>::max() -
+      if (failed(weight) || *weight > std::numeric_limits<std::int64_t>::max() -
                                           provisionedPhysicalQubits)
         return schedule.emitOpError(
             "provisioned physical-qubit footprint overflows i64");
       provisionedPhysicalQubits += *weight;
     }
-    int64_t indexedPhysicalQubits = 0;
-    for (int64_t weight : qubitWeights) {
-      if (weight > std::numeric_limits<int64_t>::max() - indexedPhysicalQubits)
+    std::int64_t indexedPhysicalQubits = 0;
+    for (std::int64_t weight : qubitWeights) {
+      if (weight >
+          std::numeric_limits<std::int64_t>::max() - indexedPhysicalQubits)
         return schedule.emitOpError(
             "active physical-qubit footprint overflows i64");
       indexedPhysicalQubits += weight;
@@ -1921,7 +1925,7 @@ private:
     return resources;
   }
 
-  FailureOr<std::pair<size_t, int64_t>>
+  FailureOr<std::pair<size_t, std::int64_t>>
   mappedResourceCounts(ResourceSetId source, ArrayRef<size_t> aliases) const {
     auto resources = mappedResources(source, aliases);
     if (failed(resources))
@@ -1937,7 +1941,7 @@ private:
       for (unsigned qubit : resourceQubitsById[resource])
         qubits.insert(qubit);
     }
-    int64_t physicalQubits = 0;
+    std::int64_t physicalQubits = 0;
     for (unsigned qubit : qubits)
       physicalQubits += qubitWeights[qubit];
     return std::make_pair(static_cast<size_t>(physicalResources.size()),
@@ -2113,7 +2117,7 @@ private:
         if (multiplicities[index] % multiplicities[root])
           return schedule.emitOpError(
               "call_template nested folded multiplicity is incommensurate");
-        int64_t factor = multiplicities[index] / multiplicities[root];
+        std::int64_t factor = multiplicities[index] / multiplicities[root];
         auto prefix =
             summaryConstraints(index, root, directConditions, summary);
         if (failed(prefix))
@@ -2144,7 +2148,7 @@ private:
       if (failed(path))
         return schedule.emitOpError(
             "call_template canonical conditional ancestry is malformed");
-      int64_t factor = multiplicities[index] / multiplicities[root];
+      std::int64_t factor = multiplicities[index] / multiplicities[root];
       summary.metrics.push_back({entry.kind,
                                  entry.duration * static_cast<double>(factor),
                                  entryResourceSets[index], *path});
@@ -2198,7 +2202,7 @@ private:
         ++end;
       struct Edge {
         double time;
-        int64_t delta;
+        std::int64_t delta;
       };
       SmallVector<Edge, 16> edges;
       for (size_t i = cursor; i < end; ++i) {
@@ -2216,15 +2220,15 @@ private:
           return left.time < right.time;
         return left.delta < right.delta;
       });
-      int64_t active = 0;
+      std::int64_t active = 0;
       double segmentStart = 0.0;
       size_t edge = 0;
       while (edge < edges.size()) {
         double time = edges[edge].time;
-        int64_t delta = 0;
+        std::int64_t delta = 0;
         while (edge < edges.size() && edges[edge].time == time)
           delta += edges[edge++].delta;
-        int64_t next = active + delta;
+        std::int64_t next = active + delta;
         if (next < 0) {
           buildingSummaries.erase(root);
           schedule.emitOpError(
@@ -2315,7 +2319,7 @@ private:
 
   LogicalResult appendSummaryOccurrences(
       size_t source, const CallSummary &summary, double topStart,
-      ArrayRef<double> offsets, int64_t metricFactor, size_t conditionBase,
+      ArrayRef<double> offsets, std::int64_t metricFactor, size_t conditionBase,
       ArrayRef<size_t> aliases, ArrayRef<Constraint> prefix) {
     SummaryOccurrence occurrence;
     occurrence.source = source;
@@ -2337,7 +2341,7 @@ private:
             "call_template nested summary was not retained");
       if (nested.metricFactor != 0 &&
           metricFactor >
-              std::numeric_limits<int64_t>::max() / nested.metricFactor)
+              std::numeric_limits<std::int64_t>::max() / nested.metricFactor)
         return schedule.emitOpError(
             "call_template nested metric multiplicity overflows i64");
       SmallVector<size_t, 4> nestedAliases;
@@ -2519,7 +2523,7 @@ private:
   LogicalResult buildPeakAtoms() {
     struct LocalEdge {
       double time;
-      int64_t delta;
+      std::int64_t delta;
     };
     struct SignatureGroup {
       size_t exemplar;
@@ -2570,15 +2574,15 @@ private:
                      return left.time < right.time;
                    return left.delta < right.delta;
                  });
-      int64_t active = 0;
+      std::int64_t active = 0;
       double segmentStart = 0.0;
       size_t cursor = 0;
       while (cursor < group.edges.size()) {
         const double time = group.edges[cursor].time;
-        int64_t delta = 0;
+        std::int64_t delta = 0;
         while (cursor < group.edges.size() && group.edges[cursor].time == time)
           delta += group.edges[cursor++].delta;
-        int64_t next = active + delta;
+        std::int64_t next = active + delta;
         if (next < 0)
           return schedule.emitOpError(
               "schedule peak signature occupancy became negative");
@@ -2609,12 +2613,12 @@ private:
     std::vector<char> controlled(entries.size(), false);
     GenerationMarks traversal(entries.size());
     GenerationMarks coveredMarks(entries.size());
-    uint64_t decisionNodes = 0;
-    uint64_t forwardNodes = 0;
-    uint64_t requiredNodes = 0;
-    uint64_t coveredNodes = 0;
-    uint64_t causalEdges = 0;
-    uint64_t replayEvents = 0;
+    std::uint64_t decisionNodes = 0;
+    std::uint64_t forwardNodes = 0;
+    std::uint64_t requiredNodes = 0;
+    std::uint64_t coveredNodes = 0;
+    std::uint64_t causalEdges = 0;
+    std::uint64_t replayEvents = 0;
     for (size_t retryIndex = 0; retryIndex < entries.size(); ++retryIndex) {
       const Entry &retry = entries[retryIndex];
       if (retry.kind != "retry")
@@ -2743,7 +2747,7 @@ private:
         controlled[current] = true;
       replayEvents += replay.size();
 
-      int64_t occurrences = multiplicities[retryIndex];
+      std::int64_t occurrences = multiplicities[retryIndex];
       ReplaySlice slice;
       slice.retry = retryIndex;
       slice.attempt = attemptIndex;
@@ -2756,7 +2760,7 @@ private:
         return schedule.emitOpError("missing evidence: retry event '")
                << retry.id << "' has no positive replay interval";
       for (size_t current : replay) {
-        int64_t total = multiplicities[current];
+        std::int64_t total = multiplicities[current];
         if (occurrences == 0 || total % occurrences)
           return schedule.emitOpError("missing evidence: retry event '")
                  << retry.id
@@ -2774,7 +2778,7 @@ private:
     // context.  This is exact in the size of the compact call graph and never
     // expands either the call body or the retry attempt bound.
     const size_t canonicalRetryCount = retrySlices.size();
-    uint64_t templateRetryOccurrences = 0;
+    std::uint64_t templateRetryOccurrences = 0;
     llvm::DenseMap<size_t, SmallVector<size_t, 4>> occurrencesByRoot;
     for (auto [occurrenceIndex, occurrence] :
          llvm::enumerate(summaryOccurrences))
@@ -2802,7 +2806,7 @@ private:
           canonical.occurrences % multiplicities[*callRoot])
         return schedule.emitOpError(
             "retry call-template folded multiplicity is incommensurate");
-      const int64_t localOccurrences =
+      const std::int64_t localOccurrences =
           canonical.occurrences / multiplicities[*callRoot];
       auto retainedOccurrences = occurrencesByRoot.find(*callRoot);
       if (retainedOccurrences == occurrencesByRoot.end())
@@ -2812,10 +2816,11 @@ private:
             summaryOccurrences[occurrenceIndex];
         if (localOccurrences != 0 &&
             occurrence.metricFactor >
-                std::numeric_limits<int64_t>::max() / localOccurrences)
+                std::numeric_limits<std::int64_t>::max() / localOccurrences)
           return schedule.emitOpError(
               "retry call-template occurrence multiplicity overflows i64");
-        const int64_t occurrences = localOccurrences * occurrence.metricFactor;
+        const std::int64_t occurrences =
+            localOccurrences * occurrence.metricFactor;
         if (occurrences == 0)
           continue;
         double occurrenceStart = occurrence.topStart;
@@ -2848,7 +2853,7 @@ private:
     return success();
   }
 
-  FailureOr<std::pair<int64_t, int64_t>> peaks() {
+  FailureOr<std::pair<std::int64_t, std::int64_t>> peaks() {
     const bool profile =
         std::getenv("QLX_PROFILE_SCHEDULE_ESTIMATE") != nullptr;
     auto checkpoint = [profile, last = std::chrono::steady_clock::now()](
@@ -2869,11 +2874,11 @@ private:
       bool finish;
     };
     struct SweepResult {
-      int64_t peak = 0;
-      int64_t qubitPeak = 0;
+      std::int64_t peak = 0;
+      std::int64_t qubitPeak = 0;
       double qubitPeakTime = std::numeric_limits<double>::infinity();
       double qubitPeakNextTime = 0.0;
-      int64_t qubitPeakAfterCollapsed = 0;
+      std::int64_t qubitPeakAfterCollapsed = 0;
       llvm::BitVector peakQubits;
       size_t appliedEvents = 0;
       size_t conditionalWork = 0;
@@ -2927,7 +2932,7 @@ private:
       weightedTimes.push_back({(first + last) / 2.0, 2 * summary.peaks.size()});
     }
     if (weightedTimes.empty())
-      return std::make_pair<int64_t, int64_t>(0, 0);
+      return std::make_pair<std::int64_t, std::int64_t>(0, 0);
     llvm::sort(weightedTimes,
                [](const WeightedTime &left, const WeightedTime &right) {
                  return left.time < right.time;
@@ -2955,7 +2960,8 @@ private:
     }
     boundaries.push_back(maximumTime);
     std::vector<SweepResult> results(shardCount);
-    std::vector<int64_t> physicalResourceWeights(physicalResourceIds.size(), 1);
+    std::vector<std::int64_t> physicalResourceWeights(
+        physicalResourceIds.size(), 1);
     auto sweepShard = [&](size_t shard) -> LogicalResult {
       const auto shardStarted = std::chrono::steady_clock::now();
       const double begin = boundaries[shard];
@@ -3218,8 +3224,8 @@ private:
                    << " after-collapsed=" << combined.qubitPeakAfterCollapsed
                    << " next-time=" << combined.qubitPeakNextTime << "\n";
     if (profile) {
-      std::map<std::string, int64_t> classes;
-      std::map<std::string, std::pair<int64_t, int64_t>> indexRanges;
+      std::map<std::string, std::int64_t> classes;
+      std::map<std::string, std::pair<std::int64_t, std::int64_t>> indexRanges;
       for (const auto &entry : qubitIds) {
         if (!combined.peakQubits.test(entry.getValue()))
           continue;
@@ -3228,7 +3234,7 @@ private:
         classes[resourceClass.str()]++;
         if (!suffix.consume_back("]"))
           continue;
-        int64_t index = 0;
+        std::int64_t index = 0;
         if (suffix.getAsInteger(10, index))
           continue;
         auto [range, inserted] = indexRanges.try_emplace(
@@ -3285,12 +3291,12 @@ private:
       groups.back().push_back(slice);
       groupEnd = std::max(groupEnd, end);
     }
-    uint64_t singletonGroups = 0;
-    uint64_t parallelGroups = 0;
-    uint64_t ownerPropagationRows = 0;
-    uint64_t ownerDependencyEdges = 0;
-    uint64_t controlledEvents = 0;
-    uint64_t profiledAbortGroups = 0;
+    std::uint64_t singletonGroups = 0;
+    std::uint64_t parallelGroups = 0;
+    std::uint64_t ownerPropagationRows = 0;
+    std::uint64_t ownerDependencyEdges = 0;
+    std::uint64_t controlledEvents = 0;
+    std::uint64_t profiledAbortGroups = 0;
     auto sameContext = [](const RetryExecutionContext &left,
                           const RetryExecutionContext &right) {
       if (left.folds.size() != right.folds.size() ||
@@ -3323,9 +3329,9 @@ private:
             break;
           const Entry &parent = entries[parentIndex];
           if (parent.kind == "repeat" || parent.kind == "while") {
-            std::optional<int64_t> count = parent.kind == "repeat"
-                                               ? parent.repeatCount
-                                               : parent.maxIterations;
+            std::optional<std::int64_t> count = parent.kind == "repeat"
+                                                    ? parent.repeatCount
+                                                    : parent.maxIterations;
             if (!count)
               return failure();
             DynamicFoldIdentity fold;
@@ -3418,7 +3424,8 @@ private:
       }
       return result;
     };
-    auto cdf = [](double probability, int64_t attempts, int64_t extraAttempts) {
+    auto cdf = [](double probability, std::int64_t attempts,
+                  std::int64_t extraAttempts) {
       if (extraAttempts < 0)
         return 0.0;
       if (extraAttempts >= attempts - 1 || probability == 1.0)
@@ -3430,13 +3437,13 @@ private:
     struct RetryTimeLayer {
       SmallVector<const ReplaySlice *, 4> slices;
       RetryExecutionContext context;
-      int64_t occurrences = 1;
+      std::int64_t occurrences = 1;
       double expected = 0.0;
       double maximum = 0.0;
       std::optional<ProbabilityMass> support;
       double baseExpected = 0.0;
       double baseMaximum = 0.0;
-      uint64_t partialClips = 0;
+      std::uint64_t partialClips = 0;
       bool contributesToMakespan = false;
     };
     SmallVector<RetryTimeLayer, 4> layers;
@@ -3445,7 +3452,7 @@ private:
       layer.slices.append(group.begin(), group.end());
       double latestStart = 0.0;
       double earliestEnd = std::numeric_limits<double>::infinity();
-      std::optional<int64_t> occurrences;
+      std::optional<std::int64_t> occurrences;
       std::optional<RetryExecutionContext> context;
       for (const ReplaySlice *slice : group) {
         latestStart = std::max(latestStart, slice->attemptStart);
@@ -3484,9 +3491,9 @@ private:
       // owner from this group, because every owned event belongs to a retry
       // slice starting at or after its attempt.  The verified schedule order
       // therefore permits one exact forward propagation over this window.
-      constexpr int64_t noOwner = -1;
-      constexpr int64_t multipleOwners = -2;
-      auto mergeOwner = [](int64_t &target, int64_t source) {
+      constexpr std::int64_t noOwner = -1;
+      constexpr std::int64_t multipleOwners = -2;
+      auto mergeOwner = [](std::int64_t &target, std::int64_t source) {
         if (source == noOwner || target == multipleOwners)
           return;
         if (target == noOwner) {
@@ -3519,9 +3526,10 @@ private:
           windowEnd = std::max(windowEnd, slice.retry);
         }
         const size_t windowSize = windowEnd - windowBegin + 1;
-        std::vector<int64_t> eventOwner(windowSize, noOwner);
-        auto assignOwner = [&](size_t event, int64_t owner) -> LogicalResult {
-          int64_t &assigned = eventOwner[event - windowBegin];
+        std::vector<std::int64_t> eventOwner(windowSize, noOwner);
+        auto assignOwner = [&](size_t event,
+                               std::int64_t owner) -> LogicalResult {
+          std::int64_t &assigned = eventOwner[event - windowBegin];
           if (assigned != noOwner && assigned != owner)
             return schedule.emitOpError(
                 "missing evidence: parallel retry replay slices overlap");
@@ -3530,7 +3538,7 @@ private:
         };
         for (size_t owner : owners) {
           const ReplaySlice &slice = *group[owner];
-          const int64_t localOwner = static_cast<int64_t>(owner);
+          const std::int64_t localOwner = static_cast<std::int64_t>(owner);
           if (failed(assignOwner(slice.retry, localOwner)))
             return failure();
           for (const auto &[event, weight] : slice.weighted) {
@@ -3540,17 +3548,17 @@ private:
           }
         }
 
-        std::vector<int64_t> ancestryOwner(windowSize, noOwner);
+        std::vector<std::int64_t> ancestryOwner(windowSize, noOwner);
         for (size_t event = windowBegin; event <= windowEnd; ++event) {
           ++ownerPropagationRows;
-          int64_t summary = noOwner;
+          std::int64_t summary = noOwner;
           for (StringRef dependency : entries[event].dependencies) {
             ++ownerDependencyEdges;
             const size_t source = byId.lookup(dependency);
             if (source >= windowBegin && source < event)
               mergeOwner(summary, ancestryOwner[source - windowBegin]);
           }
-          const int64_t own = eventOwner[event - windowBegin];
+          const std::int64_t own = eventOwner[event - windowBegin];
           mergeOwner(summary, own);
           ancestryOwner[event - windowBegin] = summary;
           if (own == noOwner)
@@ -3738,21 +3746,22 @@ private:
       if (slack < -tolerance)
         return failure();
       slack = std::max(0.0, slack);
-      const int64_t maximumExtra = *retry.maxAttempts - 1;
+      const std::int64_t maximumExtra = *retry.maxAttempts - 1;
       layer.maximum = std::max(
           0.0,
           static_cast<double>(maximumExtra) * slice.replayDuration - slack);
       layer.expected = 0.0;
       if (layer.maximum <= tolerance || *retry.successProbability == 1.0)
         return success();
-      const int64_t firstContributing =
-          static_cast<int64_t>(std::floor(slack / slice.replayDuration)) + 1;
+      const std::int64_t firstContributing =
+          static_cast<std::int64_t>(std::floor(slack / slice.replayDuration)) +
+          1;
       if (firstContributing > maximumExtra)
         return success();
       const double probability = *retry.successProbability;
       const double failureProbability = 1.0 - probability;
       const double logFailure = std::log1p(-probability);
-      auto failurePower = [&](int64_t exponent) {
+      auto failurePower = [&](std::int64_t exponent) {
         if (exponent == 0)
           return 1.0;
         if (exponent == 1)
@@ -3764,7 +3773,7 @@ private:
           (static_cast<double>(firstContributing) * slice.replayDuration -
            slack) *
           firstTail;
-      const int64_t remainingTerms = maximumExtra - firstContributing;
+      const std::int64_t remainingTerms = maximumExtra - firstContributing;
       if (remainingTerms > 0) {
         const double laterTail = failurePower(firstContributing + 1);
         const double geometric =
@@ -3779,7 +3788,7 @@ private:
         [&](const ReplaySlice &slice,
             double target) -> FailureOr<ProbabilityMass> {
       const Entry &retry = entries[slice.retry];
-      const int64_t supportAttempts =
+      const std::int64_t supportAttempts =
           *retry.successProbability == 1.0 ? 1 : *retry.maxAttempts;
       if (supportAttempts > kMaximumParallelRetrySupportPoints)
         return failure();
@@ -3788,7 +3797,7 @@ private:
       const double failure = 1.0 - probability;
       double surviving = 1.0;
       ProbabilityMass result;
-      for (int64_t extra = 0; extra < supportAttempts; ++extra) {
+      for (std::int64_t extra = 0; extra < supportAttempts; ++extra) {
         const double mass =
             extra + 1 == supportAttempts ? surviving : probability * surviving;
         const double delay = std::max(
@@ -3800,10 +3809,10 @@ private:
     };
     auto buildParallelSupport = [&](RetryTimeLayer &layer, double target) {
       std::map<double, SmallVector<std::pair<size_t, double>, 2>> points;
-      int64_t supportPointCount = 0;
+      std::int64_t supportPointCount = 0;
       for (const ReplaySlice *slice : layer.slices) {
         const Entry &retry = entries[slice->retry];
-        const int64_t supportAttempts =
+        const std::int64_t supportAttempts =
             *retry.successProbability == 1.0 ? 1 : *retry.maxAttempts;
         if (supportAttempts >
             kMaximumParallelRetrySupportPoints - supportPointCount)
@@ -3813,9 +3822,9 @@ private:
       for (size_t variable = 0; variable < layer.slices.size(); ++variable) {
         const ReplaySlice &slice = *layer.slices[variable];
         const Entry &retry = entries[slice.retry];
-        const int64_t supportAttempts =
+        const std::int64_t supportAttempts =
             *retry.successProbability == 1.0 ? 1 : *retry.maxAttempts;
-        for (int64_t extra = 0; extra < supportAttempts; ++extra) {
+        for (std::int64_t extra = 0; extra < supportAttempts; ++extra) {
           const double delay = std::max(0.0, slice.retryStart +
                                                  static_cast<double>(extra) *
                                                      slice.replayDuration -
@@ -3825,7 +3834,7 @@ private:
         }
       }
       std::vector<double> cumulative(layer.slices.size(), 0.0);
-      int64_t zeroCount = layer.slices.size();
+      std::int64_t zeroCount = layer.slices.size();
       double logProduct = 0.0;
       double previousCDF = 0.0;
       ProbabilityMass result;
@@ -3863,7 +3872,7 @@ private:
       return result;
     };
     auto powerSupport = [&](ProbabilityMass support,
-                            int64_t copies) -> FailureOr<ProbabilityMass> {
+                            std::int64_t copies) -> FailureOr<ProbabilityMass> {
       ProbabilityMass result{{0.0, 1.0}};
       while (copies > 0) {
         if (copies & 1) {
@@ -3980,7 +3989,7 @@ private:
         return success();
       };
       auto applyPartialClip = [&](double slack,
-                                  int64_t copies) -> LogicalResult {
+                                  std::int64_t copies) -> LogicalResult {
         if (failed(ensureSupport()))
           return failure();
         if (copies != 1) {
@@ -4022,11 +4031,11 @@ private:
         continue;
       }
 
-      int64_t foldedOccurrences = 1;
+      std::int64_t foldedOccurrences = 1;
       for (const DynamicFoldIdentity &fold : layer.context.folds) {
         if (fold.count <= 0 ||
             foldedOccurrences >
-                std::numeric_limits<int64_t>::max() / fold.count)
+                std::numeric_limits<std::int64_t>::max() / fold.count)
           return schedule.emitOpError(
               "missing evidence: retry folded multiplicity overflows i64");
         foldedOccurrences *= fold.count;
@@ -4053,7 +4062,7 @@ private:
             "262144-point estimator limit");
       layer.baseExpected = layer.expected;
       layer.baseMaximum = layer.maximum;
-      int64_t pendingCopies = inner.count;
+      std::int64_t pendingCopies = inner.count;
       double previousFinish = inner.envelopeFinish;
       for (const DynamicFoldIdentity &fold :
            ArrayRef<DynamicFoldIdentity>(layer.context.folds).drop_front()) {
@@ -4071,7 +4080,8 @@ private:
           singletonTarget.reset();
           pendingCopies = 1;
         } else if (slack <= tolerance) {
-          if (pendingCopies > std::numeric_limits<int64_t>::max() / fold.count)
+          if (pendingCopies >
+              std::numeric_limits<std::int64_t>::max() / fold.count)
             return schedule.emitOpError(
                 "missing evidence: nested retry fold multiplicity overflows "
                 "i64");
@@ -4150,7 +4160,7 @@ private:
     }
 
     SmallVector<const RetryTimeLayer *, 4> contributing;
-    uint64_t hiddenLayers = 0;
+    std::uint64_t hiddenLayers = 0;
     for (RetryTimeLayer &layer : layers) {
       if (layer.maximum <= tolerance) {
         ++hiddenLayers;
@@ -4269,7 +4279,7 @@ private:
                      << "s\n";
       last = now;
     };
-    std::map<std::string, int64_t> counts;
+    std::map<std::string, std::int64_t> counts;
     for (const Entry &entry : entries)
       ++counts[entry.kind.str()];
     eventCounts = std::move(counts);
@@ -4422,7 +4432,7 @@ private:
       for (const auto &[event, relative] : slice.weighted) {
         if (entries[event].kind == "call_template") {
           SmallVector<size_t, 8> replayOccurrences;
-          int64_t replayMetricFactor = multiplicities[event];
+          std::int64_t replayMetricFactor = multiplicities[event];
           if (virtualOccurrence) {
             auto nested =
                 nestedReplayOccurrences(*slice.summaryOccurrence, event);
@@ -4455,15 +4465,16 @@ private:
                   "retry replay call-template multiplicity is malformed";
               return success();
             }
-            const int64_t nestedFactor =
+            const std::int64_t nestedFactor =
                 occurrence.metricFactor / replayMetricFactor;
             if (nestedFactor != 0 &&
-                relative > std::numeric_limits<int64_t>::max() / nestedFactor) {
+                relative >
+                    std::numeric_limits<std::int64_t>::max() / nestedFactor) {
               result.error =
                   "retry replay call-template multiplicity overflows i64";
               return success();
             }
-            const int64_t factor = relative * nestedFactor;
+            const std::int64_t factor = relative * nestedFactor;
             for (auto [position, metric] :
                  llvm::enumerate(occurrence.summary->metrics)) {
               const auto counts = occurrenceMetricCounts
@@ -4602,7 +4613,7 @@ private:
           continue;
         double latestLaunch = 0.0;
         double earliestDecision = std::numeric_limits<double>::infinity();
-        int64_t occurrences = retrySlices[group.front()].occurrences;
+        std::int64_t occurrences = retrySlices[group.front()].occurrences;
         for (size_t sliceIndex : group) {
           const ReplaySlice &slice = retrySlices[sliceIndex];
           latestLaunch = std::max(latestLaunch, slice.attemptStart);
@@ -4645,7 +4656,7 @@ private:
         return left;
       };
       auto power = [&](const StoppedExecutionSummary &value,
-                       int64_t count) -> StoppedExecutionSummary {
+                       std::int64_t count) -> StoppedExecutionSummary {
         StoppedExecutionSummary result;
         if (count <= 0)
           return result;
@@ -4740,7 +4751,7 @@ private:
           [&](size_t rootOccurrence) -> FailureOr<MetricTotals> {
         if (rootOccurrence >= summaryOccurrences.size())
           return failure();
-        const int64_t rootFactor =
+        const std::int64_t rootFactor =
             summaryOccurrences[rootOccurrence].metricFactor;
         if (rootFactor <= 0)
           return failure();
@@ -5633,7 +5644,7 @@ private:
   llvm::StringMap<size_t> byId;
   std::vector<SmallVector<size_t, 4>> children;
   std::vector<SmallVector<size_t, 4>> dependents;
-  std::vector<int64_t> multiplicities;
+  std::vector<std::int64_t> multiplicities;
   std::vector<QubitSetId> entryQubitSets;
   std::vector<ResourceSetId> entryResourceSets;
   llvm::StringMap<ResourceId> resourceIds;
@@ -5641,7 +5652,7 @@ private:
   std::vector<SmallVector<unsigned, 4>> resourceQubitsById;
   llvm::StringMap<unsigned> physicalResourceIds;
   llvm::StringMap<unsigned> qubitIds;
-  std::vector<int64_t> qubitWeights;
+  std::vector<std::int64_t> qubitWeights;
   llvm::DenseMap<size_t, SmallVector<PhysicalResourceSetId, 1>>
       physicalResourceSetBuckets;
   std::vector<SmallVector<unsigned, 4>> internedPhysicalResourceSets;
@@ -5655,7 +5666,7 @@ private:
   std::vector<SmallVector<SummaryConstraint, 4>> internedSummaryPaths;
   llvm::StringSet<> allResources;
   std::set<std::string> provisionedQubits;
-  int64_t provisionedPhysicalQubits = 0;
+  std::int64_t provisionedPhysicalQubits = 0;
   std::vector<size_t> templateResourceAliases;
   std::vector<llvm::DenseMap<ResourceId, ResourceId>> templateResourceAliasMaps;
   std::map<size_t, CallSummary> callSummaries;
@@ -5675,7 +5686,7 @@ private:
   SmallVector<ReplaySlice, 4> retrySlices;
   SmallVector<StoppedRetryTimeLayer, 4> stoppedRetryTimeLayers;
   std::vector<size_t> stoppedRetryTimeLayerForSlice;
-  std::map<std::string, int64_t> eventCounts;
+  std::map<std::string, std::int64_t> eventCounts;
   double makespan = 0.0;
   double expectedMakespan = 0.0;
   double maximumMakespan = 0.0;
@@ -5689,8 +5700,8 @@ private:
   double expectedUtilization = 0.0;
   double maximumUtilization = 0.0;
   double exhaustionProbability = 0.0;
-  int64_t peakConcurrency = 0;
-  int64_t peakActiveQubits = 0;
+  std::int64_t peakConcurrency = 0;
+  std::int64_t peakActiveQubits = 0;
   std::string bottleneck;
   bool fullWorkload = false;
 };

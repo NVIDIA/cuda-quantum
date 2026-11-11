@@ -147,7 +147,7 @@ LogicalResult DomainOp::verify() {
     return sourcedActionSites.front().emitOpError(
         "source_site requires a containing symbol-table scope");
 
-  DenseMap<int64_t, SmallVector<ApplyOp, 1>> appliesBySite;
+  DenseMap<std::int64_t, SmallVector<ApplyOp, 1>> appliesBySite;
   scope->walk([&](KernelOp kernel) {
     if (lookupDomain(kernel.getOperation(), kernel.getDomainAttr()) != *this)
       return;
@@ -158,7 +158,7 @@ LogicalResult DomainOp::verify() {
   });
 
   for (ActionSiteOp site : sourcedActionSites) {
-    int64_t sourceSite = site.getSourceSiteAttr().getInt();
+    std::int64_t sourceSite = site.getSourceSiteAttr().getInt();
     if (sourceSite < 0)
       return site.emitOpError("source_site must be nonnegative");
     auto found = appliesBySite.find(sourceSite);
@@ -491,7 +491,7 @@ LogicalResult KernelOp::verify() {
         "lvm.return operands do not match function_type results");
 
   LogicalResult result = success();
-  llvm::DenseSet<int64_t> callScopes;
+  llvm::DenseSet<std::int64_t> callScopes;
   // The placed body may contain hundreds of thousands of logical operands.
   // A standalone SymbolTable::lookupSymbolIn performs a direct symbol-table
   // lookup without retaining an index between calls.  Build one domain index
@@ -502,7 +502,7 @@ LogicalResult KernelOp::verify() {
     if (failed(result))
       return;
     if (auto call = dyn_cast<CallOp>(nested)) {
-      int64_t scope = call.getScopeAttr().getInt();
+      std::int64_t scope = call.getScopeAttr().getInt();
       if (!callScopes.insert(scope).second) {
         call.emitOpError("scope must be unique within its lvm.kernel");
         result = failure();
@@ -1247,6 +1247,8 @@ void LVMDialect::initialize() {
   addOperations<
 #define GET_OP_LIST
 #include "qlx/Dialect/LVM/IR/LVMOps.cpp.inc"
+
+#include <cstdint>
       >();
 }
 

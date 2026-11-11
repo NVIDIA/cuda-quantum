@@ -45,12 +45,14 @@ cudaq::synth::Real toReal(const RealArg &arg, const char *name) {
 
 /// Shared body of the two gridsynth entry points. Writes the counters into
 /// `stats` so the caller can decide whether to surface them.
-std::string
-gridsynthImpl(RealArg theta, RealArg epsilon, uint64_t max_factoring_iterations,
-              uint64_t max_candidate_iterations,
-              uint32_t max_factoring_restarts, uint64_t max_odgp_scan_steps,
-              std::optional<uint64_t> seed, std::optional<int64_t> timeout_ms,
-              cudaq::synth::GridsynthStats &stats) {
+std::string gridsynthImpl(RealArg theta, RealArg epsilon,
+                          std::uint64_t max_factoring_iterations,
+                          std::uint64_t max_candidate_iterations,
+                          std::uint32_t max_factoring_restarts,
+                          std::uint64_t max_odgp_scan_steps,
+                          std::optional<std::uint64_t> seed,
+                          std::optional<std::int64_t> timeout_ms,
+                          cudaq::synth::GridsynthStats &stats) {
   // Parse epsilon once at the stock precision, which is ample to read off its
   // magnitude, and validate before deriving anything from it.
   cudaq::synth::Real epsilonProbe = toReal(epsilon, "epsilon");
@@ -101,12 +103,12 @@ gridsynthImpl(RealArg theta, RealArg epsilon, uint64_t max_factoring_iterations,
 }
 
 std::string gridsynthBinding(RealArg theta, RealArg epsilon,
-                             uint64_t max_factoring_iterations,
-                             uint64_t max_candidate_iterations,
-                             uint32_t max_factoring_restarts,
-                             uint64_t max_odgp_scan_steps,
-                             std::optional<uint64_t> seed,
-                             std::optional<int64_t> timeout_ms) {
+                             std::uint64_t max_factoring_iterations,
+                             std::uint64_t max_candidate_iterations,
+                             std::uint32_t max_factoring_restarts,
+                             std::uint64_t max_odgp_scan_steps,
+                             std::optional<std::uint64_t> seed,
+                             std::optional<std::int64_t> timeout_ms) {
   cudaq::synth::GridsynthStats stats;
   return gridsynthImpl(theta, epsilon, max_factoring_iterations,
                        max_candidate_iterations, max_factoring_restarts,
@@ -139,13 +141,11 @@ const char *outcomeName(cudaq::synth::GridsynthOutcome outcome) {
 /// Private on purpose: the shape of a public statistics API belongs to the
 /// pending synth API restructure. This exists so budget tuning can be
 /// measured rather than guessed at.
-nanobind::tuple gridsynthWithStatsBinding(RealArg theta, RealArg epsilon,
-                                          uint64_t max_factoring_iterations,
-                                          uint64_t max_candidate_iterations,
-                                          uint32_t max_factoring_restarts,
-                                          uint64_t max_odgp_scan_steps,
-                                          std::optional<uint64_t> seed,
-                                          std::optional<int64_t> timeout_ms) {
+nanobind::tuple gridsynthWithStatsBinding(
+    RealArg theta, RealArg epsilon, std::uint64_t max_factoring_iterations,
+    std::uint64_t max_candidate_iterations,
+    std::uint32_t max_factoring_restarts, std::uint64_t max_odgp_scan_steps,
+    std::optional<std::uint64_t> seed, std::optional<std::int64_t> timeout_ms) {
   cudaq::synth::GridsynthStats stats;
   std::string gates = gridsynthImpl(
       theta, epsilon, max_factoring_iterations, max_candidate_iterations,

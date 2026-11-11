@@ -22,15 +22,15 @@ namespace detail {
 /// communicator, `NVL` spans the ranks on one node, `NONE` gives 1, and a
 /// positive integer is used as given. Throws `std::invalid_argument` for any
 /// other value.
-int32_t gpuFabricDomainSize(std::string fabric, int32_t numRanks,
-                            int32_t ranksPerNode);
+std::int32_t gpuFabricDomainSize(std::string fabric, std::int32_t numRanks,
+                                 std::int32_t ranksPerNode);
 
 /// @brief Return true if the `CUDAQ_GPU_FABRIC` value `fabric` (null when
 /// unset) requests fabric-exportable memory for MPI buffers. That requires
 /// more than one node and an NVLink domain that spans every rank. Invalid
 /// values throw regardless of the topology.
-bool requestsFabricMemory(const char *fabric, int32_t numRanks,
-                          int32_t ranksPerNode);
+bool requestsFabricMemory(const char *fabric, std::int32_t numRanks,
+                          std::int32_t ranksPerNode);
 } // namespace detail
 
 /// @brief Class representing the CUDAQ context for density matrix operations.

@@ -341,13 +341,13 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
 }
 
 static Value getConstantInt(OpBuilder &builder, Location loc,
-                            const uint64_t value, const int bitwidth) {
+                            const std::uint64_t value, const int bitwidth) {
   return arith::ConstantIntOp::create(builder, loc,
                                       builder.getIntegerType(bitwidth), value);
 }
 
 static Value getConstantInt(OpBuilder &builder, Location loc,
-                            const uint64_t value, Type intTy) {
+                            const std::uint64_t value, Type intTy) {
   assert(isa<IntegerType>(intTy));
   return arith::ConstantIntOp::create(builder, loc, intTy, value);
 }

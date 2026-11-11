@@ -85,6 +85,7 @@
 #include <unistd.h>
 
 #include <cerrno>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -95,9 +96,9 @@ namespace {
 
 // Must match CpuRoceChannel's RendezvousInfo byte-for-byte (network order).
 struct RendezvousInfo {
-  uint32_t qp_number = 0;
-  uint32_t rkey = 0;
-  uint32_t roce_ipv4 = 0;
+  std::uint32_t qp_number = 0;
+  std::uint32_t rkey = 0;
+  std::uint32_t roce_ipv4 = 0;
 };
 
 struct CpuRoceBridgeContext {
@@ -105,19 +106,19 @@ struct CpuRoceBridgeContext {
   std::string device = "mlx5_0";
   std::string local_ip = "10.0.0.2";
   std::string qp_config = "rendezvous";
-  std::string peer_ip;      // hsb_fpga: FPGA/emulator data-plane IPv4
-  uint16_t tcp_port = 0;    // rendezvous TCP port (0 = ephemeral)
-  uint32_t remote_qp = 0x2; // hsb_fpga: FPGA data-plane QP
-  uint32_t num_slots = 8;
-  uint32_t slot_size = 256;
+  std::string peer_ip;           // hsb_fpga: FPGA/emulator data-plane IPv4
+  std::uint16_t tcp_port = 0;    // rendezvous TCP port (0 = ephemeral)
+  std::uint32_t remote_qp = 0x2; // hsb_fpga: FPGA data-plane QP
+  std::uint32_t num_slots = 8;
+  std::uint32_t slot_size = 256;
   size_t frame_size = 0; // hsb_fpga TX SGE bytes; 0 => slot_size
   bool unified = false;
 
   // Live state.
   cpu_roce_transceiver_t transceiver = nullptr;
-  int listen_fd = -1;      // rendezvous: bound+listening after create()
-  uint16_t bound_port = 0; // rendezvous: actual TCP port after create()
-  std::thread monitor;     // started by launch()
+  int listen_fd = -1;           // rendezvous: bound+listening after create()
+  std::uint16_t bound_port = 0; // rendezvous: actual TCP port after create()
+  std::thread monitor;          // started by launch()
   bool connected = false;
 };
 
@@ -127,7 +128,7 @@ bool starts_with(const std::string &s, const char *prefix) {
 }
 
 bool write_all(int fd, const void *buf, size_t len) {
-  const auto *p = static_cast<const uint8_t *>(buf);
+  const auto *p = static_cast<const std::uint8_t *>(buf);
   while (len > 0) {
     const ssize_t n = ::write(fd, p, len);
     if (n <= 0) {
@@ -142,7 +143,7 @@ bool write_all(int fd, const void *buf, size_t len) {
 }
 
 bool read_all(int fd, void *buf, size_t len) {
-  auto *p = static_cast<uint8_t *>(buf);
+  auto *p = static_cast<std::uint8_t *>(buf);
   while (len > 0) {
     const ssize_t n = ::read(fd, p, len);
     if (n <= 0) {
@@ -174,13 +175,13 @@ void teardown(CpuRoceBridgeContext *ctx) {
 // shape hands this out as the transport context, the unified shape embeds it
 // in the data-plane alongside the hooks.
 cudaq_status_t fill_ring(CpuRoceBridgeContext *ctx, cudaq_ringbuffer_t *ring) {
-  auto *rx_flags = reinterpret_cast<volatile uint64_t *>(
+  auto *rx_flags = reinterpret_cast<volatile std::uint64_t *>(
       cpu_roce_get_rx_ring_flag_addr(ctx->transceiver));
-  auto *tx_flags = reinterpret_cast<volatile uint64_t *>(
+  auto *tx_flags = reinterpret_cast<volatile std::uint64_t *>(
       cpu_roce_get_tx_ring_flag_addr(ctx->transceiver));
-  auto *rx_data = reinterpret_cast<uint8_t *>(
+  auto *rx_data = reinterpret_cast<std::uint8_t *>(
       cpu_roce_get_rx_ring_data_addr(ctx->transceiver));
-  auto *tx_data = reinterpret_cast<uint8_t *>(
+  auto *tx_data = reinterpret_cast<std::uint8_t *>(
       cpu_roce_get_tx_ring_data_addr(ctx->transceiver));
   if (!rx_flags || !tx_flags || !rx_data || !tx_data)
     return CUDAQ_ERR_INTERNAL;
@@ -256,7 +257,7 @@ cudaq_status_t create_hsb_fpga(CpuRoceBridgeContext *ctx) {
   // The HSB receive queue is WQE_NUM=64 deep; a deeper ring would alias two
   // slots per WQE and race RX against TX (same constraint as the
   // GpuRoceTransceiver bridges).
-  constexpr uint32_t kGpuRoceWqeNum = 64;
+  constexpr std::uint32_t kGpuRoceWqeNum = 64;
   if (ctx->num_slots > kGpuRoceWqeNum) {
     std::cerr << "WARNING: cpu_roce bridge: --num-slots=" << ctx->num_slots
               << " exceeds the HSB WQE depth; clamping to " << kGpuRoceWqeNum
@@ -327,11 +328,11 @@ cpu_roce_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
       else if (starts_with(a, "--local-ip="))
         ctx->local_ip = a.substr(11);
       else if (starts_with(a, "--port="))
-        ctx->tcp_port = static_cast<uint16_t>(std::stoul(a.substr(7)));
+        ctx->tcp_port = static_cast<std::uint16_t>(std::stoul(a.substr(7)));
       else if (starts_with(a, "--num-slots="))
-        ctx->num_slots = static_cast<uint32_t>(std::stoul(a.substr(12)));
+        ctx->num_slots = static_cast<std::uint32_t>(std::stoul(a.substr(12)));
       else if (starts_with(a, "--slot-size="))
-        ctx->slot_size = static_cast<uint32_t>(std::stoul(a.substr(12)));
+        ctx->slot_size = static_cast<std::uint32_t>(std::stoul(a.substr(12)));
       else if (starts_with(a, "--qp_config="))
         ctx->qp_config = a.substr(12);
       else if (starts_with(a, "--peer-ip="))
@@ -340,7 +341,7 @@ cpu_roce_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
         // base 0: accepts both decimal and 0x-prefixed hex (QP numbers are
         // conventionally printed in hex, e.g. the FPGA's fixed 0x2).
         ctx->remote_qp =
-            static_cast<uint32_t>(std::stoul(a.substr(12), nullptr, 0));
+            static_cast<std::uint32_t>(std::stoul(a.substr(12), nullptr, 0));
       else if (starts_with(a, "--frame-size="))
         ctx->frame_size = std::stoull(a.substr(13));
       else if (a == "--unified")
@@ -436,11 +437,12 @@ cpu_roce_bridge_get_ring_buffer(cudaq_realtime_bridge_handle_t handle,
 // The unified data plane's two hooks, translating the transceiver's 1/0
 // returns into the interface's status enums.  `ctx` is the transceiver handle
 // itself: the QP, CQs, rings and RX state all live one layer down.
-static cudaq_rx_status_t cpu_roce_dp_rx_poll(void *ctx, uint32_t *out_slot) {
+static cudaq_rx_status_t cpu_roce_dp_rx_poll(void *ctx,
+                                             std::uint32_t *out_slot) {
   return cpu_roce_rx_poll(ctx, out_slot) ? CUDAQ_RX_READY : CUDAQ_RX_EMPTY;
 }
 
-static cudaq_status_t cpu_roce_dp_tx_publish(void *ctx, uint32_t slot) {
+static cudaq_status_t cpu_roce_dp_tx_publish(void *ctx, std::uint32_t slot) {
   return cpu_roce_tx_publish(ctx, slot) ? CUDAQ_OK : CUDAQ_ERR_INTERNAL;
 }
 
@@ -596,8 +598,8 @@ cpu_roce_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t handle,
 
 static cudaq_status_t
 cpu_roce_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t handle,
-                                  uint32_t *out_num_slots,
-                                  uint32_t *out_slot_size) {
+                                  std::uint32_t *out_num_slots,
+                                  std::uint32_t *out_slot_size) {
   if (!handle || !out_num_slots || !out_slot_size)
     return CUDAQ_ERR_INVALID_ARG;
   auto *ctx = reinterpret_cast<CpuRoceBridgeContext *>(handle);

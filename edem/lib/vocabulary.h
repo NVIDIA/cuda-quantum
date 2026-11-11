@@ -15,19 +15,19 @@
 // types in this fixed order.
 namespace cudaq_edem_private {
 constexpr char code_prefix[] = "edem.code/";
-constexpr uint64_t code_prefix_size = sizeof(code_prefix) - 1;
-constexpr uint32_t code_wire_count = 3; // V, S, L
+constexpr std::uint64_t code_prefix_size = sizeof(code_prefix) - 1;
+constexpr std::uint32_t code_wire_count = 3; // V, S, L
 constexpr const char *free_names[] = {"edem.detector", "edem.fault",
                                       "edem.observable", "edem.success"};
 constexpr cudaq_edem_port_kind free_kinds[] = {
     CUDAQ_EDEM_DETECTOR, CUDAQ_EDEM_FAULT, CUDAQ_EDEM_OBSERVABLE,
     CUDAQ_EDEM_SUCCESS};
-constexpr uint32_t free_wire_count = 1;
-constexpr uint32_t free_type_count = std::size(free_names);
+constexpr std::uint32_t free_wire_count = 1;
+constexpr std::uint32_t free_type_count = std::size(free_names);
 static_assert(std::size(free_kinds) == free_type_count);
 // Position of a free kind among the free types, after the code types.
-constexpr uint32_t free_type(cudaq_edem_port_kind kind) {
-  uint32_t i = 0;
+constexpr std::uint32_t free_type(cudaq_edem_port_kind kind) {
+  std::uint32_t i = 0;
   while (free_kinds[i] != kind)
     ++i;
   return i;

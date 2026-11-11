@@ -270,7 +270,7 @@ loopback_get_endpoint_info(cudaq_realtime_bridge_handle_t handle, char *buf,
 
 static cudaq_status_t
 loopback_get_ring_geometry(cudaq_realtime_bridge_handle_t handle,
-                           uint32_t *out_num_slots, uint32_t *out_slot_size) {
+                           std::uint32_t *out_num_slots, std::uint32_t *out_slot_size) {
   if (!handle || !out_num_slots || !out_slot_size)
     return CUDAQ_ERR_INVALID_ARG;
   *out_num_slots = kNumSlots;

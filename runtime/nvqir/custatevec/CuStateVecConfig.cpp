@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <bit>
 #include <charconv>
+#include <cstdint>
 #include <cstdlib>
 #include <limits>
 #include <stdexcept>
@@ -39,8 +40,8 @@ std::string lower(std::string_view value) {
   return result;
 }
 
-int64_t parseInteger(std::string_view value, std::string_view name) {
-  int64_t result = 0;
+std::int64_t parseInteger(std::string_view value, std::string_view name) {
+  std::int64_t result = 0;
   const auto *const begin = value.data();
   const auto *const end = begin + value.size();
   const auto [position, error] = std::from_chars(begin, end, result);
@@ -50,29 +51,30 @@ int64_t parseInteger(std::string_view value, std::string_view name) {
   return result;
 }
 
-int32_t parseInt32(std::string_view value, std::string_view name) {
-  const int64_t result = parseInteger(value, name);
-  if (result < std::numeric_limits<int32_t>::min() ||
-      result > std::numeric_limits<int32_t>::max())
+std::int32_t parseInt32(std::string_view value, std::string_view name) {
+  const std::int64_t result = parseInteger(value, name);
+  if (result < std::numeric_limits<std::int32_t>::min() ||
+      result > std::numeric_limits<std::int32_t>::max())
     throw std::out_of_range(std::string(name) + " is outside int32 range.");
-  return static_cast<int32_t>(result);
+  return static_cast<std::int32_t>(result);
 }
 
-int32_t parsePositive(std::string_view value, std::string_view name) {
-  const int32_t result = parseInt32(value, name);
+std::int32_t parsePositive(std::string_view value, std::string_view name) {
+  const std::int32_t result = parseInt32(value, name);
   if (result <= 0)
     throw std::invalid_argument(std::string(name) + " must be positive.");
   return result;
 }
 
-int32_t parseNonNegative(std::string_view value, std::string_view name) {
-  const int32_t result = parseInt32(value, name);
+std::int32_t parseNonNegative(std::string_view value, std::string_view name) {
+  const std::int32_t result = parseInt32(value, name);
   if (result < 0)
     throw std::invalid_argument(std::string(name) + " must be non-negative.");
   return result;
 }
 
-int32_t clampMaximum(int32_t value, int32_t maximum, std::string_view name) {
+std::int32_t clampMaximum(std::int32_t value, std::int32_t maximum,
+                          std::string_view name) {
   if (value <= maximum)
     return value;
   CUDAQ_WARN("{}={} exceeds cuStateVecEx maximum {}; clamping to {}.", name,
@@ -84,13 +86,13 @@ std::size_t parsePositiveSize(std::string_view value, std::string_view name) {
   return static_cast<std::size_t>(parsePositive(value, name));
 }
 
-std::optional<int32_t> parseOptionalNonNegative(std::string_view value,
-                                                std::string_view name) {
+std::optional<std::int32_t> parseOptionalNonNegative(std::string_view value,
+                                                     std::string_view name) {
   const std::string normalized = upper(value);
   if (normalized == "NONE" || normalized == "NULL")
     return std::nullopt;
 
-  const int32_t result = parseInt32(value, name);
+  const std::int32_t result = parseInt32(value, name);
   if (result < 0)
     throw std::invalid_argument(std::string(name) +
                                 " must be non-negative, NONE, or NULL.");
@@ -106,9 +108,9 @@ bool parseBool(std::string_view name, bool defaultValue) {
          (!normalized.empty() && normalized.front() == 'y');
 }
 
-std::vector<int32_t> parsePositiveList(std::string_view value,
-                                       std::string_view name) {
-  std::vector<int32_t> result;
+std::vector<std::int32_t> parsePositiveList(std::string_view value,
+                                            std::string_view name) {
+  std::vector<std::int32_t> result;
   while (true) {
     const std::size_t comma = value.find(',');
     const std::string_view item = value.substr(0, comma);
@@ -209,7 +211,8 @@ CuStateVecConfig CuStateVecConfig::fromEnvironment() {
     config.batchedMinBatchSize =
         parsePositiveSize(*value, "CUDAQ_BATCHED_SIM_MIN_BATCH_SIZE");
   if (const auto value = getEnvironment("CUDAQ_GPU_RNG_THRESHOLD")) {
-    const int64_t threshold = parseInteger(*value, "CUDAQ_GPU_RNG_THRESHOLD");
+    const std::int64_t threshold =
+        parseInteger(*value, "CUDAQ_GPU_RNG_THRESHOLD");
     if (threshold < 0)
       throw std::invalid_argument(
           "CUDAQ_GPU_RNG_THRESHOLD must be non-negative.");

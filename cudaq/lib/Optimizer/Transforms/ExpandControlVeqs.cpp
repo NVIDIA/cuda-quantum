@@ -16,6 +16,8 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_EXPANDCONTROLVEQS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
+
+#include <cstdint>
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "expand-control-veqs"
@@ -45,9 +47,9 @@ public:
 
     // Reconstruct the operation with the new controls
     auto segmentSizes = rewriter.getDenseI32ArrayAttr(
-        {static_cast<int32_t>(op.getParameters().size()),
-         static_cast<int32_t>(expandedControls.controls.size()),
-         static_cast<int32_t>(op.getTargets().size())});
+        {static_cast<std::int32_t>(op.getParameters().size()),
+         static_cast<std::int32_t>(expandedControls.controls.size()),
+         static_cast<std::int32_t>(op.getTargets().size())});
 
     auto newOp = rewriter.replaceOpWithNewOp<OP>(
         op, op.getResultTypes(), op.getIsAdjAttr(), op.getParameters(),

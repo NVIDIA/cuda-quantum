@@ -190,15 +190,16 @@ class SerializeArgImpl<std::vector<T>,
 public:
   static std::size_t size(const std::vector<T> &vec) {
     const std::size_t size =
-        SerializeArgs<uint64_t>::size(static_cast<uint64_t>(vec.size())) +
+        SerializeArgs<std::uint64_t>::size(
+            static_cast<std::uint64_t>(vec.size())) +
         (vec.empty() ? 0 : vec.size() * SerializeArgs<T>::size(vec.front()));
     return size;
   }
 
   static bool serialize(SerializeOutputBuffer &buf, const std::vector<T> &vec) {
     // Size followed by data
-    if (!SerializeArgs<uint64_t>::serialize(
-            buf, static_cast<uint64_t>(vec.size() * sizeof(T))))
+    if (!SerializeArgs<std::uint64_t>::serialize(
+            buf, static_cast<std::uint64_t>(vec.size() * sizeof(T))))
       return false;
     for (const auto &elem : vec)
       if (!SerializeArgs<T>::serialize(buf, elem))
@@ -207,9 +208,9 @@ public:
   }
 
   static bool deserialize(SerializeInputBuffer &buf, std::vector<T> &vec) {
-    uint64_t size = 0;
+    std::uint64_t size = 0;
     vec.clear();
-    if (!SerializeArgs<uint64_t>::deserialize(buf, size))
+    if (!SerializeArgs<std::uint64_t>::deserialize(buf, size))
       return false;
     size /= sizeof(T);
 
@@ -256,8 +257,8 @@ class SerializeArgImpl<std::vector<std::vector<T>>,
                        std::enable_if_t<std::is_trivial<T>::value>> {
 public:
   static std::size_t size(const std::vector<std::vector<T>> &vec) {
-    std::size_t size =
-        SerializeArgs<uint64_t>::size(static_cast<uint64_t>(vec.size()));
+    std::size_t size = SerializeArgs<std::uint64_t>::size(
+        static_cast<std::uint64_t>(vec.size()));
     for (const auto &el : vec) {
       size += SerializeArgs<std::vector<T>>::size(el);
     }
@@ -268,12 +269,12 @@ public:
                         const std::vector<std::vector<T>> &vec) {
     // Top-level size followed by size data of all sub-vectors then their buffer
     // data.
-    if (!SerializeArgs<uint64_t>::serialize(buf,
-                                            static_cast<uint64_t>(vec.size())))
+    if (!SerializeArgs<std::uint64_t>::serialize(
+            buf, static_cast<std::uint64_t>(vec.size())))
       return false;
     for (const auto &elem : vec) {
-      if (!SerializeArgs<uint64_t>::serialize(
-              buf, static_cast<uint64_t>(elem.size())))
+      if (!SerializeArgs<std::uint64_t>::serialize(
+              buf, static_cast<std::uint64_t>(elem.size())))
         return false;
     }
 
@@ -287,16 +288,16 @@ public:
 
   static bool deserialize(SerializeInputBuffer &buf,
                           std::vector<std::vector<T>> &vec) {
-    uint64_t size = 0;
+    std::uint64_t size = 0;
     vec.clear();
-    if (!SerializeArgs<uint64_t>::deserialize(buf, size))
+    if (!SerializeArgs<std::uint64_t>::deserialize(buf, size))
       return false;
 
     vec.reserve(size);
 
     for (std::size_t i = 0; i < size; ++i) {
-      uint64_t subVecSizeBytes = 0;
-      if (!SerializeArgs<uint64_t>::deserialize(buf, subVecSizeBytes))
+      std::uint64_t subVecSizeBytes = 0;
+      if (!SerializeArgs<std::uint64_t>::deserialize(buf, subVecSizeBytes))
         return false;
       vec.emplace_back(std::vector<T>(subVecSizeBytes));
     }

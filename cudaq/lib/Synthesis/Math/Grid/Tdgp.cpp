@@ -17,6 +17,7 @@
 #include "llvm/Support/Debug.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <utility>
 
 #define DEBUG_TYPE "cudaq-synth"
@@ -47,14 +48,15 @@ TdgpStepper::TdgpStepper(Integer k, const ConvexSet &setA,
                          const ConvexSet &setB, const GridOp &opG_inv,
                          Rectangle bboxA, Rectangle bboxB,
                          Interval bboxA_y_fattened, Interval bboxB_y_fattened,
-                         uint64_t max_scan_steps)
+                         std::uint64_t max_scan_steps)
     : k_(std::move(k)), setA_(&setA), setB_(&setB), opG_inv_(opG_inv),
       bboxA_(std::move(bboxA)), bboxB_(std::move(bboxB)),
       bboxA_y_fattened_(std::move(bboxA_y_fattened)),
       bboxB_y_fattened_(std::move(bboxB_y_fattened)),
       max_scan_steps_(max_scan_steps) {
   CUDAQ_SYNTH_OPEN_SUB("TdgpStepper");
-  LLVM_DEBUG(cudaq::synth::dbgs() << "k=" << static_cast<int64_t>(k_) << '\n');
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "k=" << static_cast<std::int64_t>(k_) << '\n');
 
   // The x-anchor is a single one-shot solve: only the first solution to the
   // x-ODGP is needed as a fixed reference for the per-beta line scan. The
