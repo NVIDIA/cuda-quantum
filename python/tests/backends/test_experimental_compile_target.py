@@ -171,14 +171,19 @@ def fragments_with_override():
     return stage(UncheckedProfile(), lowering)
 
 
+def unknown_noise_support():
+    """An enum name made invalid after construction, which the caster rejects."""
+    target = CompileTarget()
+    target.noise_support = "loud"
+    return target
+
+
 @pytest.mark.parametrize("target", [
     CompileTarget(stages=[42]),
     stage(QuakeReferenceSemanticsProfile(basis_gates="h")),
-    stage(QuakeReferenceSemanticsProfile(measurement_type="x")),
     fragments_with_override(),
+    unknown_noise_support(),
     stage(UncheckedProfile(), "canonicalize"),
-    CompileTarget(noise_support="loud"),
-    stage(QuakeUnmappedProfile(cost_model=3)),
     stage(42),
     CompileTarget(fully_specialize=1),
 ])

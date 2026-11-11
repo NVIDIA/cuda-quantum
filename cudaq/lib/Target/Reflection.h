@@ -11,8 +11,8 @@
 /// Compile-time reflection of the target types (`cudaq::CompileTarget` and the
 /// `struct`s and `enum`s it contains).
 ///
-/// Internal to the target library: reflect-cpp is a private dependency, so this
-/// header must not be included from installed headers.
+/// Private header: reflect-cpp is not a public dependency of `CUDAQTarget`, so
+/// this header must not be exported with the public installed headers.
 
 #include <optional>
 #include <rfl/enums.hpp>
@@ -22,15 +22,25 @@
 
 namespace cudaq::reflection {
 
+namespace detail {
 /// The fully qualified name of `T`, e.g. `cudaq::config::Codegen`.
+// Unfortunately, this has to use a private API of reflect-cpp. If this turns
+// out to be brittle, we could roll our own implementation.
 template <typename T>
 constexpr std::string_view qualifiedName =
     rfl::internal::get_type_name_str_view<T>();
+} // namespace detail
 
-/// The unqualified name of `T`, e.g. `Codegen`.
+/// The name of `T` with the `cudaq::` or `cudaq::config::` namespaces stripped,
+/// e.g. `Codegen`.
 template <typename T>
-constexpr std::string_view typeName =
-    qualifiedName<T>.substr(qualifiedName<T>.rfind("::") + 2);
+constexpr std::string_view typeName = [] {
+  static_assert(detail::qualifiedName<T>.find("cudaq::") !=
+                    std::string_view::npos,
+                "expected a type declared within the cudaq namespace");
+  return detail::qualifiedName<T>.substr(detail::qualifiedName<T>.rfind("::") +
+                                         2);
+}();
 
 /// Calls `f(name, field)` on each field of the struct `value`.
 template <typename T, typename F>

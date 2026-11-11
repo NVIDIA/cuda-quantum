@@ -9,9 +9,9 @@
 import pytest
 
 from cudaq.core._target import (Codegen, CompilationStage, CompileTarget,
-                                CustomPipelineLowering,
+                                CostModel, CustomPipelineLowering, NoiseSupport,
                                 QuakeReferenceSemanticsProfile,
-                                UncheckedProfile)
+                                QuakeUnmappedProfile, UncheckedProfile)
 
 
 @pytest.mark.parametrize("target", [
@@ -64,3 +64,23 @@ def test_shortcuts_are_exclusive(kwargs):
 
 if __name__ == "__main__":
     pytest.main([__file__])
+
+
+@pytest.mark.parametrize("make", [
+    lambda: CompileTarget(noise_support="loud"),
+    lambda: QuakeUnmappedProfile(cost_model=3),
+    lambda: QuakeUnmappedProfile(unroll_loops="some"),
+    lambda: QuakeReferenceSemanticsProfile(measurement_type="x"),
+])
+def test_invalid_enum_values_fail_at_construction(make):
+    with pytest.raises(ValueError):
+        make()
+
+
+def test_enum_fields_accept_members_and_names():
+    assert CompileTarget(noise_support="supported").noise_support == "supported"
+    assert CompileTarget(noise_support=NoiseSupport.supported).noise_support \
+        == NoiseSupport.supported
+    assert QuakeUnmappedProfile(cost_model="t_count").cost_model == "t_count"
+    assert QuakeUnmappedProfile(
+        cost_model=CostModel.t_count).cost_model == CostModel.t_count

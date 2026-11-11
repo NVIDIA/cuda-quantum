@@ -28,7 +28,9 @@ cudaq.set_target("qpp-cpu", compile_target=target)
 
 # Python never converts values: after `a.foo = b`, `a.foo == b`. Values are only
 # converted, or rejected, when they cross into C++. Type hints list the types that
-# conversion accepts, e.g. an enum member or its name.
+# conversion accepts, e.g. an enum member or its name. To report mistakes such as
+# an unknown enum name early and by field, `verify()` checks these values at
+# construction, and again at conversion.
 
 # # Why not bind the C++ types?
 
@@ -49,7 +51,7 @@ cudaq.set_target("qpp-cpu", compile_target=target)
 
 import enum
 from dataclasses import KW_ONLY, InitVar, dataclass, field
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Union, get_args
 
 
 class NoiseSupport(enum.Enum):
@@ -76,6 +78,19 @@ class LoopUnrolling(enum.Enum):
     index_use = enum.auto()
 
 
+MeasurementType = Literal["any", "single_qubit"]
+
+
+def _verify_choice(name, value, choices):
+    if value not in choices:
+        raise ValueError(f"'{name}' must be one of {choices}, got {value!r}")
+
+
+def _verify_enum(name, value, enum_type):
+    """Checks that `value` is a member of `enum_type` or the name of one."""
+    _verify_choice(name, value, [*enum_type, *enum_type.__members__])
+
+
 @dataclass
 class UncheckedProfile:
     """IR profile that imposes no constraint."""
@@ -85,8 +100,15 @@ class UncheckedProfile:
 class QuakeReferenceSemanticsProfile:
     """IR profile for reference-semantics Quake."""
     basis_gates: list[str] = field(default_factory=list)
-    measurement_type: Literal["any", "single_qubit"] = "any"
+    measurement_type: MeasurementType = "any"
     reset_after_measure: bool = False
+
+    def __post_init__(self):
+        self.verify()
+
+    def verify(self):
+        _verify_choice("measurement_type", self.measurement_type,
+                       list(get_args(MeasurementType)))
 
 
 @dataclass
@@ -97,6 +119,14 @@ class QuakeUnmappedProfile:
     cost_model: Union[CostModel, str, None] = None
     unroll_loops: Union[LoopUnrolling, str] = LoopUnrolling.all
     max_unroll_iterations: int = 1024
+
+    def __post_init__(self):
+        self.verify()
+
+    def verify(self):
+        if self.cost_model is not None:
+            _verify_enum("cost_model", self.cost_model, CostModel)
+        _verify_enum("unroll_loops", self.unroll_loops, LoopUnrolling)
 
 
 @dataclass
@@ -223,3 +253,7 @@ class CompileTarget:
                 custom_pipeline = CustomPipelineLowering(custom_pipeline)
             set_stages(CompilationStage(UncheckedProfile(), custom_pipeline),
                        "custom_pipeline")
+        self.verify()
+
+    def verify(self):
+        _verify_enum("noise_support", self.noise_support, NoiseSupport)

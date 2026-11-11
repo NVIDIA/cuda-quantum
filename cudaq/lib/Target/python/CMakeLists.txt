@@ -17,9 +17,27 @@ add_custom_command(
   COMMAND "${CMAKE_COMMAND}" -E create_symlink
     "${CMAKE_CURRENT_SOURCE_DIR}/_target.py" "${_target_py}")
 add_custom_target(CUDAQTargetPythonStaging ALL DEPENDS "${_target_py}")
-# Install the pure Python dataclasses to the build directory.
+# Install the pure Python dataclasses next to the other `cudaq.core` modules.
 install(FILES _target.py
   DESTINATION cudaq/core COMPONENT CUDAQCorePythonModules)
+
+# `cudaq.core._target` used to be a compiled extension module: make sure to
+# remove them from both the build directory and the install prefix.
+# TODO: this can probably be removed once no old build or install is left.
+file(GLOB _stale_target_libs
+  "${CMAKE_BINARY_DIR}/python/cudaq/core/_target*.so"
+  "${CMAKE_BINARY_DIR}/python/cudaq/core/_target*.pyd")
+if(_stale_target_libs)
+  file(REMOVE ${_stale_target_libs})
+endif()
+install(CODE [[
+  file(GLOB _stale_target_libs
+    "${CMAKE_INSTALL_PREFIX}/cudaq/core/_target*.so"
+    "${CMAKE_INSTALL_PREFIX}/cudaq/core/_target*.pyd")
+  if(_stale_target_libs)
+    file(REMOVE ${_stale_target_libs})
+  endif()
+]] COMPONENT CUDAQCorePythonModules)
 
 # The nanobind casters between those dataclasses and the C++ types.
 add_library(CUDAQTargetPython INTERFACE)
