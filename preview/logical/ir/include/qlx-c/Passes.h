@@ -28,6 +28,19 @@ qlxVerifyCliffordFrameModule(MlirModule module);
 MLIR_CAPI_EXPORTED MlirLogicalResult qlxLowerToPBCModule(MlirModule module);
 MLIR_CAPI_EXPORTED MlirLogicalResult qlxVerifyPBCModule(MlirModule module);
 
+/// True when values of `type` are single-owner linear values: the type
+/// implements qlx::LinearTypeInterface and reports isLinear().
+MLIR_CAPI_EXPORTED bool qlxTypeIsLinear(MlirType type);
+
+/// Run the linear-ownership analysis over every LinearOwnershipScope op in
+/// `root` (including `root`) and pass the report to `callback` as one JSON
+/// object: {"checked_bodies": [str], "linear_values": int,
+/// "violations": [{"body", "kind", "value", "message", "location"}]}.
+/// Emits no diagnostics.
+MLIR_CAPI_EXPORTED void
+qlxAnalyzeLinearOwnershipJSON(MlirOperation root, MlirStringCallback callback,
+                              void *userData);
+
 /// Materialize authenticated static and analytical lower-tier results in one
 /// compiler-owned pass transaction. This internal entry point is for callers
 /// that already hold a verified immutable Build clone.
