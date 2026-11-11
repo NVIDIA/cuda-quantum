@@ -45,6 +45,7 @@ class Job(BaseModel):
     status: str
     session_id: str
     parameters: str
+    progress_message: str | None = None
 
 
 class JobResult(BaseModel):
