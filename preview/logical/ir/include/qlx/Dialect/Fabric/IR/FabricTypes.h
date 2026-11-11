@@ -13,5 +13,7 @@
 
 #include "qlx/Dialect/Fabric/IR/FabricAttrs.h"
 
+#include "qlx/Interfaces/LinearOwnershipInterfaces.h"
+
 #define GET_TYPEDEF_CLASSES
 #include "qlx/Dialect/Fabric/IR/FabricTypes.h.inc"

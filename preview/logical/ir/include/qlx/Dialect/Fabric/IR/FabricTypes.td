@@ -23,13 +23,15 @@
 
 include "qlx/Dialect/Fabric/IR/FabricDialect.td"
 include "qlx/Dialect/Fabric/IR/FabricAttrs.td"
+include "qlx/Interfaces/LinearOwnershipInterfaces.td"
 include "mlir/IR/AttrTypeBase.td"
 
 //===----------------------------------------------------------------------===//
 // Parameterized types
 //===----------------------------------------------------------------------===//
 
-def Fabric_PatchType : TypeDef<Fabric_Dialect, "Patch"> {
+def Fabric_PatchType : TypeDef<Fabric_Dialect, "Patch",
+    [QLX_LinearTypeInterface]> {
   let mnemonic = "patch";
   let summary = "linear QEC block value parameterized by code and optional encoding";
   let description = [{
@@ -69,7 +71,8 @@ def Fabric_PatchType : TypeDef<Fabric_Dialect, "Patch"> {
   }];
 }
 
-def Fabric_PatchFrameType : TypeDef<Fabric_Dialect, "PatchFrame"> {
+def Fabric_PatchFrameType : TypeDef<Fabric_Dialect, "PatchFrame",
+    [QLX_LinearTypeInterface]> {
   let mnemonic = "patch_frame";
   let summary = "linear carrier frame during one code/encoding transformation";
   let description = [{
@@ -148,7 +151,8 @@ def Fabric_GaugeRecordsType : TypeDef<Fabric_Dialect, "GaugeRecords"> {
   let assemblyFormat = [{ `<` $code_type `,` $encoding `,` $epoch `>` }];
 }
 
-def Fabric_PatchBundleType : TypeDef<Fabric_Dialect, "PatchBundle"> {
+def Fabric_PatchBundleType : TypeDef<Fabric_Dialect, "PatchBundle",
+    [QLX_LinearTypeInterface]> {
   let mnemonic = "patch_bundle";
   let summary = "linear folded child-patch aggregate for an encoding hierarchy";
   let description = [{
@@ -170,7 +174,8 @@ def Fabric_RecordBundleType : TypeDef<Fabric_Dialect, "RecordBundle"> {
   let assemblyFormat = "`<` $schema `>`";
 }
 
-def Fabric_ResourceStateType : TypeDef<Fabric_Dialect, "ResourceState"> {
+def Fabric_ResourceStateType : TypeDef<Fabric_Dialect, "ResourceState",
+    [QLX_LinearTypeInterface]> {
   let mnemonic = "resource";
   let summary = "distilled resource state for non-Clifford gates";
   let description = [{
@@ -221,7 +226,8 @@ def Fabric_BitType : Fabric_SimpleType<"Bit", "bit"> {
   }];
 }
 
-def Fabric_FrameType : TypeDef<Fabric_Dialect, "Frame"> {
+def Fabric_FrameType : TypeDef<Fabric_Dialect, "Frame", [
+    DeclareTypeInterfaceMethods<QLX_LinearTypeInterface, ["mayDrop"]>]> {
   let mnemonic = "frame";
   let summary = "Pauli frame tracker";
   let description = [{

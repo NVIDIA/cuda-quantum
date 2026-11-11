@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 include(HandleLLVMOptions)
+add_subdirectory(include/qlx/Interfaces)
 add_subdirectory(include/qlx/Conversion)
 add_subdirectory(include/qlx/Dialect/Cflow)
 add_subdirectory(include/qlx/Dialect/Event)
@@ -14,6 +15,10 @@ add_subdirectory(include/qlx/Dialect/Fabric)
 add_subdirectory(include/qlx/Dialect/QLX)
 add_subdirectory(include/qlx/Dialect/LVM)
 add_subdirectory(include/qlx/Dialect/Phys)
+
+# Linear-type interface, ownership traits, and their analysis. Dialects with
+# linear types link it, so it precedes them.
+add_subdirectory(lib/Analysis/LinearOwnership)
 
 # Per-dialect implementation (IR + Transforms).
 add_subdirectory(lib/Dialect/Cflow)

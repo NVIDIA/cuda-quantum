@@ -9,6 +9,7 @@
 add_subdirectory(IR)
 
 add_custom_target(MLIREventIncGen DEPENDS
+  MLIRQLXLinearOwnershipInterfacesIncGen
   MLIREventDialectIncGen
   MLIREventTypesIncGen
   MLIREventInterfacesIncGen

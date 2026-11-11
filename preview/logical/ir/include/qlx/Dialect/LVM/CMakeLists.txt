@@ -8,4 +8,5 @@
 
 add_subdirectory(IR)
 add_custom_target(MLIRLVMIncGen DEPENDS
+  MLIRQLXLinearOwnershipInterfacesIncGen
   MLIRLVMDialectIncGen MLIRLVMTypesIncGen MLIRLVMAttrsIncGen MLIRLVMOpsIncGen)

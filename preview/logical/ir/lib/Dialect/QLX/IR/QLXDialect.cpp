@@ -1153,6 +1153,9 @@ LogicalResult ObjectiveBodyOp::verify() {
   return legality;
 }
 
+// Frame state has no disposal op; the terminal frame is dropped.
+bool LogicalFrameType::mayDrop() const { return true; }
+
 namespace {
 
 LogicalResult verifyOperandNames(Operation *operation, FunctionType type,

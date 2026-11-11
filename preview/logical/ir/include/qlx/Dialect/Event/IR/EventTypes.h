@@ -13,5 +13,7 @@
 
 #include "qlx/Dialect/Event/IR/EventInterfaces.h"
 
+#include "qlx/Interfaces/LinearOwnershipInterfaces.h"
+
 #define GET_TYPEDEF_CLASSES
 #include "qlx/Dialect/Event/IR/EventTypes.h.inc"

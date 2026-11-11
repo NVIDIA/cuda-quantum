@@ -23,7 +23,7 @@ class Event_Op<string mnemonic, list<Trait> traits = []> :
 // TestOp
 //===----------------------------------------------------------------------===//
 
-def Event_TestOp : Event_Op<"test", []> {
+def Event_TestOp : Event_Op<"test", [QLX_LinearBorrowsOperands]> {
   let summary = "read whether an event's payload can be taken now";
   let description = [{
     Nonblocking, non-consuming readiness read: `ready` is true exactly
@@ -46,7 +46,7 @@ def Event_TestOp : Event_Op<"test", []> {
 // PollOp
 //===----------------------------------------------------------------------===//
 
-def Event_PollOp : Event_Op<"poll", []> {
+def Event_PollOp : Event_Op<"poll", [QLX_LinearBorrowsOperands]> {
   let summary = "read an event's complete state, without consuming it";
   let description = [{
     Nonblocking, non-consuming read of `event`'s complete state as an
@@ -92,7 +92,9 @@ def Event_IsOp : Event_Op<"is", [Pure]> {
 // SelectReadyOp
 //===----------------------------------------------------------------------===//
 
-def Event_SelectReadyOp : Event_Op<"select_ready", [SameTypeOperands]> {
+def Event_SelectReadyOp : Event_Op<"select_ready", [
+    SameTypeOperands, QLX_LinearBorrowsOperands
+  ]> {
   let summary = "choose one ready event among several, without consuming any";
   let description = [{
     Nonblocking, non-consuming choice among `events`: `selected` is the
@@ -130,7 +132,8 @@ def Event_SelectReadyOp : Event_Op<"select_ready", [SameTypeOperands]> {
 //===----------------------------------------------------------------------===//
 
 def Event_TryTakeOp : Event_Op<"try_take", [
-    SingleBlockImplicitTerminator<"YieldOp">
+    SingleBlockImplicitTerminator<"YieldOp">,
+    QLX_LinearExclusiveRegions
   ]> {
   let summary = "take an event's payload if it is ready, branching on the outcome";
   let description = [{

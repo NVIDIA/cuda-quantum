@@ -1249,3 +1249,6 @@ void LVMDialect::initialize() {
 #include "qlx/Dialect/LVM/IR/LVMOps.cpp.inc"
       >();
 }
+
+// Frame state has no disposal op; the terminal frame is dropped.
+bool qlx::lvm::LogicalFrameType::mayDrop() const { return true; }

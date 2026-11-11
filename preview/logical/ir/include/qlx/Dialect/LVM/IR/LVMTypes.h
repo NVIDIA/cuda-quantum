@@ -8,7 +8,9 @@
 
 #pragma once
 
+#include "qlx/Interfaces/LinearOwnershipInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Types.h"
+
 #define GET_TYPEDEF_CLASSES
 #include "qlx/Dialect/LVM/IR/LVMTypes.h.inc"

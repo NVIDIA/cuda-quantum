@@ -9,4 +9,5 @@
 add_subdirectory(IR)
 
 add_custom_target(MLIRCflowIncGen DEPENDS
+  MLIRQLXLinearOwnershipInterfacesIncGen
   MLIRCflowDialectIncGen MLIRCflowOpsIncGen)

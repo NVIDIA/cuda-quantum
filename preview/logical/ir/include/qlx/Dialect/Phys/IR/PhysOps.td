@@ -181,7 +181,7 @@ def Phys_ReturnOp : Phys_Op<"return", [Terminator]> {
 }
 
 def Phys_GraphOp : Phys_Op<"graph", [
-    Symbol, IsolatedFromAbove, SingleBlockImplicitTerminator<"ReturnOp">
+    Symbol, IsolatedFromAbove, QLX_LinearOwnershipScope, SingleBlockImplicitTerminator<"ReturnOp">
   ]> {
   let arguments = (ins
     SymbolNameAttr:$sym_name,
