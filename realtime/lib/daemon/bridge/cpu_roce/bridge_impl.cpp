@@ -260,6 +260,9 @@ cudaq_status_t create_hsb_fpga(CpuRoceBridgeContext *ctx) {
 
   // The CPU transceiver sizes its receive queue from the configured ring.
   // Preserve that geometry so the bridge and FPGA playback use the same slots.
+  // HSB uses a 12-bit slot index in RoCE immediate data (mask
+  // 0xFFF), allowing 4096 slots. This matches the page-count limit in HSB's
+  // DataChannel::configure_roce (src/hololink/core/data_channel.cpp).
   if (!ctx->num_slots || ctx->num_slots > 4096 ||
       (ctx->num_slots & (ctx->num_slots - 1)) || !ctx->slot_size ||
       frame_size > ctx->slot_size) {
