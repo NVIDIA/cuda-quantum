@@ -202,6 +202,30 @@ def test_kernel_apply_call_list_args():
 # CHECK:           return
 # CHECK:         }
 
+
+def test_kernel_apply_call_constant_list_args():
+    other_kernel, values = cudaq.make_kernel(list[float])
+    qubits = other_kernel.qalloc(2)
+    other_kernel.rx(values[0], qubits[0])
+    other_kernel.rx(values[1], qubits[1])
+
+    kernel = cudaq.make_kernel()
+    kernel.apply_call(other_kernel, [1.0, 2.0])
+    print(kernel.__str__(canonicalize=False))
+
+
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
+# CHECK-SAME: () attributes {"cudaq-entrypoint"
+# CHECK: %[[ARRAY:.*]] = cc.alloca f64[
+# CHECK: %[[DATA:.*]] = cc.const_array [1.000000e+00, 2.000000e+00] : !cc.array<f64 x 2>
+# CHECK: cc.loop
+# CHECK: ^bb0(%[[INDEX:.*]]: i64):
+# CHECK: %[[ADDRESS:.*]] = cc.compute_ptr %[[ARRAY]][%[[INDEX]]]
+# CHECK: %[[ELEMENT:.*]] = cc.extract_value %[[DATA]][%[[INDEX]]]
+# CHECK: cc.store %[[ELEMENT]], %[[ADDRESS]]
+# CHECK: cc.sequence_init
+# CHECK: call @__nvqpp__mlirgen__PythonKernelBuilderInstance
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
