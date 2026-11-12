@@ -22,6 +22,5 @@ add_mlir_dialect_library(MLIREventDialect
   MLIREventIncGen
 
   LINK_LIBS PUBLIC
-  MLIRQLXLinearOwnership
   ${_qlx_mlir_link_libraries}
 )

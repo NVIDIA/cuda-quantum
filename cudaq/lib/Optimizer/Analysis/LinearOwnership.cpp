@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "qlx/Analysis/LinearOwnership.h"
+#include "cudaq/Optimizer/Analysis/LinearOwnership.h"
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/MapVector.h"
@@ -136,7 +136,7 @@ unsigned nonEmptyRegionCount(Operation *op) {
 
 class ScopeAnalysis {
 public:
-  ScopeAnalysis(Operation *scope, qlx::LinearOwnershipReport &report,
+  ScopeAnalysis(Operation *scope, cudaq::opt::LinearOwnershipReport &report,
                 bool firstOnly)
       : scope(scope), report(report), firstOnly(firstOnly) {}
 
@@ -288,8 +288,8 @@ private:
   template <typename Detail>
   void report_(StringRef kind, Value value, Location location,
                std::optional<Location> related, Detail &&detail) {
-    qlx::LinearOwnershipViolation violation{scope, kind.str(), describe(value),
-                                            {},    location,   related};
+    cudaq::opt::LinearOwnershipViolation violation{
+        scope, kind.str(), describe(value), {}, location, related};
     llvm::raw_string_ostream os(violation.message);
     os << "linear value " << violation.value;
     detail(os);
@@ -297,21 +297,21 @@ private:
   }
 
   Operation *scope;
-  qlx::LinearOwnershipReport &report;
+  cudaq::opt::LinearOwnershipReport &report;
   bool firstOnly;
   std::optional<AsmState> asmState;
 };
 
 } // namespace
 
-void qlx::analyzeLinearOwnershipScope(Operation *scope,
-                                      LinearOwnershipReport &report,
-                                      bool firstOnly) {
+void cudaq::opt::analyzeLinearOwnershipScope(Operation *scope,
+                                             LinearOwnershipReport &report,
+                                             bool firstOnly) {
   report.checkedScopes.push_back(scope);
   ScopeAnalysis(scope, report, firstOnly).run();
 }
 
-bool qlx::isDeclarationOnlyScope(Operation *scope) {
+bool cudaq::opt::isDeclarationOnlyScope(Operation *scope) {
   if (scope->getNumRegions() != 1)
     return false;
   Region &region = scope->getRegion(0);
@@ -333,7 +333,8 @@ bool qlx::isDeclarationOnlyScope(Operation *scope) {
   });
 }
 
-qlx::LinearOwnershipReport qlx::analyzeLinearOwnership(Operation *root) {
+cudaq::opt::LinearOwnershipReport
+cudaq::opt::analyzeLinearOwnership(Operation *root) {
   LinearOwnershipReport report;
   root->walk<WalkOrder::PreOrder>([&](Operation *op) {
     if (op->hasTrait<cudaq::LinearOwnershipScope>() &&
@@ -343,7 +344,7 @@ qlx::LinearOwnershipReport qlx::analyzeLinearOwnership(Operation *root) {
   return report;
 }
 
-void qlx::emitLinearOwnershipViolation(
+void cudaq::opt::emitLinearOwnershipViolation(
     const LinearOwnershipViolation &violation) {
   InFlightDiagnostic diagnostic = emitError(violation.location)
                                   << violation.message;
@@ -353,7 +354,7 @@ void qlx::emitLinearOwnershipViolation(
                                            : "earlier consume here");
 }
 
-LogicalResult qlx::verifyLinearOwnership(Operation *scope) {
+LogicalResult cudaq::opt::verifyLinearOwnership(Operation *scope) {
   LinearOwnershipReport report;
   analyzeLinearOwnershipScope(scope, report, /*firstOnly=*/true);
   if (report.ok())

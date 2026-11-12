@@ -8,7 +8,6 @@
 
 #include "qlx-c/Passes.h"
 
-#include "qlx/Analysis/LinearOwnership.h"
 #include "qlx/Dialect/Fabric/Transforms/Passes.h"
 #include "qlx/Dialect/Phys/Transforms/Passes.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
@@ -17,6 +16,7 @@
 #include "qlx/Dialect/QLX/Transforms/QLXToPBC.h"
 #include "qlx/Dialect/QLX/Transforms/QLXVerifyPBC.h"
 #include "qlx/InitAllPasses.h"
+#include "cudaq/Optimizer/Analysis/LinearOwnership.h"
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/CAPI/IR.h"
@@ -81,12 +81,14 @@ void qlxAnalyzeLinearOwnershipJSON(MlirOperation root,
     return name;
   };
 
-  qlx::LinearOwnershipReport report = qlx::analyzeLinearOwnership(unwrap(root));
+  cudaq::opt::LinearOwnershipReport report =
+      cudaq::opt::analyzeLinearOwnership(unwrap(root));
   llvm::json::Array bodies;
   for (mlir::Operation *scope : report.checkedScopes)
     bodies.push_back(bodyName(scope));
   llvm::json::Array violations;
-  for (const qlx::LinearOwnershipViolation &violation : report.violations)
+  for (const cudaq::opt::LinearOwnershipViolation &violation :
+       report.violations)
     violations.push_back(llvm::json::Object{
         {"body", bodyName(violation.scope)},
         {"kind", violation.kind},

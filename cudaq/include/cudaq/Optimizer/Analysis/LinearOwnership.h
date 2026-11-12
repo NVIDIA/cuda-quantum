@@ -8,12 +8,10 @@
 //
 // Linear single-ownership analysis.
 //
-// Values whose type implements `cudaq::LinearTypeInterface` (logical qubits,
-// patches, resource payloads, physical states, linear event handles, frames)
-// must have exactly one consuming use on every execution path. Plain SSA does
-// not enforce this. The analysis below does, driven only by the interface and
-// the op traits declared in CUDA-Q core
-// (cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.td), so it names no
+// Values whose type implements `cudaq::LinearTypeInterface` must have exactly
+// one consuming use on every execution path. Plain SSA does not enforce this.
+// The analysis below does, driven only by the interface and the op traits in
+// cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.td, so it names no
 // dialect.
 //
 // Per value it checks for four possible violations:
@@ -46,7 +44,7 @@
 #include <optional>
 #include <string>
 
-namespace qlx {
+namespace cudaq::opt {
 
 struct LinearOwnershipViolation {
   /// The scope op (a LinearOwnershipScope) the value belongs to.
@@ -55,7 +53,7 @@ struct LinearOwnershipViolation {
   /// unconsumed.
   std::string kind;
   /// Short description of the offending value, e.g.
-  /// "%0 : !qlx.logical_qubit (result of qlx.prepare)".
+  /// "%0 : !foo.linear (result of foo.make)".
   std::string value;
   /// Complete diagnostic text.
   std::string message;
@@ -98,4 +96,4 @@ void emitLinearOwnershipViolation(const LinearOwnershipViolation &violation);
 /// holding nothing but an operand-free terminator, with unused arguments.
 bool isDeclarationOnlyScope(mlir::Operation *scope);
 
-} // namespace qlx
+} // namespace cudaq::opt

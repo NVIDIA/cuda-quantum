@@ -182,7 +182,6 @@ if(NOT QLX_IN_TREE)
   # cmake -DQLX_DIR=<build>/lib/cmake/QLX ...
   # --------------------------------------------------------------------------- #
   export(TARGETS
-    MLIRQLXLinearOwnership
     MLIRQLXDialect
     MLIRFabricDialect
     MLIRLVMDialect

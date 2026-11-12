@@ -12,8 +12,8 @@ and value-semantic frames are *linear*: ordinary MLIR SSA permits any number
 of uses, but every linear SSA value must have exactly one owner along every
 execution path.
 
-The rule lives in C++ (``qlx/Analysis/LinearOwnership.h``) and is driven by
-the IR itself rather than by names:
+The rule lives in C++ (``cudaq/Optimizer/Analysis/LinearOwnership.h``) and is
+driven by the IR itself rather than by names:
 
 - A type is linear when it implements ``cudaq::LinearTypeInterface``.
   ``mayDrop()`` types (frames) may go unconsumed.

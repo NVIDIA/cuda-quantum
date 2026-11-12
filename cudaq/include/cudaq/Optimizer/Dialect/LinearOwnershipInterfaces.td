@@ -27,9 +27,13 @@ def LinearTypeInterface : TypeInterface<"LinearTypeInterface"> {
     `mayDrop()` type (value-semantic state with no disposal operation) may
     instead go unconsumed.
 
-    This is a correctness contract checked by a verifier. It is unrelated to
-    `SSITypeTrait`, which only stops upstream MLIR canonicalization from
-    merging values across control-flow paths.
+    This is a correctness contract checked by a verifier. It is related to,
+    but not the same as, `SSITypeTrait`. That trait stops MLIR
+    canonicalization from merging block arguments across control-flow paths.
+    Some of those merges break linearity, such as folding a loop-carried value
+    into the value from outside the loop. Others do not. The types that carry
+    `SSITypeTrait` today (`!quake.wire`, `!quake.cable`) are linear by
+    definition.
   }];
   let methods = [
     InterfaceMethod<

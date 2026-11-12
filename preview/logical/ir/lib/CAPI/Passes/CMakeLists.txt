@@ -27,7 +27,6 @@ add_mlir_public_c_api_library(QLXCAPIPasses
   MLIRQLXToLVM
 
   # Dialect
-  MLIRQLXLinearOwnership
   MLIRFabricTransforms
   MLIRPhysTransforms
   ${_qlx_optional_pass_libraries}

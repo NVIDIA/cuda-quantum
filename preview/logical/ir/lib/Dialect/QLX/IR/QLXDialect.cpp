@@ -14,11 +14,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
-#include "qlx/Analysis/LinearOwnership.h"
 #include "qlx/Dialect/Event/IR/EventTypes.h"
 #include "qlx/Dialect/QLX/IR/QLXAttrs.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
 #include "qlx/Dialect/QLX/IR/QLXTypes.h"
+#include "cudaq/Optimizer/Analysis/LinearOwnership.h"
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
@@ -1093,7 +1093,7 @@ LogicalResult ProgramOp::verify() {
 }
 
 LogicalResult ProgramOp::verifyRegions() {
-  return qlx::verifyLinearOwnership(getOperation());
+  return cudaq::opt::verifyLinearOwnership(getOperation());
 }
 
 LogicalResult ObjectiveBodyOp::verify() {
@@ -1160,7 +1160,7 @@ LogicalResult ObjectiveBodyOp::verify() {
 }
 
 LogicalResult ObjectiveBodyOp::verifyRegions() {
-  return qlx::verifyLinearOwnership(getOperation());
+  return cudaq::opt::verifyLinearOwnership(getOperation());
 }
 
 // Frame state has no disposal op; the terminal frame is dropped.

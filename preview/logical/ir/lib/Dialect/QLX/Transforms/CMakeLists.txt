@@ -34,7 +34,6 @@ add_mlir_library(MLIRQLXTransforms
 
   LINK_LIBS PUBLIC
   MLIRQLXDialect
-  MLIRQLXLinearOwnership
   MLIRCflowDialect
   GMP::gmp
   MPFR::mpfr
