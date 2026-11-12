@@ -16,7 +16,7 @@
 // (cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.td), so it names no
 // dialect.
 //
-// Per value it checks four rules:
+// Per value it checks for four possible violations:
 //
 //   double-consume        two consuming uses can both run.
 //   loop-capture-consume  a value defined outside a LinearRepeatedRegions op
