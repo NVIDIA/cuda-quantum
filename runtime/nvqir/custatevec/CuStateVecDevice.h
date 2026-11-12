@@ -24,8 +24,8 @@ struct DeviceMemoryCapacity {
   std::size_t poolReservedBytes = 0;
   std::size_t poolUsedBytes = 0;
   std::optional<std::size_t> systemAvailableBytes;
-  int32_t computeCapabilityMajor = 0;
-  int32_t computeCapabilityMinor = 0;
+  std::int32_t computeCapabilityMajor = 0;
+  std::int32_t computeCapabilityMinor = 0;
 
   std::size_t usableBytes() const;
 };
@@ -47,8 +47,8 @@ std::optional<std::size_t> systemMemAvailableBytes();
 /// not measured on newer releases, so a `cuStateVecVersion`
 /// (`custatevecGetVersion()`) at or above `unmeasuredCuStateVecVersion`
 /// always defers to the library.
-std::optional<int32_t> recommendedDenseFusionQubits(
-    int32_t computeCapabilityMajor, int32_t computeCapabilityMinor,
+std::optional<std::int32_t> recommendedDenseFusionQubits(
+    std::int32_t computeCapabilityMajor, std::int32_t computeCapabilityMinor,
     bool doublePrecision, std::size_t cuStateVecVersion);
 
 /// First `cuStateVec` version (1.16.0) the sizes above were not measured on.
@@ -56,16 +56,18 @@ inline constexpr std::size_t unmeasuredCuStateVecVersion = 11600;
 
 /// Applies `recommendedDenseFusionQubits` to the active CUDA device and the
 /// loaded `cuStateVec`. Returns `nullopt` if the device cannot be queried.
-std::optional<int32_t> recommendedDenseFusionQubits(bool doublePrecision);
+std::optional<std::int32_t> recommendedDenseFusionQubits(bool doublePrecision);
 
 /// Returns the number of host-migration wires supported by the memory ratio,
 /// capped at the three migration wires accepted by cuStateVecEx.
-int32_t migrationWireCapacity(std::size_t hostBytes, std::size_t deviceBytes);
+std::int32_t migrationWireCapacity(std::size_t hostBytes,
+                                   std::size_t deviceBytes);
 
 /// Selects the trajectory batch size from available memory or an explicit
 /// user value, then applies the legacy power-of-two work-item cap.
-std::size_t trajectoryBatchSize(std::size_t availableBytes,
-                                std::size_t stateBytes, std::size_t workItems,
-                                std::optional<int32_t> configuredBatchSize);
+std::size_t
+trajectoryBatchSize(std::size_t availableBytes, std::size_t stateBytes,
+                    std::size_t workItems,
+                    std::optional<std::int32_t> configuredBatchSize);
 
 } // namespace cudaq::cusv

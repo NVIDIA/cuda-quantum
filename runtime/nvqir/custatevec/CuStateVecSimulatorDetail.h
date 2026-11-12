@@ -66,13 +66,15 @@ std::vector<std::complex<Scalar>> copyPointerToHost(const void *data,
 
 /// Narrow a vector of qubit indices to the int32 range cuStateVec expects,
 /// rejecting indices that do not fit.
-inline std::vector<int32_t> toInt32(const std::vector<std::size_t> &values) {
-  std::vector<int32_t> result;
+inline std::vector<std::int32_t>
+toInt32(const std::vector<std::size_t> &values) {
+  std::vector<std::int32_t> result;
   result.reserve(values.size());
   for (const std::size_t value : values) {
-    if (value > static_cast<std::size_t>(std::numeric_limits<int32_t>::max()))
+    if (value >
+        static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
       throw std::out_of_range("Qubit index exceeds cuStateVec range.");
-    result.push_back(static_cast<int32_t>(value));
+    result.push_back(static_cast<std::int32_t>(value));
   }
   return result;
 }
@@ -113,7 +115,7 @@ inline double parityExpectation(const cudaq::ExecutionResult &result,
 /// order.
 struct PauliTerms {
   std::vector<std::vector<custatevecPauli_t>> paulis;
-  std::vector<std::vector<int32_t>> targets;
+  std::vector<std::vector<std::int32_t>> targets;
 };
 
 /// Extract, per term of `op`, the non-identity Pauli operators and their target
@@ -130,7 +132,7 @@ inline PauliTerms extractPauliTerms(const cudaq::spin_op &op) {
       if (termOp.as_pauli() == cudaq::pauli::I)
         continue;
       paulis.push_back(toCuStateVecPauli(termOp.as_pauli()));
-      targets.push_back(static_cast<int32_t>(termOp.target()));
+      targets.push_back(static_cast<std::int32_t>(termOp.target()));
     }
   }
   assert(terms.paulis.size() == op.num_terms() &&

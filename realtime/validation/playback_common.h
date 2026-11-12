@@ -15,6 +15,8 @@
 #pragma once
 
 #include "playback_provider_support.h"
+#include <cstddef>
+#include <cstdint>
 #include <algorithm>
 #include <chrono>
 #include <cstring>
@@ -32,16 +34,16 @@ inline void require(bool condition, const std::string &message) {
   if (!condition)
     throw std::runtime_error(message);
 }
-inline void write_little_endian(std::vector<uint8_t> &bytes, size_t offset,
-                                uint64_t value, size_t count) {
-  for (size_t byte_index = 0; byte_index < count; ++byte_index)
+inline void write_little_endian(std::vector<std::uint8_t> &bytes, std::size_t offset,
+                                std::uint64_t value, std::size_t count) {
+  for (std::size_t byte_index = 0; byte_index < count; ++byte_index)
     bytes[offset + byte_index] = (value >> (8 * byte_index)) & 255;
 }
-inline uint32_t read_little_endian_u32(const std::vector<uint8_t> &bytes,
-                                       size_t offset) {
-  uint32_t value = 0;
-  for (size_t byte_index = 0; byte_index < 4; ++byte_index)
-    value |= uint32_t(bytes[offset + byte_index]) << (8 * byte_index);
+inline std::uint32_t read_little_endian_u32(const std::vector<std::uint8_t> &bytes,
+                                       std::size_t offset) {
+  std::uint32_t value = 0;
+  for (std::size_t byte_index = 0; byte_index < 4; ++byte_index)
+    value |= std::uint32_t(bytes[offset + byte_index]) << (8 * byte_index);
   return value;
 }
 // Keep incomplete capture separate from provider operation failures and bad
@@ -58,7 +60,7 @@ struct Plugin {
   void *library = nullptr; ///< dlopen handle; released after provider cleanup.
   const cudaq_playback_provider_interface_t *api = nullptr; ///< Library-owned table.
   cudaq_playback_provider_t handle = nullptr; ///< Owned, possibly partial instance.
-  uint64_t timeout_ns = 5000000000ULL; ///< Budget for each lifecycle phase.
+  std::uint64_t timeout_ns = 5000000000ULL; ///< Budget for each lifecycle phase.
   ~Plugin() {
     if (handle) {
       if (api->destroy(handle, timeout_ns) != CUDAQ_PLAYBACK_PROVIDER_OK) {
@@ -109,18 +111,18 @@ inline void load_plugin(Plugin &plugin, const std::string &library) {
 
 // Generate deterministic requests with unique IDs. The first two payloads
 // exercise zero and byte wraparound; subsequent patterns detect misassociation.
-inline std::vector<std::vector<uint8_t>>
-requests(uint32_t count, uint32_t payload, uint32_t first_id = 1) {
+inline std::vector<std::vector<std::uint8_t>>
+requests(std::uint32_t count, std::uint32_t payload, std::uint32_t first_id = 1) {
   // Bound memory before allocating and widen arithmetic before multiplication
   // or ID-range checks, so large CLI values cannot wrap past these guards.
   require(count && count <= 1000000 && payload <= 64 * 1024 * 1024 - 24 &&
-              uint64_t(first_id) + count <= uint64_t(UINT32_MAX) + 1 &&
-              uint64_t(count) * (payload + 24) <= 64 * 1024 * 1024,
+              std::uint64_t(first_id) + count <= std::uint64_t(UINT32_MAX) + 1 &&
+              std::uint64_t(count) * (payload + 24) <= 64 * 1024 * 1024,
           "Invalid request count/size (batch limit 64 MiB)");
-  std::vector<std::vector<uint8_t>> result;
-  for (uint32_t request_index = 0; request_index < count; ++request_index) {
-    uint32_t request_id = first_id + request_index;
-    std::vector<uint8_t> frame(24 + payload);
+  std::vector<std::vector<std::uint8_t>> result;
+  for (std::uint32_t request_index = 0; request_index < count; ++request_index) {
+    std::uint32_t request_id = first_id + request_index;
+    std::vector<std::uint8_t> frame(24 + payload);
     // Canonical 24-byte header: magic, function ID, payload length, request
     // ID (four bytes each), then an eight-byte provider-owned timing word.
     write_little_endian(frame, 0, 0x43555152, 4);
@@ -130,7 +132,7 @@ requests(uint32_t count, uint32_t payload, uint32_t first_id = 1) {
     // Seed the provider-owned timing word to detect accidental workload use;
     // providers may replace it with a transmit timestamp.
     write_little_endian(frame, 16, 0xFEDCBA9800000000ULL + request_id, 8);
-    for (uint32_t byte_index = 0; byte_index < payload; ++byte_index)
+    for (std::uint32_t byte_index = 0; byte_index < payload; ++byte_index)
       frame[24 + byte_index] = request_index == 0 ? 0
                                : request_index == 1
                                    ? 255
@@ -141,10 +143,10 @@ requests(uint32_t count, uint32_t payload, uint32_t first_id = 1) {
 }
 // This workload uses one size per batch. Packing it once keeps the provider
 // API independent of the caller's container and allocation choices.
-inline std::vector<uint8_t>
-pack_requests(const std::vector<std::vector<uint8_t>> &input) {
+inline std::vector<std::uint8_t>
+pack_requests(const std::vector<std::vector<std::uint8_t>> &input) {
   require(!input.empty() && !input.front().empty(), "Empty request batch");
-  std::vector<uint8_t> packed;
+  std::vector<std::uint8_t> packed;
   packed.reserve(input.size() * input.front().size());
   for (const auto &request : input) {
     require(request.size() == input.front().size(),
@@ -155,16 +157,16 @@ pack_requests(const std::vector<std::vector<uint8_t>> &input) {
 }
 // Index by request ID so arrival order is irrelevant. Native forward echoes
 // the request; RPC dispatch changes the response header and increments payload.
-inline std::map<uint32_t, std::vector<uint8_t>>
-expected_replies(const std::vector<std::vector<uint8_t>> &input, bool forward) {
-  std::map<uint32_t, std::vector<uint8_t>> result;
+inline std::map<std::uint32_t, std::vector<std::uint8_t>>
+expected_replies(const std::vector<std::vector<std::uint8_t>> &input, bool forward) {
+  std::map<std::uint32_t, std::vector<std::uint8_t>> result;
   for (auto frame : input) {
     if (!forward) {
       // A dispatched response replaces request magic/function ID with
       // response magic/status zero. Incrementing uint8_t also tests 255 -> 0.
       write_little_endian(frame, 0, 0x43555153, 4);
       write_little_endian(frame, 4, 0, 4);
-      for (size_t byte_index = 24; byte_index < frame.size(); ++byte_index)
+      for (std::size_t byte_index = 24; byte_index < frame.size(); ++byte_index)
         ++frame[byte_index];
     }
     result.emplace(read_little_endian_u32(frame, 12), std::move(frame));
@@ -175,12 +177,12 @@ expected_replies(const std::vector<std::vector<uint8_t>> &input, bool forward) {
 // padding is allowed, but truncated headers/payloads and duplicates are not.
 inline void
 verify_reply(const cudaq_playback_provider_reply_t &reply,
-             const std::map<uint32_t, std::vector<uint8_t>> &expected,
-             std::set<uint32_t> &seen) {
+             const std::map<std::uint32_t, std::vector<std::uint8_t>> &expected,
+             std::set<std::uint32_t> &seen) {
   require(reply.data && reply.size_bytes >= 24 && reply.size_bytes <= 1048576,
           "Truncated/invalid RPC reply");
-  std::vector<uint8_t> bytes(reply.data, reply.data + reply.size_bytes);
-  uint32_t request_id = read_little_endian_u32(bytes, 12);
+  std::vector<std::uint8_t> bytes(reply.data, reply.data + reply.size_bytes);
+  std::uint32_t request_id = read_little_endian_u32(bytes, 12);
   require(expected.count(request_id) && seen.insert(request_id).second,
           "Unexpected, stale or duplicate request ID");
   const auto &wanted = expected.at(request_id);
@@ -195,7 +197,7 @@ verify_reply(const cudaq_playback_provider_reply_t &reply,
 // least one reply carries a measured RTT; it applies to all measured replies.
 inline void verify_timing(const cudaq_playback_provider_results_t &results) {
   bool measured = false;
-  for (size_t reply_index = 0; reply_index < results.reply_count; ++reply_index)
+  for (std::size_t reply_index = 0; reply_index < results.reply_count; ++reply_index)
     measured |= results.replies[reply_index].rtt_ticks !=
                 CUDAQ_PLAYBACK_PROVIDER_RTT_UNAVAILABLE;
   if (measured)
@@ -210,7 +212,7 @@ inline void verify_timing(const cudaq_playback_provider_results_t &results) {
 template <typename Observe>
 cudaq_playback_provider_results_t
 collect_batch(Plugin &plugin,
-              const std::map<uint32_t, std::vector<uint8_t>> &expected,
+              const std::map<std::uint32_t, std::vector<std::uint8_t>> &expected,
               Observe observe) {
   using Clock = std::chrono::steady_clock;
   const auto started_at = Clock::now();
@@ -252,8 +254,8 @@ collect_batch(Plugin &plugin,
               (!results.reply_count || results.replies),
           "Invalid result array");
   verify_timing(results);
-  std::set<uint32_t> seen;
-  for (size_t reply_index = 0; reply_index < results.reply_count;
+  std::set<std::uint32_t> seen;
+  for (std::size_t reply_index = 0; reply_index < results.reply_count;
        ++reply_index) {
     verify_reply(results.replies[reply_index], expected, seen);
     // Observers collect timing only from packets that passed the byte/ID

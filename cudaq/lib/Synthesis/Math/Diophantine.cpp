@@ -16,6 +16,7 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <random>
 #include <variant>
@@ -240,8 +241,8 @@ bool past_deadline(
 llvm::FailureOr<Integer> find_factor(const Integer &n,
                                      const DiophantineBudget &budget,
                                      GridsynthStats *stats = nullptr,
-                                     int64_t *iterations_out = nullptr,
-                                     int32_t batch_size = 128) {
+                                     std::int64_t *iterations_out = nullptr,
+                                     std::int32_t batch_size = 128) {
   CUDAQ_SYNTH_OPEN_SUB("find_factor");
   if (stats)
     stats->factoring_calls++;
@@ -251,24 +252,24 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
   // Quick trial-division pass: catches every n with a tiny prime factor
   // without spinning up the rho machine. Cast to unsigned long matches the
   // GMP mpz_divisible_ui_p ABI; the values fit losslessly on LP64.
-  static constexpr uint64_t small_primes[] = {
+  static constexpr std::uint64_t small_primes[] = {
       2,   3,   5,   7,   11,  13,  17,  19,  23,  29,  31,  37,  41,
       43,  47,  53,  59,  61,  67,  71,  73,  79,  83,  89,  97,  101,
       103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167,
       173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239,
       241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311};
   const auto *n_mpz = n.get_mpz_t();
-  for (uint64_t p : small_primes) {
+  for (std::uint64_t p : small_primes) {
     if (mpz_divisible_ui_p(n_mpz, static_cast<unsigned long>(p))) {
       if (mpz_cmp_ui(n_mpz, static_cast<unsigned long>(p)) > 0) {
         if (stats)
           stats->factoring_successes++;
         CUDAQ_SYNTH_CLOSE_SUCCESS("small prime " + std::to_string(p));
-        return Integer(static_cast<int64_t>(p));
+        return Integer(static_cast<std::int64_t>(p));
       }
     }
   }
-  if (n <= int64_t(3)) {
+  if (n <= std::int64_t(3)) {
     CUDAQ_SYNTH_CLOSE_FAILURE("n <= 3");
     return llvm::failure();
   }
@@ -277,10 +278,10 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
   // comes from sqrt(pi/log(2)) / 2 in the textbook rho complexity estimate.
   size_t digits = num_decimal_digits(n);
   double pow_term = std::pow(10.0, static_cast<double>(digits) / 4.0);
-  int64_t L = static_cast<int64_t>(pow_term * 1.1774 + 10.0);
+  std::int64_t L = static_cast<std::int64_t>(pow_term * 1.1774 + 10.0);
   // Keep the budget reachable, so the exit below is the budget's rather than
   // the optional clock's. Giving up early on a hard composite is cheap.
-  L = std::min(L, static_cast<int64_t>(budget.maxFactoringIterations));
+  L = std::min(L, static_cast<std::int64_t>(budget.maxFactoringIterations));
 
   GmpRng &rng = global_rng();
   Integer a_int = urand_between(1, n - 1, rng);
@@ -299,7 +300,7 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
 
   mpz_set(y, a_mpz);
 
-  int64_t r = 1, k = 0;
+  std::int64_t r = 1, k = 0;
 
   auto make_result = [&](mpz_t src) -> llvm::FailureOr<Integer> {
     Integer out;
@@ -311,8 +312,8 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
   // machine-independent measure of what this attempt spent.
   struct IterationRecorder {
     GridsynthStats *stats;
-    int64_t *iterations_out;
-    const int64_t &k;
+    std::int64_t *iterations_out;
+    const std::int64_t &k;
     ~IterationRecorder() {
       if (stats)
         stats->factoring_iterations_total += k;
@@ -330,7 +331,8 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
       mpz_set_ui(q, 1);
       mpz_set(y0, y);
 
-      int64_t batch_end = std::min(k + static_cast<int64_t>(batch_size), r);
+      std::int64_t batch_end =
+          std::min(k + static_cast<std::int64_t>(batch_size), r);
       for (; k < batch_end; ++k) {
         // y <- (y^2 + a) mod n
         mpz_mul(t, y, y);
@@ -351,7 +353,7 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
           // factors at once. Replay the batch step-by-step from the saved
           // y0 to recover the first non-trivial GCD.
           mpz_set(y, y0);
-          for (int64_t j = 0; j < batch_size; ++j) {
+          for (std::int64_t j = 0; j < batch_size; ++j) {
             mpz_mul(t, y, y);
             mpz_add(t, t, a_mpz);
             mpz_mod(y, t, n_mpz);
@@ -408,7 +410,7 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
 /// probability >= 1/2 (Lemma C.20 / Remark C.22, citing Rabin [12]). A
 /// non-trivial Fermat witness aborts: it proves p is composite.
 llvm::FailureOr<Integer> sqrt_negative_one(const Integer &p,
-                                           int32_t batch_size = 128) {
+                                           std::int32_t batch_size = 128) {
   if (p <= 2)
     return llvm::failure();
 
@@ -421,7 +423,7 @@ llvm::FailureOr<Integer> sqrt_negative_one(const Integer &p,
   Integer b, h, r, tmp;
   GmpRng &rng = global_rng();
 
-  for (int32_t i = 0; i < batch_size; ++i) {
+  for (std::int32_t i = 0; i < batch_size; ++i) {
     b = urand_between(1, p_minus_1, rng);
     // h = b^((p-1)/4) mod p; then check r = h^2 == -1 mod p.
     mpz_powm(h.get_mpz_t(), b.get_mpz_t(), exp_mpz, p_mpz);
@@ -443,7 +445,7 @@ llvm::FailureOr<Integer> sqrt_negative_one(const Integer &p,
 /// is a non-residue, and computes the answer in F_p[t]/(t^2 - (b^2 - x))
 /// (Rabin [12]).
 llvm::FailureOr<Integer> root_mod(const Integer &x, const Integer &p,
-                                  int32_t batch_size = 128) {
+                                  std::int32_t batch_size = 128) {
   Integer x_norm = x % p;
   if (x_norm < 0)
     x_norm += p;
@@ -473,7 +475,7 @@ llvm::FailureOr<Integer> root_mod(const Integer &x, const Integer &p,
   Integer b, r, candidate_base, check, tmp;
   auto &rng = global_rng();
 
-  for (int32_t i = 0; i < batch_size; ++i) {
+  for (std::int32_t i = 0; i < batch_size; ++i) {
     b = urand_between(1, p_minus_1, rng);
 
     // Fermat test: b^(p-1) must be 1 if p is genuinely prime. A failure
@@ -673,10 +675,10 @@ DiophantineResult adj_decompose_prime(Integer p) {
   if (p == 2)
     return ZOmega(-1, 0, 1, 0);
 
-  LLVM_DEBUG(cudaq::synth::dbgs()
-             << "adj_decompose_prime(int): p mod 8 = "
-             << static_cast<int64_t>(p & 7) << ", " << num_decimal_digits(p)
-             << " digits, prime=" << is_probably_prime(p) << '\n');
+  LLVM_DEBUG(cudaq::synth::dbgs() << "adj_decompose_prime(int): p mod 8 = "
+                                  << static_cast<std::int64_t>(p & 7) << ", "
+                                  << num_decimal_digits(p) << " digits, prime="
+                                  << is_probably_prime(p) << '\n');
 
   if (is_probably_prime(p)) {
     if ((p & 0b11) == 1) {
@@ -795,7 +797,7 @@ DiophantineResult adj_decompose(Integer n, const DiophantineBudget &budget,
   // changes so the bound is per composite, not a running total.
   Integer retried_p;
   int retries = 0;
-  int64_t iterations = 0;
+  std::int64_t iterations = 0;
   while (!factors.empty()) {
     auto [p, k] = factors.back();
     factors.pop_back();
@@ -816,13 +818,15 @@ DiophantineResult adj_decompose(Integer n, const DiophantineBudget &budget,
         retried_p = p;
         if (stats && retries > 0)
           stats->factoring_restarts++;
-        if (static_cast<uint32_t>(retries) >= budget.maxFactoringRestarts) {
+        if (static_cast<std::uint32_t>(retries) >=
+            budget.maxFactoringRestarts) {
           if (stats)
             stats->candidates_restart_limited++;
           CUDAQ_SYNTH_CLOSE_FAILURE("factoring restart limit reached");
           return NoSolution{};
         }
-        if (iterations >= static_cast<int64_t>(budget.maxCandidateIterations)) {
+        if (iterations >=
+            static_cast<std::int64_t>(budget.maxCandidateIterations)) {
           if (stats)
             stats->candidates_iteration_limited++;
           CUDAQ_SYNTH_CLOSE_FAILURE("candidate iteration budget exhausted");
@@ -1003,7 +1007,7 @@ DiophantineResult adj_decompose_selfcoprime(const ZSqrt2 &xi,
   // Per-composite restart budget, as in adj_decompose above.
   Integer retried_n;
   int retries = 0;
-  int64_t iterations = 0;
+  std::int64_t iterations = 0;
   while (!factors.empty()) {
     LLVM_DEBUG({
       std::string flist;
@@ -1033,13 +1037,15 @@ DiophantineResult adj_decompose_selfcoprime(const ZSqrt2 &xi,
         retried_n = n;
         if (stats && retries > 0)
           stats->factoring_restarts++;
-        if (static_cast<uint32_t>(retries) >= budget.maxFactoringRestarts) {
+        if (static_cast<std::uint32_t>(retries) >=
+            budget.maxFactoringRestarts) {
           if (stats)
             stats->candidates_restart_limited++;
           CUDAQ_SYNTH_CLOSE_FAILURE("factoring restart limit reached");
           return NoSolution{};
         }
-        if (iterations >= static_cast<int64_t>(budget.maxCandidateIterations)) {
+        if (iterations >=
+            static_cast<std::int64_t>(budget.maxCandidateIterations)) {
           if (stats)
             stats->candidates_iteration_limited++;
           CUDAQ_SYNTH_CLOSE_FAILURE("candidate iteration budget exhausted");
@@ -1189,7 +1195,7 @@ struct cudaq::synth::ScopedFactoringRngSeed::SavedState {
   SavedState &operator=(const SavedState &) = delete;
 };
 
-cudaq::synth::ScopedFactoringRngSeed::ScopedFactoringRngSeed(uint64_t seed)
+cudaq::synth::ScopedFactoringRngSeed::ScopedFactoringRngSeed(std::uint64_t seed)
     : saved(std::make_unique<SavedState>(global_rng().state)) {
   gmp_randseed_ui(global_rng().state, static_cast<unsigned long>(seed));
 }
@@ -1208,7 +1214,7 @@ llvm::FailureOr<DOmega> cudaq::synth::diophantine_dyadic(
     const DSqrt2 &xi, const DiophantineBudget &budget, GridsynthStats *stats) {
   CUDAQ_SYNTH_OPEN_SUB("diophantine_dyadic");
   LLVM_DEBUG(cudaq::synth::dbgs()
-             << "denom_exp=" << static_cast<int64_t>(xi.k())
+             << "denom_exp=" << static_cast<std::int64_t>(xi.k())
              << ", max_factoring_iterations=" << budget.maxFactoringIterations
              << ", max_candidate_iterations=" << budget.maxCandidateIterations
              << "\n");

@@ -10,7 +10,9 @@
 #include "cudaq/operators.h"
 #include <gtest/gtest.h>
 
-enum Pauli : int8_t { I = 0, X, Y, Z };
+#include <cstdint>
+
+enum Pauli : std::int8_t { I = 0, X, Y, Z };
 constexpr Pauli paulis[4] = {Pauli::I, Pauli::X, Pauli::Y, Pauli::Z};
 
 // Function to multiply two single-qubit Pauli operators
@@ -49,10 +51,11 @@ multiply_pauli_words(const std::vector<Pauli> &a, const std::vector<Pauli> &b,
 }
 
 // Generates a pauli word out of a binary representation of it.
-static std::vector<Pauli> generate_pauli_word(int64_t id, int64_t num_qubits) {
-  constexpr int64_t mask = 0x3;
+static std::vector<Pauli> generate_pauli_word(std::int64_t id,
+                                              std::int64_t num_qubits) {
+  constexpr std::int64_t mask = 0x3;
   std::vector<Pauli> word(num_qubits, Pauli::I);
-  for (int64_t i = 0; i < num_qubits; ++i) {
+  for (std::int64_t i = 0; i < num_qubits; ++i) {
     assert((id & mask) < 4);
     word[i] = paulis[id & mask];
     id >>= 2;
@@ -63,16 +66,17 @@ static std::vector<Pauli> generate_pauli_word(int64_t id, int64_t num_qubits) {
 static std::string generate_pauli_string(const std::vector<Pauli> &word) {
   constexpr char paulis_name[4] = {'I', 'X', 'Y', 'Z'};
   std::string result(word.size(), 'I');
-  for (int64_t i = 0; i < word.size(); ++i)
+  for (std::int64_t i = 0; i < word.size(); ++i)
     result[i] = paulis_name[word[i]];
   return result;
 }
 
-static cudaq::spin_op_term generate_cudaq_spin(int64_t id, int64_t num_qubits,
+static cudaq::spin_op_term generate_cudaq_spin(std::int64_t id,
+                                               std::int64_t num_qubits,
                                                bool addI = true) {
-  constexpr int64_t mask = 0x3;
+  constexpr std::int64_t mask = 0x3;
   auto result = cudaq::spin_op::identity();
-  for (int64_t i = 0; i < num_qubits; ++i) {
+  for (std::int64_t i = 0; i < num_qubits; ++i) {
     switch (paulis[id & mask]) {
     case Pauli::I:
       if (addI)
@@ -146,9 +150,9 @@ TEST(SpinOpTester, checkAddition) {
 
 TEST(SpinOpTester, checkMultiplication) {
   for (int num_qubits = 1; num_qubits <= 4; ++num_qubits) {
-    int64_t num_words = std::pow(4, num_qubits);
-    for (int64_t i = 0; i < num_words; ++i) {
-      for (int64_t j = 0; j < num_words; ++j) {
+    std::int64_t num_words = std::pow(4, num_qubits);
+    for (std::int64_t i = 0; i < num_words; ++i) {
+      for (std::int64_t j = 0; j < num_words; ++j) {
         // Expected result:
         std::vector<Pauli> a_word = generate_pauli_word(i, num_qubits);
         std::vector<Pauli> b_word = generate_pauli_word(j, num_qubits);

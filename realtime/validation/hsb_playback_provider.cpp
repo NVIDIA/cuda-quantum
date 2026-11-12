@@ -16,6 +16,8 @@
 #include "hsb_capture.h"
 #include "playback_provider_support.h"
 #include "hsb_playback_io.h"
+#include <cstddef>
+#include <cstdint>
 #include <arpa/inet.h>
 #include <atomic>
 #include <condition_variable>
@@ -38,15 +40,15 @@ struct Context {
   // FPGA control address from the RTH endpoint, and latest failure diagnostic.
   std::string peer_ip, error;
   // RTH ring stride/count and FPGA request interval in hardware timer ticks.
-  uint32_t slot_size = 0, num_slots = 0, timer_ticks = 0;
-  uint32_t qp = 0, rkey = 0; ///< RTH destination QP and remote memory key.
-  uint64_t address = 0; ///< RTH receive buffer address advertised by the bridge.
-  std::vector<std::vector<uint8_t>> frames; ///< Copied, transport-padded requests.
+  std::uint32_t slot_size = 0, num_slots = 0, timer_ticks = 0;
+  std::uint32_t qp = 0, rkey = 0; ///< RTH destination QP and remote memory key.
+  std::uint64_t address = 0; ///< RTH receive buffer address advertised by the bridge.
+  std::vector<std::vector<std::uint8_t>> frames; ///< Copied, transport-padded requests.
   std::deque<Record> records; ///< Owned capture bytes in arrival order.
   ResultStorage results; ///< Frozen views into records after worker completion.
   RunProgress run_progress; ///< Timeout diagnostics readable while I/O is active.
   // Whole-run deadline and inactivity interval required to finish capture.
-  uint64_t run_timeout_ns = 0, capture_quiet_ns = 0;
+  std::uint64_t run_timeout_ns = 0, capture_quiet_ns = 0;
   bool run_timed_out = false; ///< Preserve TIMEOUT on subsequent status checks.
   Clock::time_point started_at; ///< Set by start before launching the worker.
   std::shared_ptr<hololink::Hololink> hololink_device; ///< Owned SDK control session.
@@ -54,7 +56,7 @@ struct Context {
   std::atomic<bool> cancel{false}; ///< destroy requests worker cancellation.
   std::mutex mutex; ///< Protects the interruptible worker wait.
   std::condition_variable capture_condition; ///< Interrupt capture wait on cancel.
-  size_t captured_packets = 0; ///< Last checked ILA count for this one-beat profile.
+  std::size_t captured_packets = 0; ///< Last checked ILA count for this one-beat profile.
 
   // Prepare hardware without transmitting. The RTH ring stride is separate
   // from each 64-byte BRAM window used by this FPGA playback profile.
@@ -99,7 +101,7 @@ struct Context {
       throw std::runtime_error("Configure SIF failed");
     ila_enable(*hololink_device);
   }
-  size_t capture_count() {
+  std::size_t capture_count() {
     const auto count = ila_sample_count(*hololink_device);
     const auto status = hololink_device->read_uint32(ILA_BASE_ADDR + 0x80);
     // A full/wrapped capture may have lost replies even if its count looks
@@ -199,7 +201,7 @@ stage_batch(cudaq_playback_provider_t handle,
     return CUDAQ_PLAYBACK_PROVIDER_ERROR;
   // This profile accepts whole microseconds. Validate before conversion;
   // the bounded product fits the FPGA's 32-bit timer register.
-  context->timer_ticks = static_cast<uint32_t>(
+  context->timer_ticks = static_cast<std::uint32_t>(
       (params->request_spacing_ns / 1000) * RF_SOC_TIMER_SCALE);
   context->run_timeout_ns = params->run_timeout_ns;
   context->capture_quiet_ns = params->capture_quiet_ns;
@@ -232,7 +234,7 @@ stage_batch(cudaq_playback_provider_t handle,
     // Copy every request before starting asynchronous setup: create's caller
     // may reuse its input storage as soon as this API call returns.
     context->peer_ip = peer_ip;
-    for (size_t request_index = 0; request_index < params->request_count;
+    for (std::size_t request_index = 0; request_index < params->request_count;
          ++request_index) {
       deadline.check();
       const auto *request =
@@ -275,7 +277,7 @@ stage_batch(cudaq_playback_provider_t handle,
 // handle and loaded library so the caller can retry cleanup.
 cudaq_playback_provider_status_t
 destroy_provider(cudaq_playback_provider_t handle,
-                 uint64_t cleanup_timeout_ns) {
+                 std::uint64_t cleanup_timeout_ns) {
   auto *context = static_cast<Context *>(handle);
   if (!context)
     return CUDAQ_PLAYBACK_PROVIDER_OK;
@@ -338,7 +340,7 @@ destroy_provider(cudaq_playback_provider_t handle,
 cudaq_playback_provider_status_t
 create_provider(int argument_count, const char *const *arguments,
                 const cudaq_playback_provider_create_params_t *params,
-                uint64_t setup_timeout_ns,
+                std::uint64_t setup_timeout_ns,
                 cudaq_playback_provider_t *out_provider) {
   const SetupDeadline deadline(setup_timeout_ns);
   if (!out_provider) {
@@ -378,7 +380,7 @@ const char *last_error(cudaq_playback_provider_t handle) {
 // The only required export: return a static table for the requested ABI.
 // Common helpers implement status/result calls without transport I/O in them.
 extern "C" const cudaq_playback_provider_interface_t *
-cudaq_get_playback_provider_interface(uint32_t version) {
+cudaq_get_playback_provider_interface(std::uint32_t version) {
   static const cudaq_playback_provider_interface_t api = {
       create_provider,
       start_playback<Context>,

@@ -14,6 +14,7 @@
 /// request/reply verification. All device access goes through the HSB SDK.
 #pragma once
 
+#include <cstddef>
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
@@ -268,9 +269,9 @@ ila_dump(hololink::Hololink &hololink_device, std::uint32_t num_samples) {
 
 /// Extract a single bit from a 585-bit ILA sample stored as 19 uint32 words.
 inline bool get_bit(const std::vector<std::uint32_t> &sample,
-                    uint32_t bit_position) {
-  uint32_t word = bit_position / 32;
-  uint32_t offset = bit_position % 32;
+                    std::uint32_t bit_position) {
+  std::uint32_t word = bit_position / 32;
+  std::uint32_t offset = bit_position % 32;
   return (sample[word] >> offset) & 1;
 }
 
@@ -281,7 +282,7 @@ extract_payload_bytes(const std::vector<std::uint32_t> &sample,
   std::vector<std::uint8_t> bytes(num_bytes, 0);
   for (std::size_t byte_index = 0; byte_index < num_bytes && byte_index < 64;
        ++byte_index) {
-    uint32_t word = sample[byte_index / 4];
+    std::uint32_t word = sample[byte_index / 4];
     bytes[byte_index] =
         static_cast<std::uint8_t>((word >> ((byte_index % 4) * 8)) & 0xFF);
   }
@@ -295,33 +296,33 @@ extract_ila_ptp_timestamp(const std::vector<std::uint32_t> &sample) {
   // Bits 521..584 span words 16 and 17 (and partially 18).
   // bit 521 = word 16, offset 9
   // We need 64 bits starting at bit 521.
-  uint64_t raw = 0;
+  std::uint64_t raw = 0;
   for (int bit_index = 0; bit_index < 64; ++bit_index) {
-    uint32_t bit_position = 521 + bit_index;
-    uint32_t word_index = bit_position / 32;
-    uint32_t bit_offset = bit_position % 32;
+    std::uint32_t bit_position = 521 + bit_index;
+    std::uint32_t word_index = bit_position / 32;
+    std::uint32_t bit_offset = bit_position % 32;
     if ((sample[word_index] >> bit_offset) & 1)
-      raw |= (uint64_t(1) << bit_index);
+      raw |= (std::uint64_t(1) << bit_index);
   }
   return raw;
 }
 
 // Decoded FPGA PTP time, used to subtract stamps across a second boundary.
 struct PtpTimestamp {
-  uint32_t sec; ///< Whole seconds from the captured PTP clock.
-  uint32_t nsec; ///< Nanosecond portion within that second.
+  std::uint32_t sec; ///< Whole seconds from the captured PTP clock.
+  std::uint32_t nsec; ///< Nanosecond portion within that second.
 };
 
-inline PtpTimestamp decode_ptp(uint64_t raw) {
+inline PtpTimestamp decode_ptp(std::uint64_t raw) {
   // {sec[31:0], nsec[31:0]} -- sec in upper 32 bits, nsec in lower 32
-  return {static_cast<uint32_t>(raw >> 32),
-          static_cast<uint32_t>(raw & 0xFFFF'FFFF)};
+  return {static_cast<std::uint32_t>(raw >> 32),
+          static_cast<std::uint32_t>(raw & 0xFFFF'FFFF)};
 }
 
 /// Compute signed nanosecond difference (recv - send).
-inline int64_t ptp_delta_ns(PtpTimestamp send, PtpTimestamp recv) {
-  int64_t d_sec = static_cast<int64_t>(recv.sec) - send.sec;
-  int64_t d_nsec = static_cast<int64_t>(recv.nsec) - send.nsec;
+inline std::int64_t ptp_delta_ns(PtpTimestamp send, PtpTimestamp recv) {
+  std::int64_t d_sec = static_cast<std::int64_t>(recv.sec) - send.sec;
+  std::int64_t d_nsec = static_cast<std::int64_t>(recv.nsec) - send.nsec;
   return d_sec * 1'000'000'000LL + d_nsec;
 }
 

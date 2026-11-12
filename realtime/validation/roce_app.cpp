@@ -19,6 +19,7 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
+#include <cstddef>
 #include <chrono>
 #include <csignal>
 #include <cstdint>
@@ -153,10 +154,10 @@ struct Resources {
   cudaq_dispatch_manager_t *manager = nullptr; ///< Creates/manages the dispatcher.
   cudaq_dispatcher_t *dispatcher = nullptr;    ///< Absent in native forward mode.
   volatile int host_shutdown = 0; ///< Stop flag read by the CPU dispatcher.
-  uint64_t host_stats = 0;        ///< CPU dispatcher's processed-request count.
+  std::uint64_t host_stats = 0;        ///< CPU dispatcher's processed-request count.
   cudaq_function_entry_t host_entries[1]{}; ///< Host increment handler entry.
   int *mapped_shutdown = nullptr; ///< Host allocation also readable by the GPU.
-  uint64_t *device_stats = nullptr; ///< GPU allocation for the processed count.
+  std::uint64_t *device_stats = nullptr; ///< GPU allocation for the processed count.
   cudaq_function_entry_t *device_entries = nullptr; ///< GPU handler table storage.
 
   void stop() {
@@ -276,7 +277,7 @@ int main(int argument_count, char **arguments) {
       cudaq_function_table_t table{};
       table.count = 1;
       volatile int *shutdown = &resources.host_shutdown;
-      uint64_t *stats = &resources.host_stats;
+      std::uint64_t *stats = &resources.host_stats;
       if (config.cpu) {
         // CPU dispatch uses ordinary host memory and makes no CUDA allocations.
         setup_rpc_increment_function_table_host(resources.host_entries);
@@ -294,9 +295,9 @@ int main(int argument_count, char **arguments) {
             &device_shutdown, resources.mapped_shutdown, 0));
         shutdown = device_shutdown;
         HANDLE_CUDA_ERROR(
-            cudaMalloc(&resources.device_stats, sizeof(uint64_t)));
+            cudaMalloc(&resources.device_stats, sizeof(std::uint64_t)));
         HANDLE_CUDA_ERROR(
-            cudaMemset(resources.device_stats, 0, sizeof(uint64_t)));
+            cudaMemset(resources.device_stats, 0, sizeof(std::uint64_t)));
         stats = resources.device_stats;
         HANDLE_CUDA_ERROR(cudaMalloc(&resources.device_entries,
                                      sizeof(cudaq_function_entry_t)));
@@ -340,7 +341,7 @@ int main(int argument_count, char **arguments) {
     std::cout << "\n=== Shutting down ===" << std::endl;
     resources.stop();
     if (resources.dispatcher) {
-      uint64_t processed = 0;
+      std::uint64_t processed = 0;
       HANDLE_REALTIME_ERROR(
           cudaq_dispatcher_get_processed(resources.dispatcher, &processed));
       std::cout << "Packets dispatched: " << processed << std::endl;

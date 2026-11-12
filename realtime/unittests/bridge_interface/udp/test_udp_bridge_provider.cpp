@@ -84,8 +84,8 @@ TEST(UdpBridgeProvider, LoadsAndCreatesPlainBridgeWithoutCudaRuntime) {
   ASSERT_NE(bridge, nullptr);
 
   // Geometry and endpoint identity come from the provider's v2 queries.
-  uint32_t num_slots = 0;
-  uint32_t slot_size = 0;
+  std::uint32_t num_slots = 0;
+  std::uint32_t slot_size = 0;
   EXPECT_EQ(cudaq_bridge_get_ring_geometry(bridge, &num_slots, &slot_size),
             CUDAQ_OK);
   EXPECT_EQ(num_slots, 8u);
@@ -280,8 +280,8 @@ TEST(UdpBridgeProvider, AnswersUnifiedWithNoDispatcherOverride) {
 /// datagram catches.
 class UdpUnifiedWiringTest : public ::testing::Test {
 protected:
-  static constexpr uint32_t kNumSlots = 4;
-  static constexpr uint32_t kSlotSize = 256;
+  static constexpr std::uint32_t kNumSlots = 4;
+  static constexpr std::uint32_t kSlotSize = 256;
 
   void SetUp() override {
     bridge = make_bridge({"--unified", "--port=0",
@@ -303,7 +303,7 @@ protected:
     ASSERT_GT(port_number, 0) << endpoint;
     service.sin_family = AF_INET;
     service.sin_addr.s_addr = ::htonl(INADDR_LOOPBACK);
-    service.sin_port = ::htons(static_cast<uint16_t>(port_number));
+    service.sin_port = ::htons(static_cast<std::uint16_t>(port_number));
 
     peer_fd = ::socket(AF_INET, SOCK_DGRAM, 0);
     ASSERT_GE(peer_fd, 0);
@@ -327,7 +327,7 @@ protected:
   }
 
   // rx_poll is non-blocking, so spin the way the dispatch loop does.
-  bool pollUntilReady(uint32_t *slot, unsigned budget_ms = 2000) {
+  bool pollUntilReady(std::uint32_t *slot, unsigned budget_ms = 2000) {
     for (unsigned i = 0; i < budget_ms * 2; ++i) {
       if (dp.rx_poll(dp.ctx, slot) == CUDAQ_RX_READY)
         return true;
@@ -336,13 +336,14 @@ protected:
     return false;
   }
 
-  const char *rxSlot(uint32_t slot) const {
+  const char *rxSlot(std::uint32_t slot) const {
     return reinterpret_cast<const char *>(
         dp.ring.rx_data_host + static_cast<size_t>(slot) * kSlotSize);
   }
 
-  void writeTxSlot(uint32_t slot, const std::string &payload) {
-    uint8_t *tx = dp.ring.tx_data_host + static_cast<size_t>(slot) * kSlotSize;
+  void writeTxSlot(std::uint32_t slot, const std::string &payload) {
+    std::uint8_t *tx =
+        dp.ring.tx_data_host + static_cast<size_t>(slot) * kSlotSize;
     std::memset(tx, 0, kSlotSize);
     std::memcpy(tx, payload.data(), payload.size());
   }
@@ -356,7 +357,7 @@ protected:
 TEST_F(UdpUnifiedWiringTest, HooksRoundTripThroughTheAdvertisedRings) {
   sendFromPeer("ping");
 
-  uint32_t slot = 42;
+  std::uint32_t slot = 42;
   ASSERT_TRUE(pollUntilReady(&slot));
   EXPECT_EQ(slot, 0u);
   // Read through the advertised ring base and stride, which is the wiring
@@ -387,7 +388,7 @@ TEST_F(UdpUnifiedWiringTest, LaunchDoesNotStartAPumpThatRacesTheHooks) {
   ::usleep(250000);
   EXPECT_EQ(dp.ring.rx_flags_host[0], 0u);
 
-  uint32_t slot = 0;
+  std::uint32_t slot = 0;
   ASSERT_TRUE(pollUntilReady(&slot));
   EXPECT_STREQ(rxSlot(slot), "still-queued");
 }

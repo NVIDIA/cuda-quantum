@@ -219,7 +219,7 @@ def Fabric_FloorplanAttr : AttrDef<Fabric_Dialect, "Floorplan"> {
 
   let parameters = (ins
     "qlx::fabric::Layout":$layout,
-    ArrayRefParameter<"int64_t">:$params
+    ArrayRefParameter<"std::int64_t">:$params
   );
 
   let hasCustomAssemblyFormat = 1;

@@ -10,6 +10,7 @@
 #include "common/SampleResult.h"
 #include "nlohmann/json.hpp"
 #include <bitset>
+#include <cstdint>
 
 namespace cudaq::utils::quantinuum {
 
@@ -20,7 +21,7 @@ processResults(const nlohmann::json &shotResultJson,
                const std::vector<std::string> &registerNames) {
   // Helper to process Nexus outcome arrays (arrays of bytes) into bitstrings
   const auto outComeArrayToBitString =
-      [](const std::vector<int8_t> &outcomeArray,
+      [](const std::vector<std::int8_t> &outcomeArray,
          std::size_t numBits) -> std::string {
     const std::size_t expectedArrayLength = (numBits + 7) / 8;
     if (outcomeArray.size() != expectedArrayLength) {
@@ -52,8 +53,8 @@ processResults(const nlohmann::json &shotResultJson,
   }
 
   const std::size_t numBits = shotResultJson["width"].get<std::size_t>();
-  const std::vector<std::vector<int8_t>> shotsOutcomeArray =
-      shotResultJson["array"].get<std::vector<std::vector<int8_t>>>();
+  const std::vector<std::vector<std::int8_t>> shotsOutcomeArray =
+      shotResultJson["array"].get<std::vector<std::vector<std::int8_t>>>();
   const auto numShots = shotsOutcomeArray.size();
 
   // The names are listed in the reverse order (w.r.t. CUDA-Q bit indexing

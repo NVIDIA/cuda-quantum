@@ -128,7 +128,7 @@ TEST(HsbCapture, DecodesBytesAndTimestampRollover) {
   capture::CaptureDecoder decoder;
   std::deque<Record> records;
   // Independent wire sample: TX=(7 s, 999999990 ns), RX=(8 s, 30 ns).
-  std::vector<uint32_t> sample(19);
+  std::vector<std::uint32_t> sample(19);
   sample[0] = 0x03020100;
   sample[4] = 999999990;
   sample[5] = 7;
@@ -152,7 +152,7 @@ TEST(HsbCapture, MissingTimestampsPreserveReplyBytes) {
     for (bool has_receive : {false, true}) {
       capture::CaptureDecoder decoder;
       std::deque<Record> records;
-      std::vector<uint32_t> sample(19);
+      std::vector<std::uint32_t> sample(19);
       sample[0] = 0x03020100;
       sample[4] = has_transmit ? 30 : 0;
       sample[5] = has_transmit ? 8 : 0;
@@ -176,7 +176,7 @@ TEST(HsbCapture, MissingTimestampsPreserveReplyBytes) {
 TEST(HsbCapture, PreservesPacketBoundariesAndRejectsCaptureLoss) {
   capture::CaptureDecoder decoder;
   std::deque<Record> records;
-  std::vector<uint32_t> sample(19);
+  std::vector<std::uint32_t> sample(19);
   sample[16] = 0xfd; // A full first beat without a final beat is incomplete.
   decoder.append(sample, records);
   EXPECT_TRUE(records.empty());

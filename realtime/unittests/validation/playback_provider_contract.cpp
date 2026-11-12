@@ -15,6 +15,9 @@
 #include "playback_common.h"
 #include "playback_provider_support.h"
 
+#include <cstddef>
+#include <cstdint>
+
 using namespace cudaq::realtime::validation;
 
 int main(int argument_count, char **arguments) {
@@ -22,7 +25,7 @@ int main(int argument_count, char **arguments) {
     Plugin plugin;
     std::string library, endpoint;
     bool forward = false;
-    uint64_t request_spacing_ns = 120000;
+    std::uint64_t request_spacing_ns = 120000;
     std::vector<const char *> provider_args;
     for (int argument_index = 1; argument_index < argument_count;
          ++argument_index) {
@@ -123,7 +126,7 @@ int main(int argument_count, char **arguments) {
       // alone would miss a provider mutating storage after returning COMPLETE.
       const std::vector<cudaq_playback_provider_reply_t> saved_replies(
           results.replies, results.replies + results.reply_count);
-      std::vector<std::vector<uint8_t>> saved_bytes;
+      std::vector<std::vector<std::uint8_t>> saved_bytes;
       for (const auto &reply : saved_replies)
         saved_bytes.emplace_back(reply.data, reply.data + reply.size_bytes);
       cudaq_playback_provider_results_t repeated{};
@@ -138,8 +141,8 @@ int main(int argument_count, char **arguments) {
               "Repeated retrieval must preserve result storage");
       // Compare all bytes here, including the provider-owned timing word:
       // workload verification skips it, but completed storage must be immutable.
-      std::set<uint32_t> seen;
-      for (size_t reply_index = 0; reply_index < results.reply_count;
+      std::set<std::uint32_t> seen;
+      for (std::size_t reply_index = 0; reply_index < results.reply_count;
            ++reply_index) {
         const auto &reply = results.replies[reply_index];
         const auto &saved = saved_replies[reply_index];

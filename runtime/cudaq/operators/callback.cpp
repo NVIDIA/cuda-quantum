@@ -9,6 +9,7 @@
 #include "callback.h"
 
 #include <complex>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -60,7 +61,8 @@ Definition::Definition(Definition &&def)
       required_dimensions(std::move(def.expected_dimensions)) {}
 
 Definition::Definition(
-    std::string operator_id, const std::vector<int64_t> &expected_dimensions,
+    std::string operator_id,
+    const std::vector<std::int64_t> &expected_dimensions,
     matrix_callback &&create, diag_matrix_callback &&diag_create,
     std::unordered_map<std::string, std::string> &&parameter_descriptions)
     : id(operator_id), generator(std::move(create)),

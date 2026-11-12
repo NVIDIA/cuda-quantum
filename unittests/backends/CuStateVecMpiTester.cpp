@@ -11,6 +11,7 @@
 #include "cudaq/distributed/mpi_plugin.h"
 #include "cudaq/ptsbe/PTSBESamplerImpl.h"
 #include <cmath>
+#include <cstdint>
 #include <execution>
 #include <gtest/gtest.h>
 #include <memory>
@@ -56,14 +57,14 @@ public:
     return state().communicator();
   }
 
-  void configureMemoryLimits(int32_t gpuGb = 1, int32_t cpuGb = 0) {
+  void configureMemoryLimits(std::int32_t gpuGb = 1, std::int32_t cpuGb = 0) {
     this->Base::m_config.maxGpuMemoryGb = gpuGb;
     this->Base::m_config.maxCpuMemoryGb = cpuGb;
     this->Base::m_config.mgpuQubitThreshold = 2;
   }
 
   std::size_t maximumDistributedWires() const {
-    const int32_t localWires = Base::maximumDeviceWires();
+    const std::int32_t localWires = Base::maximumDeviceWires();
     return localWires + Base::maximumMigrationWires(localWires) +
            std::countr_zero(static_cast<unsigned>(cudaq::mpi::num_ranks()));
   }
@@ -105,13 +106,13 @@ int allreduceCalls = 0;
 int allreduceInPlaceCalls = 0;
 
 int spyAllreduce(const cudaqDistributedCommunicator_t *, const void *, void *,
-                 int32_t, DataType, ReduceOp) {
+                 std::int32_t, DataType, ReduceOp) {
   ++allreduceCalls;
   return 0;
 }
 
-int spyAllreduceInPlace(const cudaqDistributedCommunicator_t *, void *, int32_t,
-                        DataType, ReduceOp) {
+int spyAllreduceInPlace(const cudaqDistributedCommunicator_t *, void *,
+                        std::int32_t, DataType, ReduceOp) {
   ++allreduceInPlaceCalls;
   return 0;
 }
@@ -122,12 +123,12 @@ constexpr auto simulationPrecision = std::is_same_v<cudaq::real, float>
 constexpr double tolerance = std::is_same_v<cudaq::real, float> ? 1e-6 : 1e-9;
 
 int minimumVisibleGpuCount() {
-  int32_t localCount = 0;
+  std::int32_t localCount = 0;
   if (cudaGetDeviceCount(&localCount) != cudaSuccess) {
     cudaGetLastError();
     localCount = 0;
   }
-  int32_t minimumCount = 0;
+  std::int32_t minimumCount = 0;
   auto *const plugin = cudaq::mpi::getMpiPlugin();
   if (plugin->get()->Allreduce(plugin->getComm(), &localCount, &minimumCount, 1,
                                INT_32, MIN) != 0)
@@ -244,8 +245,8 @@ TEST(MGpuCapacityTest, IncludesConfiguredHostCapacity) {
   simulator.configureMemoryLimits(1, 8);
   const auto totalCapacity = simulator.maximumDistributedWires();
   // Skip collectively so no peer enters the capacity check alone.
-  const int32_t hasHostCapacity = totalCapacity > deviceCapacity;
-  int32_t allRanksHaveHostCapacity = 0;
+  const std::int32_t hasHostCapacity = totalCapacity > deviceCapacity;
+  std::int32_t allRanksHaveHostCapacity = 0;
   auto *const plugin = cudaq::mpi::getMpiPlugin();
   ASSERT_EQ(plugin->get()->Allreduce(plugin->getComm(), &hasHostCapacity,
                                      &allRanksHaveHostCapacity, 1, INT_32, MIN),
@@ -387,7 +388,7 @@ TEST(MGpuTesterMultiProcesses, DistributedGpuRandomAdvancesEveryRank) {
   auto *const plugin = cudaq::mpi::getMpiPlugin();
   ASSERT_EQ(
       plugin->get()->Allreduce(plugin->getComm(), local.data(), minimum.data(),
-                               static_cast<int32_t>(count), FLOAT_64, MIN),
+                               static_cast<std::int32_t>(count), FLOAT_64, MIN),
       0);
   for (std::size_t index = 0; index < count; ++index)
     EXPECT_NEAR(local[index], minimum[index], 1e-12);
@@ -791,7 +792,7 @@ TEST(MGpuTesterMultiProcesses, ThresholdTransitionPreservesStateLayout) {
   const auto &descriptor = exState->state();
   EXPECT_EQ(descriptor.distributionType(),
             CUSTATEVEC_EX_SV_DISTRIBUTION_MULTI_PROCESS);
-  EXPECT_EQ(descriptor.numWires(), static_cast<int32_t>(threshold));
+  EXPECT_EQ(descriptor.numWires(), static_cast<std::int32_t>(threshold));
   EXPECT_EQ(descriptor.numLocalWires() + descriptor.numMigrationWires() + 1,
             descriptor.numWires());
   std::vector<cudaq::complex> actual(1ULL << threshold);
@@ -877,8 +878,8 @@ TEST(MGpuTesterMultiProcesses, AddQubitsInStateSingleToMultipleUpper) {
 
 TEST(MGpuTesterMultiProcesses, FailedCommunicatorRebindingRestoresDescriptor) {
   auto communicator = getSimulatorCommunicator();
-  const int32_t expectedSize = communicator->size();
-  const int32_t expectedRank = communicator->rank();
+  const std::int32_t expectedSize = communicator->size();
+  const std::int32_t expectedRank = communicator->rank();
   const auto communicatorSize = cudaq::mpi::getMpiPlugin()->getComm()->commSize;
 
   EXPECT_ANY_THROW(communicator->setCommunicator(nullptr, communicatorSize));

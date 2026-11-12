@@ -15,6 +15,8 @@
 #pragma once
 
 #include "cudaq/realtime/validation/playback_provider_interface.h"
+#include <cstddef>
+#include <cstdint>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -31,28 +33,28 @@ namespace cudaq::realtime::validation {
 using Clock = std::chrono::steady_clock;
 // Integer nanoseconds are used for control deadlines and pacing. Clock and
 // wait-library types stay inside these implementation helpers.
-inline uint64_t elapsed_ns(Clock::time_point started_at) {
-  return static_cast<uint64_t>(
+inline std::uint64_t elapsed_ns(Clock::time_point started_at) {
+  return static_cast<std::uint64_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() -
                                                            started_at)
           .count());
 }
 // Internal waits use signed nanoseconds. Zero is allowed here for a
 // nonblocking cleanup/status probe; create validates positive durations itself.
-inline bool valid_duration_ns(uint64_t duration_ns) {
-  return duration_ns <= static_cast<uint64_t>(INT64_MAX);
+inline bool valid_duration_ns(std::uint64_t duration_ns) {
+  return duration_ns <= static_cast<std::uint64_t>(INT64_MAX);
 }
 
 // Created may own partial setup. Prepared can start once. Finished exposes
 // frozen results; Faulted still owns resources that destroy must release.
 enum class State { Created, Prepared, Running, Finished, Faulted };
 struct Record {
-  std::vector<uint8_t> bytes; ///< Owned packet at its actual captured length.
-  uint64_t rtt_ticks = CUDAQ_PLAYBACK_PROVIDER_RTT_UNAVAILABLE; ///< Optional RTT.
+  std::vector<std::uint8_t> bytes; ///< Owned packet at its actual captured length.
+  std::uint64_t rtt_ticks = CUDAQ_PLAYBACK_PROVIDER_RTT_UNAVAILABLE; ///< Optional RTT.
 };
-inline uint64_t parse_unsigned_integer(const std::string &text,
-                                       uint64_t maximum = UINT32_MAX) {
-  size_t parsed_length = 0;
+inline std::uint64_t parse_unsigned_integer(const std::string &text,
+                                       std::uint64_t maximum = UINT32_MAX) {
+  std::size_t parsed_length = 0;
   if (text.empty() || text[0] == '-')
     throw std::invalid_argument("Invalid unsigned integer: " + text);
   // Base 0 accepts the hexadecimal addresses advertised by RoCE bridges.
@@ -88,10 +90,10 @@ parse_provider_option(const char *argument) {
     throw std::invalid_argument("Expected --option=value: " + text);
   return {text.substr(0, equals_position), text.substr(equals_position + 1)};
 }
-inline uint64_t little_endian(const uint8_t *bytes, size_t size) {
-  uint64_t value = 0;
-  for (size_t byte_index = 0; byte_index < size; ++byte_index)
-    value |= uint64_t(bytes[byte_index]) << (8 * byte_index);
+inline std::uint64_t little_endian(const std::uint8_t *bytes, std::size_t size) {
+  std::uint64_t value = 0;
+  for (std::size_t byte_index = 0; byte_index < size; ++byte_index)
+    value |= std::uint64_t(bytes[byte_index]) << (8 * byte_index);
   return value;
 }
 // Providers keep packet storage alive until destroy; build the public array
@@ -99,8 +101,8 @@ inline uint64_t little_endian(const uint8_t *bytes, size_t size) {
 // needed.
 struct ResultStorage {
   std::vector<cudaq_playback_provider_reply_t> replies; ///< Views into Record bytes.
-  uint64_t tick_period_numerator = 0; ///< Seconds-per-tick ratio numerator.
-  uint64_t tick_period_denominator = 0; ///< Ratio denominator; zero without RTT.
+  std::uint64_t tick_period_numerator = 0; ///< Seconds-per-tick ratio numerator.
+  std::uint64_t tick_period_denominator = 0; ///< Ratio denominator; zero without RTT.
   cudaq_playback_provider_results_t view() const {
     return {replies.data(), replies.size(), tick_period_numerator,
             tick_period_denominator};
@@ -109,8 +111,8 @@ struct ResultStorage {
 // Keep the referenced records alive and unchanged until destroy. Only the
 // descriptors are copied here, so publishing views must follow final capture.
 inline ResultStorage result_views(const std::deque<Record> &records,
-                                  uint64_t tick_period_numerator,
-                                  uint64_t tick_period_denominator) {
+                                  std::uint64_t tick_period_numerator,
+                                  std::uint64_t tick_period_denominator) {
   ResultStorage results;
   results.replies.reserve(records.size());
   bool measured_rtt = false;
@@ -136,15 +138,15 @@ struct SetupTimeout : std::runtime_error {
 // Share one setup budget across parsing, input copying and device operations.
 class SetupDeadline {
   Clock::time_point started_at = Clock::now(); ///< Beginning of create.
-  uint64_t timeout_ns; ///< Total setup allowance, not a per-operation timeout.
+  std::uint64_t timeout_ns; ///< Total setup allowance, not a per-operation timeout.
 
 public:
-  explicit SetupDeadline(uint64_t timeout_ns) : timeout_ns(timeout_ns) {}
+  explicit SetupDeadline(std::uint64_t timeout_ns) : timeout_ns(timeout_ns) {}
   void check() const {
     if (elapsed_ns(started_at) >= timeout_ns)
       throw SetupTimeout();
   }
-  uint64_t remaining_ns() const {
+  std::uint64_t remaining_ns() const {
     const auto elapsed = elapsed_ns(started_at);
     // Check before unsigned subtraction; an expired budget must not wrap to
     // a very large wait passed into the SDK worker join.
@@ -171,10 +173,10 @@ struct RunTimeout : std::runtime_error {
 // Status may time out while the worker is still inside device I/O. Publish
 // diagnostic progress separately so status never reads live packet storage.
 struct RunProgress {
-  std::atomic<size_t> captured{0}; ///< Observed packets, not verified replies.
+  std::atomic<std::size_t> captured{0}; ///< Observed packets, not verified replies.
   std::atomic<const char *> phase{"starting playback"}; ///< Static text only.
 
-  std::string describe(size_t expected_count) const {
+  std::string describe(std::size_t expected_count) const {
     return "captured " + std::to_string(captured.load()) +
            " packets (expected " + std::to_string(expected_count) +
            "); phase: " + phase.load() + "; packet contents not verified";
@@ -185,14 +187,14 @@ struct RunProgress {
 // not another public API: providers may implement it in their device/SDK code.
 class BatchCompletion {
   // Minimum captured count and last observed count, including invalid packets.
-  size_t expected_count, previous_count = 0;
+  std::size_t expected_count, previous_count = 0;
   // Whole-run budget and required inactivity interval, both in nanoseconds.
-  uint64_t timeout_ns, quiet_ns;
+  std::uint64_t timeout_ns, quiet_ns;
   // Run origin and most recent count change; each new packet resets quiet time.
   Clock::time_point started_at, last_activity;
 
 public:
-  BatchCompletion(size_t count, uint64_t timeout_ns, uint64_t capture_quiet_ns,
+  BatchCompletion(std::size_t count, std::uint64_t timeout_ns, std::uint64_t capture_quiet_ns,
                   Clock::time_point started_at)
       : expected_count(count), timeout_ns(timeout_ns),
         quiet_ns(capture_quiet_ns), started_at(started_at),
@@ -203,7 +205,7 @@ public:
   }
   // Capture readiness alone proves neither correct replies nor completed TX;
   // providers also account for their own transmission completion requirements.
-  bool ready(size_t captured_count) {
+  bool ready(std::size_t captured_count) {
     check_deadline();
     if (captured_count < previous_count)
       throw std::runtime_error("Capture count moved backwards");
@@ -220,9 +222,9 @@ public:
   }
   // Maximum wait before another completion check. A socket provider can wake
   // sooner on packet arrival. Quiet time matters only after transmission ends.
-  uint64_t wait_ns(bool transmission_finished) const {
+  std::uint64_t wait_ns(bool transmission_finished) const {
     const auto elapsed = elapsed_ns(started_at);
-    uint64_t remaining = elapsed >= timeout_ns ? 0 : timeout_ns - elapsed;
+    std::uint64_t remaining = elapsed >= timeout_ns ? 0 : timeout_ns - elapsed;
     if (transmission_finished && previous_count >= expected_count) {
       const auto quiet_elapsed = elapsed_ns(last_activity);
       remaining = std::min(remaining, quiet_elapsed >= quiet_ns
@@ -247,15 +249,15 @@ valid_create_params(const cudaq_playback_provider_create_params_t *params) {
 }
 // Optional implementation helpers for the two reference providers. The public
 // C API does not require vendors to use these C++ worker utilities.
-inline bool join_worker(std::future<void> &job, uint64_t timeout_ns) {
+inline bool join_worker(std::future<void> &job, std::uint64_t timeout_ns) {
   if (!job.valid())
     return true;
   const auto started_at = Clock::now();
-  uint64_t remaining_ns = timeout_ns;
+  std::uint64_t remaining_ns = timeout_ns;
   // Bound each library wait so adding its duration to the clock cannot
   // overflow.
   do {
-    const auto wait_ns = std::min<uint64_t>(remaining_ns, 1000000000ULL);
+    const auto wait_ns = std::min<std::uint64_t>(remaining_ns, 1000000000ULL);
     if (job.wait_for(std::chrono::nanoseconds(wait_ns)) ==
         std::future_status::ready) {
       // get() synchronizes the worker's writes and rethrows its exception.

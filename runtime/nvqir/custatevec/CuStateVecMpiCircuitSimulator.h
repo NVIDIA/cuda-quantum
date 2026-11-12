@@ -107,10 +107,11 @@ protected:
   // Every rank follows the same configured GPU or CPU path, then rank zero
   // provides the sequence used by the distributed state.
   std::vector<double> generateRandomNumbers(std::size_t count) override {
-    if (count > static_cast<std::size_t>(std::numeric_limits<int32_t>::max()))
+    if (count >
+        static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
       throw std::overflow_error("Random-number count exceeds MPI range.");
     auto result = Base::generateRandomNumbers(count);
-    m_communicator->broadcast(result.data(), static_cast<int32_t>(count),
+    m_communicator->broadcast(result.data(), static_cast<std::int32_t>(count),
                               CUDA_R_64F, 0);
     return result;
   }
@@ -137,7 +138,7 @@ protected:
       Base::ensureState();
       return;
     }
-    const int32_t processBits = totalProcessBits();
+    const std::int32_t processBits = totalProcessBits();
     if (m_state) {
       // Already distributed -- nothing to promote.
       if (distributionType() == CUSTATEVEC_EX_SV_DISTRIBUTION_MULTI_PROCESS)
@@ -150,15 +151,15 @@ protected:
 
     // Reject oversized requests before reading or replacing a replicated state
     // or creating a distributed descriptor.
-    const int32_t maxLocalWires = maximumDeviceWires();
-    const int32_t maxMigrationWires = maximumMigrationWires(maxLocalWires);
+    const std::int32_t maxLocalWires = maximumDeviceWires();
+    const std::int32_t maxMigrationWires = maximumMigrationWires(maxLocalWires);
     checkStateCapacity(0, nQubitsAllocated, maxLocalWires, maxMigrationWires);
 
     // Below the distribution threshold every rank holds the same complete
     // state. Preserve that replicated state while replacing its descriptor with
     // a distributed layout, then write only each rank's assigned sub-states.
     std::vector<std::complex<Scalar>> replicatedState;
-    int32_t existingWires = 0;
+    std::int32_t existingWires = 0;
     if (m_state) {
       existingWires = m_state->numWires();
       if (existingWires != 0) {
@@ -196,8 +197,9 @@ protected:
       // Re-materialize the saved amplitudes: partition the existing wires into
       // device-local, host-migration, and cross-rank (global) domains, then
       // write the replicated state back into the distributed layout.
-      const int32_t processLocalWires = existingWires - processBits;
-      const int32_t localWires = std::min(processLocalWires, maxLocalWires);
+      const std::int32_t processLocalWires = existingWires - processBits;
+      const std::int32_t localWires =
+          std::min(processLocalWires, maxLocalWires);
       m_state->addWires(CUSTATEVEC_EX_INDEX_BIT_DOMAIN_LOCAL, localWires);
       m_state->addWires(CUSTATEVEC_EX_INDEX_BIT_DOMAIN_MIGRATION,
                         processLocalWires - localWires);
@@ -218,13 +220,13 @@ protected:
                        m_state->maxMigrationWires());
 
     if (m_state->numWires() == 0) {
-      const int32_t processBits = totalProcessBits();
+      const std::int32_t processBits = totalProcessBits();
       if (count < static_cast<std::size_t>(processBits))
         throw std::runtime_error(
             "Distributed state requires at least log2(ranks) qubits.");
-      const int32_t processLocalWires =
-          static_cast<int32_t>(count) - processBits;
-      const int32_t localWires =
+      const std::int32_t processLocalWires =
+          static_cast<std::int32_t>(count) - processBits;
+      const std::int32_t localWires =
           std::min(processLocalWires, m_state->maxLocalWires());
       m_state->addWires(CUSTATEVEC_EX_INDEX_BIT_DOMAIN_LOCAL, localWires);
       m_state->addWires(CUSTATEVEC_EX_INDEX_BIT_DOMAIN_MIGRATION,
@@ -243,14 +245,14 @@ protected:
       Base::writeState(values, size);
       return;
     }
-    const int32_t localWires = m_state->numLocalWires();
+    const std::int32_t localWires = m_state->numLocalWires();
     const std::size_t localSize = std::size_t{1} << localWires;
-    const std::vector<int32_t> localIndices = localSubStateIndices();
+    const std::vector<std::int32_t> localIndices = localSubStateIndices();
     const std::size_t globalSubStates =
         localIndices.size() * m_communicatorSize;
     if (!values || size != localSize * globalSubStates)
       throw std::invalid_argument("Invalid distributed state-vector size.");
-    for (const int32_t subStateIndex : localIndices) {
+    for (const std::int32_t subStateIndex : localIndices) {
       const std::size_t begin =
           static_cast<std::size_t>(subStateIndex) * localSize;
       m_state->setState(values + begin, begin, begin + localSize);
@@ -266,13 +268,13 @@ private:
   /// Validate collectively so a rank with less capacity cannot leave its peers
   /// entering collective state allocation or resizing operations.
   void checkStateCapacity(std::size_t existingWires, std::size_t addedWires,
-                          int32_t maxLocalWires,
-                          int32_t maxMigrationWires) const {
+                          std::int32_t maxLocalWires,
+                          std::int32_t maxMigrationWires) const {
     const auto maxWires = static_cast<std::size_t>(
         maxLocalWires + maxMigrationWires + totalProcessBits());
-    const int32_t exceedsCapacity =
+    const std::int32_t exceedsCapacity =
         existingWires > maxWires || addedWires > maxWires - existingWires;
-    int32_t ranksExceedingCapacity = 0;
+    std::int32_t ranksExceedingCapacity = 0;
     m_communicator->allReduce(&exceedsCapacity, &ranksExceedingCapacity, 1,
                               CUDA_R_32I);
     if (ranksExceedingCapacity != 0)
@@ -294,14 +296,14 @@ private:
         m_communicatorRank >= m_communicatorSize)
       throw std::runtime_error("Invalid distributed communicator topology.");
     initializeGpuFabric();
-    const int32_t processBits = totalProcessBits();
+    const std::int32_t processBits = totalProcessBits();
     if (m_config.p2pDeviceBits > processBits) {
       CUDAQ_WARN("CUDAQ_MGPU_P2P_DEVICE_BITS={} exceeds log2(ranks)={}; "
                  "clamping to {}.",
                  m_config.p2pDeviceBits, processBits, processBits);
       m_config.p2pDeviceBits = processBits;
     }
-    int32_t deviceCount = 0;
+    std::int32_t deviceCount = 0;
     HANDLE_CUDA_ERROR(cudaGetDeviceCount(&deviceCount));
     if (deviceCount < 1)
       throw std::runtime_error("No CUDA device is available.");
@@ -318,20 +320,20 @@ private:
     summaryData.name = name();
   }
 
-  int32_t sharedMemoryDomainSize() const {
+  std::int32_t sharedMemoryDomainSize() const {
     // The NVL P2P domain is the group of ranks on the same physical host, so
     // gather every rank's host name to count how many share each host.
     constexpr std::size_t maxHostnameLength = 256;
     std::array<char, maxHostnameLength> hostname{};
-    const int32_t hostnameAvailable =
+    const std::int32_t hostnameAvailable =
         gethostname(hostname.data(), hostname.size()) == 0 ? 1 : 0;
     hostname.back() = '\0';
 
     std::vector<char> hostnames(maxHostnameLength * m_communicatorSize);
     m_communicator->allGather(hostname.data(), hostnames.data(),
-                              static_cast<int32_t>(maxHostnameLength),
+                              static_cast<std::int32_t>(maxHostnameLength),
                               CUDA_R_8U);
-    std::vector<int32_t> hostnameAvailability(m_communicatorSize);
+    std::vector<std::int32_t> hostnameAvailability(m_communicatorSize);
     m_communicator->allGather(&hostnameAvailable, hostnameAvailability.data(),
                               1, CUDA_R_32I);
     if (std::find(hostnameAvailability.begin(), hostnameAvailability.end(),
@@ -340,12 +342,12 @@ private:
 
     // Domain size = number of ranks sharing a host name; it must be identical
     // on every host.
-    int32_t domainSize = 0;
-    for (int32_t rank = 0; rank < m_communicatorSize; ++rank) {
+    std::int32_t domainSize = 0;
+    for (std::int32_t rank = 0; rank < m_communicatorSize; ++rank) {
       const std::string_view rankHostname(hostnames.data() +
                                           rank * maxHostnameLength);
-      int32_t rankDomainSize = 0;
-      for (int32_t peer = 0; peer < m_communicatorSize; ++peer) {
+      std::int32_t rankDomainSize = 0;
+      for (std::int32_t peer = 0; peer < m_communicatorSize; ++peer) {
         const std::string_view peerHostname(hostnames.data() +
                                             peer * maxHostnameLength);
         if (peerHostname == rankHostname)
@@ -359,10 +361,11 @@ private:
     }
     // Each host's ranks must form a contiguous block so the innermost P2P index
     // bits address exactly one shared-memory node.
-    for (int32_t first = 0; first < m_communicatorSize; first += domainSize) {
+    for (std::int32_t first = 0; first < m_communicatorSize;
+         first += domainSize) {
       const std::string_view blockHostname(hostnames.data() +
                                            first * maxHostnameLength);
-      for (int32_t rank = first + 1; rank < first + domainSize; ++rank) {
+      for (std::int32_t rank = first + 1; rank < first + domainSize; ++rank) {
         const std::string_view rankHostname(hostnames.data() +
                                             rank * maxHostnameLength);
         if (rankHostname != blockHostname)
@@ -382,7 +385,7 @@ private:
     if (!m_config.gpuFabric)
       return;
     const std::string &fabric = *m_config.gpuFabric;
-    int32_t domainSize = 1;
+    std::int32_t domainSize = 1;
     if (fabric == "MNNVL") {
       domainSize = m_communicatorSize;
     } else if (fabric == "NVL") {
@@ -403,7 +406,7 @@ private:
       throw std::invalid_argument(
           "CUDAQ_GPU_FABRIC domain size must be a power-of-two factor of "
           "the communicator size.");
-    m_config.p2pDeviceBits = static_cast<int32_t>(
+    m_config.p2pDeviceBits = static_cast<std::int32_t>(
         std::countr_zero(static_cast<unsigned>(domainSize)));
     // Unless the user supplied explicit communication layers, separate the
     // P2P domain from the outer communicator layer.
@@ -420,10 +423,10 @@ private:
            nQubitsAllocated >= static_cast<std::size_t>(totalProcessBits());
   }
 
-  int32_t totalProcessBits() const {
+  std::int32_t totalProcessBits() const {
     if (m_communicatorSize == 1)
       return 0;
-    return static_cast<int32_t>(
+    return static_cast<std::int32_t>(
         std::countr_zero(static_cast<unsigned>(m_communicatorSize)));
   }
 
@@ -456,10 +459,10 @@ private:
   /// (`MNNVL` places all ranks in one P2P domain, so `p2pDeviceBits` =
   /// log2(ranks) and the `FABRIC_HANDLE` sharing method is used.)
   std::pair<std::vector<custatevecExGlobalIndexBitClass_t>,
-            std::vector<int32_t>>
-  communicationLayers(int32_t migrationWires) const {
-    const int32_t processBits = totalProcessBits();
-    std::vector<int32_t> bits = m_config.globalIndexBits;
+            std::vector<std::int32_t>>
+  communicationLayers(std::int32_t migrationWires) const {
+    const std::int32_t processBits = totalProcessBits();
+    std::vector<std::int32_t> bits = m_config.globalIndexBits;
     // Derive the layout when the user did not pin it: an inner P2P layer, then
     // a communicator layer for whatever process bits remain.
     if (bits.empty()) {
@@ -468,7 +471,8 @@ private:
       if (m_config.p2pDeviceBits < processBits)
         bits.push_back(processBits - m_config.p2pDeviceBits);
     }
-    if (std::accumulate(bits.begin(), bits.end(), int32_t{0}) != processBits)
+    if (std::accumulate(bits.begin(), bits.end(), std::int32_t{0}) !=
+        processBits)
       throw std::invalid_argument(
           "CUDAQ_GLOBAL_INDEX_BITS must sum to log2(ranks).");
     if (m_config.p2pDeviceBits < 0 || m_config.p2pDeviceBits > processBits)
@@ -478,8 +482,8 @@ private:
     // Walk the layers outward, tagging each as P2P while it sits inside the
     // innermost p2pDeviceBits and communicator once past that boundary.
     std::vector<custatevecExGlobalIndexBitClass_t> classes;
-    int32_t assigned = 0;
-    for (const int32_t layerBits : bits) {
+    std::int32_t assigned = 0;
+    for (const std::int32_t layerBits : bits) {
       // A single layer cannot span both sides of the P2P boundary.
       if (assigned < m_config.p2pDeviceBits &&
           assigned + layerBits > m_config.p2pDeviceBits)
@@ -495,10 +499,10 @@ private:
     // outermost (slowest) layer, so host-device migration surrounds the faster
     // GPU-GPU exchanges; `CUDAQ_HOST_DEVICE_MIGRATION_LEVEL` overrides the
     // index.
-    const int32_t migrationLevel =
-        m_config.migrationLevel.value_or(static_cast<int32_t>(classes.size()));
+    const std::int32_t migrationLevel = m_config.migrationLevel.value_or(
+        static_cast<std::int32_t>(classes.size()));
     if (migrationLevel < 0 ||
-        migrationLevel > static_cast<int32_t>(classes.size()))
+        migrationLevel > static_cast<std::int32_t>(classes.size()))
       throw std::invalid_argument(
           "CUDAQ_HOST_DEVICE_MIGRATION_LEVEL exceeds the number of "
           "global-index layers.");
@@ -517,7 +521,7 @@ private:
                    : CUSTATEVEC_EX_SV_DISTRIBUTION_SINGLE_DEVICE;
   }
 
-  std::vector<int32_t> localSubStateIndices() const {
+  std::vector<std::int32_t> localSubStateIndices() const {
     const auto indices = queryInt32ArrayProperty(
         m_state->descriptor(), CUSTATEVEC_EX_SV_PROP_NUM_SUBSVS,
         CUSTATEVEC_EX_SV_PROP_SUBSV_INDICES);
@@ -530,15 +534,15 @@ private:
   std::shared_ptr<CuStateVecCommunicator> m_communicator;
   // User-requested layout, kept verbatim so it can be re-resolved each time the
   // communicator (and its fabric-derived config) is rebound.
-  const std::vector<int32_t> m_requestedGlobalIndexBits;
-  const int32_t m_requestedP2pDeviceBits;
+  const std::vector<std::int32_t> m_requestedGlobalIndexBits;
+  const std::int32_t m_requestedP2pDeviceBits;
   // Rank in the world communicator; used to assign this process's GPU.
-  const int32_t m_worldRank;
+  const std::int32_t m_worldRank;
   // Size and rank within the active (possibly split) communicator.
-  int32_t m_communicatorSize = 1;
-  int32_t m_communicatorRank = 0;
+  std::int32_t m_communicatorSize = 1;
+  std::int32_t m_communicatorRank = 0;
   // CUDA device this rank drives.
-  int32_t m_deviceId = 0;
+  std::int32_t m_deviceId = 0;
   // Preserve an explicit user seed across communicator rebinding.
   std::optional<std::size_t> m_userSeed;
   // Guards ensureState() against re-entry while promoting the replicated state

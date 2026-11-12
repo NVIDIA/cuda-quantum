@@ -224,7 +224,11 @@ CUDAQ_TEST(KernelsTester, checkFromStateBasis) {
 }
 
 CUDAQ_TEST(KernelsTester, checkFromStateMultiControl) {
-#ifdef CUDAQ_SIMULATION_SCALAR_FP32
+#if defined(CUDAQ_BACKEND_TENSORNET_MPS) &&                                    \
+    defined(CUDAQ_SIMULATION_SCALAR_FP32)
+  // FP32 SVD rounding in MPS drifts the norm by up to ~1.4e-5.
+  constexpr double normTolerance = 1e-4;
+#elif defined(CUDAQ_SIMULATION_SCALAR_FP32)
   constexpr double normTolerance = 1e-5;
 #else
   constexpr double normTolerance = 1e-6;

@@ -422,8 +422,6 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
         ServerMessage::object();
     auto &backendConfig =
         j["data"]["attributes"]["definition"]["backend_config"];
-    if (maxCost.has_value())
-      backendConfig["max_cost"] = maxCost.value();
     if (machine.starts_with("Helios")) {
       backendConfig["type"] = "HeliosConfig";
       backendConfig["system_name"] = machine;
@@ -476,6 +474,10 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     ServerMessage item = ServerMessage::object();
     item["program_id"] = programId;
     item["n_shots"] = shots;
+    if (maxCost.has_value())
+      item["max_cost"] = maxCost.value();
+    if (maxQubits.has_value())
+      item["n_qubits"] = maxQubits.value();
     j["data"]["attributes"]["definition"]["items"].push_back(item);
     // Add relationships section
     j["data"]["relationships"] = ServerMessage::object();

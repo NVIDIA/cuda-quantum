@@ -12,6 +12,7 @@
 #include "llvm/Support/Debug.h"
 
 #include <algorithm>
+#include <cstdint>
 
 #define DEBUG_TYPE "cudaq-synth"
 
@@ -312,7 +313,7 @@ llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
   GridOp opG_l = GridOp::identity();
   GridOp opG_r = GridOp::identity();
 
-  [[maybe_unused]] int32_t iterations = 0;
+  [[maybe_unused]] std::int32_t iterations = 0;
   bool done = false;
   while (!done) {
     if (llvm::failed(step_lemma(A, B, opG_l, opG_r, done))) {

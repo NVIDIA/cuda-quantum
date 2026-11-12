@@ -18,6 +18,8 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QUBITRESETBEFOREREUSE
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
+
+#include <cstdint>
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "reset-before-reuse"
@@ -183,9 +185,9 @@ private:
               qubit.getDefiningOp())) {
         LLVM_DEBUG(llvm::dbgs() << "Defining op: " << *extractOp << "\n");
         auto reg = extractOp.getVeq();
-        std::optional<int64_t> index =
+        std::optional<std::int64_t> index =
             extractOp.hasConstantIndex()
-                ? std::optional<int64_t>(extractOp.getConstantIndex())
+                ? std::optional<std::int64_t>(extractOp.getConstantIndex())
                 : cudaq::getIndexValueAsInt(extractOp.getIndex());
         LLVM_DEBUG(llvm::dbgs() << "Reg: " << reg
                                 << "; index = " << index.value_or(-1) << "\n");
@@ -197,7 +199,7 @@ private:
               auto nextExtractOp =
                   dyn_cast_if_present<cudaq::quake::ExtractRefOp>(v.value());
               if (nextExtractOp) {
-                std::optional<int64_t> nextIndex =
+                std::optional<std::int64_t> nextIndex =
                     nextExtractOp.hasConstantIndex()
                         ? nextExtractOp.getConstantIndex()
                         : cudaq::getIndexValueAsInt(nextExtractOp.getIndex());

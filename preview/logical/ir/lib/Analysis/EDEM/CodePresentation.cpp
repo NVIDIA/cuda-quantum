@@ -15,6 +15,7 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/SymbolTable.h"
 
+#include <cstdint>
 #include <limits>
 #include <utility>
 
@@ -80,9 +81,9 @@ CodePresentation::fromProfile(qlx::fabric::CodeProfileOp profile) {
     return failure();
   }
 
-  const int64_t n = code.getN().value_or(0);
-  const int64_t k = code.getK().value_or(1);
-  const int64_t r = code.getR().value_or(0);
+  const std::int64_t n = code.getN().value_or(0);
+  const std::int64_t k = code.getK().value_or(1);
+  const std::int64_t r = code.getR().value_or(0);
   if (n <= 0 || k < 0 || r < 0 || k > n || r > n - k ||
       n > std::numeric_limits<int>::max() / 2) {
     profile.emitOpError(
@@ -123,7 +124,7 @@ CodePresentation::fromProfile(qlx::fabric::CodeProfileOp profile) {
         "EDEM code presentation requires canonical effective_stabilizers");
     return failure();
   }
-  const int64_t effectiveCount = effectiveAttr.getType().getShape()[0];
+  const std::int64_t effectiveCount = effectiveAttr.getType().getShape()[0];
   if (effectiveCount < keptSyndromes ||
       effectiveCount > std::numeric_limits<int>::max()) {
     profile.emitOpError(
@@ -221,19 +222,19 @@ CodePresentation::fromProfile(qlx::fabric::CodeProfileOp profile) {
   }
   llvm::SHA256 hash;
   hash.update("cudaq.logical.code-presentation/v1");
-  auto number = [&](uint64_t value) {
-    uint8_t bytes[8];
+  auto number = [&](std::uint64_t value) {
+    std::uint8_t bytes[8];
     for (unsigned i = 0; i < 8; ++i)
       bytes[i] = value >> (8 * i);
-    hash.update(llvm::ArrayRef<uint8_t>(bytes));
+    hash.update(llvm::ArrayRef<std::uint8_t>(bytes));
   };
   auto matrix = [&](const auto &rows, unsigned columns) {
     number(rows.size());
     number(columns);
     for (const auto &row : rows)
       for (unsigned column = 0; column < columns; ++column) {
-        uint8_t value = row[column];
-        hash.update(llvm::ArrayRef<uint8_t>(&value, 1));
+        std::uint8_t value = row[column];
+        hash.update(llvm::ArrayRef<std::uint8_t>(&value, 1));
       }
   };
   number(physicalQubits);
@@ -247,7 +248,7 @@ CodePresentation::fromProfile(qlx::fabric::CodeProfileOp profile) {
   matrix(*keptFromEffective, effectiveSyndromes);
   result.name_ = "logical-v1/";
   constexpr char hex[] = "0123456789abcdef";
-  for (uint8_t byte : hash.final()) {
+  for (std::uint8_t byte : hash.final()) {
     result.name_ += hex[byte >> 4];
     result.name_ += hex[byte & 15];
   }

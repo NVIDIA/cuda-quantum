@@ -14,6 +14,8 @@
 /// host clock. Direct socket reads preserve actual datagram lengths for checks;
 /// the transceiver ring API pads short datagrams and hides their original size.
 #include "playback_provider_support.h"
+#include <cstddef>
+#include <cstdint>
 #include <arpa/inet.h>
 #include <array>
 #include <atomic>
@@ -37,23 +39,23 @@ struct Context {
   State state = State::Created; ///< Lifecycle state visible to API calls.
   // Destination host override and diagnostic for the latest failed operation.
   std::string host = "127.0.0.1", error;
-  uint64_t request_spacing_ns = 0; ///< Minimum send start-to-start interval.
+  std::uint64_t request_spacing_ns = 0; ///< Minimum send start-to-start interval.
   int socket_fd = -1; ///< Owned connected, nonblocking UDP socket.
   int timer_fd = -1; ///< One-shot monotonic timer for sends and completion checks.
   int cancel_fd = -1; ///< Wake the socket wait when destroy requests cancellation.
   // Reuse scratch storage even for empty polls. Captured records allocate only
   // their actual datagram length, not the maximum UDP packet size.
-  std::array<uint8_t, 65536> receive_buffer;
-  std::vector<std::vector<uint8_t>> frames; ///< Copied, transport-padded requests.
+  std::array<std::uint8_t, 65536> receive_buffer;
+  std::vector<std::vector<std::uint8_t>> frames; ///< Copied, transport-padded requests.
   std::deque<Record> records; ///< Owned capture bytes in arrival order.
   ResultStorage results; ///< Frozen views into records after worker completion.
   RunProgress run_progress; ///< Timeout diagnostics readable while I/O is active.
   // Whole-run deadline and inactivity interval required to finish capture.
-  uint64_t run_timeout_ns = 0, capture_quiet_ns = 0;
+  std::uint64_t run_timeout_ns = 0, capture_quiet_ns = 0;
   bool run_timed_out = false; ///< Preserve TIMEOUT on subsequent status checks.
   Clock::time_point started_at; ///< Set by start before launching the worker.
-  std::map<uint32_t, Clock::time_point> sent; ///< Send time by request ID.
-  size_t next = 0; ///< Index of the next unsent request.
+  std::map<std::uint32_t, Clock::time_point> sent; ///< Send time by request ID.
+  std::size_t next = 0; ///< Index of the next unsent request.
   std::atomic<bool> cancel{false}; ///< destroy requests worker cancellation.
   std::future<void> job; ///< Worker completion and exception propagation.
   Clock::time_point last_send_at{}; ///< Origin for the next spacing interval.
@@ -68,8 +70,8 @@ struct Context {
   }
   // Bound each drain so inbound traffic cannot starve sends or deadline checks.
   // Keep malformed/unmatched datagrams; the caller, not capture, rejects them.
-  void receive(size_t budget = 64) {
-    for (size_t packet_index = 0; packet_index < budget; ++packet_index) {
+  void receive(std::size_t budget = 64) {
+    for (std::size_t packet_index = 0; packet_index < budget; ++packet_index) {
       // Hold the largest IPv4 UDP datagram so recv cannot silently truncate
       // it to the expected request size. Short and empty packets also survive.
       auto byte_count = ::recv(socket_fd, receive_buffer.data(),
@@ -90,7 +92,7 @@ struct Context {
       // Match an ID only to assign timing. This is not a validity check:
       // duplicate or corrupt packets still reach the application's verifier.
       if (byte_count >= 24) {
-        uint32_t request_id = little_endian(record.bytes.data() + 12, 4);
+        std::uint32_t request_id = little_endian(record.bytes.data() + 12, 4);
         auto sent_request = sent.find(request_id);
         if (sent_request != sent.end()) {
           record.rtt_ticks = (now - sent_request->second).count();
@@ -141,7 +143,7 @@ struct Context {
   // Socket readiness wakes immediately for a reply, independently of pacing.
   // Use timerfd for the next deadline: timed poll/condition-variable waits may
   // add timer slack, which is significant at microsecond request intervals.
-  void wait_for_activity(uint64_t wait_ns) {
+  void wait_for_activity(std::uint64_t wait_ns) {
     if (!wait_ns || cancel)
       return;
     itimerspec timer{};
@@ -181,7 +183,7 @@ struct Context {
       // Sleep until a reply, cancellation, the next send or a completion
       // deadline. Late sends establish the next interval; never catch up with
       // a burst or let reply arrival determine request spacing.
-      uint64_t wait_ns = completion.wait_ns(next == frames.size());
+      std::uint64_t wait_ns = completion.wait_ns(next == frames.size());
       if (next < frames.size()) {
         if (!send_blocked) {
           const auto since_send_ns =
@@ -261,8 +263,8 @@ stage_batch(cudaq_playback_provider_t handle,
           "UDP endpoint slot size or batch exceeds limits");
     // The bridge receives fixed-size slots; canonical request bytes exclude
     // this transport padding and remain unchanged at the front of each slot.
-    std::vector<std::vector<uint8_t>> frames;
-    for (size_t request_index = 0; request_index < params->request_count;
+    std::vector<std::vector<std::uint8_t>> frames;
+    for (std::size_t request_index = 0; request_index < params->request_count;
          ++request_index) {
       deadline.check();
       const auto *request =
@@ -309,7 +311,7 @@ stage_batch(cudaq_playback_provider_t handle,
 // handle and loaded library so the caller can retry cleanup.
 cudaq_playback_provider_status_t
 destroy_provider(cudaq_playback_provider_t handle,
-                 uint64_t cleanup_timeout_ns) {
+                 std::uint64_t cleanup_timeout_ns) {
   auto *context = static_cast<Context *>(handle);
   if (!context)
     return CUDAQ_PLAYBACK_PROVIDER_OK;
@@ -321,7 +323,7 @@ destroy_provider(cudaq_playback_provider_t handle,
   // The socket remains open until the worker can no longer access it.
   context->cancel = true;
   if (context->cancel_fd >= 0) {
-    const uint64_t notification = 1;
+    const std::uint64_t notification = 1;
     ssize_t written;
     do {
       written = ::write(context->cancel_fd, &notification, sizeof(notification));
@@ -347,7 +349,7 @@ destroy_provider(cudaq_playback_provider_t handle,
 cudaq_playback_provider_status_t
 create_provider(int argument_count, const char *const *arguments,
                 const cudaq_playback_provider_create_params_t *params,
-                uint64_t setup_timeout_ns,
+                std::uint64_t setup_timeout_ns,
                 cudaq_playback_provider_t *out_provider) {
   const SetupDeadline deadline(setup_timeout_ns);
   if (!out_provider) {
@@ -387,7 +389,7 @@ const char *last_error(cudaq_playback_provider_t handle) {
 // The only required export: return a static table for the requested ABI.
 // Common helpers implement status/result calls without transport I/O in them.
 extern "C" const cudaq_playback_provider_interface_t *
-cudaq_get_playback_provider_interface(uint32_t version) {
+cudaq_get_playback_provider_interface(std::uint32_t version) {
   static const cudaq_playback_provider_interface_t api = {
       create_provider,
       start_playback<Context>,

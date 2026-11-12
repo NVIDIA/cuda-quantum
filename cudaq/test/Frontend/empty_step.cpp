@@ -10,10 +10,12 @@
 
 #include "cudaq/qis/qubit_qis.h"
 
+#include <cstdint>
+
 __qpu__ void uma(cudaq::qubit &, cudaq::qubit &, cudaq::qubit &) {}
 
 __qpu__ void test(cudaq::qview<> a, cudaq::qview<> b) {
-  for (uint32_t i = a.size(); i-- > 1ul;) {
+  for (std::uint32_t i = a.size(); i-- > 1ul;) {
     uma(a[i - 1ul], b[i - 1ul], a[i]);
   }
 }

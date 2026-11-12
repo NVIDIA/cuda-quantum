@@ -12,6 +12,8 @@
 /// Invalid HSB settings fail before device access. UDP uses a local socket;
 /// no test here requires an FPGA, GPU or application dispatcher.
 #include "playback_common.h"
+#include <cstddef>
+#include <cstdint>
 #include <arpa/inet.h>
 #include <cerrno>
 #include <gtest/gtest.h>
@@ -24,7 +26,7 @@ namespace {
 class PlaybackProviderTest : public ::testing::TestWithParam<bool> {
 protected:
   Plugin plugin; ///< Owns the loaded library and any partial create handle.
-  std::vector<std::vector<uint8_t>> input =
+  std::vector<std::vector<std::uint8_t>> input =
       requests(1, 8);                               ///< One valid request.
   cudaq_playback_provider_create_params_t params{}; ///< Baseline for each test.
   bool hsb = false; ///< Select HSB input checks; never start its hardware.
@@ -52,7 +54,7 @@ protected:
   // case.
   void reject(const cudaq_playback_provider_create_params_t *settings,
               int argument_count = 0, const char *const *arguments = nullptr,
-              uint64_t timeout_ns = 1000000000) {
+              std::uint64_t timeout_ns = 1000000000) {
     EXPECT_EQ(plugin.api->create(argument_count, arguments, settings,
                                  timeout_ns, &plugin.handle),
               CUDAQ_PLAYBACK_PROVIDER_ERROR);
@@ -69,18 +71,18 @@ TEST_P(PlaybackProviderTest, RejectsInvalidBuffersAndDurations) {
   invalid.requests = nullptr;
   reject(&invalid);
   // Bounds checks must precede reads from the deliberately small input buffer.
-  for (size_t size : {size_t(0), size_t(23), SIZE_MAX}) {
+  for (std::size_t size : {std::size_t(0), std::size_t(23), SIZE_MAX}) {
     invalid = params;
     invalid.request_size_bytes = size;
     invalid.request_count = 2;
     reject(&invalid);
   }
-  for (size_t count : {size_t(0), SIZE_MAX}) {
+  for (std::size_t count : {std::size_t(0), SIZE_MAX}) {
     invalid = params;
     invalid.request_count = count;
     reject(&invalid);
   }
-  for (uint64_t duration : {uint64_t(0), UINT64_MAX}) {
+  for (std::uint64_t duration : {std::uint64_t(0), UINT64_MAX}) {
     reject(&params, 0, nullptr, duration);
     invalid = params;
     invalid.run_timeout_ns = duration;
@@ -145,7 +147,7 @@ TEST(UdpPlayback, ProgressesWithoutStatusPolling) {
   // An invalid cleanup budget must leave the prepared handle usable.
   EXPECT_EQ(plugin.api->destroy(plugin.handle, UINT64_MAX),
             CUDAQ_PLAYBACK_PROVIDER_ERROR);
-  uint8_t buffer[256];
+  std::uint8_t buffer[256];
   EXPECT_LT(::recv(server.descriptor, buffer, sizeof(buffer), MSG_DONTWAIT), 0);
   EXPECT_TRUE(errno == EAGAIN ||
               errno == EWOULDBLOCK); // No traffic before start.

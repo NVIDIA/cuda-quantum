@@ -13,6 +13,8 @@
 /// transmission, capture and timing. The optional start-file gate lets the
 /// runner prepare both ends before traffic begins; no provider SDK is linked.
 #include "playback_common.h"
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <iomanip>
 #include <limits>
@@ -31,9 +33,9 @@ int main(int argument_count, char **arguments) {
     // Keep common workload controls here; options after -- belong solely to
     // the provider. start_file is a runner synchronization file, not input data.
     std::string library, endpoint, start_file;
-    uint32_t count = 100, payload = 8;
-    uint64_t capture_quiet_ns = 1000000000;
-    uint64_t request_spacing_ns = 120000;
+    std::uint32_t count = 100, payload = 8;
+    std::uint64_t capture_quiet_ns = 1000000000;
+    std::uint64_t request_spacing_ns = 120000;
     bool forward = false, size_selected = false;
     std::vector<const char *> provider_args;
     for (int argument_index = 1; argument_index < argument_count;
@@ -53,14 +55,14 @@ int main(int argument_count, char **arguments) {
                        : argument.substr(equals_position + 1);
       // The same parser serves counts/sizes and wider nanosecond durations.
       // Reject signs, trailing text and overflow before narrowing the value.
-      auto number = [&](uint64_t maximum = UINT32_MAX) {
-        size_t parsed_length = 0;
+      auto number = [&](std::uint64_t maximum = UINT32_MAX) {
+        std::size_t parsed_length = 0;
         require(!value.empty() && value[0] != '-',
                 "Expected unsigned integer: " + argument);
         auto parsed_value = std::stoull(value, &parsed_length);
         require(parsed_length == value.size() && parsed_value <= maximum,
                 "Invalid integer: " + argument);
-        return uint64_t(parsed_value);
+        return std::uint64_t(parsed_value);
       };
       if (key == "--playback-provider" || key == "--provider" ||
           key == "--plugin")
@@ -165,7 +167,7 @@ int main(int argument_count, char **arguments) {
     // 4. Wait for frozen results, verify every response, and copy timing before
     // destroy releases provider-owned storage. Keep the integer ticks
     // untouched.
-    std::vector<std::pair<uint32_t, uint64_t>> samples;
+    std::vector<std::pair<std::uint32_t, std::uint64_t>> samples;
     const auto results = collect_batch(
         plugin, expected, [&](const cudaq_playback_provider_reply_t &reply) {
           // Missing RTT is valid; keep the correct packet in the reply count
@@ -212,7 +214,7 @@ int main(int argument_count, char **arguments) {
       // Sort integer ticks so large counters retain their exact ordering. For
       // an even sample count the median is the average of the two middle
       // values.
-      std::vector<uint64_t> ticks;
+      std::vector<std::uint64_t> ticks;
       for (const auto &sample : samples)
         ticks.push_back(sample.second);
       std::sort(ticks.begin(), ticks.end());

@@ -23,7 +23,7 @@ namespace cudaq::synth {
 /// "this tolerance is unreachable by construction" together with "the search
 /// ran out of room" -- a distinction the caller needs to decide whether
 /// retrying differently could help.
-enum class GridsynthOutcome : uint8_t {
+enum class GridsynthOutcome : std::uint8_t {
   /// A unitary meeting the tolerance was found by the grid search.
   Success,
 
@@ -109,34 +109,34 @@ struct GridsynthStats {
   /// Denominator exponent reached, and the bound allowed. `k_reached == k_max`
   /// on a failure means the search ran out of room rather than stalling on a
   /// single candidate.
-  details::Relaxed<int64_t> k_reached = 0;
-  details::Relaxed<int64_t> k_max = 0;
+  details::Relaxed<std::int64_t> k_reached = 0;
+  details::Relaxed<std::int64_t> k_max = 0;
 
   /// Grid candidates the TDGP stepper produced, summed over every k.
-  details::Relaxed<int64_t> candidates_enumerated = 0;
+  details::Relaxed<std::int64_t> candidates_enumerated = 0;
 
   /// Candidates dropped by the cheap residue gate before any factoring. The
   /// remainder is what the Diophantine solver was actually asked about.
-  details::Relaxed<int64_t> candidates_residue_rejected = 0;
+  details::Relaxed<std::int64_t> candidates_residue_rejected = 0;
 
   /// Diophantine solves attempted, and how many returned a solution. Many
   /// calls with few successes means the cost is candidate throughput, not
   /// per-candidate effort.
-  details::Relaxed<int64_t> diophantine_calls = 0;
-  details::Relaxed<int64_t> diophantine_successes = 0;
+  details::Relaxed<std::int64_t> diophantine_calls = 0;
+  details::Relaxed<std::int64_t> diophantine_successes = 0;
 
   /// How many degenerate solutions the scan had to compare on gate count:
   /// members of the unit orbit of w (`omega^j * w`, j = 0..7), other than the
   /// selected one, that reached the same minimal T-count. Zero means a single
   /// member reached the minimal T-count.
-  details::Relaxed<int64_t> orbit_t_count_ties = 0;
+  details::Relaxed<std::int64_t> orbit_t_count_ties = 0;
 
   /// Integer-factoring attempts, and how many returned a factor.
   /// `factoring_restarts` counts re-rolls on a composite a previous attempt
   /// failed to split.
-  details::Relaxed<int64_t> factoring_calls = 0;
-  details::Relaxed<int64_t> factoring_successes = 0;
-  details::Relaxed<int64_t> factoring_restarts = 0;
+  details::Relaxed<std::int64_t> factoring_calls = 0;
+  details::Relaxed<std::int64_t> factoring_successes = 0;
+  details::Relaxed<std::int64_t> factoring_restarts = 0;
 
   /// Solves abandoned because a work budget ran out rather than because the
   /// equation has no solution, split by which budget ended it, the
@@ -149,27 +149,27 @@ struct GridsynthStats {
   /// single counter reports "nothing changed" for a 2x regression. Each also
   /// says something different. A budget that never exhausts is not buying
   /// anything, one that exhausts constantly is costing T gates.
-  details::Relaxed<int64_t> candidates_restart_limited = 0;
-  details::Relaxed<int64_t> candidates_iteration_limited = 0;
+  details::Relaxed<std::int64_t> candidates_restart_limited = 0;
+  details::Relaxed<std::int64_t> candidates_iteration_limited = 0;
 
   /// Attempts `GridsynthOptions::timeout` ended before their iteration budget
   /// ran out, and the same one level up. Both must be zero for a run to
   /// reproduce across machines, which they are unless a timeout was set.
-  details::Relaxed<int64_t> factoring_wall_clock_exits = 0;
-  details::Relaxed<int64_t> diophantine_wall_clock_exits = 0;
+  details::Relaxed<std::int64_t> factoring_wall_clock_exits = 0;
+  details::Relaxed<std::int64_t> diophantine_wall_clock_exits = 0;
 
   /// Pollard-rho iterations summed over every attempt: the machine-independent
   /// measure of factoring effort, and what `maxFactoringIterations` bounds.
-  details::Relaxed<int64_t> factoring_iterations_total = 0;
+  details::Relaxed<std::int64_t> factoring_iterations_total = 0;
 
   /// MPFR working precision the call ran at. Enumeration cost scales with it,
   /// so it is the denominator for comparing per-k cost across tolerances.
-  details::Relaxed<int64_t> working_precision_bits = 0;
+  details::Relaxed<std::int64_t> working_precision_bits = 0;
 
   /// Nanoseconds spent enumerating candidates and solving their equations.
   /// The budgets in `GridsynthOptions` only move the second.
-  details::Relaxed<int64_t> enumeration_ns = 0;
-  details::Relaxed<int64_t> diophantine_ns = 0;
+  details::Relaxed<std::int64_t> enumeration_ns = 0;
+  details::Relaxed<std::int64_t> diophantine_ns = 0;
 };
 
 } // namespace cudaq::synth
