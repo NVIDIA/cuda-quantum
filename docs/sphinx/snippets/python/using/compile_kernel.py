@@ -17,27 +17,37 @@ cudaq.set_random_seed(42)
 
 # [Begin Kernel]
 @cudaq.kernel
-def trotter_steps(q: cudaq.qview):
-    # Four Trotter steps of an 8-qubit Ising-like chain.
-    for step in range(4):
-        scale = step + 1
-        for i in range(8):
-            rz(math.pi / (8 * scale), q[i])
-        for left in range(0, 7, 2):
-            x.ctrl(q[left], q[left + 1])
-            rz(math.pi / (16 * scale), q[left + 1])
-            x.ctrl(q[left], q[left + 1])
-        for left in range(1, 7, 2):
-            x.ctrl(q[left], q[left + 1])
-            rz(math.pi / (12 * scale), q[left + 1])
-            x.ctrl(q[left], q[left + 1])
+def inverse_qft(q: cudaq.qview):
+    n = q.size()
+    for i in range(n // 2):
+        swap(q[i], q[n - i - 1])
+    for i in range(n):
+        for j in range(i):
+            r1.ctrl(-math.pi / 2**(i - j), q[j], q[i])
+        h(q[i])
 
 
 @cudaq.kernel
-def trotter():
-    q = cudaq.qvector(8)
-    trotter_steps(q)
-    mz(q)
+def controlled_u(control: cudaq.qubit, system: cudaq.qview):
+    # Controlled exp(-i theta Z0 Z1 / 2), up to a global phase.
+    x.ctrl(system[0], system[1])
+    rz.ctrl(0.37, control, system[1])
+    x.ctrl(system[0], system[1])
+
+
+@cudaq.kernel
+def qpe():
+    # Quantum phase estimation with 4 counting qubits, applying the
+    # controlled unitary 2^k times for the k-th counting qubit.
+    counting = cudaq.qvector(4)
+    system = cudaq.qvector(2)
+    x(system[0])
+    h(counting)
+    for k in range(4):
+        for _ in range(2**k):
+            controlled_u(counting[k], system)
+    inverse_qft(counting)
+    mz(counting)
 
 
 # [End Kernel]
@@ -45,8 +55,8 @@ def trotter():
 # [Begin IQM]
 cudaq.set_target("iqm", emulate=True)
 
-results = cudaq.estimate(trotter)
-# 468 gates on 8 qubits: 404 `phased_rx`, 56 `cz` and 8 `mz`.
+results = cudaq.estimate(qpe)
+# 555 gates on 6 qubits: 473 `phased_rx`, 78 `cz` and 4 `mz`.
 print(results.resources)
 # [End IQM]
 
@@ -54,18 +64,18 @@ print(results.resources)
 CLIFFORD_T_TARGET = "compiler-bench-ftqc-clifford-t"
 cudaq.set_target(CLIFFORD_T_TARGET)
 
-results = cudaq.estimate(trotter)
-# 3714 gates on 8 qubits: 1507 `h`, 674 `s`, 1492 `t`, 8 `x`, 11 `z`,
-# 14 `cx` and 8 `mz`.
+results = cudaq.estimate(qpe)
+# 3262 gates on 6 qubits: 1313 `h`, 610 `s`, 1301 `t`, 6 `x`, 4 `z`,
+# 22 `cx`, 2 `swap` and 4 `mz`.
 print(results.resources)
 # [End CliffordT]
 
 # [Begin OptimizationLevel]
 cudaq.set_target(CLIFFORD_T_TARGET)
 
-# T count per level: 5978 (level 0), 5676 (level 1) and 1492 (levels 2 and 3).
+# T count per level: 3897 (level 0), 3797 (level 1) and 1301 (levels 2 and 3).
 for level in (0, 1, 2, 3):
-    resources = cudaq.estimate(trotter, optimization_level=level).resources
+    resources = cudaq.estimate(qpe, optimization_level=level).resources
     print(f'optimization_level = {level}:\n{resources}\n')
 # [End OptimizationLevel]
 
@@ -74,12 +84,12 @@ if importlib.util.find_spec("cudaq.logical") is not None:
     # [Begin Logical]
     import cudaq.logical as cql
 
-    cudaq.set_target(cql.targets.clifford_t_target(precision=1e-10))
-    # level 0:  5978 T
-    # level 1:  5676 T
-    # level 2:  1492 T
+    cudaq.set_target(cql.targets.clifford_t_target(precision=1e-6))
+    # level 0:  3897 T
+    # level 1:  3797 T
+    # level 2:  1301 T
     for level in range(3):
-        estimate = cudaq.estimate(trotter, optimization_level=level)
+        estimate = cudaq.estimate(qpe, optimization_level=level)
         print(f"level {level}: {estimate.resources.count('t'):>5} T")
     # [End Logical]
 
@@ -98,42 +108,43 @@ print(clifford_t_target)
 # [End GetCompileTarget]
 
 # [Begin ModifyTarget]
-new_basis_gates = ['x(1)', 'h', 'rz']
+new_basis_gates = ['x(1)', 'h', 'x', 'rz']
+new_target = clifford_t_target
 
 stage = clifford_t_target.stages[0]
 profile = stage.ir_output_profile
 profile.basis_gates = new_basis_gates
 stage.ir_output_profile = profile
-clifford_t_target.stages = [stage]
-# Same as before, but with `basis_gates=['x(1)', 'h', 'rz']`.
-print(clifford_t_target)
+new_target.stages = [stage]
+# Same as before, but with `basis_gates=['x(1)', 'h', 'x', 'rz']`.
+print(new_target)
 
 # Pass a named target and a compile target: kernels run on the named target,
 # but are compiled against the given compile target.
-cudaq.set_target("qpp-cpu", compile_target=clifford_t_target)
-# Gate counts per level, in addition to the 8 `mz` measurements:
-#   level 0: 56 `cx` and 60 `rz`
-#   level 1: 56 `cx` and 57 `rz`
-#   level 2: 14 `cx` and 15 `rz`
+cudaq.set_target("qpp-cpu", compile_target=new_target)
+# Gate counts per level, in addition to 8 `h`, 1 `x` and 4 `mz`:
+#   level 0: 78 `cx` and 48 `rz`
+#   level 1: 50 `cx` and 45 `rz`
+#   level 2: 28 `cx` and 20 `rz`
 for level in range(3):
-    resources = cudaq.estimate(trotter, optimization_level=level).resources
+    resources = cudaq.estimate(qpe, optimization_level=level).resources
     print(resources)
 # [End ModifyTarget]
 
 # [Begin CustomTarget]
 from cudaq._experimental import CompileTarget, QuakeUnmappedProfile, CostModel
 
-nisq_gates = ["h", "rx", "rz", "z(1)"]
+nisq_gates = ["h", "x", "rx", "rz", "z(1)"]
 nisq_profile = QuakeUnmappedProfile(basis_gates=nisq_gates,
                                     cost_model=CostModel.two_qubit_gate_count)
 nisq_target = CompileTarget(ir_output_profile=nisq_profile)
 cudaq.set_target("qpp-cpu", compile_target=nisq_target)
-# Gate counts per level, in addition to the 8 `mz` measurements:
-#   level 0: 56 `cz`, 112 `h` and 60 `rz`
-#   level 1: 56 `cz`, 112 `h` and 57 `rz`
-#   level 2: 14 `cz`, 28 `h` and 15 `rz`
+# Gate counts per level, in addition to 1 `x` and 4 `mz`:
+#   level 0: 78 `cz`, 164 `h` and 48 `rz`
+#   level 1: 50 `cz`, 108 `h` and 48 `rz`
+#   level 2: 28 `cz`, 64 `h` and 17 `rz`
 for level in range(3):
-    resources = cudaq.estimate(trotter, optimization_level=level).resources
+    resources = cudaq.estimate(qpe, optimization_level=level).resources
     print(resources)
 # [End CustomTarget]
 
@@ -143,11 +154,11 @@ from cudaq._experimental import CustomPipelineLowering
 # Just decompose the gates and do nothing else.
 custom_pipeline = "decomposition{basis=" + ",".join(nisq_gates) + "}"
 custom_target = CompileTarget(custom_pipeline=CustomPipelineLowering(
-    mid_level=custom_pipeline))
+    mid_level_pipeline=custom_pipeline))
 cudaq.set_target("qpp-cpu", compile_target=custom_target)
 
-resources = cudaq.estimate(trotter).resources
-# 236 gates: 56 `cz`, 112 `h`, 60 `rz` and 8 `mz`.
+resources = cudaq.estimate(qpe).resources
+# 295 gates: 78 `cz`, 164 `h`, 48 `rz`, 1 `x` and 4 `mz`.
 print(resources)
 # [End CustomPipeline]
 

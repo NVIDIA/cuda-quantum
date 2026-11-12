@@ -16,20 +16,20 @@ Behind the scenes, CUDA-Q must compile kernels defined in Python or C++
 into a form that can be executed on the target. This happens transparently
 any time a quantum kernel is launched (known as just-in-time (JIT) compilation).
 In this page, we look at the options available to configure and modify this
-compilation step.
+compilation step, focusing on the most common use cases. For a complete
+description of compile targets, including IR profiles, multi-stage targets and
+how compilation pipelines are inferred, see
+:doc:`Using compile targets to customize compilation <../extending/compiler/compile_targets>`.
 
 Compiling for built-in targets
 ++++++++++++++++++++++++++++++
 
-Consider the circuit below. It is a simple 8-qubit circuit made of alternating
-layers of ``rz`` and entangling ``x.ctrl`` gates. Trotter steps like these are
-often used to construct circuits that simulate Hamiltonians, but there is no
-need to understand this for the purposes of this page.
-
-.. literalinclude:: ../../snippets/python/using/compile_kernel.py
-    :language: python
-    :start-after: [Begin Kernel]
-    :end-before: [End Kernel]
+Throughout this page, we compile a kernel ``qpe`` that implements quantum
+phase estimation on 6 qubits: 4 counting qubits estimate the phase of a
+two-qubit unitary made of ``x.ctrl`` and ``rz`` gates, followed by an inverse
+quantum Fourier transform. There is no need to understand this algorithm for
+the purposes of this page. The full source code of the example is available
+:download:`here <../../snippets/python/using/compile_kernel.py>`.
 
 At the most basic level, a compiler's job is to take this high-level
 description of a computation and produce a circuit that a given target is able
@@ -94,7 +94,7 @@ device. When no level is specified, the compiler uses level 2.
 
 Depending on the compile target, the compiler will prioritize different metrics
 and may optimize for different cost functions. Using the previous Clifford+T
-target, we can see a 75% reduction in T gate count as the optimization level
+target, we can see a 67% reduction in T gate count as the optimization level
 increases:
 
 .. literalinclude:: ../../snippets/python/using/compile_kernel.py
@@ -116,8 +116,7 @@ override the desired approximation precision:
     :end-before: [End Logical]
     :dedent: 4
 
-With the same precision as the built-in target, the T counts match the ones
-above. Loosening the precision reduces the number of T gates required to
+Loosening the precision reduces the number of T gates required to
 approximate each rotation, at the cost of a less accurate circuit.
 
 .. _compile-kernel-custom-targets:
@@ -125,11 +124,14 @@ approximate each rotation, at the cost of a less accurate circuit.
 Using custom compile targets for finer-grained compilation control
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Using ``optimization_level`` to tweak the compiler is a pretty coarse setting.
-You can get into more detail by tweaking the built-in targets to suit your
-needs, or even defining your own custom compile targets from scratch. From here
-on, we rely on the experimental ``cudaq._experimental`` module, see the note at
-the top of this page.
+The optimization level is a useful high-level setting to control how much
+effort is spent on optimization. When finer-grained control is required over
+the compilation, you can tweak the built-in targets to suit your needs, or
+even define your own custom compile targets from scratch. From here on, we rely
+on the experimental ``cudaq._experimental`` module, see the note at the top of
+this page. The examples below cover a few common customizations;
+see :doc:`Using compile targets to customize compilation <../extending/compiler/compile_targets>`
+for the other available profiles, multi-stage targets and lowering options.
 
 To start with, here is how to retrieve the full configuration of the built-in
 Clifford+T compile target we have been using:
@@ -147,9 +149,9 @@ compiled circuit may use, the tolerance used to approximate rotations, and the
 cost model that the optimizations aim to minimize.
 
 We can for instance replace the allowed basis gates with CNOTs (written
-``x(1)``, that is an ``x`` gate with one control), Hadamards and ``rz``
-rotations. As a result, the compiler no longer synthesizes the rotations
-present in the ``trotter`` kernel:
+``x(1)``, that is an ``x`` gate with one control), Hadamards, ``x`` gates
+and ``rz`` rotations. As a result, the compiler no longer synthesizes the rotations
+present in the ``qpe`` kernel:
 
 .. literalinclude:: ../../snippets/python/using/compile_kernel.py
     :language: python
@@ -166,7 +168,7 @@ while the compile target gets overridden by our custom target.
 However, as configured, our custom target still optimizes for T count. This no
 longer makes sense now that we have changed the gate set. We can instead define
 our own compile target from scratch, using controlled-Z gates (written ``z(1)``),
-Hadamards and ``rx`` and ``rz`` rotations, and minimizing the number of
+Hadamards, ``x`` gates and ``rx`` and ``rz`` rotations, and minimizing the number of
 two-qubit gates:
 
 .. literalinclude:: ../../snippets/python/using/compile_kernel.py
@@ -176,10 +178,6 @@ two-qubit gates:
 
 In this case, optimization level 2 matches the performance achieved by the
 T-count optimized compilation.
-
-For more details on the available profiles and on how to build multi-stage
-compile targets, see
-:doc:`Using compile targets to customize compilation <../extending/compiler/compile_targets>`.
 
 Customizing all the way
 +++++++++++++++++++++++
@@ -194,6 +192,11 @@ circuit as the previous target at optimization level 0:
     :language: python
     :start-after: [Begin CustomPipeline]
     :end-before: [End CustomPipeline]
+
+Here we only override the mid-level pipeline. ``CustomPipelineLowering`` also
+accepts further arguments, see
+:doc:`Using compile targets to customize compilation <../extending/compiler/compile_targets>`
+for more details.
 
 Other than for experimentation, we strongly advise users against this. The
 internal CUDA-Q compiler pipelines change over time. A pipeline that works well
