@@ -82,7 +82,7 @@ that can be passed as the ``optimization_level`` argument to any of the CUDA-Q
 kernel launch functions, such as ``sample``, ``observe`` or ``estimate``. It
 controls which compiler optimizations should be enabled.  As with the
 ``-O0`` to ``-O3`` flags of classical compilers, higher levels correspond to
-more agressive optimizations, which should result in fewer gates in the final
+more aggressive optimizations, which should result in fewer gates in the final
 compiled program:
 
 - **Level 0**: only the transformations required to lower the kernel to the
@@ -90,7 +90,7 @@ compiled program:
 - **Level 1**: cheap local rewrites of adjacent or commuting gates, such as gate
   cancellation and rotation merging.
 - **Level 2**: analyses across the whole kernel, such as phase folding and
-  resynthesis. These take more compile time but usually produce smaller
+  re-synthesis. These take more compile time but usually produce smaller
   circuits.
 - **Level 3**: reserved for more expensive search-based optimizations. It
   currently behaves like level 2.
@@ -141,7 +141,7 @@ effort is spent on optimization. When finer-grained control is required over
 the compilation, you can tweak the built-in targets to suit your needs, or
 even define your own custom compile targets from scratch. From here on, we rely
 on the experimental ``cudaq._experimental`` module, see the note at the top of
-this page. The examples below cover a few common customizations;
+this page. The examples below cover a few common use cases;
 see :doc:`Using compile targets to customize compilation <../extending/compiler/compile_targets>`
 for the other available profiles, multi-stage targets and lowering options.
 

@@ -38,7 +38,7 @@ def controlled_u(control: cudaq.qubit, system: cudaq.qview):
 @cudaq.kernel
 def qpe():
     # Quantum phase estimation with 4 counting qubits, applying the
-    # controlled unitary 2^k times for the k-th counting qubit.
+    # controlled unitary 2^k times for the k-`th` counting qubit.
     counting = cudaq.qvector(4)
     system = cudaq.qvector(2)
     x(system[0])
