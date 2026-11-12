@@ -1223,8 +1223,8 @@ executing it.</p>
 <span class="c1"># pipeline explicitly.</span>
 <span class="n">explicit</span> <span class="o">=</span> <span class="n">CompileTarget</span><span class="p">(</span>
     <span class="n">custom_pipeline</span><span class="o">=</span><span class="n">CustomPipelineLowering</span><span class="p">(</span>
-        <span class="n">high_level</span><span class="o">=</span><span class="s2">"expand-measurements"</span><span class="p">,</span>
-        <span class="n">mid_level</span><span class="o">=</span><span class="s2">"basis-conversion{basis="</span> <span class="o">+</span> <span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">basis</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"}"</span><span class="p">,</span>
+        <span class="n">high_level_pipeline</span><span class="o">=</span><span class="s2">"expand-measurements"</span><span class="p">,</span>
+        <span class="n">mid_level_pipeline</span><span class="o">=</span><span class="s2">"basis-conversion{basis="</span> <span class="o">+</span> <span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">basis</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"}"</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">codegen</span><span class="o">=</span><span class="s2">"qir-base"</span><span class="p">,</span>
 <span class="p">)</span>
