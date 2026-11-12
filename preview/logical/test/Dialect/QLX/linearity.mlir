@@ -7,10 +7,10 @@
 // ========================================================================== //
 
 // REQUIRES: qlx-opt
-// RUN: qlx-opt %s --qlx-verify-linearity | FileCheck %s
+// RUN: qlx-opt %s --verify-linear-ownership | FileCheck %s
 
 // Legal single-ownership patterns. The P0 verifiers and the
-// qlx-verify-linearity pass both accept them.
+// verify-linear-ownership pass both accept them.
 
 module {
   // Each value is consumed once; measurement ends the chain.

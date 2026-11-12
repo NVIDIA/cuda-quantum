@@ -6,19 +6,23 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "qlx/Dialect/QLX/Transforms/Passes.h"
+#include "PassDetails.h"
 #include "cudaq/Optimizer/Analysis/LinearOwnership.h"
-#include "mlir/IR/BuiltinOps.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Optimizer/Transforms/VerifyLinearOwnership.h"
 
-namespace qlx {
-#define GEN_PASS_DEF_QLXVERIFYLINEARITY
-#include "qlx/Dialect/QLX/Transforms/Passes.h.inc"
-} // namespace qlx
+namespace cudaq::opt {
+#define GEN_PASS_DEF_VERIFYLINEAROWNERSHIP
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
 
 namespace {
+class VerifyLinearOwnershipPass
+    : public cudaq::opt::impl::VerifyLinearOwnershipBase<
+          VerifyLinearOwnershipPass> {
+public:
+  using VerifyLinearOwnershipBase::VerifyLinearOwnershipBase;
 
-struct QLXVerifyLinearityPass
-    : public qlx::impl::QLXVerifyLinearityBase<QLXVerifyLinearityPass> {
   void runOnOperation() override {
     cudaq::opt::LinearOwnershipReport report =
         cudaq::opt::analyzeLinearOwnership(getOperation());
@@ -30,5 +34,8 @@ struct QLXVerifyLinearityPass
     markAllAnalysesPreserved();
   }
 };
-
 } // namespace
+
+void cudaq::opt::registerLinearOwnershipVerifierPass() {
+  registerVerifyLinearOwnership();
+}

@@ -1,0 +1,25 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-linear-ownership %s | FileCheck %s
+
+// The pass only checks ops with the LinearOwnershipScope trait. No core op has
+// it yet, so here the pass must run and leave the IR unchanged.
+
+func.func @wires() {
+  %0 = quake.null_wire
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @wires() {
+// CHECK:         %[[W0:.*]] = quake.null_wire
+// CHECK:         %[[W1:.*]] = quake.h %[[W0]] : (!quake.wire) -> !quake.wire
+// CHECK:         quake.sink %[[W1]] : !quake.wire
+// CHECK:         return

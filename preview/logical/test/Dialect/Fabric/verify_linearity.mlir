@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // REQUIRES: qlx-opt
-// RUN: qlx-opt %s --qlx-verify-linearity | FileCheck %s
+// RUN: qlx-opt %s --verify-linear-ownership | FileCheck %s
 
 module {
   fabric.code @c {distance = 1 : i64, n = 1 : i64, k = 1 : i64, hx = [],

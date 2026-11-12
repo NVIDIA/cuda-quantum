@@ -30,7 +30,7 @@ driven by the IR itself rather than by names:
 
 The ``qlx.program`` and ``qlx.objective_body`` verifiers run the same
 analysis, so P0 that breaks the rule does not verify. ``qlx-opt
---qlx-verify-linearity`` runs it over every tier. This module calls that
+--verify-linear-ownership`` (a CUDA-Q core pass) runs it over every tier. This module calls that
 analysis and wraps its result for evidence records and error reporting.
 """
 

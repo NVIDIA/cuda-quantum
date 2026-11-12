@@ -2434,6 +2434,25 @@ def VerifyAtomicQuantumRegions :
   }];
 }
 
+def VerifyLinearOwnership : Pass<"verify-linear-ownership"> {
+  let summary = "Verify that every linear value is consumed exactly once";
+  let description = [{
+    Runs the linear-ownership analysis (cudaq/Optimizer/Analysis/
+    LinearOwnership.h) over every op with the `LinearOwnershipScope` trait
+    nested in the anchor op, including the anchor itself. Inside each scope,
+    every value whose type implements `LinearTypeInterface` and reports
+    `isLinear()` must be consumed exactly once on every path.
+
+    The pass reports every violation it finds: a double consume, a consume
+    inside a loop of a value defined outside it, an observation after the
+    consume, or a value that some path never consumes. Then it fails. It does
+    not change the IR.
+
+    Scopes whose body only declares a signature are skipped. Ops without the
+    `LinearOwnershipScope` trait, such as `func.func`, are not checked.
+  }];
+}
+
 def VerifyNoNoise : Pass<"verify-no-noise"> {
   let summary = "Fail on any `quake.apply_noise`.";
   let description = [{

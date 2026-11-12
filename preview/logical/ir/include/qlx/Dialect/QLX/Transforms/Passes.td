@@ -41,28 +41,6 @@ def QLXEstimateLogical
 }
 
 //===----------------------------------------------------------------------===//
-// QLXVerifyLinearity
-//===----------------------------------------------------------------------===//
-
-def QLXVerifyLinearity
-    : Pass<"qlx-verify-linearity", "::mlir::ModuleOp"> {
-  let summary = "Verify linear single ownership in every QLX body";
-  let description = [{
-    Runs the linear-ownership analysis over every `LinearOwnershipScope` op in
-    the module: `qlx.program`, `qlx.objective_body`, `lvm.kernel`,
-    `fabric.gadget`, `fabric.protocol`, `fabric.circuit`, and `phys.graph`.
-    Every value whose type implements `LinearTypeInterface` must be consumed
-    exactly once on every path. The pass reports each violation (double
-    consume, consume of a value captured into a loop, observation after the
-    consume, or a value never consumed on some path) and fails.
-
-    The P0 op verifiers already run this analysis. The pass extends it to the
-    later tiers and reports all violations instead of the first one. It does
-    not change the IR.
-  }];
-}
-
-//===----------------------------------------------------------------------===//
 // QLXSynthesizeRotations
 //===----------------------------------------------------------------------===//
 

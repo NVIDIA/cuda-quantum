@@ -7,10 +7,10 @@
 // ========================================================================== //
 
 // REQUIRES: qlx-opt
-// RUN: qlx-opt -split-input-file -verify-diagnostics %s --qlx-verify-linearity
+// RUN: qlx-opt -split-input-file -verify-diagnostics %s --verify-linear-ownership
 
-// qlx-verify-linearity checks every linear-ownership scope, not only P0, and
-// reports every violation rather than the first.
+// verify-linear-ownership checks every linear-ownership scope, not only P0,
+// and reports every violation rather than the first.
 
 module {
   fabric.code @c {distance = 1 : i64, n = 1 : i64, k = 1 : i64, hx = [],
