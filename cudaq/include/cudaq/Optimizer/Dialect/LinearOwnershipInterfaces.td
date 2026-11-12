@@ -9,6 +9,7 @@
 #ifndef CUDAQ_OPTIMIZER_DIALECT_LINEAR_OWNERSHIP_INTERFACES
 #define CUDAQ_OPTIMIZER_DIALECT_LINEAR_OWNERSHIP_INTERFACES
 
+include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/OpBase.td"
 
 //===----------------------------------------------------------------------===//
@@ -31,9 +32,9 @@ def LinearTypeInterface : TypeInterface<"LinearTypeInterface"> {
     but not the same as, `SSITypeTrait`. That trait stops MLIR
     canonicalization from merging block arguments across control-flow paths.
     Some of those merges break linearity, such as folding a loop-carried value
-    into the value from outside the loop. Others do not. The types that carry
-    `SSITypeTrait` today (`!quake.wire`, `!quake.cable`) are linear by
-    definition.
+    into the value from outside the loop. Others do not. A linear type should
+    carry both: list `LinearTypeTraits<...>.traits` rather than this interface
+    alone.
   }];
   let methods = [
     InterfaceMethod<
@@ -45,6 +46,38 @@ def LinearTypeInterface : TypeInterface<"LinearTypeInterface"> {
       "Whether a linear value of this type may end its life without a "
       "consuming use.",
       "bool", "mayDrop", (ins), [{}], [{ return false; }]>
+  ];
+}
+
+//===----------------------------------------------------------------------===//
+// SSI types
+//===----------------------------------------------------------------------===//
+
+// Block arguments of a type with this trait are not merged or removed by
+// MLIR canonicalization when every predecessor passes the same value. The
+// trait is declared by the CUDA-Q MLIR patch
+// (tpls/customizations/llvm/mlir-ssi.diff) as `mlir::TypeTrait::SSIType`.
+def SSITypeTrait : NativeTypeTrait<"SSIType">;
+
+//===----------------------------------------------------------------------===//
+// Linear type traits
+//===----------------------------------------------------------------------===//
+
+// The traits a linear type should list: `LinearTypeInterface` together with
+// `SSITypeTrait`, so that canonicalization cannot fold a loop-carried linear
+// value into the value from outside the loop. `overrides` names the
+// `LinearTypeInterface` methods the type implements itself. Use it as
+//
+//   def MyType : TypeDef<MyDialect, "My",
+//       !listconcat(LinearTypeTraits<["mayDrop"]>.traits, [OtherTrait])>;
+//
+// `SSITypeTrait` is per class, so a type whose `isLinear()` depends on its
+// parameters is protected for every parameter value. That is safe: it only
+// turns off some folds.
+class LinearTypeTraits<list<string> overrides = []> {
+  list<Trait> traits = [
+    SSITypeTrait,
+    DeclareTypeInterfaceMethods<LinearTypeInterface, overrides>
   ];
 }
 

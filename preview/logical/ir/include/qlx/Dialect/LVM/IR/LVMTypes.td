@@ -19,14 +19,14 @@ class LVM_Type<string name, string typeMnemonic, list<Trait> traits = []>
 }
 
 def LVM_LogicalQubitType : LVM_Type<"LogicalQubit", "logical_qubit",
-    [LinearTypeInterface]> {
+    LinearTypeTraits<>.traits> {
   let summary = "logical qubit bound to a logical space or advanced placement";
   let parameters = (ins "::mlir::SymbolRefAttr":$placement);
   let assemblyFormat = "`<` $placement `>`";
 }
 
 def LVM_LogicalResourceType : LVM_Type<"LogicalResource", "logical_resource",
-    [LinearTypeInterface]> {
+    LinearTypeTraits<>.traits> {
   let summary = "linear logical resource bound to one machine stream";
   let parameters = (ins
     StringRefParameter<"resource kind">:$kind,
@@ -35,8 +35,8 @@ def LVM_LogicalResourceType : LVM_Type<"LogicalResource", "logical_resource",
   let assemblyFormat = "`<` $kind `,` $stream `>`";
 }
 
-def LVM_LogicalFrameType : LVM_Type<"LogicalFrame", "logical_frame", [
-    DeclareTypeInterfaceMethods<LinearTypeInterface, ["mayDrop"]>]> {
+def LVM_LogicalFrameType : LVM_Type<"LogicalFrame", "logical_frame",
+    LinearTypeTraits<["mayDrop"]>.traits> {
   let summary = "placed-kernel symbolic logical-frame state";
   let parameters = (ins StringRefParameter<"frame domain">:$domain);
   let assemblyFormat = "`<` $domain `>`";

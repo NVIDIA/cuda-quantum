@@ -27,7 +27,7 @@ class QLX_Type<string name, string typeMnemonic, list<Trait> traits = []>
 //===----------------------------------------------------------------------===//
 
 def QLX_LogicalQubitType : QLX_Type<"LogicalQubit", "logical_qubit",
-    [LinearTypeInterface]> {
+    LinearTypeTraits<>.traits> {
   let summary = "one unplaced logical quantum degree of freedom";
   let description = [{
     The canonical QLX P0 quantum value.  It carries no machine, region,
@@ -42,14 +42,14 @@ def QLX_LogicalQubitType : QLX_Type<"LogicalQubit", "logical_qubit",
 }
 
 def QLX_LogicalResourceType : QLX_Type<"LogicalResource", "logical_resource",
-    [LinearTypeInterface]> {
+    LinearTypeTraits<>.traits> {
   let summary = "one portable linear logical resource payload";
   let parameters = (ins StringRefParameter<"resource kind">:$kind);
   let assemblyFormat = "`<` $kind `>`";
 }
 
-def QLX_LogicalFrameType : QLX_Type<"LogicalFrame", "logical_frame", [
-    DeclareTypeInterfaceMethods<LinearTypeInterface, ["mayDrop"]>]> {
+def QLX_LogicalFrameType : QLX_Type<"LogicalFrame", "logical_frame",
+    LinearTypeTraits<["mayDrop"]>.traits> {
   let summary = "portable symbolic logical-frame state";
   let parameters = (ins StringRefParameter<"frame domain">:$domain);
   let assemblyFormat = "`<` $domain `>`";

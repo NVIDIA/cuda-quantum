@@ -19,10 +19,9 @@ class Phys_Type<string name, string typeMnemonic, list<Trait> traits = []>
   let mnemonic = typeMnemonic;
 }
 
-def Phys_StateType : TypeDef<Phys_Dialect, "State", [
-    DeclareTypeInterfaceMethods<Event_UniqueCarryOwnerInterface>,
-    LinearTypeInterface
-  ]> {
+def Phys_StateType : TypeDef<Phys_Dialect, "State", !listconcat(
+    [DeclareTypeInterfaceMethods<Event_UniqueCarryOwnerInterface>],
+    LinearTypeTraits<>.traits)> {
   let mnemonic = "state";
   let parameters = (ins "mlir::FlatSymbolRefAttr":$resource);
   let assemblyFormat = "`<` $resource `>`";
@@ -34,7 +33,7 @@ def Phys_RecordType : Phys_Type<"Record", "record"> {
 }
 
 def Phys_ResourcePayloadType : Phys_Type<"ResourcePayload", "resource_payload",
-    [LinearTypeInterface]> {
+    LinearTypeTraits<>.traits> {
   let summary = "linear payload delivered by a physical resource provider";
   let parameters = (ins "mlir::FlatSymbolRefAttr":$kind);
   let assemblyFormat = "`<` $kind `>`";
