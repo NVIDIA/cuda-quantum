@@ -47,7 +47,7 @@ gpu_id=0
 threads=32
 samples=100
 message_size=32
-spacing_ns=120000
+message_send_rate=10000
 quiet_ns=1000000000
 timeout_ns=30000000000
 output_dir=""
@@ -93,10 +93,12 @@ Selection:
 Workload and timing:
   --num-messages=N         Request count (default: 100)
   --message-size=N         RPC header + payload bytes (default: 32 = 24 + 8)
-  --spacing-ns=N           Request start-to-start interval (default: 120000)
+  --message-send-rate=N    Positive integer messages/second (default: 10000)
   --quiet-ns=N             Capture quiet interval (default: 1000000000)
   --timeout-ns=N           Separate setup/run/cleanup budgets (default: 30000000000)
 
+  The requested rate and configured message spacing are logged.
+  HSB spacing is rounded up to whole microseconds, with a minimum of 1 µs.
   Durations above are integer nanoseconds. Quiet time must be positive and
   shorter than the timeout. RPC increment adds one to each payload byte.
   Forward mode instead checks an unchanged native echo, without RPC dispatch.
@@ -153,7 +155,7 @@ Existing command compatibility:
   These operations use the legacy tools, not the playback-provider workflow.
   --dispatch and --message-size translate to legacy options; --bridge-arg and
   arguments after -- retain their exact tokens (requires --app validation_app).
-  Playback-provider options, --spacing-ns, --quiet-ns, --timeout-ns and
+  Playback-provider options, --message-send-rate, --quiet-ns, --timeout-ns and
   --output-dir have no legacy equivalent and are rejected in this mode.
 
 All value options accept --name=value or --name value.
@@ -295,7 +297,7 @@ while (( $# )); do
         --payload-size)
             [[ "$value" =~ ^[0-9]+$ && ${#value} -le 9 ]] || fail "Invalid payload size"
             message_size=$((10#$value + 24)) ;;
-        --spacing-ns) spacing_ns=$value ;;
+        --message-send-rate) message_send_rate=$value ;;
         --quiet-ns) quiet_ns=$value ;;
         --timeout-ns) timeout_ns=$value ;;
         --timeout)
@@ -322,7 +324,7 @@ done
 # Validate common values before either execution path can launch commands.
 case "$dispatch" in separate|unified|forward) ;; *) fail "Invalid dispatch mode: $dispatch" ;; esac
 # Bounds also prevent signed Bash arithmetic overflow in the process watchdogs.
-for setting in samples message_size spacing_ns quiet_ns timeout_ns gpu_id threads page_size num_pages; do
+for setting in samples message_size message_send_rate quiet_ns timeout_ns gpu_id threads page_size num_pages; do
     value=${!setting}
     [[ "$value" =~ ^[0-9]+$ && ${#value} -le 18 ]] || fail "Invalid integer: $setting"
     # Force decimal interpretation, including values with leading zeros.
@@ -369,7 +371,7 @@ if "$legacy_action"; then
                 [[ "$value" =~ ^[0-9]+$ && ${#value} -le 9 ]] || fail "Invalid message size"
                 (( 10#$value >= 24 )) || fail "Message size must be >=24"
                 legacy_arguments+=(--payload-size "$((10#$value - 24))") ;;
-            --playback-provider|--provider|--playback-arg|--provider-arg|--spacing-ns|--quiet-ns|--timeout-ns|--output-dir)
+            --playback-provider|--provider|--playback-arg|--provider-arg|--message-send-rate|--quiet-ns|--timeout-ns|--output-dir)
                 fail "$option has no equivalent in the legacy roce_test.sh workflow" ;;
             *) legacy_arguments+=("$option" "$value") ;;
         esac
@@ -438,6 +440,15 @@ if [[ -z "$provider" ]]; then
     [[ "$transport" != udp ]] || playback_kind=udp
     provider=$(find_library "libcudaq-playback-provider-$playback_kind.so" "${playback_dirs[@]}")
 fi
+# Convert rate to the existing spacing argument, rounding up so playback is
+# never configured faster than requested. HSB requires whole microseconds.
+spacing_ns=$(((1000000000 + message_send_rate - 1) / message_send_rate))
+if [[ "${provider##*/}" == libcudaq-playback-provider-hsb.so ]]; then
+    (( spacing_ns >= 1000 )) || fail "HSB requires at least 1000 ns between requests"
+    spacing_ns=$((((spacing_ns + 999) / 1000) * 1000))
+fi
+rate_log="SEND_RATE requested_messages_per_second=$message_send_rate request_spacing_ns=$spacing_ns"
+echo "$rate_log"
 # Built-in adapters translate common settings. Explicit plugin options follow
 # these defaults and can override them. Custom bridges receive only user options.
 preset_args=()
@@ -578,7 +589,8 @@ playback_command=("$playback_app" "--playback-provider=$provider" "--start-file=
 playback_command+=(-- "${provider_args[@]}")
 printf '%q ' "${playback_command[@]}" >> "$output_dir/commands.sh"
 printf '\n' >> "$output_dir/commands.sh"
-timeout --signal=TERM --kill-after=5s "${playback_seconds}s" "${playback_command[@]}" > "$output_dir/playback.log" 2>&1 &
+printf '%s\n' "$rate_log" > "$output_dir/playback.log"
+timeout --signal=TERM --kill-after=5s "${playback_seconds}s" "${playback_command[@]}" >> "$output_dir/playback.log" 2>&1 &
 playback_pid=$!
 # Producer create and RTH connect may perform a rendezvous. Wait for both, then
 # release start; no test request can be sent during their preparation.

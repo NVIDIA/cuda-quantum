@@ -72,6 +72,12 @@ with tempfile.TemporaryDirectory(prefix="validation options ") as temporary:
             record = case / f"{name}.args"
             received[name] = record.read_text().split(
                 "\0")[:-1] if record.exists() else []
+        received["stdout"] = result.stdout
+        received["stderr"] = result.stderr
+        received["playback_log"] = ((case / "logs" /
+                                     "playback.log").read_text() if
+                                    (case / "logs" /
+                                     "playback.log").exists() else "")
         return received
 
     # Invalid flags must fail before delegation can run network setup. The
@@ -83,21 +89,62 @@ with tempfile.TemporaryDirectory(prefix="validation options ") as temporary:
             received = run(["--setup-network", f"{flag}={value}"],
                            True,
                            expected_status=1)
-            assert not any(received.values())
+            assert not any(
+                received[name] for name in ("rth", "playback", "legacy"))
     for option in ("--gpu=false", "--gpu=", "--gpu=2147483648", "--gpu-id=no"):
         received = run(["--setup-network", option], True, expected_status=1)
-        assert not any(received.values())
+        assert not any(received[name] for name in ("rth", "playback", "legacy"))
 
-    # Preserve the default FPGA ring and workload, which must not change when
-    # plugin selection or argument forwarding is refactored.
+    # Preserve the default ring/workload and convert the new 10k/s default
+    # into the existing playback-app spacing argument.
     received = run([])
     for option in ("--gpu", "--dispatch=separate", "--page-size=384",
                    "--num-pages=128"):
         assert option in received["rth"]
     for option in ("--num-messages=100", "--message-size=32",
-                   "--spacing-ns=120000", "--quiet-ns=1000000000",
+                   "--spacing-ns=100000", "--quiet-ns=1000000000",
                    "--timeout-ns=30000000000"):
         assert option in received["playback"]
+
+    default_rate_log = "SEND_RATE requested_messages_per_second=10000 request_spacing_ns=100000"
+    assert default_rate_log in received["stdout"]
+    assert default_rate_log in received["playback_log"]
+
+    # Check exact conversion, upward rounding, leading-zero decimal inputs,
+    # rates beyond 1M/s, and the 1 ns representation floor. No hardware used.
+    for rate, spacing in ((1, 1000000000), (3, 333333334), (10000, 100000),
+                          (30000, 33334), (1000000, 1000), (2000000, 500),
+                          (1000000000, 1), (999999999999999999, 1), ("010000",
+                                                                     100000)):
+        received = run([
+            "--message-send-rate",
+            str(rate), "--playback-provider=libcudaq-playback-provider-udp.so"
+        ])
+        assert f"--spacing-ns={spacing}" in received["playback"]
+        conversion = (f"SEND_RATE requested_messages_per_second={int(rate)} "
+                      f"request_spacing_ns={spacing}")
+        assert conversion in received["stdout"]
+        assert conversion in received["playback_log"]
+    # HSB gets whole microseconds from the script; its provider is unchanged.
+    for rate, spacing in ((1, 1000000000), (3, 333334000), (30000, 34000),
+                          (1000000, 1000)):
+        received = run([f"--message-send-rate={rate}"])
+        assert f"--spacing-ns={spacing}" in received["playback"]
+        conversion = (f"SEND_RATE requested_messages_per_second={rate} "
+                      f"request_spacing_ns={spacing}")
+        assert conversion in received["stdout"]
+        assert conversion in received["playback_log"]
+    received = run(["--message-send-rate=2000000"], expected_status=1)
+    assert "HSB requires at least 1000 ns" in received["stderr"]
+    assert not received["rth"] and not received["playback"]
+
+    for rate in ("0", "-1", "1.5", "nan", "10000oops", "1000000000000000000",
+                 ""):
+        received = run([f"--message-send-rate={rate}"], expected_status=1)
+        assert not any(received[name] for name in ("rth", "playback", "legacy"))
+    received = run(["--spacing-ns=100000"], expected_status=1)
+    assert "Unknown runner option: --spacing-ns=100000" in received["stderr"]
+    assert not received["playback"]
 
     # Quoted lists preserve spaces and literal shell expressions without executing them.
     marker = root / "must-not-exist"
@@ -158,7 +205,9 @@ with tempfile.TemporaryDirectory(prefix="validation options ") as temporary:
         "--bin-dir",
         str(root)
     ]
-    received = run(["--emulate", "--spacing-ns=1000"], True, expected_status=1)
+    received = run(["--emulate", "--message-send-rate=10000"],
+                   True,
+                   expected_status=1)
     assert not received["legacy"]
 
     # Exercise the real legacy parser without starting networking or playback.

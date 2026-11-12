@@ -211,7 +211,7 @@ typedef struct {
 | `requests` | `const uint8_t *` | Required pointer to consecutive equal-sized RPC requests in transmission order, without transport padding. Each request has its own ID and payload. The app supplies readable storage for `request_size_bytes * request_count` bytes. | Buffer of 100 × 32 = 3,200 bytes |
 | `request_size_bytes` | `size_t` | Bytes per request, including the 24-byte header and payload. Must be at least 24 and fit the provider's packet limits. The provider adds native padding. | `32` (24-byte header + 8-byte payload) |
 | `request_count` | `size_t` | Nonzero number of requests. The product with `request_size_bytes` must fit in `size_t`. Each request ID is unique within the batch. | `100` |
-| `request_spacing_ns` | `uint64_t` | Required positive start-to-start request interval in nanoseconds. Sending follows this interval independently of replies. Reject values outside provider limits. | `120000` (120 µs between request starts) |
+| `request_spacing_ns` | `uint64_t` | Required positive start-to-start request interval in nanoseconds. Sending follows this interval independently of replies. Reject values outside provider limits. | `100000` (100 µs between request starts) |
 | `run_timeout_ns` | `uint64_t` | Run budget from start through playback, reply capture and result download. Must exceed `capture_quiet_ns`. | `30000000000` (30 seconds) |
 | `capture_quiet_ns` | `uint64_t` | After at least `request_count` packets have been captured, keep recording until this many nanoseconds pass without another packet. **HSB:** the ILA packet count must stop changing before capture is stopped and read out. **`UDP`:** keep receiving from the socket until no datagram arrives for this interval. Any new packet restarts the wait in both cases. Must be positive and shorter than `run_timeout_ns`. | `1000000000` (1 second): after 100 packets, wait for this interval without another packet. Packet 101 is retained and restarts the wait, allowing the app to detect the extra reply. |
 
@@ -252,7 +252,7 @@ and slot size; its `--host` argument supplies the reachable `RTH` address
 The examples show only the fields these providers use. The app forwards the
 full endpoint unchanged; the providers ignore additional bridge metadata.
 
-The field examples describe 100 requests of 32 bytes, sent 120 µs apart.
+The field examples describe 100 requests of 32 bytes, sent 100 µs apart.
 Use the endpoint published by the running `RTH`; the QP, key and address above
 are illustrative. For increment validation, eight `00` payload bytes produce
 eight `01` bytes; eight `ff` bytes produce eight `00` bytes.
@@ -505,14 +505,19 @@ and repetitions belong to the validation plan.
 
 ### Reading the validation output
 
+Use `--message-send-rate=N` to set the requested send rate in messages per
+second (positive integer; default: **10,000**, equivalent to **100 µs between
+messages**). The validation output and `playback.log` show the requested rate
+and corresponding message spacing.
+
 For example, select GPU unified dispatch and run
-`--num-messages=100 --message-size=32 --spacing-ns=120000`.
+`--num-messages=100 --message-size=32 --message-send-rate=10000`.
 This sends 100 increment requests, each containing a 24-byte RPC header and
-8 payload bytes, with a requested start-to-start interval of 120 µs.
+8 payload bytes, with a requested start-to-start interval of 100 µs.
 Transport padding is separate from the 32-byte message size. Requests follow
 the configured interval independently of reply arrival; provider limits and
 host scheduling can constrain the intervals actually achieved. With round trips
-well below 120 µs, this is a low-load test. The default 100 samples and summary
+well below 100 µs, this is a low-load test. The default 100 samples and summary
 statistics do not characterize rare latency spikes; retain raw samples across
 runs for further analysis.
 
@@ -522,7 +527,8 @@ The actual stdout contains one `LATENCY` record for **every measured request**.
 
 ```text
 CUDAQ_VALIDATION_CASE execution=gpu dispatch=unified workload=rpc_increment bridge=libcudaq-realtime-bridge-gpu-roce.so
-WORKLOAD name=rpc_increment samples=100 message_size_bytes=32 payload_size_bytes=8 request_spacing_ns=120000
+SEND_RATE requested_messages_per_second=10000 request_spacing_ns=100000
+WORKLOAD name=rpc_increment samples=100 message_size_bytes=32 payload_size_bytes=8 request_spacing_ns=100000
 REPLIES PASS: 100/100 packets received correctly
 CLOCK tick_period_numerator=1 tick_period_denominator=1000000000 tick_period_seconds=1e-09
 LATENCY request_id=1 ticks=11900 ns=11900
@@ -610,7 +616,7 @@ Providers can impose smaller limits:
 
 | Provider | Supported workload and capture |
 | --- | --- |
-| HSB | RFSoC 585-bit ILA profile; at most 512 requests of 24–64 canonical bytes, padded to 64-byte playback windows. Spacing is 1,000–1,000,000,000 ns in whole microseconds. The provider requires one valid, final capture beat per packet and a contiguous valid-byte mask (`tkeep`); partial, multi-beat or full captures are errors for this profile. |
+| HSB | RFSoC 585-bit ILA profile; at most 512 requests of 24–64 canonical bytes, padded to 64-byte playback windows. Spacing is 1,000–1,000,000,000 ns in whole microseconds; the runner rounds rate-derived intervals to meet this requirement. The provider requires one valid, final capture beat per packet and a contiguous valid-byte mask (`tkeep`); partial, multi-beat or full captures are errors for this profile. |
 | `UDP` | Padded datagrams up to 65,507 bytes and at most 64 `MiB` of padded request storage. Retains actual received lengths. Host scheduling can delay sends. |
 
 ## Information needed to validate a `QCS` networking interface with CUDA-Q realtime
@@ -655,7 +661,7 @@ software sender can provide this behavior.
 | What we need to know | Why it is needed | HSB FPGA example |
 | --- | --- | --- |
 | **Workload preparation:** how to express the supplied RPC requests through the native transport, including framing and padding. | Preserve the request headers and payloads that `validation_app` processes and the shared app verifies. | Batched `UDP` writes load request bytes into `BRAM`; `UDP` reads verify them. The HSB profile pads each request to a 64-byte playback window. |
-| **Playback settings and limits:** how to set message count, size and start-to-start interval, and which values are supported. | Run a finite batch independently of application status checks or reply arrival. Reject unsupported settings before starting. | `UDP` register writes set the window count, window size and playback timer. For example, 100 requests with 8-byte payloads are sent 120 µs apart by the FPGA player. |
+| **Playback settings and limits:** how to set message count, size and start-to-start interval, and which values are supported. | Run a finite batch independently of application status checks or reply arrival. Reject unsupported settings before starting. | `UDP` register writes set the window count, window size and playback timer. For example, 100 requests with 8-byte payloads are sent 100 µs apart by the FPGA player. |
 
 ### 3. Reply capture and timing
 

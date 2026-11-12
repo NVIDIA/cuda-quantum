@@ -137,8 +137,12 @@ Please refer to this [section](#using-docker) for instructions.
     tick.
     Unavailable timing is reported separately and does not fail packet validation.
     Use `--num-messages`, `--message-size` (header plus payload bytes), and
-    `--spacing-ns` to vary the workload. Defaults are 100 requests, 32 bytes and
-    120,000 ns spacing. Run `validate.sh --help` for all options; see the
+    `--message-send-rate` (messages/second) to vary the workload. Defaults are
+    100 requests, 32 bytes and 10,000 messages/second (100,000 ns spacing).
+    The runner logs the requested rate and converted spacing. For HSB, the
+    script rounds accepted intervals up to whole microseconds; intervals
+    below 1 µs are rejected.
+    Run `validate.sh --help` for all options; see the
     [validation architecture](validation_workflow.md#reading-the-validation-output)
     for output details.
 
