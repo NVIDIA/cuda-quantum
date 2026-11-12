@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.
  ******************************************************************************/
 
-#include "../validation/hsb_emulator_timing.h"
 #include "../validation/hsb_capture.h"
+#include "../validation/hsb_emulator_timing.h"
 #include <gtest/gtest.h>
 
 #include <algorithm>

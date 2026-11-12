@@ -14,9 +14,9 @@
 /// request/reply verification. All device access goes through the HSB SDK.
 #pragma once
 
-#include <cstddef>
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <hololink/core/hololink.hpp>
 #include <hololink/core/timeout.hpp>
@@ -290,7 +290,7 @@ extract_payload_bytes(const std::vector<std::uint32_t> &sample,
 }
 
 /// Extract the 64-bit current_ptp_timestamp from ILA bits [584:521].
-/// Returns {sec[31:0], nsec[31:0]} packed as a uint64.
+/// Returns `{sec[31:0], nsec[31:0]}` packed as a uint64.
 inline std::uint64_t
 extract_ila_ptp_timestamp(const std::vector<std::uint32_t> &sample) {
   // Bits 521..584 span words 16 and 17 (and partially 18).
@@ -309,7 +309,7 @@ extract_ila_ptp_timestamp(const std::vector<std::uint32_t> &sample) {
 
 // Decoded FPGA PTP time, used to subtract stamps across a second boundary.
 struct PtpTimestamp {
-  std::uint32_t sec; ///< Whole seconds from the captured PTP clock.
+  std::uint32_t sec;  ///< Whole seconds from the captured PTP clock.
   std::uint32_t nsec; ///< Nanosecond portion within that second.
 };
 

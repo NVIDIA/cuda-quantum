@@ -19,9 +19,9 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
-#include <cstddef>
 #include <chrono>
 #include <csignal>
+#include <cstddef>
 #include <cstdint>
 #include <cuda_runtime.h>
 #include <iostream>
@@ -42,18 +42,19 @@ namespace {
 // Receiver and RoCE settings. parse_args() validates the common geometry;
 // the selected bridge validates its own transport-specific requirements.
 struct Config {
-  bool cpu = false;     ///< Select host dispatch and the CPU RoCE bridge.
-  bool unified = false; ///< Combine receive, dispatch and transmit execution.
-  bool forward = false; ///< Echo through the bridge without invoking an RPC.
-  int gpu = 0;          ///< CUDA device ordinal for GPU execution.
-  int timeout = 60;     ///< Seconds to serve requests after App Ready.
+  bool cpu = false;      ///< Select host dispatch and the CPU RoCE bridge.
+  bool unified = false;  ///< Combine receive, dispatch and transmit execution.
+  bool forward = false;  ///< Echo through the bridge without invoking an RPC.
+  int gpu = 0;           ///< CUDA device ordinal for GPU execution.
+  int timeout = 60;      ///< Seconds to serve requests after App Ready.
   unsigned threads = 32; ///< Threads per GPU dispatch block.
   std::string device = "mlx5_0"; ///< RDMA device connected to the producer.
   std::string peer_ip = "192.168.0.2"; ///< Producer's data-plane IP address.
-  unsigned remote_qp = 2;             ///< Producer's RoCE queue-pair number.
-  unsigned num_pages = 128;           ///< Number of receive/transmit ring slots.
-  std::size_t page_size = 384; ///< Slot stride in bytes, including header space.
-  unsigned payload_size = 8;  ///< RPC argument bytes, excluding the RPC header.
+  unsigned remote_qp = 2;              ///< Producer's RoCE queue-pair number.
+  unsigned num_pages = 128; ///< Number of receive/transmit ring slots.
+  /// Slot stride in bytes, including header space.
+  std::size_t page_size = 384;
+  unsigned payload_size = 8; ///< RPC argument bytes, excluding the RPC header.
   std::vector<std::string> gpu_options; ///< GPU QP-exchange options to forward.
 };
 
@@ -150,15 +151,19 @@ void on_signal(int) { interrupted = 1; }
 // Tables and control storage must outlive the dispatcher and bridge, including
 // partial initialization. CPU mode never allocates/frees CUDA memory.
 struct Resources {
-  cudaq_realtime_bridge_handle_t bridge = nullptr; ///< Owns transport resources.
-  cudaq_dispatch_manager_t *manager = nullptr; ///< Creates/manages the dispatcher.
-  cudaq_dispatcher_t *dispatcher = nullptr;    ///< Absent in native forward mode.
+  /// Owns transport resources.
+  cudaq_realtime_bridge_handle_t bridge = nullptr;
+  /// Creates/manages the dispatcher.
+  cudaq_dispatch_manager_t *manager = nullptr;
+  cudaq_dispatcher_t *dispatcher = nullptr; ///< Absent in native forward mode.
   volatile int host_shutdown = 0; ///< Stop flag read by the CPU dispatcher.
-  std::uint64_t host_stats = 0;        ///< CPU dispatcher's processed-request count.
+  std::uint64_t host_stats = 0;   ///< CPU dispatcher's processed-request count.
   cudaq_function_entry_t host_entries[1]{}; ///< Host increment handler entry.
   int *mapped_shutdown = nullptr; ///< Host allocation also readable by the GPU.
-  std::uint64_t *device_stats = nullptr; ///< GPU allocation for the processed count.
-  cudaq_function_entry_t *device_entries = nullptr; ///< GPU handler table storage.
+  /// GPU allocation for the processed count.
+  std::uint64_t *device_stats = nullptr;
+  /// GPU handler table storage.
+  cudaq_function_entry_t *device_entries = nullptr;
 
   void stop() {
     // Set mapped memory before stop()'s CUDA copy: the default stream may
@@ -207,7 +212,8 @@ int main(int argument_count, char **arguments) {
     Resources resources;
 
     // 1. Translate the shared RoCE settings into the selected bridge's CLI.
-    // CPU frame size includes the RPC header; the GPU bridge takes payload size.
+    // CPU frame size includes the RPC header; the GPU bridge takes payload
+    // size.
     std::vector<std::string> options = {
         "--device=" + config.device, "--peer-ip=" + config.peer_ip,
         "--remote-qp=" + std::to_string(config.remote_qp)};
@@ -314,7 +320,8 @@ int main(int argument_count, char **arguments) {
         table.entries = resources.device_entries;
       }
       // Register the table with dispatch and any bridge that needs it; the
-      // bridge API treats an absent registration callback as a successful no-op.
+      // bridge API treats an absent registration callback as a successful
+      // no-op.
       HANDLE_REALTIME_ERROR(
           cudaq_dispatcher_set_function_table(resources.dispatcher, &table));
       HANDLE_REALTIME_ERROR(

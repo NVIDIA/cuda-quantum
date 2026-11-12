@@ -36,14 +36,14 @@ typedef int32_t cudaq_playback_provider_status_t;
 // constants explicitly; RUNNING and COMPLETE apply only to check_complete.
 enum {
   CUDAQ_PLAYBACK_PROVIDER_OK = 0,
-  CUDAQ_PLAYBACK_PROVIDER_RUNNING =
-      1, ///< check_complete: playback/readout is still active.
-  CUDAQ_PLAYBACK_PROVIDER_COMPLETE =
-      2, ///< check_complete: immutable results are available.
-  CUDAQ_PLAYBACK_PROVIDER_ERROR =
-      3, ///< Operation failed; see last_error and destroy.
-  CUDAQ_PLAYBACK_PROVIDER_TIMEOUT =
-      4 ///< Deadline expired; destroy any returned handle.
+  /// check_complete: playback/readout is still active.
+  CUDAQ_PLAYBACK_PROVIDER_RUNNING = 1,
+  /// check_complete: immutable results are available.
+  CUDAQ_PLAYBACK_PROVIDER_COMPLETE = 2,
+  /// Operation failed; see last_error and destroy.
+  CUDAQ_PLAYBACK_PROVIDER_ERROR = 3,
+  /// Deadline expired; destroy any returned handle.
+  CUDAQ_PLAYBACK_PROVIDER_TIMEOUT = 4
 };
 
 /// Request data and shared run settings, borrowed during create only. The
@@ -83,8 +83,10 @@ typedef struct {
 /// Use RTT_UNAVAILABLE for a packet with no measured RTT.
 typedef struct {
   const uint8_t *data; ///< Captured packet bytes owned by the provider.
-  size_t size_bytes; ///< Actual captured length, including any transport padding.
-  uint64_t rtt_ticks; ///< Round-trip ticks, or RTT_UNAVAILABLE when not measured.
+  /// Actual captured length, including any transport padding.
+  size_t size_bytes;
+  /// Round-trip ticks, or RTT_UNAVAILABLE when not measured.
+  uint64_t rtt_ticks;
 } cudaq_playback_provider_reply_t;
 
 /// Entire capture in acquisition order. All pointers and packet bytes
@@ -92,7 +94,8 @@ typedef struct {
 /// destroy.
 typedef struct {
   const cudaq_playback_provider_reply_t *replies; ///< Stable capture array.
-  size_t reply_count; ///< Captured packets, including invalid or duplicate ones.
+  /// Captured packets, including invalid or duplicate ones.
+  size_t reply_count;
   /// Shared by every measured RTT in this run. The clock fields are empty when
   /// no reply has measured RTT; individual replies may still have no RTT.
   /// One tick is tick_period_numerator / tick_period_denominator seconds.
@@ -123,7 +126,7 @@ typedef struct {
   /// Trigger/schedule the prepared batch exactly once; return promptly.
   /// The RTH must be ready. Hardware or a provider worker owns playback,
   /// capture, stabilization and result download independently of status checks.
-  /// Repeated start returns ERROR without retransmitting or changing the run.
+  /// Repeated start returns ERROR without sending again or changing the run.
   cudaq_playback_provider_status_t (*start)(cudaq_playback_provider_t provider);
 
   /// Nonblocking status only: RUNNING, COMPLETE, ERROR or TIMEOUT.
@@ -155,13 +158,13 @@ typedef struct {
       cudaq_playback_provider_t provider, uint64_t cleanup_timeout_ns);
 
   /// Optional callback; set to NULL when diagnostics are not provided.
-  /// As the final field, it may be omitted from a C or C++ aggregate initializer
-  /// and is then automatically null. No diagnostic implementation is needed.
-  /// After a failed operation, returns a non-NULL, nonempty NUL-terminated
-  /// diagnostic string, valid until the next operation on the handle.
-  /// A NULL provider selects the calling thread's latest create error. No device
-  /// I/O. The app uses "Unknown error" only when the callback is absent.
-  /// Status codes determine success or failure.
+  /// As the final field, it may be omitted from a C or C++ aggregate
+  /// initializer and is then automatically null. No diagnostic implementation
+  /// is needed. After a failed operation, returns a non-NULL, nonempty
+  /// NUL-terminated diagnostic string, valid until the next operation on the
+  /// handle. A NULL provider selects the calling thread's latest create error.
+  /// No device I/O. The app uses "Unknown error" only when the callback is
+  /// absent. Status codes determine success or failure.
   const char *(*last_error)(cudaq_playback_provider_t provider);
 } cudaq_playback_provider_interface_t;
 

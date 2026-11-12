@@ -106,7 +106,8 @@ Please refer to this [section](#using-docker) for instructions.
     Without a dispatch option, we will run the test in
     the three-kernel mode with the RPC handler.
 
-    RoCE with GPU execution is the default. For a local `UDP` check without an FPGA, run:
+    RoCE with GPU execution is the default. For a local `UDP` check without an
+    FPGA, run:
 
     ```bash
     bash /opt/nvidia/cudaq/realtime/validate.sh --udp
@@ -132,7 +133,8 @@ Please refer to this [section](#using-docker) for instructions.
     VALIDATION PASS execution=gpu dispatch=unified samples=100
     ```
 
-    Latency statistics are in nanoseconds; the clock time base is in seconds per tick.
+    Latency statistics are in nanoseconds; the clock time base is in seconds per
+    tick.
     Unavailable timing is reported separately and does not fail packet validation.
     Use `--num-messages`, `--message-size` (header plus payload bytes), and
     `--spacing-ns` to vary the workload. Defaults are 100 requests, 32 bytes and

@@ -183,8 +183,8 @@ the report as shown above.
 > that contains the `realtime` sub-directory.
 
 For CPU dispatch, replace `--gpu 0` with `--cpu` in the test commands above.
-Both execution paths use `roce_app` through the bridge API. HSB playback requires the CUDA driver
-library (`libcuda.so.1`); CPU RoCE also requires `libibverbs`.
+Both execution paths use `roce_app` through the bridge API. HSB playback requires
+the CUDA driver library (`libcuda.so.1`); CPU RoCE also requires `libibverbs`.
 
 With `CUDAQ_REALTIME_BUILD_TESTS=ON`, `validation_app`
 requires the CUDA compiler and dispatcher, but does not require HSB tools.

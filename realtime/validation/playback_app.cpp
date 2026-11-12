@@ -31,7 +31,8 @@ int main(int argument_count, char **arguments) {
     Plugin plugin;
     plugin.timeout_ns = 30000000000ULL;
     // Keep common workload controls here; options after -- belong solely to
-    // the provider. start_file is a runner synchronization file, not input data.
+    // the provider. start_file is a runner synchronization file, not input
+    // data.
     std::string library, endpoint, start_file;
     std::uint32_t count = 100, payload = 8;
     std::uint64_t capture_quiet_ns = 1000000000;
@@ -229,7 +230,8 @@ int main(int argument_count, char **arguments) {
       for (const auto value : ticks)
         total_ticks += value;
       const auto nanoseconds_per_tick = tick_period_seconds * 1000000000;
-      // HSB report parsers expect this heading, field order and nanosecond units.
+      // HSB report parsers expect this heading, field order and nanosecond
+      // units.
       std::cout << "\n=== PTP Round-Trip Latency ===\n"
                 << "  Samples:  " << ticks.size() << '\n'
                 << "  Min:      " << std::fixed << std::setprecision(0)
@@ -252,9 +254,9 @@ int main(int argument_count, char **arguments) {
               << " replies; latency_samples=" << samples.size() << "/" << count
               << "; provider=" << library << '\n';
     return 0;
-  // Keep incomplete capture, provider failures and bad data distinguishable
-  // for the runner. Unavailable timing follows the successful path above.
   } catch (const IncompleteRun &error) {
+    // Keep incomplete capture, provider failures and bad data distinguishable
+    // for the runner. Unavailable timing follows the successful path above.
     std::cerr << "INCOMPLETE: " << error.what() << '\n';
     return 2;
   } catch (const ProviderError &error) {

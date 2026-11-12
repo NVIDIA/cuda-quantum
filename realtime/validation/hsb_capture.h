@@ -42,7 +42,8 @@ public:
     if (!(sample[16] & 1))
       return;
     // Bits 520:514 encode the highest valid byte index, not a byte count.
-    // Adding one preserves a one-byte final beat as well as a full 64-byte beat.
+    // Adding one preserves a one-byte final beat as well as a full 64-byte
+    // beat.
     std::size_t valid_bytes = ((sample[16] >> 2) & 127) + 1;
     if (valid_bytes > 64 || pending.bytes.size() + valid_bytes > 65536)
       throw std::runtime_error("Invalid or oversized ILA frame");
@@ -60,17 +61,17 @@ public:
       // Receive PTP occupies bits 584:521: 23 bits from word 16, all of
       // word 17 and nine bits from word 18, combined least-significant first.
       std::uint64_t receive_stamp = std::uint64_t(sample[16] >> 9) |
-                               (std::uint64_t(sample[17]) << 23) |
-                               (std::uint64_t(sample[18] & 511) << 55);
+                                    (std::uint64_t(sample[17]) << 23) |
+                                    (std::uint64_t(sample[18] & 511) << 55);
       auto transmit_nsec = std::uint32_t(transmit_stamp);
       auto receive_nsec = std::uint32_t(receive_stamp);
       // The captured PTP clock encodes seconds and nanoseconds. Its tick unit
       // is 1 ns; do not divide by the nominal oscillator resolution.
       // Signed subtraction tolerates a one-second rollover, not a PTP reset.
-      std::int64_t elapsed =
-          (std::int64_t(receive_stamp >> 32) - std::int64_t(transmit_stamp >> 32)) *
-              1000000000LL +
-          std::int64_t(receive_nsec) - transmit_nsec;
+      std::int64_t elapsed = (std::int64_t(receive_stamp >> 32) -
+                              std::int64_t(transmit_stamp >> 32)) *
+                                 1000000000LL +
+                             std::int64_t(receive_nsec) - transmit_nsec;
       // HSB uses an all-zero timestamp when timing is absent. Preserve the
       // packet but leave RTT_UNAVAILABLE if either stamp is missing or invalid.
       // Equal nonzero timestamps still represent a valid zero-duration RTT.

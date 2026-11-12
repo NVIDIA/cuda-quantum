@@ -12,15 +12,16 @@
 /// create configures the RoCE destination, stages requests in BRAM and arms
 /// ILA capture. start launches single-pass playback; a worker waits for capture
 /// stabilization and downloads results. Workload generation and reply checking
-/// belong to the caller; this adapter handles the RFSoC register/capture layout.
+/// belong to the caller; this adapter handles the RFSoC register/capture
+/// layout.
 #include "hsb_capture.h"
-#include "playback_provider_support.h"
 #include "hsb_playback_io.h"
-#include <cstddef>
-#include <cstdint>
+#include "playback_provider_support.h"
 #include <arpa/inet.h>
 #include <atomic>
 #include <condition_variable>
+#include <cstddef>
+#include <cstdint>
 #include <future>
 #include <hololink/core/data_channel.hpp>
 #include <hololink/core/enumerator.hpp>
@@ -42,21 +43,27 @@ struct Context {
   // RTH ring stride/count and FPGA request interval in hardware timer ticks.
   std::uint32_t slot_size = 0, num_slots = 0, timer_ticks = 0;
   std::uint32_t qp = 0, rkey = 0; ///< RTH destination QP and remote memory key.
-  std::uint64_t address = 0; ///< RTH receive buffer address advertised by the bridge.
-  std::vector<std::vector<std::uint8_t>> frames; ///< Copied, transport-padded requests.
+  /// RTH receive buffer address advertised by the bridge.
+  std::uint64_t address = 0;
+  /// Copied, transport-padded requests.
+  std::vector<std::vector<std::uint8_t>> frames;
   std::deque<Record> records; ///< Owned capture bytes in arrival order.
   ResultStorage results; ///< Frozen views into records after worker completion.
-  RunProgress run_progress; ///< Timeout diagnostics readable while I/O is active.
+  /// Timeout diagnostics readable while I/O is active.
+  RunProgress run_progress;
   // Whole-run deadline and inactivity interval required to finish capture.
   std::uint64_t run_timeout_ns = 0, capture_quiet_ns = 0;
   bool run_timed_out = false; ///< Preserve TIMEOUT on subsequent status checks.
   Clock::time_point started_at; ///< Set by start before launching the worker.
-  std::shared_ptr<hololink::Hololink> hololink_device; ///< Owned SDK control session.
+  /// Owned SDK control session.
+  std::shared_ptr<hololink::Hololink> hololink_device;
   std::future<void> job; ///< Worker completion and exception propagation.
   std::atomic<bool> cancel{false}; ///< destroy requests worker cancellation.
-  std::mutex mutex; ///< Protects the interruptible worker wait.
-  std::condition_variable capture_condition; ///< Interrupt capture wait on cancel.
-  std::size_t captured_packets = 0; ///< Last checked ILA count for this one-beat profile.
+  std::mutex mutex;                ///< Protects the interruptible worker wait.
+  /// Interrupt capture wait on cancel.
+  std::condition_variable capture_condition;
+  /// Last checked ILA count for this one-beat profile.
+  std::size_t captured_packets = 0;
 
   // Prepare hardware without transmitting. The RTH ring stride is separate
   // from each 64-byte BRAM window used by this FPGA playback profile.
@@ -73,7 +80,8 @@ struct Context {
                                        PLAYER_DISABLE))
       throw std::runtime_error("Disable player failed");
     // Program the destination memory credentials and ring geometry published
-    // by the RTH. The FPGA will place successive requests into that receive ring.
+    // by the RTH. The FPGA will place successive requests into that receive
+    // ring.
     channel.authenticate(qp, rkey);
     channel.configure_roce(address, 64, slot_size, num_slots, ROCEV2_UDP_PORT);
     hololink::Hololink::WriteData config;

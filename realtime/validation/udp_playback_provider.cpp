@@ -14,12 +14,12 @@
 /// host clock. Direct socket reads preserve actual datagram lengths for checks;
 /// the transceiver ring API pads short datagrams and hides their original size.
 #include "playback_provider_support.h"
-#include <cstddef>
-#include <cstdint>
 #include <arpa/inet.h>
 #include <array>
 #include <atomic>
 #include <cerrno>
+#include <cstddef>
+#include <cstdint>
 #include <future>
 #include <memory>
 #include <poll.h>
@@ -39,27 +39,33 @@ struct Context {
   State state = State::Created; ///< Lifecycle state visible to API calls.
   // Destination host override and diagnostic for the latest failed operation.
   std::string host = "127.0.0.1", error;
-  std::uint64_t request_spacing_ns = 0; ///< Minimum send start-to-start interval.
+  /// Minimum send start-to-start interval.
+  std::uint64_t request_spacing_ns = 0;
   int socket_fd = -1; ///< Owned connected, nonblocking UDP socket.
-  int timer_fd = -1; ///< One-shot monotonic timer for sends and completion checks.
-  int cancel_fd = -1; ///< Wake the socket wait when destroy requests cancellation.
+  /// One-shot monotonic timer for sends and completion checks.
+  int timer_fd = -1;
+  /// Wake the socket wait when destroy requests cancellation.
+  int cancel_fd = -1;
   // Reuse scratch storage even for empty polls. Captured records allocate only
   // their actual datagram length, not the maximum UDP packet size.
   std::array<std::uint8_t, 65536> receive_buffer;
-  std::vector<std::vector<std::uint8_t>> frames; ///< Copied, transport-padded requests.
+  /// Copied, transport-padded requests.
+  std::vector<std::vector<std::uint8_t>> frames;
   std::deque<Record> records; ///< Owned capture bytes in arrival order.
   ResultStorage results; ///< Frozen views into records after worker completion.
-  RunProgress run_progress; ///< Timeout diagnostics readable while I/O is active.
+  /// Timeout diagnostics readable while I/O is active.
+  RunProgress run_progress;
   // Whole-run deadline and inactivity interval required to finish capture.
   std::uint64_t run_timeout_ns = 0, capture_quiet_ns = 0;
   bool run_timed_out = false; ///< Preserve TIMEOUT on subsequent status checks.
   Clock::time_point started_at; ///< Set by start before launching the worker.
   std::map<std::uint32_t, Clock::time_point> sent; ///< Send time by request ID.
-  std::size_t next = 0; ///< Index of the next unsent request.
+  std::size_t next = 0;            ///< Index of the next unsent request.
   std::atomic<bool> cancel{false}; ///< destroy requests worker cancellation.
   std::future<void> job; ///< Worker completion and exception propagation.
   Clock::time_point last_send_at{}; ///< Origin for the next spacing interval.
-  bool send_blocked = false; ///< Wait for socket writability after backpressure.
+  /// Wait for socket writability after backpressure.
+  bool send_blocked = false;
   ~Context() {
     if (socket_fd >= 0)
       ::close(socket_fd);
@@ -158,7 +164,8 @@ struct Context {
     if (::poll(descriptors, 3, -1) < 0 && errno != EINTR)
       throw std::runtime_error("UDP readiness wait failed");
     // The next pass drains replies and checks deadlines/cancellation. Rearming
-    // the one-shot timer clears its previous expiration; no timer count is used.
+    // the one-shot timer clears its previous expiration; no timer count is
+    // used.
   }
 
   void playback() {
@@ -326,7 +333,8 @@ destroy_provider(cudaq_playback_provider_t handle,
     const std::uint64_t notification = 1;
     ssize_t written;
     do {
-      written = ::write(context->cancel_fd, &notification, sizeof(notification));
+      written =
+          ::write(context->cancel_fd, &notification, sizeof(notification));
     } while (written < 0 && errno == EINTR);
     // EAGAIN means an earlier notification already made the descriptor ready.
     if (written < 0 && errno != EAGAIN) {

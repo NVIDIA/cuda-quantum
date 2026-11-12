@@ -15,11 +15,11 @@
 #pragma once
 
 #include "cudaq/realtime/validation/playback_provider_interface.h"
-#include <cstddef>
-#include <cstdint>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <deque>
 #include <future>
@@ -49,11 +49,14 @@ inline bool valid_duration_ns(std::uint64_t duration_ns) {
 // frozen results; Faulted still owns resources that destroy must release.
 enum class State { Created, Prepared, Running, Finished, Faulted };
 struct Record {
-  std::vector<std::uint8_t> bytes; ///< Owned packet at its actual captured length.
-  std::uint64_t rtt_ticks = CUDAQ_PLAYBACK_PROVIDER_RTT_UNAVAILABLE; ///< Optional RTT.
+  /// Owned packet at its actual captured length.
+  std::vector<std::uint8_t> bytes;
+  /// Optional RTT.
+  std::uint64_t rtt_ticks = CUDAQ_PLAYBACK_PROVIDER_RTT_UNAVAILABLE;
 };
-inline std::uint64_t parse_unsigned_integer(const std::string &text,
-                                       std::uint64_t maximum = UINT32_MAX) {
+inline std::uint64_t
+parse_unsigned_integer(const std::string &text,
+                       std::uint64_t maximum = UINT32_MAX) {
   std::size_t parsed_length = 0;
   if (text.empty() || text[0] == '-')
     throw std::invalid_argument("Invalid unsigned integer: " + text);
@@ -90,7 +93,8 @@ parse_provider_option(const char *argument) {
     throw std::invalid_argument("Expected --option=value: " + text);
   return {text.substr(0, equals_position), text.substr(equals_position + 1)};
 }
-inline std::uint64_t little_endian(const std::uint8_t *bytes, std::size_t size) {
+inline std::uint64_t little_endian(const std::uint8_t *bytes,
+                                   std::size_t size) {
   std::uint64_t value = 0;
   for (std::size_t byte_index = 0; byte_index < size; ++byte_index)
     value |= std::uint64_t(bytes[byte_index]) << (8 * byte_index);
@@ -100,9 +104,12 @@ inline std::uint64_t little_endian(const std::uint8_t *bytes, std::size_t size) 
 // only after capture is frozen. No per-packet retrieval or release protocol is
 // needed.
 struct ResultStorage {
-  std::vector<cudaq_playback_provider_reply_t> replies; ///< Views into Record bytes.
-  std::uint64_t tick_period_numerator = 0; ///< Seconds-per-tick ratio numerator.
-  std::uint64_t tick_period_denominator = 0; ///< Ratio denominator; zero without RTT.
+  /// Views into Record bytes.
+  std::vector<cudaq_playback_provider_reply_t> replies;
+  /// Seconds-per-tick ratio numerator.
+  std::uint64_t tick_period_numerator = 0;
+  /// Ratio denominator; zero without RTT.
+  std::uint64_t tick_period_denominator = 0;
   cudaq_playback_provider_results_t view() const {
     return {replies.data(), replies.size(), tick_period_numerator,
             tick_period_denominator};
@@ -138,7 +145,8 @@ struct SetupTimeout : std::runtime_error {
 // Share one setup budget across parsing, input copying and device operations.
 class SetupDeadline {
   Clock::time_point started_at = Clock::now(); ///< Beginning of create.
-  std::uint64_t timeout_ns; ///< Total setup allowance, not a per-operation timeout.
+  /// Total setup allowance, not a per-operation timeout.
+  std::uint64_t timeout_ns;
 
 public:
   explicit SetupDeadline(std::uint64_t timeout_ns) : timeout_ns(timeout_ns) {}
@@ -173,7 +181,8 @@ struct RunTimeout : std::runtime_error {
 // Status may time out while the worker is still inside device I/O. Publish
 // diagnostic progress separately so status never reads live packet storage.
 struct RunProgress {
-  std::atomic<std::size_t> captured{0}; ///< Observed packets, not verified replies.
+  /// Observed packets, not verified replies.
+  std::atomic<std::size_t> captured{0};
   std::atomic<const char *> phase{"starting playback"}; ///< Static text only.
 
   std::string describe(std::size_t expected_count) const {
@@ -194,8 +203,8 @@ class BatchCompletion {
   Clock::time_point started_at, last_activity;
 
 public:
-  BatchCompletion(std::size_t count, std::uint64_t timeout_ns, std::uint64_t capture_quiet_ns,
-                  Clock::time_point started_at)
+  BatchCompletion(std::size_t count, std::uint64_t timeout_ns,
+                  std::uint64_t capture_quiet_ns, Clock::time_point started_at)
       : expected_count(count), timeout_ns(timeout_ns),
         quiet_ns(capture_quiet_ns), started_at(started_at),
         last_activity(started_at) {}
@@ -227,9 +236,8 @@ public:
     std::uint64_t remaining = elapsed >= timeout_ns ? 0 : timeout_ns - elapsed;
     if (transmission_finished && previous_count >= expected_count) {
       const auto quiet_elapsed = elapsed_ns(last_activity);
-      remaining = std::min(remaining, quiet_elapsed >= quiet_ns
-                                          ? 0
-                                          : quiet_ns - quiet_elapsed);
+      remaining = std::min(
+          remaining, quiet_elapsed >= quiet_ns ? 0 : quiet_ns - quiet_elapsed);
     }
     return remaining;
   }

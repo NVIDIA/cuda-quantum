@@ -40,7 +40,8 @@ def run(arguments, endpoint):
     command = [
         arguments.playback, f"--playback-provider={arguments.plugin}",
         f"--endpoint={endpoint}", "--num-messages=31", "--payload-size=37",
-        "--timeout-ns=1500000000", "--quiet-ns=200000000", f"--spacing-ns={spacing_ns}"
+        "--timeout-ns=1500000000", "--quiet-ns=200000000",
+        f"--spacing-ns={spacing_ns}"
     ]
     return subprocess.run(command, capture_output=True, text=True, timeout=10)
 
@@ -50,7 +51,8 @@ def fixture(arguments):
     errors = []  # Propagate thread assertions back to the test process.
     received = []  # Request IDs observed on the wire, in arrival order.
     arrival_times = []  # Host observations used to check sender pacing.
-    pending_replies = []  # Paced case withholds replies until all requests arrive.
+    # Paced case withholds replies until all requests arrive.
+    pending_replies = []
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server:
         server.bind(("127.0.0.1", 0))
         server.settimeout(0.1)
@@ -80,7 +82,9 @@ def fixture(arguments):
                     arrival_times.append(time.monotonic())
                     reply = (struct.pack("<IiIIQ", 0x43555153, 0, length,
                                          request_id, stamp) +
-                             bytes((value + 1) & 255 for value in payload)).ljust(96, b"\0")
+                             bytes(
+                                 (value + 1) & 255 for value in payload)).ljust(
+                                     96, b"\0")
                     if arguments.fixture == "paced":
                         # Withhold every reply until all requests arrive. The
                         # sender must follow spacing without waiting for replies.
@@ -112,7 +116,8 @@ def fixture(arguments):
         worker = threading.Thread(target=respond)
         worker.start()
         try:
-            result = run(arguments, f"port={server.getsockname()[1]} slot_size=96")
+            result = run(arguments,
+                         f"port={server.getsockname()[1]} slot_size=96")
         finally:
             done.set()
             worker.join()
@@ -195,7 +200,8 @@ def main():
     parser.add_argument("--consumer")
     parser.add_argument("--bridge")
     parser.add_argument("--fixture",
-                        choices=("paced", "corrupt", "omit", "delayed", "late-duplicate"))
+                        choices=("paced", "corrupt", "omit", "delayed",
+                                 "late-duplicate"))
     arguments = parser.parse_args()
     if arguments.fixture:
         fixture(arguments)

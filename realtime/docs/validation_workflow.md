@@ -16,7 +16,8 @@ exchange. Application polling must not control packet timing.
 
 The canonical workload is RPC increment: the `RTH` increments each payload byte
 modulo 256 and returns it. The same applications run with CPU or GPU dispatch;
-CPU execution does not require a visible GPU, but plugin dependencies still apply: HSB playback requires `libcuda.so.1`, and CPU RoCE requires
+CPU execution does not require a visible GPU, but plugin dependencies still
+apply: HSB playback requires `libcuda.so.1`, and CPU RoCE requires
 `libibverbs`. The selected bridge must supply
 the rings or transport hooks needed by that execution path. Separate dispatch
 is the default; unified dispatch is selected explicitly. Native forwarding is
@@ -156,7 +157,8 @@ OK means the API call succeeded. `check_complete` returns RUNNING while the run
 is in progress and COMPLETE when the captured replies are ready to read.
 The app then checks the replies before reporting PASS or FAIL.
 ERROR means invalid input, a call made at the wrong time, or an execution failure.
-TIMEOUT means the time limit expired. Use `last_error`, if provided, to read the error message.
+TIMEOUT means the time limit expired. Use `last_error`, if provided, to read the
+error message.
 
 Control durations use `uint64_t` nanoseconds: setup/run/cleanup timeouts, request
 spacing and capture quiet periods. For example, 1 second = 1,000,000,000 nanoseconds.
@@ -165,7 +167,7 @@ scale shared by the batch.
 Providers convert to SDK or device units internally and reject unsupported values.
 The reference providers reject durations above `INT64_MAX` nanoseconds.
 
-**`create` — create and configure a playback instance**
+##### `create` — create and configure a playback instance
 
 ```c
 cudaq_playback_provider_status_t (*create)(
@@ -189,7 +191,7 @@ for invalid inputs, unsupported settings or setup failure; TIMEOUT when the
 setup budget expires. All caller input memory may be released after return.
 The returned handle remains plugin-owned until successful destroy.
 
-**Create parameter fields**
+###### Create parameter fields
 
 ```c
 typedef struct {
@@ -255,7 +257,7 @@ Use the endpoint published by the running `RTH`; the QP, key and address above
 are illustrative. For increment validation, eight `00` payload bytes produce
 eight `01` bytes; eight `ff` bytes produce eight `00` bytes.
 
-**`start` — begin the prepared experiment**
+##### `start` — begin the prepared experiment
 
 ```c
 cudaq_playback_provider_status_t (*start)(cudaq_playback_provider_t provider);
@@ -271,7 +273,7 @@ promptly. Later execution failures are reported by check-complete. Repeated
 start returns ERROR without sending again or modifying the active batch.
 The requests and run settings are already stored in the handle.
 
-**`check_complete` — inspect run status**
+##### `check_complete` — inspect run status
 
 ```c
 cudaq_playback_provider_status_t (*check_complete)(cudaq_playback_provider_t provider);
@@ -290,7 +292,7 @@ only the run status. Use get-results to read the replies.
 The app rejects a status call that takes one second or longer. Keep SDK or
 Python waits in a worker; this callback only reads its cached status.
 
-**`get_results` — retrieve the completed batch**
+##### `get_results` — retrieve the completed batch
 
 ```c
 cudaq_playback_provider_status_t (*get_results)(
@@ -309,7 +311,7 @@ reads local memory, performs no device/SDK I/O and has no timeout parameter.
 Repeated calls return the same pointers and content. Do not use these pointers
 after destroy succeeds; the provider has freed the buffers.
 
-**Result and reply fields**
+###### Result and reply fields
 
 ```c
 typedef struct {
@@ -347,7 +349,7 @@ period 1/250,000,000 seconds; the app converts that to 400 ns. Use the unavailab
 sentinel for replies without timing. Keep all result storage unchanged until
 destroy succeeds.
 
-**Application lifecycle sketch**
+##### Application lifecycle sketch
 
 ```text
 create(requests, endpoint, settings)
@@ -367,7 +369,7 @@ reply verification, and the
 [contract tests](../unittests/validation/playback_provider_contract.cpp) for API
 usage and failure checks.
 
-**`destroy` — cancel activity and release the handle**
+##### `destroy` — cancel activity and release the handle
 
 ```c
 cudaq_playback_provider_status_t (*destroy)(
@@ -386,7 +388,7 @@ After OK, do not use the handle or result pointers. After ERROR/TIMEOUT, keep th
 handle and library so you can retry destroy. Destroying a running batch cancels it;
 read completed results before closing.
 
-**`last_error` — optional diagnostic text**
+##### `last_error` — optional diagnostic text
 
 ```c
 const char *(*last_error)(cudaq_playback_provider_t provider);
@@ -404,11 +406,12 @@ The app uses `"Unknown error"` only when the callback is absent.
 **Return:** After a failed operation, a non-NULL pointer to nonempty, plugin-owned,
 `NUL`-terminated diagnostic text. For a live handle it
 remains valid until the next operation on that handle; copy it before destroy.
-For a NULL provider it refers to thread-local create diagnostics and should be copied before
-another create call. This is a local read with no device access or state change.
+For a NULL provider it refers to thread-local create diagnostics and should be
+copied before another create call. This is a local read with no device access or
+state change.
 The status code determines success or failure; text provides the explanation.
 
-**Loading the function table**
+##### Loading the function table
 
 The only required exported function is:
 
@@ -560,12 +563,13 @@ PASS: 100/100 replies; latency_samples=0/100; provider=libexample-playback-provi
 VALIDATION PASS execution=cpu dispatch=separate samples=100
 ```
 
-The playback app returns **0** when all packets are correct and playback-provider cleanup succeeds, including
-when timing is unavailable. It omits clock output and statistics when no timing
-exists. If only some replies have measurements, it prints those raw samples and
-`LATENCY PARTIAL` with the measured count, and omits full-run statistics. Missing
-timing does not hide corrupt, duplicate or missing replies, invalid supplied
-clock metadata, or playback-provider cleanup errors; those still fail validation.
+The playback app returns **0** when all packets are correct and
+playback-provider cleanup succeeds, including when timing is unavailable. It
+omits clock output and statistics when no timing exists. If only some replies
+have measurements, it prints those raw samples and `LATENCY PARTIAL` with the
+measured count, and omits full-run statistics. Missing timing does not hide
+corrupt, duplicate or missing replies, invalid supplied clock metadata, or
+playback-provider cleanup errors; those still fail validation.
 
 No embedded timestamp is required if the provider can measure `RTT` externally.
 The `UDP` provider, for example, measures send/receive times using a host clock.
@@ -574,7 +578,8 @@ An `RTH` shutdown error or forced termination produces a warning; the runner sti
 prints `VALIDATION PASS` and returns 0 because the samples have been verified.
 Failures during playback still fail the run. The runner preserves `commands.sh`,
 `rth.log` and `playback.log` in its reported output directory.
-On failure, it prints both available logs after cleanup, including shutdown diagnostics.
+On failure, it prints both available logs after cleanup, including shutdown
+diagnostics.
 
 The playback app exits with 0 for success, 1 for argument, plugin-loading or
 verification errors, 2 for an incomplete run, and 3 for a provider operation
@@ -690,8 +695,9 @@ from HSB's.
 To use a built-in RoCE bridge for CPU or GPU execution on the realtime host,
 the `QCS` must:
 
-- Send requests using **`RoCEv2` Unreliable Connection (UC), using RDMA Write with Immediate**, following the
-  bridge’s ring-slot addressing, immediate-value and buffer-reuse rules.
+- Send requests using **`RoCEv2` Unreliable Connection (UC), using RDMA Write with
+  Immediate**, following the bridge’s ring-slot addressing, immediate-value and
+  buffer-reuse rules.
 - Receive responses as **RoCE SEND** messages on its configured queue pair.
 - Match the connection settings, frame sizes and canonical RPC encoding expected
   by the bridge and `validation_app`.

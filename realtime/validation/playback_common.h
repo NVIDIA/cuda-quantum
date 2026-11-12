@@ -15,10 +15,10 @@
 #pragma once
 
 #include "playback_provider_support.h"
-#include <cstddef>
-#include <cstdint>
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <dlfcn.h>
 #include <iostream>
@@ -34,13 +34,15 @@ inline void require(bool condition, const std::string &message) {
   if (!condition)
     throw std::runtime_error(message);
 }
-inline void write_little_endian(std::vector<std::uint8_t> &bytes, std::size_t offset,
-                                std::uint64_t value, std::size_t count) {
+inline void write_little_endian(std::vector<std::uint8_t> &bytes,
+                                std::size_t offset, std::uint64_t value,
+                                std::size_t count) {
   for (std::size_t byte_index = 0; byte_index < count; ++byte_index)
     bytes[offset + byte_index] = (value >> (8 * byte_index)) & 255;
 }
-inline std::uint32_t read_little_endian_u32(const std::vector<std::uint8_t> &bytes,
-                                       std::size_t offset) {
+inline std::uint32_t
+read_little_endian_u32(const std::vector<std::uint8_t> &bytes,
+                       std::size_t offset) {
   std::uint32_t value = 0;
   for (std::size_t byte_index = 0; byte_index < 4; ++byte_index)
     value |= std::uint32_t(bytes[offset + byte_index]) << (8 * byte_index);
@@ -58,9 +60,12 @@ struct ProviderError : std::runtime_error {
 // workers must remain loaded until destroy succeeds.
 struct Plugin {
   void *library = nullptr; ///< dlopen handle; released after provider cleanup.
-  const cudaq_playback_provider_interface_t *api = nullptr; ///< Library-owned table.
-  cudaq_playback_provider_t handle = nullptr; ///< Owned, possibly partial instance.
-  std::uint64_t timeout_ns = 5000000000ULL; ///< Budget for each lifecycle phase.
+  /// Library-owned table.
+  const cudaq_playback_provider_interface_t *api = nullptr;
+  /// Owned, possibly partial instance.
+  cudaq_playback_provider_t handle = nullptr;
+  /// Budget for each lifecycle phase.
+  std::uint64_t timeout_ns = 5000000000ULL;
   ~Plugin() {
     if (handle) {
       if (api->destroy(handle, timeout_ns) != CUDAQ_PLAYBACK_PROVIDER_OK) {
@@ -112,15 +117,18 @@ inline void load_plugin(Plugin &plugin, const std::string &library) {
 // Generate deterministic requests with unique IDs. The first two payloads
 // exercise zero and byte wraparound; subsequent patterns detect misassociation.
 inline std::vector<std::vector<std::uint8_t>>
-requests(std::uint32_t count, std::uint32_t payload, std::uint32_t first_id = 1) {
+requests(std::uint32_t count, std::uint32_t payload,
+         std::uint32_t first_id = 1) {
   // Bound memory before allocating and widen arithmetic before multiplication
   // or ID-range checks, so large CLI values cannot wrap past these guards.
   require(count && count <= 1000000 && payload <= 64 * 1024 * 1024 - 24 &&
-              std::uint64_t(first_id) + count <= std::uint64_t(UINT32_MAX) + 1 &&
+              std::uint64_t(first_id) + count <=
+                  std::uint64_t(UINT32_MAX) + 1 &&
               std::uint64_t(count) * (payload + 24) <= 64 * 1024 * 1024,
           "Invalid request count/size (batch limit 64 MiB)");
   std::vector<std::vector<std::uint8_t>> result;
-  for (std::uint32_t request_index = 0; request_index < count; ++request_index) {
+  for (std::uint32_t request_index = 0; request_index < count;
+       ++request_index) {
     std::uint32_t request_id = first_id + request_index;
     std::vector<std::uint8_t> frame(24 + payload);
     // Canonical 24-byte header: magic, function ID, payload length, request
@@ -158,7 +166,8 @@ pack_requests(const std::vector<std::vector<std::uint8_t>> &input) {
 // Index by request ID so arrival order is irrelevant. Native forward echoes
 // the request; RPC dispatch changes the response header and increments payload.
 inline std::map<std::uint32_t, std::vector<std::uint8_t>>
-expected_replies(const std::vector<std::vector<std::uint8_t>> &input, bool forward) {
+expected_replies(const std::vector<std::vector<std::uint8_t>> &input,
+                 bool forward) {
   std::map<std::uint32_t, std::vector<std::uint8_t>> result;
   for (auto frame : input) {
     if (!forward) {
@@ -197,7 +206,8 @@ verify_reply(const cudaq_playback_provider_reply_t &reply,
 // least one reply carries a measured RTT; it applies to all measured replies.
 inline void verify_timing(const cudaq_playback_provider_results_t &results) {
   bool measured = false;
-  for (std::size_t reply_index = 0; reply_index < results.reply_count; ++reply_index)
+  for (std::size_t reply_index = 0; reply_index < results.reply_count;
+       ++reply_index)
     measured |= results.replies[reply_index].rtt_ticks !=
                 CUDAQ_PLAYBACK_PROVIDER_RTT_UNAVAILABLE;
   if (measured)
@@ -210,10 +220,10 @@ inline void verify_timing(const cudaq_playback_provider_results_t &results) {
 // Status checks never retrieve packets or drive playback. Once the provider
 // has frozen and downloaded capture, verify the entire stable result batch.
 template <typename Observe>
-cudaq_playback_provider_results_t
-collect_batch(Plugin &plugin,
-              const std::map<std::uint32_t, std::vector<std::uint8_t>> &expected,
-              Observe observe) {
+cudaq_playback_provider_results_t collect_batch(
+    Plugin &plugin,
+    const std::map<std::uint32_t, std::vector<std::uint8_t>> &expected,
+    Observe observe) {
   using Clock = std::chrono::steady_clock;
   const auto started_at = Clock::now();
   while (true) {

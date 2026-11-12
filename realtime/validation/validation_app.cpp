@@ -38,15 +38,16 @@ setup_rpc_increment_function_table_linked(cudaq_function_entry_t *entries,
 namespace {
 // Execution settings belong to the app; networking settings remain opaque.
 struct Config {
-  bool cpu = false; ///< Use host dispatch instead of CUDA device dispatch.
-  bool unified = false; ///< Combine receive, dispatch and transmit execution.
-  bool forward = false; ///< Echo through the bridge without an RPC handler.
-  int gpu = 0; ///< CUDA device ordinal when using GPU execution.
-  int timeout = 60; ///< Maximum service time in seconds after App Ready.
+  bool cpu = false;      ///< Use host dispatch instead of CUDA device dispatch.
+  bool unified = false;  ///< Combine receive, dispatch and transmit execution.
+  bool forward = false;  ///< Echo through the bridge without an RPC handler.
+  int gpu = 0;           ///< CUDA device ordinal when using GPU execution.
+  int timeout = 60;      ///< Maximum service time in seconds after App Ready.
   unsigned threads = 32; ///< Threads per GPU dispatch block.
-  std::string bridge; ///< Shared library passed to the bridge loader.
+  std::string bridge;    ///< Shared library passed to the bridge loader.
   int bridge_argument_count = 0; ///< Number of arguments after --.
-  char **bridge_arguments = nullptr; ///< Borrowed argv tail; valid through main.
+  /// Borrowed argv tail; valid through main.
+  char **bridge_arguments = nullptr;
 };
 
 bool parse_args(int argument_count, char **arguments, Config &config) {
@@ -138,10 +139,11 @@ void on_signal(int) { interrupted = 1; }
 // Tables and control storage must outlive the dispatcher and bridge, including
 // partial initialization. CPU mode never allocates/frees CUDA memory.
 struct Resources {
-  cudaq_realtime_bridge_handle_t bridge = nullptr; ///< Owns networking resources.
+  /// Owns networking resources.
+  cudaq_realtime_bridge_handle_t bridge = nullptr;
   cudaq_dispatch_manager_t *manager = nullptr; ///< Owns dispatcher management.
   cudaq_dispatcher_t *dispatcher = nullptr; ///< Absent in native forward mode.
-  volatile int host_shutdown = 0; ///< Stop flag read by CPU dispatch.
+  volatile int host_shutdown = 0;           ///< Stop flag read by CPU dispatch.
   std::uint64_t host_stats = 0; ///< CPU dispatch's processed-request counter.
   cudaq_function_entry_t host_entries[1]{}; ///< Host increment handler entry.
   int *mapped_shutdown = nullptr; ///< Host-written, GPU-readable stop flag.
@@ -163,7 +165,8 @@ struct Resources {
   // also cleans up partial setup, but cannot turn a failed operation into PASS.
   void close() {
     // Dispatch must stop using bridge buffers before the bridge is destroyed.
-    // Handler/control storage is released last; null guards cover partial setup.
+    // Handler/control storage is released last; null guards cover partial
+    // setup.
     stop();
     if (dispatcher) {
       HANDLE_REALTIME_ERROR(cudaq_dispatcher_destroy(dispatcher));

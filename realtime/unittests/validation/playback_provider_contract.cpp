@@ -140,7 +140,8 @@ int main(int argument_count, char **arguments) {
                       repeated.tick_period_denominator,
               "Repeated retrieval must preserve result storage");
       // Compare all bytes here, including the provider-owned timing word:
-      // workload verification skips it, but completed storage must be immutable.
+      // workload verification skips it, but completed storage must be
+      // immutable.
       std::set<std::uint32_t> seen;
       for (std::size_t reply_index = 0; reply_index < results.reply_count;
            ++reply_index) {

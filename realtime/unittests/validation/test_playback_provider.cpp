@@ -12,10 +12,10 @@
 /// Invalid HSB settings fail before device access. UDP uses a local socket;
 /// no test here requires an FPGA, GPU or application dispatcher.
 #include "playback_common.h"
-#include <cstddef>
-#include <cstdint>
 #include <arpa/inet.h>
 #include <cerrno>
+#include <cstddef>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <sys/prctl.h>
 #include <sys/socket.h>
@@ -26,8 +26,8 @@ namespace {
 class PlaybackProviderTest : public ::testing::TestWithParam<bool> {
 protected:
   Plugin plugin; ///< Owns the loaded library and any partial create handle.
-  std::vector<std::vector<std::uint8_t>> input =
-      requests(1, 8);                               ///< One valid request.
+  /// One valid request.
+  std::vector<std::vector<std::uint8_t>> input = requests(1, 8);
   cudaq_playback_provider_create_params_t params{}; ///< Baseline for each test.
   bool hsb = false; ///< Select HSB input checks; never start its hardware.
 
@@ -105,8 +105,8 @@ INSTANTIATE_TEST_SUITE_P(Hsb, PlaybackProviderTest, ::testing::Values(true));
 #endif
 
 struct Socket {
-  int descriptor =
-      ::socket(AF_INET, SOCK_DGRAM, 0); ///< Owned local peer socket.
+  /// Owned local peer socket.
+  int descriptor = ::socket(AF_INET, SOCK_DGRAM, 0);
   ~Socket() {
     if (descriptor >= 0)
       ::close(descriptor);
@@ -157,8 +157,9 @@ TEST(UdpPlayback, ProgressesWithoutStatusPolling) {
   ASSERT_GT(previous_slack, 0);
   ASSERT_EQ(::prctl(PR_SET_TIMERSLACK, 1000000000UL), 0);
   const auto start_status = plugin.api->start(plugin.handle);
-  ASSERT_EQ(::prctl(PR_SET_TIMERSLACK, static_cast<unsigned long>(previous_slack)),
-            0);
+  ASSERT_EQ(
+      ::prctl(PR_SET_TIMERSLACK, static_cast<unsigned long>(previous_slack)),
+      0);
   ASSERT_EQ(start_status, CUDAQ_PLAYBACK_PROVIDER_OK);
   cudaq_playback_provider_results_t early{};
   EXPECT_EQ(plugin.api->get_results(plugin.handle, &early),
@@ -191,7 +192,8 @@ TEST(UdpPlayback, ProgressesWithoutStatusPolling) {
   plugin.handle = nullptr;
 
   // Cancellation must wake a long socket/timer wait, even with no reply and
-  // the next send ten seconds away. destroy's one-second budget bounds the test.
+  // the next send ten seconds away. destroy's one-second budget bounds the
+  // test.
   params.request_spacing_ns = 10000000000;
   params.run_timeout_ns = 30000000000;
   ASSERT_EQ(plugin.api->create(0, nullptr, &params, plugin.timeout_ns,
