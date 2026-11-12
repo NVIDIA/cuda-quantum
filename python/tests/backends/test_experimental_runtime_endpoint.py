@@ -50,7 +50,8 @@ def returning_kernel() -> int:
 
 def set_custom_target(endpoint, compile_target=None):
     if compile_target is None:
-        compile_target = CompileTarget()
+        compile_target = CompileTarget(fully_specialize=False,
+                                       argument_synth_change_semantics=False)
     cudaq.set_target(
         CustomTarget(runtime_endpoint=endpoint, compile_target=compile_target))
 
@@ -226,7 +227,8 @@ def test_estimate_launch():
     assert isinstance(endpoint.resource_counts, cudaq.Resources)
 
     # Don't produce resource counts if target does not support it.
-    ct = CompileTarget()
+    ct = CompileTarget(fully_specialize=False,
+                       argument_synth_change_semantics=False)
     ct.support_resource_counts = False
     set_custom_target(endpoint, compile_target=ct)
     result = cudaq.estimate(kernel_no_vec, 1, [1, 2, 3])

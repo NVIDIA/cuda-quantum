@@ -9,9 +9,9 @@
 import pytest
 
 from cudaq.core._target import (Codegen, CompilationStage, CompileTarget,
-                                CustomPipelineLowering,
+                                CostModel, CustomPipelineLowering, NoiseSupport,
                                 QuakeReferenceSemanticsProfile,
-                                UncheckedProfile)
+                                QuakeUnmappedProfile, UncheckedProfile)
 
 
 @pytest.mark.parametrize("target", [
@@ -20,9 +20,9 @@ from cudaq.core._target import (Codegen, CompilationStage, CompileTarget,
     CompileTarget(custom_pipeline="cse")
 ])
 def test_defaults_on_every_constructor(target):
-    assert not target.fully_specialize
-    assert not target.argument_synth_change_semantics
-    assert target.codegen == Codegen("qir:")
+    assert target.fully_specialize
+    assert target.argument_synth_change_semantics
+    assert target.codegen == Codegen()
 
 
 def test_default_stages_are_empty():
@@ -39,8 +39,8 @@ def test_ir_output_profile_shortcut():
 
 @pytest.mark.parametrize("pipeline, lowering", [
     ("cse", CustomPipelineLowering("cse")),
-    (CustomPipelineLowering(high_level="cse"),
-     CustomPipelineLowering(high_level="cse")),
+    (CustomPipelineLowering(high_level_pipeline="cse"),
+     CustomPipelineLowering(high_level_pipeline="cse")),
 ])
 def test_custom_pipeline_shortcut(pipeline, lowering):
     expected = CompileTarget(
@@ -51,8 +51,9 @@ def test_custom_pipeline_shortcut(pipeline, lowering):
 
 
 @pytest.mark.parametrize("kwargs", [
-    dict(stages=[], ir_output_profile=QuakeReferenceSemanticsProfile()),
-    dict(stages=[], custom_pipeline="cse"),
+    dict(stages=[CompilationStage(UncheckedProfile())],
+         ir_output_profile=QuakeReferenceSemanticsProfile()),
+    dict(stages=[CompilationStage(UncheckedProfile())], custom_pipeline="cse"),
     dict(ir_output_profile=QuakeReferenceSemanticsProfile(),
          custom_pipeline="cse"),
 ])
@@ -61,18 +62,25 @@ def test_shortcuts_are_exclusive(kwargs):
         CompileTarget(**kwargs)
 
 
-def test_string_converts_to_codegen():
-    assert CompileTarget(codegen="qir-base").codegen == Codegen("qir-base")
-    target = CompileTarget()
-    target.codegen = "qir-base"
-    assert target.codegen == Codegen("qir-base")
-
-
-def test_codegen_edits_apply_in_place():
-    target = CompileTarget(codegen="qir-base")
-    target.codegen.post_codegen_passes = "canonicalize"
-    assert target.codegen == Codegen("qir-base", "canonicalize")
-
-
 if __name__ == "__main__":
     pytest.main([__file__])
+
+
+@pytest.mark.parametrize("make", [
+    lambda: CompileTarget(noise_support="loud"),
+    lambda: QuakeUnmappedProfile(cost_model=3),
+    lambda: QuakeUnmappedProfile(unroll_loops="some"),
+    lambda: QuakeReferenceSemanticsProfile(measurement_type="x"),
+])
+def test_invalid_enum_values_fail_at_construction(make):
+    with pytest.raises(ValueError):
+        make()
+
+
+def test_enum_fields_accept_members_and_names():
+    assert CompileTarget(noise_support="supported").noise_support == "supported"
+    assert CompileTarget(noise_support=NoiseSupport.supported).noise_support \
+        == NoiseSupport.supported
+    assert QuakeUnmappedProfile(cost_model="t_count").cost_model == "t_count"
+    assert QuakeUnmappedProfile(
+        cost_model=CostModel.t_count).cost_model == CostModel.t_count
