@@ -85,12 +85,9 @@ if importlib.util.find_spec("cudaq.logical") is not None:
     import cudaq.logical as cql
 
     cudaq.set_target(cql.targets.clifford_t_target(precision=1e-6))
-    # level 0:  3897 T
-    # level 1:  3797 T
-    # level 2:  1301 T
-    for level in range(3):
-        estimate = cudaq.estimate(qpe, optimization_level=level)
-        print(f"level {level}: {estimate.resources.count('t'):>5} T")
+    # 2271 T gates (versus 3897 for precision=1e-10).
+    estimate = cudaq.estimate(qpe, optimization_level=0)
+    print(f"{estimate.resources.count('t')} T")
     # [End Logical]
 
 # [Begin GetCompileTarget]
