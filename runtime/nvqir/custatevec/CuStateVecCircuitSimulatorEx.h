@@ -298,20 +298,24 @@ protected:
     ensureState();
     rejectOperationAfterMeasurement();
     // Both engine submission and deferred replay need the control predicate.
-    MatrixTask<Scalar> operation;
+    auto &operation = std::get<MatrixTask<Scalar>>(m_gateScratch);
+    // Compaction may have changed the previous gate's type.
+    operation.matrixType = CUSTATEVEC_EX_MATRIX_DENSE;
     operation.matrix = task.matrix;
-    operation.targets = detail::toInt32(task.targets);
-    operation.controls = detail::toInt32(task.controls);
+    operation.targets =
+        detail::toInt32(task.targets, std::move(operation.targets));
+    operation.controls =
+        detail::toInt32(task.controls, std::move(operation.controls));
     operation.controlValues = task.controlValues;
     compactMatrixTask(operation);
     if (isNoisySimulation()) {
       // Defer gates together with their following noise channels so the entire
       // circuit can be replayed independently for every trajectory.
-      m_deferredTasks.emplace_back(std::move(operation));
+      m_deferredTasks.emplace_back(operation);
       return;
     }
 
-    m_engine->apply(*m_state, operation);
+    m_engine->apply(*m_state, m_gateScratch);
   }
 
   void applyGateWithControlValues(const GateApplicationTask &task) override {
@@ -1416,6 +1420,9 @@ protected:
   CuStateVecRandom m_gpuRandom;
   std::vector<SimulationTask<Scalar>> m_deferredTasks;
   std::vector<double> m_pendingRandomNumbers;
+  // Reused by applyGate so its vectors keep their capacity between gates. Held
+  // as the variant the engine takes, which would otherwise copy it per gate.
+  SimulationTask<Scalar> m_gateScratch;
   // Set once a measurement is recorded on the non-explicit noisy `sample` path;
   // used to reject unsupported non-terminal (mid-circuit) measurements.
   bool m_measurementRecorded = false;
