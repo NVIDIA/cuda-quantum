@@ -15,7 +15,7 @@ index 0d3d3d1a3f9f..59f58baa8588 100644
 +    return nullptr;
    }
    bool getCanHandleMultipleBlocks() const { return canHandleMultipleBlocks; }
- 
+
 @@ -72,22 +75,8 @@ private:
    /// For SCC-based inlining algorithms, specifies maximum number of iterations
    /// when inlining within an SCC.
@@ -48,7 +48,7 @@ index b6c6da3ddcc9..d2293db47fed 100644
 @@ -94,6 +94,9 @@ public:
  // Inline Methods.
  //===----------------------------------------------------------------------===//
- 
+
 +/// A null clone callback selects the default cloning implementation. Custom
 +/// callbacks receive a caller block split at the insertion point.
 +///
@@ -58,7 +58,7 @@ index b6c6da3ddcc9..d2293db47fed 100644
 @@ -142,6 +145,7 @@ inlineRegion(InlinerInterface &interface,
               std::optional<Location> inlineLoc = std::nullopt,
               bool shouldCloneInlinedRegion = true);
- 
+
 +/// A null clone callback selects the default cloning implementation.
  /// This function inlines a given region, 'src', of a callable operation,
  /// 'callable', into the location defined by the given call operation. This
@@ -69,7 +69,7 @@ index 73107cfc36ea..0ba15466ba33 100644
 +++ b/mlir/lib/Transforms/Utils/InliningUtils.cpp
 @@ -301,9 +301,23 @@ static LogicalResult inlineRegionImpl(
      handleArgumentImpl(interface, builder, call, callable, mapper);
- 
+
    // Clone the callee's source into the caller.
 -  Block *postInsertBlock = inlineBlock->splitBlock(inlinePoint);
 -  cloneCallback(builder, src, inlineBlock, postInsertBlock, mapper,
@@ -91,13 +91,13 @@ index 73107cfc36ea..0ba15466ba33 100644
 +                                     src->getBlocks(), src->begin(),
 +                                     src->end());
 +  }
- 
+
    // Get the range of newly inserted blocks.
    auto newBlocks = llvm::make_range(std::next(inlineBlock->getIterator()),
 @@ -340,11 +354,27 @@ static LogicalResult inlineRegionImpl(
      interface.handleTerminator(firstBlockTerminator, resultsToReplace);
      firstBlockTerminator->erase();
- 
+
 +    if (deferSplit) {
 +      inlineBlock->getOperations().splice(inlinePoint,
 +                                          firstNewBlock->getOperations());
