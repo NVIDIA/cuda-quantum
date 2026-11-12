@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "py_alt_launch_kernel.h"
+#include "CompileTargetCaster.h"
 #include "CompiledModuleCache.h"
 #include "ProgramFingerprint.h"
 #include "common/AnalogHamiltonian.h"
