@@ -79,11 +79,23 @@ Controlling the optimization level of the compiler
 The simplest configuration option that can be modified to adjust the behavior
 of the compiler is the optimization level. This is a number between 0 and 3
 that can be passed as the ``optimization_level`` argument to any of the CUDA-Q
-kernel launch functions, such as ``sample``, ``observe`` or ``estimate``, and
-that controls how aggressive the optimizations that the compiler applies should
-be. Higher levels enable better optimizations, which can increase the
-compilation time but will result in fewer gates to be executed on the quantum
-device. When no level is specified, the compiler uses level 2.
+kernel launch functions, such as ``sample``, ``observe`` or ``estimate``. It
+controls which compiler optimizations should be enabled.  As with the
+``-O0`` to ``-O3`` flags of classical compilers, higher levels correspond to
+more agressive optimizations, which should result in fewer gates in the final
+compiled program:
+
+- **Level 0**: only the transformations required to lower the kernel to the
+  target, such as decomposing gates into the target's gate set.
+- **Level 1**: cheap local rewrites of adjacent or commuting gates, such as gate
+  cancellation and rotation merging.
+- **Level 2**: analyses across the whole kernel, such as phase folding and
+  resynthesis. These take more compile time but usually produce smaller
+  circuits.
+- **Level 3**: reserved for more expensive search-based optimizations. It
+  currently behaves like level 2.
+
+When no level is specified, the compiler currently uses level 2.
 
 .. note::
 
