@@ -49,19 +49,35 @@ public:
           getValueOrDefault(config, "device_id", DEFAULT_DEVICE);
     }
 
-    // Accept api_key from target arguments, fall back to QBRAID_API_KEY env var
+    // Credentials: an API key (sent as X-API-KEY) or a qBraid access token
+    // (sent as a Bearer token, e.g. the QBRAID_ACCESS_TOKEN that qBraid Lab
+    // exports). Explicit target arguments win over environment variables, and
+    // an API key wins over an access token at the same level.
     // Usage: cudaq.set_target("qbraid", api_key="my-key")
-    bool isApiKeyRequired = [&]() {
+    //        cudaq.set_target("qbraid", access_token="my-token")
+    bool isCredentialRequired = [&]() {
       auto it = config.find("emulate");
       if (it != config.end() && it->second == "true")
         return false;
       return true;
     }();
+    const auto apiKeyEnv = getEnvVar("QBRAID_API_KEY", "", false);
+    const auto accessTokenEnv = getEnvVar("QBRAID_ACCESS_TOKEN", "", false);
     if (!config["api_key"].empty()) {
       backendConfig["api_key"] = config["api_key"];
+    } else if (!config["access_token"].empty()) {
+      backendConfig["access_token"] = config["access_token"];
+    } else if (!apiKeyEnv.empty()) {
+      backendConfig["api_key"] = apiKeyEnv;
+    } else if (!accessTokenEnv.empty()) {
+      backendConfig["access_token"] = accessTokenEnv;
+    } else if (isCredentialRequired) {
+      throw std::runtime_error(
+          "qBraid credentials not found. Set QBRAID_API_KEY or "
+          "QBRAID_ACCESS_TOKEN, or pass the api_key or access_token target "
+          "argument.");
     } else {
-      backendConfig["api_key"] =
-          getEnvVar("QBRAID_API_KEY", "", isApiKeyRequired);
+      backendConfig["api_key"] = "";
     }
     backendConfig["job_path"] = backendConfig["url"] + "/jobs";
 
@@ -78,13 +94,13 @@ public:
     // qBraid brokers multiple paradigms under one target, so reject devices
     // that can't run gate-based (QASM/QIR) programs. Skipped under emulation.
     const bool emulate = getValueOrDefault(config, "emulate", "") == "true";
-    if (!emulate && !backendConfig["api_key"].empty())
+    if (!emulate && hasCredential())
       validateDeviceParadigm(backendConfig["device_id"]);
 
     cudaq::info("qBraid configuration initialized:");
     for (const auto &[key, value] : backendConfig) {
-      if (key == "api_key") {
-        cudaq::info("  api_key = <redacted, {} chars>", value.size());
+      if (key == "api_key" || key == "access_token") {
+        cudaq::info("  {} = <redacted, {} chars>", key, value.size());
       } else {
         cudaq::info("  {} = {}", key, value);
       }
@@ -320,7 +336,8 @@ public:
           throw std::runtime_error(
               "qBraid authentication failed (HTTP " +
               std::to_string(statusCode) +
-              "). Verify QBRAID_API_KEY or api_key target argument.");
+              "). Verify QBRAID_API_KEY / QBRAID_ACCESS_TOKEN or the api_key / "
+              "access_token target argument.");
 
         // Terminal: result resource genuinely does not exist. This is
         // distinct from the "not yet available" race which returns
@@ -365,16 +382,28 @@ public:
 private:
   /// @brief Returns the headers for the server requests.
   RestHeaders getHeaders() override {
-    if (backendConfig.find("api_key") == backendConfig.end()) {
-      throw std::runtime_error(
-          "API key not found in config. Was initialize() called?");
-    }
-
     RestHeaders headers;
-    headers["X-API-KEY"] = backendConfig.at("api_key");
+    if (backendConfig.count("access_token")) {
+      headers["Authorization"] = "Bearer " + backendConfig.at("access_token");
+    } else if (backendConfig.count("api_key")) {
+      headers["X-API-KEY"] = backendConfig.at("api_key");
+    } else {
+      throw std::runtime_error(
+          "qBraid credentials not found in config. Was initialize() called?");
+    }
     headers["Content-Type"] = "application/json";
     headers["User-Agent"] = backendConfig.at("user_agent");
     return headers;
+  }
+
+  /// @brief True if an API key or access token is configured.
+  bool hasCredential() const {
+    for (const char *key : {"api_key", "access_token"}) {
+      auto it = backendConfig.find(key);
+      if (it != backendConfig.end() && !it->second.empty())
+        return true;
+    }
+    return false;
   }
 
   /// @brief Throws if @p deviceId is not a gate-model device, per its qBraid
