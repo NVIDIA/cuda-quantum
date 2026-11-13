@@ -1352,6 +1352,26 @@ def test_call_kernel_constant_int_list(values, expected):
     assert counts[expected] == 100
 
 
+@pytest.mark.parametrize("values, expected", [([], "00"), ([True], "10"),
+                                              ([True, False], "10"),
+                                              ([False, True], "01")])
+def test_call_kernel_constant_bool_list(values, expected):
+
+    @cudaq.kernel(defer_compilation=False)
+    def sub(qubits: cudaq.qview, bits: list[bool]):
+        for i in range(len(bits)):
+            if bits[i]:
+                x(qubits[i])
+
+    kernel = cudaq.make_kernel()
+    targets = kernel.qalloc(2)
+    kernel.apply_call(sub, targets, values)
+
+    counts = cudaq.sample(kernel, shots_count=100)
+    assert len(counts) == 1
+    assert counts[expected] == 100
+
+
 @pytest.mark.parametrize("values, expected",
                          [([], "0000"), ([[], []], "0000"),
                           ([[], [np.pi, 0.0]], "0010"),
