@@ -907,42 +907,37 @@ def FactorQuantumAllocations :
   ];
 }
 
-def FuseSingleQubitChainsForCliffordT
-    : Pass<"fuse-1q-chains-for-clifford-t", "mlir::func::FuncOp"> {
-  let summary = "Fuse constant one-qubit gate sequences into a form that "
-                "heuristically minimizes the rotations needing approximate "
-                "Clifford+T synthesis.";
+def Squash1QToU3 : Pass<"squash-1q-to-u3", "mlir::func::FuncOp"> {
+  let summary = "Squash constant one-qubit gate sequences into a single u3.";
   let description = [{
     Consumes and produces the linear SSA `!quake.wire` form created by
     `convert-to-linear-values`.
 
-    Clifford+T synthesis approximates each rotation separately unless its
-    angle is within `epsilon` of a multiple of pi/4, and every approximation
-    adds T gates. Any one-qubit unitary can be written with three rotations,
-    but a sequence of one-qubit gates often has more than three rotations that
-    need approximation. Two decomposed `U3` gates in a row can have six, for
-    example. This pass replaces such a sequence with at most three rotations,
-    so the unitary is approximated fewer times.
-
-    The pass looks at each longest sequence of uncontrolled `h`, `s`, `t`, `x`,
-    `y`, `z`, `phase`, `r1`, `rx`, `ry`, and `rz` gates on one wire whose
-    angles are constants. Any other operation, including a controlled or
+    The pass looks at each longest sequence of uncontrolled `h`, `s`, `t`,
+    `x`, `y`, `z`, `phase`, `r1`, `rx`, `ry`, `rz`, and `u3` gates on one wire
+    whose angles are constants. Any other operation, including a controlled or
     multi-qubit gate or a gate whose angle is not a constant, ends the
     sequence. A sequence continues through a single-block `cc.scope` that is
     not an atomic quantum region, so gates inside and outside the scope fuse.
     Any other operation with regions, such as `cc.if` or `cc.loop`, ends the
     sequence, and the pass handles each block inside it on its own.
 
-    The pass combines the sequence into a single unitary and rewrites that
-    unitary in two ways, as `rz`-`rx`-`rz` and as `rx`-`rz`-`rx`. It keeps
-    whichever form needs the fewest approximations, using the total number
-    of rotations to break ties, but only if that form is strictly better
-    than the original sequence. A `quake.phase` gate keeps the global phase
-    exact. Sequences that need no approximation, or that have only one
-    rotation, are left alone. Angles that come out within rounding error of
-    a multiple of pi/4 are snapped to that value, so they need no
-    approximation even when `epsilon` is zero.
-
+    Each sequence of single-qubit gates gets synthesized into a `quake.u3` and
+    a `quake.phase gate. The `u3` operand angles are normalized as follows:
+     - if `epsilon` is greater than zero, the angles are snapped to the nearest
+       multiple of `pi/4` within `epsilon`,
+     - based on the provided `cost` parameter, the angles are snapped according
+       to the Euler decomposition that minimizes cost: either `ZXZ` or `XZX`.
+       Which decomposition was used is recorded in the `euler` attribute of the
+       `u3` gate.
+    
+    Unless `always-squash` is set, the sequence is replaced only when the
+    decomposition is strictly cheaper than the sequence, based on the chosen
+    cost function. `cost=rotation-count` counts the number of non-zero
+    rotations that the sequence decomposes to. `cost=clifford-t-free` counts the
+    number of rotations that cannot be synthesized as a single gate in the
+    Clifford+T basis, i.e. with angles that are not multiples of `pi/4`.
+    
     The pass does not try forms with `ry` on the outside, such as
     `ry`-`rx`-`ry`. They sometimes save one rotation in the sequence, but
     `ry` commutes with neither the control nor the target of a controlled
@@ -954,10 +949,14 @@ def FuseSingleQubitChainsForCliffordT
     are skipped.
   }];
   let options = [
+    Option<"cost", "cost", "std::string", /*default=*/"\"rotation-count\"",
+      "What to minimize: `rotation-count` or `clifford-t-free`.">,
     Option<"epsilon", "epsilon", "double", /*default=*/"0.0",
-      "Operator-norm distance within which a rotation counts as a quarter "
-      "turn. Use the epsilon of the downstream Clifford+T legalization. Zero "
-      "counts only exact quarter turns.">,
+      "For `clifford-t-free`, the operator-norm distance within which a "
+      "rotation counts as a quarter turn. Use the epsilon of the downstream "
+      "Clifford+T legalization. Zero counts only exact quarter turns.">,
+    Option<"alwaysSquash", "always-squash", "bool", /*default=*/"false",
+      "Squash every sequence, even when that is not cheaper.">,
   ];
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "cudaq::quake::QuakeDialect"];

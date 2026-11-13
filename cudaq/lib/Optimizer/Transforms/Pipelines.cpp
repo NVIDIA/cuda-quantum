@@ -225,24 +225,28 @@ static void addSharedCleanup(OpPassManager &funcPM,
 }
 
 /// Reduce the T count and non-Clifford rotations before Clifford+T synthesis.
-/// Level 1 only cleans up. Level 2 also fuses one-qubit chains, folds phases,
-/// and snaps angles within `approximation-tolerance` of a Clifford+T value. No
-/// pass erases a rotation larger than that tolerance.
+/// Level 1 only cleans up. Level 2 also squashes one-qubit chains, folds
+/// phases, and snaps angles within `approximation-tolerance` of a Clifford+T
+/// value. No pass erases a rotation larger than that tolerance.
 static void
 addCliffordTOptimization(OpPassManager &pm,
                          const CliffordTOptimizationPipelineOptions &options) {
   if (options.level == 0)
     return;
-  auto &funcPM = pm.nest<func::FuncOp>();
-  addSharedCleanup(funcPM, options.approximationTolerance);
+  auto &cleanupPM = pm.nest<func::FuncOp>();
+  addSharedCleanup(cleanupPM, options.approximationTolerance);
   if (options.level == 1)
     return;
 
-  cudaq::opt::FuseSingleQubitChainsForCliffordTOptions chainOpts;
-  chainOpts.epsilon = options.approximationTolerance;
-  funcPM.addPass(
-      cudaq::opt::createFuseSingleQubitChainsForCliffordT(chainOpts));
-  // Merge the constants that fusion creates.
+  cudaq::opt::Squash1QToU3Options squashOpts;
+  squashOpts.cost = "clifford-t-free";
+  squashOpts.epsilon = options.approximationTolerance;
+  cleanupPM.addPass(cudaq::opt::createSquash1QToU3(squashOpts));
+  // Expand each squashed u3 into the form the squash chose, so that phase
+  // folding and snapping see rotations.
+  cudaq::opt::addDecomposition(pm, {"U3ToRotations"});
+  auto &funcPM = pm.nest<func::FuncOp>();
+  // Merge the constants that the squash creates.
   funcPM.addPass(createCanonicalizerPass());
   // Fold phases before snapping to expose shared rotations, and again at the
   // end to capture the exact phase terms that Clifford+T normalization exposes.
@@ -318,6 +322,8 @@ cudaq::opt::cliffordTDecompositionBasis(std::span<const std::string> basis) {
 }
 
 bool cudaq::opt::needsCliffordTSynthesis(std::span<const std::string> basis) {
+  if (llvm::is_contained(basis, "u3") || llvm::is_contained(basis, "u3(n)"))
+    return false;
   return basis.empty() ||
          llvm::none_of(cliffordTRotations, [&](StringRef rotation) {
            return cudaq::canDecomposeTo(rotation, {basis.data(), basis.size()});

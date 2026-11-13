@@ -1,0 +1,25 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-linear-values --squash-1q-to-u3=always-squash --canonicalize %s | \
+// RUN:   FileCheck %s
+
+// The function-level opt-out keeps every chain intact, even under
+// `always-squash`.
+
+// CHECK-LABEL: func.func @no_optimization(
+// CHECK:         quake.unwrap
+// CHECK-NEXT:    quake.h
+// CHECK-NEXT:    quake.s
+// CHECK-NEXT:    quake.wrap
+func.func @no_optimization(%q: !quake.ref)
+    attributes {quake.optimizationLevel = 0 : i32} {
+  quake.h %q : (!quake.ref) -> ()
+  quake.s %q : (!quake.ref) -> ()
+  return
+}

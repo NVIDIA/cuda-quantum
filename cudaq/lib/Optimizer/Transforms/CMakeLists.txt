@@ -44,7 +44,6 @@ add_cudaq_library(OptTransforms
   ExpandMeasurements.cpp
   ExpandVeqUses.cpp
   FactorQuantumAlloc.cpp
-  FuseSingleQubitChainsForCliffordT.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp
@@ -91,6 +90,8 @@ add_cudaq_library(OptTransforms
   SROA.cpp
   ShrinkWrap.cpp
   SingleQubitChain.cpp
+  SingleQubitEuler.cpp
+  Squash1QToU3.cpp
   StackFramePrealloc.cpp
   StatePreparation.cpp
   StaticQubitTarget.cpp

@@ -1,0 +1,34 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Check base `squash-1q-to-u3` pass.
+// RUN: cudaq-opt --convert-to-linear-values --squash-1q-to-u3 %s | FileCheck %s
+
+// Check `cost=clifford-t-free` option.
+// RUN: cudaq-opt --convert-to-linear-values --squash-1q-to-u3=cost=clifford-t-free %s | \
+// RUN:   FileCheck %s --check-prefix=CLIFFORD
+
+// A lone u3 is already squashed. It only records the cheaper form. Under
+// `rotation-count`, ZXZ and XZX always need the same number of rotations, and
+// ties keep ZXZ. Under `clifford-t-free`, this u3 needs three approximate
+// rotations in ZXZ, but its XZX middle angle is pi/2.
+
+// CHECK-LABEL:    func.func @lone_u3(
+// CHECK:            quake.u3 {{.*}} -> !quake.wire{{$}}
+// CHECK-NEXT:       quake.wrap
+
+// CLIFFORD-LABEL: func.func @lone_u3(
+// CLIFFORD:         quake.u3 {{.*}} {euler = "xzx"}
+// CLIFFORD-NEXT:    quake.wrap
+func.func @lone_u3(%q: !quake.ref) {
+  %theta = arith.constant 2.124031875205279 : f64
+  %phi = arith.constant -3.040881076066917 : f64
+  %lambda = arith.constant 1.7607970180361683 : f64
+  quake.u3 (%theta, %phi, %lambda) %q : (f64, f64, f64, !quake.ref) -> ()
+  return
+}

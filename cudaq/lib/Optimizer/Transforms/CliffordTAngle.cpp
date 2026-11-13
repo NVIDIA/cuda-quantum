@@ -91,7 +91,7 @@ std::optional<std::int64_t> cudaq::opt::detail::matchMultipleOfPi(
 // The error, in units in the last place, assumed for each angle `addAngles`
 // adds. Each angle is taken as the rounded value of some real angle: an input
 // constant is within half a unit of it, and an Euler angle from
-// fuse-1q-chains-for-clifford-t is within a few. An angle that has absorbed
+// squash-1q-to-u3 is within a few. An angle that has absorbed
 // several earlier merges can drift further; its sum then keeps the computed
 // value.
 static constexpr double addendUlps = 4;
