@@ -220,7 +220,7 @@ inline int bridge_run(BridgeConfig &config) {
   // which only the bridge interface hands over.
   if (config.unified) {
     std::cerr << "ERROR: bridge_run does not drive the unified kernel; use "
-                 "gpu_roce_app --unified"
+                 "roce_app --gpu --unified"
               << std::endl;
     return 1;
   }

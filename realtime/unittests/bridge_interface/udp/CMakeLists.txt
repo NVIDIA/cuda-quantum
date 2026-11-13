@@ -36,7 +36,7 @@ cudaq_gtest_discover_tests(test_udp_bridge_provider DISCOVERY_TIMEOUT 120)
 # shapes, plus the wiring refusals.  HOST_CALL only, so no GPU is needed.
 add_executable(test_dispatcher_set_bridge
   test_dispatcher_set_bridge.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cpu_transport/init_rpc_increment_function_table_host.cpp
+  ${CUDAQ_REALTIME_SOURCE_DIR}/validation/init_rpc_increment_function_table_host.cpp
 )
 
 target_include_directories(test_dispatcher_set_bridge PRIVATE
