@@ -524,15 +524,6 @@ class PyKernel(object):
                                  TypeAttr.get(eleTy),
                                  seqSize=size).result
 
-            def body(idx):
-                indices = DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                                context=self.ctx)
-                eleAddr = cc.ComputePtrOp(cc.PointerType.get(eleTy, self.ctx),
-                                          alloca, [idx], indices).result
-                elementVal = cc.ExtractValueOp(eleTy, data, [idx],
-                                               indices).result
-                cc.StoreOp(elementVal, eleAddr)
-
             if len(arg) and (IntegerType.isinstance(eleTy) or
                              F64Type.isinstance(eleTy)):
                 if IntegerType.isinstance(eleTy):
@@ -543,6 +534,16 @@ class PyKernel(object):
                     values = [FloatAttr.get(eleTy, element) for element in arg]
                 data = cc.ConstantArrayOp(cc.ArrayType.get(eleTy, len(arg)),
                                           ArrayAttr.get(values)).result
+
+                def body(idx):
+                    indices = DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                                    context=self.ctx)
+                    eleAddr = cc.ComputePtrOp(
+                        cc.PointerType.get(eleTy, self.ctx), alloca, [idx],
+                        indices).result
+                    elementVal = cc.ExtractValueOp(eleTy, data, [idx],
+                                                   indices).result
+                    cc.StoreOp(elementVal, eleAddr)
 
                 # Preserve the runtime copy loop, reading each element from
                 # constant data instead of indexing Python data while tracing.
