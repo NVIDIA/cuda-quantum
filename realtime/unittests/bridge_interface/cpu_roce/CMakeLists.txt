@@ -9,6 +9,15 @@
 # CPU RoCE bridge provider tests
 # ==============================================================================
 
+if (TARGET cudaq-realtime-bridge-cpu-roce)
+  add_executable(test_cpu_roce_bridge_config test_cpu_roce_bridge_config.cpp)
+  target_link_libraries(test_cpu_roce_bridge_config PRIVATE
+    GTest::gtest_main cudaq-realtime)
+  add_dependencies(test_cpu_roce_bridge_config cudaq-realtime-bridge-cpu-roce)
+  cudaq_gtest_discover_tests(test_cpu_roce_bridge_config
+    TEST_PREFIX "test_cpu_roce_bridge_config.")
+endif()
+
 # End-to-end: spawn the transport-agnostic test server on a cpu_roce bridge
 # and drive it from a caller transceiver in this process, under both dispatch
 # shapes.  Needs RoCE: every case probes the transport and skips (or fails,

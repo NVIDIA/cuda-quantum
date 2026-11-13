@@ -46,7 +46,7 @@
 ///
 /// KNOWN ISSUE, ring shape only: the server reports its count but never exits
 /// on its own, because HSB's GpuRoceTransceiver destructor waits on an RX
-/// kernel that does not end after close() (gpu_roce_app hangs the same way).
+/// kernel that does not end after close() (roce_app --gpu hangs the same way).
 /// ServerProcess kills it after its grace period, which costs each ring case
 /// about a second and nothing else.
 
