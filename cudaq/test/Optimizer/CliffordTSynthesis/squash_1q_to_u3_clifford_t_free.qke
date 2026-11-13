@@ -8,21 +8,23 @@
 
 // RUN: cudaq-opt --pass-pipeline='builtin.module( \
 // RUN:   decomposition{enable-patterns=U3ToRotations},convert-to-linear-values, \
-// RUN:   func.func(fuse-1q-chains-for-clifford-t,canonicalize))' %s -o %t.chains
+// RUN:   func.func(squash-1q-to-u3{cost=clifford-t-free}), \
+// RUN:   decomposition{enable-patterns=U3ToRotations},func.func(canonicalize))' %s -o %t.chains
 // RUN: FileCheck %s --input-file=%t.chains
 // RUN: CircuitCheck --input=%t.chains %s
 // RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
-// RUN:   func.func(fuse-1q-chains-for-clifford-t{epsilon=0.001},canonicalize))' \
+// RUN:   func.func(squash-1q-to-u3{cost=clifford-t-free epsilon=0.001}), \
+// RUN:   decomposition{enable-patterns=U3ToRotations},func.func(canonicalize))' \
 // RUN:   %s | FileCheck %s --check-prefix=EPSILON
 // RUN: cudaq-opt --pass-pipeline='builtin.module( \
 // RUN:   decomposition{enable-patterns=U3ToRotations},convert-to-linear-values, \
 // RUN:   clifford-t-optimization-pipeline{approximation-tolerance=1e-3})' %s | \
 // RUN:   FileCheck %s --check-prefix=LEVEL2
 // RUN: not cudaq-opt --pass-pipeline='builtin.module( \
-// RUN:   func.func(fuse-1q-chains-for-clifford-t{epsilon=-1}))' %s 2>&1 | \
+// RUN:   func.func(squash-1q-to-u3{epsilon=-1}))' %s 2>&1 | \
 // RUN:   FileCheck %s --check-prefix=INVALID
 
-// INVALID: error: fuse-1q-chains-for-clifford-t epsilon must be finite and non-negative
+// INVALID: error: squash-1q-to-u3 epsilon must be finite and non-negative
 
 // This U3 needs three approximate rotations in ZXZ, but its XZX middle angle
 // is pi/2. The computed middle angle is a few ulps off pi/2 and is snapped to

@@ -71,7 +71,8 @@ struct QuakeUnmappedProfile {
   /// rewrites, so synthesis needs a positive tolerance.
   double approximationTolerance = 0;
 
-  /// Without a cost model, the stage runs no optimization.
+  /// Without a cost model, the stage only squashes one-qubit gate chains, from
+  /// optimization level 1.
   std::optional<CostModel> costModel = std::nullopt;
 
   /// Which loops the stage unrolls when it converts to wires. Unless the

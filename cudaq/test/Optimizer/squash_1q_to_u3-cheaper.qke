@@ -1,0 +1,42 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Check base `squash-1q-to-u3` pass.
+// RUN: cudaq-opt --convert-to-linear-values --squash-1q-to-u3 --canonicalize \
+// RUN:   %s | FileCheck %s
+
+// Check `squash-1q-to-u3` followed by Euler decomposition.
+// RUN: cudaq-opt --convert-to-linear-values --squash-1q-to-u3 \
+// RUN:   --decomposition=enable-patterns=U3ToRotations --canonicalize %s -o %t
+// RUN: FileCheck %s --check-prefix=EXPANDED --input-file=%t
+// RUN: CircuitCheck --input=%t %s
+
+// Four gates make an X rotation followed by a Z rotation, which needs only two
+// rotations, so the chain becomes one u3. The expansion keeps two rotations,
+// and its phase cancels the squash's phase exactly.
+
+// CHECK-LABEL:  func.func @cheaper(
+// CHECK:          quake.unwrap
+// CHECK-NEXT:     quake.u3
+// CHECK-NEXT:     quake.phase
+// CHECK-NEXT:     quake.wrap
+
+// EXPANDED-LABEL: func.func @cheaper(
+// EXPANDED:         quake.unwrap
+// EXPANDED-NEXT:    quake.rx
+// EXPANDED-NEXT:    quake.rz
+// EXPANDED-NEXT:    quake.wrap
+func.func @cheaper(%q: !quake.ref) {
+  %a = arith.constant 0.3 : f64
+  %b = arith.constant 0.5 : f64
+  quake.h %q : (!quake.ref) -> ()
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  quake.h %q : (!quake.ref) -> ()
+  quake.rz (%b) %q : (f64, !quake.ref) -> ()
+  return
+}

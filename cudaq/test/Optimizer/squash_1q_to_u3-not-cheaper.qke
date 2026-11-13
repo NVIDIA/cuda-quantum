@@ -1,0 +1,29 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-linear-values --squash-1q-to-u3 --canonicalize %s | \
+// RUN:   FileCheck %s
+
+// Three rotations about alternating axes are already as short as any Euler
+// form, so they stay.
+
+// CHECK-LABEL: func.func @not_cheaper(
+// CHECK:         quake.unwrap
+// CHECK-NEXT:    quake.rz
+// CHECK-NEXT:    quake.rx
+// CHECK-NEXT:    quake.rz
+// CHECK-NEXT:    quake.wrap
+func.func @not_cheaper(%q: !quake.ref) {
+  %a = arith.constant 0.3 : f64
+  %b = arith.constant 0.4 : f64
+  %c = arith.constant 0.5 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  quake.rx (%b) %q : (f64, !quake.ref) -> ()
+  quake.rz (%c) %q : (f64, !quake.ref) -> ()
+  return
+}

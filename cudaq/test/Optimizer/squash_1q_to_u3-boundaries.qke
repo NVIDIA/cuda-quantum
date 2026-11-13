@@ -1,0 +1,37 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-linear-values --squash-1q-to-u3=always-squash --canonicalize %s -o %t
+// RUN: FileCheck %s --input-file=%t
+// RUN: CircuitCheck --input=%t %s
+
+// A controlled gate ends a chain, whether the qubit is its target or one of its
+// controls. `always-squash` turns every chain into a u3, even a single gate, so
+// each chain shows. The clifford_t_free_dynamic test covers gates whose angle
+// is not a constant.
+
+// CHECK-LABEL: func.func @boundaries(
+// CHECK:         quake.u3
+// CHECK-NEXT:    quake.phase
+// CHECK-NEXT:    quake.rx (%{{.*}}) [%
+// CHECK-NEXT:    quake.u3
+// CHECK-NEXT:    quake.phase
+// CHECK-NEXT:    quake.x [%
+// CHECK-NEXT:    quake.wrap
+// CHECK-NEXT:    quake.u3
+// CHECK-NEXT:    quake.phase
+// CHECK-NEXT:    quake.wrap
+func.func @boundaries(%control: !quake.ref, %target: !quake.ref) {
+  %a = arith.constant 0.3 : f64
+  quake.rz (%a) %target : (f64, !quake.ref) -> ()
+  quake.rx (%a) [%control] %target : (f64, !quake.ref, !quake.ref) -> ()
+  quake.rz (%a) %target : (f64, !quake.ref) -> ()
+  quake.x [%target] %control : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%a) %target : (f64, !quake.ref) -> ()
+  return
+}

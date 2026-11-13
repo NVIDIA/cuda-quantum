@@ -38,6 +38,29 @@ static bool schedulesCliffordTSynthesis(
          !profile.basisGates.empty();
 }
 
+/// The passes that squash each one-qubit gate sequence into a single `u3`, from
+/// level 1. Under `t-count`, the squash minimizes the rotations that need
+/// synthesis, and otherwise the number of rotations. It replaces a sequence
+/// only when that is cheaper, except from level 2 with `u3` in the basis, where
+/// it squashes every sequence. The closing `basis-conversion` decomposes the
+/// `u3` again when the basis has no `u3`, into the Euler form the squash chose.
+static std::string
+squashPasses(const cudaq::config::QuakeUnmappedProfile &profile,
+             const cudaq::CompileOptions &options) {
+  const auto level = static_cast<unsigned>(options.optimizationLevel);
+  const bool tCount = profile.costModel == cudaq::config::CostModel::t_count;
+  const bool nativeU3 = llvm::is_contained(profile.basisGates, "u3") ||
+                        llvm::is_contained(profile.basisGates, "u3(n)");
+  std::string squash = "squash-1q-to-u3{cost=";
+  squash += tCount ? "clifford-t-free epsilon=" +
+                         formatTolerance(profile.approximationTolerance)
+                   : std::string("rotation-count");
+  if (level >= 2 && nativeU3)
+    squash += " always-squash=true";
+  squash += "}";
+  return "func.func(" + squash + ",canonicalize)";
+}
+
 /// The passes that optimize for the profile's cost model. A non-empty basis
 /// first gains the gates the optimizer works with: for `t-count`, the
 /// rotations it merges and snaps before synthesis; for `two-qubit-gate-count`,
@@ -67,9 +90,14 @@ costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
         std::string(tCount ? "clifford-t" : "two-qubit-gate-count") +
         "-optimization-pipeline{level=" + std::to_string(level) +
         (tCount ? " approximation-tolerance=" + tolerance : "") + "}");
+  if (level >= 1)
+    passes.push_back(squashPasses(profile, options));
   // The synthesis pipeline adds no passes when the basis can express one of
-  // the rotations it synthesizes exactly.
+  // the rotations it synthesizes exactly. Otherwise it needs the rotations
+  // that each squashed `u3` stands for.
   if (schedulesCliffordTSynthesis(profile)) {
+    if (level >= 1 && cudaq::opt::needsCliffordTSynthesis(profile.basisGates))
+      passes.push_back("decomposition{enable-patterns=U3ToRotations}");
     const std::string seed =
         options.seed ? " seed=" + std::to_string(*options.seed) : "";
     passes.push_back("clifford-t-synthesis-pipeline{basis=" +
@@ -108,8 +136,13 @@ public:
         !cudaq::opt::canOptimizeTwoQubitGateCount(basis))
       return std::nullopt;
     std::vector<std::string> passes;
-    if (profile.costModel)
+    if (profile.costModel) {
       passes = costModelPasses(profile, options);
+    } else if (options.optimizationLevel != cudaq::OptimizationLevel::O0) {
+      // The squash works on wires.
+      passes.push_back(cudaq_internal::compiler::convertToWires(profile));
+      passes.push_back(squashPasses(profile, options));
+    }
     if (!basis.empty())
       passes.push_back("basis-conversion{basis=" + llvm::join(basis, ",") +
                        "}");
