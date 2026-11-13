@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Transforms/VerifyLinearOwnership.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Analysis/LinearOwnership.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -35,7 +34,3 @@ public:
   }
 };
 } // namespace
-
-void cudaq::opt::registerLinearOwnershipVerifierPass() {
-  registerVerifyLinearOwnership();
-}
