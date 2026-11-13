@@ -517,15 +517,32 @@ class PyKernel(object):
                                                arg.imag)).result
 
         if cc.SequenceType.isinstance(mlirType):
-            size = self.getConstantInt(len(arg))
             eleTy = cc.SequenceType.getElementType(mlirType)
+            leafTy = eleTy
+            while cc.SequenceType.isinstance(leafTy):
+                leafTy = cc.SequenceType.getElementType(leafTy)
+            if not (IntegerType.isinstance(leafTy) or
+                    F64Type.isinstance(leafTy)):
+                emitFatalError(
+                    f"CUDA-Q kernel builder could not process runtime "
+                    f"list-like element type ({leafTy}).")
+
+            size = self.getConstantInt(len(arg))
             arrTy = cc.ArrayType.get(eleTy, context=self.ctx)
             alloca = cc.AllocaOp(cc.PointerType.get(arrTy, self.ctx),
                                  TypeAttr.get(eleTy),
                                  seqSize=size).result
 
-            if len(arg) and (IntegerType.isinstance(eleTy) or
-                             F64Type.isinstance(eleTy)):
+            if cc.SequenceType.isinstance(eleTy):
+                # Nested sequences require separately materialized buffers.
+                for i, element in enumerate(arg):
+                    elementVal = self.__getMLIRValueFromPythonArg(
+                        element, eleTy)
+                    eleAddr = cc.ComputePtrOp(
+                        cc.PointerType.get(eleTy, self.ctx), alloca, [],
+                        DenseI32ArrayAttr.get([i], context=self.ctx)).result
+                    cc.StoreOp(elementVal, eleAddr)
+            elif len(arg):
                 if IntegerType.isinstance(eleTy):
                     values = [
                         IntegerAttr.get(eleTy, element) for element in arg
@@ -548,19 +565,6 @@ class PyKernel(object):
                 # Preserve the runtime copy loop, reading each element from
                 # constant data instead of indexing Python data while tracing.
                 self.createInvariantForLoop(size, body)
-            else:
-                # Nested sequences require separately materialized buffers.
-                for i, element in enumerate(arg):
-                    if not cc.SequenceType.isinstance(eleTy):
-                        emitFatalError(
-                            f"CUDA-Q kernel builder could not process runtime "
-                            f"list-like element type ({pyType}).")
-                    elementVal = self.__getMLIRValueFromPythonArg(
-                        element, eleTy)
-                    eleAddr = cc.ComputePtrOp(
-                        cc.PointerType.get(eleTy, self.ctx), alloca, [],
-                        DenseI32ArrayAttr.get([i], context=self.ctx)).result
-                    cc.StoreOp(elementVal, eleAddr)
             return cc.SequenceInitOp(cc.SequenceType.get(eleTy, self.ctx),
                                      alloca,
                                      length=size).result

@@ -1337,11 +1337,12 @@ def test_call_kernel_constant_list(operation, values, expected):
     assert counts[expected] == 100
 
 
-@pytest.mark.parametrize("values, expected", [([1, 0], "10"), ([0, 1], "01")])
+@pytest.mark.parametrize("values, expected", [([], "00"), ([1], "10"),
+                                              ([1, 0], "10"), ([0, 1], "01")])
 def test_call_kernel_constant_int_list(values, expected):
     sub, qubits, values_arg = cudaq.make_kernel(cudaq.qview, list[int])
-    sub.rx(np.pi * values_arg[0], qubits[0])
-    sub.rx(np.pi * values_arg[1], qubits[1])
+    sub.for_loop(0, values_arg.size(),
+                 lambda i: sub.rx(np.pi * values_arg[i], qubits[i]))
 
     kernel = cudaq.make_kernel()
     targets = kernel.qalloc(2)
@@ -1370,6 +1371,27 @@ def test_call_kernel_constant_bool_list(values, expected):
     counts = cudaq.sample(kernel, shots_count=100)
     assert len(counts) == 1
     assert counts[expected] == 100
+
+
+@pytest.mark.parametrize("nested, values", [(False, []), (False, [1.0 + 0.0j]),
+                                            (True, []), (True, [[]]),
+                                            (True, [[1.0 + 0.0j]])])
+def test_call_kernel_unsupported_constant_list(nested, values):
+    if nested:
+
+        @cudaq.kernel(defer_compilation=False)
+        def sub(qubits: cudaq.qview, values: list[list[complex]]):
+            x(qubits[0])
+    else:
+
+        @cudaq.kernel(defer_compilation=False)
+        def sub(qubits: cudaq.qview, values: list[complex]):
+            x(qubits[0])
+
+    kernel = cudaq.make_kernel()
+    targets = kernel.qalloc(1)
+    with pytest.raises(RuntimeError, match="list-like element type"):
+        kernel.apply_call(sub, targets, values)
 
 
 @pytest.mark.parametrize("values, expected",
