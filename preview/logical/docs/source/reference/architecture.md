@@ -171,7 +171,8 @@ Three independent layers enforce correctness:
   `qlx-verify-p0`, `lvm-verify-p1`, `fabric-verify-p2s` / `-p2a` / `-p2n`,
   `fabric-verify-machine`, and `phys-verify-p3`, plus the gate-set verifiers
   `qlx-verify-clifford-t` and `qlx-verify-pbc`. Missing or inconsistent evidence
-  fails closed. Linear single ownership is a C++ analysis driven by
+  fails closed. Linear single ownership is a C++ analysis in upstream CUDA-Q
+  (`cudaq/Optimizer/Analysis/LinearOwnership.h`), driven by
   `LinearTypeInterface` and the linear-ownership op traits: the `qlx.program`
   and `qlx.objective_body` verifiers run it, the core `verify-linear-ownership`
   pass runs it over every tier, and `compiler/linearity.py` reports its result
