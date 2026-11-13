@@ -25,11 +25,9 @@ Compiling for built-in targets
 ++++++++++++++++++++++++++++++
 
 Throughout this page, we compile a kernel ``qpe`` that implements quantum
-phase estimation on 6 qubits: 4 counting qubits estimate the phase of a
-two-qubit unitary made of ``x.ctrl`` and ``rz`` gates, followed by an inverse
-quantum Fourier transform. There is no need to understand this algorithm for
-the purposes of this page. The full source code of the example is available
-:download:`here <../../snippets/python/using/compile_kernel.py>`.
+phase estimation on 6 qubits, with 4 data qubits and 2 ancilla. Have a look at
+the :download:`source <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/snippets/python/using/compile_kernel.py>`.
+if you are interested in the full implementation.
 
 At the most basic level, a compiler's job is to take this high-level
 description of a computation and produce a circuit that a given target is able
@@ -210,10 +208,8 @@ accepts further arguments, see
 :doc:`Using compile targets to customize compilation <../extending/compiler/compile_targets>`
 for more details.
 
-Other than for experimentation, we strongly advise users against this. The
-internal CUDA-Q compiler pipelines change over time. A pipeline that works well
-today may no longer do so with the next release. What's even more likely (and
-worse in a way) is that your custom pipeline continues to work but silently
-worsens over time. A fixed pipeline will quickly become outdated and will lock
-you out of the regular performance improvements that ship with each CUDA-Q
-release.
+Defining custom pipelines is mostly useful for experimentation, when doing research
+or developing new custom targets. Expect to have to update and adjust your custom
+pipeline over time, as the CUDA-Q compiler evolves. A pipeline that works well
+today may become outdated and may not be designed to leverage features that will
+ship with future releases of CUDA-Q.
