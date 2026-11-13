@@ -891,7 +891,14 @@ TEST(OutlinePartitions, OverlappingBatchRejectedWithoutChanges) {
       {{x.getOperation()}},
       {{x.getOperation(), z.getOperation()}}};
   const std::string before = printModule(*mod);
-  EXPECT_TRUE(failed(cudaq::opt::outlinePartitions(partitions)));
+  unsigned failures = 0;
+  auto reportFailure = [&](Operation *op, llvm::StringRef reason) {
+    ++failures;
+    EXPECT_EQ(op, x.getOperation());
+    EXPECT_EQ(reason, "partitions contain duplicate or overlapping operations");
+  };
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartitions(partitions, reportFailure)));
+  EXPECT_EQ(failures, 1u);
   EXPECT_EQ(printModule(*mod), before);
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
@@ -1097,8 +1104,16 @@ TEST(OutlinePartitions, CaptureAfterBoundaryRejected) {
   ASSERT_TRUE(boundary);
 
   const std::string before = printModule(*mod);
+  unsigned failures = 0;
+  auto reportFailure = [&](Operation *op, llvm::StringRef reason) {
+    ++failures;
+    EXPECT_EQ(op, selected.getOperation());
+    EXPECT_EQ(reason,
+              "captured input is unavailable at the required placement");
+  };
   EXPECT_TRUE(failed(cudaq::opt::outlinePartition(
-      {{selected.getOperation()}, boundary.getOperation()})));
+      {{selected.getOperation()}, boundary.getOperation()}, reportFailure)));
+  EXPECT_EQ(failures, 1u);
   EXPECT_EQ(printModule(*mod), before);
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
