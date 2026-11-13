@@ -32,24 +32,37 @@ static bool isSupportedOutlineOp(Operation *op) {
 
 static FailureOr<cudaq::cc::CreateLambdaOp>
 outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
-                     const DominanceInfo &dominance) {
+                     const DominanceInfo &dominance,
+                     cudaq::opt::OutliningFailureHandler onFailure) {
   ArrayRef<Operation *> partitionOps = partition.ops;
-  if (partitionOps.empty())
+  // wrap error callback (if it exists) in a lambda
+  auto reject = [&](StringRef reason,
+                    Operation *op =
+                        nullptr) -> FailureOr<cudaq::cc::CreateLambdaOp> {
+    if (onFailure)
+      onFailure(op ? op
+                   : (partitionOps.empty() ? nullptr : partitionOps.front()),
+                reason);
     return failure();
+  };
+  if (partitionOps.empty())
+    return reject("partition contains no operations");
 
   DenseSet<Operation *> inPartition(partitionOps.begin(), partitionOps.end());
 
   // Reject any partition with duplicate operations
   if (inPartition.size() != partitionOps.size())
-    return failure();
+    return reject("partition contains duplicate operations");
 
   // All operations must be supported and live in one block.
   Block *block = partitionOps.front()->getBlock();
   for (Operation *op : partitionOps) {
     if (op->getBlock() != block)
-      return failure();
+      return reject("selected operations must belong to the same block", op);
     if (!isSupportedOutlineOp(op))
-      return failure();
+      return reject("selected operation must be memory-effect-free and have "
+                    "supported wire semantics",
+                    op);
   }
 
   // Preserve the supplied order and verify that internal producers precede
@@ -64,7 +77,9 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
     for (Value operand : op->getOperands()) {
       Operation *def = operand.getDefiningOp();
       if (def && inPartition.contains(def) && !seen.contains(def))
-        return failure();
+        return reject("selected operations must be ordered before their "
+                      "consumers",
+                      op);
     }
     seen.insert(op);
     if (!anchor || anchor->isBeforeInBlock(op))
@@ -107,7 +122,8 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
   for (Value out : llvm::concat<const Value>(nonWireOutputs, outputs))
     for (Operation *user : out.getUsers())
       if (!inPartition.contains(user) && user->getBlock() != block)
-        return failure();
+        return reject(
+            "external result consumers must belong to the same block");
 
   auto inputList = inputs.takeVector();
   auto nonWireInputList = nonWireInputs.takeVector();
@@ -131,12 +147,13 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
 
     auto flow = cudaq::quake::detail::getWireFlow(op);
     if (!flow)
-      return failure();
+      return reject("selected operation has unsupported wire flow", op);
 
     for (auto [in, out] : llvm::zip(flow->inputs, flow->results)) {
       auto it = outputIdxByWire.find(in);
       if (it == outputIdxByWire.end())
-        return failure();
+        return reject("wire flow must thread each input through a single chain",
+                      op);
 
       unsigned idx = it->second;
       outputIdxByWire.erase(it);
@@ -147,11 +164,11 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
 
   // Check that tracing found exactly the discovered output wires.
   if (orderedWireOutputs.size() != outputs.size())
-    return failure();
+    return reject("wire outputs do not match the threaded inputs");
 
   for (Value out : orderedWireOutputs)
     if (!out || !outputs.contains(out))
-      return failure();
+      return reject("wire outputs do not match the threaded inputs");
 
   // Prepare a callable without explicit parameters. Non-wire results precede
   // wire results.
@@ -167,13 +184,19 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
   // Insert before mustPrecede or an earlier external consumer. With neither,
   // insert after the physically last selected operation. Reject placements
   // where a captured input is unavailable.
+  // TODO: Before opening the PR, document why callers supply a hard-boundary
+  // operation: SSA consumers alone do not prevent placement across semantic
+  // boundaries. Explain that mustPrecede is an upper bound, earlier consumers
+  // can require earlier placement, and partitions sharing a boundary are
+  // inserted in processing order when placed immediately before that boundary.
   OpBuilder builder(ctx);
 
   Operation *insertBefore = partition.mustPrecede;
   // A supplied boundary must be in the same block and outside the partition.
   if (partition.mustPrecede && (partition.mustPrecede->getBlock() != block ||
                                 inPartition.contains(partition.mustPrecede)))
-    return failure();
+    return reject("placement boundary must be in the same block and outside "
+                  "the partition");
 
   for (Value out : llvm::concat<Value>(nonWireOutputList, orderedWireOutputs))
     for (Operation *user : out.getUsers())
@@ -186,7 +209,7 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
                          ? dominance.properlyDominates(in, insertBefore)
                          : dominance.dominates(in, anchor);
     if (!available)
-      return failure();
+      return reject("captured input is unavailable at the required placement");
   }
 
   if (insertBefore)
@@ -232,36 +255,44 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
 /// 1. no overlap among partitions
 /// 2. no `mustPrecede` ops in any of the partitions
 static LogicalResult
-validatePartitions(ArrayRef<cudaq::opt::PartitionToOutline> partitions) {
+validatePartitions(ArrayRef<cudaq::opt::PartitionToOutline> partitions,
+                   cudaq::opt::OutliningFailureHandler onFailure) {
   DenseSet<Operation *> allOps;
 
-  // reject if any overlap among partitions
   for (const auto &partition : partitions) {
-    if (llvm::any_of(partition.ops,
-                     [&](Operation *op) { return !allOps.insert(op).second; }))
-      return failure();
+    for (Operation *op : partition.ops) {
+      if (!allOps.insert(op).second) {
+        if (onFailure)
+          onFailure(op,
+                    "partitions contain duplicate or overlapping operations");
+        return failure();
+      }
+    }
   }
 
-  // reject if `mustPrecede` contained within any of the partitions
-  if (llvm::any_of(partitions,
-                   [&](const cudaq::opt::PartitionToOutline &partition) {
-                     return partition.mustPrecede &&
-                            allOps.contains(partition.mustPrecede);
-                   }))
-    return failure();
+  for (const auto &partition : partitions) {
+    if (partition.mustPrecede && allOps.contains(partition.mustPrecede)) {
+      if (onFailure)
+        onFailure(partition.mustPrecede,
+                  "placement boundary is selected by a partition in the batch");
+      return failure();
+    }
+  }
 
   return success();
 }
 
 FailureOr<cudaq::cc::CreateLambdaOp>
-cudaq::opt::outlinePartition(const PartitionToOutline &partition) {
+cudaq::opt::outlinePartition(const PartitionToOutline &partition,
+                             OutliningFailureHandler onFailure) {
   DominanceInfo dominance;
-  return outlinePartitionImpl(partition, dominance);
+  return outlinePartitionImpl(partition, dominance, onFailure);
 }
 
 LogicalResult
-cudaq::opt::outlinePartitions(ArrayRef<PartitionToOutline> partitions) {
-  if (failed(validatePartitions(partitions)))
+cudaq::opt::outlinePartitions(ArrayRef<PartitionToOutline> partitions,
+                              OutliningFailureHandler onFailure) {
+  if (failed(validatePartitions(partitions, onFailure)))
     return failure();
 
   // The CFG of existing regions is unchanged, so cached dominance information
@@ -269,7 +300,7 @@ cudaq::opt::outlinePartitions(ArrayRef<PartitionToOutline> partitions) {
   DominanceInfo dominance;
   auto result = success();
   for (const auto &partition : partitions)
-    if (failed(outlinePartitionImpl(partition, dominance)))
+    if (failed(outlinePartitionImpl(partition, dominance, onFailure)))
       result = failure();
   return result;
 }
