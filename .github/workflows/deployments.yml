@@ -259,7 +259,7 @@ jobs:
         # There are currently no multi-platform manylinux images available.
         # See https://github.com/pypa/manylinux/issues/1306.
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6", "13.0"]
+        cuda_version: ["12.6", "13.4"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -291,7 +291,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6", "13.0"]
+        cuda_version: ["12.6", "13.4"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -323,7 +323,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6", "13.0"]
+        cuda_version: ["12.6", "13.4"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -354,7 +354,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6", "13.0"]
+        cuda_version: ["12.6", "13.4"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -366,6 +366,7 @@ jobs:
       build_config_id: cu${{ matrix.cuda_version }}
       build_args: |
         cuda_version=${{ matrix.cuda_version }}
+        cuda_patch=${{ matrix.cuda_version == '13.4' && '3' || '0' }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
@@ -444,7 +445,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6", "13.0"]
+        cuda_version: ["12.6", "13.4"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -497,7 +498,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cuda: ["12.6", "13.0"]
+        cuda: ["12.6", "13.4"]
 
     environment: ghcr-deployment
 
@@ -583,7 +584,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6", "13.0"]
+        cuda_version: ["12.6", "13.4"]
       fail-fast: false
     uses: ./.github/workflows/docker_images.yml
     secrets:
@@ -633,7 +634,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cuda: ["12.6", "13.0"]
+        cuda: ["12.6", "13.4"]
 
     environment: ghcr-deployment
 
@@ -841,7 +842,7 @@ jobs:
     needs: [metadata, aggregate_stitched_images]
     strategy:
       matrix:
-        cuda: ["12.6", "13.0"]
+        cuda: ["12.6", "13.4"]
 
     runs-on: ubuntu-latest
 
@@ -912,10 +913,10 @@ jobs:
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       python_version: "3.11"
-      cuda_version: "13.0"
+      cuda_version: "13.4"
       devdeps_image:
         ${{
-        fromJson(needs.config.outputs.json).image_hash[format('{0}-cu13.0-python',
+        fromJson(needs.config.outputs.json).image_hash[format('{0}-cu13.4-python',
         matrix.platform)] }}
       build_runtime_wheel: false
       build_devel_wheel: true
@@ -930,7 +931,7 @@ jobs:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         python_version: ${{ fromJson(needs.metadata.outputs.python_versions) }}
-        cuda_version: ["12.6", "13.0"]
+        cuda_version: ["12.6", "13.4"]
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     secrets:
@@ -948,7 +949,7 @@ jobs:
       # directly rather than read from needs.python_devel_wheel.outputs --
       # that output is ambiguous across a matrixed job's instances.
       devel_artifact_name: cudaq-devel-${{ matrix.platform }}
-      build_logical_wheel: ${{ matrix.cuda_version == '13.0' }}
+      build_logical_wheel: ${{ matrix.cuda_version == '13.4' }}
       release_version: ${{ needs.metadata.outputs.cudaq_version }}
 
   # cudaq-edem does not depend on CUDA-Q, so it builds in parallel with
@@ -986,7 +987,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6", "13.0"]
+        cuda_version: ["12.6", "13.4"]
       fail-fast: false
     uses: ./.github/workflows/prebuilt_binaries.yml
     secrets:
@@ -1015,7 +1016,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        cuda_version: ["12.6", "13.0"]
+        cuda_version: ["12.6", "13.4"]
       fail-fast: false
     uses: ./.github/workflows/realtime_prebuilt_binaries.yml
     secrets:
@@ -1188,7 +1189,7 @@ jobs:
     with:
       cudaq_version: ${{ needs.metadata.outputs.package_version }}
       python_versions: ${{ needs.metadata.outputs.python_versions }}
-      cuda_versions: "['', '12.6', '13.0']"
+      cuda_versions: "['', '12.6', '13.4']"
       wheel_artifacts: 'pycudaq-*' # unused, the tests run in Validation
       run_tests: false
       retention_days: 14

@@ -222,8 +222,8 @@ if ! $build_devel && [ -f "python/README.md.in" ]; then
   cuda_version_full="${CUDA_VERSION:-${cuda_variant}.0}"
   cuda_version_requirement=">= ${cuda_version_full}"
   cuda_version_conda="${cuda_version_full}.0"
-  # Map conda version 13.0.0 -> 13.0.2 (conda channel doesn't have 13.0.0)
-  cuda_version_conda="${cuda_version_conda/13.0.0/13.0.2}"
+  # Map conda version 13.4.0 -> 13.3.1 (conda channel has no 13.4 label)
+  cuda_version_conda="${cuda_version_conda/13.4.0/13.3.1}"
   deprecation_notice=""  # No deprecation notice by default
   
   # Perform substitutions
@@ -584,7 +584,7 @@ if $run_tests; then
         if [ "$cuda_variant" = "12" ]; then
             cuda_version_conda="${CUDA_VERSION_CONDA:-12.6.0}"
         else
-            cuda_version_conda="${CUDA_VERSION_CONDA:-13.0.0}"
+            cuda_version_conda="${CUDA_VERSION_CONDA:-13.3.1}"
         fi
         validate_args="$validate_args -c $cuda_version_conda"
     fi
