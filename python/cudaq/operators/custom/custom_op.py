@@ -66,7 +66,7 @@ def _defineCustomOperator(cls,
     def generator_wrapper(dimensions: Sequence[int], kwargs: dict[str,
                                                                   NumericType]):
         np_matrix = with_dimension_check(create, dimensions, **kwargs)
-        return ComplexMatrix(np_matrix)
+        return ComplexMatrix(numpy.asarray(np_matrix, dtype=numpy.complex128))
 
     cls._define(id, expected_dimensions, generator_wrapper, override,
                 **parameters)
