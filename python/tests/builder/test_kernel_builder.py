@@ -1314,6 +1314,129 @@ def test_call_kernel_expressions_list():
     cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
 
 
+@pytest.mark.parametrize("operation", ["apply_call", "control", "adjoint"])
+@pytest.mark.parametrize("values, expected", [([], "00"), ([np.pi], "10"),
+                                              ([np.pi, 0.0], "10"),
+                                              ([0.0, np.pi], "01")])
+def test_call_kernel_constant_list(operation, values, expected):
+    sub, qubits, angles = cudaq.make_kernel(cudaq.qview, list[float])
+    sub.for_loop(0, angles.size(), lambda i: sub.rx(angles[i], qubits[i]))
+
+    kernel = cudaq.make_kernel()
+    targets = kernel.qalloc(2)
+    if operation == "control":
+        control = kernel.qalloc()
+        kernel.x(control)
+        kernel.control(sub, control, targets, values)
+        expected += "1"
+    else:
+        getattr(kernel, operation)(sub, targets, values)
+
+    counts = cudaq.sample(kernel, shots_count=100)
+    assert len(counts) == 1
+    assert counts[expected] == 100
+
+
+@pytest.mark.parametrize("values, expected", [([], "00"), ([1], "10"),
+                                              ([1, 0], "10"), ([0, 1], "01")])
+def test_call_kernel_constant_int_list(values, expected):
+    sub, qubits, values_arg = cudaq.make_kernel(cudaq.qview, list[int])
+    sub.for_loop(0, values_arg.size(),
+                 lambda i: sub.rx(np.pi * values_arg[i], qubits[i]))
+
+    kernel = cudaq.make_kernel()
+    targets = kernel.qalloc(2)
+    kernel.apply_call(sub, targets, values)
+
+    counts = cudaq.sample(kernel, shots_count=100)
+    assert len(counts) == 1
+    assert counts[expected] == 100
+
+
+@pytest.mark.parametrize("values, expected", [([], "00"), ([True], "10"),
+                                              ([True, False], "10"),
+                                              ([False, True], "01")])
+def test_call_kernel_constant_bool_list(values, expected):
+
+    @cudaq.kernel(defer_compilation=False)
+    def sub(qubits: cudaq.qview, bits: list[bool]):
+        for i in range(len(bits)):
+            if bits[i]:
+                x(qubits[i])
+
+    kernel = cudaq.make_kernel()
+    targets = kernel.qalloc(2)
+    kernel.apply_call(sub, targets, values)
+
+    counts = cudaq.sample(kernel, shots_count=100)
+    assert len(counts) == 1
+    assert counts[expected] == 100
+
+
+@pytest.mark.parametrize("nested, values", [(False, []), (False, [1.0 + 0.0j]),
+                                            (True, []), (True, [[]]),
+                                            (True, [[1.0 + 0.0j]])])
+def test_call_kernel_unsupported_constant_list(nested, values):
+    if nested:
+
+        @cudaq.kernel(defer_compilation=False)
+        def sub(qubits: cudaq.qview, values: list[list[complex]]):
+            x(qubits[0])
+    else:
+
+        @cudaq.kernel(defer_compilation=False)
+        def sub(qubits: cudaq.qview, values: list[complex]):
+            x(qubits[0])
+
+    kernel = cudaq.make_kernel()
+    targets = kernel.qalloc(1)
+    with pytest.raises(RuntimeError, match="list-like element type"):
+        kernel.apply_call(sub, targets, values)
+
+
+@pytest.mark.parametrize("values, expected",
+                         [([], "0000"), ([[], []], "0000"),
+                          ([[], [np.pi, 0.0]], "0010"),
+                          ([[np.pi, 0.0], [0.0, np.pi]], "1001"),
+                          ([[0.0, np.pi], [np.pi, 0.0]], "0110")])
+def test_call_kernel_constant_nested_list(values, expected):
+
+    @cudaq.kernel(defer_compilation=False)
+    def sub(qubits: cudaq.qview, angles: list[list[float]]):
+        for i in range(len(angles)):
+            for j in range(len(angles[i])):
+                rx(angles[i][j], qubits[2 * i + j])
+
+    kernel = cudaq.make_kernel()
+    targets = kernel.qalloc(4)
+    kernel.apply_call(sub, targets, values)
+
+    counts = cudaq.sample(kernel, shots_count=100)
+    assert len(counts) == 1
+    assert counts[expected] == 100
+
+
+def test_call_kernel_constant_list_mutation():
+
+    @cudaq.kernel(defer_compilation=False)
+    def sub(qubits: cudaq.qview, angles: list[float]):
+        angles[0] = angles[0] + np.pi
+        rx(angles[0], qubits[0])
+        rx(angles[1], qubits[1])
+
+    kernel = cudaq.make_kernel()
+    targets = kernel.qalloc(2)
+    values = [0.0, np.pi]
+    kernel.apply_call(sub, targets, values)
+
+    # Each launch must get a fresh writable copy of the captured constants.
+    for _ in range(2):
+        counts = cudaq.sample(kernel, shots_count=100)
+        assert len(counts) == 1
+        assert counts["11"] == 100
+    assert values == [0.0, np.pi]
+
+
 def test_call_kernel_deferred_compilation():
     # We currently don't support calling a kernel that hasn't been compiled yet
     # from a kernel builder. This is because both the kernel builder and the
