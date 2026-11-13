@@ -98,7 +98,10 @@ bool borrowFollowsConsume(const LinearUse &borrow, const LinearUse &consume) {
     Operation *borrowOp = borrow.frontier(depth);
     Operation *consumeOp = consume.frontier(depth);
     if (borrowOp == consumeOp) {
-      if (borrow.endsAt(depth) || consume.endsAt(depth))
+      // The consume happens before the op's regions run.
+      if (consume.endsAt(depth))
+        return !borrow.endsAt(depth);
+      if (borrow.endsAt(depth))
         return false;
       if (borrow.chain[depth].second != consume.chain[depth].second)
         return false;

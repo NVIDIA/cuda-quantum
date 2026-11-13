@@ -69,6 +69,40 @@ module {
 
 // -----
 
+/// A region op consumes its operand before the region runs, so an
+/// observation nested in that region reads a dead handle.
+module {
+  fabric.code @c {distance = 1 : i64, n = 1 : i64, k = 1 : i64, hx = [],
+                  hz = [], lx = [array<i64: 0>], lz = [array<i64: 0>],
+                  partitions = {data = 1 : i64}}
+  fabric.gadget @n(%arg0: !fabric.patch<@c>) -> !fabric.patch<@c> {
+    %ev = fabric.resource_request "t_state" from @stream
+        : !event.handle<!fabric.resource<@t_state>, "linear">
+    // expected-note@+1 {{earlier consume here}}
+    "event.try_take"(%ev) ({
+    ^bb0(%res: !fabric.resource<@t_state>):
+      // expected-error@+1 {{is observed by event.test after being consumed by event.try_take}}
+      %ready = event.test %ev
+          : !event.handle<!fabric.resource<@t_state>, "linear"> -> i1
+      fabric.discard_resource %res : !fabric.resource<@t_state>
+      event.yield
+    }, {
+    ^bb0(%pending: !event.handle<!fabric.resource<@t_state>, "linear">):
+      %res = event.await %pending
+          : !event.handle<!fabric.resource<@t_state>, "linear">
+          -> !fabric.resource<@t_state>
+      fabric.discard_resource %res : !fabric.resource<@t_state>
+      event.yield
+    }, {
+    ^bb0(%status: i8):
+      event.yield
+    }) : (!event.handle<!fabric.resource<@t_state>, "linear">) -> ()
+    fabric.return %arg0 : !fabric.patch<@c>
+  }
+}
+
+// -----
+
 /// A leaked allocation and a leaked linear handle.
 module {
   fabric.code @c {distance = 1 : i64, n = 1 : i64, k = 1 : i64, hx = [],
