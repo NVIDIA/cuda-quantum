@@ -315,6 +315,11 @@ void UnitaryOpGroupingAnalysis::analyzeBlock(Block &block) {
   currSegment.containingBlock = &block;
 
   // Finish a segment at either a hard boundary or the end of the block.
+  // TODO: Accept the ending hard-boundary operation here and propagate it
+  // through formUnitaryGroups into a non-owning segmentEnd field on every
+  // UnitaryOpGroup emitted for this segment. Pass &op when an unclassified
+  // operation ends the segment, or nullptr at block end. Outlining callers
+  // need this boundary to keep generated calls within the original segment.
   auto finishCurrentSegment = [&]() {
     if (currSegment.opsInBlockOrder.empty())
       return;
