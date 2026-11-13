@@ -10,6 +10,10 @@
 
 // The pass only checks ops with the LinearOwnershipScope trait. No core op has
 // it yet, so here the pass must run and leave the IR unchanged.
+//
+// TODO: Tag `!quake.wire` and `!quake.cable` with `LinearTypeInterface` and
+// give kernels an ownership scope, then add positive and negative cases here.
+// Until then the analysis is exercised through the QLX dialects.
 
 func.func @wires() {
   %0 = quake.null_wire
