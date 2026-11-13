@@ -8802,3 +8802,6 @@ void FabricDialect::initialize() {
 #include "qlx/Dialect/Fabric/IR/FabricOps.cpp.inc"
       >();
 }
+
+// Frame state has no disposal op; the terminal frame is dropped.
+bool qlx::fabric::FrameType::mayDrop() const { return true; }

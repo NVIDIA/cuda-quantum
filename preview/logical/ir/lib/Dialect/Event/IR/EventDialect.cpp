@@ -260,3 +260,9 @@ void EventDialect::initialize() {
 #include "qlx/Dialect/Event/IR/EventOps.cpp.inc"
       >();
 }
+
+// Only a "linear" handle is a single-owner value; a "shared" handle may be
+// observed any number of times.
+bool qlx::event::HandleType::isLinear() const {
+  return getOwnership() == "linear";
+}

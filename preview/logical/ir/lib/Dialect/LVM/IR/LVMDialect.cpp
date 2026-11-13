@@ -1251,3 +1251,6 @@ void LVMDialect::initialize() {
 #include <cstdint>
       >();
 }
+
+// Frame state has no disposal op; the terminal frame is dropped.
+bool qlx::lvm::LogicalFrameType::mayDrop() const { return true; }

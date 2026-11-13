@@ -8,13 +8,18 @@
 
 add_cudaq_library(OptAnalysis
   CommutationAnalysis.cpp
+  LinearOwnership.cpp
   QubitIdentityAnalysis.cpp
   UnitaryOpGrouping.cpp
   WireBorrowAnalysis.cpp
 
   DEPENDS
     CCDialect
+    LinearOwnershipInterfacesIncGen
     QuakeDialect
+
+  LINK_LIBS
+    LinearOwnershipInterfaces
 )
 
 check_registered_mlir_lib(OptAnalysis)

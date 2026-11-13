@@ -18,6 +18,7 @@
 #include "qlx/Dialect/QLX/IR/QLXAttrs.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
 #include "qlx/Dialect/QLX/IR/QLXTypes.h"
+#include "cudaq/Optimizer/Analysis/LinearOwnership.h"
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
@@ -1091,6 +1092,10 @@ LogicalResult ProgramOp::verify() {
   return legality;
 }
 
+LogicalResult ProgramOp::verifyRegions() {
+  return cudaq::opt::verifyLinearOwnership(getOperation());
+}
+
 LogicalResult ObjectiveBodyOp::verify() {
   auto stage = (*this)->getAttrOfType<StringAttr>("qlx.stage");
   auto profile = (*this)->getAttrOfType<StringAttr>("qlx.profile");
@@ -1153,6 +1158,13 @@ LogicalResult ObjectiveBodyOp::verify() {
   });
   return legality;
 }
+
+LogicalResult ObjectiveBodyOp::verifyRegions() {
+  return cudaq::opt::verifyLinearOwnership(getOperation());
+}
+
+// Frame state has no disposal op; the terminal frame is dropped.
+bool LogicalFrameType::mayDrop() const { return true; }
 
 namespace {
 

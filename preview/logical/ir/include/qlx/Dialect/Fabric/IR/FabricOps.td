@@ -563,7 +563,7 @@ def Fabric_ReturnOp : Fabric_Op<"return", [
 }
 
 def Fabric_CircuitOp : Fabric_Op<"circuit", [
-    IsolatedFromAbove, Symbol,
+    IsolatedFromAbove, Symbol, LinearOwnershipScope,
     SingleBlockImplicitTerminator<"ReturnOp">
   ]> {
   let summary = "reusable physical/QEC realization body";
@@ -590,7 +590,7 @@ def Fabric_CircuitOp : Fabric_Op<"circuit", [
 }
 
 def Fabric_GadgetOp : Fabric_Op<"gadget", [
-    IsolatedFromAbove, Symbol,
+    IsolatedFromAbove, Symbol, LinearOwnershipScope,
     SingleBlockImplicitTerminator<"ReturnOp">
   ]> {
   let summary = "Define a gadget";
@@ -800,7 +800,7 @@ def Fabric_ProtocolReturnOp : Fabric_Op<"protocol_return", [
 }
 
 def Fabric_ProtocolOp : Fabric_Op<"protocol", [
-    Symbol, IsolatedFromAbove,
+    Symbol, IsolatedFromAbove, LinearOwnershipScope,
     SingleBlockImplicitTerminator<"ProtocolReturnOp">
   ]> {
   let summary = "folded typed network of gadget and protocol calls";
@@ -1471,7 +1471,9 @@ def Fabric_FramePropagateOp : Fabric_Op<"frame_propagate", [AllTypesMatch<["fram
   let assemblyFormat = "$frame attr-dict `:` type($result)";
 }
 
-def Fabric_FrameResolveOp : Fabric_Op<"frame_resolve", []> {
+def Fabric_FrameResolveOp : Fabric_Op<"frame_resolve", [
+    LinearBorrowsOperands
+  ]> {
   let summary = "Resolve measurement through frame";
   let arguments = (ins Fabric_FrameType:$frame, I1:$raw_bit);
   let results = (outs I1:$result);

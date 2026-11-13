@@ -9,6 +9,7 @@
 #pragma once
 
 #include "qlx/Dialect/Cflow/IR/CflowDialect.h"
+#include "cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.h"
 #include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinTypes.h"

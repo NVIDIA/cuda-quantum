@@ -9,6 +9,7 @@
 #pragma once
 
 #include "qlx/Conversion/Passes.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #ifdef QLX_HAS_CUDAQ_QUAKE
 #include "qlx/Conversion/PhysToQuakePasses.h"
 #include "qlx/Conversion/QuakeToQLXPasses.h"
@@ -32,6 +33,10 @@ inline void registerAllQLXPasses() {
   fabric::registerFabricTransformPasses();
   phys::registerPhysTransformPasses();
   registerQLXTransformPasses();
+  // The linear-ownership verifier lives in CUDA-Q core. Registering it again
+  // next to the core passes is harmless (MLIR only rejects a second
+  // registration that maps the same argument to a different pass).
+  cudaq::opt::registerVerifyLinearOwnership();
 }
 
 } // namespace qlx

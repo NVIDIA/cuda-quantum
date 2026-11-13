@@ -98,6 +98,7 @@ def test_rejects_non_quarter_pi_rotation():
     m = _module(
         _PREP + _CST + _rot("%2", "%0", 1, 2, 0, 1) + _mpp("%3:2", "%2", 0, 1),
         "%3#1",
+        "%3#0",
     )
     with pytest.raises(RuntimeError, match="not canonical signed pi/4"):
         rt.verify_pbc(m)
@@ -107,7 +108,7 @@ def test_rejects_rotation_after_measurement():
     body = (_PREP + _CST + _mpp("%2:2", "%0", 0, 1) +
             _rot("%3", "%2#0", 1, 4, 0, 1) + _mpp("%4:2", "%3", 0, 1))
     with pytest.raises(RuntimeError, match="rotations before measurements"):
-        rt.verify_pbc(_module(body, "%4#1"))
+        rt.verify_pbc(_module(body, "%4#1", "%4#0"))
 
 
 def test_rejects_noncommuting_measurements():
@@ -133,7 +134,7 @@ def test_rejects_negative_exact_numerator_even_with_positive_operand():
     body = (_PREP + _CST + _rot("%2", "%0", -1, 4, 0, 1) +
             _mpp("%3:2", "%2", 0, 1))
     with pytest.raises(RuntimeError, match="canonical signed pi/4"):
-        rt.verify_pbc(_module(body, "%3#1"))
+        rt.verify_pbc(_module(body, "%3#1", "%3#0"))
 
 
 def test_rejects_numeric_angle_that_disagrees_with_exact_metadata():
@@ -141,11 +142,11 @@ def test_rejects_numeric_angle_that_disagrees_with_exact_metadata():
     body = (_PREP + wrong + _rot("%2", "%0", 1, 4, 0, 1) +
             _mpp("%3:2", "%2", 0, 1))
     with pytest.raises(RuntimeError, match="numeric angle"):
-        rt.verify_pbc(_module(body, "%3#1"))
+        rt.verify_pbc(_module(body, "%3#1", "%3#0"))
 
 
 def test_rejects_noncanonical_product_sign():
     body = (_PREP + _CST + _rot("%2", "%0", 1, 4, 0, 1, sign=0) +
             _mpp("%3:2", "%2", 0, 1))
     with pytest.raises(RuntimeError, match=r"sign = \+/-1"):
-        rt.verify_pbc(_module(body, "%3#1"))
+        rt.verify_pbc(_module(body, "%3#1", "%3#0"))

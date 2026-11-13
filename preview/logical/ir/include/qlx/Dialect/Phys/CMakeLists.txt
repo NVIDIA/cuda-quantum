@@ -9,5 +9,6 @@
 add_subdirectory(IR)
 add_subdirectory(Transforms)
 add_custom_target(MLIRPhysIncGen DEPENDS
+  MLIRQLXLinearOwnershipInterfacesIncGen
   MLIRPhysDialectIncGen MLIRPhysTypesIncGen MLIRPhysOpsIncGen
   MLIRPhysTransformPassesIncGen)

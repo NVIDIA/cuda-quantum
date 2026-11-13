@@ -16,6 +16,9 @@
 #include "qlx/Dialect/QLX/Transforms/QLXToPBC.h"
 #include "qlx/Dialect/QLX/Transforms/QLXVerifyPBC.h"
 #include "qlx/InitAllPasses.h"
+#include "cudaq/Optimizer/Analysis/LinearOwnership.h"
+#include "llvm/Support/JSON.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/CAPI/Wrap.h"
 #include "mlir/IR/SymbolTable.h"
@@ -55,6 +58,49 @@ MlirLogicalResult qlxVerifyPBCModule(MlirModule module) {
   return mlir::succeeded(qlx::verifyPBCForm(unwrap(module), error))
              ? mlirLogicalResultSuccess()
              : mlirLogicalResultFailure();
+}
+
+bool qlxTypeIsLinear(MlirType type) {
+  return cudaq::isLinearOwnershipType(unwrap(type));
+}
+
+void qlxAnalyzeLinearOwnershipJSON(MlirOperation root,
+                                   MlirStringCallback callback,
+                                   void *userData) {
+  auto toString = [](auto &&printable) {
+    std::string text;
+    llvm::raw_string_ostream os(text);
+    os << printable;
+    return text;
+  };
+  auto bodyName = [](mlir::Operation *scope) {
+    std::string name = scope->getName().getStringRef().str();
+    if (auto symbol = scope->getAttrOfType<mlir::StringAttr>(
+            mlir::SymbolTable::getSymbolAttrName()))
+      name += " @" + symbol.getValue().str();
+    return name;
+  };
+
+  cudaq::opt::LinearOwnershipReport report =
+      cudaq::opt::analyzeLinearOwnership(unwrap(root));
+  llvm::json::Array bodies;
+  for (mlir::Operation *scope : report.checkedScopes)
+    bodies.push_back(bodyName(scope));
+  llvm::json::Array violations;
+  for (const cudaq::opt::LinearOwnershipViolation &violation :
+       report.violations)
+    violations.push_back(llvm::json::Object{
+        {"body", bodyName(violation.scope)},
+        {"kind", violation.kind},
+        {"value", violation.value},
+        {"message", violation.message},
+        {"location", toString(violation.location)},
+    });
+  llvm::json::Object result{{"checked_bodies", std::move(bodies)},
+                            {"linear_values", report.linearValues},
+                            {"violations", std::move(violations)}};
+  std::string text = toString(llvm::json::Value(std::move(result)));
+  callback(mlirStringRefCreate(text.data(), text.size()), userData);
 }
 
 MlirLogicalResult qlxMaterializeVerifiedAnalyticalLowerTier(

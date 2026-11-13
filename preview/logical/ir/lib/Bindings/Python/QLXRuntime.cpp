@@ -566,6 +566,29 @@ NB_MODULE(_qlxRuntime, m) {
       nb::arg("module"), "Certify that a typed module is in PBC normal form.");
 
   m.def(
+      "type_is_linear",
+      [](MlirType type) -> bool { return qlxTypeIsLinear(type); },
+      nb::arg("type"),
+      "True when values of the type are single-owner linear values.");
+
+  m.def(
+      "analyze_linear_ownership_json",
+      [](MlirOperation root) -> std::string {
+        std::string json;
+        qlxAnalyzeLinearOwnershipJSON(
+            root,
+            [](MlirStringRef text, void *userData) {
+              static_cast<std::string *>(userData)->append(text.data,
+                                                           text.length);
+            },
+            &json);
+        return json;
+      },
+      nb::arg("root"),
+      "Run the C++ linear-ownership analysis over every ownership scope in "
+      "an operation and return the JSON report.");
+
+  m.def(
       "clone_module_capsule",
       [](nb::object pyModule) -> nb::capsule {
         MlirModule source = moduleFromPythonCapsule(pyModule);

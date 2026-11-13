@@ -98,6 +98,7 @@ add_cudaq_library(OptTransforms
   UnwindByDataFlow.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
+  VerifyLinearOwnership.cpp
   VerifyNoNoise.cpp
   VerifyProfileQuakeReferenceSemantics.cpp
   VerifyQuakeUnmappedProfile.cpp
