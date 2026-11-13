@@ -1,0 +1,176 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under    //
+// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// ========================================================================== //
+
+// RUN: cudaq-opt --outline-unitaries %s | FileCheck %s
+
+// The chain captures its input wire and returns its final wire through a call.
+func.func @unitary_chain(%q: !quake.wire) -> !quake.wire {
+  %h = quake.h %q : (!quake.wire) -> !quake.wire
+  %x = quake.x %h : (!quake.wire) -> !quake.wire
+  return %x : !quake.wire
+}
+// CHECK-LABEL: func.func @unitary_chain
+// CHECK: %[[LAMBDA:.*]] = cc.create_lambda
+// CHECK: %[[H:.*]] = quake.h %{{.*}} : (!quake.wire) -> !quake.wire
+// CHECK-NEXT: %[[X:.*]] = quake.x %[[H]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT: cc.return %[[X]] : !quake.wire
+// CHECK: %[[RESULT:.*]] = cc.call_callable %[[LAMBDA]]
+// CHECK-NEXT: return %[[RESULT]] : !quake.wire
+
+// No quantum operations to outline.
+func.func @empty() {
+  return
+}
+// CHECK-LABEL: func.func @empty
+// CHECK-NEXT: return
+
+// Delimiter-only groups are left unchanged.
+func.func @delimiter_only(%q: !quake.wire) -> !quake.wire {
+  %reset = quake.reset %q : (!quake.wire) -> !quake.wire
+  return %reset : !quake.wire
+}
+// CHECK-LABEL: func.func @delimiter_only
+// CHECK-NEXT: %[[RESET:.*]] = quake.reset %{{.*}} : (!quake.wire) -> !quake.wire
+// CHECK-NEXT: return %[[RESET]] : !quake.wire
+
+// A hard boundary keeps the first call before the constant, even though its
+// output is consumed by a gate after the constant.
+func.func @hard_boundary(%q: !quake.wire) -> !quake.wire {
+  %h = quake.h %q : (!quake.wire) -> !quake.wire
+  %boundary = arith.constant 0 : i64
+  %x = quake.x %h : (!quake.wire) -> !quake.wire
+  return %x : !quake.wire
+}
+// CHECK-LABEL: func.func @hard_boundary
+// CHECK: cc.create_lambda
+// CHECK: quake.h
+// CHECK: %[[FIRST:.*]] = cc.call_callable
+// CHECK-NEXT: arith.constant
+// CHECK-NEXT: %[[SECOND_LAMBDA:.*]] = cc.create_lambda
+// CHECK: quake.x %[[FIRST]]
+// CHECK: %[[SECOND:.*]] = cc.call_callable %[[SECOND_LAMBDA]]
+// CHECK-NEXT: return %[[SECOND]] : !quake.wire
+
+// Measurements stay between the calls and receive the first call's output.
+func.func @trailing_measurement(%q: !quake.wire) -> !quake.wire {
+  %h = quake.h %q : (!quake.wire) -> !quake.wire
+  %m, %w = quake.mz %h : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %x = quake.x %w : (!quake.wire) -> !quake.wire
+  return %x : !quake.wire
+}
+// CHECK-LABEL: func.func @trailing_measurement
+// CHECK: cc.create_lambda
+// CHECK: quake.h
+// CHECK: %[[BEFORE:.*]] = cc.call_callable
+// CHECK-NEXT: %{{.*}}, %[[WIRE:.*]] = quake.mz %[[BEFORE]]
+// CHECK-NEXT: %[[AFTER_LAMBDA:.*]] = cc.create_lambda
+// CHECK: quake.x %[[WIRE]]
+// CHECK: %[[AFTER:.*]] = cc.call_callable %[[AFTER_LAMBDA]]
+// CHECK-NEXT: return %[[AFTER]] : !quake.wire
+
+// Independent rotations move into the first unitary group even though they
+// appear after measurements in the source. Two measurement dependencies split
+// the remaining gates into separate groups, and the final controlled gate joins
+// their wire flow. All three output wires must reach the correct return slots.
+func.func @measurement_join(%theta: f64) -> (!quake.wire, !quake.wire, !quake.wire) {
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %h = quake.h %q0 : (!quake.wire) -> !quake.wire
+  %m0, %w0 = quake.mz %h : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %x = quake.x %w0 : (!quake.wire) -> !quake.wire
+  %ry = quake.ry (%theta) %q1 : (f64, !quake.wire) -> !quake.wire
+  %m1, %w1 = quake.mz %ry : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %cx:2 = quake.x [%x] %w1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %z = quake.z %q2 : (!quake.wire) -> !quake.wire
+  return %cx#0, %cx#1, %z : !quake.wire, !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @measurement_join(
+// CHECK-SAME: %[[M_THETA:.*]]: f64)
+// CHECK-NEXT: %[[M_Q0:.*]] = quake.null_wire
+// CHECK-NEXT: %[[M_Q1:.*]] = quake.null_wire
+// CHECK-NEXT: %[[M_Q2:.*]] = quake.null_wire
+// CHECK-NEXT: %[[M_L0:.*]] = cc.create_lambda {
+// CHECK-NEXT: %[[M_H:.*]] = quake.h %[[M_Q0]]
+// CHECK-NEXT: %[[M_RY:.*]] = quake.ry (%[[M_THETA]]) %[[M_Q1]]
+// CHECK-NEXT: %[[M_Z:.*]] = quake.z %[[M_Q2]]
+// CHECK-NEXT: cc.return %[[M_H]], %[[M_RY]], %[[M_Z]] : !quake.wire, !quake.wire, !quake.wire
+// CHECK-NEXT: } : !cc.callable
+// CHECK-NEXT: %[[M_CALL0:.*]]:3 = cc.call_callable %[[M_L0]]
+// CHECK-NEXT: %{{.*}}, %[[M_W0:.*]] = quake.mz %[[M_CALL0]]#0
+// CHECK-NEXT: %[[M_L1:.*]] = cc.create_lambda {
+// CHECK-NEXT: %[[M_X:.*]] = quake.x %[[M_W0]]
+// CHECK-NEXT: cc.return %[[M_X]] : !quake.wire
+// CHECK-NEXT: } : !cc.callable
+// CHECK-NEXT: %[[M_CALL1:.*]] = cc.call_callable %[[M_L1]]
+// CHECK-NEXT: %{{.*}}, %[[M_W1:.*]] = quake.mz %[[M_CALL0]]#1
+// CHECK-NEXT: %[[M_L2:.*]] = cc.create_lambda {
+// CHECK-NEXT: %[[M_CX:.*]]:2 = quake.x [%[[M_CALL1]]] %[[M_W1]]
+// CHECK-NEXT: cc.return %[[M_CX]]#0, %[[M_CX]]#1 : !quake.wire, !quake.wire
+// CHECK-NEXT: } : !cc.callable
+// CHECK-NEXT: %[[M_CALL2:.*]]:2 = cc.call_callable %[[M_L2]]
+// CHECK-NEXT: return %[[M_CALL2]]#0, %[[M_CALL2]]#1, %[[M_CALL0]]#2 : !quake.wire, !quake.wire, !quake.wire
+// CHECK-NEXT: }
+
+// Outline both branches and a nested scope without moving gates out of their
+// regions. The rotation captures the function's classical angle. Gates before
+// and after the conditional form separate groups, with wire results threaded
+// through the conditional's block arguments and multi-result calls.
+func.func @nested_conditional(%flag: i1, %theta: f64, %q0: !quake.wire,
+                              %q1: !quake.wire) -> (!quake.wire, !quake.wire) {
+  %h = quake.h %q0 : (!quake.wire) -> !quake.wire
+  %branch:2 = cc.if (%flag) ((%a = %h, %b = %q1)) -> (!quake.wire, !quake.wire) {
+    %scope:2 = cc.scope -> (!quake.wire, !quake.wire) {
+      %rx = quake.rx (%theta) %a : (f64, !quake.wire) -> !quake.wire
+      %cx:2 = quake.x [%rx] %b : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      cc.continue %cx#0, %cx#1 : !quake.wire, !quake.wire
+    }
+    cc.continue %scope#0, %scope#1 : !quake.wire, !quake.wire
+  } else {
+    %ry = quake.ry (%theta) %b : (f64, !quake.wire) -> !quake.wire
+    %cz:2 = quake.z [%ry] %a : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %cz#1, %cz#0 : !quake.wire, !quake.wire
+  }
+  %swapped:2 = quake.swap %branch#1, %branch#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return %swapped#0, %swapped#1 : !quake.wire, !quake.wire
+}
+// CHECK-LABEL: func.func @nested_conditional(
+// CHECK-SAME: %[[N_FLAG:.*]]: i1, %[[N_THETA:.*]]: f64, %[[N_Q0:.*]]: !quake.wire, %[[N_Q1:.*]]: !quake.wire)
+// CHECK-NEXT: %[[N_PRE_L:.*]] = cc.create_lambda {
+// CHECK-NEXT: %[[N_H:.*]] = quake.h %[[N_Q0]]
+// CHECK-NEXT: cc.return %[[N_H]] : !quake.wire
+// CHECK-NEXT: } : !cc.callable
+// CHECK-NEXT: %[[N_PRE:.*]] = cc.call_callable %[[N_PRE_L]]
+// CHECK-NEXT: %[[N_IF:.*]]:2 = cc.if(%[[N_FLAG]]) ((%[[N_A:.*]] = %[[N_PRE]], %[[N_B:.*]] = %[[N_Q1]])) -> (!quake.wire, !quake.wire) {
+// CHECK-NEXT: %[[N_SCOPE:.*]]:2 = cc.scope -> (!quake.wire, !quake.wire) {
+// CHECK-NEXT: %[[N_THEN_L:.*]] = cc.create_lambda {
+// CHECK-NEXT: %[[N_RX:.*]] = quake.rx (%[[N_THETA]]) %[[N_A]]
+// CHECK-NEXT: %[[N_CX:.*]]:2 = quake.x [%[[N_RX]]] %[[N_B]]
+// CHECK-NEXT: cc.return %[[N_CX]]#0, %[[N_CX]]#1 : !quake.wire, !quake.wire
+// CHECK-NEXT: } : !cc.callable
+// CHECK-NEXT: %[[N_THEN:.*]]:2 = cc.call_callable %[[N_THEN_L]]
+// CHECK-NEXT: cc.continue %[[N_THEN]]#0, %[[N_THEN]]#1 : !quake.wire, !quake.wire
+// CHECK-NEXT: }
+// CHECK-NEXT: cc.continue %[[N_SCOPE]]#0, %[[N_SCOPE]]#1 : !quake.wire, !quake.wire
+// CHECK-NEXT: } else {
+// CHECK-NEXT: %[[N_ELSE_L:.*]] = cc.create_lambda {
+// CHECK-NEXT: %[[N_RY:.*]] = quake.ry (%[[N_THETA]]) %[[N_B]]
+// CHECK-NEXT: %[[N_CZ:.*]]:2 = quake.z [%[[N_RY]]] %[[N_A]]
+// CHECK-NEXT: cc.return %[[N_CZ]]#0, %[[N_CZ]]#1 : !quake.wire, !quake.wire
+// CHECK-NEXT: } : !cc.callable
+// CHECK-NEXT: %[[N_ELSE:.*]]:2 = cc.call_callable %[[N_ELSE_L]]
+// CHECK-NEXT: cc.continue %[[N_ELSE]]#1, %[[N_ELSE]]#0 : !quake.wire, !quake.wire
+// CHECK-NEXT: }
+// CHECK-NEXT: %[[N_POST_L:.*]] = cc.create_lambda {
+// CHECK-NEXT: %[[N_SWAP:.*]]:2 = quake.swap %[[N_IF]]#1, %[[N_IF]]#0
+// CHECK-NEXT: cc.return %[[N_SWAP]]#0, %[[N_SWAP]]#1 : !quake.wire, !quake.wire
+// CHECK-NEXT: } : !cc.callable
+// CHECK-NEXT: %[[N_POST:.*]]:2 = cc.call_callable %[[N_POST_L]]
+// CHECK-NEXT: return %[[N_POST]]#0, %[[N_POST]]#1 : !quake.wire, !quake.wire
+// CHECK-NEXT: }

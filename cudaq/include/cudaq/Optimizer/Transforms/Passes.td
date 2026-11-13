@@ -1710,6 +1710,16 @@ def OutlineUnitaries : Pass<"outline-unitaries", "mlir::func::FuncOp"> {
     the operation order supplied by the analysis, captures external inputs,
     and returns results used outside each group. Groups do not cross block
     boundaries or hard boundaries identified by the analysis.
+
+    Every nonempty unitary group must be outlined. Selected operations must
+    be memory-effect-free and have supported wire semantics; reference-semantics
+    groups are rejected. External consumers of group results must be in the
+    same block, wire inputs and outputs must form supported linear dataflow,
+    and captured inputs must be available at the required placement point.
+    Groups containing only measurements or resets are left unchanged.
+
+    Failure to outline any selected group emits a diagnostic and fails the
+    pass. Successful rewrites of other groups may remain when the pass fails.
   }];
   let dependentDialects = ["cudaq::cc::CCDialect",
                            "cudaq::quake::QuakeDialect"];
