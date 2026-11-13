@@ -315,19 +315,15 @@ void UnitaryOpGroupingAnalysis::analyzeBlock(Block &block) {
   currSegment.containingBlock = &block;
 
   // Finish a segment at either a hard boundary or the end of the block.
-  // TODO: Accept the ending hard-boundary operation here and propagate it
-  // through formUnitaryGroups into a non-owning segmentEnd field on every
-  // UnitaryOpGroup emitted for this segment. Pass &op when an unclassified
-  // operation ends the segment, or nullptr at block end. Outlining callers
-  // need this boundary to keep generated calls within the original segment.
-  auto finishCurrentSegment = [&]() {
+  auto finishCurrentSegment = [&](Operation *hardBoundaryOp) {
     if (currSegment.opsInBlockOrder.empty())
       return;
 
     // Canonicalize and group the completed segment.
     SegmentDependencyGraph sdg = buildSegmentDependencyGraph(currSegment, qia);
     CanonicalSegmentOrder cso = computeCanonicalSegmentOrder(sdg);
-    formUnitaryGroups(cso.containingBlock, cso.opsInCanonicalOrder);
+    formUnitaryGroups(cso.containingBlock, cso.opsInCanonicalOrder,
+                      hardBoundaryOp);
 
     currSegment.opsInBlockOrder.clear();
   };
@@ -338,8 +334,7 @@ void UnitaryOpGroupingAnalysis::analyzeBlock(Block &block) {
       currSegment.opsInBlockOrder.push_back(&op);
       continue;
     }
-
-    finishCurrentSegment();
+    finishCurrentSegment(&op);
 
     // Recurse after flushing so groups cannot cross a region-owning operation.
     for (auto &region : op.getRegions()) {
@@ -350,7 +345,7 @@ void UnitaryOpGroupingAnalysis::analyzeBlock(Block &block) {
 
   // Some regions permit blocks without terminators, so flush any trailing
   // segment that was not ended by a hard-boundary operation.
-  finishCurrentSegment();
+  finishCurrentSegment(nullptr);
 }
 
 void UnitaryOpGroupingAnalysis::performAnalysis(Operation *op) {
@@ -371,7 +366,8 @@ void UnitaryOpGroupingAnalysis::performAnalysis(Operation *op) {
 /// delimiter-only group.
 void UnitaryOpGroupingAnalysis::formUnitaryGroups(
     mlir::Block *containingBlock,
-    llvm::ArrayRef<Operation *> opsInCanonicalOrder) {
+    llvm::ArrayRef<Operation *> opsInCanonicalOrder,
+    Operation *hardBoundaryOp) {
 
   SmallVector<Operation *> currentUnitaryOps;
   SmallVector<Operation *> currentDelimiterOps;
@@ -395,6 +391,7 @@ void UnitaryOpGroupingAnalysis::formUnitaryGroups(
     currUnitaryOpGroup.block = containingBlock;
     currUnitaryOpGroup.ops.append(currentUnitaryOps);
     currUnitaryOpGroup.trailingDelimiterOps.append(currentDelimiterOps);
+    currUnitaryOpGroup.hardBoundaryOp = hardBoundaryOp;
 
     unitaryOpGroups.push_back(std::move(currUnitaryOpGroup));
     blockToGroupIndices[containingBlock].push_back(groupIndex);
