@@ -1700,6 +1700,31 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
+def OutlineUnitaries : Pass<"outline-unitaries", "mlir::func::FuncOp"> {
+  let summary = "Outline groups of unitary operations into lambdas.";
+  let description = [{
+    Outline block-local groups of unitary operations into `cc.create_lambda`
+    operations, replacing each group with a `cc.call_callable`.
+
+    Groups are selected using UnitaryOpGroupingAnalysis. Outlining preserves
+    the operation order supplied by the analysis, captures external inputs,
+    and returns results used outside each group. Groups do not cross block
+    boundaries or hard boundaries identified by the analysis.
+
+    Every nonempty unitary group must be outlined. Selected operations must
+    be memory-effect-free and have supported wire semantics; reference-semantics
+    groups are rejected. External consumers of group results must be in the
+    same block, wire inputs and outputs must form supported linear dataflow,
+    and captured inputs must be available at the required placement point.
+    Groups containing only measurements or resets are left unchanged.
+
+    Failure to outline any selected group emits a diagnostic and fails the
+    pass. Successful rewrites of other groups may remain when the pass fails.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+                           "cudaq::quake::QuakeDialect"];
+}
+
 def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
   let summary = "Perform phase based rotation merging.";
 

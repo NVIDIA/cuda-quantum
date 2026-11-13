@@ -10,10 +10,17 @@
 
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/STLFunctionalExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
 #include "mlir/Support/LogicalResult.h"
 
 namespace cudaq::opt {
+
+/// Optional rejection callback. The operation identifies the failure location;
+/// it is null only when an empty partition is rejected.
+using OutliningFailureHandler =
+    llvm::function_ref<void(mlir::Operation *, llvm::StringRef)>;
 
 struct PartitionToOutline {
   /// Selected operations in cloning order. Each internal producer must precede
@@ -38,8 +45,10 @@ struct PartitionToOutline {
 /// Non-wire results precede wire results. Wire results follow the first-use
 /// order of their corresponding incoming wires. Returns failure without
 /// modifying the IR if the selection cannot be outlined.
+/// If supplied, onFailure receives the rejection reason before returning.
 mlir::FailureOr<cudaq::cc::CreateLambdaOp>
-outlinePartition(const PartitionToOutline &partition);
+outlinePartition(const PartitionToOutline &partition,
+                 OutliningFailureHandler onFailure = nullptr);
 
 /// Outline each supplied partition in its supplied def-use order using its own
 /// mustPrecede boundary, returning failure if any is rejected.
@@ -47,7 +56,9 @@ outlinePartition(const PartitionToOutline &partition);
 /// selected by any partition, returning failure without modifying the IR.
 /// Once validation succeeds, partitions are outlined individually; successful
 /// rewrites are retained even if another partition fails to outline.
+/// If supplied, onFailure receives each rejection's location and reason.
 mlir::LogicalResult
-outlinePartitions(mlir::ArrayRef<PartitionToOutline> partitions);
+outlinePartitions(mlir::ArrayRef<PartitionToOutline> partitions,
+                  OutliningFailureHandler onFailure = nullptr);
 
 } // namespace cudaq::opt

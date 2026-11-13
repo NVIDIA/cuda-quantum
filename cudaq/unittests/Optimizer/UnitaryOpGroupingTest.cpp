@@ -52,6 +52,26 @@ static void expectGroupOps(const UnitaryOpGroup &group,
   expectOperations(group.ops, expected);
 }
 
+/// Check that groups[i].hardBoundaryOp equals expected[i] for every group
+/// returned by the analysis. Each non-null boundary must also belong to the
+/// same block as its group and must not be a member of any group.
+static void
+expectHardBoundariesEqual(const UnitaryOpGroupingAnalysis &analysis,
+                          std::initializer_list<Operation *> expected) {
+  const auto &groups = analysis.getGroups();
+  ASSERT_EQ(groups.size(), expected.size());
+  std::size_t index = 0;
+  for (Operation *boundary : expected) {
+    SCOPED_TRACE(index);
+    const auto &group = groups[index++];
+    EXPECT_EQ(group.hardBoundaryOp, boundary);
+    if (boundary) {
+      EXPECT_EQ(boundary->getBlock(), group.block);
+      EXPECT_EQ(analysis.getGroupContainingOp(boundary), nullptr);
+    }
+  }
+}
+
 /// Assert both the presence and value of an operation-to-group lookup.
 static void expectGroupIndex(const UnitaryOpGroupingAnalysis &analysis,
                              Operation *op, std::optional<unsigned> expected) {
@@ -204,6 +224,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsSimpleFunction) {
   expectGroup(groups[0], &func.front(), {h, x}, {mz});
   expectGroup(groups[1], &func.front(), {z});
   expectGroup(groups[2], &func.front(), {rx});
+  expectHardBoundariesEqual(analysis,
+                            {constant, constant, &func.front().back()});
 
   expectGroupIndex(analysis, h, 0u);
   expectGroupIndex(analysis, mz, 0u);
@@ -291,6 +313,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsNestedIfRegionsSeparately) {
   ASSERT_EQ(groups.size(), 2u);
   expectGroup(groups[0], h->getBlock(), {h, x}, {mz});
   expectGroup(groups[1], z->getBlock(), {z}, {reset});
+  expectHardBoundariesEqual(analysis,
+                            {&h->getBlock()->back(), &z->getBlock()->back()});
   EXPECT_NE(groups[0].block, groups[1].block);
 
   EXPECT_TRUE(analysis.inSameGroup(h, x));
@@ -386,6 +410,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   expectGroup(groups[0], &func.front(), {}, {mx, reset0, my});
   expectGroup(groups[1], &func.front(), {h, x}, {mz, reset1});
   expectGroup(groups[2], &func.front(), {z});
+  auto *boundary = &func.front().back();
+  expectHardBoundariesEqual(analysis, {boundary, boundary, boundary});
   EXPECT_TRUE(analysis.inSameGroup(mx, my));
   EXPECT_FALSE(analysis.inSameGroup(my, h));
   EXPECT_TRUE(analysis.inSameGroup(h, reset1));
@@ -554,7 +580,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   auto *mzOp = mz.getOperation();
   auto *xOp = x.getOperation();
   auto *zOp = z.getOperation();
-  cudaq::quake::SinkOp::create(builder, loc, x.getResult(0));
+  auto sink = cudaq::quake::SinkOp::create(builder, loc, x.getResult(0));
   cudaq::quake::SinkOp::create(builder, loc, z.getResult(0));
   func::ReturnOp::create(builder, loc);
 
@@ -564,6 +590,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   ASSERT_EQ(groups.size(), 2u);
   expectGroup(groups[0], &func.front(), {zOp}, {mzOp});
   expectGroup(groups[1], &func.front(), {xOp});
+  expectHardBoundariesEqual(analysis,
+                            {sink.getOperation(), sink.getOperation()});
   EXPECT_FALSE(analysis.inSameGroup(mzOp, xOp));
 }
 
@@ -721,6 +749,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
 //
 //   quake.h %q
 //   cc.scope {
+//     arith.constant 0 : i64
 //     quake.x %q
 //     quake.mz %q
 //     // Intentionally no cc.continue.
@@ -732,7 +761,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
 //   group 1 (scope block): unitaries [x], delimiters [mz]
 //   group 2 (parent block): unitaries [z], delimiters []
 //   cc.scope is an unmapped hard boundary. The nested block's final segment is
-//   flushed at block end even without a terminator.
+//   flushed at block end even without a terminator; its hard boundary is null,
+//   not the preceding arith.constant.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        FlushesUnterminatedNestedBlockAtEnd) {
   OpBuilder builder(&context);
@@ -747,6 +777,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   Operation *mz = nullptr;
   auto scope = cudaq::cc::ScopeOp::create(
       builder, loc, [&](OpBuilder &builder, Location loc) {
+        // A preceding boundary must not be reused for the final segment.
+        arith::ConstantIntOp::create(builder, loc, 0, 64);
         x = cudaq::quake::XOp::create(builder, loc, q).getOperation();
         mz = createRefMeasurement<cudaq::quake::MzOp>(builder, loc, q)
                  .getOperation();
@@ -763,6 +795,8 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   expectGroup(groups[0], &func.front(), {h});
   expectGroup(groups[1], x->getBlock(), {x}, {mz});
   expectGroup(groups[2], &func.front(), {z});
+  expectHardBoundariesEqual(
+      analysis, {scope.getOperation(), nullptr, &func.front().back()});
   EXPECT_EQ(analysis.getGroupContainingOp(scope.getOperation()), nullptr);
 
   auto parentGroups = analysis.getGroupsIn(&func.front());
@@ -1373,6 +1407,9 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   expectGroupOps(groups[0], {h});
   expectGroupOps(groups[1], {x, y});
   expectGroupOps(groups[2], {z});
+  expectHardBoundariesEqual(
+      analysis,
+      {scope.getOperation(), &x->getBlock()->back(), &func.front().back()});
   EXPECT_EQ(analysis.getGroupContainingOp(scope.getOperation()), nullptr);
   EXPECT_NE(groups[0].block, groups[1].block);
   EXPECT_NE(groups[1].block, groups[2].block);
@@ -1419,6 +1456,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, CCMemoryOpsBreakBetweenGroups) {
   ASSERT_EQ(groups.size(), 2u);
   expectGroupOps(groups[0], {h});
   expectGroupOps(groups[1], {x});
+  expectHardBoundariesEqual(analysis, {store, &func.front().back()});
   EXPECT_EQ(analysis.getGroupContainingOp(store), nullptr);
   EXPECT_EQ(analysis.getGroupContainingOp(load.getOperation()), nullptr);
   EXPECT_EQ(analysis.getGroupContainingOp(cast.getOperation()), nullptr);
