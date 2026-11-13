@@ -181,14 +181,16 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
   auto callableTy =
       cudaq::cc::CallableType::get(ctx, FunctionType::get(ctx, {}, outTys));
 
-  // Insert before mustPrecede or an earlier external consumer. With neither,
-  // insert after the physically last selected operation. Reject placements
-  // where a captured input is unavailable.
-  // TODO: Before opening the PR, document why callers supply a hard-boundary
-  // operation: SSA consumers alone do not prevent placement across semantic
-  // boundaries. Explain that mustPrecede is an upper bound, earlier consumers
-  // can require earlier placement, and partitions sharing a boundary are
-  // inserted in processing order when placed immediately before that boundary.
+  // SSA dependencies alone do not prevent moving a call across an unrelated
+  // operation with side effects. Callers can supply an unselected hard boundary
+  // or measurement/reset delimiter as mustPrecede to preserve that ordering.
+  // This boundary limits how late the lambda and call may be placed; an earlier
+  // external result consumer requires earlier insertion. When multiple
+  // partitions are placed immediately before the same boundary, their lambda
+  // and call pairs appear in partition processing order.
+  // Without a boundary or external consumer, insert after the physically last
+  // selected operation. Reject placements where a captured input is
+  // unavailable.
   OpBuilder builder(ctx);
 
   Operation *insertBefore = partition.mustPrecede;

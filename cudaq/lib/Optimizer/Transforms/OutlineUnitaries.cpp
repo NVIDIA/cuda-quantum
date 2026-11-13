@@ -32,28 +32,29 @@ public:
 
     // Preserve the analysis's supplied operation order, which may differ from
     // block order. Leave trailing delimiters outside the outlined partitions.
-    // TODO: Define and document the policy for unsupported groups, including
-    // reference-semantics operations: skip them or fail the pass explicitly.
+    // Every nonempty unitary group must be outlined; unsupported groups fail
+    // the pass rather than being silently skipped.
     mlir::SmallVector<cudaq::opt::PartitionToOutline> partitionsToOutline;
     for (const auto &group : unitaryOpGroups) {
-      // note that some groups may contain only delimiter ops
+      // Delimiter-only groups contain no unitaries to outline.
       if (group.ops.empty())
         continue;
       partitionsToOutline.push_back(
           {.ops = {group.ops.begin(), group.ops.end()},
-           // TODO: Once UnitaryOpGroupingAnalysis records segmentEnd, use it
-           // instead of nullptr when there are no trailing delimiters. Default
-           // placement can otherwise move the call across a hard boundary to
-           // a later external consumer. Keep boundaries outside all partitions.
            .mustPrecede = group.trailingDelimiterOps.empty()
-                              ? nullptr
+                              ? group.hardBoundaryOp
                               : group.trailingDelimiterOps.front()});
     }
 
     // A failed batch may retain successful rewrites. Do not consult the
     // grouping analysis after this call mutates the IR.
-    if (mlir::failed(cudaq::opt::outlinePartitions(partitionsToOutline))) {
-      getOperation().emitError("failed to outline unitary groups");
+    auto reportFailure = [&](mlir::Operation *op, llvm::StringRef reason) {
+      (op ? op : getOperation().getOperation())
+              ->emitError("failed to outline unitary group: ")
+          << reason;
+    };
+    if (mlir::failed(cudaq::opt::outlinePartitions(partitionsToOutline,
+                                                   reportFailure))) {
       signalPassFailure();
     }
   }
