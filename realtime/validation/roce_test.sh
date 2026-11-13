@@ -1,17 +1,21 @@
 #!/bin/bash
-# ============================================================================#
-# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         #
-# All rights reserved.                                                        #
-#                                                                             #
-# This source code and the accompanying materials are made available under    #
-# the terms of the Apache License 2.0 which accompanies this distribution.    #
-# ============================================================================#
+
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
 #
-# gpu_roce_test.sh
+# roce_test.sh
 #
-# Orchestration script for end-to-end GPU RoCE RPC dispatch testing.
-# Tests libcudaq-realtime dispatch kernel over GPU RoCE RDMA with a
+# Shared orchestration for CPU/GPU RoCE RPC validation.
+# Tests libcudaq-realtime host/device dispatch through the bridge API with a
 # simple increment RPC handler (no QEC or decoder dependency).
+# The receiver loads a bridge plugin; this runner drives hsb_fpga_playback
+# directly. validation_test.sh handles the playback-provider plugin workflow.
 #
 # Modes:
 #   Default (FPGA):   bridge + playback  (requires real FPGA)
@@ -24,13 +28,13 @@
 #
 # Examples:
 #   # Full emulated test: build, configure network, run
-#   ./gpu_roce_test.sh --emulate --build --setup-network
+#   ./roce_test.sh --emulate --build --setup-network
 #
 #   # Just run with real FPGA (tools already built, network already set up)
-#   ./gpu_roce_test.sh --fpga-ip 192.168.0.2
+#   ./roce_test.sh --fpga-ip 192.168.0.2
 #
 #   # Build only
-#   ./gpu_roce_test.sh --build --no-run
+#   ./roce_test.sh --build --no-run
 #
 set -euo pipefail
 
@@ -49,6 +53,11 @@ HSB_DIR="/workspaces/hololink"
 CUDA_QUANTUM_DIR="/workspaces/cuda-quantum"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR=""
+# The selected app owns bridge setup; only validation_app accepts opaque
+# bridge options. roce_app instead translates the common RoCE settings.
+APP=roce_app
+BRIDGE_LIBRARY=""
+BRIDGE_ARGS=()
 
 # Network defaults
 IB_DEVICE=""           # auto-detect
@@ -58,7 +67,9 @@ FPGA_IP="192.168.0.2"
 MTU=4096
 
 # Run defaults
+BACKEND=""
 GPU_ID=0
+SAVE_TEMPS=false
 TIMEOUT=60
 NUM_MESSAGES=100
 PAYLOAD_SIZE=8
@@ -77,7 +88,7 @@ JOBS=$(nproc 2>/dev/null || echo 8)
 
 print_usage() {
     cat <<'EOF'
-Usage: gpu_roce_test.sh [options]
+Usage: roce_test.sh [options]
 
 Modes:
   --emulate              Use FPGA emulator (3-tool mode, no FPGA needed)
@@ -103,21 +114,45 @@ Network options:
   --mtu N                MTU size (default: 4096)
 
 Run options:
-  --gpu N                GPU device ID (default: 0)
+  --forward              Echo payloads without RPC dispatch
+  --unified              Combine RX, RPC dispatch, and TX in one thread/kernel
+                         Default: separate RX, dispatch, and TX threads/kernels
+  --cpu                  CPU RoCE bridge and HOST_CALL (no GPU execution)
+  --gpu [N]              GPU RoCE bridge and DEVICE_CALL (default; optional ID)
+  --gpu-id N             GPU device ID (default: 0)
+  --save-temps           Keep receiver/emulator logs in a temporary directory
   --timeout N            Timeout in seconds (default: 60)
   --no-verify            Skip ILA response verification
   --num-messages N       Number of RPC messages (default: 100)
-  --payload-size N       Bytes per RPC payload (default: 16)
+  --payload-size N       Bytes per RPC payload (default: 8)
   --page-size N          Ring buffer slot size in bytes (default: 384)
   --num-pages N          Number of ring buffer slots (default: 128)
   --threads N            Dispatch block size; every DEVICE_CALL handler runs
                          on it, in both dispatch modes (default: 32)
   --control-port N       UDP control port for emulator (default: 8193)
+  --app NAME             roce_app (default) or validation_app
+  --bridge LIB           Provider library for validation_app
+  --                     Forward all remaining arguments unchanged to the bridge
   --bin-dir DIR          Binary directory containing executables (default: None)
   --help, -h             Show this help
+
+Dependencies:
+  HSB playback requires the CUDA driver library (libcuda.so.1), including in
+  CPU mode. CPU RoCE also requires libibverbs and a configured RDMA device.
 EOF
 }
 
+select_backend() {
+    if [[ -n "$BACKEND" && "$BACKEND" != "$1" ]]; then
+        echo "ERROR: --cpu and --gpu are mutually exclusive" >&2
+        exit 1
+    fi
+    BACKEND="$1"
+}
+
+# This direct-tool parser accepts separate option/value tokens. The generic
+# runner normalizes its compatibility options before delegating here; tokens
+# after -- remain untouched for validation_app's bridge.
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --emulate)          EMULATE=true ;;
@@ -128,13 +163,22 @@ while [[ $# -gt 0 ]]; do
         --hsb-dir)     HSB_DIR="$2"; shift ;;
         --cuda-quantum-dir) CUDA_QUANTUM_DIR="$2"; shift ;;
         --bin-dir)          BIN_DIR="$2"; shift ;;
+        --app)              APP="$2"; shift ;;
+        --bridge)           BRIDGE_LIBRARY="$2"; shift ;;
+        --)                 shift; BRIDGE_ARGS=("$@"); break ;;
         --jobs)             JOBS="$2"; shift ;;
         --device)           IB_DEVICE="$2"; shift ;;
         --bridge-ip)        BRIDGE_IP="$2"; shift ;;
         --emulator-ip)      EMULATOR_IP="$2"; shift ;;
         --fpga-ip)          FPGA_IP="$2"; shift ;;
         --mtu)              MTU="$2"; shift ;;
-        --gpu)              GPU_ID="$2"; shift ;;
+        --cpu)              select_backend cpu ;;
+        --gpu)              select_backend gpu
+                            if [[ "${2:-}" =~ ^[0-9]+$ ]]; then
+                                GPU_ID="$2"; shift
+                            fi ;;
+        --gpu-id)           GPU_ID="$2"; shift ;;
+        --save-temps)       SAVE_TEMPS=true ;;
         --forward)          FORWARD=true ;;
         --unified)          UNIFIED=true ;;
         --threads)          THREADS="$2"; shift ;;
@@ -153,6 +197,24 @@ while [[ $# -gt 0 ]]; do
     esac
     shift
 done
+BACKEND="${BACKEND:-gpu}"
+case "$APP" in
+    roce_app)
+        if [[ -n "$BRIDGE_LIBRARY" || ${#BRIDGE_ARGS[@]} -ne 0 ]]; then
+            echo "ERROR: --bridge and passthrough arguments require --app validation_app" >&2
+            exit 1
+        fi ;;
+    validation_app)
+        if [[ -z "$BRIDGE_LIBRARY" ]]; then
+            echo "ERROR: --app validation_app requires --bridge LIB" >&2
+            exit 1
+        fi ;;
+    *) echo "ERROR: --app must be roce_app or validation_app" >&2; exit 1 ;;
+esac
+if $FORWARD && $UNIFIED; then
+    echo "ERROR: --forward and --unified are mutually exclusive" >&2
+    exit 1
+fi
 
 # ============================================================================
 # Auto-detect IB device
@@ -255,7 +317,7 @@ do_build() {
         -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR="$HSB_DIR" \
         -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR="$hsb_build"
     cmake --build "$realtime_build" -j"$JOBS" \
-        --target gpu_roce_bridge gpu_roce_app hsb_fpga_emulator hsb_fpga_playback
+        --target roce_app validation_app hsb_fpga_emulator hsb_fpga_playback
 
     echo "=== Build complete ==="
 }
@@ -295,8 +357,8 @@ setup_port() {
     fi
     if [[ -n "$ib_dev" ]]; then
         local has_rocev2=false
-        for f in /sys/class/infiniband/${ib_dev}/ports/*/gid_attrs/types/*; do
-            if [[ -f "$f" ]] && grep -q "RoCE v2" "$f" 2>/dev/null; then
+        for gid_type_file in /sys/class/infiniband/${ib_dev}/ports/*/gid_attrs/types/*; do
+            if [[ -f "$gid_type_file" ]] && grep -q "RoCE v2" "$gid_type_file" 2>/dev/null; then
                 has_rocev2=true; break
             fi
         done
@@ -305,8 +367,8 @@ setup_port() {
         elif command -v rdma &>/dev/null && rdma link set --help &>/dev/null; then
             local port_count
             port_count=$(ls -d "/sys/class/infiniband/${ib_dev}/ports/"* 2>/dev/null | wc -l)
-            for p in $(seq 1 "$port_count"); do
-                sudo rdma link set "${ib_dev}/${p}" type eth || true
+            for port_number in $(seq 1 "$port_count"); do
+                sudo rdma link set "${ib_dev}/${port_number}" type eth || true
             done
             echo "    RoCEv2 mode configured for $ib_dev"
         else
@@ -377,38 +439,39 @@ cleanup_pids() {
     for pid in "${PIDS[@]}"; do
         wait "$pid" 2>/dev/null || true
     done
+    PIDS=()
+}
+
+cleanup() {
+    cleanup_pids
+    if $SAVE_TEMPS; then
+        echo "Saved logs: $LOG_DIR"
+    else
+        rm -rf -- "$LOG_DIR"
+    fi
 }
 
 do_run() {
     IB_DEVICE=$(detect_ib_device)
     local build_dir="$CUDA_QUANTUM_DIR/realtime/build"
-    local utils_dir="$build_dir/unittests/utils"
+    local validation_dir="$build_dir/validation"
 
     if [ -n "$BIN_DIR" ]; then
-        local bridge_bin="$BIN_DIR/gpu_roce_bridge"
+        local bridge_bin="$BIN_DIR/$APP"
         local emulator_bin="$BIN_DIR/hsb_fpga_emulator"
         local playback_bin="$BIN_DIR/hsb_fpga_playback"
-        local app_bin="$BIN_DIR/gpu_roce_app"
-        if [[ ! -x "$app_bin" ]]; then
-            app_bin="$BIN_DIR/../bridge_interface/gpu_roce/gpu_roce_app"
+        if [[ ! -x "$bridge_bin" ]]; then
+            bridge_bin="$BIN_DIR/../validation/$APP"
         fi
     else
-        local bridge_bin="$utils_dir/gpu_roce_bridge"
-        local emulator_bin="$utils_dir/hsb_fpga_emulator"
-        local playback_bin="$utils_dir/hsb_fpga_playback"
-        local app_bin="$build_dir/unittests/bridge_interface/gpu_roce/gpu_roce_app"
+        local bridge_bin="$validation_dir/$APP"
+        local emulator_bin="$validation_dir/hsb_fpga_emulator"
+        local playback_bin="$validation_dir/hsb_fpga_playback"
     fi
 
-    # gpu_roce_bridge (bridge_run) has no unified mode: the unified kernel is
-    # linked at run time from the bridge's device code, which only the bridge
-    # interface hands over, so --unified runs gpu_roce_app instead.  That one
-    # prints "Bridge Ready" from connect(), before the dispatcher starts, so
-    # wait for the line it prints after cudaq_bridge_launch instead.
-    local ready_marker="Bridge Ready"
-    if $UNIFIED; then
-        bridge_bin="$app_bin"
-        ready_marker="=== App Ready ==="
-    fi
+    # All modes use the bridge API app. connect() prints QP information before
+    # launch(), so wait until both the dispatcher and transport are ready.
+    local ready_marker="=== App Ready ==="
 
     # Verify binaries exist
     for bin in "$bridge_bin"; do
@@ -419,7 +482,11 @@ do_run() {
     done
 
     PIDS=()
-    trap cleanup_pids EXIT
+    LOG_DIR=$(mktemp -d "${TMPDIR:-/tmp}/roce-validation.XXXXXX")
+    BRIDGE_LOG="$LOG_DIR/bridge.log"
+    EMULATOR_LOG="$LOG_DIR/emulator.log"
+    echo "Logs: $LOG_DIR"
+    trap cleanup EXIT
 
     local FPGA_QP
     local FPGA_TARGET_IP
@@ -429,20 +496,20 @@ do_run() {
 
         # Start emulator
         echo "--- Starting emulator ---"
-        > /tmp/emulator.log
+        > "$EMULATOR_LOG"
         "$emulator_bin" \
             --device="$IB_DEVICE" \
             --port="$CONTROL_PORT" \
             --bridge-ip="$BRIDGE_IP" \
             --page-size="$PAGE_SIZE" \
-            > /tmp/emulator.log 2>&1 &
+            > "$EMULATOR_LOG" 2>&1 &
         PIDS+=($!)
-        tail -f /tmp/emulator.log &
+        tail -f "$EMULATOR_LOG" &
         PIDS+=($!)
 
         # Wait for emulator to print QP number
         sleep 2
-        FPGA_QP=$(grep -oP 'QP Number: 0x\K[0-9a-fA-F]+' /tmp/emulator.log | head -1)
+        FPGA_QP=$(grep -oP 'QP Number: 0x\K[0-9a-fA-F]+' "$EMULATOR_LOG" | head -1)
         if [[ -z "$FPGA_QP" ]]; then
             echo "ERROR: Could not parse emulator QP from log" >&2
             exit 1
@@ -459,51 +526,63 @@ do_run() {
 
     # Start bridge
     echo "--- Starting bridge ---"
-    > /tmp/bridge.log
+    > "$BRIDGE_LOG"
     local bridge_args=(
-        --device="$IB_DEVICE"
-        --peer-ip="$FPGA_TARGET_IP"
-        --remote-qp="$FPGA_QP"
-        --gpu="$GPU_ID"
+        --"$BACKEND"
+        --gpu-id="$GPU_ID"
         --timeout="$TIMEOUT"
-        --payload-size="$PAYLOAD_SIZE"
-        --page-size="$PAGE_SIZE"
-        --num-pages="$NUM_PAGES"
+        --threads="$THREADS"
     )
+    # roce_app translates these transport settings into bridge options itself.
+    # validation_app instead takes the caller's explicit library and argv below.
+    if [[ "$APP" == roce_app ]]; then
+        bridge_args+=(
+            --device="$IB_DEVICE"
+            --peer-ip="$FPGA_TARGET_IP"
+            --remote-qp="$FPGA_QP"
+            --payload-size="$PAYLOAD_SIZE"
+            --page-size="$PAGE_SIZE"
+            --num-pages="$NUM_PAGES"
+        )
+    fi
     if $FORWARD; then
         bridge_args+=(--forward)
     fi
     if $UNIFIED; then
         bridge_args+=(--unified)
     fi
-    bridge_args+=(--threads="$THREADS")
-    CUDA_MODULE_LOADING=EAGER "$bridge_bin" "${bridge_args[@]}" > /tmp/bridge.log 2>&1 &
+    if [[ "$APP" == validation_app ]]; then
+        bridge_args+=(--bridge="$BRIDGE_LIBRARY" -- "${BRIDGE_ARGS[@]}")
+    fi
+    CUDA_MODULE_LOADING=EAGER "$bridge_bin" "${bridge_args[@]}" > "$BRIDGE_LOG" 2>&1 &
     BRIDGE_PID=$!
     PIDS+=($BRIDGE_PID)
-    tail -f /tmp/bridge.log &
+    tail -f "$BRIDGE_LOG" &
     PIDS+=($!)
 
-    # Wait for bridge to print "Bridge Ready" (CUDA/DOCA init can take 5-15s)
+    # Wait for the app to finish dispatcher and bridge startup.
     local wait_elapsed=0
-    while ! grep -q "$ready_marker" /tmp/bridge.log 2>/dev/null; do
+    while ! grep -q "$ready_marker" "$BRIDGE_LOG" 2>/dev/null; do
         if ! kill -0 "$BRIDGE_PID" 2>/dev/null; then
             echo "ERROR: Bridge process died during startup" >&2
-            cat /tmp/bridge.log >&2
+            cat "$BRIDGE_LOG" >&2
             exit 1
         fi
         if (( wait_elapsed >= 30 )); then
             echo "ERROR: Bridge did not become ready within 30s" >&2
-            cat /tmp/bridge.log >&2
+            cat "$BRIDGE_LOG" >&2
             exit 1
         fi
         sleep 1
         (( wait_elapsed++ )) || true
     done
 
+    # Direct HSB playback needs these destination values as separate options;
+    # the generic provider runner instead forwards one opaque endpoint string.
     local BRIDGE_QP BRIDGE_RKEY BRIDGE_BUFFER
-    BRIDGE_QP=$(grep -oP 'QP Number: 0x\K[0-9a-fA-F]+' /tmp/bridge.log | tail -1)
-    BRIDGE_RKEY=$(grep -oP 'RKey: \K[0-9]+' /tmp/bridge.log | tail -1)
-    BRIDGE_BUFFER=$(grep -oP 'Buffer Addr: 0x\K[0-9a-fA-F]+' /tmp/bridge.log | tail -1)
+    BRIDGE_QP=$(grep -oP 'QP Number: 0x\K[0-9a-fA-F]+' "$BRIDGE_LOG" | tail -1)
+    BRIDGE_RKEY=$(grep -oP 'RKey: \K[0-9]+' "$BRIDGE_LOG" | tail -1)
+    BRIDGE_BUFFER=$(grep -oP 'Buffer Addr: 0x\K[0-9a-fA-F]+' "$BRIDGE_LOG" | tail -1)
 
     if [[ -z "$BRIDGE_QP" || -z "$BRIDGE_RKEY" || -z "$BRIDGE_BUFFER" ]]; then
         echo "ERROR: Could not parse bridge QP info from log" >&2
@@ -538,8 +617,8 @@ do_run() {
         playback_args+=(--forward)
     fi
 
-    "$playback_bin" "${playback_args[@]}"
-    PLAYBACK_EXIT=$?
+    PLAYBACK_EXIT=0
+    "$playback_bin" "${playback_args[@]}" || PLAYBACK_EXIT=$?
 
     # Wait for bridge to finish
     sleep 2
@@ -560,13 +639,13 @@ do_run() {
 # Main
 # ============================================================================
 
-echo "=== GPU RoCE Generic RPC Test ==="
+echo "=== RoCE RPC Validation ($BACKEND) ==="
 echo "Mode: $(if $EMULATE; then echo "emulated"; else echo "FPGA"; fi)"
 
 if [ -n "$BIN_DIR" ]; then
    if $DO_BUILD; then
     echo "Cannot request a build when the binary directory is provided."
-   fi 
+   fi
 fi
 
 if $DO_BUILD; then

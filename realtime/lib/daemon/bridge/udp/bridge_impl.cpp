@@ -346,8 +346,9 @@ udp_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t handle, char *buf,
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
   const int n =
-      std::snprintf(buf, buf_len, "transport=udp port=%u",
-                    static_cast<unsigned>(cpu_udp_get_port(ctx->transceiver)));
+      std::snprintf(buf, buf_len, "transport=udp port=%u slot_size=%u",
+                    static_cast<unsigned>(cpu_udp_get_port(ctx->transceiver)),
+                    ctx->slot_size);
   return (n > 0 && static_cast<size_t>(n) < buf_len) ? CUDAQ_OK
                                                      : CUDAQ_ERR_INVALID_ARG;
 }

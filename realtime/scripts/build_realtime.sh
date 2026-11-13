@@ -55,8 +55,8 @@
 # - CMake 4.0+, Ninja 1.10+ (custom commands with a DEPFILE)
 # - CUDA toolkit (12.6+ and 13.0+). With CUDAQ_REALTIME_BUILD_TESTS=OFF, a CUDA-less
 #   configure still builds UDP, and builds CPU RoCE when HololinkRoce is
-#   found. Tests currently require CUDAToolkit
-#   headers (hsb_bridge_cpu).
+#   found. The validation app requires the CUDA toolkit to build;
+#   its --cpu execution path needs no GPU at runtime.
 # - For HSB tools: DOCA with gpunetio and a built holoscan-sensor-bridge tree,
 #   see isntall_dev_prerequisites.sh
 
