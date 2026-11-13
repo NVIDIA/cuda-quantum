@@ -10,6 +10,7 @@
 name = "cudaq-core"
 dynamic = ["version"]
 description = "Shared CUDA-Q compiler bindings and native backend interfaces"
+readme = { file="python/README.core.md", content-type = "text/markdown"}
 authors = [{name = "NVIDIA Corporation & Affiliates"}]
 requires-python = ">=3.11"
 license = "Apache-2.0"
