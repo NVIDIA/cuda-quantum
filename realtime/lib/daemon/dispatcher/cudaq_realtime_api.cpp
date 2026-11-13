@@ -11,6 +11,7 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/host_dispatch_loop.h"
 #include <atomic>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <mutex>
@@ -57,7 +58,7 @@ struct cudaq_dispatcher_t {
   cudaq_unified_launch_fn_t unified_launch_fn = nullptr;
   void *transport_ctx = nullptr;
   volatile int *shutdown_flag = nullptr;
-  uint64_t *stats = nullptr;
+  std::uint64_t *stats = nullptr;
   cudaStream_t stream = nullptr;
   bool running = false;
   // The unified loop's data-plane (HOST + UNIFIED path), copied in by
@@ -148,7 +149,7 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
     // same ring; otherwise nothing could serve it and its requests would be
     // dropped unanswered, so refuse the table.
     if (!dispatcher->config.shared_ring_mode)
-      for (uint32_t i = 0; i < dispatcher->table.count; ++i)
+      for (std::uint32_t i = 0; i < dispatcher->table.count; ++i)
         if (dispatcher->table.entries[i].dispatch_mode !=
             CUDAQ_DISPATCH_HOST_CALL)
           return CUDAQ_ERR_UNSUPPORTED;
@@ -213,8 +214,8 @@ static const char *bridge_shape_name(const cudaq_dispatcher_config_t &config) {
 static cudaq_status_t
 apply_bridge_geometry(cudaq_realtime_bridge_handle_t bridge,
                       cudaq_dispatcher_config_t &config) {
-  uint32_t num_slots = 0;
-  uint32_t slot_size = 0;
+  std::uint32_t num_slots = 0;
+  std::uint32_t slot_size = 0;
   const cudaq_status_t status =
       cudaq_bridge_get_ring_geometry(bridge, &num_slots, &slot_size);
   if (status == CUDAQ_ERR_UNSUPPORTED)
@@ -327,7 +328,7 @@ cudaq_dispatcher_set_function_table(cudaq_dispatcher_t *dispatcher,
 
 cudaq_status_t cudaq_dispatcher_set_control(cudaq_dispatcher_t *dispatcher,
                                             volatile int *shutdown_flag,
-                                            uint64_t *stats) {
+                                            std::uint64_t *stats) {
   if (!dispatcher || !shutdown_flag || !stats)
     return CUDAQ_ERR_INVALID_ARG;
   dispatcher->shutdown_flag = shutdown_flag;
@@ -656,8 +657,8 @@ static bool is_linked_device_code(const cudaq_dispatcher_t *dispatcher,
 static CUresult launch_linked_unified_kernel(
     CUkernel kernel, void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
-    volatile int *shutdown_flag, uint64_t *stats, uint32_t threads_per_block,
-    cudaStream_t stream) {
+    volatile int *shutdown_flag, std::uint64_t *stats,
+    std::uint32_t threads_per_block, cudaStream_t stream) {
   // Exactly the kernel's parameter types: cudaLaunchKernel copies each
   // argument by the size of the parameter it lands in.
   void *args[] = {&transport_ctx,  &tx_stride_sz, &shutdown_flag,
@@ -864,7 +865,7 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
     // runtime, so no device is selected here; a handler that uses CUDA
     // selects its own.
     volatile int *shutdown_flag = dispatcher->shutdown_flag;
-    uint64_t *stats = dispatcher->stats;
+    std::uint64_t *stats = dispatcher->stats;
     cudaq_function_table_t tbl = dispatcher->table;
     if (is_host_unified_dispatcher(dispatcher)) {
       // stop() and destroy() join the thread before the dispatcher goes away.
@@ -1016,7 +1017,7 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher) {
 }
 
 cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
-                                              uint64_t *out_packets) {
+                                              std::uint64_t *out_packets) {
   if (!dispatcher || !out_packets || !dispatcher->stats)
     return CUDAQ_ERR_INVALID_ARG;
 
@@ -1025,7 +1026,7 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
     return CUDAQ_OK;
   }
 
-  if (cudaMemcpy(out_packets, dispatcher->stats, sizeof(uint64_t),
+  if (cudaMemcpy(out_packets, dispatcher->stats, sizeof(std::uint64_t),
                  cudaMemcpyDeviceToHost) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
 
@@ -1036,34 +1037,35 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
 // Ring buffer slot helpers
 //==============================================================================
 
-static inline uint64_t atomic_load_u64(volatile uint64_t *ptr) {
-  auto *ap =
-      reinterpret_cast<std::atomic<uint64_t> *>(const_cast<uint64_t *>(ptr));
+static inline std::uint64_t atomic_load_u64(volatile std::uint64_t *ptr) {
+  auto *ap = reinterpret_cast<std::atomic<std::uint64_t> *>(
+      const_cast<std::uint64_t *>(ptr));
   return ap->load(std::memory_order_acquire);
 }
 
-static inline void atomic_store_u64(volatile uint64_t *ptr, uint64_t val) {
-  auto *ap =
-      reinterpret_cast<std::atomic<uint64_t> *>(const_cast<uint64_t *>(ptr));
+static inline void atomic_store_u64(volatile std::uint64_t *ptr,
+                                    std::uint64_t val) {
+  auto *ap = reinterpret_cast<std::atomic<std::uint64_t> *>(
+      const_cast<std::uint64_t *>(ptr));
   ap->store(val, std::memory_order_release);
 }
 
 cudaq_status_t cudaq_host_ringbuffer_write_rpc_request(
-    const cudaq_ringbuffer_t *rb, uint32_t slot_idx, uint32_t function_id,
-    const void *payload, uint32_t payload_len, uint32_t request_id,
-    uint64_t ptp_timestamp) {
+    const cudaq_ringbuffer_t *rb, std::uint32_t slot_idx,
+    std::uint32_t function_id, const void *payload, std::uint32_t payload_len,
+    std::uint32_t request_id, std::uint64_t ptp_timestamp) {
   if (!rb || !rb->rx_data_host)
     return CUDAQ_ERR_INVALID_ARG;
   if (CUDAQ_RPC_HEADER_SIZE + payload_len > rb->rx_stride_sz)
     return CUDAQ_ERR_INVALID_ARG;
 
-  uint8_t *slot = rb->rx_data_host + slot_idx * rb->rx_stride_sz;
-  uint32_t *hdr32 = reinterpret_cast<uint32_t *>(slot);
+  std::uint8_t *slot = rb->rx_data_host + slot_idx * rb->rx_stride_sz;
+  std::uint32_t *hdr32 = reinterpret_cast<std::uint32_t *>(slot);
   hdr32[0] = CUDAQ_RPC_MAGIC_REQUEST;
   hdr32[1] = function_id;
   hdr32[2] = payload_len;
   hdr32[3] = request_id;
-  uint64_t *hdr64 = reinterpret_cast<uint64_t *>(slot + 16);
+  std::uint64_t *hdr64 = reinterpret_cast<std::uint64_t *>(slot + 16);
   *hdr64 = ptp_timestamp;
 
   if (payload && payload_len > 0)
@@ -1073,14 +1075,16 @@ cudaq_status_t cudaq_host_ringbuffer_write_rpc_request(
 }
 
 void cudaq_host_ringbuffer_signal_slot(const cudaq_ringbuffer_t *rb,
-                                       uint32_t slot_idx) {
-  uint64_t addr = reinterpret_cast<uint64_t>(rb->rx_data_host +
-                                             slot_idx * rb->rx_stride_sz);
+                                       std::uint32_t slot_idx) {
+  std::uint64_t addr = reinterpret_cast<std::uint64_t>(
+      rb->rx_data_host + slot_idx * rb->rx_stride_sz);
   atomic_store_u64(&rb->rx_flags_host[slot_idx], addr);
 }
 
-cudaq_tx_status_t cudaq_host_ringbuffer_poll_tx_flag(
-    const cudaq_ringbuffer_t *rb, uint32_t slot_idx, int * /*out_cuda_error*/) {
+cudaq_tx_status_t
+cudaq_host_ringbuffer_poll_tx_flag(const cudaq_ringbuffer_t *rb,
+                                   std::uint32_t slot_idx,
+                                   int * /*out_cuda_error*/) {
   // A non-zero flag is the TX slot's address, stored once the response is in
   // place; there are no other flag values.
   return atomic_load_u64(&rb->tx_flags_host[slot_idx]) == 0 ? CUDAQ_TX_EMPTY
@@ -1088,12 +1092,12 @@ cudaq_tx_status_t cudaq_host_ringbuffer_poll_tx_flag(
 }
 
 int cudaq_host_ringbuffer_slot_available(const cudaq_ringbuffer_t *rb,
-                                         uint32_t slot_idx) {
+                                         std::uint32_t slot_idx) {
   return atomic_load_u64(&rb->rx_flags_host[slot_idx]) == 0 &&
          atomic_load_u64(&rb->tx_flags_host[slot_idx]) == 0;
 }
 
 void cudaq_host_ringbuffer_clear_slot(const cudaq_ringbuffer_t *rb,
-                                      uint32_t slot_idx) {
+                                      std::uint32_t slot_idx) {
   atomic_store_u64(&rb->tx_flags_host[slot_idx], 0);
 }
