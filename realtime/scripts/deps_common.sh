@@ -70,6 +70,39 @@ cudaq_realtime_cuda_version() {
   printf '%s' "$_cudaq_realtime_cuda_version"
 }
 
+# Packages the installed library loads at run time, beyond the CUDA toolkit
+# (apt only). Call after cudaq_realtime_add_doca_repo. libibverbs1 is not among
+# them: the Mellanox OFED some containers ship provides it, so each script
+# installs it itself.
+cudaq_realtime_install_runtime_packages() {
+  # The gpu_roce transport loads DOCA GPUNetIO, verbs and common.
+  DEBIAN_FRONTEND=noninteractive retry apt-get -y install --no-install-recommends \
+    doca-sdk-gpunetio
+}
+
+# Dev packages that building CUDA-Q Realtime needs and the installed library
+# does not (apt only). Call after cudaq_realtime_add_doca_repo. The build set
+# is the install set plus these, so this starts with
+# cudaq_realtime_install_runtime_packages. The CUDA ones
+# match the toolkit nvcc reports and are no-ops over a full toolkit; partial
+# installs, such as the CUDA-Q dev images, lack them. libibverbs-dev is not
+# among them: it conflicts with the Mellanox OFED some containers ship, so
+# install_dev_prerequisites.sh installs it itself.
+cudaq_realtime_install_build_packages() {
+  cudaq_realtime_install_runtime_packages || return 1
+  _cudaq_realtime_cuda_ver_dash=$(cudaq_realtime_cuda_version) || return 1
+  _cudaq_realtime_cuda_ver_dash=${_cudaq_realtime_cuda_ver_dash/./-}
+  # The gpu_roce transport builds against DOCA GPUNetIO.
+  DEBIAN_FRONTEND=noninteractive retry apt-get -y install --no-install-recommends \
+    libdoca-sdk-gpunetio-dev
+  # hololink_core links CUDA::nvrtc -- must match the exact toolkit version
+  retry apt-get install -y cuda-nvrtc-dev-$_cudaq_realtime_cuda_ver_dash 2>/dev/null || true
+  # cudaq-realtime's run-time device link uses nvJitLink, whose header and
+  # unversioned library only the dev package ships.
+  retry apt-get install -y --no-install-recommends \
+    libnvjitlink-dev-$_cudaq_realtime_cuda_ver_dash
+}
+
 # CUDA architectures HSB is compiled for. A CUDA_NATIVE_ARCH set by the caller
 # always wins.
 cudaq_realtime_cuda_native_arch() {
