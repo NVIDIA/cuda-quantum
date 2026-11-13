@@ -10,6 +10,8 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Analysis/UnitaryOpGrouping.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/SmallVector.h"
+#include "mlir/Support/LLVM.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_OUTLINEUNITARIES
@@ -25,18 +27,35 @@ public:
   void runOnOperation() override {
     const auto &analysis =
         getAnalysis<cudaq::quake::detail::UnitaryOpGroupingAnalysis>();
-    const cudaq::quake::detail::UnitaryOpGroups &groups = analysis.getGroups();
+    const cudaq::quake::detail::UnitaryOpGroups &unitaryOpGroups =
+        analysis.getGroups();
 
-    // TODO: Build PartitionToOutline requests from the groups. Preserve the
-    // analysis's supplied operation order, which may differ from block order.
-    // Decide how to handle trailingDelimiterOps and delimiter-only groups.
+    // Preserve the analysis's supplied operation order, which may differ from
+    // block order. Leave trailing delimiters outside the outlined partitions.
+    // TODO: Define and document the policy for unsupported groups, including
+    // reference-semantics operations: skip them or fail the pass explicitly.
+    mlir::SmallVector<cudaq::opt::PartitionToOutline> partitionsToOutline;
+    for (const auto &group : unitaryOpGroups) {
+      // note that some groups may contain only delimiter ops
+      if (group.ops.empty())
+        continue;
+      partitionsToOutline.push_back(
+          {.ops = {group.ops.begin(), group.ops.end()},
+           // TODO: Once UnitaryOpGroupingAnalysis records segmentEnd, use it
+           // instead of nullptr when there are no trailing delimiters. Default
+           // placement can otherwise move the call across a hard boundary to
+           // a later external consumer. Keep boundaries outside all partitions.
+           .mustPrecede = group.trailingDelimiterOps.empty()
+                              ? nullptr
+                              : group.trailingDelimiterOps.front()});
+    }
 
-    // TODO: Choose each partition's mustPrecede boundary. Boundaries must not
-    // be selected by any partition in the batch.
-    // TODO: Call cudaq::opt::outlinePartitions and handle failure, remembering
-    // that a failed batch may retain successful rewrites. Do not consult the
-    // grouping analysis after mutating the IR.
-    (void)groups;
+    // A failed batch may retain successful rewrites. Do not consult the
+    // grouping analysis after this call mutates the IR.
+    if (mlir::failed(cudaq::opt::outlinePartitions(partitionsToOutline))) {
+      getOperation().emitError("failed to outline unitary groups");
+      signalPassFailure();
+    }
   }
 };
 } // namespace
