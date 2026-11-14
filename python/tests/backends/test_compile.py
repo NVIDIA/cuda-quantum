@@ -79,12 +79,12 @@ def test_compile_with_arguments():
     assert compiled.mlir_module is not None
 
 
-def test_compile_uses_the_pipeline_of_the_given_target():
+@pytest.mark.parametrize("target_kind", ["compile", "custom"])
+def test_compile_uses_the_pipeline_of_the_given_target(target_kind):
     endpoint = RecordingEndpoint()
-    target = CustomTarget(
-        runtime_endpoint=endpoint,
-        compile_target=CompileTarget(custom_pipeline=SWAP_TO_CX_PIPELINE),
-    )
+    target = CompileTarget(custom_pipeline=SWAP_TO_CX_PIPELINE)
+    if target_kind == "custom":
+        target = CustomTarget(runtime_endpoint=endpoint, compile_target=target)
 
     compiled = cudaq.compile(swap_kernel, target=target)
 
@@ -117,9 +117,24 @@ def test_compile_does_not_install_the_target():
     assert cudaq.get_target().name == "qpp-cpu"
 
 
-def test_compile_rejects_a_bare_compile_target():
-    with pytest.raises(TypeError, match="CustomTarget"):
-        cudaq.compile(swap_kernel, target=CompileTarget())
+@pytest.mark.parametrize("supports_jit", [True, False])
+def test_bare_compile_target_uses_the_installed_endpoint_capabilities(
+        supports_jit):
+    endpoint = RecordingEndpoint(supports_jit=supports_jit)
+    cudaq.set_target(
+        CustomTarget(runtime_endpoint=endpoint, compile_target=CompileTarget()))
+
+    compiled = cudaq.compile(swap_kernel, target=CompileTarget())
+
+    assert compiled.mlir_module is not None
+    assert (compiled.entry_point is not None) == supports_jit
+    assert endpoint.calls == []
+
+
+@pytest.mark.parametrize("target", [object(), "qpp-cpu", 42])
+def test_compile_rejects_unsupported_targets(target):
+    with pytest.raises(TypeError, match="CompileTarget or CustomTarget"):
+        cudaq.compile(swap_kernel, target=target)
 
 
 @pytest.mark.parametrize("level", [-1, 4])

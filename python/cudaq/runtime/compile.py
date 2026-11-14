@@ -24,6 +24,8 @@ def compile(kernel, *args, target=None, optimization_level=None):
     compile it. In particular, a JIT-compiled entry point is built if, and
     only if, such a launch would build one. The MLIR the target's pipeline
     produced is available as ``CompiledModule.mlir_module``.
+    When ``target`` is a bare ``CompileTarget``, runtime endpoint capabilities
+    come from the currently installed target.
 
     Launch policies are not taken into account: the module is compiled with
     the default options, not those a specific algorithm such as
@@ -33,7 +35,9 @@ def compile(kernel, *args, target=None, optimization_level=None):
       kernel (:class:`Kernel`): The :class:`Kernel` to compile.
       *args (Optional[Any]): The concrete values to compile the kernel for.
           Leave empty if the kernel doesn't accept any arguments.
-      target (Optional[:class:`CustomTarget`]): The target to compile for.
+      target (Optional[CompileTarget | CustomTarget]): The target to compile
+          for. A ``CompileTarget`` supplies the compilation configuration;
+          a ``CustomTarget`` also supplies runtime endpoint capabilities.
           Defaults to the target currently installed with
           :func:`cudaq.set_target`.
       optimization_level (Optional[int]): The quantum optimization level,
@@ -51,20 +55,21 @@ def compile(kernel, *args, target=None, optimization_level=None):
     compile_target = None
     endpoint_traits = {}
     if target is not None:
-        from cudaq.core._experimental import CustomTarget
-        if not isinstance(target, CustomTarget):
-            raise TypeError(
-                "target must be a CustomTarget, which pairs a compile target "
-                f"with the runtime endpoint it compiles for, not {type(target).__name__}"
+        from cudaq.core._experimental import CompileTarget, CustomTarget
+        if isinstance(target, CompileTarget):
+            compile_target = target
+        elif isinstance(target, CustomTarget):
+            compile_target = target.compile_target
+            endpoint = target.runtime_endpoint
+            # These match the defaults of `RuntimeEndpoint`.
+            endpoint_traits = dict(
+                is_remote=getattr(endpoint, "is_remote", False),
+                is_emulated=getattr(endpoint, "is_emulated", False),
+                supports_jit=getattr(endpoint, "supports_jit", True),
             )
-        compile_target = target.compile_target
-        endpoint = target.runtime_endpoint
-        # These match the defaults of `RuntimeEndpoint`.
-        endpoint_traits = dict(
-            is_remote=getattr(endpoint, "is_remote", False),
-            is_emulated=getattr(endpoint, "is_emulated", False),
-            supports_jit=getattr(endpoint, "supports_jit", True),
-        )
+        else:
+            raise TypeError("target must be a CompileTarget or CustomTarget, "
+                            f"not {type(target).__name__}")
 
     processed_args, module = decorator.prepare_call(
         *args, optimization_level=optimization_level)
