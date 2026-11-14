@@ -350,12 +350,15 @@ gpu_roce_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t handle,
     return CUDAQ_ERR_INTERNAL;
   const int n = std::snprintf(
       buf, buf_len,
-      "transport=gpu_roce qp=0x%x rkey=%u buffer_addr=0x%llx peer_ip=%s",
+      "transport=gpu_roce qp=0x%x rkey=%u buffer_addr=0x%llx peer_ip=%s "
+      "slot_size=%u num_slots=%u",
       gpu_roce_get_qp_number(ctx->transceiver),
       gpu_roce_get_rkey(ctx->transceiver),
       static_cast<unsigned long long>(
           gpu_roce_get_buffer_addr(ctx->transceiver)),
-      ctx->config.peer_ip.c_str());
+      ctx->config.peer_ip.c_str(),
+      static_cast<unsigned>(gpu_roce_get_page_size(ctx->transceiver)),
+      static_cast<unsigned>(gpu_roce_get_num_pages(ctx->transceiver)));
   return (n > 0 && static_cast<size_t>(n) < buf_len) ? CUDAQ_OK
                                                      : CUDAQ_ERR_INVALID_ARG;
 }

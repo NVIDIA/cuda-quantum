@@ -187,6 +187,12 @@ async def create_job(job: dict):
                     detail=
                     f"Please specify a maximum cost when using device: {device_name}"
                 )
+            if item.get("n_qubits", 0) <= 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=
+                    "max-qubits/n_qubits must currently be set explicitly per job item."
+                )
 
     shots = items[0].get("n_shots", 1000)
     program_id = items[0].get("program_id", "")

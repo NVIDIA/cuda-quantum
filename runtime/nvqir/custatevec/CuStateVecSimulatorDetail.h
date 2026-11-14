@@ -67,8 +67,9 @@ std::vector<std::complex<Scalar>> copyPointerToHost(const void *data,
 /// Narrow a vector of qubit indices to the int32 range cuStateVec expects,
 /// rejecting indices that do not fit.
 inline std::vector<std::int32_t>
-toInt32(const std::vector<std::size_t> &values) {
-  std::vector<std::int32_t> result;
+toInt32(const std::vector<std::size_t> &values,
+        std::vector<std::int32_t> result = {}) {
+  result.clear();
   result.reserve(values.size());
   for (const std::size_t value : values) {
     if (value >

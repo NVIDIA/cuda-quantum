@@ -91,7 +91,10 @@ void compactMatrixTask(MatrixTask<Scalar> &task) {
 
   if (!diagonal && !antiDiagonal)
     return;
-  std::vector<std::complex<Scalar>> compact(dimension);
+  // Compacts in place so a reused task keeps its buffer. Entry i is read from
+  // index i * (dimension + 1) or (i + 1) * (dimension - 1), never below i, so
+  // no entry is overwritten before it is read.
+  auto &compact = task.matrix;
   if (diagonal) {
     for (std::size_t index = 0; index < dimension; ++index)
       compact[index] = element(index, index);
@@ -103,7 +106,7 @@ void compactMatrixTask(MatrixTask<Scalar> &task) {
                            : element(dimension - index - 1, index);
     task.matrixType = CUSTATEVEC_EX_MATRIX_ANTI_DIAGONAL;
   }
-  task.matrix = std::move(compact);
+  task.matrix.resize(dimension);
 }
 
 /// Describes a controlled Pauli rotation and its operands.

@@ -66,6 +66,40 @@ TEST(CuStateVecBatchTester, CompactsStructuredMatrixTasks) {
   EXPECT_EQ(dense.matrix, original);
 }
 
+// Compacts two-qubit diagonal and anti-diagonal matrices in both layouts into
+// their own storage, with distinct entries so a value overwritten before it is
+// read would be caught.
+TEST(CuStateVecBatchTester, CompactsTwoQubitMatricesInPlace) {
+  using Complex = std::complex<double>;
+  const std::vector<Complex> expected{{1.0, 1.0}, 2.0, {3.0, -1.0}, 4.0};
+  for (const auto layout :
+       {CUSTATEVEC_MATRIX_LAYOUT_ROW, CUSTATEVEC_MATRIX_LAYOUT_COL}) {
+    for (const bool diagonal : {true, false}) {
+      MatrixTask<double> task;
+      task.targets = {0, 1};
+      task.layout = layout;
+      task.matrix.assign(16, 0.0);
+      for (std::size_t i = 0; i < 4; ++i) {
+        // Anti-diagonal entry i is (i, 3 - i) in row layout and (3 - i, i) in
+        // column layout.
+        std::size_t row = i;
+        std::size_t column = diagonal ? i : 3 - i;
+        if (!diagonal && layout == CUSTATEVEC_MATRIX_LAYOUT_COL)
+          std::swap(row, column);
+        task.matrix[layout == CUSTATEVEC_MATRIX_LAYOUT_ROW ? row * 4 + column
+                                                           : column * 4 + row] =
+            expected[i];
+      }
+      const Complex *storage = task.matrix.data();
+      compactMatrixTask(task);
+      EXPECT_EQ(task.matrixType, diagonal ? CUSTATEVEC_EX_MATRIX_DIAGONAL
+                                          : CUSTATEVEC_EX_MATRIX_ANTI_DIAGONAL);
+      EXPECT_EQ(task.matrix, expected);
+      EXPECT_EQ(task.matrix.data(), storage);
+    }
+  }
+}
+
 // Resizes the active batch within its original capacity and verifies operations
 // honor the new size; rejects invalid sizes and per-batch operand counts.
 TEST(CuStateVecBatchTester, ReusesCapacityForSmallerActiveBatch) {
