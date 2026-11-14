@@ -5,19 +5,30 @@ an application-provided cooperative grid. The GPU receives requests directly
 from the `gpu_roce` bridge, runs the RPC handler across one resident block per
 SM, and sends the response without copying the request through the CPU.
 
-The example is part of the existing GPU RoCE latency application and test
+The example is part of the existing RoCE validation application and test
 harness rather than a separate executable:
 
-- [`grid_dispatcher.cu`](../unittests/dispatchers/grid_dispatcher.cu) is the
+- [`grid_dispatcher.cu`](../validation/grid_dispatcher.cu) is the
   application-provided kernel.
-- [`gpu_roce_bridge.cpp`](../unittests/bridge_interface/gpu_roce/gpu_roce_bridge.cpp)
-  looks up the kernel and installs its launcher.
-- [`CMakeLists.txt`](../unittests/bridge_interface/gpu_roce/CMakeLists.txt)
-  embeds the kernel with `cudaq_realtime_add_dispatch_kernel`.
-- [`rpc_increment_handler.cu`](../unittests/utils/rpc_increment_handler.cu)
+- [`roce_app.cpp`](../validation/roce_app.cpp) looks up the kernel and installs
+  its launcher when given `--dispatcher=grid`.
+- [`hsb_tools.cmake`](../validation/hsb_tools.cmake) embeds the kernel in
+  `roce_app` with `cudaq_realtime_add_dispatch_kernel`.
+- [`rpc_increment_handler.cu`](../validation/rpc_increment_handler.cu)
   contains the exported grid-stride RPC handler.
-- [`gpu_roce_test.sh`](../unittests/utils/gpu_roce_test.sh) runs the same
-  emulator or FPGA latency flow used by the built-in dispatcher.
+- [`roce_test.sh`](../validation/roce_test.sh) runs the same emulator or FPGA
+  latency flow used by the built-in dispatcher.
+
+For example, against an FPGA, from a build tree:
+
+```bash
+realtime/validation/roce_test.sh --device mlx5_4 --gpu 3 --page-size 512 \
+  --bridge-ip 192.168.0.1 --fpga-ip 192.168.0.2 \
+  --bin-dir realtime/build/validation --unified --dispatcher grid
+```
+
+Add `--blocks N` to use fewer blocks than the GPU has `SMs`. At shutdown,
+`roce_app` reports how many distinct `SMs` the blocks ran on.
 
 ## Data Path
 

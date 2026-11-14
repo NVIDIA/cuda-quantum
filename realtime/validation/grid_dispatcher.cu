@@ -18,7 +18,7 @@
 /// grid-wide barrier on the request path.
 ///
 /// cudaq_realtime_add_dispatch_kernel compiles this file separately to LTO-IR
-/// and embeds it in gpu_roce_app.  The dispatcher links it at run time with the
+/// and embeds it in roce_app.  The dispatcher links it at run time with the
 /// gpu_roce hooks and the application's exported handler.
 
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
