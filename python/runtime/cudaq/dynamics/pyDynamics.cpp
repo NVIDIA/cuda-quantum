@@ -23,6 +23,8 @@
 #include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
+#include <cstdint>
+
 namespace {
 cudaq::CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
   auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
@@ -49,7 +51,7 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
   nanobind::class_<PyCuDensityMatTimeStepper>(m, "TimeStepper")
       .def("__init__",
            [](PyCuDensityMatTimeStepper *self, cudaq::schedule schedule,
-              std::vector<int64_t> modeExtents,
+              std::vector<std::int64_t> modeExtents,
               cudaq::sum_op<cudaq::matrix_handler> hamiltonian,
               std::vector<cudaq::sum_op<cudaq::matrix_handler>> collapse_ops,
               bool is_master_equation) {
@@ -69,7 +71,7 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
            })
       .def("__init__",
            [](PyCuDensityMatTimeStepper *self, cudaq::schedule schedule,
-              std::vector<int64_t> modeExtents, cudaq::super_op superOp) {
+              std::vector<std::int64_t> modeExtents, cudaq::super_op superOp) {
              std::unordered_map<std::string, std::complex<double>> params;
              for (const auto &param : schedule.get_parameters()) {
                params[param] = schedule.get_value_function()(param, 0.0);
@@ -84,7 +86,7 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
            })
       .def("__init__",
            [](PyCuDensityMatTimeStepper *self, cudaq::schedule schedule,
-              std::vector<int64_t> modeExtents,
+              std::vector<std::int64_t> modeExtents,
               const std::vector<cudaq::sum_op<cudaq::matrix_handler>>
                   &hamiltonians,
               const std::vector<std::vector<
@@ -106,7 +108,7 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
            })
       .def("__init__",
            [](PyCuDensityMatTimeStepper *self, cudaq::schedule schedule,
-              std::vector<int64_t> modeExtents,
+              std::vector<std::int64_t> modeExtents,
               const std::vector<cudaq::super_op> &superOps) {
              std::unordered_map<std::string, std::complex<double>> params;
              for (const auto &param : schedule.get_parameters()) {
@@ -171,7 +173,7 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
       .def("__init__",
            [](cudaq::CuDensityMatExpectation *self,
               cudaq::sum_op<cudaq::matrix_handler> &obs,
-              const std::vector<int64_t> &modeExtents) {
+              const std::vector<std::int64_t> &modeExtents) {
              new (self) cudaq::CuDensityMatExpectation(
                  cudaq::dynamics::Context::getCurrentContext()->getHandle(),
                  cudaq::dynamics::Context::getCurrentContext()
@@ -202,8 +204,8 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
 
   // Helper to initialize a data buffer state
   m.def("initializeState",
-        [](cudaq::state &state, const std::vector<int64_t> &modeExtents,
-           bool requireDensityMatrix, int64_t batchSize) {
+        [](cudaq::state &state, const std::vector<std::int64_t> &modeExtents,
+           bool requireDensityMatrix, std::int64_t batchSize) {
           auto &castSimState = *asCudmState(state);
           if (!castSimState.is_initialized()) {
             if (requireDensityMatrix) {
@@ -227,16 +229,16 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
         });
   // Helper to initialize a data buffer state from an unowned device pointer.
   // We wrap the device pointer as a `CuDensityMatState` without copying data.
-  m.def("initializeState",
-        [](int64_t deviceDataPtr, std::size_t size,
-           const std::vector<int64_t> &modeExtents, int64_t batchSize) {
-          auto *cudmState = new cudaq::CuDensityMatState(
-              size, reinterpret_cast<void *>(deviceDataPtr), /*borrowed=*/true);
-          cudmState->initialize_cudm(
-              cudaq::dynamics::Context::getCurrentContext()->getHandle(),
-              modeExtents, batchSize);
-          return cudaq::state(cudmState);
-        });
+  m.def("initializeState", [](std::int64_t deviceDataPtr, std::size_t size,
+                              const std::vector<std::int64_t> &modeExtents,
+                              std::int64_t batchSize) {
+    auto *cudmState = new cudaq::CuDensityMatState(
+        size, reinterpret_cast<void *>(deviceDataPtr), /*borrowed=*/true);
+    cudmState->initialize_cudm(
+        cudaq::dynamics::Context::getCurrentContext()->getHandle(), modeExtents,
+        batchSize);
+    return cudaq::state(cudmState);
+  });
 
   // Helper to create an initial state
   m.def("createInitialState",
@@ -249,18 +251,18 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
           assert(state->is_initialized());
           return cudaq::state(state.release());
         });
-  m.def("createBatchedState",
-        [](std::vector<cudaq::state> &states,
-           const std::vector<int64_t> &modeExtents, bool requireDensityMatrix) {
-          std::vector<cudaq::CuDensityMatState *> statePtrs;
-          for (auto &state : states) {
-            statePtrs.emplace_back(asCudmState(state));
-          }
-          auto batchedState = cudaq::CuDensityMatState::createBatchedState(
-              cudaq::dynamics::Context::getCurrentContext()->getHandle(),
-              statePtrs, modeExtents, requireDensityMatrix);
-          return cudaq::state(batchedState.release());
-        });
+  m.def("createBatchedState", [](std::vector<cudaq::state> &states,
+                                 const std::vector<std::int64_t> &modeExtents,
+                                 bool requireDensityMatrix) {
+    std::vector<cudaq::CuDensityMatState *> statePtrs;
+    for (auto &state : states) {
+      statePtrs.emplace_back(asCudmState(state));
+    }
+    auto batchedState = cudaq::CuDensityMatState::createBatchedState(
+        cudaq::dynamics::Context::getCurrentContext()->getHandle(), statePtrs,
+        modeExtents, requireDensityMatrix);
+    return cudaq::state(batchedState.release());
+  });
 
   m.def("getBatchSize", [](cudaq::state &state) {
     auto &cudmSimState = *asCudmState(state);

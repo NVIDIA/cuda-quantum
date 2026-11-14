@@ -16,9 +16,9 @@ dispatch mode for a fully GPU-free decode loop.
 
 It serves two kinds of consumers:
 
-- **Direct realtime dispatch**: wired to a `libcudaq-realtime` dispatcher (e.g.
-  `hsb_bridge_cpu` with `CUDAQ_DISPATCH_HOST_CALL`), as a drop-in CPU
-  replacement for the GPU HSB transport.
+- **Direct realtime dispatch**: wired to a `libcudaq-realtime` dispatcher using
+  `CUDAQ_DISPATCH_HOST_CALL`, as a drop-in CPU replacement for the GPU HSB
+  transport.
 - **Compiler-lowered `device_call`**: it is the transport behind the
   [`cpu_roce` device-call channel](device_call.md), so a quantum kernel's
   `cudaq::device_call` -- lowered by `nvq++` to the realtime RPC ABI -- can be
@@ -93,9 +93,9 @@ real FPGA RDMA-Writes syndromes and receives Sends. The
 [`cpu_roce` device-call channel](device_call.md) is built on exactly this
 pattern.
 
-## Testing (`hsb_bridge_cpu`)
+## Testing
 
-`hsb_bridge_cpu` (`realtime/unittests/cpu_transport/`) is a GPU-less bridge that
+`roce_app --cpu` (`realtime/validation/`) is a GPU-less bridge that
 wires `CpuRoceTransceiver` to a `CUDAQ_DISPATCH_HOST_CALL` dispatcher -- the
 CPU analogue of the GPU HSB bridge. `hsb_test_cpu.sh` orchestrates it against
 either the HSB FPGA emulator (`--emulate`) or a **real FPGA containing the HSB

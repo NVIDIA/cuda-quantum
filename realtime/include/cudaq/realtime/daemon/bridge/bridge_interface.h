@@ -34,9 +34,11 @@ typedef enum {
 
 } cudaq_realtime_transport_provider_t;
 
-/// Transport shapes a provider may serve.  A provider answers
-/// `get_transport_context` for the one it is configured for and refuses the
-/// other; see cudaq_bridge_get_transport_context for that contract.
+/// Transport shapes a provider may serve.  Deprecated together with
+/// cudaq_bridge_get_transport_context: the ring shape is served by
+/// cudaq_bridge_get_ring_buffer, the unified shapes by
+/// cudaq_bridge_get_cpu_dataplane / cudaq_bridge_get_gpu_dataplane.  A
+/// provider serves the one shape it is configured for and refuses the other.
 typedef enum {
   RING_BUFFER = 0, /// Rings the consumer polls, filled by the transport's own
                    /// RX/TX path (threads or kernels)
@@ -168,14 +170,24 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
 /// @brief Destroy the transport bridge and release all associated resources.
 cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge);
 
-/// @brief Retrieve the transport context for the given bridge: a
-/// `cudaq_ringbuffer_t` for RING_BUFFER, a `cudaq_unified_dispatch_ctx_t` for
-/// UNIFIED.
+/// @brief Deprecated: retrieve the transport context for the given bridge, a
+/// `cudaq_ringbuffer_t` for RING_BUFFER or a `cudaq_unified_dispatch_ctx_t`
+/// for UNIFIED, through one `void *out_context`.
 ///
-/// Applications wiring a dispatcher should call `cudaq_dispatcher_set_bridge`
-/// rather than this; asking for UNIFIED directly is deprecated, since which
-/// data plane serves a unified dispatcher is the dispatcher's business.
-cudaq_status_t cudaq_bridge_get_transport_context(
+/// RING_BUFFER is served by cudaq_bridge_get_ring_buffer; this call forwards
+/// to it.  UNIFIED asks the provider for a launch override, a loop of its own
+/// that replaces the dispatcher's; a provider whose unified loop runs on the
+/// host answers CUDAQ_OK with a NULL launch_fn instead, and a provider without
+/// the `get_transport_context` entry yields CUDAQ_ERR_UNSUPPORTED.  Replacing
+/// the dispatcher's loop is not a transport concern, and this query will be
+/// removed with the entry once no provider answers it; an application that
+/// wants its own loop installs it with cudaq_dispatcher_set_unified_launch.
+/// Applications wiring a dispatcher should call `cudaq_dispatcher_set_bridge`,
+/// which makes the right calls itself.
+__attribute__((deprecated(
+    "use cudaq_bridge_get_ring_buffer for the ring shape; the UNIFIED launch "
+    "override is going away"))) cudaq_status_t
+cudaq_bridge_get_transport_context(
     cudaq_realtime_bridge_handle_t bridge,
     cudaq_realtime_transport_context_t context_type, void *out_context);
 
@@ -215,6 +227,18 @@ cudaq_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t bridge,
                                uint32_t *out_num_slots,
                                uint32_t *out_slot_size);
 
+/// @brief Retrieve the provider's ring buffer: the RX/TX rings the transport's
+/// own RX/TX path fills and drains, which a ring-shape dispatcher polls.  The
+/// device views are set when the rings are GPU-accessible, the host views when
+/// a CPU thread can read them; a provider with plain host rings sets both to
+/// the same addresses.  Returns CUDAQ_ERR_UNSUPPORTED when the provider has no
+/// rings to hand out, or was started in its unified shape, where nothing sets
+/// the ring flags.  Applications wiring a dispatcher should call
+/// `cudaq_dispatcher_set_bridge`, which makes this call itself.
+cudaq_status_t
+cudaq_bridge_get_ring_buffer(cudaq_realtime_bridge_handle_t bridge,
+                             cudaq_ringbuffer_t *out_ring);
+
 /// @brief Hand the provider the same function table the dispatcher will run
 /// (the `cudaq_function_table_t` passed to
 /// `cudaq_dispatcher_set_function_table`). Some providers may need the table
@@ -241,7 +265,7 @@ cudaq_bridge_get_gpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
 /// so a stale plug-in is identified instead of failing in obscure ways.  A
 /// provider sets entries it does not implement to NULL; the corresponding API
 /// calls then return CUDAQ_ERR_UNSUPPORTED.
-#define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 4
+#define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 5
 
 /// @brief Interface struct for transport layer providers.  Each provider must
 /// implement this interface and provide a `getter` function
@@ -252,6 +276,15 @@ typedef struct {
   int version;
   cudaq_status_t (*create)(cudaq_realtime_bridge_handle_t *, int, char **);
   cudaq_status_t (*destroy)(cudaq_realtime_bridge_handle_t);
+  /// Deprecated since version 5; may be NULL.  A provider that serves its
+  /// rings through `get_ring_buffer` below leaves this NULL unless it still
+  /// answers the UNIFIED query: a launch override that replaces the
+  /// dispatcher's unified loop, or CUDAQ_OK with a NULL launch_fn meaning its
+  /// unified loop runs on the host (what the UDP and CPU RoCE providers
+  /// answer).  Both answers go away with this entry once no provider needs
+  /// them.  A provider written before version 5 may keep answering
+  /// RING_BUFFER here instead of filling `get_ring_buffer`:
+  /// cudaq_bridge_get_ring_buffer falls back to this entry.
   cudaq_status_t (*get_transport_context)(cudaq_realtime_bridge_handle_t,
                                           cudaq_realtime_transport_context_t,
                                           void *);
@@ -299,6 +332,17 @@ typedef struct {
   /// Fills *out with the GPU data plane; see cudaq_bridge_get_gpu_dataplane.
   cudaq_status_t (*get_gpu_dataplane)(cudaq_realtime_bridge_handle_t,
                                       cudaq_gpu_dataplane_t *out);
+
+  //--------------------------------------------------------------------------
+  // Added in version 5.  NULL when the provider has no rings to hand out, or
+  // still answers RING_BUFFER through `get_transport_context` (the API
+  // wrapper then falls back to that entry, else returns
+  // CUDAQ_ERR_UNSUPPORTED).
+  //--------------------------------------------------------------------------
+
+  /// Fills *out with the RX/TX rings; see cudaq_bridge_get_ring_buffer.
+  cudaq_status_t (*get_ring_buffer)(cudaq_realtime_bridge_handle_t,
+                                    cudaq_ringbuffer_t *out);
 
 } cudaq_realtime_bridge_interface_t;
 

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include <complex>
+#include <cstdint>
 #include <nanobind/ndarray.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/complex.h>
@@ -34,7 +35,7 @@ void bindPauli(nanobind::module_ mod) {
 
 void bindOperatorHandlers(nanobind::module_ &mod) {
   using matrix_callback = std::function<complex_matrix(
-      const std::vector<int64_t> &, const parameter_map &)>;
+      const std::vector<std::int64_t> &, const parameter_map &)>;
 
   nanobind::class_<matrix_handler>(mod, "MatrixOperatorElement")
       .def_prop_ro(
@@ -103,7 +104,8 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
       // tools for custom operators
       .def_static(
           "_define",
-          [](std::string operator_id, std::vector<int64_t> expected_dimensions,
+          [](std::string operator_id,
+             std::vector<std::int64_t> expected_dimensions,
              const matrix_callback &func, bool overwrite,
              nanobind::kwargs kwargs) {
             // we need to make sure the python function that is stored in

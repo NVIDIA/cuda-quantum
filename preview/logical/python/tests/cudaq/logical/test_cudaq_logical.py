@@ -10,12 +10,23 @@ from __future__ import annotations
 
 import json
 from hashlib import sha256
+from importlib import import_module
 import runpy
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[4]
+
+
+@pytest.mark.parametrize("module_name", [
+    "cudaq.logical.qec.surface",
+    "cudaq.logical.qec.qldpc",
+])
+def test_qec_exports_resolve(module_name):
+    module = import_module(module_name)
+    for name in module.__all__:
+        assert hasattr(module, name), f"{module_name} exports undefined {name}"
 
 
 def test_device_timing_units_and_operating_point():

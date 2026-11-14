@@ -28,6 +28,10 @@ and host API are available:
 
 - [Message protocol](docs/cudaq_realtime_message_protocol.md)
 
+- [Running validation](docs/user_guide.md#setup)
+
+- [Validation architecture](docs/validation_workflow.md)
+
 - [Realtime host API](docs/cudaq_realtime_host_api.md)
 
 ## Feedback

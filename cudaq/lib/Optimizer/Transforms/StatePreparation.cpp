@@ -14,6 +14,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+#include <cstdint>
 #include <span>
 
 namespace cudaq::opt {
@@ -366,7 +367,7 @@ public:
     if (vec.empty())
       return init.emitOpError("Invalid initialization data for state "
                               "preparation: empty array.");
-    const int64_t vecSize = vec.size();
+    const std::int64_t vecSize = vec.size();
     // Check that the size of the vector is a power of two.
     if ((vecSize & (vecSize - 1)) != 0)
       return init.emitOpError(

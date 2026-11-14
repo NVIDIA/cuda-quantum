@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <numeric>
 
 using cudaq::cusv::compactMatrixTask;
@@ -63,6 +64,40 @@ TEST(CuStateVecBatchTester, CompactsStructuredMatrixTasks) {
   compactMatrixTask(dense);
   EXPECT_EQ(dense.matrixType, CUSTATEVEC_EX_MATRIX_DENSE);
   EXPECT_EQ(dense.matrix, original);
+}
+
+// Compacts two-qubit diagonal and anti-diagonal matrices in both layouts into
+// their own storage, with distinct entries so a value overwritten before it is
+// read would be caught.
+TEST(CuStateVecBatchTester, CompactsTwoQubitMatricesInPlace) {
+  using Complex = std::complex<double>;
+  const std::vector<Complex> expected{{1.0, 1.0}, 2.0, {3.0, -1.0}, 4.0};
+  for (const auto layout :
+       {CUSTATEVEC_MATRIX_LAYOUT_ROW, CUSTATEVEC_MATRIX_LAYOUT_COL}) {
+    for (const bool diagonal : {true, false}) {
+      MatrixTask<double> task;
+      task.targets = {0, 1};
+      task.layout = layout;
+      task.matrix.assign(16, 0.0);
+      for (std::size_t i = 0; i < 4; ++i) {
+        // Anti-diagonal entry i is (i, 3 - i) in row layout and (3 - i, i) in
+        // column layout.
+        std::size_t row = i;
+        std::size_t column = diagonal ? i : 3 - i;
+        if (!diagonal && layout == CUSTATEVEC_MATRIX_LAYOUT_COL)
+          std::swap(row, column);
+        task.matrix[layout == CUSTATEVEC_MATRIX_LAYOUT_ROW ? row * 4 + column
+                                                           : column * 4 + row] =
+            expected[i];
+      }
+      const Complex *storage = task.matrix.data();
+      compactMatrixTask(task);
+      EXPECT_EQ(task.matrixType, diagonal ? CUSTATEVEC_EX_MATRIX_DIAGONAL
+                                          : CUSTATEVEC_EX_MATRIX_ANTI_DIAGONAL);
+      EXPECT_EQ(task.matrix, expected);
+      EXPECT_EQ(task.matrix.data(), storage);
+    }
+  }
 }
 
 // Resizes the active batch within its original capacity and verifies operations
@@ -265,11 +300,11 @@ TYPED_TEST(CuStateVecBatchExpectationTester,
   using Scalar = TypeParam;
   using Complex = std::complex<Scalar>;
   constexpr std::size_t batchSize = 4;
-  constexpr int32_t numWires = 9;
+  constexpr std::int32_t numWires = 9;
   CuStateVecBatch<Scalar> batch(numWires, batchSize, false);
   const Scalar scale = std::sqrt(Scalar{0.5});
 
-  const auto task = [](std::vector<Complex> matrix, int32_t target) {
+  const auto task = [](std::vector<Complex> matrix, std::int32_t target) {
     MatrixTask<Scalar> result;
     result.matrix = std::move(matrix);
     result.targets = {target};
@@ -287,7 +322,7 @@ TYPED_TEST(CuStateVecBatchExpectationTester,
   batch.apply({identityOnOne, identityOnOne, hOnOne, hOnOne});
 
   std::vector<custatevecPauli_t> widePaulis(numWires, CUSTATEVEC_PAULI_Z);
-  std::vector<int32_t> wideTargets(numWires);
+  std::vector<std::int32_t> wideTargets(numWires);
   std::iota(wideTargets.begin(), wideTargets.end(), 0);
   const std::vector<std::vector<custatevecPauli_t>> paulis{
       {},
@@ -297,7 +332,7 @@ TYPED_TEST(CuStateVecBatchExpectationTester,
       {CUSTATEVEC_PAULI_X, CUSTATEVEC_PAULI_X},
       {CUSTATEVEC_PAULI_Y, CUSTATEVEC_PAULI_X},
       widePaulis};
-  const std::vector<std::vector<int32_t>> targets{
+  const std::vector<std::vector<std::int32_t>> targets{
       {}, {0}, {0}, {0}, {0, 1}, {0, 1}, wideTargets};
 
   const auto values = batch.expectationPauli(paulis, targets);

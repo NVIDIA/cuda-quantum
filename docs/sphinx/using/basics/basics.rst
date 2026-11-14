@@ -8,4 +8,5 @@ CUDA-Q Basics
       What is a CUDA-Q Kernel? <kernel_intro.rst>
       Building your first CUDA-Q Program <build_kernel.rst>
       Running your first CUDA-Q Program <run_kernel.rst>
+      Defining targets and customizing compilation <compile_kernel.rst>
       Troubleshooting <troubleshooting.rst>

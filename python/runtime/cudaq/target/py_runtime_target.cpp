@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "py_runtime_target.h"
+#include "CompileTargetCaster.h"
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
 #include "runtime/cudaq/platform/PyRuntimeEndpoint.h"
@@ -14,6 +15,7 @@
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <nanobind/nanobind.h>
@@ -71,7 +73,7 @@ parseTargetKwArgs(const nanobind::kwargs &extraConfig) {
     else if (nanobind::isinstance<nanobind::str>(value))
       strValue = nanobind::cast<std::string>(value);
     else if (nanobind::isinstance<nanobind::int_>(value))
-      strValue = std::to_string(nanobind::cast<int64_t>(value));
+      strValue = std::to_string(nanobind::cast<std::int64_t>(value));
     else
       throw std::runtime_error(
           "QPU kwargs config value must be cast-able to a string.");

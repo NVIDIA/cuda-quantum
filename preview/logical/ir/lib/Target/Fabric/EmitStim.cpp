@@ -38,6 +38,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <utility>
@@ -92,7 +93,7 @@ parseParityMatrix(ArrayAttr matrix,
   for (auto rowAttr : matrix) {
     if (auto row = dyn_cast<DenseI64ArrayAttr>(rowAttr)) {
       llvm::SmallVector<unsigned, 8> v;
-      for (int64_t j : row.asArrayRef())
+      for (std::int64_t j : row.asArrayRef())
         v.push_back(static_cast<unsigned>(j));
       out.push_back(std::move(v));
     }
@@ -111,7 +112,7 @@ static bool hasRepresentedStructure(Operation *operation, StringRef name) {
 }
 
 static bool hasUnexpectedCanonicalBasis(Operation *operation, StringRef name,
-                                        ArrayRef<int64_t> expectedShape,
+                                        ArrayRef<std::int64_t> expectedShape,
                                         ArrayRef<bool> expectedValues) {
   Attribute value = operation->getAttr(name);
   if (!value)
@@ -160,8 +161,8 @@ static llvm::StringMap<CodeInfo> buildCodeRegistry(ModuleOp module) {
     if (auto gzAttr = codeOp.getGz())
       parseParityMatrix(*gzAttr, info.gz);
 
-    int64_t n = codeOp.getN().value_or(info.dataQubits);
-    int64_t r = codeOp.getR().value_or(0);
+    std::int64_t n = codeOp.getN().value_or(info.dataQubits);
+    std::int64_t r = codeOp.getR().value_or(0);
     static constexpr StringLiteral nontrivialStructureAttrs[] = {
         "hx",
         "hz",
@@ -177,10 +178,10 @@ static llvm::StringMap<CodeInfo> buildCodeRegistry(ModuleOp module) {
         llvm::any_of(nontrivialStructureAttrs, [&](StringRef name) {
           return hasRepresentedStructure(codeOp.getOperation(), name);
         });
-    static constexpr int64_t logicalShape[] = {1, 2};
+    static constexpr std::int64_t logicalShape[] = {1, 2};
     static constexpr bool logicalX[] = {true, false};
     static constexpr bool logicalZ[] = {false, true};
-    static constexpr int64_t cliffordShape[] = {2, 2};
+    static constexpr std::int64_t cliffordShape[] = {2, 2};
     static constexpr bool identityClifford[] = {true, false, false, true};
     bool hasNonidentityCanonicalBasis =
         hasUnexpectedCanonicalBasis(codeOp.getOperation(), "logical_x_basis",
@@ -856,14 +857,14 @@ private:
   /// absolute qubit indices.
   llvm::SmallVector<unsigned, 16>
   resolvePartition(Value patch, Partition part,
-                   std::optional<llvm::ArrayRef<int64_t>> indices) {
+                   std::optional<llvm::ArrayRef<std::int64_t>> indices) {
     llvm::SmallVector<unsigned, 16> out;
     const PatchInfo *pi = lookupPatch(patch);
     if (!pi)
       return out;
     auto [lo, hi] = pi->partitionRange(part);
     if (indices) {
-      for (int64_t i : *indices) {
+      for (std::int64_t i : *indices) {
         unsigned abs = static_cast<unsigned>(lo + i);
         if (abs < hi)
           out.push_back(abs);
@@ -931,7 +932,7 @@ private:
     propagatePatch(op.getPatch(), op.getResult());
     if (!requirePatch(op.getOperation(), op.getPatch(), stimName))
       return;
-    std::optional<llvm::ArrayRef<int64_t>> indices;
+    std::optional<llvm::ArrayRef<std::int64_t>> indices;
     if (auto idx = op.getIndices())
       indices = *idx;
     auto qubits = resolvePartition(op.getPatch(), op.getPartition(), indices);
@@ -963,7 +964,7 @@ private:
     propagatePatch(op.getPatch(), op.getResult());
     if (!requirePatch(op.getOperation(), op.getPatch(), "reset"))
       return;
-    std::optional<llvm::ArrayRef<int64_t>> indices;
+    std::optional<llvm::ArrayRef<std::int64_t>> indices;
     if (auto selected = op.getIndices())
       indices = *selected;
     auto qubits = resolvePartition(op.getPatch(), op.getPartition(), indices);
@@ -1238,7 +1239,8 @@ private:
     // Build target-index mapping: tLo + perm[i] if perm given, else tLo + i.
     llvm::SmallVector<unsigned, 16> tIdx(n);
     if (auto permAttr = op.getPerm()) {
-      // getPerm() returns ArrayRef<int64_t> directly for DenseI64ArrayAttr.
+      // getPerm() returns ArrayRef<std::int64_t> directly for
+      // DenseI64ArrayAttr.
       auto permArr = *permAttr;
       if (permArr.size() != n) {
         op.emitError("fabric-to-stim: transversal_cx permutation width ")
@@ -1246,9 +1248,9 @@ private:
         hadError = true;
         return;
       }
-      llvm::SmallDenseSet<int64_t, 16> seen;
+      llvm::SmallDenseSet<std::int64_t, 16> seen;
       for (unsigned i = 0; i < n; ++i) {
-        int64_t raw = permArr[i];
+        std::int64_t raw = permArr[i];
         if (raw < 0 || std::cmp_greater_equal(raw, n) ||
             !seen.insert(raw).second) {
           op.emitError("fabric-to-stim: transversal_cx perm must be a "
@@ -1341,7 +1343,7 @@ private:
     propagatePatch(op.getPatch(), op.getResult());
     if (!requirePatch(op.getOperation(), op.getPatch(), "init_basis"))
       return;
-    std::optional<llvm::ArrayRef<int64_t>> indices;
+    std::optional<llvm::ArrayRef<std::int64_t>> indices;
     if (auto selected = op.getIndices())
       indices = *selected;
     auto qubits = resolvePartition(op.getPatch(), op.getPartition(), indices);
@@ -1368,7 +1370,7 @@ private:
         requirePatch(op.getOperation(), op.getPatch(), "measurement");
     if (!pi)
       return;
-    std::optional<llvm::ArrayRef<int64_t>> indices;
+    std::optional<llvm::ArrayRef<std::int64_t>> indices;
     if (auto idx = op.getIndices())
       indices = *idx;
     auto qubits = resolvePartition(op.getPatch(), op.getPartition(), indices);
@@ -1404,7 +1406,7 @@ private:
         requirePatch(op.getOperation(), op.getPatch(), "measurement");
     if (!pi)
       return;
-    std::optional<llvm::ArrayRef<int64_t>> indices;
+    std::optional<llvm::ArrayRef<std::int64_t>> indices;
     if (auto idx = op.getIndices())
       indices = *idx;
     auto qubits = resolvePartition(op.getPatch(), op.getPartition(), indices);
@@ -1440,7 +1442,7 @@ private:
     if (!pi)
       return;
     auto indices = op.getIndices();
-    std::optional<llvm::ArrayRef<int64_t>> selected = indices;
+    std::optional<llvm::ArrayRef<std::int64_t>> selected = indices;
     auto qubits = resolvePartition(op.getPatch(), op.getPartition(), selected);
     StringRef paulis = op.getPaulis();
     bool negated = paulis.consume_front("-");
@@ -1833,7 +1835,7 @@ private:
   }
 
   void emitRepeat(qlx::cflow::RepeatOp op) {
-    int64_t count = op.getCount();
+    std::int64_t count = op.getCount();
     auto &body = op.getBody().front();
     auto inits = op.getInits();
 
@@ -1849,7 +1851,7 @@ private:
 
     // Unroll.
     SmallVector<Value> lastYielded(inits.begin(), inits.end());
-    for (int64_t iter = 0; iter < count; ++iter) {
+    for (std::int64_t iter = 0; iter < count; ++iter) {
       seed(lastYielded);
       SmallVector<Value> thisYielded;
       if (projection)

@@ -617,4 +617,6 @@ Examples
 ^^^^^^^^^^^^^
 The :ref:`Dynamics Examples <dynamics_examples>` section of the docs contains a number of excellent dynamics examples demonstrating how to simulate basic physics models, specific qubit modalities, and utilize multi-GPU multi-Node capabilities.
 
+Benchmarks for measuring the performance of the ``dynamics`` target on one or more GPUs, using a Heisenberg spin chain with dissipation and a Jaynes-Cummings cavity QED model, are described in the `benchmarks README <https://github.com/NVIDIA/cuda-quantum/blob/main/docs/sphinx/examples/python/dynamics/benchmarks/README.md>`__.
+
 

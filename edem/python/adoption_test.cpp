@@ -15,6 +15,7 @@
 #include "cudaq/edem/python.h"
 
 #include <array>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
@@ -32,19 +33,21 @@ struct Resource {
 };
 struct Allocation {
   void *data = nullptr;
-  uint64_t bytes = 0;
+  std::uint64_t bytes = 0;
   bool result = false;
 };
 struct Tracker {
-  uint64_t attempts = 0, allocations = 0, deallocations = 0;
-  uint64_t result_allocations = 0, result_deallocations = 0, live_results = 0;
-  uint64_t invalid_frees = 0, capsule_destructions = 0, unconsumed_releases = 0;
-  uint64_t native_moves = 0, fail_at = 0;
+  std::uint64_t attempts = 0, allocations = 0, deallocations = 0;
+  std::uint64_t result_allocations = 0, result_deallocations = 0,
+                live_results = 0;
+  std::uint64_t invalid_frees = 0, capsule_destructions = 0,
+                unconsumed_releases = 0;
+  std::uint64_t native_moves = 0, fail_at = 0;
   Resource scratch{this, false}, result{this, true};
   std::array<Allocation, 64> ledger{};
 };
 
-void *allocate(void *context, uint64_t bytes, uint32_t alignment) {
+void *allocate(void *context, std::uint64_t bytes, std::uint32_t alignment) {
   auto &resource = *static_cast<Resource *>(context);
   auto &tracker = *resource.tracker;
   ++tracker.attempts;
@@ -67,7 +70,8 @@ void *allocate(void *context, uint64_t bytes, uint32_t alignment) {
   }
   return nullptr;
 }
-void deallocate(void *context, void *data, uint64_t bytes, uint32_t alignment) {
+void deallocate(void *context, void *data, std::uint64_t bytes,
+                std::uint32_t alignment) {
   auto &resource = *static_cast<Resource *>(context);
   auto &tracker = *resource.tracker;
   for (auto &entry : tracker.ledger) {
@@ -119,14 +123,15 @@ MovingOwner throughReturn(MovingOwner value) { return value; }
 cudaq_edem_status constructRound(const cudaq_gf2_memory *memory,
                                  cudaq::edem::PackedEDEM &owner) {
   const cudaq_edem_code_presentation codes[] = {{"repetition-3", 12, 2, 2, 1}};
-  const uint32_t boundary[] = {0}, sizes[] = {2}, ids[] = {0, 1};
+  const std::uint32_t boundary[] = {0}, sizes[] = {2}, ids[] = {0, 1};
   const double probabilities[] = {0.01, 0.02};
   const cudaq_edem_fault_group group = {CUDAQ_EDEM_INDEPENDENT, 2, ids,
                                         probabilities};
   const cudaq_edem_fault_distribution fault = {2, 1, &group};
-  const uint64_t identity_offsets[] = {0, 1, 2},
-                 measurement_offsets[] = {0, 1, 1}, data_offsets[] = {0, 0, 1};
-  const uint32_t identity_rows[] = {0, 1}, row[] = {0};
+  const std::uint64_t identity_offsets[] = {0, 1, 2},
+                      measurement_offsets[] = {0, 1, 1},
+                      data_offsets[] = {0, 0, 1};
+  const std::uint32_t identity_rows[] = {0, 1}, row[] = {0};
   const cudaq_gf2_csc_view identity = {2, 2, 2, identity_offsets,
                                        identity_rows};
   const cudaq_gf2_csc_view measurement = {2, 2, 1, measurement_offsets, row};

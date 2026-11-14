@@ -92,13 +92,13 @@ struct BridgeConfig {
   // IB / network
   std::string device = "rocep1s0f0"; ///< IB device name
   std::string peer_ip = "10.0.0.2";  ///< FPGA/emulator IP
-  uint32_t remote_qp = 0x2;          ///< Remote QP number (FPGA default: 2)
+  std::uint32_t remote_qp = 0x2;     ///< Remote QP number (FPGA default: 2)
   int gpu_id = 0;                    ///< GPU device ID
   int timeout_sec = 60;              ///< Runtime timeout in seconds
 
   // Ring buffer sizing
-  uint32_t payload_size = 8; ///< RPC payload size in bytes
-  size_t frame_size = 0;     ///< Computed: `sizeof(RPCHeader) + payload_size`
+  std::uint32_t payload_size = 8; ///< RPC payload size in bytes
+  size_t frame_size = 0; ///< Computed: `sizeof(RPCHeader) + payload_size`
   size_t page_size =
       384; ///< Ring buffer slot size (>= frame_size, 128-aligned)
   unsigned num_pages = 64; ///< Number of ring buffer slots
@@ -126,8 +126,8 @@ struct BridgeConfig {
   /// One block of `threads_per_block` threads (default 32) is the block every
   /// DEVICE_CALL handler runs on, in unified mode as in 3-kernel mode.
   cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_REGULAR;
-  uint32_t num_blocks = 1;
-  uint32_t threads_per_block = 32;
+  std::uint32_t num_blocks = 1;
+  std::uint32_t threads_per_block = 32;
 
   /// @brief Pointer to the dispatch kernel launch function.
   /// Default (nullptr): the dispatcher's own, for `kernel_type`.
@@ -220,7 +220,7 @@ inline int bridge_run(BridgeConfig &config) {
   // which only the bridge interface hands over.
   if (config.unified) {
     std::cerr << "ERROR: bridge_run does not drive the unified kernel; use "
-                 "gpu_roce_app --unified"
+                 "roce_app --gpu --unified"
               << std::endl;
     return 1;
   }
@@ -285,9 +285,9 @@ inline int bridge_run(BridgeConfig &config) {
 
   std::cout << "  QP connected to remote peer" << std::endl;
 
-  uint32_t our_qp = gpu_roce_get_qp_number(transceiver);
-  uint32_t our_rkey = gpu_roce_get_rkey(transceiver);
-  uint64_t our_buffer = gpu_roce_get_buffer_addr(transceiver);
+  std::uint32_t our_qp = gpu_roce_get_qp_number(transceiver);
+  std::uint32_t our_rkey = gpu_roce_get_rkey(transceiver);
+  std::uint64_t our_buffer = gpu_roce_get_buffer_addr(transceiver);
 
   std::cout << "  QP Number: 0x" << std::hex << our_qp << std::dec << std::endl;
   std::cout << "  RKey: " << our_rkey << std::endl;
@@ -295,12 +295,12 @@ inline int bridge_run(BridgeConfig &config) {
             << std::endl;
 
   // Ring buffer pointers
-  uint8_t *rx_ring_data =
-      reinterpret_cast<uint8_t *>(gpu_roce_get_rx_ring_data_addr(transceiver));
-  uint64_t *rx_ring_flag = gpu_roce_get_rx_ring_flag_addr(transceiver);
-  uint8_t *tx_ring_data =
-      reinterpret_cast<uint8_t *>(gpu_roce_get_tx_ring_data_addr(transceiver));
-  uint64_t *tx_ring_flag = gpu_roce_get_tx_ring_flag_addr(transceiver);
+  std::uint8_t *rx_ring_data = reinterpret_cast<std::uint8_t *>(
+      gpu_roce_get_rx_ring_data_addr(transceiver));
+  std::uint64_t *rx_ring_flag = gpu_roce_get_rx_ring_flag_addr(transceiver);
+  std::uint8_t *tx_ring_data = reinterpret_cast<std::uint8_t *>(
+      gpu_roce_get_tx_ring_data_addr(transceiver));
+  std::uint64_t *tx_ring_flag = gpu_roce_get_tx_ring_flag_addr(transceiver);
 
   if (!rx_ring_data || !rx_ring_flag || !tx_ring_data || !tx_ring_flag) {
     std::cerr << "ERROR: Failed to get ring buffer pointers" << std::endl;
@@ -320,7 +320,7 @@ inline int bridge_run(BridgeConfig &config) {
   // Dispatch kernel resources (unused in forward mode)
   volatile int *shutdown_flag = nullptr;
   volatile int *d_shutdown_flag = nullptr;
-  uint64_t *d_stats = nullptr;
+  std::uint64_t *d_stats = nullptr;
   cudaq_dispatch_manager_t *manager = nullptr;
   cudaq_dispatcher_t *dispatcher = nullptr;
 
@@ -354,8 +354,8 @@ inline int bridge_run(BridgeConfig &config) {
     BRIDGE_CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag), &zero,
                                  sizeof(int), cudaMemcpyHostToDevice));
 
-    BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
-    BRIDGE_CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(uint64_t)));
+    BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(std::uint64_t)));
+    BRIDGE_CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(std::uint64_t)));
 
     if (cudaq_dispatch_manager_create(&manager) != CUDAQ_OK) {
       std::cerr << "ERROR: Failed to create dispatch manager" << std::endl;
@@ -370,8 +370,8 @@ inline int bridge_run(BridgeConfig &config) {
     dconfig.kernel_type = config.kernel_type;
     dconfig.num_blocks = config.num_blocks;
     dconfig.threads_per_block = config.threads_per_block;
-    dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-    dconfig.slot_size = static_cast<uint32_t>(config.page_size);
+    dconfig.num_slots = static_cast<std::uint32_t>(config.num_pages);
+    dconfig.slot_size = static_cast<std::uint32_t>(config.page_size);
 
     if (cudaq_dispatcher_create(manager, &dconfig, &dispatcher) != CUDAQ_OK) {
       std::cerr << "ERROR: Failed to create dispatcher" << std::endl;
@@ -379,8 +379,10 @@ inline int bridge_run(BridgeConfig &config) {
     }
 
     cudaq_ringbuffer_t ringbuffer{};
-    ringbuffer.rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
-    ringbuffer.tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
+    ringbuffer.rx_flags =
+        reinterpret_cast<volatile std::uint64_t *>(rx_ring_flag);
+    ringbuffer.tx_flags =
+        reinterpret_cast<volatile std::uint64_t *>(tx_ring_flag);
     ringbuffer.rx_data = rx_ring_data;
     ringbuffer.tx_data = tx_ring_data;
     ringbuffer.rx_stride_sz = config.page_size;
@@ -450,7 +452,7 @@ inline int bridge_run(BridgeConfig &config) {
       cudaStreamCreateWithFlags(&diag_stream, cudaStreamNonBlocking));
 
   auto start_time = std::chrono::steady_clock::now();
-  uint64_t last_processed = 0;
+  std::uint64_t last_processed = 0;
 
   while (!g_shutdown) {
     auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
@@ -464,8 +466,8 @@ inline int bridge_run(BridgeConfig &config) {
 
     // Progress report every 5 seconds
     if (!config.forward && d_stats && elapsed > 0 && elapsed % 5 == 0) {
-      uint64_t processed = 0;
-      cudaMemcpyAsync(&processed, d_stats, sizeof(uint64_t),
+      std::uint64_t processed = 0;
+      cudaMemcpyAsync(&processed, d_stats, sizeof(std::uint64_t),
                       cudaMemcpyDeviceToHost, diag_stream);
       cudaStreamSynchronize(diag_stream);
       if (processed != last_processed) {
@@ -493,7 +495,7 @@ inline int bridge_run(BridgeConfig &config) {
     __sync_synchronize();
     cudaq_dispatcher_stop(dispatcher);
 
-    uint64_t total_processed = 0;
+    std::uint64_t total_processed = 0;
     cudaq_dispatcher_get_processed(dispatcher, &total_processed);
     std::cout << "  Total packets processed (dispatch RX): " << total_processed
               << std::endl;
