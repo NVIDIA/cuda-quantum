@@ -14,10 +14,19 @@
 
 namespace cudaq {
 
+/// OpenQASM 2.0 output conventions.
+enum class OpenQASMProfile {
+  /// Include qelib1.inc and use cx/ccx gate names.
+  Standard,
+  /// Omit the include and use Braket's cnot/ccnot and si/ti gate names.
+  Braket
+};
+
 /// Translates the given operation to OpenQASM code. The operation, `op`,  or
 /// operations in its region must be in Quake memory reference form. Also,
 /// vectors of qubit references cannot be of unknown size.
-mlir::LogicalResult translateToOpenQASM(mlir::Operation *op,
-                                        llvm::raw_ostream &os);
+mlir::LogicalResult
+translateToOpenQASM(mlir::Operation *op, llvm::raw_ostream &os,
+                    OpenQASMProfile profile = OpenQASMProfile::Standard);
 
 } // namespace cudaq
