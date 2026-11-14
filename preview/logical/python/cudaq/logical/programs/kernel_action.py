@@ -218,7 +218,9 @@ def materialize_kernel_action(definition: ProgramDefinition):
     from ..compiler.build import Build, EvidenceRecord
     from ..compiler.context import CompilationContext
     from ..compiler.pipeline import pipelines
-    from ..compiler.quake import import_cudaq
+    import cudaq
+    from ..targets import estimator
+    from ..compiler.quake import import_quake
     from cudaq.mlir.dialects.qlx import ActionBodyOp, ReturnOp
     from .definition import DefinitionHandle
 
@@ -226,7 +228,8 @@ def materialize_kernel_action(definition: ProgramDefinition):
     if kernel is None:
         raise TypeError("definition is not backed by a CUDA-Q action kernel")
     arity = len(definition.signature.parameters)
-    imported = import_cudaq(_action_wrapper(kernel, arity))
+    compiled = cudaq.compile(_action_wrapper(kernel, arity), target=estimator)
+    imported = import_quake(str(compiled.mlir_module))
     module = imported._fresh_module()
     transaction = CompilationContext(module=module)
     program = transaction.find_symbol(imported.root.symbol, "qlx.program")
