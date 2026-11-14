@@ -21,7 +21,7 @@ from .context import CompilationContext
 from .experiment_bundle import ExperimentBundle, compile_many
 from .pipeline import PassSpec, Pipeline, passes, pipelines
 from .place import place
-from .quake import convert_quake_to_p0, import_cudaq, import_quake
+from .quake import convert_quake_to_p0, import_quake
 from .physical_lower import (
     PhysicalProjectionBuilder,
     PhysicalProjectionEmission,
@@ -133,7 +133,6 @@ __all__ = [
     "pipelines",
     "place",
     "import_quake",
-    "import_cudaq",
     "convert_quake_to_p0",
     "PhysicalProjector",
     "PhysicalProjectionBuilder",

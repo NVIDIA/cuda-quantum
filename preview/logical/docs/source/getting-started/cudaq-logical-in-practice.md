@@ -148,7 +148,9 @@ explicit estimates below share:
 
 ## 4. Compile the kernel for CUDA-Q Logical
 
-`cql.compiler.import_cudaq` compiles the kernel to a logical program, a P0
+`cudaq.compile` compiles the kernel with the target's pipeline without
+launching it. Pass the compiled module directly to
+`cql.compiler.import_quake` to create a logical program, a P0
 [build](concepts.md#definitions-builds-and-compilation). The P0 program returns
 one result per measurement, in the kernel's return order:
 

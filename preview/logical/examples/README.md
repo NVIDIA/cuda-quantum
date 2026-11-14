@@ -5,7 +5,8 @@ with the smallest useful estimate, descends through progressively more of the
 compilation stack, then applies that workflow to larger kernels and a complete
 user-authored target. Most examples author an ordinary `@cudaq.kernel`, select
 a target stack, and call `cudaq.estimate`; compilation details stay inside the
-target.
+target. The Steane workflow also demonstrates compiling a kernel for a target
+with `cudaq.compile` and importing its P0 build.
 
 1. `00_logical_resource_estimate.py` is the minimal introduction: author a
    kernel and read its portable logical resources from `estimate.resources`.

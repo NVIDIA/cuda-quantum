@@ -13,8 +13,12 @@ import hashlib
 import json
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import cudaq.mlir.ir as mlir_ir
+
+if TYPE_CHECKING:
+    from cudaq.runtime.compile import CompiledModule
 
 from .._native import native
 from ..programs.definition import DefinitionHandle
@@ -29,11 +33,13 @@ IMPORT_BASIS_GATES = ("h", "s", "t", "x", "y", "z", "x(1)", "z(1)", "x(2)",
                       "z(2)", "swap", "rx", "ry", "rz", "r1")
 
 
-def _text(source) -> tuple[str, str]:
+def _text(source: str | Path) -> tuple[str, str]:
     if isinstance(source, Path):
         return source.read_text(), str(source)
     if not isinstance(source, str):
-        raise TypeError("Quake source must be MLIR text or a pathlib.Path")
+        raise TypeError(
+            "Quake source must be MLIR text, a pathlib.Path, a live MLIR "
+            "module, or a CUDA-Q CompiledModule")
     # Strings are always source text. Requiring Path for files avoids guessing
     # whether a short MLIR fragment happens to match a filesystem entry.
     return source, "<quake>"
@@ -263,14 +269,18 @@ def _build_from_p0(
 
 
 def import_quake(
-        source,
+        source: str | Path | mlir_ir.Module | CompiledModule,
         *,
         root: str | None = None,
         source_modules: tuple[str, ...] = (),
 ) -> Build:
     """Import ``!quake.wire`` CUDA-Q Quake as a verified P0 ``Build``.
 
-    ``source`` may be Quake MLIR text or a :class:`pathlib.Path`.
+    ``source`` may be Quake MLIR text, a :class:`pathlib.Path`, a live MLIR
+    module, or a CUDA-Q ``CompiledModule`` carrying an MLIR artifact. To import
+    a CUDA-Q kernel, compile it for a Logical target first and pass the result:
+    ``import_quake(cudaq.compile(kernel, target=target))``.
+    Live modules are cloned before conversion, leaving the source unchanged.
     ``root`` selects the source entry before conversion and is required when
     the source contains more than one CUDA-Q entry point. An abbreviated name
     is accepted only when it identifies exactly one source entry.
@@ -280,10 +290,24 @@ def import_quake(
     values; this wrapper performs no Quake normalization or lowering.
     """
 
-    text, origin = _text(source)
+    # Unwrap the compiled artifact without importing the optional execution
+    # frontend. Read the property once: it returns a fresh module clone.
+    compiled_mlir = getattr(source, "mlir_module", source)
+    if compiled_mlir is not source:
+        source = compiled_mlir
+        if source is None:
+            raise ValueError("CompiledModule carries no MLIR artifact")
+
+    if isinstance(source, mlir_ir.Module):
+        # Retain textual provenance without reparsing the caller's live IR.
+        text, origin = str(source), "<quake>"
+        module = _run_quake_to_p0_pass(source, root=root)
+    else:
+        text, origin = _text(source)
+        module = _convert_to_p0(text, root=root)
     source_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
     return _build_from_p0(
-        _convert_to_p0(text, root=root),
+        module,
         root=root,
         origin=origin,
         source_sha256=source_sha256,
@@ -291,43 +315,3 @@ def import_quake(
         assumptions=("preparation:pre-normalized",),
         source_modules=source_modules,
     )
-
-
-def import_cudaq(
-    kernel,
-    *arguments,
-    source_modules: tuple[str, ...] = (),
-    optimization_level: int | None = None,
-) -> Build:
-    """Compile a ``@cudaq.kernel`` for Logical and import it as P0.
-
-    CUDA-Q compiles the kernel with a Logical target's compile target, never
-    with the target installed with ``cudaq.set_target``, and substitutes
-    ``arguments``. :func:`import_quake` then imports the result.
-    ``optimization_level`` defaults to CUDA-Q's default level.
-    """
-
-    from cudaq.kernel.kernel_decorator import isa_kernel_decorator
-    from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-
-    from ..targets import Target
-
-    if not isa_kernel_decorator(kernel):
-        raise TypeError("kernel must be a standard @cudaq.kernel object")
-    # Compile exactly as a launch on a Logical target does, so both paths give
-    # the same counts. Logical's endpoint is local, never emulated, and reads
-    # the MLIR, so no JIT engine is built.
-    processed, module = kernel.prepare_call(*arguments)
-    compiled = cudaq_runtime.compile_module(
-        kernel.uniqName,
-        module,
-        *processed,
-        compile_target=Target._new_compile_target(),
-        is_remote=False,
-        is_emulated=False,
-        supports_jit=False,
-        optimization_level=optimization_level,
-    )
-    return import_quake(str(compiled.mlir_module),
-                        root=kernel.name,
-                        source_modules=source_modules)
