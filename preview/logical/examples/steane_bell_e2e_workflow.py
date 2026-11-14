@@ -157,7 +157,7 @@ target = cql.targets.Target.from_device(
 # Compile the kernel for the target without launching it, and import it as P0.
 # [START_KERNEL_IMPORT]
 module = cudaq.compile(bell_pair, target=target)
-logical = cql.compiler.import_quake(str(module.mlir_module))
+logical = cql.compiler.import_quake(module)
 # [END_KERNEL_IMPORT]
 
 # %%

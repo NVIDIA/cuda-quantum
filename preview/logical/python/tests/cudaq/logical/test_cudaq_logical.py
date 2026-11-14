@@ -28,7 +28,7 @@ def _import_kernel(kernel, *args, optimization_level=None):
                              *args,
                              target=cql.targets.estimator,
                              optimization_level=optimization_level)
-    return cql.compiler.import_quake(str(compiled.mlir_module))
+    return cql.compiler.import_quake(compiled)
 
 
 @pytest.mark.parametrize("module_name", [

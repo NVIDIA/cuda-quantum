@@ -248,7 +248,7 @@ class ProgramBackend(Backend):
             raise ValueError("the CompiledModule carries no MLIR module; "
                              "compile it for a target whose endpoint does not "
                              "consume JIT-compiled code")
-        return import_quake(str(module))
+        return import_quake(module)
 
     def stack_metadata(self):
         entries = [("source", "CUDA-Q / Quake")]

@@ -322,7 +322,7 @@ def test_bell_pair(target):
 def import_kernel(kernel):
     """Compiles a `@cudaq.kernel` for CUDA-Q Logical and imports it as P0."""
     compiled = cudaq.compile(kernel, target=cql.targets.estimator)
-    return cql.compiler.import_quake(str(compiled.mlir_module))
+    return cql.compiler.import_quake(compiled)
 
 
 @cudaq.kernel

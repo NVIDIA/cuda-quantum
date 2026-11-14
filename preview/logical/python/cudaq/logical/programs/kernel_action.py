@@ -229,7 +229,7 @@ def materialize_kernel_action(definition: ProgramDefinition):
         raise TypeError("definition is not backed by a CUDA-Q action kernel")
     arity = len(definition.signature.parameters)
     compiled = cudaq.compile(_action_wrapper(kernel, arity), target=estimator)
-    imported = import_quake(str(compiled.mlir_module))
+    imported = import_quake(compiled)
     module = imported._fresh_module()
     transaction = CompilationContext(module=module)
     program = transaction.find_symbol(imported.root.symbol, "qlx.program")
