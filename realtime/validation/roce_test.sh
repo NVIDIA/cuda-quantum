@@ -78,6 +78,9 @@ NUM_PAGES=128
 CONTROL_PORT=8193
 FORWARD=false
 UNIFIED=false
+DISPATCHER="builtin"
+BLOCKS=0
+BLOCKS_SET=false
 THREADS=32
 # Build parallelism
 JOBS=$(nproc 2>/dev/null || echo 8)
@@ -127,6 +130,8 @@ Run options:
   --payload-size N       Bytes per RPC payload (default: 8)
   --page-size N          Ring buffer slot size in bytes (default: 384)
   --num-pages N          Number of ring buffer slots (default: 128)
+  --dispatcher NAME      Unified GPU dispatcher: builtin or grid (default: builtin)
+  --blocks N             Grid blocks; 0 uses the SM count (default: 0)
   --threads N            Dispatch block size; every DEVICE_CALL handler runs
                          on it, in both dispatch modes (default: 32)
   --control-port N       UDP control port for emulator (default: 8193)
@@ -181,6 +186,10 @@ while [[ $# -gt 0 ]]; do
         --save-temps)       SAVE_TEMPS=true ;;
         --forward)          FORWARD=true ;;
         --unified)          UNIFIED=true ;;
+        --dispatcher)       DISPATCHER="$2"; shift ;;
+        --dispatcher=*)     DISPATCHER="${1#*=}" ;;
+        --blocks)           BLOCKS="$2"; BLOCKS_SET=true; shift ;;
+        --blocks=*)         BLOCKS="${1#*=}"; BLOCKS_SET=true ;;
         --threads)          THREADS="$2"; shift ;;
         --timeout)          TIMEOUT="$2"; shift ;;
         --num-messages)     NUM_MESSAGES="$2"; shift ;;
@@ -213,6 +222,24 @@ case "$APP" in
 esac
 if $FORWARD && $UNIFIED; then
     echo "ERROR: --forward and --unified are mutually exclusive" >&2
+    exit 1
+fi
+if [[ "$DISPATCHER" != "builtin" && "$DISPATCHER" != "grid" ]]; then
+    echo "ERROR: --dispatcher must be builtin or grid" >&2
+    exit 1
+fi
+if [[ "$DISPATCHER" == "grid" ]]; then
+    if ! $UNIFIED || [[ "$BACKEND" != gpu || "$APP" != roce_app ]]; then
+        echo "ERROR: --dispatcher grid requires --unified, --gpu and --app roce_app" >&2
+        exit 1
+    fi
+fi
+if $BLOCKS_SET && [[ "$DISPATCHER" != "grid" ]]; then
+    echo "ERROR: --blocks requires --dispatcher grid" >&2
+    exit 1
+fi
+if ! [[ "$BLOCKS" =~ ^[0-9]+$ ]]; then
+    echo "ERROR: --blocks must be a non-negative integer" >&2
     exit 1
 fi
 
@@ -550,6 +577,9 @@ do_run() {
     fi
     if $UNIFIED; then
         bridge_args+=(--unified)
+        if [[ "$DISPATCHER" == "grid" ]]; then
+            bridge_args+=(--dispatcher="$DISPATCHER" --blocks="$BLOCKS")
+        fi
     fi
     if [[ "$APP" == validation_app ]]; then
         bridge_args+=(--bridge="$BRIDGE_LIBRARY" -- "${BRIDGE_ARGS[@]}")

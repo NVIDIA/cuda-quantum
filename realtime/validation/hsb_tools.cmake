@@ -138,6 +138,9 @@ if (TARGET rpc_increment_ft)
     install(TARGETS ${app} DESTINATION ${CMAKE_INSTALL_BINDIR}
             COMPONENT hsb-tools)
   endforeach()
+  # The application-provided cooperative grid dispatcher (--dispatcher=grid).
+  cudaq_realtime_add_dispatch_kernel(roce_app
+    ${CMAKE_CURRENT_LIST_DIR}/grid_dispatcher.cu)
 endif()
 
 # Playback/RTH integration tests are registered in ../unittests/validation, after

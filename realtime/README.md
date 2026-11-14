@@ -34,6 +34,10 @@ and host API are available:
 
 - [Realtime host API](docs/cudaq_realtime_host_api.md)
 
+## Examples
+
+- [Application-provided GPU grid dispatcher](docs/gpu_unified_grid_dispatch_example.md)
+
 ## Feedback
 
 Please let us know your feedback and ideas for the CUDA-Q platform in the
