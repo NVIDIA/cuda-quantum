@@ -37,6 +37,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/ThreadPool.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/Host.h"
@@ -737,6 +738,43 @@ static void registerToIQMJsonTranslation() {
 
 static std::once_flag mlir_init_flag;
 static MLIRContext *mlirContext;
+
+/// MLIR thread pool, configured by the `CUDAQ_MLIR_NUM_THREADS` env variable:
+///
+/// - 0 (the default) uses the MLIR default: a pool with one worker per CPU the
+///   process may run on, for each context,
+/// - 1 runs pass pipelines on the calling thread; see InlineExecutor.cpp,
+/// - n > 1 shares a pool of n workers across all contexts (at most the number
+///   of CPUs the process may run on).
+static llvm::ThreadPoolInterface *getCompilerThreadPool() {
+  // Never destroyed: it must outlive every context that borrows it, including
+  // ones deliberately leaked at a longer lifetime than this file's statics.
+  static llvm::ThreadPoolInterface *pool = []() -> llvm::ThreadPoolInterface * {
+    unsigned threads = 0;
+    if (const char *value = std::getenv("CUDAQ_MLIR_NUM_THREADS"))
+      if (StringRef(value).trim().getAsInteger(10, threads))
+        throw std::invalid_argument("Invalid CUDAQ_MLIR_NUM_THREADS value: '" +
+                                    std::string(value) +
+                                    "'. Expected a non-negative integer.");
+    if (threads == 0)
+      return nullptr;
+    if (threads == 1)
+      return &cudaq_internal::compiler::getInlineExecutor();
+    return new llvm::DefaultThreadPool(llvm::optimal_concurrency(threads));
+  }();
+  return pool;
+}
+
+void cudaq_internal::compiler::configureContextThreading(MLIRContext &context) {
+  // setThreadPool insists threading be off first and turns it back on itself.
+  // MLIR forbids changing that while any thread is inside a parallel region on
+  // the context, so this must run before the context is shared.
+  if (auto *pool = getCompilerThreadPool()) {
+    context.disableMultithreading();
+    context.setThreadPool(*pool);
+  }
+}
+
 static std::unique_ptr<MLIRContext> createMLIRContext() {
   // Per-context initialization
   DialectRegistry registry;
@@ -747,6 +785,7 @@ static std::unique_ptr<MLIRContext> createMLIRContext() {
   registerBuiltinDialectTranslation(registry);
   registerLLVMDialectTranslation(registry);
   auto context = std::make_unique<MLIRContext>(registry);
+  cudaq_internal::compiler::configureContextThreading(*context);
   context->loadAllAvailableDialects();
   return context;
 }
