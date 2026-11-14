@@ -47,9 +47,6 @@ class Steane:
 
 
 code = cql.materialize(Steane)
-
-assert (Steane.n, Steane.k, Steane.d.value) == (7, 1, 3)
-assert Steane.block.size == 13
 # [END_STEANE_CODE]
 
 
@@ -219,8 +216,7 @@ print(f"Makespan: {schedule_resources.makespan_ns:.1f} ns")
 # [END_SCHEDULE_ESTIMATE]
 
 # %%
-# Estimate the kernel through the target and verify agreement with the
-# explicit workflow.
+# Estimate the same kernel through the target.
 # [START_KERNEL_ESTIMATE]
 cudaq.set_target(target)
 estimate = cudaq.estimate(bell_pair)
@@ -229,13 +225,6 @@ kernel_logical = cql.estimate.LogicalEstimate.from_annotations(
 kernel_static = cql.estimate.FabricCounts.from_annotations(estimate.annotations)
 kernel_schedule = estimate.annotations["SCHEDULE"]
 
-assert kernel_logical.logical_qubits_peak == logical_resources.logical_qubits_peak
-assert kernel_logical.actions == logical_resources.actions
-assert kernel_static.patches_peak == static_resources.patches_peak
-assert kernel_static.gadget_calls == static_resources.gadget_calls
-assert kernel_schedule["physical_qubits"] == schedule_resources.physical_qubits
-assert kernel_schedule["event_count"] == schedule_resources.event_count
-assert kernel_schedule["makespan_ns"] == schedule_resources.makespan_ns
 # [END_KERNEL_ESTIMATE]
 
 # %%

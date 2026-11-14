@@ -227,7 +227,7 @@ two views of the estimate:
 % import cudaq
 % kernel, target, kernel_args = load_ql_example(
 % "preview/logical/examples/02_surface_code_resource_estimate.py",
-% "logical_zero_memory", "baseline_target", "baseline_qubits")
+% "logical_zero_memory", "target", "logical_qubits")
 % cudaq.set_target(target)
 -->
 
