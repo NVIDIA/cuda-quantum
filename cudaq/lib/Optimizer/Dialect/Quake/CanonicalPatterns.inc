@@ -1059,9 +1059,11 @@ struct KillDeadWrapPattern : public OpRewritePattern<cudaq::quake::WrapOp> {
 
   LogicalResult matchAndRewrite(cudaq::quake::WrapOp wrap,
                                 PatternRewriter &rewriter) const override {
-    if (auto unwrap =
-            wrap.getWireValue().getDefiningOp<cudaq::quake::UnwrapOp>())
-      rewriter.eraseOp(wrap);
+    // Report a change only when the wrap is erased. Otherwise the greedy
+    // driver never converges and re-walks the function to its iteration limit.
+    if (!wrap.getWireValue().getDefiningOp<cudaq::quake::UnwrapOp>())
+      return failure();
+    rewriter.eraseOp(wrap);
     return success();
   }
 };
