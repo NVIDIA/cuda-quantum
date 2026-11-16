@@ -49,7 +49,7 @@ configured by the settings in the [sphinx/conf.py](./sphinx/conf.py) file.
 ## Sphinx Extensions
 
 The extensions we use to generate API docs are outlined and linked in the
-section above. The full list of built-in Sphinx tensions can be found
+section above. The full list of built-in Sphinx extensions can be found
 [here](https://www.sphinx-doc.org/en/master/usage/extensions/index.html). The
 list of extensions that are enabled for building CUDA-Q documentation is
 defined by the value of the `extensions` configuration in
