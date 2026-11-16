@@ -35,7 +35,7 @@ def define(id: str,
     function does not need to do this.
 
     Arguments:
-        op_id: A string that uniquely identifies the defined operator.
+        id: A string that uniquely identifies the defined operator.
         expected_dimensions: defines the number of levels, that is the dimension,
             for each degree of freedom in canonical (that is sorted) order. A
             negative or zero value for one (or more) of the expected dimensions
@@ -59,7 +59,7 @@ def instantiate(op_id: str,
     Instantiates a product operator containing a previously defined operator element.
 
     Arguments:
-        operator_id: The id of the operator element as specified when it was defined.
+        op_id: The id of the operator element as specified when it was defined.
         degrees: The degree(s) of freedom that the operator acts on.
     """
     if isinstance(degrees, int):
