@@ -1701,12 +1701,6 @@ TEST_F(UnifiedDispatchKernelTest, DispatcherApi) {
 // front: under lazy module loading, a first launch beside a resident kernel
 // waits for it too.
 TEST_F(UnifiedDispatchKernelTest, LivesBesideAResidentKernel) {
-  int pools = 0;
-  ASSERT_EQ(cudaDeviceGetAttribute(&pools, cudaDevAttrMemoryPoolsSupported, 0),
-            cudaSuccess);
-  if (!pools)
-    GTEST_SKIP() << "no stream-ordered allocation on this device: the "
-                    "dispatcher's cudaMalloc/cudaFree may wait for the peer";
   cudaFuncAttributes attr{};
   ASSERT_EQ(cudaFuncGetAttributes(&attr, cudaq_unified_dispatch_kernel),
             cudaSuccess);

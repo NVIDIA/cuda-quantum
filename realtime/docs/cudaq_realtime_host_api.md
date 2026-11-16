@@ -550,11 +550,7 @@ Parameters:
 
 - `dispatcher`: dispatcher handle to destroy.
 
-Call this when the dispatcher is no longer needed. On the device path it frees
-the dispatcher's own shutdown flag and counter, with a stream-ordered call
-where the device supports it; elsewhere `cudaFree` stands in and may wait for
-kernels resident on the device, so on such a device destroy the dispatcher
-while no other kernel of the application is resident.
+Call this when the dispatcher is no longer needed.
 
 **`cudaq_dispatcher_set_bridge`** wires a transport bridge (see
 `bridge_interface.h`) to the dispatcher.  The configured `dispatch_path` and
@@ -732,12 +728,7 @@ Call this once the dispatcher is wired for its shape: the function table, and
 the ring buffer or bridge (host unified needs the bridge's CPU data plane;
 device unified needs the bridge's GPU data plane or
 `cudaq_dispatcher_set_unified_launch`). `cudaq_dispatcher_set_launch_fn` is
-optional on the device ring path. On the device path the dispatcher's own
-shutdown flag and counter are device memory, set up with stream-ordered calls
-where the device supports them (`cudaDevAttrMemoryPoolsSupported`); elsewhere
-`cudaMalloc` and `cudaMemset` stand in and may wait for kernels resident on the
-device, so on such a device start the dispatcher while no other kernel of the
-application is resident.
+optional on the device ring path.
 
 **`cudaq_dispatcher_stop`** signals the dispatch kernel to exit and waits for it
 to shut down.

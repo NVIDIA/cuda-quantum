@@ -64,12 +64,11 @@ struct cudaq_dispatcher_t {
   // The dispatcher's own control words.  HOST path: the two plain words.
   // DEVICE path: two device words, allocated by the first start() and freed
   // by destroy() once the kernel is known to have stopped, with stream-ordered
-  // calls where the device supports them (see prepare_own_device_control).
+  // calls (see prepare_own_device_control).
   volatile int own_shutdown_flag = 0;
   uint64_t own_stats = 0;
   int *own_shutdown_flag_dev = nullptr;
   uint64_t *own_stats_dev = nullptr;
-  bool own_words_stream_ordered = false;
   bool control_overridden = false;
   cudaStream_t stream = nullptr;
   bool running = false;
@@ -291,18 +290,15 @@ cudaq_status_t cudaq_dispatcher_create(cudaq_dispatch_manager_t *,
   return CUDAQ_OK;
 }
 
-// Frees one of the dispatcher's own device words, in stream order where the
-// device supports it: a plain cudaFree waits for every kernel resident on the
-// device, a transport's or another dispatcher's included, which destroy()
-// must not do.  A failed stream-ordered free leaks the word rather than wait.
-static void free_own_device_word(void *word, bool stream_ordered) {
+// Frees one of the dispatcher's own device words in stream order: a plain
+// cudaFree waits for every kernel resident on the device, a transport's or
+// another dispatcher's included, which destroy() must not do.  A failed free
+// leaks the word rather than wait.
+static void free_own_device_word(void *word) {
   if (!word)
     return;
-  const cudaError_t err = stream_ordered
-                              ? cudaFreeAsync(word, cudaStreamPerThread)
-                              : cudaFree(word);
   // Not left latched for a later start()'s post-launch check to misread.
-  if (err != cudaSuccess)
+  if (cudaFreeAsync(word, cudaStreamPerThread) != cudaSuccess)
     (void)cudaGetLastError();
 }
 
@@ -332,10 +328,8 @@ cudaq_status_t cudaq_dispatcher_destroy(cudaq_dispatcher_t *dispatcher) {
   // Same rule for the dispatcher's own device control words: a kernel that
   // was never stopped still polls the flag and writes the counter.
   if (!dispatcher->stream) {
-    free_own_device_word(dispatcher->own_shutdown_flag_dev,
-                         dispatcher->own_words_stream_ordered);
-    free_own_device_word(dispatcher->own_stats_dev,
-                         dispatcher->own_words_stream_ordered);
+    free_own_device_word(dispatcher->own_shutdown_flag_dev);
+    free_own_device_word(dispatcher->own_stats_dev);
   }
   delete dispatcher;
   return CUDAQ_OK;
@@ -814,19 +808,16 @@ cudaq_status_t cudaq_dispatcher_get_device_kernel_in(
 }
 
 // One of the dispatcher's own device words: allocated on first use, zeroed
-// every time.  Stream-ordered on the per-thread default stream where the
-// device supports it, since cudaMalloc and cudaMemset may synchronize with
-// kernels already resident on the device (another dispatcher's, a
-// transport's) and the stream-ordered calls are documented not to.
-static cudaError_t prepare_own_device_word(void **word, size_t size,
-                                           bool stream_ordered) {
+// every time.  Stream-ordered on the per-thread default stream, since
+// cudaMalloc and cudaMemset may synchronize with kernels already resident on
+// the device (another dispatcher's, a transport's) and the stream-ordered
+// calls are documented not to.
+static cudaError_t prepare_own_device_word(void **word, size_t size) {
   cudaError_t err = cudaSuccess;
   if (!*word)
-    err = stream_ordered ? cudaMallocAsync(word, size, cudaStreamPerThread)
-                         : cudaMalloc(word, size);
+    err = cudaMallocAsync(word, size, cudaStreamPerThread);
   if (err == cudaSuccess)
-    err = stream_ordered ? cudaMemsetAsync(*word, 0, size, cudaStreamPerThread)
-                         : cudaMemset(*word, 0, size);
+    err = cudaMemsetAsync(*word, 0, size, cudaStreamPerThread);
   return err;
 }
 
@@ -838,22 +829,12 @@ static cudaError_t prepare_own_device_word(void **word, size_t size,
 // before the launch by the event start() records on the per-thread stream.
 static cudaq_status_t
 prepare_own_device_control(cudaq_dispatcher_t *dispatcher) {
-  if (!dispatcher->own_shutdown_flag_dev && !dispatcher->own_stats_dev) {
-    int pools = 0;
-    if (cudaDeviceGetAttribute(&pools, cudaDevAttrMemoryPoolsSupported,
-                               dispatcher->config.device_id) != cudaSuccess) {
-      (void)cudaGetLastError();
-      return CUDAQ_ERR_CUDA;
-    }
-    dispatcher->own_words_stream_ordered = pools != 0;
-  }
-  const bool stream_ordered = dispatcher->own_words_stream_ordered;
   if (prepare_own_device_word(
           reinterpret_cast<void **>(&dispatcher->own_shutdown_flag_dev),
-          sizeof(int), stream_ordered) != cudaSuccess ||
+          sizeof(int)) != cudaSuccess ||
       prepare_own_device_word(
           reinterpret_cast<void **>(&dispatcher->own_stats_dev),
-          sizeof(uint64_t), stream_ordered) != cudaSuccess) {
+          sizeof(uint64_t)) != cudaSuccess) {
     // Not left latched for a retried start()'s post-launch check to misread.
     (void)cudaGetLastError();
     return CUDAQ_ERR_CUDA;

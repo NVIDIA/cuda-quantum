@@ -499,12 +499,8 @@ cudaq_dispatcher_set_cpu_dataplane(cudaq_dispatcher_t *dispatcher,
 // raises the flag itself and returns once the loop has exited, and is a no-op
 // when nothing is running.  On the DEVICE path the two words are device
 // memory, allocated, zeroed and (by cudaq_dispatcher_destroy) freed with
-// stream-ordered calls where the device supports them
-// (cudaDevAttrMemoryPoolsSupported); elsewhere cudaMalloc, cudaMemset and
-// cudaFree stand in, and those may wait for kernels resident on the device,
-// as a caller's own cudaFree of these words did before: on such a device,
-// start and destroy the dispatcher while no other kernel of the application
-// is resident.
+// stream-ordered calls, so setting them up and freeing them does not wait for
+// kernels resident on the device.
 cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher);
 cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher);
 
