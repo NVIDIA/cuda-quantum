@@ -17,6 +17,10 @@
 #include <optional>
 #include <string>
 
+namespace llvm {
+class ThreadPoolInterface;
+} // namespace llvm
+
 namespace mlir {
 class Dialect;
 class MLIRContext;
@@ -128,5 +132,13 @@ void setRunPassManagerHook(RunPassManagerHook hook);
 
 /// Configure the pass manager according to environment variables
 void configurePassManagerFromEnv(mlir::PassManager &pm);
+
+/// A thread pool that runs each task on the submitting thread. See
+/// InlineExecutor.cpp.
+llvm::ThreadPoolInterface &getInlineExecutor();
+
+/// Give a newly created context the pass-pipeline thread pool selected by
+/// CUDAQ_MLIR_NUM_THREADS. Must be called before the context is shared.
+void configureContextThreading(mlir::MLIRContext &context);
 
 } // namespace cudaq_internal::compiler
