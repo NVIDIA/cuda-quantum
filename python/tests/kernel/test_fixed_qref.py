@@ -138,3 +138,33 @@ def test_repeated_out_of_bounds_fixed_qrefs_still_diagnose():
     with pytest.raises(RuntimeError, match="could not compile code") as e:
         through_alias.compile()
     assert "invalid index [2] because >= size [2]" in str(e.value)
+
+
+def test_negative_constant_subscript_matches_positive_equivalent():
+    # A negative constant subscript must address from the end of the register,
+    # i.e. `q[-k]` is `q[size - k]`. Previously only `q[-1]` was folded into a
+    # constant and normalized; `q[-2]`, `q[-3]`, ... were lowered as a runtime
+    # `arith.MulIOp` and extracted the raw negative offset instead.
+    @cudaq.kernel
+    def by_negative():
+        q = cudaq.qvector(3)
+        x(q[-2])
+        x(q[-3])
+
+    @cudaq.kernel
+    def by_positive():
+        q = cudaq.qvector(3)
+        x(q[1])
+        x(q[0])
+
+    assert cudaq.sample(by_negative).most_probable() == \
+           cudaq.sample(by_positive).most_probable()
+
+
+def test_negative_constant_list_subscript():
+    # The same normalization must apply to list/sequence subscripts.
+    @cudaq.kernel
+    def pick(v: list[int]) -> int:
+        return v[-2]
+
+    assert pick([10, 20, 30]) == 20
