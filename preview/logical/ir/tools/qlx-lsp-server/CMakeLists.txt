@@ -24,13 +24,10 @@ qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
   MLIRIR
   MLIRParser
   MLIRSupport
-  MLIRLspServerLib
 )
-if(QLX_USE_CUDAQ_SDK)
-  # The CUDA-Q aggregate exports the MLIR surface used by QLX dialects but not
-  # the standalone LSP server entry point.
-  list(APPEND _qlx_mlir_link_libraries MLIRLspServerLib)
-endif()
+# The CUDA-Q aggregate exports the MLIR surface used by QLX dialects but not
+# the standalone LSP server entry point.
+list(APPEND _qlx_mlir_link_libraries MLIRLspServerLib)
 
 target_link_libraries(qlx-lsp-server PRIVATE
   MLIRQLXDialect
