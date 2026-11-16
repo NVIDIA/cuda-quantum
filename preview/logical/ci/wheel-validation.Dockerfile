@@ -15,7 +15,9 @@
 # docker/test/wheels/{ubuntu,fedora,redhat}.Dockerfile; the install under test
 # is the cudaq-logical wheel, resolved together with its CUDA-Q runtime
 # dependency from the wheels copied into /tmp/dist (the cudaq metapackage also
-# depends on cudaq-edem).
+# depends on cudaq-edem). The cudaq-logical and cudaq-edem wheels are installed
+# by path: their versions are fixed in pyproject.toml, so a released wheel on
+# PyPI can share the version of the one under test.
 
 ARG base_image=ubuntu:22.04
 FROM ${base_image}
@@ -78,7 +80,19 @@ COPY preview/logical/ /tmp/cudaq-logical/
 
 # Working around issue https://github.com/pypa/pip/issues/11153.
 # Retry download to a file (not a pipe) to survive transient/truncated fetches.
-RUN for i in 1 2 3; do \
+# A requirement such as "cudaq-logical==0.2.0" lets pip take the PyPI release
+# with that version instead of the wheel under test, so install the
+# cudaq-logical and cudaq-edem wheels by path. Each glob must match one file.
+RUN single_wheel() { \
+        set -- $1; \
+        if [ $# -ne 1 ] || [ ! -f "$1" ]; then \
+            echo "Expected exactly one wheel, found: $*" >&2; return 1; \
+        fi; \
+        echo "$1"; \
+    } && \
+    logical_wheel="$(single_wheel "/tmp/dist/cudaq_logical-${cudaq_logical_version}-*.whl")" && \
+    edem_wheel="$(single_wheel "/tmp/dist/cudaq_edem-*-cp$(echo $python_version | tr -d .)-*_$(uname -m).whl")" && \
+    for i in 1 2 3; do \
         wget --tries=3 --retry-connrefused --waitretry=5 --timeout=30 \
             https://github.com/rapidsai/gha-tools/releases/latest/download/tools.tar.gz -O /tmp/tools.tar.gz \
         && gzip -t /tmp/tools.tar.gz && tar -xzf /tmp/tools.tar.gz -C /usr/local/bin && break \
@@ -87,4 +101,5 @@ RUN for i in 1 2 3; do \
     RAPIDS_PIP_EXE="python${python_version} -m pip" \
     /usr/local/bin/rapids-pip-retry install ${pip_install_flags} --find-links /tmp/dist \
         "cudaq==$cudaq_version" \
-        "cudaq-logical==$cudaq_logical_version"
+        "$edem_wheel" \
+        "$logical_wheel"
