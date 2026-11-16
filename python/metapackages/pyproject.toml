@@ -63,6 +63,7 @@ include = [
   "_logical_version.txt",
   "_edem_version.txt",
   "_deprecated.txt",
+  "hatch_build.py",
 ]
 
 [tool.hatch.build.targets.wheel]
