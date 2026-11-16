@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1700 600" width="1700" height="600" role="img" aria-labelledby="t d">
+<title id="t">CUDA-Q QEC Decoding Server architecture</title><desc id="d">A quantum controller or the playback emulator sends syndromes over NVQLink, using RoCE through the Holoscan Sensor Bridge, the Quantum Machines OPNIC, UDP, or the control system's own network stack, to the decoding_server process, which routes them through a decoding task graph with parallel windows to decoders such as PyMatching, Chromobius, the NVIDIA Ising predecoder, BP+OSD, Relay BP, TCBP+JOBS, and the sliding-window and parallel-window decoders, and returns corrections and logical results. The server, task graph, and decoders ship in the cudaq-decoding container.</desc>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9aa19a"/></marker>
+<marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#76b900"/></marker>
+<marker id="arra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f5b324"/></marker>
+</defs>
+<rect width="1700" height="600" rx="18" fill="#0e100d"/>
+<rect x="690" y="40" width="975" height="500" rx="20" fill="none" stroke="#76b900" stroke-width="2" stroke-dasharray="10 8"/>
+<text x="1177" y="520" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="18" fill="#a4e22c" font-weight="400" text-anchor="middle">cudaq-decoding container  ·  x86 / arm64  ·  CUDA 12 / 13</text>
+<rect x="40" y="90" width="290" height="165" rx="14" fill="#17191a" stroke="#2c3030" stroke-width="2"/>
+<text x="64" y="138" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="26" fill="#eceeea" font-weight="700" text-anchor="start">Quantum controller</text>
+<text x="64" y="176" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start">FPGA · RFSoC · PPU</text>
+<text x="64" y="208" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="start">syndromes every round</text>
+<rect x="40" y="300" width="290" height="160" rx="14" fill="#17191a" stroke="#f5b324" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="64" y="348" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="26" fill="#eceeea" font-weight="700" text-anchor="start">Playback emulator</text>
+<text x="64" y="384" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start">recorded or simulated</text>
+<text x="64" y="412" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start">shots, no QPU needed</text>
+<rect x="390" y="90" width="250" height="370" rx="14" fill="#17191a" stroke="#2c3030" stroke-width="2"/>
+<text x="414" y="138" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="26" fill="#eceeea" font-weight="700" text-anchor="start">NVQLink</text>
+<rect x="410" y="158" width="210" height="36" rx="9" fill="#0f1210" stroke="#2c3030" stroke-width="1.5"/>
+<text x="426" y="183" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#a4e22c" font-weight="400" text-anchor="start">RoCE (HSB)</text>
+<text x="426" y="214" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="start">RDMA over ConnectX</text>
+<rect x="410" y="230" width="210" height="36" rx="9" fill="#0f1210" stroke="#2c3030" stroke-width="1.5"/>
+<text x="426" y="255" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#a4e22c" font-weight="400" text-anchor="start">OPNIC</text>
+<text x="426" y="286" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="start">Quantum Machines</text>
+<rect x="410" y="302" width="210" height="36" rx="9" fill="#0f1210" stroke="#2c3030" stroke-width="1.5"/>
+<text x="426" y="327" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#a4e22c" font-weight="400" text-anchor="start">UDP</text>
+<text x="426" y="358" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="start">standard IP, any NIC</text>
+<rect x="410" y="374" width="210" height="36" rx="9" fill="#0f1210" stroke="#2c3030" stroke-width="1.5"/>
+<text x="426" y="399" font-family="'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="18" fill="#a4e22c" font-weight="400" text-anchor="start">your_transport.so</text>
+<text x="426" y="430" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="start">your network stack</text>
+<rect x="715" y="90" width="320" height="370" rx="14" fill="#17191a" stroke="#76b900" stroke-width="2.5"/>
+<text x="739" y="138" font-family="'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="26" fill="#a4e22c" font-weight="700" text-anchor="start">decoding_server</text>
+<text x="739" y="182" font-family="'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="17" fill="#eceeea" font-weight="400" text-anchor="start">enqueue_syndromes</text>
+<text x="739" y="216" font-family="'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="17" fill="#eceeea" font-weight="400" text-anchor="start">get_corrections</text>
+<text x="739" y="250" font-family="'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="17" fill="#eceeea" font-weight="400" text-anchor="start">get_logical_measurements</text>
+<text x="739" y="284" font-family="'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="17" fill="#eceeea" font-weight="400" text-anchor="start">reset_decoder</text>
+<rect x="739" y="382" width="140" height="44" rx="10" fill="#0f1210" stroke="#2c3030" stroke-width="1.5"/>
+<text x="757" y="411" font-family="'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="17" fill="#f5b324" font-weight="400" text-anchor="start">memory.yaml</text>
+<text x="895" y="411" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="start">config</text>
+<rect x="1085" y="90" width="250" height="370" rx="14" fill="#17191a" stroke="#2c3030" stroke-width="2"/>
+<text x="1109" y="138" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="26" fill="#eceeea" font-weight="700" text-anchor="start">Task graph</text>
+<text x="1109" y="174" font-family="'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="18" fill="#a4e22c" font-weight="400" text-anchor="start">parallel_window</text>
+<rect x="1111" y="196" width="34" height="46" rx="6" fill="#76b900" stroke="#76b900" stroke-width="1"/>
+<text x="1128" y="226" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#0e100d" font-weight="700" text-anchor="middle">A</text>
+<rect x="1150" y="196" width="34" height="46" rx="6" fill="#2c3030" stroke="#2c3030" stroke-width="1"/>
+<text x="1167" y="226" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#eceeea" font-weight="700" text-anchor="middle">B</text>
+<rect x="1189" y="196" width="34" height="46" rx="6" fill="#76b900" stroke="#76b900" stroke-width="1"/>
+<text x="1206" y="226" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#0e100d" font-weight="700" text-anchor="middle">A</text>
+<rect x="1228" y="196" width="34" height="46" rx="6" fill="#2c3030" stroke="#2c3030" stroke-width="1"/>
+<text x="1245" y="226" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#eceeea" font-weight="700" text-anchor="middle">B</text>
+<rect x="1267" y="196" width="34" height="46" rx="6" fill="#76b900" stroke="#76b900" stroke-width="1"/>
+<text x="1284" y="226" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#0e100d" font-weight="700" text-anchor="middle">A</text>
+<text x="1109" y="280" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="start">A windows decode at once;</text>
+<text x="1109" y="304" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="start">B windows close the gaps.</text>
+<text x="1109" y="404" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="start">one-shot · batch</text>
+<text x="1109" y="428" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="start">streaming</text>
+<rect x="1385" y="90" width="255" height="370" rx="14" fill="#17191a" stroke="#2c3030" stroke-width="2"/>
+<text x="1409" y="138" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="26" fill="#eceeea" font-weight="700" text-anchor="start">Decoders</text>
+<text x="1409" y="178" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#eceeea" font-weight="400" text-anchor="start">PyMatching</text>
+<text x="1409" y="210" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#eceeea" font-weight="400" text-anchor="start">Chromobius</text>
+<text x="1409" y="242" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#eceeea" font-weight="400" text-anchor="start">Ising + TensorRT</text>
+<text x="1409" y="274" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#eceeea" font-weight="400" text-anchor="start">BP+OSD</text>
+<text x="1409" y="306" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#eceeea" font-weight="400" text-anchor="start">Relay BP</text>
+<text x="1409" y="338" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#eceeea" font-weight="400" text-anchor="start">TCBP+JOBS</text>
+<text x="1409" y="370" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#eceeea" font-weight="400" text-anchor="start">Sliding window</text>
+<text x="1409" y="402" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#eceeea" font-weight="400" text-anchor="start">Parallel window</text>
+<text x="1409" y="434" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#f5b324" font-weight="400" text-anchor="start">Your plugin</text>
+<line x1="334" y1="150" x2="384" y2="150" stroke="#76b900" stroke-width="2.5" marker-end="url(#arrg)"/>
+<line x1="384" y1="205" x2="334" y2="205" stroke="#9aa19a" stroke-width="2.5" marker-end="url(#arr)"/>
+<line x1="334" y1="380" x2="384" y2="380" stroke="#f5b324" stroke-width="2.5" stroke-dasharray="6 5" marker-end="url(#arra)" marker-start="url(#arra)"/>
+<line x1="644" y1="215" x2="709" y2="215" stroke="#76b900" stroke-width="2.5" marker-end="url(#arrg)"/>
+<line x1="709" y1="265" x2="644" y2="265" stroke="#9aa19a" stroke-width="2.5" marker-end="url(#arr)"/>
+<line x1="1039" y1="275" x2="1079" y2="275" stroke="#9aa19a" stroke-width="2.5" marker-end="url(#arr)"/>
+<line x1="1339" y1="275" x2="1379" y2="275" stroke="#9aa19a" stroke-width="2.5" marker-end="url(#arr)"/>
+<line x1="40" y1="566" x2="80" y2="566" stroke="#76b900" stroke-width="2.5" marker-end="url(#arrg)"/>
+<text x="92" y="572" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="start">syndromes</text>
+<line x1="210" y1="566" x2="250" y2="566" stroke="#9aa19a" stroke-width="2.5" marker-end="url(#arr)"/>
+<text x="262" y="572" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="start">corrections and logical results</text>
+</svg>

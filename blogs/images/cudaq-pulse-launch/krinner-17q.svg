@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 760" width="1600" height="760" role="img" aria-labelledby="t d">
+<title id="t">17-qubit surface-code quantum system (after Krinner et al., 2022)</title><desc id="d">Layout of the 17-qubit distance-3 surface-code processor from Krinner et al.: nine data qubits, four Z ancillas and four X ancillas joined by 24 couplers, with a panel listing the modeled physics and the GPU lowering path.</desc>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9aa19a"/></marker>
+  <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#76b900"/></marker>
+  <marker id="arra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f5b324"/></marker>
+  <radialGradient id="glow" cx="78%" cy="45%" r="60%"><stop offset="0" stop-color="#76b900" stop-opacity="0.16"/><stop offset="1" stop-color="#76b900" stop-opacity="0"/></radialGradient>
+  <pattern id="hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="12" stroke="#f5b324" stroke-opacity="0.45" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="760" rx="18" fill="#0e100d"/>
+<path d="M210,190 A95.0,95.0 0 0 1 400,190 Z" fill="#76b900" fill-opacity="0.16" stroke="#76b900" stroke-opacity="0.5" stroke-width="2"/>
+<rect x="210" y="190" width="190" height="190" fill="#76b900" fill-opacity="0.16" stroke="#76b900" stroke-opacity="0.5" stroke-width="2"/>
+<rect x="400" y="380" width="190" height="190" fill="#76b900" fill-opacity="0.16" stroke="#76b900" stroke-opacity="0.5" stroke-width="2"/>
+<path d="M400,570 A95.0,95.0 0 0 0 590,570 Z" fill="#76b900" fill-opacity="0.16" stroke="#76b900" stroke-opacity="0.5" stroke-width="2"/>
+<path d="M210,190 A95.0,95.0 0 0 0 210,380 Z" fill="#7cc4ff" fill-opacity="0.16" stroke="#7cc4ff" stroke-opacity="0.5" stroke-width="2"/>
+<rect x="400" y="190" width="190" height="190" fill="#7cc4ff" fill-opacity="0.16" stroke="#7cc4ff" stroke-opacity="0.5" stroke-width="2"/>
+<rect x="210" y="380" width="190" height="190" fill="#7cc4ff" fill-opacity="0.16" stroke="#7cc4ff" stroke-opacity="0.5" stroke-width="2"/>
+<path d="M590,380 A95.0,95.0 0 0 1 590,570 Z" fill="#7cc4ff" fill-opacity="0.16" stroke="#7cc4ff" stroke-opacity="0.5" stroke-width="2"/>
+<line x1="305.0" y1="133.0" x2="210" y2="190" stroke="#76b900" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="305.0" y1="133.0" x2="400" y2="190" stroke="#76b900" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="305.0" y1="285.0" x2="210" y2="190" stroke="#76b900" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="305.0" y1="285.0" x2="400" y2="190" stroke="#76b900" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="305.0" y1="285.0" x2="210" y2="380" stroke="#76b900" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="305.0" y1="285.0" x2="400" y2="380" stroke="#76b900" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="495.0" y1="475.0" x2="400" y2="380" stroke="#76b900" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="495.0" y1="475.0" x2="590" y2="380" stroke="#76b900" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="495.0" y1="475.0" x2="400" y2="570" stroke="#76b900" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="495.0" y1="475.0" x2="590" y2="570" stroke="#76b900" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="495.0" y1="627.0" x2="400" y2="570" stroke="#76b900" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="495.0" y1="627.0" x2="590" y2="570" stroke="#76b900" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="153.0" y1="285.0" x2="210" y2="190" stroke="#7cc4ff" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="153.0" y1="285.0" x2="210" y2="380" stroke="#7cc4ff" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="495.0" y1="285.0" x2="400" y2="190" stroke="#7cc4ff" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="495.0" y1="285.0" x2="590" y2="190" stroke="#7cc4ff" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="495.0" y1="285.0" x2="400" y2="380" stroke="#7cc4ff" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="495.0" y1="285.0" x2="590" y2="380" stroke="#7cc4ff" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="305.0" y1="475.0" x2="210" y2="380" stroke="#7cc4ff" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="305.0" y1="475.0" x2="400" y2="380" stroke="#7cc4ff" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="305.0" y1="475.0" x2="210" y2="570" stroke="#7cc4ff" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="305.0" y1="475.0" x2="400" y2="570" stroke="#7cc4ff" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="647.0" y1="475.0" x2="590" y2="380" stroke="#7cc4ff" stroke-width="3" stroke-opacity="0.85"/>
+<line x1="647.0" y1="475.0" x2="590" y2="570" stroke="#7cc4ff" stroke-width="3" stroke-opacity="0.85"/>
+<circle cx="210" cy="190" r="30" fill="#f0f2ee" stroke="#0e100d" stroke-width="4"/>
+<text x="210" y="198" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="21" fill="#111" font-weight="700" text-anchor="middle" >D1</text>
+<circle cx="400" cy="190" r="30" fill="#f0f2ee" stroke="#0e100d" stroke-width="4"/>
+<text x="400" y="198" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="21" fill="#111" font-weight="700" text-anchor="middle" >D2</text>
+<circle cx="590" cy="190" r="30" fill="#f0f2ee" stroke="#0e100d" stroke-width="4"/>
+<text x="590" y="198" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="21" fill="#111" font-weight="700" text-anchor="middle" >D3</text>
+<circle cx="210" cy="380" r="30" fill="#f0f2ee" stroke="#0e100d" stroke-width="4"/>
+<text x="210" y="388" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="21" fill="#111" font-weight="700" text-anchor="middle" >D4</text>
+<circle cx="400" cy="380" r="30" fill="#f0f2ee" stroke="#0e100d" stroke-width="4"/>
+<text x="400" y="388" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="21" fill="#111" font-weight="700" text-anchor="middle" >D5</text>
+<circle cx="590" cy="380" r="30" fill="#f0f2ee" stroke="#0e100d" stroke-width="4"/>
+<text x="590" y="388" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="21" fill="#111" font-weight="700" text-anchor="middle" >D6</text>
+<circle cx="210" cy="570" r="30" fill="#f0f2ee" stroke="#0e100d" stroke-width="4"/>
+<text x="210" y="578" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="21" fill="#111" font-weight="700" text-anchor="middle" >D7</text>
+<circle cx="400" cy="570" r="30" fill="#f0f2ee" stroke="#0e100d" stroke-width="4"/>
+<text x="400" y="578" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="21" fill="#111" font-weight="700" text-anchor="middle" >D8</text>
+<circle cx="590" cy="570" r="30" fill="#f0f2ee" stroke="#0e100d" stroke-width="4"/>
+<text x="590" y="578" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="21" fill="#111" font-weight="700" text-anchor="middle" >D9</text>
+<circle cx="305.0" cy="133.0" r="26" fill="#0e100d" stroke="#76b900" stroke-width="4"/>
+<text x="305.0" y="140.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#76b900" font-weight="700" text-anchor="middle" >Z1</text>
+<circle cx="305.0" cy="285.0" r="26" fill="#0e100d" stroke="#76b900" stroke-width="4"/>
+<text x="305.0" y="292.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#76b900" font-weight="700" text-anchor="middle" >Z2</text>
+<circle cx="495.0" cy="475.0" r="26" fill="#0e100d" stroke="#76b900" stroke-width="4"/>
+<text x="495.0" y="482.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#76b900" font-weight="700" text-anchor="middle" >Z3</text>
+<circle cx="495.0" cy="627.0" r="26" fill="#0e100d" stroke="#76b900" stroke-width="4"/>
+<text x="495.0" y="634.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#76b900" font-weight="700" text-anchor="middle" >Z4</text>
+<circle cx="153.0" cy="285.0" r="26" fill="#0e100d" stroke="#7cc4ff" stroke-width="4"/>
+<text x="153.0" y="292.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#7cc4ff" font-weight="700" text-anchor="middle" >X1</text>
+<circle cx="495.0" cy="285.0" r="26" fill="#0e100d" stroke="#7cc4ff" stroke-width="4"/>
+<text x="495.0" y="292.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#7cc4ff" font-weight="700" text-anchor="middle" >X2</text>
+<circle cx="305.0" cy="475.0" r="26" fill="#0e100d" stroke="#7cc4ff" stroke-width="4"/>
+<text x="305.0" y="482.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#7cc4ff" font-weight="700" text-anchor="middle" >X3</text>
+<circle cx="647.0" cy="475.0" r="26" fill="#0e100d" stroke="#7cc4ff" stroke-width="4"/>
+<text x="647.0" y="482.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#7cc4ff" font-weight="700" text-anchor="middle" >X4</text>
+<text x="400" y="735" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="middle" >9 data · 4 Z-ancilla · 4 X-ancilla · 24 coupled pairs</text>
+<rect x="860" y="70" width="680" height="620" rx="16" fill="#17191a" stroke="#2c3030" stroke-width="2" />
+<text x="896" y="125" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" fill="#eceeea" font-weight="700" text-anchor="start" >Quantum system model</text>
+<text x="896" y="157" font-family="'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="19" fill="#76b900" font-weight="400" text-anchor="start" >transmon_surface17</text>
+<rect x="900" y="199" width="14" height="14" rx="3" fill="#76b900"/>
+<text x="930" y="213" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="23" fill="#eceeea" font-weight="400" text-anchor="start" >Exchange coupling</text>
+<rect x="900" y="245" width="14" height="14" rx="3" fill="#76b900"/>
+<text x="930" y="259" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="23" fill="#eceeea" font-weight="400" text-anchor="start" >Residual ZZ</text>
+<rect x="900" y="291" width="14" height="14" rx="3" fill="#76b900"/>
+<text x="930" y="305" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="23" fill="#eceeea" font-weight="400" text-anchor="start" >Thermal populations</text>
+<rect x="900" y="337" width="14" height="14" rx="3" fill="#76b900"/>
+<text x="930" y="351" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="23" fill="#eceeea" font-weight="400" text-anchor="start" >Hahn-echo dephasing</text>
+<rect x="900" y="383" width="14" height="14" rx="3" fill="#76b900"/>
+<text x="930" y="397" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="23" fill="#eceeea" font-weight="400" text-anchor="start" >Fitted CZ parameters, 24 pairs</text>
+<text x="930" y="425" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="18" fill="#9aa19a" font-weight="400" text-anchor="start" >flux pulses not yet simulated</text>
+<text x="896" y="470" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="21" fill="#9aa19a" font-weight="600" text-anchor="start" >Lowered for GPU execution</text>
+<rect x="896" y="492" width="180" height="54" rx="10" fill="#15200a" stroke="#76b900" stroke-width="2" />
+<text x="986.0" y="527" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#eceeea" font-weight="600" text-anchor="middle" >Pulse</text>
+<line x1="1080" y1="519" x2="1102" y2="519" stroke="#9aa19a" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="1106" y="492" width="180" height="54" rx="10" fill="#15200a" stroke="#76b900" stroke-width="2" />
+<text x="1196.0" y="527" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#eceeea" font-weight="600" text-anchor="middle" >QOp</text>
+<line x1="1290" y1="519" x2="1312" y2="519" stroke="#9aa19a" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="1316" y="492" width="182" height="54" rx="10" fill="#15200a" stroke="#76b900" stroke-width="2" />
+<text x="1407.0" y="527" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#eceeea" font-weight="600" text-anchor="middle" >cuDensityMat</text>
+<text x="896" y="595" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start" >Hamiltonian + Lindblad terms from the same</text>
+<text x="896" y="622" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start" >pulse program that targets hardware</text>
+</svg>

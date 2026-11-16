@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" width="1200" height="640" role="img" aria-labelledby="t d">
+<title id="t">Relay BP reaction time versus shot length</title><desc id="d">Three panels, d=3, 5 and 7: Relay BP completion-tail p99 against SERs per shot on a GB200 with physical FPGA input, monolithic versus inside the parallel-window decoder; lines are medians of three trials and bands span all three. d=3 monolithic: median 6.4 ms at 1,000 SERs, 28.6 ms at 10,000 SERs; d=3 parallel window: median 1.1 ms at 1,000 SERs, 1.5 ms at 10,000 SERs; d=5 monolithic: median 14.0 ms at 1,000 SERs, 101.1 ms at 8,000 SERs; d=5 parallel window: median 1.4 ms at 1,000 SERs, 1.4 ms at 8,000 SERs; d=7 monolithic: median 24.4 ms at 1,000 SERs, 106.1 ms at 4,000 SERs; d=7 parallel window: median 1.4 ms at 1,000 SERs, 2.4 ms at 4,000 SERs.</desc>
+<rect width="1200" height="640" rx="18" fill="#0e100d"/>
+<line x1="130.0" y1="52.0" x2="158.0" y2="52.0" stroke="#8a908a" stroke-width="2.5"/>
+<text x="166.0" y="58.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="start">Monolithic</text>
+<line x1="286.1" y1="52.0" x2="314.1" y2="52.0" stroke="#66a300" stroke-width="2.5"/>
+<text x="322.1" y="58.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="start">Parallel window</text>
+<text x="1160.0" y="58.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="end">Line: median of 3 trials. Band: all 3.</text>
+<text x="40.0" y="330.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="18" fill="#9aa19a" font-weight="400" text-anchor="middle" transform="rotate(-90 40.0 330.0)">Last SER to result, p99 (ms)</text>
+<text x="130.0" y="116.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#eceeea" font-weight="600" text-anchor="start">d = 3</text>
+<text x="433.3" y="116.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="end">12,000 SERs/s</text>
+<line x1="130.0" y1="520.0" x2="433.3" y2="520.0" stroke="#454c45" stroke-width="1.0"/>
+<text x="118.0" y="526.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="end">0</text>
+<line x1="130.0" y1="425.0" x2="433.3" y2="425.0" stroke="#252a26" stroke-width="1.0"/>
+<text x="118.0" y="431.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="end">30</text>
+<line x1="130.0" y1="330.0" x2="433.3" y2="330.0" stroke="#252a26" stroke-width="1.0"/>
+<text x="118.0" y="336.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="end">60</text>
+<line x1="130.0" y1="235.0" x2="433.3" y2="235.0" stroke="#252a26" stroke-width="1.0"/>
+<text x="118.0" y="241.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="end">90</text>
+<line x1="130.0" y1="140.0" x2="433.3" y2="140.0" stroke="#252a26" stroke-width="1.0"/>
+<text x="118.0" y="146.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="end">120</text>
+<text x="130.0" y="550.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="middle">0</text>
+<text x="281.7" y="550.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="middle">5,000</text>
+<text x="433.3" y="550.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="middle">10,000</text>
+<polygon points="160.3,498.7 190.7,491.0 221.0,483.9 251.3,476.0 281.7,468.2 312.0,460.1 342.3,453.0 372.7,446.6 403.0,438.8 433.3,429.2 433.3,430.3 403.0,438.8 372.7,447.1 342.3,453.9 312.0,461.0 281.7,469.2 251.3,476.4 221.0,484.0 190.7,491.1 160.3,501.8" fill="#8a908a" fill-opacity="0.2"/>
+<polyline points="160.3,499.9 190.7,491.0 221.0,483.9 251.3,476.1 281.7,469.1 312.0,461.0 342.3,453.5 372.7,446.9 403.0,438.8 433.3,429.3" fill="none" stroke="#8a908a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="433.3" cy="429.3" r="5" fill="#8a908a" stroke="#0e100d" stroke-width="2"/>
+<text x="423.3" y="417.3" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#eceeea" font-weight="400" text-anchor="end">Monolithic, 29 ms</text>
+<polygon points="160.3,516.4 190.7,513.4 221.0,516.0 251.3,515.9 281.7,516.4 312.0,517.8 342.3,515.3 372.7,512.0 403.0,517.6 433.3,513.8 433.3,516.4 403.0,517.9 372.7,516.7 342.3,517.3 312.0,518.1 281.7,516.9 251.3,517.0 221.0,517.4 190.7,516.7 160.3,516.7" fill="#66a300" fill-opacity="0.2"/>
+<polyline points="160.3,516.6 190.7,516.5 221.0,517.0 251.3,516.8 281.7,516.7 312.0,517.9 342.3,516.5 372.7,516.3 403.0,517.8 433.3,515.3" fill="none" stroke="#66a300" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="433.3" cy="515.3" r="5" fill="#66a300" stroke="#0e100d" stroke-width="2"/>
+<text x="423.3" y="503.3" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#eceeea" font-weight="400" text-anchor="end">Parallel window, 1.5 ms</text>
+<text x="493.3" y="116.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#eceeea" font-weight="600" text-anchor="start">d = 5</text>
+<text x="796.7" y="116.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="end">10,000 SERs/s</text>
+<line x1="493.3" y1="520.0" x2="796.7" y2="520.0" stroke="#454c45" stroke-width="1.0"/>
+<line x1="493.3" y1="425.0" x2="796.7" y2="425.0" stroke="#252a26" stroke-width="1.0"/>
+<line x1="493.3" y1="330.0" x2="796.7" y2="330.0" stroke="#252a26" stroke-width="1.0"/>
+<line x1="493.3" y1="235.0" x2="796.7" y2="235.0" stroke="#252a26" stroke-width="1.0"/>
+<line x1="493.3" y1="140.0" x2="796.7" y2="140.0" stroke="#252a26" stroke-width="1.0"/>
+<text x="493.3" y="550.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="middle">0</text>
+<text x="645.0" y="550.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="middle">5,000</text>
+<text x="796.7" y="550.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="middle">10,000</text>
+<polygon points="523.7,475.5 554.0,443.1 584.3,412.7 614.7,381.5 645.0,333.6 675.3,282.9 705.7,237.7 736.0,199.8 736.0,200.2 705.7,240.0 675.3,285.7 645.0,336.0 614.7,381.9 584.3,414.2 554.0,444.2 523.7,475.9" fill="#8a908a" fill-opacity="0.2"/>
+<polyline points="523.7,475.6 554.0,443.2 584.3,414.1 614.7,381.8 645.0,333.9 675.3,285.4 705.7,239.6 736.0,199.9" fill="none" stroke="#8a908a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="736.0" cy="199.9" r="5" fill="#8a908a" stroke="#0e100d" stroke-width="2"/>
+<text x="726.0" y="187.9" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#eceeea" font-weight="400" text-anchor="end">101 ms</text>
+<polygon points="523.7,515.2 554.0,504.5 584.3,511.7 614.7,509.2 645.0,509.1 675.3,515.3 705.7,510.1 736.0,505.6 736.0,516.0 705.7,515.9 675.3,516.0 645.0,514.0 614.7,516.0 584.3,516.3 554.0,511.6 523.7,516.3" fill="#66a300" fill-opacity="0.2"/>
+<polyline points="523.7,515.6 554.0,509.0 584.3,512.6 614.7,511.0 645.0,513.3 675.3,515.6 705.7,515.7 736.0,515.5" fill="none" stroke="#66a300" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="736.0" cy="515.5" r="5" fill="#66a300" stroke="#0e100d" stroke-width="2"/>
+<text x="726.0" y="503.5" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#eceeea" font-weight="400" text-anchor="end">1.4 ms</text>
+<text x="856.7" y="116.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#eceeea" font-weight="600" text-anchor="start">d = 7</text>
+<text x="1160.0" y="116.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="end">10,000 SERs/s</text>
+<line x1="856.7" y1="520.0" x2="1160.0" y2="520.0" stroke="#454c45" stroke-width="1.0"/>
+<line x1="856.7" y1="425.0" x2="1160.0" y2="425.0" stroke="#252a26" stroke-width="1.0"/>
+<line x1="856.7" y1="330.0" x2="1160.0" y2="330.0" stroke="#252a26" stroke-width="1.0"/>
+<line x1="856.7" y1="235.0" x2="1160.0" y2="235.0" stroke="#252a26" stroke-width="1.0"/>
+<line x1="856.7" y1="140.0" x2="1160.0" y2="140.0" stroke="#252a26" stroke-width="1.0"/>
+<text x="856.7" y="550.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="middle">0</text>
+<text x="1008.3" y="550.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="middle">5,000</text>
+<text x="1160.0" y="550.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#9aa19a" font-weight="400" text-anchor="middle">10,000</text>
+<polygon points="887.0,442.7 917.3,373.6 947.7,275.7 978.0,182.8 978.0,185.6 947.7,276.0 917.3,374.2 887.0,442.9" fill="#8a908a" fill-opacity="0.2"/>
+<polyline points="887.0,442.7 917.3,373.6 947.7,276.0 978.0,184.1" fill="none" stroke="#8a908a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="978.0" cy="184.1" r="5" fill="#8a908a" stroke="#0e100d" stroke-width="2"/>
+<text x="968.0" y="172.1" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#eceeea" font-weight="400" text-anchor="end">106 ms</text>
+<polygon points="887.0,513.4 917.3,501.5 947.7,506.5 978.0,509.4 978.0,515.7 947.7,513.0 917.3,513.1 887.0,517.0" fill="#66a300" fill-opacity="0.2"/>
+<polyline points="887.0,515.6 917.3,511.4 947.7,509.8 978.0,512.5" fill="none" stroke="#66a300" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="978.0" cy="512.5" r="5" fill="#66a300" stroke="#0e100d" stroke-width="2"/>
+<text x="968.0" y="500.5" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#eceeea" font-weight="400" text-anchor="end">2.4 ms</text>
+<text x="645.0" y="590.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="18" fill="#9aa19a" font-weight="400" text-anchor="middle">SERs per shot</text>
+</svg>

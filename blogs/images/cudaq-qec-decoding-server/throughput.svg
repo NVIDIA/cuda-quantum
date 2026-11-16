@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="1000" height="700" role="img" aria-labelledby="t d">
+<title id="t">Parallel-window decoder throughput versus windows in flight</title><desc id="d">Log-log plot of the SER rate the parallel-window decoder sustains in the Decoding Server against windows in flight, d=13 surface-code memory, physical FPGA input to a GB200. With Relay BP in each window, on one GPU, one window kept up at 3.2 kHz and fell behind at 10 kHz; the parallel-window condition predicts 9.1 kHz. With PyMatching in each window, 1, 2 and 4 windows kept up at 53.6, 98.3 and 157.0 kHz and fell behind at 58.5, 116.9 and 225.0 kHz; the condition predicts 49.2, 98.3 and 196.6 kHz. Reference lines mark about 1 kHz (trapped-ion and neutral-atom QPUs) and about 1 MHz (superconducting and spin-qubit QPUs).</desc>
+<rect width="1000" height="700" rx="18" fill="#0e100d"/>
+<text x="150.0" y="46.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#eceeea" font-weight="600" text-anchor="start">Parallel window: Relay BP or PyMatching in each window</text>
+<rect x="150.0" y="81.0" width="14.0" height="14.0" rx="3" fill="#66a300"/>
+<text x="172.0" y="94.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="start">Relay BP</text>
+<rect x="274.1" y="81.0" width="14.0" height="14.0" rx="3" fill="#3987e5"/>
+<text x="296.1" y="94.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="start">PyMatching</text>
+<rect x="416.2" y="76.0" width="10.0" height="24.0" rx="4" fill="#9aa19a"/>
+<text x="434.2" y="94.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="start">Measured: kept up to fell behind</text>
+<line x1="752.5" y1="88.0" x2="786.5" y2="88.0" stroke="#9aa19a" stroke-width="2" stroke-dasharray="6 5"/>
+<circle cx="769.5" cy="88.0" r="6" fill="#0e100d" stroke="#9aa19a" stroke-width="2.5"/>
+<text x="794.5" y="94.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="start">Predicted</text>
+<line x1="150.0" y1="558.4" x2="684.0" y2="558.4" stroke="#59615a" stroke-width="1.0"/>
+<text x="136.0" y="564.4" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="end">1 kHz</text>
+<line x1="150.0" y1="433.5" x2="670.0" y2="433.5" stroke="#252a26" stroke-width="1.0"/>
+<text x="136.0" y="439.5" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="end">10 kHz</text>
+<line x1="150.0" y1="308.5" x2="670.0" y2="308.5" stroke="#252a26" stroke-width="1.0"/>
+<text x="136.0" y="314.5" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="end">100 kHz</text>
+<line x1="150.0" y1="183.6" x2="684.0" y2="183.6" stroke="#59615a" stroke-width="1.0"/>
+<text x="136.0" y="189.6" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="end">1 MHz</text>
+<text x="692.0" y="179.6" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#eceeea" font-weight="600" text-anchor="start">About 1 MHz</text>
+<text x="692.0" y="202.6" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="start">superconducting and</text>
+<text x="692.0" y="221.6" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="start">spin-qubit QPUs</text>
+<text x="692.0" y="554.4" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#eceeea" font-weight="600" text-anchor="start">About 1 kHz</text>
+<text x="692.0" y="577.4" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="start">trapped-ion and</text>
+<text x="692.0" y="596.4" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="start">neutral-atom QPUs</text>
+<line x1="150.0" y1="596.0" x2="670.0" y2="596.0" stroke="#454c45" stroke-width="1.0"/>
+<text x="236.7" y="626.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="middle">1</text>
+<text x="410.0" y="626.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="middle">2</text>
+<text x="583.3" y="626.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#9aa19a" font-weight="400" text-anchor="middle">4</text>
+<text x="410.0" y="662.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="18" fill="#9aa19a" font-weight="400" text-anchor="middle">Windows in flight</text>
+<text x="44.0" y="371.0" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="18" fill="#9aa19a" font-weight="400" text-anchor="middle" transform="rotate(-90 44.0 371.0)">SER rate the server sustains</text>
+<polyline points="236.7,347.0 410.0,309.5 583.3,271.9" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5"/>
+<rect x="229.7" y="336.0" width="14.0" height="8.0" rx="4" fill="#3987e5"/>
+<rect x="403.0" y="300.1" width="14.0" height="9.4" rx="4" fill="#3987e5"/>
+<rect x="576.3" y="264.5" width="14.0" height="19.5" rx="4" fill="#3987e5"/>
+<circle cx="236.7" cy="347.0" r="6" fill="#0e100d" stroke="#3987e5" stroke-width="2.5"/>
+<circle cx="410.0" cy="309.5" r="6" fill="#0e100d" stroke="#3987e5" stroke-width="2.5"/>
+<circle cx="583.3" cy="271.9" r="6" fill="#0e100d" stroke="#3987e5" stroke-width="2.5"/>
+<rect x="229.7" y="433.5" width="14.0" height="61.8" rx="4" fill="#66a300"/>
+<circle cx="236.7" cy="438.6" r="6" fill="#0e100d" stroke="#66a300" stroke-width="2.5"/>
+<text x="260.7" y="460.4" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="18" fill="#eceeea" font-weight="600" text-anchor="start">Relay BP, one GPU</text>
+<text x="260.7" y="483.4" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="start">kept up at 3.2 kHz</text>
+<text x="607.3" y="262.3" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="18" fill="#eceeea" font-weight="600" text-anchor="start">PyMatching</text>
+<text x="607.3" y="285.3" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#9aa19a" font-weight="400" text-anchor="start">kept up at 157 kHz</text>
+</svg>

@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 470" width="880" height="470" font-family="Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+  <title id="t">One QEC round with a decoder deadline</title>
+  <desc id="d">Ancilla readouts produce a syndrome that is sent to a GPU decoder. If the corrections arrive by the deadline, the controller applies them; otherwise it applies its own lookup table. An inset compares a 1.1 microsecond syndrome round, a 2.9 to 3.8 microsecond NVQLink round trip, and a 62 microsecond host loopback round trip on one scale.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4a4a4a"/>
+    </marker>
+    <marker id="arrowg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#76b900"/>
+    </marker>
+    <marker id="arrowr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b0b0b0"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="880" height="470" fill="#ffffff"/>
+
+  <!-- lane labels -->
+  <g font-size="14" fill="#1a1a1a" font-weight="bold">
+    <text x="20" y="64">Ancillas</text>
+    <text x="20" y="134">Controller</text>
+    <text x="20" y="204">GPU decoder</text>
+    <text x="20" y="274">Data qubits</text>
+  </g>
+  <g stroke="#e3e3e3" stroke-width="1">
+    <line x1="130" y1="58" x2="860" y2="58"/>
+    <line x1="130" y1="128" x2="860" y2="128"/>
+    <line x1="130" y1="198" x2="860" y2="198"/>
+    <line x1="130" y1="268" x2="860" y2="268"/>
+  </g>
+
+  <!-- syndrome readout -->
+  <rect x="140" y="42" width="150" height="32" rx="4" fill="#dbe9f6" stroke="#4a7fb5"/>
+  <text x="215" y="63" font-size="13" text-anchor="middle" fill="#1a1a1a">readout s0, s1</text>
+
+  <!-- enqueue -->
+  <rect x="295" y="114" width="130" height="28" rx="4" fill="#f2f2f2" stroke="#8a8a8a"/>
+  <text x="360" y="133" font-size="12" text-anchor="middle" fill="#1a1a1a" font-family="Menlo, Consolas, monospace">enqueue_syndromes</text>
+  <line x1="290" y1="74" x2="310" y2="112" stroke="#4a4a4a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="360" y1="142" x2="385" y2="184" stroke="#4a4a4a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- decode -->
+  <rect x="390" y="184" width="195" height="28" rx="4" fill="#eaf5d3" stroke="#76b900"/>
+  <text x="487" y="203" font-size="13" text-anchor="middle" fill="#1a1a1a">decode (CUDA-Q QEC)</text>
+
+  <!-- deadline -->
+  <line x1="640" y1="30" x2="640" y2="300" stroke="#c0392b" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="640" y="24" font-size="13" text-anchor="middle" fill="#c0392b" font-weight="bold">deadline</text>
+
+  <!-- in-time answer -->
+  <line x1="585" y1="190" x2="632" y2="142" stroke="#76b900" stroke-width="2" marker-end="url(#arrowg)"/>
+  <text x="566" y="166" font-size="12" fill="#4f7a00" text-anchor="end">answer in time</text>
+
+  <!-- late answer -->
+  <line x1="712" y1="206" x2="800" y2="206" stroke="#b0b0b0" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="712" y="224" font-size="11.5" fill="#8a8a8a">a late answer goes unused</text>
+
+  <!-- controller decision -->
+  <rect x="648" y="108" width="210" height="40" rx="4" fill="#ffffff" stroke="#1a1a1a"/>
+  <text x="753" y="125" font-size="12" text-anchor="middle" fill="#1a1a1a">in time: the decoder&#8217;s correction</text>
+  <text x="753" y="141" font-size="12" text-anchor="middle" fill="#1a1a1a">late: lookup table on the controller</text>
+
+  <!-- correction pulse -->
+  <line x1="700" y1="148" x2="700" y2="250" stroke="#4a4a4a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="680" y="254" width="40" height="28" rx="4" fill="#76b900"/>
+  <text x="700" y="273" font-size="14" text-anchor="middle" fill="#ffffff" font-weight="bold">X</text>
+  <text x="728" y="273" font-size="12" fill="#1a1a1a">on the flipped qubit</text>
+
+  <text x="140" y="314" font-size="11.5" fill="#6b6b6b">Schematic, not to scale. The deadline is a kernel parameter: get_corrections.submit(0, 3, False), then request.result(timeout=...)</text>
+
+  <!-- inset: to scale, x = 240 + 7.5 * microseconds (0 us at 240, 80 us at 840) -->
+  <rect x="20" y="332" width="840" height="124" rx="6" fill="#fafafa" stroke="#e0e0e0"/>
+  <text x="36" y="358" font-size="13.5" fill="#1a1a1a" font-weight="bold">To scale</text>
+  <g stroke="#d0d0d0" stroke-width="1">
+    <line x1="240" y1="366" x2="240" y2="446"/>
+    <line x1="390" y1="366" x2="390" y2="446" stroke-dasharray="2 3"/>
+    <line x1="540" y1="366" x2="540" y2="446" stroke-dasharray="2 3"/>
+    <line x1="690" y1="366" x2="690" y2="446" stroke-dasharray="2 3"/>
+    <line x1="840" y1="366" x2="840" y2="446" stroke-dasharray="2 3"/>
+  </g>
+  <g font-size="10.5" fill="#8a8a8a" text-anchor="middle">
+    <text x="240" y="360">0</text>
+    <text x="390" y="360">20</text>
+    <text x="540" y="360">40</text>
+    <text x="690" y="360">60</text>
+    <text x="840" y="360">80 &#181;s</text>
+  </g>
+  <g font-size="12.5" fill="#1a1a1a">
+    <text x="36" y="385">Syndrome round</text>
+    <rect x="240" y="374" width="8.25" height="14" fill="#4a7fb5"/>
+    <text x="256" y="386">1.1 &#181;s (Krinner et al., 2022)</text>
+
+    <text x="36" y="411">NVQLink round trip</text>
+    <rect x="240" y="400" width="21.75" height="14" fill="#76b900" opacity="0.45"/>
+    <rect x="240" y="400" width="28.5" height="14" fill="none" stroke="#76b900"/>
+    <text x="276" y="412">2.9&#8211;3.8 &#181;s, FPGA &#8594; GPU &#8594; FPGA</text>
+
+    <text x="36" y="437">Host loopback (measured)</text>
+    <rect x="240" y="426" width="465" height="14" fill="#9a9a9a"/>
+    <rect x="705" y="426" width="97.5" height="14" fill="none" stroke="#9a9a9a" stroke-dasharray="3 2"/>
+    <text x="250" y="437" fill="#ffffff">~62 &#181;s typical, through the OS network stack</text>
+    <text x="809" y="437" font-size="11" fill="#6b6b6b">75 &#181;s</text>
+    <text x="809" y="451" font-size="10" fill="#8a8a8a">p99.9</text>
+  </g>
+</svg>

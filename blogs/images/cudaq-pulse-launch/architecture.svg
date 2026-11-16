@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 770" width="1600" height="770" role="img" aria-labelledby="t d">
+<title id="t">How CUDA-Q Pulse handles a program</title><desc id="d">Python kernels are captured: their bytecode is read once into a compact Pulse MLIR program of pulses, waits, measurements and calls. The compiler checks it, folds phase shifts into later pulses, merges back-to-back pulses, then applies region-aware ALAP scheduling. The same program can then be simulated on NVIDIA GPUs with cuDensityMat, run on hardware through a control system's backend, or call @pulse.classical functions on a GPU over NVQLink, a host, or an FPGA.</desc>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9aa19a"/></marker>
+  <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#76b900"/></marker>
+  <marker id="arra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f5b324"/></marker>
+  <radialGradient id="glow" cx="78%" cy="45%" r="60%"><stop offset="0" stop-color="#76b900" stop-opacity="0.16"/><stop offset="1" stop-color="#76b900" stop-opacity="0"/></radialGradient>
+  <pattern id="hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="12" stroke="#f5b324" stroke-opacity="0.45" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="770" rx="18" fill="#0e100d"/>
+<rect x="50" y="70" width="300" height="170" rx="14" fill="#17191a" stroke="#2c3030" stroke-width="2" />
+<text x="74" y="118" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" fill="#eceeea" font-weight="700" text-anchor="start" >Python</text>
+<text x="74" y="165" font-family="'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#a4e22c" font-weight="400" text-anchor="start" >@pulse.kernel</text>
+<text x="74" y="199" font-family="'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20" fill="#a4e22c" font-weight="400" text-anchor="start" >@pulse.classical</text>
+<line x1="356" y1="155.0" x2="384" y2="155.0" stroke="#9aa19a" stroke-width="2.5" marker-end="url(#arr)"/>
+<rect x="390" y="70" width="300" height="170" rx="14" fill="#17191a" stroke="#2c3030" stroke-width="2" />
+<text x="414" y="118" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" fill="#eceeea" font-weight="700" text-anchor="start" >Capture</text>
+<text x="414" y="165" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start" >Bytecode is read once</text>
+<text x="414" y="199" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start" >into a compact program</text>
+<line x1="696" y1="155.0" x2="724" y2="155.0" stroke="#9aa19a" stroke-width="2.5" marker-end="url(#arr)"/>
+<rect x="730" y="70" width="360" height="170" rx="14" fill="#15200a" stroke="#76b900" stroke-width="2.5" />
+<text x="754" y="118" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" fill="#76b900" font-weight="700" text-anchor="start" >Pulse MLIR</text>
+<text x="754" y="160" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start" >Pulses, waits, measurements</text>
+<text x="754" y="190" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start" >and calls during quantum</text>
+<text x="754" y="220" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start" >runtime, as one program</text>
+<line x1="1096" y1="155.0" x2="1124" y2="155.0" stroke="#9aa19a" stroke-width="2.5" marker-end="url(#arr)"/>
+<rect x="1130" y="70" width="380" height="170" rx="14" fill="#17191a" stroke="#2c3030" stroke-width="2" />
+<text x="1154" y="118" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" fill="#eceeea" font-weight="700" text-anchor="start" >Compile</text>
+<text x="1154" y="156" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start" >Checks, folds phase shifts into later</text>
+<text x="1154" y="186" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start" >pulses, merges back-to-back pulses,</text>
+<text x="1154" y="216" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#9aa19a" font-weight="400" text-anchor="start" >then region-aware ALAP scheduling</text>
+<path d="M1320.0,240 L1320.0,330" stroke="#9aa19a" stroke-width="2.5" fill="none"/>
+<line x1="260" y1="330" x2="1320.0" y2="330" stroke="#9aa19a" stroke-width="2.5" />
+<text x="800" y="316" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="middle" >one compiled program, three destinations</text>
+<line x1="295.0" y1="330" x2="295.0" y2="380" stroke="#9aa19a" stroke-width="2.5" marker-end="url(#arr)"/>
+<rect x="60" y="390" width="470" height="290" rx="14" fill="#17191a" stroke="#76b900" stroke-width="2.5" />
+<rect x="60" y="390" width="470" height="8" rx="4" fill="#76b900"/>
+<text x="88" y="450" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="27" fill="#eceeea" font-weight="700" text-anchor="start" >Simulate</text>
+<text x="88" y="498" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="start" >On NVIDIA GPUs with cuDensityMat</text>
+<text x="88" y="594" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="start" >Test against physics models,</text>
+<text x="88" y="626" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="start" >such as a 17-qubit surface code</text>
+<line x1="800.0" y1="330" x2="800.0" y2="380" stroke="#9aa19a" stroke-width="2.5" marker-end="url(#arr)"/>
+<rect x="565" y="390" width="470" height="290" rx="14" fill="#17191a" stroke="#7cc4ff" stroke-width="2.5" />
+<rect x="565" y="390" width="470" height="8" rx="4" fill="#7cc4ff"/>
+<text x="593" y="450" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="27" fill="#eceeea" font-weight="700" text-anchor="start" >Run on hardware</text>
+<text x="593" y="498" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="start" >A control system's backend turns</text>
+<text x="593" y="530" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="start" >the program into its own instructions</text>
+<text x="593" y="594" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="start" >Pulses, waits, loops, and branches</text>
+<text x="593" y="626" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="start" >on measurement results</text>
+<line x1="1305.0" y1="330" x2="1305.0" y2="380" stroke="#9aa19a" stroke-width="2.5" marker-end="url(#arr)"/>
+<rect x="1070" y="390" width="470" height="290" rx="14" fill="#17191a" stroke="#f5b324" stroke-width="2.5" />
+<rect x="1070" y="390" width="470" height="8" rx="4" fill="#f5b324"/>
+<text x="1098" y="450" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="27" fill="#eceeea" font-weight="700" text-anchor="start" >Real-time classical</text>
+<text x="1098" y="498" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="start" >Runs @pulse.classical functions</text>
+<text x="1098" y="530" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="start" >on a GPU over NVQLink, host, or FPGA</text>
+<text x="1098" y="594" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="start" >Typed data layout and a hard</text>
+<text x="1098" y="626" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9aa19a" font-weight="400" text-anchor="start" >deadline for every call</text>
+<text x="800" y="738" font-family="'NVIDIA Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19" fill="#5c635c" font-weight="400" text-anchor="middle" >The program is open: you can read it, test it, and hand it to another tool.</text>
+</svg>

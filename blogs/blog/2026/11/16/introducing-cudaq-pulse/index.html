@@ -1,0 +1,2674 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Quantum blog">
+      
+      
+      
+        <link rel="canonical" href="http://www.example.com/blog/2026/11/16/introducing-cudaq-pulse/">
+      
+      
+        <link rel="prev" href="../cudaq-qec-decoding-server/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Introducing CUDA-Q Pulse: Python-native pulse programming with GPUs in the loop - NVIDIA Quantum</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../stylesheets/color-scheme.css">
+    
+      <link rel="stylesheet" href="../../../../../stylesheets/custom-material.css">
+    
+      <link rel="stylesheet" href="../../../../../stylesheets/fonts.css">
+    
+    <script>__md_scope=new URL("../../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="light" data-md-color-primary="custom" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#introducing-cuda-q-pulse-python-native-pulse-programming-with-gpus-in-the-loop" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../../../.." title="NVIDIA Quantum" class="md-header__button md-logo" aria-label="NVIDIA Quantum" data-md-component="logo">
+      <img id="logo_dark_mode" src="../../../../../assets/images/NVIDIA-Logo-Black.svg" alt="logo">
+<img id="logo_light_mode" src="../../../../../assets/images/NVIDIA-Logo-White.svg" alt="logo">
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NVIDIA Quantum
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Introducing CUDA-Q Pulse: Python-native pulse programming with GPUs in the loop
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="light" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="dark" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/NVIDIA/cudaq-apps" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../../.." title="NVIDIA Quantum" class="md-nav__button md-logo" aria-label="NVIDIA Quantum" data-md-component="logo">
+      <img id="logo_dark_mode" src="../../../../../assets/images/NVIDIA-Logo-Black.svg" alt="logo">
+<img id="logo_light_mode" src="../../../../../assets/images/NVIDIA-Logo-White.svg" alt="logo">
+    </a>
+    NVIDIA Quantum
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/NVIDIA/cudaq-apps" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    November 2026
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Categories
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Categories
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/cuda-q/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CUDA-Q
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/nvqlink/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVQLink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/releases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authors
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Authors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/anthony-santana/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anthony Santana
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/shane-caldwell/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Shane Caldwell
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/chuck-ketcham/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chuck Ketcham
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/ben-howe/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ben Howe
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/adam-holmes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adam Holmes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/benedikt-kloss/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benedikt Kloss
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/nicola-pancotti/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nicola Pancotti
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/krysta-svore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Krysta Svore
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/scott-thornton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scott Thornton
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/sam-mcardle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sam McArdle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/sam-stanwyck/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sam Stanwyck
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/taylor-patti/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Taylor Lee Patti
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/paavai-pari/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paavai Pari
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/thomas-alexander/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Thomas Alexander
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/mitch-dzurick/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mitch Dzurick
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/grace-johnson/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Grace Johnson
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/tom-lubowe/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tom Lubowe
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/efrat-shabtai/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Efrat Shabtai
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/bettina-heim/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bettina Heim
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/nic-harrigan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nicholas Harrigan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/jinsung-kim/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Jin-Sung Kim
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/esperanza-cuenca-gomez/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Esperanza Cuenca-Gomez
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/linsey-rodenbach/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linsey Rodenbach
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/stefano-mensa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stefano Mensa
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/zohim-chandani/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zohim Chandani
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/thien-nguyen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Thien Nguyen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/bruno-schmitt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bruno Schmitt
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/elena-agostini/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Elena Agostini
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/corey-simpson/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Corey Simpson
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/jeffrey-bonde/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Jeffrey Bonde
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/tom-lassiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tom Lassiter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/moein-khazraee/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Moein Khazraee
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-pulses-and-why-this-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why pulses, and why this release
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-pulse-kernel-is-simple-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A pulse kernel is simple Python
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calling-a-gpu-in-the-middle-of-an-experiment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Calling a GPU in the middle of an experiment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#real-time-decoding-with-a-deadline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real-time decoding with a deadline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibration-as-one-program" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Calibration as one program
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-17-qubit-quantum-system-on-gpus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A 17-qubit quantum system on GPUs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiles-fast-enough-for-qec-scale-programs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compiles fast enough for QEC-scale programs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#under-the-hood" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Under the hood
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#get-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Get started
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../../../../" class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+                  <span class="md-ellipsis">
+                    Back to index
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+              <div class="md-post__authors md-typeset">
+                
+                  <div class="md-profile md-post__profile">
+                    <span class="md-author md-author--long">
+                      <img src="../../../../../author-images/anthony_headshot.jpg" alt="Anthony Santana">
+                    </span>
+                    <span class="md-profile__description">
+                      <strong>
+                        
+                          <a href="../../../../author/anthony-santana/">Anthony Santana</a>
+                        
+                      </strong>
+                      <br>
+                      Senior Research Architect
+                    </span>
+                  </div>
+                
+                  <div class="md-profile md-post__profile">
+                    <span class="md-author md-author--long">
+                      <img src="../../../../../author-images/shane_headshot.jpg" alt="Shane Caldwell">
+                    </span>
+                    <span class="md-profile__description">
+                      <strong>
+                        
+                          <a href="../../../../author/shane-caldwell/">Shane Caldwell</a>
+                        
+                      </strong>
+                      <br>
+                      Product Manager, NVQLink
+                    </span>
+                  </div>
+                
+              </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    Metadata
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5z"/></svg>
+                        <time datetime="2026-11-16 00:00:00+00:00" class="md-ellipsis">November 16, 2026</time>
+                      </div>
+                    </li>
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 13h1.5v2.82l2.44 1.41-.75 1.3L15 16.69zm4-5H5v11h4.67c-.43-.91-.67-1.93-.67-3a7 7 0 0 1 7-7c1.07 0 2.09.24 3 .67zM5 21a2 2 0 0 1-2-2V5c0-1.11.89-2 2-2h1V1h2v2h8V1h2v2h1a2 2 0 0 1 2 2v6.1c1.24 1.26 2 2.99 2 4.9a7 7 0 0 1-7 7c-1.91 0-3.64-.76-4.9-2zm11-9.85A4.85 4.85 0 0 0 11.15 16c0 2.68 2.17 4.85 4.85 4.85A4.85 4.85 0 0 0 20.85 16c0-2.68-2.17-4.85-4.85-4.85"/></svg>
+                          <time datetime="2026-11-16 00:00:00+00:00" class="md-ellipsis">November 16, 2026</time>
+                        </div>
+                      </li>
+                    
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3zm3 2 4 13 3-1-4-13zM5 5v13h3V5zM3 19v2h18v-2z"/></svg>
+                          <span class="md-ellipsis">
+                            in
+                            
+                              <a href="../../../../category/cuda-q/">CUDA-Q</a>, 
+                              <a href="../../../../category/releases/">Releases</a>, 
+                              <a href="../../../../category/nvqlink/">NVQLink</a></span>
+                        </div>
+                      </li>
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
+                          <span class="md-ellipsis">
+                            
+                              13 min read
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+            
+              <ul class="md-post__meta md-nav__list">
+                <li class="md-nav__item md-nav__item--section">
+                  <div class="md-post__title">
+                    <span class="md-ellipsis">
+                      Related links
+                    </span>
+                  </div>
+                  <nav class="md-nav">
+                    <ul class="md-nav__list">
+                      
+                        
+                        
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Homepage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                      
+                        
+                        
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                      
+                        
+                        
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__ref_3" >
+        
+          
+          <label class="md-nav__link" for="__ref_3" id="__ref_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    External links
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__ref_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__ref_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    External links
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/NVIDIA/cudaq-pulse" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CUDA-Q Pulse GitHub
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/NVIDIA/cuda-quantum" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CUDA-Q GitHub
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://arxiv.org/abs/2510.25213" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVQLink whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+                      
+                    </ul>
+                  </nav>
+                </li>
+              </ul>
+            
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      
+        
+  
+
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <a href="../../../../tags/#tag:calibration" class="md-tag">Calibration</a>
+      
+    
+      
+      
+      
+      
+        <a href="../../../../tags/#tag:nvqlink" class="md-tag">NVQLink</a>
+      
+    
+      
+      
+      
+      
+        <a href="../../../../tags/#tag:pulse" class="md-tag">Pulse</a>
+      
+    
+      
+      
+      
+      
+        <a href="../../../../tags/#tag:realtime" class="md-tag">Realtime</a>
+      
+    
+      
+      
+      
+      
+        <a href="../../../../tags/#tag:simulation" class="md-tag">Simulation</a>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="introducing-cuda-q-pulse-python-native-pulse-programming-with-gpus-in-the-loop">Introducing CUDA-Q Pulse: Python-native pulse programming with GPUs in the loop</h1>
+<p>Gates are the currency of quantum applications. But every quantum gate is a convenient abstraction, representing a shaped microwave or laser pulse executing across a control line with nanosecond precision.
+Calibration, quantum error correction (QEC), and device bring-up all happen at that deeper layer, and very often crafting and operating with those pulses requires GPU calculations to make fast decisions <em>during</em> quantum runtime.</p>
+<p>Today we're releasing <strong>CUDA-Q Pulse</strong> (<code>cudaq-pulse</code>), an open-source pulse-level programming model and MLIR compiler.
+This new addition to the NVIDIA quantum platform allows users to write pulse programs in ordinary Python and call classical functions on a GPU, host, or FPGA in the middle of the experiment. It can work within explicit latency budgets, and simulate the whole loop involved in pulse programming with NVIDIA cuDensityMat before running it on quantum hardware.</p>
+<figure>
+  <img alt="CUDA-Q Pulse: a Python kernel calls a GPU decoder during quantum runtime and uses the answer to condition the next pulse" src="../../../../../images/cudaq-pulse-launch/hero.svg" />
+</figure>
+<!-- more -->
+
+<h2 id="why-pulses-and-why-this-release">Why pulses, and why this release</h2>
+<p>Gate-level frameworks give algorithm developers a clean interface.
+But the work that makes a quantum processor (QPU) function, such as tuning a π pulse, tracking a drifting T1, echoing away crosstalk, or choosing an action before the next quantum error correction round, is written in terms of control lines, tones and waveforms.
+Until now that code has mostly lived in sequencer languages tied to one control system - making it hard to share or simulate.</p>
+<p>The classical side of that loop is also becoming increasingly demanding.
+Adaptive calibration runs a Bayesian estimator between shots.
+Real-time QEC needs a decoder to answer before the next syndrome round.
+<a href="https://arxiv.org/abs/2510.25213">NVQLink</a> gives QPUs access to GPUs with microsecond latency, and <a href="../../../03/16/launching-cudaq-realtime/"><code>cudaq-realtime</code></a> provides the runtime for those calls.
+CUDA-Q Pulse adds the programming model, a single Python source that describes the pulses, the measurements, and the classical calls between them, compiled to an open MLIR representation that any control system can utilize.</p>
+<div class="grid cards">
+<ul>
+<li>
+<p><strong>Python-native kernels</strong></p>
+<hr />
+<p><code>@pulse.kernel</code> functions are ordinary Python, with loops, comprehensions, <code>*qudits</code>, helpers, and direct calls.
+They trace to a typed MLIR pulse dialect in milliseconds.</p>
+</li>
+<li>
+<p><strong>Real-time classical calls</strong></p>
+<hr />
+<p><code>@pulse.classical</code> declares a function the pulse program calls during quantum runtime, with a typed data layout and a latency budget.
+The scheduler treats it like any other operation.</p>
+</li>
+<li>
+<p><strong>CPU and GPU simulation</strong></p>
+<hr />
+<p>The same kernel runs on a NumPy reference simulator or lowers through an operator dialect to NVIDIA cuDensityMat, so you can run full pulse routines against a physics model of a quantum system, including a 17-qubit surface-code processor from the literature.</p>
+</li>
+<li>
+<p><strong>Open, hardware-agnostic IR</strong></p>
+<hr />
+<p>Pulses, waits, syncs, loops, and measurement-conditioned branches compile to MLIR and, through <code>export_to_controller()</code>, to a versioned program that control-system vendors can lower to their own sequencers, with no dependency on <code>cudaq-realtime</code>.</p>
+</li>
+</ul>
+</div>
+<p>CUDA-Q Pulse ships as pip-installable wheels covering Python 3.12 through free-threaded Python 3.14t, with CUDA 12 and CUDA 13 GPU simulation on Linux through the <code>[cu12]</code> and <code>[cu13]</code> extras.</p>
+<div class="admonition note">
+<p class="admonition-title">Experimental release</p>
+<p>CUDA-Q Pulse is currently an experimental, standalone release that's separate from the CUDA-Q product.
+APIs may change between versions as we work with the community.
+We want your feedback in <a href="https://github.com/NVIDIA/cudaq-pulse">GitHub issues</a>.</p>
+</div>
+<h2 id="a-pulse-kernel-is-simple-python">A pulse kernel is simple Python</h2>
+<p>A kernel works with a small set of physical resources.
+<strong>Lines</strong> carry signals to and from a qubit, and <strong>tones</strong> hold the frequency and phase that a line operates at.
+Inside the kernel, a handful of operations do the work: <code>drive</code>, <code>readout</code>, <code>wait</code>, <code>sync</code>, and phase and frequency updates on tones.
+Waveforms like <code>gaussian</code>, <code>drag</code>, and <code>square</code> are values you can build and pass to other functions - as shown in the below example.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq_pulse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pulse</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nd">@pulse</span><span class="o">.</span><span class="n">kernel</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">rabi</span><span class="p">(</span><span class="n">qudit</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">d</span> <span class="o">=</span> <span class="n">get_drive_line</span><span class="p">(</span><span class="n">qudit</span><span class="p">)</span>     <span class="c1"># the line that drives the qudit</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">r</span> <span class="o">=</span> <span class="n">get_readout_line</span><span class="p">(</span><span class="n">qudit</span><span class="p">)</span>   <span class="c1"># the line that reads it out</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">drive</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">gaussian</span><span class="p">(</span><span class="n">duration</span><span class="o">=</span><span class="mi">32</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="n">amplitude</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mi">8</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ns</span><span class="p">))</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">sync</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>                    <span class="c1"># start the readout after the drive pulse ends</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="k">return</span> <span class="n">readout</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">square</span><span class="p">(</span><span class="mi">300</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">))</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">qs</span> <span class="o">=</span> <span class="n">pulse</span><span class="o">.</span><span class="n">quantum_system</span><span class="p">(</span><span class="s2">"transmon_surface17"</span><span class="p">)</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">q</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">qudits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="c1"># Sweep the drive amplitude. A float argument stays symbolic, so this compiles once.</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="k">for</span> <span class="n">amplitude</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.04</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.16</span><span class="p">]:</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">pulse</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">rabi</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">)</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">p1</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">level_population</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>   <span class="c1"># excited-state population: 0.15, 0.65, 0.96</span>
+</span></code></pre></div>
+<p>Calling <code>rabi(q, 0.16)</code> is an ordinary Python call.
+The first call traces the function's bytecode into the Pulse MLIR dialect, compiles it, and runs it on the selected quantum system.
+Each specialization is cached, so repeat calls skip compilation.</p>
+<p>We spent much of this release making kernels read like standard Python.
+Comprehensions, generator expressions, starred unpacking, <code>*qudits</code> parameters, methods, and decorated helpers all trace.
+Here's a Ramsey sequence across every qubit on a 17-qubit device:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@pulse</span><span class="o">.</span><span class="n">kernel</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">parallel_ramsey</span><span class="p">(</span><span class="n">qudits</span><span class="p">,</span> <span class="n">tau</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">qudits</span><span class="p">:</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="n">d</span> <span class="o">=</span> <span class="n">get_drive_line</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="n">x90</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get_calibration</span><span class="p">(</span><span class="n">pulse</span><span class="o">.</span><span class="n">gates</span><span class="o">.</span><span class="n">X90</span><span class="p">)</span>   <span class="c1"># this line's calibrated π/2 pulse</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">drive</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">x90</span><span class="p">)</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="n">wait</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">tau</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ns</span><span class="p">)</span>                    <span class="c1"># free evolution for tau</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="n">drive</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">x90</span><span class="p">)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">scheduled</span> <span class="o">=</span> <span class="n">parallel_ramsey</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="n">qs</span><span class="o">.</span><span class="n">qudits</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">17</span><span class="p">],</span> <span class="mf">200.0</span><span class="p">)</span>   <span class="c1"># compile and schedule all 17</span>
+</span></code></pre></div>
+<p>When something can't trace, the error names your file and line and tells you what to write instead.
+A <code>python -m cudaq_pulse.doctor --setup-editor</code> command and a mypy plugin clear editor warnings on bare kernel operations such as <code>drive</code> and <code>readout</code>, and the command writes that configuration for you when you confirm.</p>
+<h2 id="calling-a-gpu-in-the-middle-of-an-experiment">Calling a GPU in the middle of an experiment</h2>
+<p>Many of the most valuable control loops need a classical answer during the middle of an experiment.
+A decoder may need to report whether a syndrome indicated an error, or an estimator may need to pick the next wait from what was just measured.
+CUDA-Q Pulse adds a classical dialect so a pulse program can call a function on the controller or a GPU during quantum runtime and use the answer immediately.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq_pulse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pulse</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># A function that runs on a GPU while the qubits wait. Its answer comes back</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># within 3.8 us of the request. In simulation, this Python body gives the answer.</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nd">@pulse</span><span class="o">.</span><span class="n">classical</span><span class="p">(</span><span class="n">link</span><span class="o">=</span><span class="s2">"gpu"</span><span class="p">,</span> <span class="n">max_latency_ns</span><span class="o">=</span><span class="mi">3_800</span><span class="p">)</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="n">syndrome</span><span class="p">:</span> <span class="n">pulse</span><span class="o">.</span><span class="n">Bits</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">syndrome</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="nd">@pulse</span><span class="o">.</span><span class="n">kernel</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="k">def</span><span class="w"> </span><span class="nf">feedback_and_adapt</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">d</span> <span class="o">=</span> <span class="n">get_drive_line</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="n">r</span> <span class="o">=</span> <span class="n">get_readout_line</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    <span class="n">pi_pulse</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get_calibration</span><span class="p">(</span><span class="n">pulse</span><span class="o">.</span><span class="n">gates</span><span class="o">.</span><span class="n">X</span><span class="p">)</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="n">outcome</span> <span class="o">=</span> <span class="n">readout</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">square</span><span class="p">(</span><span class="mi">300</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">))</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    <span class="c1"># Ask the decoder, waiting at most 4 us. If it's late, use the raw outcome.</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    <span class="n">request</span> <span class="o">=</span> <span class="n">decode</span><span class="o">.</span><span class="n">submit</span><span class="p">([</span><span class="n">outcome</span><span class="p">])</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    <span class="n">in_time</span><span class="p">,</span> <span class="n">flip</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">4</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">us</span><span class="p">)</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    <span class="n">correct</span> <span class="o">=</span> <span class="n">flip</span> <span class="k">if</span> <span class="n">in_time</span> <span class="k">else</span> <span class="n">outcome</span>
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    <span class="n">sync</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>    <span class="k">if</span> <span class="n">correct</span><span class="p">:</span>
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>        <span class="n">drive</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">pi_pulse</span><span class="p">)</span>
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>
+</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="c1"># The control system reaches the GPU over a link named "gpu" (NVQLink).</span>
+</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="n">control_system</span> <span class="o">=</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ControlSystem</span><span class="p">(</span><span class="n">links</span><span class="o">=</span><span class="p">{</span><span class="s2">"gpu"</span><span class="p">:</span> <span class="n">pulse</span><span class="o">.</span><span class="n">Link</span><span class="p">(</span><span class="n">feedback_ns</span><span class="o">=</span><span class="mi">50</span><span class="p">)})</span>
+</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="n">qs</span> <span class="o">=</span> <span class="n">pulse</span><span class="o">.</span><span class="n">quantum_system</span><span class="p">(</span><span class="s2">"transmon_surface17"</span><span class="p">)</span>
+</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="n">compiled</span> <span class="o">=</span> <span class="n">pulse</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">feedback_and_adapt</span><span class="p">,</span> <span class="n">control_system</span><span class="o">=</span><span class="n">control_system</span><span class="p">)</span>
+</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="n">scheduled</span> <span class="o">=</span> <span class="n">compiled</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="n">qs</span><span class="o">.</span><span class="n">qudits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="n">report</span> <span class="o">=</span> <span class="n">scheduled</span><span class="o">.</span><span class="n">classical_report</span><span class="p">()</span>   <span class="c1"># when each answer is due: decode, slack 0 ns</span>
+</span></code></pre></div>
+<p>The decoder's 3.8 µs latency follows FPGA-GPU-FPGA round trips over NVQLink, which measure 2.9–3.8 µs on an RTX PRO 6000 Blackwell host (<a href="../../../03/16/launching-cudaq-realtime/">details</a>).</p>
+<figure>
+  <img alt="Timeline of one shot showing readout, a classical decode call with a timeout, a conditional drive pulse, and a runtime-chosen wait" src="../../../../../images/cudaq-pulse-launch/realtime-timeline.svg" />
+<br />
+<figcaption><strong>Figure 1.</strong> One shot with real-time calls. The decoder's answer gates a conditional pulse, as in <code>feedback_and_adapt</code>, and an estimator sets a wait whose length is known only at runtime, as described in the calibration section below.</figcaption>
+</figure>
+<p>There are three points to note about this example:</p>
+<ul>
+<li>The call is a contract.
+  <code>@pulse.classical</code> records which function to call, the exact data layout going in and out, and a latency budget.
+  That's everything a control system needs to schedule the call and everything a GPU service needs to answer it.</li>
+<li>Late answers are handled explicitly.
+  <code>.result(timeout=...)</code> returns an in-time flag along with the value, so a kernel can fall back instead of stalling the QPU.</li>
+<li>Runtime values stay schedulable.
+  A wait whose length comes from an estimator, like the adaptive T1 tracker's below, carries <code>bounds</code>, so the scheduler can still reason about timing across lines.</li>
+</ul>
+<p>Underneath, this rests on mid-circuit measurement and control flow that survive from the Python trace, through region-aware scheduling, into our simulators.
+In simulation the Python body of each classical function runs.
+On hardware, the same declaration is what a control-system backend implements, whether the function runs on the controller's FPGA or on a GPU over NVQLink.
+It's also the hook for plugging <a href="https://nvidia.github.io/cudaq-qec/components/qec/index.html">CUDA-Q QEC</a> decoders into GPU-in-the-loop syndrome decoding.</p>
+<table>
+<thead>
+<tr>
+<th>Where the function body runs</th>
+<th>How it's declared</th>
+<th>What fits in the budget</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python, in simulation</td>
+<td>any <code>@pulse.classical</code> function</td>
+<td>Develop and test the full loop against a simulated quantum system</td>
+</tr>
+<tr>
+<td>Controller FPGA</td>
+<td>a link to the controller, such as <code>link="controller"</code></td>
+<td>Sub-microsecond updates, such as an estimator</td>
+</tr>
+<tr>
+<td>NVIDIA GPU over NVQLink</td>
+<td>a link to the GPU, such as <code>link="gpu"</code></td>
+<td>Microsecond-scale work such as QEC decoding and heavier estimators</td>
+</tr>
+</tbody>
+</table>
+<p>In this release, classical calls run end to end in simulation.
+Lowering them onto specific controllers and NVQLink transports will be available in a future release.</p>
+<h2 id="real-time-decoding-with-a-deadline">Real-time decoding with a deadline</h2>
+<p>QEC has demanding timing requirements.
+The 17-qubit processor modeled below ran its distance-3 surface-code cycle in 1.1 µs, then ran decoding, finally applying corrections in post-processing (<a href="https://www.nature.com/articles/s41586-022-04566-8">Krinner et al.</a>).
+In real-time operation however, a decoder has to produce answer while the qubits wait, and the program needs a plan for the shots when the decoder is late or unable to respond. </p>
+<p>Fast implementations of popular decoders are defined in <a href="https://nvidia.github.io/cudaq-qec/components/qec/index.html">CUDA-Q QEC</a> and a pulse program can call them as a CUDA-Q kernel does: <code>pulse.classical</code> takes CUDA-Q QEC's own real-time functions, <code>cudaq_qec.qec.enqueue_syndromes</code> and <code>get_corrections</code>, with a link and a latency budget.
+On hardware, their requests are the messages of CUDA-Q QEC's decoding server; in simulation, the decoder you configured answers them.
+As an example, here's one round of a distance-3 repetition code with CUDA-Q QEC's GPU decoder, <code>nv-qldpc-decoder</code> (belief propagation with ordered-statistics post-processing, BP+OSD). Note that reproducing this example requires a Linux system running Python 3.12 or 3.13 and connected to an NVIDIA GPU.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq_qec</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq_pulse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pulse</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Set up decoder 0 in CUDA-Q QEC: BP+OSD on the GPU for a distance-3</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># repetition code (2 syndrome bits in, 1 correction bit per data qubit out).</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">cudaq_qec</span><span class="o">.</span><span class="n">configure_decoders_from_str</span><span class="p">(</span><span class="s2">"""</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="s2">decoders:</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="s2">  - id: 0</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="s2">    type: nv-qldpc-decoder</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="s2">    block_size: 3</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="s2">    syndrome_size: 2</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="s2">    H_sparse: [0, 1, -1, 1, 2, -1]</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="s2">    O_sparse: [0, -1, 1, -1, 2, -1]</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="s2">    D_sparse: [0, -1, 1, -1]</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="s2">    decoder_custom_args:</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="s2">      error_rate_vec: [0.1, 0.1, 0.1]</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="s2">      use_sparsity: true</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="s2">      max_iterations: 50</span>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="s2">      use_osd: true</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="s2">      osd_method: 3</span>
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="s2">      osd_order: 7</span>
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="s2">"""</span><span class="p">)</span>
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>
+</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="c1"># CUDA-Q QEC's real-time calls, sent to the decoder over the GPU link.</span>
+</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="c1"># Corrections come back in about 62 us, and 75 us at worst.</span>
+</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="n">enqueue_syndromes</span> <span class="o">=</span> <span class="n">pulse</span><span class="o">.</span><span class="n">classical</span><span class="p">(</span><span class="n">cudaq_qec</span><span class="o">.</span><span class="n">qec</span><span class="o">.</span><span class="n">enqueue_syndromes</span><span class="p">,</span> <span class="n">link</span><span class="o">=</span><span class="s2">"gpu"</span><span class="p">)</span>
+</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="n">get_corrections</span> <span class="o">=</span> <span class="n">pulse</span><span class="o">.</span><span class="n">classical</span><span class="p">(</span><span class="n">cudaq_qec</span><span class="o">.</span><span class="n">qec</span><span class="o">.</span><span class="n">get_corrections</span><span class="p">,</span> <span class="n">link</span><span class="o">=</span><span class="s2">"gpu"</span><span class="p">,</span>
+</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>                                  <span class="n">nominal_latency_ns</span><span class="o">=</span><span class="mi">62_000</span><span class="p">,</span> <span class="n">max_latency_ns</span><span class="o">=</span><span class="mi">75_000</span><span class="p">)</span>
+</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>
+</span><span id="__span-3-32"><a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="nd">@pulse</span><span class="o">.</span><span class="n">kernel</span>
+</span><span id="__span-3-33"><a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="k">def</span><span class="w"> </span><span class="nf">qec_round</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ancillas</span><span class="p">,</span> <span class="n">deadline_ns</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span><span id="__span-3-34"><a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a>    <span class="c1"># ... syndrome-extraction pulses on data and ancillas go here ...</span>
+</span><span id="__span-3-35"><a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a>    <span class="c1"># Read out the two ancillas to get the syndrome.</span>
+</span><span id="__span-3-36"><a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a>    <span class="n">s0</span> <span class="o">=</span> <span class="n">readout</span><span class="p">(</span><span class="n">get_readout_line</span><span class="p">(</span><span class="n">ancillas</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">square</span><span class="p">(</span><span class="mi">400</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">))</span>
+</span><span id="__span-3-37"><a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a>    <span class="n">s1</span> <span class="o">=</span> <span class="n">readout</span><span class="p">(</span><span class="n">get_readout_line</span><span class="p">(</span><span class="n">ancillas</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">square</span><span class="p">(</span><span class="mi">400</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">))</span>
+</span><span id="__span-3-38"><a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a>
+</span><span id="__span-3-39"><a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a>    <span class="c1"># Send the syndrome to decoder 0 (round 0), then wait for its</span>
+</span><span id="__span-3-40"><a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a>    <span class="c1"># 3 correction bits, but no longer than the deadline.</span>
+</span><span id="__span-3-41"><a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a>    <span class="n">enqueue_syndromes</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[</span><span class="n">s0</span><span class="p">,</span> <span class="n">s1</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-3-42"><a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a>    <span class="n">request</span> <span class="o">=</span> <span class="n">get_corrections</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+</span><span id="__span-3-43"><a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a>    <span class="n">in_time</span><span class="p">,</span> <span class="n">fix</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="n">deadline_ns</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ns</span><span class="p">)</span>
+</span><span id="__span-3-44"><a id="__codelineno-3-44" name="__codelineno-3-44" href="#__codelineno-3-44"></a>
+</span><span id="__span-3-45"><a id="__codelineno-3-45" name="__codelineno-3-45" href="#__codelineno-3-45"></a>    <span class="c1"># If the decoder is late, use a lookup table on the controller instead.</span>
+</span><span id="__span-3-46"><a id="__codelineno-3-46" name="__codelineno-3-46" href="#__codelineno-3-46"></a>    <span class="n">table</span> <span class="o">=</span> <span class="p">[</span><span class="n">s0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">s1</span><span class="p">,</span> <span class="n">s0</span> <span class="ow">and</span> <span class="n">s1</span><span class="p">,</span> <span class="n">s1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">s0</span><span class="p">]</span>
+</span><span id="__span-3-47"><a id="__codelineno-3-47" name="__codelineno-3-47" href="#__codelineno-3-47"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+</span><span id="__span-3-48"><a id="__codelineno-3-48" name="__codelineno-3-48" href="#__codelineno-3-48"></a>        <span class="n">flip</span> <span class="o">=</span> <span class="n">fix</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">in_time</span> <span class="k">else</span> <span class="n">table</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+</span><span id="__span-3-49"><a id="__codelineno-3-49" name="__codelineno-3-49" href="#__codelineno-3-49"></a>        <span class="k">if</span> <span class="n">flip</span><span class="p">:</span>
+</span><span id="__span-3-50"><a id="__codelineno-3-50" name="__codelineno-3-50" href="#__codelineno-3-50"></a>            <span class="n">drive</span><span class="p">(</span><span class="n">get_drive_line</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">square</span><span class="p">(</span><span class="mi">20</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">20</span><span class="p">))</span>   <span class="c1"># π pulse</span>
+</span></code></pre></div>
+<p>The kernel sends the syndrome, asks for corrections with a deadline, and keeps a lookup table on the controller for shots where the answer is late.
+The deadline is a kernel parameter, so you can trade waiting against falling back without editing the program.
+Compiling checks the timing before anything runs:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">qs</span> <span class="o">=</span> <span class="n">pulse</span><span class="o">.</span><span class="n">quantum_system</span><span class="p">(</span><span class="s2">"transmon_lattice:5"</span><span class="p">)</span>   <span class="c1"># five transmons</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">data</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">qudits</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">ancillas</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">qudits</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">5</span><span class="p">]</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">control_system</span> <span class="o">=</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ControlSystem</span><span class="p">(</span><span class="n">links</span><span class="o">=</span><span class="p">{</span><span class="s2">"gpu"</span><span class="p">:</span> <span class="n">pulse</span><span class="o">.</span><span class="n">Link</span><span class="p">(</span><span class="n">feedback_ns</span><span class="o">=</span><span class="mi">50</span><span class="p">)})</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">compiled</span> <span class="o">=</span> <span class="n">pulse</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">qec_round</span><span class="p">,</span> <span class="n">quantum_system</span><span class="o">=</span><span class="n">qs</span><span class="p">,</span> <span class="n">control_system</span><span class="o">=</span><span class="n">control_system</span><span class="p">)</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">scheduled</span> <span class="o">=</span> <span class="n">compiled</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ancillas</span><span class="p">,</span> <span class="mi">80_000</span><span class="p">)</span>   <span class="c1"># deadline: 80 us</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">report</span> <span class="o">=</span> <span class="n">scheduled</span><span class="o">.</span><span class="n">classical_report</span><span class="p">()</span>   <span class="c1"># get_corrections is due at 80.5 us</span>
+</span></code></pre></div>
+<p>In a simulation that starts from the state syndrome extraction leaves, every single-qubit error is corrected on the right qubit, by the decoder when it answers in time and by the table when it doesn't.
+<a href="https://github.com/NVIDIA/cudaq-pulse/blob/v0.1.0/examples/27_realtime_decoding.py"><code>examples/27_realtime_decoding.py</code></a> runs it end to end.</p>
+<figure>
+  <img alt="One QEC round: syndrome readout, a request to the GPU decoder, a deadline on the controller, and two arms that apply either the decoder's correction or the fallback table's" src="../../../../../images/cudaq-pulse-launch/qec-deadline.svg" />
+<br />
+<figcaption><strong>Figure 2.</strong> One round of <code>qec_round</code>. The correction pulse plays from the decoder's answer if it arrives by the deadline, or from the controller's lookup table if it doesn't.</figcaption>
+</figure>
+<p>The same messages also went to a real decoder.
+On a workstation with an NVIDIA RTX A6000 GPU, the CUDA-QX decoding server ran with <code>cudaq-realtime</code>, serving the same <code>nv-qldpc-decoder</code> configuration on the GPU, and CUDA-Q Pulse's syndrome messages connected to it with no changes.
+Over 5,000 shots, the server's corrections matched the local emulation exactly, and shots whose answer came back after the deadline took the fallback table.
+From sending the syndrome to receiving the correction, round trips took about 62 µs typically and 75 µs at the 99.9th percentile, the latency budget in the code above.
+Replaying those round trips in CUDA-Q Pulse's emulator, a deadline at the median sends 45% of shots to the fallback table, one at the 99th percentile 0.75%, and one at the 99.9th percentile 0.06%.</p>
+<p>Those numbers aren't a QPU's latency, and they are different from the 2.9–3.8 µs NVQLink round trips above.
+The test was host-to-GPU loopback: a process on the same machine sent each request over UDP through the operating system's network stack, and the server launched the decoder from the host.
+On NVQLink, requests travel from the controller's FPGA to the GPU without passing through the host's operating system.
+Loopback shows that the messages, corrections, and fallback logic are right; the hardware path brings the round trip down to a few syndrome rounds.</p>
+<h2 id="calibration-as-one-program">Calibration as one program</h2>
+<p>Calibration is where real-time classical control pays off first.
+Researchers track fluctuating qubit relaxation in real time with a Bayesian estimator (<a href="https://arxiv.org/abs/2506.09576">Berritta et al., <em>Phys. Rev. X</em> 16, 011025 (2026)</a>) and calibrate and benchmark superconducting qubits at millisecond scale (<a href="https://arxiv.org/abs/2602.11912">Marciniak et al., arXiv:2602.11912</a>).
+Both experiments run their estimators on the controller's FPGA, because the feedback loop has to close in microseconds.</p>
+<p>We implemented that protocol end to end in CUDA-Q Pulse.
+Characterization, estimation, parameter update, and pulse regeneration are a single program, with the estimators declared on the controller link.</p>
+<p>Here's the core of the adaptive T1 tracker.
+Each shot's wait comes from the previous shot's estimate, and the estimator has 500 ns to answer.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq_pulse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pulse</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cudaq_pulse.classical</span><span class="w"> </span><span class="kn">import</span> <span class="n">calibration</span> <span class="k">as</span> <span class="n">cal</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Berritta et al.'s Bayesian update of the T1 estimate (a gamma posterior over</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># 1/T1, with parameters shape and rate), which also picks the next wait.</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1"># It runs on the controller, within 500 ns.</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="nd">@pulse</span><span class="o">.</span><span class="n">classical</span><span class="p">(</span><span class="n">link</span><span class="o">=</span><span class="s2">"controller"</span><span class="p">,</span> <span class="n">max_latency_ns</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">update_t1</span><span class="p">(</span><span class="n">bit</span><span class="p">:</span> <span class="n">pulse</span><span class="o">.</span><span class="n">Bits</span><span class="p">,</span> <span class="n">shape</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>              <span class="n">wait_ns</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">shape</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">adaptive_t1_update</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">bit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">wait_ns</span><span class="p">,</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>                                         <span class="n">error_1to0</span><span class="o">=</span><span class="mf">0.11</span><span class="p">,</span> <span class="n">error_0to1</span><span class="o">=</span><span class="mf">0.14</span><span class="p">)</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">next_wait_ns</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">adaptive_t1_wait</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">rate</span><span class="p">)</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="n">next_wait_ns</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">next_wait_ns</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">),</span> <span class="mf">200_000.0</span><span class="p">)</span>   <span class="c1"># keep it in 100 ns to 200 us</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="k">return</span> <span class="n">shape</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">next_wait_ns</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="nd">@pulse</span><span class="o">.</span><span class="n">kernel</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="k">def</span><span class="w"> </span><span class="nf">track_t1</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">shots_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">shape</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">wait_ns</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="n">d</span> <span class="o">=</span> <span class="n">get_drive_line</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="n">r</span> <span class="o">=</span> <span class="n">get_readout_line</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>    <span class="n">pi_pulse</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get_calibration</span><span class="p">(</span><span class="n">pulse</span><span class="o">.</span><span class="n">gates</span><span class="o">.</span><span class="n">X</span><span class="p">)</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>    <span class="k">for</span> <span class="n">shot</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">shots_count</span><span class="p">):</span>     <span class="c1"># every shot adapts, inside one kernel</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>        <span class="n">drive</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">pi_pulse</span><span class="p">)</span>              <span class="c1"># excite, then let it decay for wait_ns</span>
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>        <span class="n">wait</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">wait_ns</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span> <span class="mi">200</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">us</span><span class="p">))</span>
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>        <span class="n">sync</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>        <span class="n">outcome</span> <span class="o">=</span> <span class="n">readout</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">square</span><span class="p">(</span><span class="mi">300</span> <span class="o">*</span> <span class="n">pulse</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">))</span>
+</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>        <span class="c1"># The controller updates the estimate and picks the next wait.</span>
+</span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>        <span class="n">shape</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">wait_ns</span> <span class="o">=</span> <span class="n">update_t1</span><span class="o">.</span><span class="n">submit</span><span class="p">([</span><span class="n">outcome</span><span class="p">],</span> <span class="n">shape</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">wait_ns</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+</span><span id="__span-5-28"><a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>        <span class="n">sync</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+</span><span id="__span-5-29"><a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>        <span class="k">if</span> <span class="n">outcome</span><span class="p">:</span>
+</span><span id="__span-5-30"><a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>            <span class="n">drive</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">pi_pulse</span><span class="p">)</span>          <span class="c1"># active reset</span>
+</span></code></pre></div>
+<figure>
+  <img alt="The adaptive loop of pi pulse, wait, readout, and Bayesian update, with a schematic of wait lengths changing from shot to shot" src="../../../../../images/cudaq-pulse-launch/adaptive-t1.svg" />
+<br />
+<figcaption><strong>Figure 3.</strong> Fifty adaptive shots in one kernel. The estimator on the controller updates its posterior after each readout and picks the next wait. The shot lengths on the right are schematic, not data.</figcaption>
+</figure>
+<p>We checked the tracker against the paper in simulation.
+On a model qubit with a T1 of 160 µs and the paper's assignment errors, 400 simulated runs of 50 adaptive shots gave a median estimate of 155 µs, with 68% of runs between 123 and 195 µs.
+Berritta et al. report 159 µs, with a 68% interval of 131 to 202 µs, on their processor.</p>
+<figure>
+  <img alt="Simulated T1 estimate over 50 adaptive shots. A shaded band, the uncertainty of a single run's estimate, narrows from about 97 to 328 µs around the starting guess of 150 µs to about 122 to 212 µs around the true T1 of 160 µs in the model. Five individual runs are drawn as thin lines. On the right, a histogram of the final estimates of 400 runs, with brackets comparing the simulated median of 155 µs and 68% range of 123 to 195 µs with Berritta et al.'s 159 µs and 68% interval of 131 to 202 µs" src="../../../../../images/cudaq-pulse-launch/adaptive-t1-estimates.svg" />
+<br />
+<figcaption><strong>Figure 4.</strong> The T1 estimate after each of 50 adaptive shots, in simulation. The uncertainty of a single run's estimate narrows from the starting guess to around the model's true T1. On the right, the final estimates of 400 runs beside Berritta et al.'s result.</figcaption>
+</figure>
+<p>The same structure covers the rest of the protocol; with another estimator or other pulses, the compiler schedules the new loop.
+Because the estimator is ordinary Python in simulation, you can develop and test it against a simulated quantum system before you lower it to a controller.</p>
+<h2 id="a-17-qubit-quantum-system-on-gpus">A 17-qubit quantum system on GPUs</h2>
+<p>To test programs like these without access to a physical QPU, CUDA-Q Pulse includes a physics model of the 17-qubit superconducting processor used to demonstrate repeated error correction in a distance-3 surface code (<a href="https://www.nature.com/articles/s41586-022-04566-8">Krinner et al., <em>Nature</em> 605, 669 (2022)</a>).
+The model accounts for exchange coupling, residual ZZ, thermal populations, and Hahn-echo dephasing, and it exposes fitted CZ parameters for all 24 coupled pairs.
+Flux pulses aren't simulated yet, so a program schedules each CZ as its calibrated time slot.</p>
+<figure>
+  <img alt="Layout of the 17-qubit surface-code quantum system with 9 data qubits, 8 ancillas, and 24 couplers, beside the list of modeled effects" src="../../../../../images/cudaq-pulse-launch/krinner-17q.svg" />
+<br />
+<figcaption><strong>Figure 5.</strong> The <code>transmon_surface17</code> quantum system. Pulse programs lower through the QOp operator dialect to cuDensityMat for GPU time evolution.</figcaption>
+</figure>
+<p>Selecting the quantum system requires only a single line of code, as used by most examples in this post:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq_pulse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pulse</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">qs</span> <span class="o">=</span> <span class="n">pulse</span><span class="o">.</span><span class="n">quantum_system</span><span class="p">(</span><span class="s2">"transmon_surface17"</span><span class="p">)</span>
+</span></code></pre></div>
+<p>When a kernel is simulated with <code>backend="gpu"</code>, the compiler lowers the Pulse dialect into Hamiltonian and Lindblad terms in the QOp dialect and maps those to NVIDIA cuDensityMat.
+The pulse program you simulate is the same one you'd hand to a control system.</p>
+<h2 id="compiles-fast-enough-for-qec-scale-programs">Compiles fast enough for QEC-scale programs</h2>
+<p>A pulse compiler for fault-tolerant systems has to keep up with large codes.
+The MLIR compiler in CUDA-Q Pulse handles them comfortably:</p>
+<table>
+<thead>
+<tr>
+<th>Program (one synthetic syndrome-extraction cycle)</th>
+<th>Size</th>
+<th>Compile time</th>
+<th>Peak memory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Distance-11 rotated surface code</td>
+<td>241 qubits, 2,401 pulse operations</td>
+<td>31 ms</td>
+<td>39 MB</td>
+</tr>
+<tr>
+<td>Distance-21 rotated surface code</td>
+<td>881 qubits, 9,201 pulse operations</td>
+<td>120 ms</td>
+<td>45 MB</td>
+</tr>
+<tr>
+<td>Distance-31 rotated surface code</td>
+<td>1,921 qubits, 20,401 pulse operations</td>
+<td>266 ms</td>
+<td>53 MB</td>
+</tr>
+<tr>
+<td>Distance-51 rotated surface code</td>
+<td>5,201 qubits, 56,001 pulse operations</td>
+<td>790 ms</td>
+<td>88 MB</td>
+</tr>
+<tr>
+<td>[[144,12,12]] bivariate bicycle (gross) code †</td>
+<td>288 qubits, 4,320 pulse operations</td>
+<td>54 ms</td>
+<td>41 MB</td>
+</tr>
+</tbody>
+</table>
+<p>† The gross-code benchmark ships in v0.1.1; the other rows reproduce with v0.1.0's <code>benchmarks/simulation/qec_scaling.py</code>.</p>
+<p>Each surface-code row comes from <code>benchmarks/simulation/qec_scaling.py --distances D --repeats 5</code>, run in its own process for each distance, without optimization passes, on an x86-64 Linux workstation (Python 3.12 and the v0.1.0 wheels, in the manylinux container the wheels are built in).
+The compile time is the median of five compiles, and the peak memory is that of the whole Python process; the repository's <a href="https://github.com/NVIDIA/cudaq-pulse/blob/v0.1.0/docs/performance.rst">performance notes</a> give the host, the version, and the run-to-run spread for distance 31.</p>
+<h2 id="under-the-hood">Under the hood</h2>
+<figure>
+  <img alt="CUDA-Q Pulse architecture: Python kernels go through Capture, Pulse MLIR, and Compile to three destinations: Simulate, Run on hardware, and Real-time classical" src="../../../../../images/cudaq-pulse-launch/architecture.svg" />
+<br />
+<figcaption><strong>Figure 6.</strong> One compiled program, three destinations.</figcaption>
+</figure>
+<p>The <code>@pulse.kernel</code> decorator captures the function's CPython bytecode.
+Tracing writes each operation into a compact packed buffer, which crosses into C++ in a single zero-copy call and becomes an in-memory MLIR module in the Pulse dialect.
+From there, MLIR passes verify the program, apply virtual-Z, fuse adjacent pulses, and schedule every operation as late as possible while respecting syncs and control-flow regions.</p>
+<p>The scheduled program can be directed to one of three endpoints:</p>
+<ul>
+<li>Simulation: the NumPy reference on any CPU, or Pulse → QOp → cuDensityMat on GPUs, for quantum systems like the 17-qubit one above.</li>
+<li>Control systems: a vendor backend takes the program from <code>export_to_controller()</code> (pulses, waits, syncs, loops, and measurement-conditioned branches) and emits code for its own sequencers.
+  CUDA-Q Pulse doesn't depend on <code>cudaq-realtime</code>, so backends can start with the pulse layer alone.</li>
+<li>Real-time classical functions: <code>@pulse.classical</code> calls become first-class operations in the IR, with their data layout and deadline attached.</li>
+</ul>
+<p>Each dialect performs a round-trip through parse and print, so MLIR from CUDA-Q Pulse is an artifact you can inspect and hand to another toolchain.
+Control-system teams that only need the compiler can run the dialects and passes on MLIR files with the <code>cudaq-pulse-opt</code> driver, which comes with the package.</p>
+<h2 id="get-started">Get started</h2>
+<p>To work with CUDA-Q Pulse, install from PyPI and run the examples:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>pip<span class="w"> </span>install<span class="w"> </span>cudaq-pulse<span class="w">            </span><span class="c1"># compiler and CPU simulation (Linux, macOS)</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"cudaq-pulse[cu13]"</span><span class="w">    </span><span class="c1"># plus GPU simulation with CUDA 13 (or [cu12])</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>python<span class="w"> </span>-m<span class="w"> </span>cudaq_pulse.doctor<span class="w">       </span><span class="c1"># what's installed, and whether GPU simulation works</span>
+</span></code></pre></div>
+<ul>
+<li>Explore the code.
+  The <a href="https://github.com/NVIDIA/cudaq-pulse">CUDA-Q Pulse repository</a> has numbered examples that run from a single-qubit Rabi experiment to GHZ state preparation.</li>
+<li>Build a backend.
+  If you build control systems, the controller export is the integration point.
+  Open an issue on <a href="https://github.com/NVIDIA/cudaq-pulse">GitHub</a> and tell us about your sequencer.</li>
+<li>Learn how to use CUDA-Q Pulse in real-time workflows by leveraging <a href="../../../03/16/launching-cudaq-realtime/"><code>cudaq-realtime</code></a> and <a href="https://arxiv.org/abs/2510.25213">NVQLink</a> to deliver microsecond GPU calls to the controller.</li>
+</ul>
+<hr />
+<p><a class="md-button" href="https://twitter.com/intent/tweet?text=Introducing%20CUDA-Q%20Pulse%3A%20Python-native%20pulse%20programming%20with%20GPUs%20in%20the%20loop%0A&amp;url=http://www.example.com/blog/2026/11/16/introducing-cudaq-pulse/">Share on <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg></span></a>
+<a class="md-button" href="https://www.facebook.com/sharer/sharer.php?u=http://www.example.com/blog/2026/11/16/introducing-cudaq-pulse/">Share on <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a9 9 0 0 1 1.141.195v3.325a9 9 0 0 0-.653-.036 27 27 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.7 1.7 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647"/></svg></span></a>
+<a class="md-button" href="https://www.linkedin.com/sharing/share-offsite/?text=Introducing%20CUDA-Q%20Pulse%3A%20Python-native%20pulse%20programming%20with%20GPUs%20in%20the%20loop%0A&amp;url=http://www.example.com/blog/2026/11/16/introducing-cudaq-pulse/">Share on LinkedIn</a></p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      © Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["navigation.indexes"], "search": "../../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="../../../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
