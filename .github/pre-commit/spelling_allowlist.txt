@@ -556,6 +556,7 @@ installable
 instantiation
 instantiations
 instrs
+integrations
 integrator
 integrators
 interferometer

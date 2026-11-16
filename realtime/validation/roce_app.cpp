@@ -19,12 +19,15 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
+#include <algorithm>
 #include <chrono>
 #include <csignal>
 #include <cstddef>
 #include <cstdint>
+#include <cudaTypedefs.h>
 #include <cuda_runtime.h>
 #include <iostream>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -56,6 +59,9 @@ struct Config {
   std::size_t page_size = 384;
   unsigned payload_size = 8; ///< RPC argument bytes, excluding the RPC header.
   std::vector<std::string> gpu_options; ///< GPU QP-exchange options to forward.
+  std::string dispatcher = "builtin"; ///< Unified GPU kernel: builtin or grid.
+  unsigned blocks = 0;     ///< Grid dispatcher blocks; 0 for one per SM.
+  bool blocks_set = false; ///< --blocks was given.
 };
 
 // Return false after printing help; invalid options throw before bridge setup.
@@ -88,6 +94,10 @@ bool parse_args(int argument_count, char **arguments, Config &config) {
           << "  --forward            Native bridge echo, no RPC dispatch\n"
           << "  --unified            Combined RX/dispatch/TX thread or kernel\n"
           << "                       Default: separate RX/dispatch/TX\n"
+          << "  --dispatcher=NAME    Unified GPU kernel: builtin or grid, a\n"
+          << "                       cooperative grid (default: builtin)\n"
+          << "  --blocks=N           Grid blocks; 0 uses the SM count "
+             "(default: 0)\n"
           << "  --exchange-qp        GPU provider TCP QP exchange\n"
           << "  --exchange-port=N    GPU QP exchange port (default: 12345)\n";
       return false;
@@ -115,7 +125,12 @@ bool parse_args(int argument_count, char **arguments, Config &config) {
       config.timeout = std::stoi(value);
     else if (key == "--threads")
       config.threads = std::stoul(value);
-    else if (argument == "--unified")
+    else if (key == "--dispatcher")
+      config.dispatcher = value;
+    else if (key == "--blocks") {
+      config.blocks = std::stoul(value);
+      config.blocks_set = true;
+    } else if (argument == "--unified")
       config.unified = true;
     else if (argument == "--forward")
       config.forward = true;
@@ -132,6 +147,12 @@ bool parse_args(int argument_count, char **arguments, Config &config) {
     throw std::runtime_error("--forward and --unified are mutually exclusive");
   if (config.cpu && !config.gpu_options.empty())
     throw std::runtime_error("TCP QP exchange options require --gpu");
+  if (config.dispatcher != "builtin" && config.dispatcher != "grid")
+    throw std::runtime_error("--dispatcher must be builtin or grid");
+  if (config.dispatcher == "grid" && (config.cpu || !config.unified))
+    throw std::runtime_error("--dispatcher=grid requires --gpu and --unified");
+  if (config.blocks_set && config.dispatcher != "grid")
+    throw std::runtime_error("--blocks requires --dispatcher=grid");
   if (config.timeout <= 0 || config.gpu < 0 || config.threads == 0 ||
       config.threads > 1024)
     throw std::runtime_error("Invalid timeout, GPU ID, or thread count");
@@ -147,6 +168,141 @@ bool parse_args(int argument_count, char **arguments, Config &config) {
 // Signal handlers only request a stop; cleanup stays on the main thread.
 volatile std::sig_atomic_t interrupted = 0;
 void on_signal(int) { interrupted = 1; }
+
+// roce_app also runs CPU validation, so it does not link libcuda: driver
+// functions come from the libcuda that the CUDA runtime opens.
+template <typename Function>
+Function driver_function(const char *name, int version) {
+  void *function = nullptr;
+  cudaDriverEntryPointQueryResult found = cudaDriverEntryPointSymbolNotFound;
+  HANDLE_CUDA_ERROR(cudaGetDriverEntryPointByVersion(
+      name, &function, version, cudaEnableDefault, &found));
+  if (found != cudaDriverEntryPointSuccess)
+    throw std::runtime_error(std::string("CUDA driver has no ") + name);
+  return reinterpret_cast<Function>(function);
+}
+
+void check_driver(CUresult result, const char *what) {
+  if (result == CUDA_SUCCESS)
+    return;
+  const char *message = nullptr;
+  driver_function<PFN_cuGetErrorString_v6000>("cuGetErrorString",
+                                              6000)(result, &message);
+  throw std::runtime_error(std::string("[cuda driver] ") +
+                           (message ? message : "unknown error") + " from " +
+                           what);
+}
+
+// The application-provided cooperative dispatcher (grid_dispatcher.cu). Its
+// launcher's type carries no user data, so the launch state lives here.
+struct GridDispatcher {
+  PFN_cuLaunchKernelEx_v11060 launch = nullptr;
+  CUfunction function = nullptr;
+  std::uint32_t blocks = 0;
+  std::uint32_t shared_bytes = 0;
+  std::uint32_t *sm_ids = nullptr; ///< Each block's SM, for the placement line.
+};
+GridDispatcher grid;
+
+cudaq_status_t launch_grid_dispatcher(void *transport_ctx, size_t tx_stride_sz,
+                                      cudaq_function_entry_t *function_table,
+                                      size_t func_count,
+                                      volatile int *shutdown_flag,
+                                      uint64_t *stats,
+                                      uint32_t threads_per_block,
+                                      cudaStream_t stream) {
+  void *args[] = {&transport_ctx,  &tx_stride_sz, &shutdown_flag,
+                  &function_table, &func_count,   &stats,
+                  &grid.sm_ids};
+  CUlaunchAttribute cooperative{};
+  cooperative.id = CU_LAUNCH_ATTRIBUTE_COOPERATIVE;
+  cooperative.value.cooperative = 1;
+  CUlaunchConfig launch{};
+  launch.gridDimX = grid.blocks;
+  launch.gridDimY = launch.gridDimZ = 1;
+  launch.blockDimX = threads_per_block;
+  launch.blockDimY = launch.blockDimZ = 1;
+  launch.sharedMemBytes = grid.shared_bytes;
+  launch.hStream = stream;
+  launch.attrs = &cooperative;
+  launch.numAttrs = 1;
+  const CUresult result = grid.launch(&launch, grid.function, args, nullptr);
+  if (result == CUDA_SUCCESS)
+    return CUDAQ_OK;
+  std::cerr << "ERROR: launching grid_dispatcher: CUresult " << result
+            << std::endl;
+  return CUDAQ_ERR_CUDA;
+}
+
+// Look up the kernel in the dispatcher's linked module, size its grid to one
+// resident block per SM and install its launcher. `sm_ids` receives the
+// placement buffer, which the caller frees.
+void configure_grid_dispatcher(cudaq_dispatcher_t *dispatcher, int device,
+                               std::uint32_t requested_blocks,
+                               std::uint32_t threads_per_block,
+                               std::uint32_t *&sm_ids) {
+  int cooperative = 0, sms = 0, shared_per_sm = 0, shared_per_block = 0;
+  HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(
+      &cooperative, cudaDevAttrCooperativeLaunch, device));
+  HANDLE_CUDA_ERROR(
+      cudaDeviceGetAttribute(&sms, cudaDevAttrMultiProcessorCount, device));
+  HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(
+      &shared_per_sm, cudaDevAttrMaxSharedMemoryPerMultiprocessor, device));
+  HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(
+      &shared_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin, device));
+  if (!cooperative || sms < 1)
+    throw std::runtime_error(
+        "grid_dispatcher needs cooperative launch support");
+
+  cudaKernel_t kernel = nullptr;
+  HANDLE_REALTIME_ERROR(cudaq_dispatcher_get_device_kernel(
+      dispatcher, "grid_dispatcher", &kernel));
+  check_driver(driver_function<PFN_cuKernelGetFunction_v12000>(
+                   "cuKernelGetFunction",
+                   12000)(&grid.function, reinterpret_cast<CUkernel>(kernel)),
+               "cuKernelGetFunction(grid_dispatcher)");
+  grid.launch =
+      driver_function<PFN_cuLaunchKernelEx_v11060>("cuLaunchKernelEx", 11060);
+
+  // Just over half an SM's shared memory per block keeps one block per SM.
+  const int requested_shared = shared_per_sm / 2 + 1024;
+  grid.shared_bytes =
+      static_cast<std::uint32_t>(std::min(requested_shared, shared_per_block));
+  check_driver(
+      driver_function<PFN_cuFuncSetAttribute_v9000>("cuFuncSetAttribute", 9000)(
+          grid.function, CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES,
+          static_cast<int>(grid.shared_bytes)),
+      "cuFuncSetAttribute(grid_dispatcher)");
+
+  int blocks_per_sm = 0;
+  check_driver(
+      driver_function<PFN_cuOccupancyMaxActiveBlocksPerMultiprocessor_v6050>(
+          "cuOccupancyMaxActiveBlocksPerMultiprocessor",
+          6050)(&blocks_per_sm, grid.function,
+                static_cast<int>(threads_per_block), grid.shared_bytes),
+      "cuOccupancyMaxActiveBlocksPerMultiprocessor(grid_dispatcher)");
+  if (blocks_per_sm != 1)
+    throw std::runtime_error(
+        "grid_dispatcher needs one resident block per SM, but " +
+        std::to_string(blocks_per_sm) + " fit");
+
+  grid.blocks =
+      requested_blocks ? requested_blocks : static_cast<std::uint32_t>(sms);
+  if (grid.blocks > static_cast<std::uint32_t>(sms))
+    throw std::runtime_error(std::to_string(grid.blocks) + " blocks of " +
+                             std::to_string(threads_per_block) +
+                             " threads do not fit cooperatively; maximum is " +
+                             std::to_string(sms));
+  HANDLE_CUDA_ERROR(cudaMalloc(&sm_ids, grid.blocks * sizeof(std::uint32_t)));
+  HANDLE_CUDA_ERROR(
+      cudaMemset(sm_ids, 0xff, grid.blocks * sizeof(std::uint32_t)));
+  grid.sm_ids = sm_ids;
+  HANDLE_REALTIME_ERROR(cudaq_dispatcher_set_unified_launch(
+      dispatcher, launch_grid_dispatcher, nullptr));
+  std::cout << "  grid_dispatcher: " << grid.blocks << " blocks x "
+            << threads_per_block << " threads, " << grid.shared_bytes
+            << " B dynamic shared memory per block" << std::endl;
+}
 
 // Tables and control storage must outlive the dispatcher and bridge, including
 // partial initialization. CPU mode never allocates/frees CUDA memory.
@@ -164,6 +320,8 @@ struct Resources {
   std::uint64_t *device_stats = nullptr;
   /// GPU handler table storage.
   cudaq_function_entry_t *device_entries = nullptr;
+  /// Grid dispatcher's per-block SM ids (--dispatcher=grid only).
+  std::uint32_t *grid_sm_ids = nullptr;
 
   void stop() {
     // Set mapped memory before stop()'s CUDA copy: the default stream may
@@ -196,6 +354,8 @@ struct Resources {
       cudaFree(device_entries);
     if (device_stats)
       cudaFree(device_stats);
+    if (grid_sm_ids)
+      cudaFree(grid_sm_ids);
     if (mapped_shutdown)
       cudaFreeHost(mapped_shutdown);
   }
@@ -326,6 +486,10 @@ int main(int argument_count, char **arguments) {
           cudaq_dispatcher_set_function_table(resources.dispatcher, &table));
       HANDLE_REALTIME_ERROR(
           cudaq_bridge_set_function_table(resources.bridge, &table));
+      if (config.dispatcher == "grid")
+        configure_grid_dispatcher(resources.dispatcher, config.gpu,
+                                  config.blocks, config.threads,
+                                  resources.grid_sm_ids);
       // Control storage and handler entries stay owned by Resources for the
       // entire run; the dispatcher receives pointers, not independent copies.
       HANDLE_REALTIME_ERROR(
@@ -352,6 +516,15 @@ int main(int argument_count, char **arguments) {
       HANDLE_REALTIME_ERROR(
           cudaq_dispatcher_get_processed(resources.dispatcher, &processed));
       std::cout << "Packets dispatched: " << processed << std::endl;
+    }
+    if (resources.grid_sm_ids) {
+      std::vector<std::uint32_t> sm_ids(grid.blocks);
+      HANDLE_CUDA_ERROR(cudaMemcpy(sm_ids.data(), resources.grid_sm_ids,
+                                   grid.blocks * sizeof(std::uint32_t),
+                                   cudaMemcpyDeviceToHost));
+      const std::set<std::uint32_t> distinct(sm_ids.begin(), sm_ids.end());
+      std::cout << "grid_dispatcher placement: " << grid.blocks << " blocks on "
+                << distinct.size() << " distinct SMs" << std::endl;
     }
     return 0;
   } catch (const std::exception &error) {

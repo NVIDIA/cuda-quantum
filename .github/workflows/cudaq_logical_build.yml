@@ -217,7 +217,6 @@ jobs:
           uv pip install \
             "nanobind>=2.4,<3" \
             "scikit-build-core==0.12.2" \
-            "setuptools-scm>=8,<9" \
             "auditwheel==6.5.0" \
             "cmake>=3.30" \
             ninja \
@@ -249,14 +248,6 @@ jobs:
         id: build
         working-directory: preview/logical
         run: |
-          # Resolve the version while the checkout is still clean. Stamping
-          # the runtime dependencies below intentionally modifies pyproject,
-          # which must not add setuptools-scm's dirty-tree date suffix.
-          logical_scmversion="$(
-            python -m setuptools_scm -c python/pyproject.toml
-          )"
-          logical_version=$(echo ${logical_scmversion} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
-
           python scripts/stamp_cudaq_runtime_dependency.py python/pyproject.toml \
             --distribution cudaq-core \
             --distribution cuda-quantum-cu12 \
@@ -268,7 +259,6 @@ jobs:
           # preview/logical/cmake/SetupCUDAQ.cmake); the gcc-12 step above
           # exists to satisfy exactly this.
           CMAKE_ARGS="${CMAKE_ARGS-} -DQLX_VERIFY_TOOLCHAIN=ON" \
-            SETUPTOOLS_SCM_PRETEND_VERSION="$logical_version" \
             SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" \
             uv build --wheel --no-build-isolation \
               --out-dir .wheel-raw python
