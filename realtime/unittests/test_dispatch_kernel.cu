@@ -1346,11 +1346,10 @@ protected:
     // Unconditional, so a failed test cannot leave a kernel spinning into
     // the next one.  This flag reaches only the kernels the direct-launch
     // tests start themselves; the dispatcher-owned kernel polls the
-    // dispatcher's own device word, which stop() raises with a legacy-stream
-    // copy its non-blocking stream never holds up.  stop() then synchronizes
-    // that stream with no timeout, so a kernel that ignored the flag would
-    // hang here; the direct-launch tests bound that same shutdown path with a
-    // timeout.
+    // dispatcher's own device word, which stop() raises on the dispatcher's
+    // control stream.  stop() then synchronizes the kernel's stream with no
+    // timeout, so a kernel that ignored the flag would hang here; the
+    // direct-launch tests bound that same shutdown path with a timeout.
     if (shutdown_flag_) {
       *shutdown_flag_ = 1;
       __sync_synchronize();

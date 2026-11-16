@@ -217,10 +217,10 @@ typedef struct {
 } cudaq_function_table_t;
 
 // Host launch function pointer type.  The launcher must start the kernel on
-// `stream`, the dispatcher's non-blocking stream: cudaq_dispatcher_stop raises
-// the shutdown flag with a legacy-default-stream copy and then waits on
-// `stream`, so a kernel on the legacy stream or on a blocking stream would
-// deadlock it.
+// `stream`, the dispatcher's own non-blocking stream for the kernel:
+// cudaq_dispatcher_stop raises the shutdown flag and then waits on `stream`
+// for the kernel to exit, so a kernel started on another stream is not waited
+// for.
 typedef void (*cudaq_dispatch_launch_fn_t)(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
     uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
@@ -502,7 +502,13 @@ cudaq_dispatcher_set_cpu_dataplane(cudaq_dispatcher_t *dispatcher,
 // when nothing is running.  On the DEVICE path the two words are device
 // memory, allocated, zeroed and (by cudaq_dispatcher_destroy) freed with
 // stream-ordered calls, so setting them up and freeing them does not wait for
-// kernels resident on the device.
+// kernels resident on the device.  The dispatcher makes its CUDA calls on two
+// non-blocking streams of its own, one that runs the kernel and one for
+// everything else (the two words, the stop signal, the counter and table
+// reads), so it neither waits for nor holds up work the application queues on
+// its default streams.  The one exception is start(), which makes its streams
+// wait for what the caller has queued so far on its own default stream, so
+// that the function table is complete before it is read or used.
 cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher);
 cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher);
 

@@ -593,9 +593,8 @@ while the dispatcher runs.
 <strong><code>cudaq_dispatcher_set_launch_fn</code></strong> provides
 the host-side launch wrapper that invokes the dispatch kernel
 with the correct grid/block dimensions, on the stream it is given:
-`cudaq_dispatcher_stop` raises the shutdown flag with a default-stream
-copy and then waits on that stream, so the kernel must not run on the
-legacy default stream or on a blocking stream.
+`cudaq_dispatcher_stop` raises the shutdown flag and then waits on that
+stream for the kernel to exit.
 
 Parameters:
 

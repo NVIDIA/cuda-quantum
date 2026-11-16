@@ -705,9 +705,8 @@ is refused while the dispatcher runs.
 
 **`cudaq_dispatcher_set_launch_fn`** provides the host-side launch wrapper that
 invokes the dispatch kernel with the correct grid/block dimensions, on the
-stream it is given: `cudaq_dispatcher_stop` raises the shutdown flag with a
-default-stream copy and then waits on that stream, so the kernel must not run
-on the legacy default stream or on a blocking stream.
+stream it is given: `cudaq_dispatcher_stop` raises the shutdown flag and then
+waits on that stream for the kernel to exit.
 
 Parameters:
 

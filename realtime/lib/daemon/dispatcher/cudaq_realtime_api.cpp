@@ -84,7 +84,11 @@ struct cudaq_dispatcher_t {
   void *transport_ctx = nullptr;
   ShutdownControl control;
   ProcessedStats stats;
-  cudaStream_t stream = nullptr;
+  // DEVICE path: the dispatcher's two streams (see "The dispatcher's streams"
+  // below).  kernel_stream is set from start() until stop() has seen the
+  // kernel exit; control_stream from its first use until destroy().
+  cudaStream_t kernel_stream = nullptr;
+  cudaStream_t control_stream = nullptr;
   bool running = false;
   // The unified loop's data-plane (HOST + UNIFIED path), copied in by
   // set_cpu_dataplane or set_bridge; its hooks stay NULL until one of them
@@ -304,15 +308,77 @@ cudaq_status_t cudaq_dispatcher_create(cudaq_dispatch_manager_t *,
   return CUDAQ_OK;
 }
 
-// Frees one of the dispatcher's own device words in stream order: a plain
-// cudaFree waits for every kernel resident on the device, a transport's or
-// another dispatcher's included, which destroy() must not do.  A failed free
-// leaks the word rather than wait.
-static void free_own_device_word(void *word) {
+//==============================================================================
+// The dispatcher's streams
+//==============================================================================
+//
+// A DEVICE dispatcher makes its CUDA calls on two streams of its own, both
+// non-blocking:
+//   - kernel_stream runs the dispatch kernel and nothing else.  The kernel
+//     occupies it until it exits, so anything queued behind it would wait
+//     until then.  Created by start(), synchronized and destroyed by stop().
+//   - control_stream carries every host-side call: the dispatcher's own
+//     control words, the stop signal, the counter and table reads.  Created on
+//     first use, destroyed by destroy().
+// Neither waits for work the application queues on its default streams, and
+// neither holds such work up.  The one stream the dispatcher touches without
+// owning it is the caller's default stream, in wait_for_caller_writes().
+
+// The control stream, created on the dispatcher's device at first use.  NULL
+// if it cannot be created.
+static cudaStream_t ensure_control_stream(cudaq_dispatcher_t *dispatcher) {
+  if (!dispatcher->control_stream &&
+      (cudaSetDevice(dispatcher->config.device_id) != cudaSuccess ||
+       cudaStreamCreateWithFlags(&dispatcher->control_stream,
+                                 cudaStreamNonBlocking) != cudaSuccess)) {
+    // Not left latched for a later start()'s post-launch check to misread.
+    (void)cudaGetLastError();
+    dispatcher->control_stream = nullptr;
+  }
+  return dispatcher->control_stream;
+}
+
+// A copy on the control stream, complete when this returns.
+static cudaError_t control_copy(cudaq_dispatcher_t *dispatcher, void *dst,
+                                const void *src, size_t size,
+                                cudaMemcpyKind kind) {
+  const cudaStream_t stream = ensure_control_stream(dispatcher);
+  if (!stream)
+    return cudaErrorInvalidResourceHandle;
+  cudaError_t err = cudaMemcpyAsync(dst, src, size, kind, stream);
+  if (err == cudaSuccess)
+    err = cudaStreamSynchronize(stream);
+  return err;
+}
+
+// Makes `stream`, one of the dispatcher's, wait for the work the caller has
+// queued so far on its own default stream (the function table, a transport
+// context); a non-blocking stream does not wait for it by itself.  The marker
+// only orders work, so it keeps no timestamp, and it can go as soon as the
+// wait is registered.
+static cudaError_t wait_for_caller_writes(cudaStream_t stream) {
+  cudaEvent_t caller_writes = nullptr;
+  cudaError_t err =
+      cudaEventCreateWithFlags(&caller_writes, cudaEventDisableTiming);
+  if (err == cudaSuccess)
+    err = cudaEventRecord(caller_writes, cudaStreamPerThread);
+  if (err == cudaSuccess)
+    err = cudaStreamWaitEvent(stream, caller_writes, 0);
+  if (caller_writes)
+    cudaEventDestroy(caller_writes);
+  return err;
+}
+
+// Frees one of the dispatcher's own device words in stream order, on the
+// control stream: a plain cudaFree waits for every kernel resident on the
+// device, a transport's or another dispatcher's included, which destroy()
+// must not do.  A failed free leaks the word rather than wait.
+static void free_own_device_word(cudaq_dispatcher_t *dispatcher, void *word) {
   if (!word)
     return;
+  const cudaStream_t stream = ensure_control_stream(dispatcher);
   // Not left latched for a later start()'s post-launch check to misread.
-  if (cudaFreeAsync(word, cudaStreamPerThread) != cudaSuccess)
+  if (!stream || cudaFreeAsync(word, stream) != cudaSuccess)
     (void)cudaGetLastError();
 }
 
@@ -336,15 +402,18 @@ cudaq_status_t cudaq_dispatcher_destroy(cudaq_dispatcher_t *dispatcher) {
     release_bridge_attachment(dispatcher->bridge);
   // A DEVICE kernel that was never stopped may still run from the module, so
   // the module is left loaded rather than unloaded under it.
-  if (dispatcher->jit_device_lib.library && !dispatcher->stream)
+  if (dispatcher->jit_device_lib.library && !dispatcher->kernel_stream)
     cudaq::realtime::detail::driver_library()->unload(
         dispatcher->jit_device_lib.library);
   // Same rule for the dispatcher's own device control words: a kernel that
   // was never stopped still polls the flag and writes the counter.
-  if (!dispatcher->stream) {
-    free_own_device_word(dispatcher->control.own_dev);
-    free_own_device_word(dispatcher->stats.own_dev);
+  if (!dispatcher->kernel_stream) {
+    free_own_device_word(dispatcher, dispatcher->control.own_dev);
+    free_own_device_word(dispatcher, dispatcher->stats.own_dev);
   }
+  // Released once the frees queued on it have run.
+  if (dispatcher->control_stream)
+    cudaStreamDestroy(dispatcher->control_stream);
   delete dispatcher;
   return CUDAQ_OK;
 }
@@ -780,7 +849,7 @@ cudaq_status_t cudaq_dispatcher_get_device_handler_in(
   if (size != sizeof(void *))
     return CUDAQ_ERR_INVALID_ARG;
   void *fn = nullptr;
-  if (cudaMemcpy(&fn, slot, sizeof(fn), cudaMemcpyDeviceToHost) !=
+  if (control_copy(dispatcher, &fn, slot, sizeof(fn), cudaMemcpyDeviceToHost) !=
           cudaSuccess ||
       !fn)
     return CUDAQ_ERR_CUDA;
@@ -829,33 +898,37 @@ cudaq_status_t cudaq_dispatcher_get_device_kernel_in(
 }
 
 // One of the dispatcher's own device words: allocated on first use, zeroed
-// every time.  Stream-ordered on the per-thread default stream, since
-// cudaMalloc and cudaMemset may synchronize with kernels already resident on
-// the device (another dispatcher's, a transport's) and the stream-ordered
-// calls are documented not to.
-static cudaError_t prepare_own_device_word(void **word, size_t size) {
+// every time, on `stream`.  Stream-ordered, since cudaMalloc and cudaMemset
+// may synchronize with kernels already resident on the device (another
+// dispatcher's, a transport's) and the stream-ordered calls are documented
+// not to.
+static cudaError_t prepare_own_device_word(cudaStream_t stream, void **word,
+                                           size_t size) {
   cudaError_t err = cudaSuccess;
   if (!*word)
-    err = cudaMallocAsync(word, size, cudaStreamPerThread);
+    err = cudaMallocAsync(word, size, stream);
   if (err == cudaSuccess)
-    err = cudaMemsetAsync(*word, 0, size, cudaStreamPerThread);
+    err = cudaMemsetAsync(*word, 0, size, stream);
   return err;
 }
 
 // DEVICE path without a set_control override: point the dispatcher at its own
 // flag and counter, zeroed.  Both are device words, so the kernel polls the
-// flag from L2 rather than over the bus; stop() raises it with a legacy-stream
-// copy, which the dispatcher's non-blocking stream never holds up.  Allocated
-// once per dispatcher, on the device start() selected; the zeroing is ordered
-// before the launch by the event start() records on the per-thread stream.
+// flag from L2 rather than over the bus.  Allocated once per dispatcher, on
+// the device start() selected.  The work runs on the control stream and is
+// complete when this returns, so a kernel launched afterwards finds both
+// words zeroed.
 static cudaq_status_t
 prepare_own_device_control(cudaq_dispatcher_t *dispatcher) {
-  if (prepare_own_device_word(
-          reinterpret_cast<void **>(&dispatcher->control.own_dev),
+  const cudaStream_t stream = ensure_control_stream(dispatcher);
+  if (!stream ||
+      prepare_own_device_word(
+          stream, reinterpret_cast<void **>(&dispatcher->control.own_dev),
           sizeof(int)) != cudaSuccess ||
       prepare_own_device_word(
-          reinterpret_cast<void **>(&dispatcher->stats.own_dev),
-          sizeof(std::uint64_t)) != cudaSuccess) {
+          stream, reinterpret_cast<void **>(&dispatcher->stats.own_dev),
+          sizeof(std::uint64_t)) != cudaSuccess ||
+      cudaStreamSynchronize(stream) != cudaSuccess) {
     // Not left latched for a retried start()'s post-launch check to misread.
     (void)cudaGetLastError();
     return CUDAQ_ERR_CUDA;
@@ -865,17 +938,19 @@ prepare_own_device_control(cudaq_dispatcher_t *dispatcher) {
   return CUDAQ_OK;
 }
 
-// Raise the shutdown flag, wait for the DEVICE dispatcher's stream and destroy
-// it.  If the flag cannot be written, the stream is kept, so destroy() leaves
-// the linked module loaded under whatever may still run from it.
+// Raise the shutdown flag on the control stream, then wait for the kernel's
+// stream and destroy it.  If the flag cannot be written, the kernel's stream
+// is kept, so destroy() leaves the linked module loaded under whatever may
+// still run from it.
 static cudaq_status_t stop_device_kernel(cudaq_dispatcher_t *dispatcher) {
   int shutdown = 1;
-  if (cudaMemcpy(const_cast<int *>(dispatcher->control.flag), &shutdown,
-                 sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess)
+  if (control_copy(dispatcher, const_cast<int *>(dispatcher->control.flag),
+                   &shutdown, sizeof(int),
+                   cudaMemcpyHostToDevice) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
-  cudaStreamSynchronize(dispatcher->stream);
-  cudaStreamDestroy(dispatcher->stream);
-  dispatcher->stream = nullptr;
+  cudaStreamSynchronize(dispatcher->kernel_stream);
+  cudaStreamDestroy(dispatcher->kernel_stream);
+  dispatcher->kernel_stream = nullptr;
   return CUDAQ_OK;
 }
 
@@ -904,9 +979,13 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
     if (cudaSetDevice(dispatcher->config.device_id) != cudaSuccess)
       return CUDAQ_ERR_CUDA;
     std::vector<cudaq_function_entry_t> entries(dispatcher->table.count);
-    if (cudaMemcpy(entries.data(), dispatcher->table.entries,
-                   entries.size() * sizeof(cudaq_function_entry_t),
-                   cudaMemcpyDeviceToHost) != cudaSuccess) {
+    // Read on the control stream, which first has to wait for the table's
+    // writes: the caller may still have them queued on its own stream.
+    const cudaStream_t control = ensure_control_stream(dispatcher);
+    if (!control || wait_for_caller_writes(control) != cudaSuccess ||
+        control_copy(dispatcher, entries.data(), dispatcher->table.entries,
+                     entries.size() * sizeof(cudaq_function_entry_t),
+                     cudaMemcpyDeviceToHost) != cudaSuccess) {
       fprintf(stderr, "ERROR: cudaq_dispatcher_start (DEVICE unified): "
                       "cannot read the function table from the device\n");
       return CUDAQ_ERR_CUDA;
@@ -978,36 +1057,24 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   // create() mapped a negative device_id to 0.
   if (cudaSetDevice(dispatcher->config.device_id) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
+  // stop() ends the kernel through the control stream, so have it now.
+  if (!ensure_control_stream(dispatcher))
+    return CUDAQ_ERR_CUDA;
   if (!dispatcher->control.overridden) {
     status = prepare_own_device_control(dispatcher);
     if (status != CUDAQ_OK)
       return status;
   }
 
-  // Non-blocking, so that no legacy-stream copy (stop(), get_processed(), a
-  // lookup on another dispatcher) queues behind the resident kernel.  Such a
-  // stream no longer waits for the caller's queued legacy-stream work
-  // (function table, transport context), so the launch waits for it on an
-  // event.
-  if (cudaStreamCreateWithFlags(&dispatcher->stream, cudaStreamNonBlocking) !=
-      cudaSuccess)
+  // The kernel's stream.  Being non-blocking, it does not wait by itself for
+  // the work the caller has queued on its own stream (function table,
+  // transport context), so the launch is made to wait for it.
+  if (cudaStreamCreateWithFlags(&dispatcher->kernel_stream,
+                                cudaStreamNonBlocking) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
-  // A marker in a stream; it only orders work, so it keeps no timestamp.
-  cudaEvent_t caller_writes = nullptr;
-  cudaError_t ordering =
-      cudaEventCreateWithFlags(&caller_writes, cudaEventDisableTiming);
-  // Create a marker that will wait for the caller's default stream work.
-  if (ordering == cudaSuccess)
-    ordering = cudaEventRecord(caller_writes, cudaStreamPerThread);
-  // Drop the marker in the asynchronous stream.
-  if (ordering == cudaSuccess)
-    ordering = cudaStreamWaitEvent(dispatcher->stream, caller_writes, 0);
-  // The wait is registered, so the event can go now.
-  if (caller_writes)
-    cudaEventDestroy(caller_writes);
-  if (ordering != cudaSuccess) {
-    cudaStreamDestroy(dispatcher->stream);
-    dispatcher->stream = nullptr;
+  if (wait_for_caller_writes(dispatcher->kernel_stream) != cudaSuccess) {
+    cudaStreamDestroy(dispatcher->kernel_stream);
+    dispatcher->kernel_stream = nullptr;
     return CUDAQ_ERR_CUDA;
   }
 
@@ -1035,7 +1102,7 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
           dispatcher->transport_ctx, dispatcher->config.slot_size,
           dispatcher->table.entries, dispatcher->table.count,
           dispatcher->control.flag, dispatcher->stats.counter,
-          dispatcher->config.threads_per_block, dispatcher->stream);
+          dispatcher->config.threads_per_block, dispatcher->kernel_stream);
       if (launched != CUDAQ_OK) {
         fprintf(stderr,
                 "ERROR: cudaq_dispatcher_start: the unified launcher failed "
@@ -1051,12 +1118,12 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
           dispatcher->config.slot_size, dispatcher->table.entries,
           dispatcher->table.count, dispatcher->control.flag,
           dispatcher->stats.counter, dispatcher->config.threads_per_block,
-          dispatcher->stream);
+          dispatcher->kernel_stream);
       if (launched != CUDA_SUCCESS) {
         fprintf(stderr, "CUDA error in dispatcher launch: CUresult %d\n",
                 static_cast<int>(launched));
-        cudaStreamDestroy(dispatcher->stream);
-        dispatcher->stream = nullptr;
+        cudaStreamDestroy(dispatcher->kernel_stream);
+        dispatcher->kernel_stream = nullptr;
         return CUDAQ_ERR_CUDA;
       }
     }
@@ -1069,7 +1136,7 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
         dispatcher->table.count, dispatcher->control.flag,
         dispatcher->stats.counter, dispatcher->config.num_slots,
         dispatcher->config.num_blocks, dispatcher->config.threads_per_block,
-        dispatcher->stream);
+        dispatcher->kernel_stream);
   }
 
   cudaError_t err = cudaGetLastError();
@@ -1127,8 +1194,9 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
     return CUDAQ_OK;
   }
 
-  if (cudaMemcpy(out_packets, dispatcher->stats.counter, sizeof(std::uint64_t),
-                 cudaMemcpyDeviceToHost) != cudaSuccess)
+  if (control_copy(dispatcher, out_packets, dispatcher->stats.counter,
+                   sizeof(std::uint64_t),
+                   cudaMemcpyDeviceToHost) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
 
   return CUDAQ_OK;
