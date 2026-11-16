@@ -10,6 +10,7 @@
 #include "cudaq/algorithms/integrator.h"
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <functional>
 #include <gtest/gtest.h>
 #include <iostream>
@@ -568,7 +569,7 @@ TEST(EvolveAPITester, checkCavityModelSuperOpBatchedState) {
 
 TEST(EvolveAPITester, checkCallbackTensorOp) {
   auto tensorFunction =
-      [](const std::vector<int64_t> &dimensions,
+      [](const std::vector<std::int64_t> &dimensions,
          const std::unordered_map<std::string, std::complex<double>>
              &parameters) -> cudaq::complex_matrix {
     if (dimensions.empty())

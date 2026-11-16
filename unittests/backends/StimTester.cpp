@@ -44,7 +44,7 @@ public:
 // QEC declaration ops are wired into the Stim NVQIR backend by the runtime
 // adapters in `runtime/nvqir/NVQIR.cpp`. Declared here so the test runner
 // picks up the definitions from libnvqir; tests then exercise the full path
-// from `extern "C"` symbol → `Result**`-to-`int64_t`-vector conversion →
+// from `extern "C"` symbol → `Result**`-to-`std::int64_t`-vector conversion →
 // dispatch to the active simulator's QEC virtuals.
 extern "C" void __quantum__qis__detector(Result **results, std::int64_t count);
 extern "C" void __quantum__qis__logical_observable(Result **results,
@@ -56,7 +56,7 @@ extern "C" void __quantum__qis__pair_detectors(Result **prev_results,
                                                std::int64_t curr_count);
 extern "C" void __quantum__rt__clear_result_maps();
 
-/// @brief Encode an `int64_t` chronological measurement index as the
+/// @brief Encode an `std::int64_t` chronological measurement index as the
 /// `Result*` bit pattern the QIR ABI delivers to the QEC runtime adapter.
 /// Mirrors the lowering pattern in `cudaq/test/Optimizer/qir_api_qec.qke`.
 static Result *measureIndexAsResultPtr(std::int64_t i) {

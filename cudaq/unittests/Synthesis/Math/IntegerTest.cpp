@@ -10,6 +10,7 @@
 
 #include "cudaq/Synthesis/Math/Integer.h"
 
+#include <cstdint>
 #include <limits>
 #include <string>
 
@@ -18,7 +19,7 @@ namespace {
 using cudaq::synth::Integer;
 
 static long long ll(const Integer &n) {
-  return static_cast<long long>(static_cast<int64_t>(n));
+  return static_cast<long long>(static_cast<std::int64_t>(n));
 }
 
 // ============================================================
@@ -54,7 +55,7 @@ TEST(NtzTest, Twelve) {
 
 TEST(NtzTest, PowersOfTwo) {
   for (int k = 0; k <= 10; ++k) {
-    Integer n(static_cast<int64_t>(1LL << k));
+    Integer n(static_cast<std::int64_t>(1LL << k));
     EXPECT_EQ(ll(cudaq::synth::ntz(n)), static_cast<long long>(k))
         << "k = " << k;
   }
@@ -372,12 +373,12 @@ TEST(CompoundAssignLLTest, ModSignFollowsDividend) {
   EXPECT_EQ(ll(x), -2LL);
 }
 
-// Regression: the int64_t compound assignments took |rhs| as `-rhs`, which
+// Regression: the std::int64_t compound assignments took |rhs| as `-rhs`, which
 // overflows at INT64_MIN (UB — in practice `-rhs` stays negative, so the cast
 // to unsigned long fed GMP a value it then treated as positive). The magnitude
 // is now computed in the unsigned domain.
 TEST(CompoundAssignLLTest, Int64MinRhs) {
-  constexpr int64_t kMin = std::numeric_limits<int64_t>::min();
+  constexpr std::int64_t kMin = std::numeric_limits<std::int64_t>::min();
   const std::string kMinStr = "-9223372036854775808";
   const std::string kMagStr = "9223372036854775808";
 
@@ -401,11 +402,11 @@ TEST(CompoundAssignLLTest, Int64MinRhs) {
 }
 
 // ============================================================
-// Mixed int64_t / Integer arithmetic
+// Mixed std::int64_t / Integer arithmetic
 // ============================================================
 
-// Regression: the int64_t - Integer overload used to narrow its
-// arbitrary-precision right operand to int64_t before subtracting, so
+// Regression: the std::int64_t - Integer overload used to narrow its
+// arbitrary-precision right operand to std::int64_t before subtracting, so
 // 1 - 2^100 wrapped to 1 instead of the exact value.
 TEST(MixedArithTest, Int64MinusLargeInteger) {
   Integer big = Integer(1) << 100;
@@ -415,9 +416,9 @@ TEST(MixedArithTest, Int64MinusLargeInteger) {
 }
 
 // The mixed overloads must agree with the all-Integer form for operands that
-// do fit in an int64_t.
+// do fit in an std::int64_t.
 TEST(MixedArithTest, Int64MinusSmallIntegerMatchesExact) {
-  for (int64_t lhs : {-7, 0, 3, 100}) {
+  for (std::int64_t lhs : {-7, 0, 3, 100}) {
     for (int rhs : {-5, 0, 2, 41}) {
       EXPECT_EQ(ll(lhs - Integer(rhs)), static_cast<long long>(lhs - rhs))
           << "lhs=" << lhs << " rhs=" << rhs;
@@ -445,12 +446,12 @@ TEST(ShiftTest, RightShiftNegative) {
   EXPECT_EQ(ll(Integer(-8) >> 1), -4LL);
 }
 
-// The int64_t << Integer overload reads the full shift count instead of
-// narrowing it to int32_t. A count that actually exceeds int32_t is not
-// testable here (it would allocate gigabytes), so this pins the routing.
+// The std::int64_t << Integer overload reads the full shift count instead of
+// narrowing it to std::int32_t. A count that actually exceeds std::int32_t is
+// not testable here (it would allocate gigabytes), so this pins the routing.
 TEST(ShiftTest, LeftShiftByIntegerCount) {
-  EXPECT_EQ(ll(int64_t{1} << Integer(3)), 8LL);
-  EXPECT_EQ((int64_t{1} << Integer(100)).to_string(),
+  EXPECT_EQ(ll(std::int64_t{1} << Integer(3)), 8LL);
+  EXPECT_EQ((std::int64_t{1} << Integer(100)).to_string(),
             "1267650600228229401496703205376");
 }
 

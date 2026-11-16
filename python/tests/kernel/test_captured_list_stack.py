@@ -7,6 +7,7 @@
 # ============================================================================ #
 """Captured lists in repeated kernel calls must not exhaust the host stack."""
 
+import os
 import subprocess
 import sys
 
@@ -21,7 +22,10 @@ import pytest
 def test_captured_list_stack(case):
     # A regression causes SIGSEGV, so isolate it from the pytest process and
     # enforce a stack limit even when the test runner has an unlimited stack.
+    # The circuits are tiny, so skip per-gate OpenMP overhead on many-core hosts.
+    env = dict(os.environ, OMP_NUM_THREADS='1')
     result = subprocess.run([sys.executable, __file__, case],
+                            env=env,
                             capture_output=True,
                             text=True,
                             timeout=120)

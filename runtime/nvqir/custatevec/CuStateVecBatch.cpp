@@ -15,6 +15,7 @@
 #include <bitset>
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <limits>
 #include <numeric>
 #include <stdexcept>
@@ -36,7 +37,7 @@ custatevecComputeType_t computeType() {
 
 template <typename Scalar>
 cudaq::cusv::MatrixTask<Scalar> pauliGate(custatevecPauli_t pauli,
-                                          int32_t target) {
+                                          std::int32_t target) {
   cudaq::cusv::MatrixTask<Scalar> task;
   task.targets = {target};
   const std::complex<Scalar> imaginary{0.0, 1.0};
@@ -61,13 +62,14 @@ cudaq::cusv::MatrixTask<Scalar> pauliGate(custatevecPauli_t pauli,
 namespace cudaq::cusv {
 
 template <typename Scalar>
-CuStateVecBatch<Scalar>::CuStateVecBatch(int32_t numWires, std::size_t capacity,
+CuStateVecBatch<Scalar>::CuStateVecBatch(std::int32_t numWires,
+                                         std::size_t capacity,
                                          bool allowFp32Emulation,
                                          bool initializeZeroState)
     : m_stateSize(std::size_t{1} << numWires), m_size(capacity),
       m_capacity(capacity), m_numWires(numWires) {
   if (numWires < 0 || capacity == 0 ||
-      capacity > std::numeric_limits<uint32_t>::max())
+      capacity > std::numeric_limits<std::uint32_t>::max())
     throw std::invalid_argument("Invalid batched state-vector dimensions.");
   HANDLE_CUSTATEVEC_ERROR(custatevecCreate(/*handle=*/&m_handle));
   try {
@@ -152,7 +154,7 @@ void CuStateVecBatch<Scalar>::setZeroState() {
     HANDLE_CUSTATEVEC_ERROR(custatevecInitializeStateVector(
         /*handle=*/m_handle, /*sv=*/statePointer(index),
         /*svDataType=*/complexDataType<Scalar>(),
-        /*nIndexBits=*/static_cast<uint32_t>(m_numWires),
+        /*nIndexBits=*/static_cast<std::uint32_t>(m_numWires),
         /*svType=*/CUSTATEVEC_STATE_VECTOR_TYPE_ZERO));
 }
 
@@ -172,10 +174,10 @@ void CuStateVecBatch<Scalar>::broadcastState() {
   if (m_size <= 1)
     return;
   if (m_stateSize >
-      static_cast<std::size_t>(std::numeric_limits<int64_t>::max()))
+      static_cast<std::size_t>(std::numeric_limits<std::int64_t>::max()))
     throw std::overflow_error("Batched state vector exceeds cuBLAS range.");
-  const int64_t rows = static_cast<int64_t>(m_stateSize);
-  const int64_t columns = static_cast<int64_t>(m_size - 1);
+  const std::int64_t rows = static_cast<std::int64_t>(m_stateSize);
+  const std::int64_t columns = static_cast<std::int64_t>(m_size - 1);
   // GEMM replicates the first state vector across the remaining batch slots via
   // a rank-1 outer product with the unit broadcast factors.
   if constexpr (std::is_same_v<Scalar, float>) {
@@ -226,7 +228,7 @@ template <typename Scalar>
 void CuStateVecBatch<Scalar>::applyMatrices(
     void *states, const MatrixTask<Scalar> &task,
     const std::vector<std::complex<Scalar>> &matrices, std::size_t matrixCount,
-    custatevecMatrixMapType_t mapType, const int32_t *matrixIndices) {
+    custatevecMatrixMapType_t mapType, const std::int32_t *matrixIndices) {
   const std::vector<std::complex<Scalar>> *matrixData = &matrices;
   std::vector<std::complex<Scalar>> denseMatrices;
   if (task.matrixType != CUSTATEVEC_EX_MATRIX_DENSE) {
@@ -302,7 +304,7 @@ void CuStateVecBatch<Scalar>::apply(
     throw std::invalid_argument("Invalid number of batched matrix tasks.");
   const auto &first = tasks.front();
   std::vector<std::vector<std::complex<Scalar>>> uniqueMatrices;
-  std::vector<int32_t> matrixIndices;
+  std::vector<std::int32_t> matrixIndices;
   matrixIndices.reserve(tasks.size());
   for (const auto &task : tasks) {
     if (task.targets != first.targets || task.controls != first.controls ||
@@ -316,13 +318,13 @@ void CuStateVecBatch<Scalar>::apply(
         std::find(uniqueMatrices.begin(), uniqueMatrices.end(), task.matrix);
     if (found == uniqueMatrices.end()) {
       if (uniqueMatrices.size() >=
-          static_cast<std::size_t>(std::numeric_limits<int32_t>::max()))
+          static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
         throw std::overflow_error("Batched matrix count exceeds int32 range.");
-      matrixIndices.push_back(static_cast<int32_t>(uniqueMatrices.size()));
+      matrixIndices.push_back(static_cast<std::int32_t>(uniqueMatrices.size()));
       uniqueMatrices.push_back(task.matrix);
     } else {
-      matrixIndices.push_back(
-          static_cast<int32_t>(std::distance(uniqueMatrices.begin(), found)));
+      matrixIndices.push_back(static_cast<std::int32_t>(
+          std::distance(uniqueMatrices.begin(), found)));
     }
   }
   std::vector<std::complex<Scalar>> matrices;
@@ -340,12 +342,12 @@ CuStateVecBatch<Scalar>::innerProducts(const void *otherStates) {
   if (!otherStates)
     throw std::invalid_argument("Inner-product state batch cannot be null.");
   if (m_stateSize >
-      static_cast<std::size_t>(std::numeric_limits<int64_t>::max()))
+      static_cast<std::size_t>(std::numeric_limits<std::int64_t>::max()))
     throw std::overflow_error("Batched state vector exceeds cuBLAS range.");
 
   ensureWorkspace(m_size * sizeof(std::complex<Scalar>));
-  const int64_t elements = static_cast<int64_t>(m_stateSize);
-  const int64_t count = static_cast<int64_t>(m_size);
+  const std::int64_t elements = static_cast<std::int64_t>(m_stateSize);
+  const std::int64_t count = static_cast<std::int64_t>(m_size);
   // Batched GEMM computes the per-state inner product <state|otherState> as a
   // conjugate-transpose dot product over each pair in the batch.
   if constexpr (std::is_same_v<Scalar, float>) {
@@ -384,17 +386,17 @@ CuStateVecBatch<Scalar>::innerProducts(const void *otherStates) {
 template <typename Scalar>
 std::vector<double> CuStateVecBatch<Scalar>::expectationPauli(
     const std::vector<std::vector<custatevecPauli_t>> &paulis,
-    const std::vector<std::vector<int32_t>> &targets) {
+    const std::vector<std::vector<std::int32_t>> &targets) {
   if (paulis.size() != targets.size())
     throw std::invalid_argument(
         "Pauli operators and target arrays must have the same size.");
-  if (paulis.size() > std::numeric_limits<uint32_t>::max())
+  if (paulis.size() > std::numeric_limits<std::uint32_t>::max())
     throw std::overflow_error("Pauli-term count exceeds cuStateVec range.");
   for (std::size_t term = 0; term < paulis.size(); ++term) {
     if (paulis[term].size() != targets[term].size())
       throw std::invalid_argument(
           "Each Pauli term requires one target per operator.");
-    if (targets[term].size() > std::numeric_limits<uint32_t>::max())
+    if (targets[term].size() > std::numeric_limits<std::uint32_t>::max())
       throw std::overflow_error("Pauli-term width exceeds cuStateVec range.");
     for (std::size_t operatorIndex = 0; operatorIndex < paulis[term].size();
          ++operatorIndex) {
@@ -402,7 +404,7 @@ std::vector<double> CuStateVecBatch<Scalar>::expectationPauli(
       if (pauli != CUSTATEVEC_PAULI_I && pauli != CUSTATEVEC_PAULI_X &&
           pauli != CUSTATEVEC_PAULI_Y && pauli != CUSTATEVEC_PAULI_Z)
         throw std::invalid_argument("Invalid Pauli operator.");
-      const int32_t target = targets[term][operatorIndex];
+      const std::int32_t target = targets[term][operatorIndex];
       if (target < 0 || target >= m_numWires)
         throw std::invalid_argument("Pauli target is out of range.");
       const auto priorTargetsEnd = targets[term].begin() + operatorIndex;
@@ -598,7 +600,7 @@ CuStateVecBatch<Scalar>::applyNoise(const NoiseTask<Scalar> &task,
   MatrixTask<Scalar> operation;
   operation.targets = task.wires;
   std::vector<std::complex<Scalar>> matrices;
-  std::vector<int32_t> matrixIndices(m_size);
+  std::vector<std::int32_t> matrixIndices(m_size);
   // Mixed unitaries are already normalized: upload every branch matrix (plus an
   // appended identity when any state fell through) and index by the selection.
   if (task.kind == NoiseChannelKind::MixedUnitary) {
@@ -614,7 +616,7 @@ CuStateVecBatch<Scalar>::applyNoise(const NoiseTask<Scalar> &task,
                                 Scalar{0});
     std::transform(
         selected.begin(), selected.end(), matrixIndices.begin(),
-        [](std::size_t branch) { return static_cast<int32_t>(branch); });
+        [](std::size_t branch) { return static_cast<std::int32_t>(branch); });
     applyMatrices(
         m_states, operation, matrices, denseMatrices.size() + selectsIdentity,
         CUSTATEVEC_MATRIX_MAP_TYPE_MATRIX_INDEXED, matrixIndices.data());
@@ -641,7 +643,7 @@ CuStateVecBatch<Scalar>::applyNoise(const NoiseTask<Scalar> &task,
 
 template <typename Scalar>
 std::vector<custatevecIndex_t>
-CuStateVecBatch<Scalar>::measure(const std::vector<int32_t> &wires,
+CuStateVecBatch<Scalar>::measure(const std::vector<std::int32_t> &wires,
                                  const std::vector<double> &randomNumbers) {
   if (randomNumbers.size() != m_size)
     throw std::invalid_argument(
@@ -662,11 +664,11 @@ CuStateVecBatch<Scalar>::measure(const std::vector<int32_t> &wires,
 
 template <typename Scalar>
 cudaq::ExecutionResult CuStateVecBatch<Scalar>::sample(
-    std::size_t stateIndex, const std::vector<int32_t> &wires,
+    std::size_t stateIndex, const std::vector<std::int32_t> &wires,
     std::vector<double> randomNumbers, bool includeSequentialData) {
   if (randomNumbers.empty())
     return {};
-  if (randomNumbers.size() > std::numeric_limits<uint32_t>::max())
+  if (randomNumbers.size() > std::numeric_limits<std::uint32_t>::max())
     throw std::overflow_error(
         "Trajectory shot count exceeds cuStateVec range.");
   custatevecSamplerDescriptor_t sampler = nullptr;

@@ -248,6 +248,16 @@ Noise Modeling
             cudaq::qubit q, r;
             cudaq::apply_noise<cudaq::depolarization2>(/*probability=*/0.1, q, r);
 
+.. note::
+
+  The matrix data of a :cpp:struct:`cudaq::kraus_op` (its ``data`` member) is
+  always stored in double precision (``std::complex<double>``), regardless of
+  the simulation precision of the target. Single-precision data (e.g.,
+  ``std::vector<cudaq::complex>`` on ``fp32`` targets) is still accepted when
+  constructing a ``kraus_op`` and is converted to double precision; use
+  ``cudaq::kraus_op::value_type`` to refer to the element type in generic code.
+  ``fp32`` backends continue to simulate in single precision.
+
 .. doxygenstruct:: cudaq::kraus_op
     :members:
 

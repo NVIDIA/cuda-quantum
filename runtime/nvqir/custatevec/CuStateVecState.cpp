@@ -70,7 +70,7 @@ namespace cudaq::cusv {
 
 template <typename Scalar>
 CuStateVecState<Scalar> CuStateVecState<Scalar>::createSingleDevice(
-    int32_t maxWires, int32_t maxDeviceWires, int32_t deviceId,
+    std::int32_t maxWires, std::int32_t maxDeviceWires, std::int32_t deviceId,
     bool allowFp32Emulation) {
   HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
   CudaStream stream;
@@ -101,10 +101,10 @@ CuStateVecState<Scalar> CuStateVecState<Scalar>::createSingleDevice(
 }
 template <typename Scalar>
 CuStateVecState<Scalar> CuStateVecState<Scalar>::createMultiProcess(
-    int32_t maxWires, int32_t maxDeviceWires, int32_t deviceId,
+    std::int32_t maxWires, std::int32_t maxDeviceWires, std::int32_t deviceId,
     custatevecExMemorySharingMethod_t memorySharingMethod,
     const std::vector<custatevecExGlobalIndexBitClass_t> &globalIndexBitClasses,
-    const std::vector<int32_t> &globalIndexBits,
+    const std::vector<std::int32_t> &globalIndexBits,
     std::size_t transferWorkspaceSize,
     std::shared_ptr<CuStateVecCommunicator> communicator,
     bool allowFp32Emulation) {
@@ -121,7 +121,8 @@ CuStateVecState<Scalar> CuStateVecState<Scalar>::createMultiProcess(
       /*memorySharingMethod=*/memorySharingMethod,
       /*globalIndexBitClasses=*/globalIndexBitClasses.data(),
       /*numGlobalIndexBitsPerLayer=*/globalIndexBits.data(),
-      /*numGlobalIndexBitLayers=*/static_cast<int32_t>(globalIndexBits.size()),
+      /*numGlobalIndexBitLayers=*/
+      static_cast<std::int32_t>(globalIndexBits.size()),
       /*transferWorkspaceSizeInBytes=*/transferWorkspaceSize,
       /*auxConfig=*/nullptr,
       /*capability=*/CUSTATEVEC_EX_SV_CAPABILITY_RESIZABLE));
@@ -196,8 +197,8 @@ CuStateVecState<Scalar>::distributionType() const {
 }
 
 template <typename Scalar>
-int32_t CuStateVecState<Scalar>::numWires() const {
-  int32_t value = 0;
+std::int32_t CuStateVecState<Scalar>::numWires() const {
+  std::int32_t value = 0;
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorGetProperty(
       /*stateVector=*/m_state, /*property=*/CUSTATEVEC_EX_SV_PROP_NUM_WIRES,
       /*value=*/&value, /*sizeInBytes=*/sizeof(value)));
@@ -205,8 +206,8 @@ int32_t CuStateVecState<Scalar>::numWires() const {
 }
 
 template <typename Scalar>
-int32_t CuStateVecState<Scalar>::numLocalWires() const {
-  int32_t value = 0;
+std::int32_t CuStateVecState<Scalar>::numLocalWires() const {
+  std::int32_t value = 0;
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorGetProperty(
       /*stateVector=*/m_state,
       /*property=*/CUSTATEVEC_EX_SV_PROP_NUM_LOCAL_WIRES, /*value=*/&value,
@@ -215,8 +216,8 @@ int32_t CuStateVecState<Scalar>::numLocalWires() const {
 }
 
 template <typename Scalar>
-int32_t CuStateVecState<Scalar>::numMigrationWires() const {
-  int32_t value = 0;
+std::int32_t CuStateVecState<Scalar>::numMigrationWires() const {
+  std::int32_t value = 0;
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorGetProperty(
       /*stateVector=*/m_state,
       /*property=*/CUSTATEVEC_EX_SV_PROP_NUM_MIGRATION_WIRES, /*value=*/&value,
@@ -225,8 +226,8 @@ int32_t CuStateVecState<Scalar>::numMigrationWires() const {
 }
 
 template <typename Scalar>
-int32_t CuStateVecState<Scalar>::maxLocalWires() const {
-  int32_t value = 0;
+std::int32_t CuStateVecState<Scalar>::maxLocalWires() const {
+  std::int32_t value = 0;
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorGetProperty(
       /*stateVector=*/m_state,
       /*property=*/CUSTATEVEC_EX_SV_PROP_MAX_NUM_LOCAL_WIRES, /*value=*/&value,
@@ -235,8 +236,8 @@ int32_t CuStateVecState<Scalar>::maxLocalWires() const {
 }
 
 template <typename Scalar>
-int32_t CuStateVecState<Scalar>::maxMigrationWires() const {
-  int32_t value = 0;
+std::int32_t CuStateVecState<Scalar>::maxMigrationWires() const {
+  std::int32_t value = 0;
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorGetProperty(
       /*stateVector=*/m_state,
       /*property=*/CUSTATEVEC_EX_SV_PROP_MAX_NUM_MIGRATION_WIRES,
@@ -245,14 +246,14 @@ int32_t CuStateVecState<Scalar>::maxMigrationWires() const {
 }
 
 template <typename Scalar>
-std::vector<int32_t> CuStateVecState<Scalar>::wireOrdering() const {
-  std::vector<int32_t> result(numWires());
+std::vector<std::int32_t> CuStateVecState<Scalar>::wireOrdering() const {
+  std::vector<std::int32_t> result(numWires());
   if (!result.empty())
     HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorGetProperty(
         /*stateVector=*/m_state,
         /*property=*/CUSTATEVEC_EX_SV_PROP_WIRE_ORDERING,
         /*value=*/result.data(),
-        /*sizeInBytes=*/result.size() * sizeof(int32_t)));
+        /*sizeInBytes=*/result.size() * sizeof(std::int32_t)));
   return result;
 }
 
@@ -264,14 +265,15 @@ void CuStateVecState<Scalar>::exposeResources() const {
 }
 
 template <typename Scalar>
-std::vector<int32_t> CuStateVecState<Scalar>::subStateIndices() const {
+std::vector<std::int32_t> CuStateVecState<Scalar>::subStateIndices() const {
   exposeResources();
   return queryInt32ArrayProperty(m_state, CUSTATEVEC_EX_SV_PROP_NUM_SUBSVS,
                                  CUSTATEVEC_EX_SV_PROP_SUBSV_INDICES);
 }
 
 template <typename Scalar>
-std::vector<int32_t> CuStateVecState<Scalar>::deviceSubStateIndices() const {
+std::vector<std::int32_t>
+CuStateVecState<Scalar>::deviceSubStateIndices() const {
   exposeResources();
   return queryInt32ArrayProperty(m_state,
                                  CUSTATEVEC_EX_SV_PROP_NUM_DEVICE_SUBSVS,
@@ -280,7 +282,7 @@ std::vector<int32_t> CuStateVecState<Scalar>::deviceSubStateIndices() const {
 
 template <typename Scalar>
 DeviceSubStateVector
-CuStateVecState<Scalar>::deviceSubStateVector(int32_t index) const {
+CuStateVecState<Scalar>::deviceSubStateVector(std::int32_t index) const {
   DeviceSubStateVector result;
   HANDLE_CUSTATEVEC_ERROR(
       custatevecExStateVectorGetResourcesFromDeviceSubSVView(
@@ -292,7 +294,7 @@ CuStateVecState<Scalar>::deviceSubStateVector(int32_t index) const {
 
 template <typename Scalar>
 DeviceSubStateVector
-CuStateVecState<Scalar>::writableDeviceSubStateVector(int32_t index) {
+CuStateVecState<Scalar>::writableDeviceSubStateVector(std::int32_t index) {
   DeviceSubStateVector result;
   void *data = nullptr;
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorGetResourcesFromDeviceSubSV(
@@ -311,7 +313,7 @@ CuStateVecState<Scalar> CuStateVecState<Scalar>::cloneEmpty() const {
   result.addWires(CUSTATEVEC_EX_INDEX_BIT_DOMAIN_LOCAL, numLocalWires());
   result.addWires(CUSTATEVEC_EX_INDEX_BIT_DOMAIN_MIGRATION,
                   numMigrationWires());
-  const int32_t globalWires =
+  const std::int32_t globalWires =
       numWires() - numLocalWires() - numMigrationWires();
   result.addWires(CUSTATEVEC_EX_INDEX_BIT_DOMAIN_GLOBAL_DEVICE, globalWires);
   return result;
@@ -352,7 +354,7 @@ void CuStateVecState<Scalar>::copyFrom(const CuStateVecState &other) {
 
   const std::size_t bytes =
       (std::size_t{1} << numLocalWires()) * sizeof(std::complex<Scalar>);
-  int32_t numSlices = 0;
+  std::int32_t numSlices = 0;
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorGetProperty(
       /*stateVector=*/m_state,
       /*property=*/CUSTATEVEC_EX_SV_PROP_NUM_SUBSV_SLICES, /*value=*/&numSlices,
@@ -366,18 +368,18 @@ void CuStateVecState<Scalar>::copyFrom(const CuStateVecState &other) {
   // the other side and causing a second migration.
   // Each sub-state is copied according to where both sides currently reside,
   // covering the four host/device placement combinations without restaging.
-  for (const int32_t index : indices) {
+  for (const std::int32_t index : indices) {
     const bool sourceOnHost = contains(sourceUnstaged, index);
     const bool destinationOnHost = contains(destinationUnstaged, index);
     // Both sides unstaged on host: copy each host slice directly.
     if (sourceOnHost && destinationOnHost) {
-      for (int32_t slice = 0; slice < numSlices; ++slice) {
+      for (std::int32_t slice = 0; slice < numSlices; ++slice) {
         const void *source = nullptr;
         void *destination = nullptr;
         custatevecExMemoryPlacement_t sourcePlacement{};
         custatevecExMemoryPlacement_t destinationPlacement{};
-        int32_t sourceDevice = -1;
-        int32_t destinationDevice = -1;
+        std::int32_t sourceDevice = -1;
+        std::int32_t destinationDevice = -1;
         cudaStream_t sourceStream = nullptr;
         cudaStream_t destinationStream = nullptr;
         HANDLE_CUSTATEVEC_ERROR(
@@ -418,10 +420,10 @@ void CuStateVecState<Scalar>::copyFrom(const CuStateVecState &other) {
         continue;
       }
       // Source on host: stream each host slice into the device sub-state.
-      for (int32_t slice = 0; slice < numSlices; ++slice) {
+      for (std::int32_t slice = 0; slice < numSlices; ++slice) {
         const void *source = nullptr;
         custatevecExMemoryPlacement_t sourcePlacement{};
-        int32_t sourceDevice = -1;
+        std::int32_t sourceDevice = -1;
         cudaStream_t sourceStream = nullptr;
         HANDLE_CUSTATEVEC_ERROR(
             custatevecExStateVectorGetResourcesFromUnstagedSubSVSliceView(
@@ -444,10 +446,10 @@ void CuStateVecState<Scalar>::copyFrom(const CuStateVecState &other) {
 
     // Destination on host, source on device: stream each device slice to host.
     const auto source = other.deviceSubStateVector(index);
-    for (int32_t slice = 0; slice < numSlices; ++slice) {
+    for (std::int32_t slice = 0; slice < numSlices; ++slice) {
       void *destination = nullptr;
       custatevecExMemoryPlacement_t destinationPlacement{};
-      int32_t destinationDevice = -1;
+      std::int32_t destinationDevice = -1;
       cudaStream_t destinationStream = nullptr;
       HANDLE_CUSTATEVEC_ERROR(
           custatevecExStateVectorGetResourcesFromUnstagedSubSVSlice(
@@ -472,17 +474,17 @@ void CuStateVecState<Scalar>::copyFrom(const CuStateVecState &other) {
 }
 
 template <typename Scalar>
-void CuStateVecState<Scalar>::stageSubStateVector(int32_t index) const {
+void CuStateVecState<Scalar>::stageSubStateVector(std::int32_t index) const {
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorStageSubSV(
       /*stateVector=*/m_state, /*subSVIndex=*/index));
 }
 
 template <typename Scalar>
 void CuStateVecState<Scalar>::addWires(custatevecExIndexBitDomain_t domain,
-                                       int32_t count) {
+                                       std::int32_t count) {
   if (count == 0)
     return;
-  std::vector<int32_t> addedWires(count);
+  std::vector<std::int32_t> addedWires(count);
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorAddWires(
       /*stateVector=*/m_state, /*indexBitDomain=*/domain,
       /*numWiresToAdd=*/count,
@@ -506,7 +508,7 @@ template <typename Scalar>
 void CuStateVecState<Scalar>::getState(std::complex<Scalar> *data,
                                        custatevecIndex_t begin,
                                        custatevecIndex_t end,
-                                       int32_t maxConcurrentCopies) const {
+                                       std::int32_t maxConcurrentCopies) const {
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorGetState(
       /*stateVector=*/m_state, /*state=*/data,
       /*dataType=*/complexDataType<Scalar>(), /*begin=*/begin, /*end=*/end,
@@ -517,7 +519,7 @@ template <typename Scalar>
 void CuStateVecState<Scalar>::setState(const std::complex<Scalar> *data,
                                        custatevecIndex_t begin,
                                        custatevecIndex_t end,
-                                       int32_t maxConcurrentCopies) {
+                                       std::int32_t maxConcurrentCopies) {
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorSetState(
       /*stateVector=*/m_state, /*state=*/data,
       /*dataType=*/complexDataType<Scalar>(), /*begin=*/begin, /*end=*/end,
@@ -544,7 +546,7 @@ bool CuStateVecState<Scalar>::setStateFromDevicePointer(const void *data,
   const std::size_t subStateSize = std::size_t{1} << numLocalWires();
   const std::size_t bytes = subStateSize * sizeof(std::complex<Scalar>);
   const auto *const source = static_cast<const std::complex<Scalar> *>(data);
-  for (const int32_t index : subStateIndices()) {
+  for (const std::int32_t index : subStateIndices()) {
     stageSubStateVector(index);
     const auto destination = writableDeviceSubStateVector(index);
     const auto *const sourceSubState =
@@ -569,7 +571,8 @@ template <typename Scalar>
 bool CuStateVecState<Scalar>::appendState(const void *data, std::size_t size) {
   if (!data || size == 0 || !std::has_single_bit(size))
     throw std::invalid_argument("Invalid state to append.");
-  const int32_t addedWires = static_cast<int32_t>(std::countr_zero(size));
+  const std::int32_t addedWires =
+      static_cast<std::int32_t>(std::countr_zero(size));
   if (distributionType() != CUSTATEVEC_EX_SV_DISTRIBUTION_SINGLE_DEVICE ||
       numMigrationWires() != 0 ||
       numLocalWires() + addedWires > maxLocalWires())
@@ -578,7 +581,7 @@ bool CuStateVecState<Scalar>::appendState(const void *data, std::size_t size) {
   const auto indices = deviceSubStateIndices();
   if (indices.size() != 1)
     return false;
-  const int32_t index = indices.front();
+  const std::int32_t index = indices.front();
   stageSubStateVector(index);
   const auto current = deviceSubStateVector(index);
   HANDLE_CUDA_ERROR(cudaSetDevice(current.deviceId));
@@ -614,8 +617,9 @@ bool CuStateVecState<Scalar>::appendState(const void *data, std::size_t size) {
   addWires(CUSTATEVEC_EX_INDEX_BIT_DOMAIN_LOCAL, addedWires);
   stageSubStateVector(index);
   const auto destination = writableDeviceSubStateVector(index);
-  if (oldSize > static_cast<std::size_t>(std::numeric_limits<int64_t>::max()) ||
-      size > static_cast<std::size_t>(std::numeric_limits<int64_t>::max()))
+  if (oldSize >
+          static_cast<std::size_t>(std::numeric_limits<std::int64_t>::max()) ||
+      size > static_cast<std::size_t>(std::numeric_limits<std::int64_t>::max()))
     throw std::overflow_error("State extension exceeds cuBLAS range.");
   const std::size_t resultBytes = oldSize * size * sizeof(std::complex<Scalar>);
   HANDLE_CUDA_ERROR(cudaMemsetAsync(const_cast<void *>(destination.data), 0,
@@ -632,23 +636,23 @@ bool CuStateVecState<Scalar>::appendState(const void *data, std::size_t size) {
   if constexpr (std::is_same_v<Scalar, float>) {
     const cuFloatComplex alpha = make_cuFloatComplex(1.0F, 0.0F);
     HANDLE_CUBLAS_ERROR(cublasCgeru_64(
-        /*handle=*/handle.get(), /*m=*/static_cast<int64_t>(oldSize),
-        /*n=*/static_cast<int64_t>(size), /*alpha=*/&alpha,
+        /*handle=*/handle.get(), /*m=*/static_cast<std::int64_t>(oldSize),
+        /*n=*/static_cast<std::int64_t>(size), /*alpha=*/&alpha,
         /*x=*/static_cast<const cuFloatComplex *>(oldState.data), /*incx=*/1,
         /*y=*/reinterpret_cast<const cuFloatComplex *>(addedState), /*incy=*/1,
         /*A=*/
         static_cast<cuFloatComplex *>(const_cast<void *>(destination.data)),
-        /*lda=*/static_cast<int64_t>(oldSize)));
+        /*lda=*/static_cast<std::int64_t>(oldSize)));
   } else {
     const cuDoubleComplex alpha = make_cuDoubleComplex(1.0, 0.0);
     HANDLE_CUBLAS_ERROR(cublasZgeru_64(
-        /*handle=*/handle.get(), /*m=*/static_cast<int64_t>(oldSize),
-        /*n=*/static_cast<int64_t>(size), /*alpha=*/&alpha,
+        /*handle=*/handle.get(), /*m=*/static_cast<std::int64_t>(oldSize),
+        /*n=*/static_cast<std::int64_t>(size), /*alpha=*/&alpha,
         /*x=*/static_cast<const cuDoubleComplex *>(oldState.data), /*incx=*/1,
         /*y=*/reinterpret_cast<const cuDoubleComplex *>(addedState), /*incy=*/1,
         /*A=*/
         static_cast<cuDoubleComplex *>(const_cast<void *>(destination.data)),
-        /*lda=*/static_cast<int64_t>(oldSize)));
+        /*lda=*/static_cast<std::int64_t>(oldSize)));
   }
   synchronize();
   return true;
@@ -656,10 +660,10 @@ bool CuStateVecState<Scalar>::appendState(const void *data, std::size_t size) {
 
 template <typename Scalar>
 void CuStateVecState<Scalar>::permuteIndexBits(
-    const std::vector<int32_t> &permutation) {
+    const std::vector<std::int32_t> &permutation) {
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorPermuteIndexBits(
       /*stateVector=*/m_state, /*permutation=*/permutation.data(),
-      /*permutationLen=*/static_cast<int32_t>(permutation.size()),
+      /*permutationLen=*/static_cast<std::int32_t>(permutation.size()),
       /*permutationType=*/CUSTATEVEC_EX_PERMUTATION_SCATTER));
 }
 
@@ -667,7 +671,7 @@ template <typename Scalar>
 void CuStateVecState<Scalar>::normalizeWireOrdering() {
   const auto ordering = wireOrdering();
   for (std::size_t index = 0; index < ordering.size(); ++index) {
-    if (ordering[index] == static_cast<int32_t>(index))
+    if (ordering[index] == static_cast<std::int32_t>(index))
       continue;
     permuteIndexBits(ordering);
     synchronize();
@@ -677,10 +681,10 @@ void CuStateVecState<Scalar>::normalizeWireOrdering() {
 
 template <typename Scalar>
 void CuStateVecState<Scalar>::reassignWireOrdering(
-    const std::vector<int32_t> &ordering) {
+    const std::vector<std::int32_t> &ordering) {
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorReassignWireOrdering(
       /*stateVector=*/m_state, /*wireOrdering=*/ordering.data(),
-      /*wireOrderingLen=*/static_cast<int32_t>(ordering.size())));
+      /*wireOrderingLen=*/static_cast<std::int32_t>(ordering.size())));
 }
 
 template class CuStateVecState<float>;

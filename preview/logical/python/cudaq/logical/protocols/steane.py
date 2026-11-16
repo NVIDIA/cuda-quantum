@@ -15,7 +15,7 @@ fully inspectable in Fabric/P3 IR.
 from __future__ import annotations
 
 from .. import codes, std
-from cudaq.logical.programs.decorators import objective
+from cudaq.logical.programs.decorators import action as _action
 from cudaq.logical.ops._impl import (
     cond,
     cx,
@@ -35,7 +35,7 @@ from cudaq.logical.protocols.definition import protocol
 from cudaq.logical.types.semantic import resource
 
 
-@objective
+@_action
 def steane_teleportation_measurement_intent(
     compute: logical_qubit,
     magic: logical_qubit,

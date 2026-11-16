@@ -205,6 +205,7 @@ if (cuStateVec_FOUND AND MPI_CXX_FOUND)
   function(add_custatevec_mgpu_test_suite target suffix)
     set(state_test CuStateVecEx.MGPUState${suffix})
     set(transition_test CuStateVecEx.MGPUStateSmallTransition${suffix})
+    set(capacity_test CuStateVecEx.MGPUCapacity${suffix})
     set(migration_test CuStateVecEx.MGPUStateMigrationLevel${suffix})
     set(rebind_test CuStateVecEx.MGPUStateRebindConfig${suffix})
     set(ptsbe_test CuStateVecEx.MGPUPTSBE${suffix})
@@ -219,6 +220,11 @@ if (cuStateVec_FOUND AND MPI_CXX_FOUND)
       COMMAND ${MPIEXEC_EXECUTABLE} --allow-run-as-root -np 4
       $<TARGET_FILE:${target}>
       --gtest_filter=MGpuTesterMultiProcesses.GrowsSmallReplicatedStateAcrossThreshold)
+    add_custatevec_backend_mgpu_test(${capacity_test}
+      ENVIRONMENT "CUDAQ_GPU_FABRIC=NONE"
+      COMMAND ${MPIEXEC_EXECUTABLE} --allow-run-as-root -np 2
+      $<TARGET_FILE:${target}>
+      --gtest_filter=MGpuCapacityTest.*)
     add_custatevec_backend_mgpu_test(${migration_test}
       ENVIRONMENT
         "CUDAQ_MGPU_NQUBITS_THRESH=1"

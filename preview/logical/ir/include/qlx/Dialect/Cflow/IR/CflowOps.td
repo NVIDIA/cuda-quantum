@@ -98,7 +98,7 @@ def Cflow_WhileConditionOp : Cflow_Op<"while_condition", [
     Terminates the `before` region of `cflow.while`. `condition` controls entry
     into the `after` body and `forwarded` supplies the body's complete carried
     state. The forwarded values have exactly the while's result types, so every
-    linear owner has one successor on both the continue and exit edges.
+    linear value has one successor on both the continue and exit edges.
   }];
   let arguments = (ins I1:$condition, Variadic<AnyType>:$forwarded);
   let assemblyFormat =

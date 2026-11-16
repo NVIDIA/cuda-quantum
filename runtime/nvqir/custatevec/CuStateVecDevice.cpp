@@ -11,9 +11,11 @@
 #include "CuStateVecError.h"
 
 #include <cuda_runtime_api.h>
+#include <custatevec.h>
 
 #include <algorithm>
 #include <bit>
+#include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <limits>
@@ -56,12 +58,40 @@ std::optional<std::size_t> systemMemAvailableBytes() {
   return std::nullopt;
 }
 
+std::optional<std::int32_t> recommendedDenseFusionQubits(
+    std::int32_t computeCapabilityMajor, std::int32_t computeCapabilityMinor,
+    bool doublePrecision, std::size_t cuStateVecVersion) {
+  if (cuStateVecVersion >= unmeasuredCuStateVecVersion)
+    return std::nullopt;
+  if (computeCapabilityMajor == 10 && computeCapabilityMinor == 7)
+    return doublePrecision ? 3 : 4;
+  return std::nullopt;
+}
+
+std::optional<std::int32_t> recommendedDenseFusionQubits(bool doublePrecision) {
+  // A failed query must not stop the simulator from running with the library
+  // default, so report no recommendation instead of throwing.
+  std::int32_t device = 0;
+  std::int32_t major = 0;
+  std::int32_t minor = 0;
+  if (cudaGetDevice(&device) != cudaSuccess ||
+      cudaDeviceGetAttribute(&major, cudaDevAttrComputeCapabilityMajor,
+                             device) != cudaSuccess ||
+      cudaDeviceGetAttribute(&minor, cudaDevAttrComputeCapabilityMinor,
+                             device) != cudaSuccess) {
+    cudaGetLastError();
+    return std::nullopt;
+  }
+  return recommendedDenseFusionQubits(major, minor, doublePrecision,
+                                      custatevecGetVersion());
+}
+
 DeviceMemoryCapacity queryDeviceMemoryCapacity() {
   DeviceMemoryCapacity result;
   std::size_t ignoredTotal = 0;
   HANDLE_CUDA_ERROR(cudaMemGetInfo(&result.cudaFreeBytes, &ignoredTotal));
 
-  int32_t device = 0;
+  std::int32_t device = 0;
   HANDLE_CUDA_ERROR(cudaGetDevice(&device));
   HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(&result.computeCapabilityMajor,
                                            cudaDevAttrComputeCapabilityMajor,
@@ -70,7 +100,7 @@ DeviceMemoryCapacity queryDeviceMemoryCapacity() {
                                            cudaDevAttrComputeCapabilityMinor,
                                            device));
 
-  int32_t memoryPoolsSupported = 0;
+  std::int32_t memoryPoolsSupported = 0;
   HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(
       &memoryPoolsSupported, cudaDevAttrMemoryPoolsSupported, device));
   if (memoryPoolsSupported) {
@@ -100,19 +130,21 @@ DeviceMemoryCapacity queryDeviceMemoryCapacity() {
   return result;
 }
 
-int32_t migrationWireCapacity(std::size_t hostBytes, std::size_t deviceBytes) {
+std::int32_t migrationWireCapacity(std::size_t hostBytes,
+                                   std::size_t deviceBytes) {
   if (deviceBytes == 0)
     throw std::invalid_argument("Device memory capacity cannot be zero.");
   const std::size_t hostChunks = hostBytes / deviceBytes;
   if (hostChunks <= 1)
     return 0;
-  return std::min<int32_t>(
-      3, static_cast<int32_t>(std::bit_width(hostChunks) - 1));
+  return std::min<std::int32_t>(
+      3, static_cast<std::int32_t>(std::bit_width(hostChunks) - 1));
 }
 
-std::size_t trajectoryBatchSize(std::size_t availableBytes,
-                                std::size_t stateBytes, std::size_t workItems,
-                                std::optional<int32_t> configuredBatchSize) {
+std::size_t
+trajectoryBatchSize(std::size_t availableBytes, std::size_t stateBytes,
+                    std::size_t workItems,
+                    std::optional<std::int32_t> configuredBatchSize) {
   if (stateBytes == 0 || workItems == 0)
     throw std::invalid_argument(
         "Trajectory batch sizing requires non-zero state and work sizes.");

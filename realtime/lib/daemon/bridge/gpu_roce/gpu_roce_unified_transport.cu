@@ -89,7 +89,7 @@ __device__ inline std::uint32_t poll_receive(gpu_roce_session &s) {
   std::uint8_t opown;
   do {
     opown = doca_gpu_dev_verbs_load_relaxed_sys_global(
-        reinterpret_cast<uint8_t *>(&cqe64->op_own));
+        reinterpret_cast<std::uint8_t *>(&cqe64->op_own));
     if (!((opown & MLX5_CQE_OWNER_MASK) ^ !!(s.cq_ticket & cqe_num)))
       break;
     if (++spin >= 1024) {

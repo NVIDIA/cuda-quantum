@@ -26,6 +26,8 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
+#include <cstdint>
+
 namespace nb = nanobind;
 using namespace mlir::python::nanobind_adaptors;
 
@@ -136,7 +138,7 @@ void qlx::python::populateFabricSubmodule(nb::module_ &m) {
                           fabricFloorplanAttrGetTypeID)
       .def_staticmethod(
           "get",
-          [](const std::string &layout, const std::vector<int64_t> &params,
+          [](const std::string &layout, const std::vector<std::int64_t> &params,
              MlirContext ctx) {
             MlirAttribute attr = fabricFloorplanAttrGet(
                 ctx, toRef(layout), static_cast<intptr_t>(params.size()),

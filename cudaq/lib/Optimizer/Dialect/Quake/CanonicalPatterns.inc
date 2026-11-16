@@ -216,6 +216,23 @@ struct EraseEmptyVeqControlPattern : public OpRewritePattern<ConcreteOp> {
   }
 };
 
+// Drops a `negated_qubit_controls` array whose entries are all false. An absent
+// attribute already means that every control is positive.
+template <typename ConcreteOp>
+struct EraseAllFalseNegatedControlsPattern
+    : public OpRewritePattern<ConcreteOp> {
+  using OpRewritePattern<ConcreteOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(ConcreteOp op,
+                                PatternRewriter &rewriter) const override {
+    const auto negated = op.getNegatedQubitControls();
+    if (!negated || llvm::is_contained(*negated, true))
+      return failure();
+    rewriter.modifyOpInPlace(op, [&] { op.setNegatedQubitControlsAttr({}); });
+    return success();
+  }
+};
+
 // quake.apply @callee [%c, %empty] (%args) : (...) -> ()
 // ────────────────────────────────────────────────────────
 // quake.apply @callee [%c] (%args) : (...) -> ()
@@ -1145,8 +1162,8 @@ struct AdjustAdjointPhasePattern
         arith::NegFOp::create(rewriter, phase.getLoc(), phase.getParameter());
     auto dict = phase->getDiscardableAttrDictionary();
     auto newPhase = rewriter.replaceOpWithNewOp<cudaq::quake::PhaseOp>(
-        phase, phase.getResultTypes(), /*is_adj=*/false, ValueRange{negatedAngle},
-        phase.getControls(), phase.getTargets(),
+        phase, phase.getResultTypes(), /*is_adj=*/false,
+        ValueRange{negatedAngle}, phase.getControls(), phase.getTargets(),
         phase.getNegatedQubitControlsAttr());
     newPhase->setDiscardableAttrs(std::move(dict));
     return success();
@@ -1237,8 +1254,8 @@ struct MergeAdjacentPhasePattern
         arith::AddFOp::create(rewriter, loc, firstAngle, secondAngle);
 
     rewriter.replaceOpWithNewOp<cudaq::quake::PhaseOp>(
-        phase, phase.getResultTypes(), /*is_adj=*/false, ValueRange{mergedAngle},
-        input.getControls(), input.getTargets(),
+        phase, phase.getResultTypes(), /*is_adj=*/false,
+        ValueRange{mergedAngle}, input.getControls(), input.getTargets(),
         input.getNegatedQubitControlsAttr());
     rewriter.eraseOp(input);
     return success();

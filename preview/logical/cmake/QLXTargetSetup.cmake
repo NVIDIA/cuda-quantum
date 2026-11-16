@@ -22,11 +22,13 @@ Functions:
   component list documents the precise MLIR surface used by the target, while
   the SDK supplies those symbols through ``cudaq::MLIR``.
 
-``qlx_propagate_llvm_rtti_eh(<target>)``
+``qlx_propagate_llvm_rtti_eh(<target> [EXCEPTIONS])``
   Adds ``-fno-rtti`` and ``-fno-exceptions`` to ``<target>``'s compile
   options whenever the host LLVM was built with those features
   disabled. This is what every MLIR dialect needs so the generated
   TableGen op classes match the upstream LLVM ABI.
+  ``EXCEPTIONS`` keeps RTTI consistent with LLVM but enables exception
+  unwinding for allocating analyses whose C boundary handles resource failures.
 
 Position-independent code: the top-level ``CMakeLists.txt`` sets
 ``CMAKE_POSITION_INDEPENDENT_CODE ON`` globally, so per-target
@@ -42,7 +44,14 @@ function(qlx_propagate_llvm_rtti_eh target)
   if(NOT LLVM_ENABLE_RTTI)
     target_compile_options(${target} PRIVATE -fno-rtti)
   endif()
-  if(NOT LLVM_ENABLE_EH)
+  if("EXCEPTIONS" IN_LIST ARGN)
+    target_compile_options(${target} PRIVATE -fexceptions)
+    # add_mlir_library compiles sources in an object library before adding
+    # them to the aggregate target. Enable unwinding where compilation occurs.
+    if(TARGET obj.${target})
+      target_compile_options(obj.${target} PRIVATE -fexceptions)
+    endif()
+  elseif(NOT LLVM_ENABLE_EH)
     target_compile_options(${target} PRIVATE -fno-exceptions)
   endif()
 endfunction()

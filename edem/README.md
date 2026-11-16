@@ -60,6 +60,13 @@ installing `nanobind>=2.12,<3` into the chosen Python environment. Set
 `Python_EXECUTABLE` to select an interpreter. Standalone native builds default to
 `CUDAQ_EDEM_BUILD_PYTHON=OFF`.
 
+Native Python bindings install under
+`lib/pythonX.Y/site-packages/cudaq_edem` by default. Set
+`CUDAQ_EDEM_PYTHON_INSTALL_DIR` to change the package directory relative to
+`CMAKE_INSTALL_PREFIX`. `scripts/build_cudaq.sh -L` sets it to `cudaq_edem`,
+beside the native installation's `cudaq` package, so the same `PYTHONPATH`
+entry exposes both packages.
+
 The `cudaq-edem` wheel includes the `cudaq_edem` Python package, both native
 libraries, headers, and CMake exports. The Python module owns aligned buffers
 and delegates construction, validation, and evaluation to the C interface.
@@ -96,8 +103,18 @@ cmake -S /path/to/consumer -B build-consumer \
   -Dcudaq-edem_DIR="$(python3 -c 'import cudaq_edem; print(cudaq_edem.get_cmake_dir())')"
 ```
 
-Wheels use CPython and platform compatibility tags. CI produces wheel and
-source-distribution artifacts; public release publishing is a separate step.
+Wheels use CPython and platform compatibility tags. The Deployments workflow
+builds Linux wheels for CPython 3.11 through 3.14 in a `manylinux_2_28` container
+(`.github/workflows/edem_wheels.yml`), repairs them with `auditwheel`, and runs
+`check_wheel.py` on the repaired wheel. It attaches the wheels and the source
+distribution to the draft release. The `cudaq` package depends on the exact
+`cudaq-edem` version from `CUDAQ_EDEM_VERSION` on Linux, so `pip install cudaq`
+installs it. PyPI never accepts a second upload of a version, so a Deployments
+run that creates a release fails if `CUDAQ_EDEM_VERSION` is already on PyPI with
+different sources (see `edem/scripts/check_pypi_version.py`). Bump the version
+before publishing changes. The Deployments release images also install the
+Python 3.12 wheel into the system Python. Publish `cudaq-edem` to PyPI before
+`cudaq`.
 
 ## CUDA-Q build
 

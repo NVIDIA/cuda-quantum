@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <initializer_list>
 #include <mutex>
@@ -47,18 +48,19 @@ using namespace mlir;
 
 namespace {
 
-static std::optional<int64_t>
-checkedProduct(std::initializer_list<int64_t> factors) {
-  int64_t result = 1;
-  for (int64_t factor : factors)
+static std::optional<std::int64_t>
+checkedProduct(std::initializer_list<std::int64_t> factors) {
+  std::int64_t result = 1;
+  for (std::int64_t factor : factors)
     if (llvm::MulOverflow(result, factor, result))
       return std::nullopt;
   return result;
 }
 
-static std::optional<int64_t> checkedSum(std::initializer_list<int64_t> terms) {
-  int64_t result = 0;
-  for (int64_t term : terms)
+static std::optional<std::int64_t>
+checkedSum(std::initializer_list<std::int64_t> terms) {
+  std::int64_t result = 0;
+  for (std::int64_t term : terms)
     if (llvm::AddOverflow(result, term, result))
       return std::nullopt;
   return result;
@@ -104,7 +106,7 @@ gadgetLogicalAction(qlx::fabric::GadgetOp gadget) {
   auto spec = resolvedGadgetSpec(gadget);
   if (!spec)
     return std::nullopt;
-  auto objective = dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+  auto objective = dyn_cast_or_null<qlx::fabric::ActionOp>(
       SymbolTable::lookupNearestSymbolFrom(spec, spec.getObjectiveAttr()));
   if (!objective || !objective.getLogicalAttr())
     return std::nullopt;
@@ -119,7 +121,7 @@ gadgetLogicalInstrument(qlx::fabric::GadgetOp gadget) {
   auto spec = resolvedGadgetSpec(gadget);
   if (!spec)
     return {};
-  auto objective = dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+  auto objective = dyn_cast_or_null<qlx::fabric::ActionOp>(
       SymbolTable::lookupNearestSymbolFrom(spec, spec.getObjectiveAttr()));
   if (!objective || !objective.getLogicalAttr())
     return {};
@@ -136,9 +138,9 @@ logicalMeasurementBasis(qlx::InstrumentDeclOp instrument) {
       dyn_cast_or_null<FlatSymbolRefAttr>(instrument.getSemanticsAttr());
   auto body =
       semantics
-          ? dyn_cast_or_null<qlx::ObjectiveBodyOp>(
+          ? dyn_cast_or_null<qlx::ActionBodyOp>(
                 SymbolTable::lookupNearestSymbolFrom(instrument, semantics))
-          : qlx::ObjectiveBodyOp{};
+          : qlx::ActionBodyOp{};
   if (!body || body.getBody().empty())
     return std::nullopt;
   Block &block = body.getBody().front();
@@ -171,18 +173,18 @@ constexpr StringLiteral kSpacetimeProvider = "qlx.compiler.spacetime";
 constexpr StringLiteral kSpacetimeProviderVersion = "1";
 constexpr StringLiteral kSurfaceFactoryRecurrence =
     "surface_autoccz_factory_recurrence";
-constexpr int64_t kSurfaceFactoryRecurrenceVersion = 3;
+constexpr std::int64_t kSurfaceFactoryRecurrenceVersion = 3;
 constexpr StringLiteral kSurfaceFactoryRecurrenceEvidence =
     "fabric.factory-circuit/v2+gidney-fowler-autoccz-layout/v3+selected-"
     "device-closure/v1";
 constexpr StringLiteral kSurfaceAutoCCZApplication =
     "surface_autoccz_application";
-constexpr int64_t kSurfaceAutoCCZApplicationVersion = 1;
+constexpr std::int64_t kSurfaceAutoCCZApplicationVersion = 1;
 constexpr StringLiteral kSurfaceAutoCCZApplicationEvidence =
     "fabric.autoccz-consumer/v1+selected-device-reaction-pipeline/v1";
 constexpr StringLiteral kSurfaceSpacelikeCallable =
     "surface_spacelike_callable";
-constexpr int64_t kSurfaceSpacelikeCallableVersion = 1;
+constexpr std::int64_t kSurfaceSpacelikeCallableVersion = 1;
 constexpr StringLiteral kSurfaceSpacelikeCallableEvidence =
     "fabric.autoccz-reaction-layer/v1+surface-alternating-access/v1+"
     "selected-device-closure/v1";
@@ -204,21 +206,21 @@ namespace plan_provider {
 using namespace qlx::phys;
 
 struct VerifiedSurfaceFactoryRecurrenceLayout {
-  int64_t level1Distance;
-  int64_t level2Distance;
-  int64_t level1Lanes;
-  int64_t tStatesPerCCZ;
-  int64_t fixupBoxes;
-  int64_t level1PatchesPerLane;
-  int64_t cczPatches;
-  int64_t autoCCZPatches;
-  int64_t factoryPatches;
-  int64_t level1ResourceOffset;
-  int64_t level2ResourceOffset;
+  std::int64_t level1Distance;
+  std::int64_t level2Distance;
+  std::int64_t level1Lanes;
+  std::int64_t tStatesPerCCZ;
+  std::int64_t fixupBoxes;
+  std::int64_t level1PatchesPerLane;
+  std::int64_t cczPatches;
+  std::int64_t autoCCZPatches;
+  std::int64_t factoryPatches;
+  std::int64_t level1ResourceOffset;
+  std::int64_t level2ResourceOffset;
   std::string level1ResourceClass;
   std::string level2ResourceClass;
 
-  SmallVector<int64_t, 9> geometry() const {
+  SmallVector<std::int64_t, 9> geometry() const {
     return {level1Distance, level2Distance, level1Lanes,
             tStatesPerCCZ,  fixupBoxes,     level1PatchesPerLane,
             cczPatches,     autoCCZPatches, factoryPatches};
@@ -226,9 +228,9 @@ struct VerifiedSurfaceFactoryRecurrenceLayout {
 };
 
 struct VerifiedSurfaceFactoryStageShape {
-  int64_t level1QuarterLayers;
-  int64_t level2Layers;
-  int64_t autoCCZLayers;
+  std::int64_t level1QuarterLayers;
+  std::int64_t level2Layers;
+  std::int64_t autoCCZLayers;
 };
 
 static std::optional<double> spacetimeNumericValue(Attribute attribute) {
@@ -428,11 +430,11 @@ expectedAutoCCZRoutingClass(SpacetimePlanOp plan,
   return selected;
 }
 
-static FailureOr<int64_t>
+static FailureOr<std::int64_t>
 expectedSpacetimeCodeDistance(SpacetimePlanOp plan,
                               ArrayRef<Operation *> closure) {
   auto module = plan->getParentOfType<ModuleOp>();
-  std::optional<int64_t> selected;
+  std::optional<std::int64_t> selected;
   auto inspect = [&](Type type, Operation *owner) -> LogicalResult {
     auto patch = dyn_cast<qlx::fabric::PatchType>(type);
     if (!patch)
@@ -503,7 +505,7 @@ static LogicalResult verifySurfaceAutoCCZApplicationPlan(SpacetimePlanOp plan) {
       !resource_provider::hasExactSurfaceAutoCCZApplicationStructure(source)) {
     auto diagnostic = plan.emitOpError(
         "surface AutoCCZ application source is not the exact selected "
-        "three-owner protocol");
+        "three-patch protocol");
     if (source) {
       diagnostic << " (ops="
                  << std::distance(source.getBody().front().begin(),
@@ -536,7 +538,7 @@ static LogicalResult verifySurfaceAutoCCZApplicationPlan(SpacetimePlanOp plan) {
   if (!reaction || !std::isfinite(*reaction) || *reaction <= 0.0)
     return plan.emitOpError(
         "surface AutoCCZ application requires positive reaction_time_ns");
-  int64_t lanes = routing->getCount() / 6;
+  std::int64_t lanes = routing->getCount() / 6;
   if (lanes <= 0)
     return plan.emitOpError(
         "surface AutoCCZ application has no complete routing workspace");
@@ -625,7 +627,7 @@ static LogicalResult verifySurfaceSpacelikeCallablePlan(SpacetimePlanOp plan) {
     return plan.emitOpError(
         "surface spacelike callable requires positive reaction and surface "
         "cycle timing");
-  int64_t lanes = routing->getCount() / 6;
+  std::int64_t lanes = routing->getCount() / 6;
   if (lanes <= 0)
     return plan.emitOpError(
         "surface spacelike callable has no complete AutoCCZ routing lane");
@@ -700,10 +702,10 @@ verifySurfaceSpacelikeCallableInvocation(SpacetimeCallOp call,
       shape->reactionApplications != canonicalShape->reactionApplications ||
       shape->peakReactionWidth != canonicalShape->peakReactionWidth) {
     auto diagnostic = call.emitOpError(
-        "reused surface spacelike plan requires the same exact P2 owner-graph "
+        "reused surface spacelike plan requires the same exact P2 patch-graph "
         "shape as its canonical source");
     if (shape)
-      diagnostic << "; actual=(owners=" << shape->boundaryOwners
+      diagnostic << "; actual=(boundary_patches=" << shape->boundaryOwners
                  << ", access_layers=" << shape->accessLayers
                  << ", reaction_depth=" << shape->reactionDepth
                  << ", reaction_applications=" << shape->reactionApplications
@@ -711,7 +713,8 @@ verifySurfaceSpacelikeCallableInvocation(SpacetimeCallOp call,
     else
       diagnostic << "; actual=unsupported";
     if (canonicalShape)
-      diagnostic << ", canonical=(owners=" << canonicalShape->boundaryOwners
+      diagnostic << ", canonical=(boundary_patches="
+                 << canonicalShape->boundaryOwners
                  << ", access_layers=" << canonicalShape->accessLayers
                  << ", reaction_depth=" << canonicalShape->reactionDepth
                  << ", reaction_applications="
@@ -748,7 +751,7 @@ verifySurfaceSpacelikeCallableInvocation(SpacetimeCallOp call,
       !std::isfinite(*cycle) || *reaction <= 0.0 || *cycle <= 0.0)
     return call.emitOpError(
         "reused surface spacelike plan has incomplete selected timing");
-  int64_t lanes = routing->getCount() / 6;
+  std::int64_t lanes = routing->getCount() / 6;
   if (lanes <= 0)
     return call.emitOpError(
         "reused surface spacelike plan has no routing capacity");
@@ -893,20 +896,20 @@ expectedSurfaceFactoryStageShape(SpacetimePlanOp plan,
                                  qlx::fabric::ProtocolOp source,
                                  qlx::fabric::ProtocolOp level1,
                                  qlx::fabric::ProtocolOp level2) {
-  int64_t rotations = 0;
+  std::int64_t rotations = 0;
   for (auto ignored : level1.getBody()
                           .front()
                           .getOps<qlx::fabric::ResourceRotateProductOp>()) {
     (void)ignored;
     ++rotations;
   }
-  int64_t checks = 0;
+  std::int64_t checks = 0;
   for (auto ignored :
        level2.getBody().front().getOps<qlx::fabric::MeasureProductOp>()) {
     (void)ignored;
     ++checks;
   }
-  int64_t ringEdges = 0;
+  std::int64_t ringEdges = 0;
   for (auto call : source.getBody().front().getOps<qlx::fabric::CallOp>())
     if (resource_provider::isLogicalCZCall(call))
       ++ringEdges;
@@ -925,7 +928,7 @@ expectedSurfaceFactoryStageShape(SpacetimePlanOp plan,
 static FailureOr<double> expectedSurfaceFactoryTiming(SpacetimePlanOp plan,
                                                       DictionaryAttr timing,
                                                       StringRef action,
-                                                      int64_t distance) {
+                                                      std::int64_t distance) {
   if (!timing || action.empty() || distance <= 0) {
     plan.emitOpError(
         "surface factory recurrence requires an explicit selected-device "
@@ -956,8 +959,8 @@ expectedSurfaceFactoryRecurrenceLayout(SpacetimePlanOp plan,
   if (!architecture)
     return failure();
   SymbolTable architectureSymbols(architecture);
-  std::map<int64_t, std::string> classByDistance;
-  std::map<int64_t, int64_t> capacityByDistance;
+  std::map<std::int64_t, std::string> classByDistance;
+  std::map<std::int64_t, std::int64_t> capacityByDistance;
   bool invalid = false;
   for (Operation *callable : closure) {
     Region *body = spacetimeCallableBody(callable);
@@ -1060,11 +1063,11 @@ expectedSurfaceFactoryRecurrenceLayout(SpacetimePlanOp plan,
     return plan.emitOpError(
         "surface factory recurrence physical patch bindings must have positive "
         "capacity");
-  constexpr int64_t level1PatchesPerLane = 5;
-  constexpr int64_t cczPatches = 11;
-  constexpr int64_t autoCCZPatches = 9;
-  int64_t level1Capacity = capacityByDistance[first->first];
-  int64_t level2Capacity = capacityByDistance[second->first];
+  constexpr std::int64_t level1PatchesPerLane = 5;
+  constexpr std::int64_t cczPatches = 11;
+  constexpr std::int64_t autoCCZPatches = 9;
+  std::int64_t level1Capacity = capacityByDistance[first->first];
+  std::int64_t level2Capacity = capacityByDistance[second->first];
   if (level1Capacity % level1PatchesPerLane != 0 ||
       level2Capacity <= cczPatches ||
       (level2Capacity - cczPatches) % autoCCZPatches != 0)
@@ -1072,8 +1075,8 @@ expectedSurfaceFactoryRecurrenceLayout(SpacetimePlanOp plan,
         "surface factory recurrence resource capacities do not decompose "
         "into five-patch 15-to-1 lanes, one eleven-patch CCZ stage, and "
         "nine-patch AutoCCZ workspaces");
-  int64_t level1Lanes = level1Capacity / level1PatchesPerLane;
-  int64_t fixupBoxes = (level2Capacity - cczPatches) / autoCCZPatches;
+  std::int64_t level1Lanes = level1Capacity / level1PatchesPerLane;
+  std::int64_t fixupBoxes = (level2Capacity - cczPatches) / autoCCZPatches;
   if (level1Lanes != 6)
     return plan.emitOpError(
         "the registered Gidney--Fowler layout requires exactly six "
@@ -1082,7 +1085,7 @@ expectedSurfaceFactoryRecurrenceLayout(SpacetimePlanOp plan,
     return plan.emitOpError(
         "the registered AutoCCZ layout requires exactly two nine-patch "
         "fixup workspaces");
-  int64_t factoryPatches = level1.getCount();
+  std::int64_t factoryPatches = level1.getCount();
   auto distanceWidth = checkedSum({second->first, 1});
   auto patchPhysicalUnits =
       distanceWidth ? checkedProduct({2, *distanceWidth, *distanceWidth})
@@ -1178,7 +1181,7 @@ static LogicalResult verifySurfaceFactoryRecurrencePlan(SpacetimePlanOp plan) {
         "materialized physical output");
 
   auto geometry = plan.getGeometryAttr();
-  SmallVector<int64_t, 9> expectedGeometry = layout->geometry();
+  SmallVector<std::int64_t, 9> expectedGeometry = layout->geometry();
   if (!geometry || geometry.asArrayRef() != ArrayRef(expectedGeometry))
     return plan.emitOpError(
         "surface factory recurrence geometry does not equal the independently "
@@ -1224,11 +1227,12 @@ static LogicalResult verifySurfaceFactoryRecurrencePlan(SpacetimePlanOp plan) {
     return std::abs(left - right) <= scale * 1.0e-12;
   };
   size_t cursor = 0;
-  auto check =
-      [&](StringRef name, StringRef kind, int64_t iteration, double start,
-          double duration, StringRef resourceClass, int64_t resourceOffset,
-          int64_t resourceCount, bool usesRawFactory, int64_t factoryUnits,
-          ArrayRef<std::string> after, StringRef outputKind) -> LogicalResult {
+  auto check = [&](StringRef name, StringRef kind, std::int64_t iteration,
+                   double start, double duration, StringRef resourceClass,
+                   std::int64_t resourceOffset, std::int64_t resourceCount,
+                   bool usesRawFactory, std::int64_t factoryUnits,
+                   ArrayRef<std::string> after,
+                   StringRef outputKind) -> LogicalResult {
     if (cursor >= events.size())
       return plan.emitOpError("surface factory recurrence is missing event @")
              << name;
@@ -1263,8 +1267,8 @@ static LogicalResult verifySurfaceFactoryRecurrencePlan(SpacetimePlanOp plan) {
     return success();
   };
 
-  constexpr int64_t outputsToProve = 3;
-  constexpr int64_t tStatesPerOutput = 8;
+  constexpr std::int64_t outputsToProve = 3;
+  constexpr std::int64_t tStatesPerOutput = 8;
   double level1Duration = static_cast<double>(stageShape->level1QuarterLayers) *
                           *level1RotationTiming / 4.0;
   double level2LayerDuration = *level2LayerTiming;
@@ -1273,9 +1277,10 @@ static LogicalResult verifySurfaceFactoryRecurrencePlan(SpacetimePlanOp plan) {
 
   SmallVector<std::string, 24> tEvents;
   SmallVector<double, 24> tReady;
-  int64_t rawConsumed = 0;
-  for (int64_t index = 0; index < outputsToProve * tStatesPerOutput; ++index) {
-    int64_t lane = index % layout->level1Lanes;
+  std::int64_t rawConsumed = 0;
+  for (std::int64_t index = 0; index < outputsToProve * tStatesPerOutput;
+       ++index) {
+    std::int64_t lane = index % layout->level1Lanes;
     double start = laneReady[lane];
     double finish = start + level1Duration;
     std::string name = llvm::formatv("level1_t{0:00}", index).str();
@@ -1291,7 +1296,7 @@ static LogicalResult verifySurfaceFactoryRecurrencePlan(SpacetimePlanOp plan) {
         std::max(0.0L, static_cast<long double>(start) - rawStartup);
     long double producedAfterStartup =
         std::floor(elapsed / static_cast<long double>(rawInterval) + 1.0e-9L);
-    int64_t lanes = (*rawModel).getLaneCount();
+    std::int64_t lanes = (*rawModel).getLaneCount();
     bool supplied = rawConsumed <= lanes;
     if (!supplied) {
       long double requiredAfterStartup =
@@ -1311,17 +1316,17 @@ static LogicalResult verifySurfaceFactoryRecurrencePlan(SpacetimePlanOp plan) {
   SmallVector<double, 2> fixupReady(layout->fixupBoxes, 0.0);
   SmallVector<std::string, 2> fixupTail(layout->fixupBoxes);
   SmallVector<double, 3> outputTimes;
-  for (int64_t iteration = 0; iteration < outputsToProve; ++iteration) {
+  for (std::int64_t iteration = 0; iteration < outputsToProve; ++iteration) {
     SmallVector<std::string> dependencies;
     double inputsReady = 0.0;
-    for (int64_t offset = 0; offset < tStatesPerOutput; ++offset) {
-      int64_t index = iteration * tStatesPerOutput + offset;
+    for (std::int64_t offset = 0; offset < tStatesPerOutput; ++offset) {
+      std::int64_t index = iteration * tStatesPerOutput + offset;
       dependencies.push_back(tEvents[index]);
       inputsReady = std::max(inputsReady, tReady[index]);
     }
     double layerStart = std::max(coreReady, inputsReady);
     std::string previous;
-    for (int64_t layer = 0; layer < stageShape->level2Layers; ++layer) {
+    for (std::int64_t layer = 0; layer < stageShape->level2Layers; ++layer) {
       std::string name =
           llvm::formatv("ccz_{0}_layer_{1}", iteration, layer).str();
       SmallVector<std::string> after =
@@ -1339,10 +1344,10 @@ static LogicalResult verifySurfaceFactoryRecurrencePlan(SpacetimePlanOp plan) {
     }
     coreReady = layerStart;
 
-    int64_t workspace = iteration % layout->fixupBoxes;
+    std::int64_t workspace = iteration % layout->fixupBoxes;
     layerStart = std::max(coreReady, fixupReady[workspace]);
     previous.clear();
-    for (int64_t layer = 0; layer < stageShape->autoCCZLayers; ++layer) {
+    for (std::int64_t layer = 0; layer < stageShape->autoCCZLayers; ++layer) {
       std::string name =
           llvm::formatv("autoccz_{0}_layer_{1}", iteration, layer).str();
       SmallVector<std::string> after;
@@ -1447,7 +1452,7 @@ selectedProtocolDigest(qlx::fabric::ProtocolOp source) {
   auto bytes = digest.final();
   std::string result = "sha256:";
   static constexpr char hex[] = "0123456789abcdef";
-  for (uint8_t byte : bytes) {
+  for (std::uint8_t byte : bytes) {
     result.push_back(hex[byte >> 4]);
     result.push_back(hex[byte & 0xf]);
   }
@@ -1460,7 +1465,7 @@ static std::string sha256Hex(StringRef text) {
   auto bytes = digest.final();
   std::string result;
   static constexpr char hex[] = "0123456789abcdef";
-  for (uint8_t byte : bytes) {
+  for (std::uint8_t byte : bytes) {
     result.push_back(hex[byte >> 4]);
     result.push_back(hex[byte & 0xf]);
   }
@@ -1502,7 +1507,7 @@ static LogicalResult verifyComponentPlan(SpacetimePlanOp plan) {
       source->getAttrOfType<StringAttr>("component_boundary_sha256") !=
           boundaryDigest)
     return plan.emitOpError(
-        "component plan source/objective/boundary commitment differs from "
+        "component plan source/action/boundary commitment differs from "
         "its exact retained protocol");
   bool characterized = plan.getDerivation() == "characterized";
   bool hasBuild = static_cast<bool>(plan.getSourceBuildSha256Attr());
@@ -1559,7 +1564,7 @@ static LogicalResult verifyComponentPlan(SpacetimePlanOp plan) {
       return plan.emitOpError("component timing fact '")
              << item.getName() << "' differs from its operating point";
   }
-  for (int64_t distance : plan.getSourceCodeDistancesAttr().asArrayRef())
+  for (std::int64_t distance : plan.getSourceCodeDistancesAttr().asArrayRef())
     if (distance <= 0)
       return plan.emitOpError(
           "component source code distances must be positive");
@@ -1711,7 +1716,7 @@ static LogicalResult verifyComponentInvocation(SpacetimeCallOp call,
       source->getAttrOfType<StringAttr>("component_boundary_sha256") !=
           plan.getSourceBoundarySha256Attr())
     return call.emitOpError(
-        "component invocation source/objective/boundary differs from its plan");
+        "component invocation source/action/boundary differs from its plan");
   return success();
 }
 
@@ -1892,8 +1897,8 @@ static bool exactFactoryInstrumentCall(CallOp call, StringRef kind,
 }
 
 static bool exactFactoryProduct(ValueRange actual, ValueRange results,
-                                ArrayRef<int64_t> patchIndices,
-                                ArrayRef<int64_t> logicalIndices,
+                                ArrayRef<std::int64_t> patchIndices,
+                                ArrayRef<std::int64_t> logicalIndices,
                                 StringRef pauliProduct,
                                 ArrayRef<Value> expected, char pauli) {
   if (actual.size() != expected.size() || results.size() != expected.size() ||
@@ -2240,7 +2245,7 @@ static bool hasExactGidneyFowlerAutoCCZStructure(ProtocolOp protocol) {
       return false;
   }
 
-  // Track the current SSA owner for each semantic payload role.  Authors may
+  // Track the current SSI value for each semantic payload role.  Authors may
   // serialize the ring edge-by-edge or in three disjoint matchings; both are
   // the same circuit.  The provider authenticates dataflow, not source order.
   SmallVector<Value, 9> current{unpack.getOutputs()[3],
@@ -2483,17 +2488,17 @@ static LogicalResult verifyAutoCCZUnpackProvenance(UnpackResourceOp unpack) {
   if (!protocol || protocol.getBody().empty() ||
       protocol.getFunctionType().getNumInputs() != 3)
     return unpack.emitOpError(
-        "AutoCCZ unpack anchor provenance requires one three-owner protocol "
+        "AutoCCZ unpack anchor provenance requires one three-patch protocol "
         "boundary");
   Block &entry = protocol.getBody().front();
   if (entry.getNumArguments() != 3)
     return unpack.emitOpError(
-        "AutoCCZ unpack anchor provenance requires three entry owners");
+        "AutoCCZ unpack anchor provenance requires three entry patches");
   for (unsigned index = 0; index < 3; ++index)
     if (unpack.getAnchors()[index] != entry.getArgument(index))
       return unpack.emitOpError(
           "AutoCCZ unpack anchor provenance must bind the three main roles "
-          "to the ordered protocol owners");
+          "to the ordered protocol patches");
 
   SmallVector<Value, 6> routing(unpack.getAnchors().drop_front(3));
   SmallVector<Value, 6> orderedAllocations;
@@ -2604,7 +2609,7 @@ static LogicalResult verifyAutoCCZPackProvenance(PackResourceOp pack) {
     if (!uniqueRoots.insert(root).second)
       return pack.emitOpError(
           "AutoCCZ producer payload provenance must name nine distinct patch "
-          "owners");
+          "values");
 
   SmallVector<Value, 6> routing(roots.begin() + 3, roots.end());
   SmallVector<Value, 6> orderedAllocations;
@@ -2643,7 +2648,7 @@ static LogicalResult verifyAutoCCZPackProvenance(PackResourceOp pack) {
       continue;
     if (call.getNumOperands() != 2 || call.getNumResults() != 2)
       return pack.emitOpError(
-          "AutoCCZ ring CZ must preserve exactly two patch owners");
+          "AutoCCZ ring CZ must preserve exactly two patch values");
     auto left = rootIndex(call.getOperand(0));
     auto right = rootIndex(call.getOperand(1));
     if (!left || !right || *left == *right)
@@ -2761,10 +2766,10 @@ static bool isLogicalCXCall(CallOp call) {
 }
 
 /// Recognize one exact, boundary-preserving surface-code call box.  The
-/// analysis follows SSA ownership, never a helper spelling or an algorithm
-/// role. A valid box contains one layer of one or more authenticated AutoCCZ
-/// applications; exact CX calls may connect additional boundary owners to a
-/// three-owner reaction core. Each such external connection is one
+/// analysis follows SSI value threading, never a helper spelling or an
+/// algorithm role. A valid box contains one layer of one or more authenticated
+/// AutoCCZ applications; exact CX calls may connect additional boundary patches
+/// to a three-patch reaction core. Each such external connection is one
 /// alternating-access layer in the physical layout selected by the P3
 /// provider.
 static std::optional<qlx::spacetime::SurfaceSpacelikeShape>

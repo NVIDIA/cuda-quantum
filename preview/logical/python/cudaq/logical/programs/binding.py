@@ -13,25 +13,49 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Iterable, Iterator
 
+from cudaq.logical._core.compat import UNSET, resolve_alias
 
-@dataclass(frozen=True, slots=True, eq=False)
-class ObjectiveOperandRef:
-    """One named operand of an ideal logical objective."""
 
-    objective: Any
+@dataclass(frozen=True, slots=True, eq=False, init=False)
+class ActionOperandRef:
+    """One named operand of an ideal logical action."""
+
+    action: Any
     name: str
     index: int
 
+    def __init__(self,
+                 action=UNSET,
+                 name=UNSET,
+                 index=UNSET,
+                 *,
+                 objective=UNSET):
+        owner = resolve_alias(action,
+                              objective,
+                              name="action",
+                              legacy_name="objective")
+        if name is UNSET or index is UNSET:
+            raise TypeError("ActionOperandRef requires name and index")
+        object.__setattr__(self, "action", owner)
+        object.__setattr__(self, "name", name)
+        object.__setattr__(self, "index", index)
+
+    @property
+    def objective(self):
+        """Compatibility alias for the owning logical action."""
+
+        return self.action
+
     def __hash__(self) -> int:
-        return hash((id(self.objective), self.name, self.index))
+        return hash((id(self.action), self.name, self.index))
 
     def __eq__(self, other) -> bool:
-        return (isinstance(other, ObjectiveOperandRef) and
-                self.objective is other.objective and
-                self.name == other.name and self.index == other.index)
+        return (isinstance(other, ActionOperandRef) and
+                self.action is other.action and self.name == other.name and
+                self.index == other.index)
 
     def __repr__(self) -> str:
-        owner = getattr(self.objective, "name", type(self.objective).__name__)
+        owner = getattr(self.action, "name", type(self.action).__name__)
         return f"{owner}.operands.{self.name}"
 
 
@@ -104,14 +128,20 @@ class _ReferenceNamespace:
         return f"{self._kind}s({', '.join(self._by_name)})"
 
 
-class ObjectiveOperands(_ReferenceNamespace):
-    """Typed namespace returned by ``objective.operands``."""
+class ActionOperands(_ReferenceNamespace):
+    """Typed namespace returned by a logical action's ``operands``."""
 
-    def __init__(self, objective, names: Iterable[str]) -> None:
+    def __init__(self, action=UNSET, names=UNSET, *, objective=UNSET) -> None:
+        owner = resolve_alias(action,
+                              objective,
+                              name="action",
+                              legacy_name="objective")
+        if names is UNSET:
+            raise TypeError("ActionOperands requires operand names")
         refs = tuple(
-            ObjectiveOperandRef(objective, str(name), index)
+            ActionOperandRef(owner, str(name), index)
             for index, name in enumerate(names))
-        super().__init__(objective, refs, kind="objective operand")
+        super().__init__(owner, refs, kind="action operand")
 
 
 class LogicalPorts(_ReferenceNamespace):
@@ -127,8 +157,8 @@ class LogicalPorts(_ReferenceNamespace):
         super().__init__(encoding, refs, kind="logical port")
 
 
-def standard_objective_operand_names(name: str, arity: int) -> tuple[str, ...]:
-    """Canonical operand names for built-in logical objectives."""
+def standard_action_operand_names(name: str, arity: int) -> tuple[str, ...]:
+    """Canonical operand names for built-in logical actions."""
 
     named = {
         "cx": ("control", "target"),
@@ -139,9 +169,16 @@ def standard_objective_operand_names(name: str, arity: int) -> tuple[str, ...]:
     return named or tuple(f"q{index}" for index in range(arity))
 
 
+# Keep identity-based ownership and equality identical through legacy names.
+ObjectiveOperandRef = ActionOperandRef
+ObjectiveOperands = ActionOperands
+standard_objective_operand_names = standard_action_operand_names
+
 __all__ = [
     "LogicalPortRef",
     "LogicalPorts",
+    "ActionOperandRef",
+    "ActionOperands",
     "ObjectiveOperandRef",
     "ObjectiveOperands",
 ]

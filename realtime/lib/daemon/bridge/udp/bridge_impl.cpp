@@ -62,6 +62,7 @@
 
 #include <cuda_runtime_api.h>
 
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -71,9 +72,9 @@ namespace {
 
 struct UdpBridgeContext {
   cpu_udp_transceiver_t transceiver = nullptr;
-  uint16_t requested_port = 0;
-  uint32_t num_slots = 8;
-  uint32_t slot_size = 256;
+  std::uint16_t requested_port = 0;
+  std::uint32_t num_slots = 8;
+  std::uint32_t slot_size = 256;
   bool pinned_rings = false;
   bool unified = false;
   // Owned pinned+mapped buffers when pinned_rings is set (freed AFTER the
@@ -98,13 +99,13 @@ bool starts_with(const std::string &s, const char *prefix) {
 // shape hands this out as the transport context, the unified shape embeds it
 // in the data-plane alongside the hooks.
 cudaq_status_t fill_ring(UdpBridgeContext *ctx, cudaq_ringbuffer_t *ring) {
-  auto *rx_flags = reinterpret_cast<volatile uint64_t *>(
+  auto *rx_flags = reinterpret_cast<volatile std::uint64_t *>(
       cpu_udp_get_rx_ring_flag_addr(ctx->transceiver));
-  auto *tx_flags = reinterpret_cast<volatile uint64_t *>(
+  auto *tx_flags = reinterpret_cast<volatile std::uint64_t *>(
       cpu_udp_get_tx_ring_flag_addr(ctx->transceiver));
-  auto *rx_data = reinterpret_cast<uint8_t *>(
+  auto *rx_data = reinterpret_cast<std::uint8_t *>(
       cpu_udp_get_rx_ring_data_addr(ctx->transceiver));
-  auto *tx_data = reinterpret_cast<uint8_t *>(
+  auto *tx_data = reinterpret_cast<std::uint8_t *>(
       cpu_udp_get_tx_ring_data_addr(ctx->transceiver));
   if (!rx_flags || !tx_flags || !rx_data || !tx_data)
     return CUDAQ_ERR_INTERNAL;
@@ -139,11 +140,12 @@ static cudaq_status_t udp_bridge_create(cudaq_realtime_bridge_handle_t *handle,
     const std::string a = argv[i] ? argv[i] : "";
     try {
       if (starts_with(a, "--port="))
-        ctx->requested_port = static_cast<uint16_t>(std::stoul(a.substr(7)));
+        ctx->requested_port =
+            static_cast<std::uint16_t>(std::stoul(a.substr(7)));
       else if (starts_with(a, "--num-slots="))
-        ctx->num_slots = static_cast<uint32_t>(std::stoul(a.substr(12)));
+        ctx->num_slots = static_cast<std::uint32_t>(std::stoul(a.substr(12)));
       else if (starts_with(a, "--slot-size="))
-        ctx->slot_size = static_cast<uint32_t>(std::stoul(a.substr(12)));
+        ctx->slot_size = static_cast<std::uint32_t>(std::stoul(a.substr(12)));
       else if (a == "--pinned-rings")
         ctx->pinned_rings = true;
       else if (a == "--unified")
@@ -163,7 +165,8 @@ static cudaq_status_t udp_bridge_create(cudaq_realtime_bridge_handle_t *handle,
     // its device alias (identical pointer under UVA), while this transport's
     // socket threads fill/drain it from the host.
     const size_t sizes[4] = {
-        ctx->num_slots * sizeof(uint64_t), ctx->num_slots * sizeof(uint64_t),
+        ctx->num_slots * sizeof(std::uint64_t),
+        ctx->num_slots * sizeof(std::uint64_t),
         static_cast<size_t>(ctx->num_slots) * ctx->slot_size,
         static_cast<size_t>(ctx->num_slots) * ctx->slot_size};
     for (int i = 0; i < 4; ++i) {
@@ -180,10 +183,10 @@ static cudaq_status_t udp_bridge_create(cudaq_realtime_bridge_handle_t *handle,
     }
     ctx->transceiver = cpu_udp_create_transceiver_ext(
         ctx->slot_size, ctx->num_slots,
-        static_cast<volatile uint64_t *>(ctx->pinned[0]),
-        static_cast<volatile uint64_t *>(ctx->pinned[1]),
-        static_cast<uint8_t *>(ctx->pinned[2]),
-        static_cast<uint8_t *>(ctx->pinned[3]));
+        static_cast<volatile std::uint64_t *>(ctx->pinned[0]),
+        static_cast<volatile std::uint64_t *>(ctx->pinned[1]),
+        static_cast<std::uint8_t *>(ctx->pinned[2]),
+        static_cast<std::uint8_t *>(ctx->pinned[3]));
   } else {
     ctx->transceiver =
         cpu_udp_create_transceiver(ctx->slot_size, ctx->num_slots);
@@ -237,31 +240,36 @@ static cudaq_status_t udp_bridge_get_transport_context(
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
 
-  // A consumer asks here for whichever shape it means to serve, so both are
-  // answerable.  Under --unified the answer is "unified, but the loop is
-  // yours": no dispatcher override, and the hooks that drive it come from
-  // get_cpu_dataplane.  Both fields are written rather than left alone, so a
-  // caller that did not zero-initialize reads "no override" and not stack
-  // garbage it would then try to call.
-  if (context_type == UNIFIED) {
-    if (!ctx->unified)
-      return CUDAQ_ERR_UNSUPPORTED;
-    auto *unified_ctx =
-        reinterpret_cast<cudaq_unified_dispatch_ctx_t *>(out_context);
-    unified_ctx->launch_fn = nullptr;
-    unified_ctx->transport_ctx = nullptr;
-    return CUDAQ_OK;
-  }
-  if (context_type != RING_BUFFER)
+  // Deprecated entry, kept for the UNIFIED answer only: under --unified it is
+  // "unified, but the loop is yours": no dispatcher override, and the hooks
+  // that drive it come from get_cpu_dataplane.  Both fields are written rather
+  // than left alone, so a caller that did not zero-initialize reads "no
+  // override" and not stack garbage it would then try to call.  The rings are
+  // served by udp_bridge_get_ring_buffer, which the API forwards to.
+  if (context_type != UNIFIED || !ctx->unified)
     return CUDAQ_ERR_UNSUPPORTED;
+  auto *unified_ctx =
+      reinterpret_cast<cudaq_unified_dispatch_ctx_t *>(out_context);
+  unified_ctx->launch_fn = nullptr;
+  unified_ctx->transport_ctx = nullptr;
+  return CUDAQ_OK;
+}
+
+static cudaq_status_t
+udp_bridge_get_ring_buffer(cudaq_realtime_bridge_handle_t handle,
+                           cudaq_ringbuffer_t *out_ring) {
+  if (!handle || !out_ring)
+    return CUDAQ_ERR_INVALID_ARG;
+  auto *ctx = reinterpret_cast<UdpBridgeContext *>(handle);
+  if (!ctx->transceiver)
+    return CUDAQ_ERR_INTERNAL;
   // Report the rings only in the shape that uses them.  Handing them out under
   // --unified would let a consumer poll rx_flags that the unified data path
   // never sets, which looks like a transport silently dropping every request;
   // refusing turns that into a consumer-side wiring error naming the shape.
   if (ctx->unified)
     return CUDAQ_ERR_UNSUPPORTED;
-
-  return fill_ring(ctx, reinterpret_cast<cudaq_ringbuffer_t *>(out_context));
+  return fill_ring(ctx, out_ring);
 }
 
 // The unified data plane's two hooks, translating the transceiver's 1/0
@@ -269,11 +277,11 @@ static cudaq_status_t udp_bridge_get_transport_context(
 // itself, so they carry no state of their own -- the socket, the rings, the
 // peer address and the RX cursor all live one layer down, shared with the
 // threaded shape rather than duplicated here.
-static cudaq_rx_status_t udp_dp_rx_poll(void *ctx, uint32_t *out_slot) {
+static cudaq_rx_status_t udp_dp_rx_poll(void *ctx, std::uint32_t *out_slot) {
   return cpu_udp_rx_poll(ctx, out_slot) ? CUDAQ_RX_READY : CUDAQ_RX_EMPTY;
 }
 
-static cudaq_status_t udp_dp_tx_publish(void *ctx, uint32_t slot) {
+static cudaq_status_t udp_dp_tx_publish(void *ctx, std::uint32_t slot) {
   return cpu_udp_tx_publish(ctx, slot) ? CUDAQ_OK : CUDAQ_ERR_INTERNAL;
 }
 
@@ -341,15 +349,17 @@ udp_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t handle, char *buf,
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
   const int n =
-      std::snprintf(buf, buf_len, "transport=udp port=%u",
-                    static_cast<unsigned>(cpu_udp_get_port(ctx->transceiver)));
+      std::snprintf(buf, buf_len, "transport=udp port=%u slot_size=%u",
+                    static_cast<unsigned>(cpu_udp_get_port(ctx->transceiver)),
+                    ctx->slot_size);
   return (n > 0 && static_cast<size_t>(n) < buf_len) ? CUDAQ_OK
                                                      : CUDAQ_ERR_INVALID_ARG;
 }
 
 static cudaq_status_t
 udp_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t handle,
-                             uint32_t *out_num_slots, uint32_t *out_slot_size) {
+                             std::uint32_t *out_num_slots,
+                             std::uint32_t *out_slot_size) {
   if (!handle || !out_num_slots || !out_slot_size)
     return CUDAQ_ERR_INVALID_ARG;
   auto *ctx = reinterpret_cast<UdpBridgeContext *>(handle);
@@ -372,6 +382,7 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       udp_bridge_get_ring_geometry,
       /*set_function_table=*/nullptr, // no function table needed
       /*get_gpu_dataplane=*/nullptr,  // host rings only
+      udp_bridge_get_ring_buffer,
   };
   return &cudaq_udp_bridge_interface;
 }

@@ -61,7 +61,7 @@ if(CUDAQ_ENABLE_PYTHON)
       "CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH=\"$<TARGET_FILE:cudaq-dlopen-sentinel-plugin>\""
       "CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME=\"$<TARGET_FILE_NAME:cudaq-dlopen-sentinel-plugin>\""
   )
-  add_dependencies(test_target_config cudaq-dlopen-sentinel-plugin)
+  add_dependencies(test_target_config cudaq-dlopen-sentinel-plugin cudaq-kernel-runtime)
 endif()
 
 cudaq_gtest_discover_tests(test_target_config DISCOVERY_TIMEOUT 120)

@@ -128,7 +128,8 @@ def test_axis_measurements_count_as_measurements():
     assert ops.get('mz', 0) == 1
 
 
-def test_composite_operations_lower_to_logical_basis():
+@pytest.mark.parametrize("level", range(4))
+def test_composite_operations_lower_to_logical_basis(level):
     cudaq.set_target(FTQC_LOGICAL_TARGET)
 
     kernel = cudaq.make_kernel()
@@ -136,7 +137,7 @@ def test_composite_operations_lower_to_logical_basis():
     kernel.r1(0.75, q[0])
     kernel.cr1(0.375, q[1], q[2])
 
-    ops = cudaq.estimate_resources(kernel).to_dict()
+    ops = cudaq.estimate_resources(kernel, optimization_level=level).to_dict()
     assert_logical_basis_only(ops)
     assert 'r1' not in ops, f"R1 did not lower to RZ: {ops}"
     assert 'cr1' not in ops, f"CR1 did not lower to CX/RZ basis: {ops}"
@@ -144,7 +145,8 @@ def test_composite_operations_lower_to_logical_basis():
     assert ops.get('cx', 0) >= 1
 
 
-def test_controlled_s_and_t_lower_to_logical_basis():
+@pytest.mark.parametrize("level", range(4))
+def test_controlled_s_and_t_lower_to_logical_basis(level):
     cudaq.set_target(FTQC_LOGICAL_TARGET)
 
     kernel = cudaq.make_kernel()
@@ -152,7 +154,7 @@ def test_controlled_s_and_t_lower_to_logical_basis():
     kernel.cs(q[0], q[1])
     kernel.ct(q[1], q[2])
 
-    ops = cudaq.estimate_resources(kernel).to_dict()
+    ops = cudaq.estimate_resources(kernel, optimization_level=level).to_dict()
     assert_logical_basis_only(ops)
     assert 'cs' not in ops, f"Controlled-S did not lower: {ops}"
     assert 'ct' not in ops, f"Controlled-T did not lower: {ops}"

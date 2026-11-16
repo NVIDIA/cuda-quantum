@@ -44,6 +44,7 @@ class LinkedLibraryHolder;
 namespace detail {
 class TargetSetter;
 class PlatformTestAccess;
+class PlatformRegistry;
 class with_platform_in_library_mode;
 } // namespace detail
 
@@ -63,8 +64,8 @@ using ObserveTask = std::function<observe_result()>;
 /// `clearQPUs`.
 class quantum_platform {
 public:
-  quantum_platform() = default;
-  virtual ~quantum_platform() = default;
+  quantum_platform();
+  virtual ~quantum_platform();
 
   /// @brief Return true if this platform exposes multiple QPUs and
   /// supports parallel distribution of quantum tasks.
@@ -217,13 +218,23 @@ public:
   [[nodiscard]] cudaq::CompileOptions
   getCompileOptions(const Policy &policy, std::uint64_t randomSeed = 0,
                     std::size_t qpuId = 0) const {
+    validateQpuId(qpuId);
+    return getCompileOptions(policy, randomSeed, runtimeEndpoints[qpuId]);
+  }
+
+  /// Get the compile options for launching under \p policy on \p endpoint.
+  /// The endpoint need not belong to a platform.
+  template <typename Policy>
+  [[nodiscard]] static cudaq::CompileOptions
+  getCompileOptions(const Policy &policy, std::uint64_t randomSeed,
+                    const RuntimeEndpoint &endpoint) {
     cudaq::CompileOptions options;
     if constexpr (requires { policy.inner; }) {
       options = cudaq::get_compile_options(policy.inner, randomSeed);
     } else {
       options = cudaq::get_compile_options(policy, randomSeed);
     }
-    resolveCompileOptions(options, qpuId);
+    resolveCompileOptions(options, endpoint);
     return options;
   }
   /// \endcond
@@ -245,6 +256,7 @@ protected:
   friend class cudaq::LinkedLibraryHolder;
   friend class cudaq::detail::TargetSetter;
   friend class cudaq::detail::PlatformTestAccess;
+  friend class cudaq::detail::PlatformRegistry;
   /// @brief Set the target backend, by default do nothing, let subclasses
   /// override
   /// @param name
@@ -262,6 +274,9 @@ protected:
   /// Destroy all of the platform's QPUs and runtime endpoints.
   void clearQPUs();
 
+  /// Clear endpoints while keeping queues alive for QPUs that will be reused.
+  void clearQPUs(const std::vector<RuntimeEndpoint> &retainedEndpoints);
+
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
 
@@ -277,9 +292,9 @@ private:
   // Helper to validate QPU Id
   void validateQpuId(std::size_t qpuId) const;
 
-  /// Amend \p options based on the properties of the runtime endpoint.
-  void resolveCompileOptions(cudaq::CompileOptions &options,
-                             std::size_t qpu_id) const;
+  /// Amend \p options based on the properties of \p endpoint.
+  static void resolveCompileOptions(cudaq::CompileOptions &options,
+                                    const RuntimeEndpoint &endpoint);
 
   /// The compilation targets for each QPU on the platform.
   std::vector<CompileTarget> compileTargets;
@@ -337,15 +352,17 @@ hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define CONCAT_INNER(a, b) a##b
+// Not thread_local. The platform is process-wide and must outlive the thread
+// that created it.
 #define CUDAQ_REGISTER_PLATFORM(NAME, PRINTED_NAME)                            \
   extern "C" {                                                                 \
   cudaq::quantum_platform *getQuantumPlatform() {                              \
-    thread_local static std::unique_ptr<cudaq::quantum_platform> m_platform =  \
+    static std::unique_ptr<cudaq::quantum_platform> m_platform =               \
         std::make_unique<NAME>();                                              \
     return m_platform.get();                                                   \
   }                                                                            \
   cudaq::quantum_platform *CONCAT(getQuantumPlatform_, PRINTED_NAME)() {       \
-    thread_local static std::unique_ptr<cudaq::quantum_platform> m_platform =  \
+    static std::unique_ptr<cudaq::quantum_platform> m_platform =               \
         std::make_unique<NAME>();                                              \
     return m_platform.get();                                                   \
   }                                                                            \

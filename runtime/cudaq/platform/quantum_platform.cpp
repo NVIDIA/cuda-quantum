@@ -16,9 +16,13 @@
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <cstdlib>
 #include <exception>
+#include <mutex>
 #include <string>
+#include <unordered_set>
 
 using namespace cudaq_internal::compiler;
 
@@ -32,6 +36,52 @@ extern "C" void cudaq_add_qpu_node(void *node_ptr) {
 }
 
 namespace cudaq {
+
+namespace detail {
+/// Track live platforms so their QPUs can be released before plugin shutdown.
+class PlatformRegistry {
+public:
+  void add(quantum_platform &platform) {
+    std::lock_guard lock(mutex);
+    platforms.insert(&platform);
+  }
+
+  void remove(quantum_platform &platform) {
+    std::lock_guard lock(mutex);
+    platforms.erase(&platform);
+  }
+
+  void clearQPUs() {
+    std::lock_guard lock(mutex);
+    for (auto *platform : platforms)
+      platform->clearQPUs();
+  }
+
+private:
+  std::mutex mutex;
+  std::unordered_set<quantum_platform *> platforms;
+};
+} // namespace detail
+
+namespace {
+detail::PlatformRegistry &platformRegistry() {
+  // Keep the registry alive through static destruction.
+  static auto *registry = new detail::PlatformRegistry;
+  return *registry;
+}
+} // namespace
+
+quantum_platform::quantum_platform() { platformRegistry().add(*this); }
+
+quantum_platform::~quantum_platform() { platformRegistry().remove(*this); }
+
+void detail::registerPlatformCleanup() {
+  if (std::atexit([] {
+        detail::shutdownExecutionQueues();
+        platformRegistry().clearQPUs();
+      }) != 0)
+    throw std::runtime_error("Unable to register platform cleanup.");
+}
 
 // These functions are defined elsewhere, but
 // we are going to use them here.
@@ -99,8 +149,6 @@ void quantum_platform::reset_noise(std::size_t qpu_id) {
     platformQPU->setNoiseModel(nullptr);
 }
 
-std::size_t get_random_seed();
-
 cudaq::CompileTarget createDefaultCompileTarget(const RuntimeTarget *rt) {
   const bool enablePythonCodegenDump =
       cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
@@ -114,8 +162,6 @@ cudaq::CompileTarget createDefaultCompileTarget(const RuntimeTarget *rt) {
     targetConfig = rt->config;
     runtimeConfig = rt->runtimeConfig;
   }
-  if (auto seed = cudaq::get_random_seed(); seed != 0)
-    runtimeConfig.emplace("seed", std::to_string(seed));
   auto ct = cudaq::CompileTarget::createFromConfig(targetConfig, runtimeConfig);
 
   ct.supportDeviceCalls = true;
@@ -265,9 +311,7 @@ bool quantum_platform::supports_explicit_measurements(
 }
 
 void quantum_platform::resolveCompileOptions(cudaq::CompileOptions &options,
-                                             std::size_t qpu_id) const {
-  validateQpuId(qpu_id);
-  const auto &endpoint = runtimeEndpoints[qpu_id];
+                                             const RuntimeEndpoint &endpoint) {
   options.emulate = endpoint.isEmulated;
   options.emitJit |= !endpoint.isRemote;
   if (!endpoint.supportsJit)
@@ -310,7 +354,20 @@ void quantum_platform::addQPU(const CompileTarget &target,
   runtimeEndpoints.push_back(endpoint);
 }
 
-void quantum_platform::clearQPUs() {
+void quantum_platform::clearQPUs() { clearQPUs({}); }
+
+void quantum_platform::clearQPUs(
+    const std::vector<RuntimeEndpoint> &retainedEndpoints) {
+  // Stop removed QPUs before releasing their resources. Compile-target
+  // overrides reinstall the same endpoints, so their queues must stay usable.
+  std::unordered_set<const QPU *> retained;
+  for (const auto &endpoint : retainedEndpoints)
+    if (auto *qpu = endpoint.getQPU())
+      retained.insert(qpu);
+  for (auto &endpoint : runtimeEndpoints)
+    if (auto *qpu = endpoint.getQPU())
+      if (!retained.contains(qpu))
+        qpu->shutdownExecutionQueue();
   runtimeEndpoints.clear();
   compileTargets.clear();
 }
@@ -327,8 +384,6 @@ void quantum_platform::onRandomSeedSet(std::size_t seed) {
     if (!qpu)
       continue;
     qpu->onRandomSeedSet(seed);
-    if (compileTargets[qpuId].resetOnRandomSeedSet)
-      compileTargets[qpuId] = qpu->getCompileTarget(runtimeTarget.get());
   }
 }
 

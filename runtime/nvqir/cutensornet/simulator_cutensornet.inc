@@ -8,9 +8,12 @@
 
 #pragma once
 
-#include "cudaq/cudaq_mpi.h"
 #include "cutensornet.h"
 #include "tensornet_spin_op.h"
+#include "cudaq/cudaq_mpi.h"
+#include "cudaq/platform/qpu_utils.h"
+
+#include <cstdint>
 
 namespace nvqir {
 template <typename ScalarType>
@@ -25,6 +28,9 @@ SimulatorTensorNetBase<ScalarType>::SimulatorTensorNetBase()
   HANDLE_CUTN_ERROR(cutensornetCreate(&m_cutnHandle));
   // The scratch pad must be allocated after we have selected the device.
   scratchPad.allocate();
+
+  // Register after CUDA initialization so workers exit before CUDA shuts down.
+  cudaq::detail::registerPlatformCleanup();
 
   // Check whether observe path reuse is enabled.
   m_reuseContractionPathObserve =
@@ -180,15 +186,17 @@ void SimulatorTensorNetBase<ScalarType>::applyGate(
 }
 
 // Helper to look up a device memory pointer from a cache.
-// If not found, allocate a new device memory buffer and put it to the cache.
-template <typename T>
+// If not found, the matrix is produced by `makeMat`, uploaded to the device
+// and put into the cache. `makeMat` is only invoked on a cache miss, so the
+// (precision-converted) matrix is not constructed unnecessarily.
+template <typename MakeMat>
 void *
-getOrCacheMat(const std::string &key, const std::vector<std::complex<T>> &mat,
+getOrCacheMat(const std::string &key, MakeMat &&makeMat,
               std::unordered_map<std::string, void *> &gateDeviceMemCache) {
   const auto iter = gateDeviceMemCache.find(key);
 
   if (iter == gateDeviceMemCache.end()) {
-    void *dMem = allocateGateMatrix(mat);
+    void *dMem = allocateGateMatrix(makeMat());
     gateDeviceMemCache[key] = dMem;
     return dMem;
   }
@@ -197,16 +205,19 @@ getOrCacheMat(const std::string &key, const std::vector<std::complex<T>> &mat,
 
 template <typename ScalarType>
 void SimulatorTensorNetBase<ScalarType>::applyKrausChannel(
-    const std::vector<int32_t> &qubits,
+    const std::vector<std::int32_t> &qubits,
     const cudaq::kraus_channel &krausChannel) {
   LOG_API_TIME();
   if (krausChannel.is_unitary_mixture()) {
     std::vector<void *> channelMats;
     for (const auto &mat : krausChannel.unitary_ops) {
-      std::vector<std::complex<ScalarType>> casted(mat.begin(), mat.end());
-      channelMats.emplace_back(
-          getOrCacheMat("ScaledUnitary_" + std::to_string(vecComplexHash(mat)),
-                        casted, m_gateDeviceMemCache));
+      channelMats.emplace_back(getOrCacheMat(
+          "ScaledUnitary_" + std::to_string(vecComplexHash(mat)),
+          [&mat] {
+            return std::vector<std::complex<ScalarType>>(mat.begin(),
+                                                         mat.end());
+          },
+          m_gateDeviceMemCache));
     }
     m_state->applyUnitaryChannel(qubits, channelMats,
                                  krausChannel.probabilities);
@@ -218,26 +229,17 @@ void SimulatorTensorNetBase<ScalarType>::applyKrausChannel(
 
     std::vector<void *> channelMats;
     for (const auto &op : krausChannel.get_ops()) {
-      void *channelMatPtr_d = [&]() {
-        const auto targetPrecision = std::is_same_v<ScalarType, float>
-                                         ? cudaq::simulation_precision::fp32
-                                         : cudaq::simulation_precision::fp64;
-        const std::string cacheKey = cudaq_fmt::format(
-            "GeneralKrausMat_{}", std::to_string(vecComplexHash(op.data)));
-        if (op.precision == targetPrecision)
-          return getOrCacheMat(cacheKey, op.data, m_gateDeviceMemCache);
-        // The channel data in a different precision.
-        return op.precision == cudaq::simulation_precision::fp32
-                   ? getOrCacheMat(cacheKey,
-                                   std::vector<std::complex<double>>(
-                                       op.data.begin(), op.data.end()),
-                                   m_gateDeviceMemCache)
-                   : getOrCacheMat(cacheKey,
-                                   std::vector<std::complex<float>>(
-                                       op.data.begin(), op.data.end()),
-                                   m_gateDeviceMemCache);
-      }();
-      channelMats.emplace_back(channelMatPtr_d);
+      // `kraus_op::data` is always double precision regardless of the
+      // simulator scalar type, so cast it to ScalarType before uploading.
+      const std::string cacheKey = cudaq_fmt::format(
+          "GeneralKrausMat_{}", std::to_string(vecComplexHash(op.data)));
+      channelMats.emplace_back(getOrCacheMat(
+          cacheKey,
+          [&op] {
+            return std::vector<std::complex<ScalarType>>(op.data.begin(),
+                                                         op.data.end());
+          },
+          m_gateDeviceMemCache));
     }
     m_state->applyGeneralChannel(qubits, channelMats);
   }
@@ -275,7 +277,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoise(
   LOG_API_TIME();
 
   // Apply all prior gates before applying noise.
-  std::vector<int32_t> qubits{targets.begin(), targets.end()};
+  std::vector<std::int32_t> qubits{targets.begin(), targets.end()};
   CUDAQ_INFO("[SimulatorTensorNetBase] Applying kraus channel {} on qubits: {}",
              cudaq::get_noise_model_type_name(channel.noise_type), qubits);
 
@@ -301,7 +303,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
 
   // Get the name as a string
   std::string gName(gateName);
-  std::vector<int32_t> qubits{controls.begin(), controls.end()};
+  std::vector<std::int32_t> qubits{controls.begin(), controls.end()};
   qubits.insert(qubits.end(), targets.begin(), targets.end());
 
   // Get the Kraus channels specified for this gate and qubits
@@ -329,7 +331,7 @@ void SimulatorTensorNetBase<ScalarType>::resetQubit(
   LOG_API_TIME();
   // Prepare the state before RDM calculation
   prepareQubitTensorState();
-  const auto rdm = m_state->computeRDM({static_cast<int32_t>(qubitIdx)});
+  const auto rdm = m_state->computeRDM({static_cast<std::int32_t>(qubitIdx)});
   assert(rdm.size() == 4);
   const ScalarType prob0 = rdm[0].real();
   CUDAQ_INFO("Reset qubit {} with prob(|0>) = {}", qubitIdx, prob0);
@@ -365,7 +367,7 @@ void SimulatorTensorNetBase<ScalarType>::resetQubit(
   }
 
   m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
-                               {static_cast<int32_t>(qubitIdx)});
+                               {static_cast<std::int32_t>(qubitIdx)});
 }
 
 /// @brief Device synchronization
@@ -381,7 +383,7 @@ bool SimulatorTensorNetBase<ScalarType>::measureQubit(
   LOG_API_TIME();
   // Prepare the state before RDM calculation
   prepareQubitTensorState();
-  const auto rdm = m_state->computeRDM({static_cast<int32_t>(qubitIdx)});
+  const auto rdm = m_state->computeRDM({static_cast<std::int32_t>(qubitIdx)});
   assert(rdm.size() == 4);
   const ScalarType prob0 = rdm[0].real();
   const ScalarType prob1 = rdm[3].real();
@@ -413,7 +415,7 @@ bool SimulatorTensorNetBase<ScalarType>::measureQubit(
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
   m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
-                               {static_cast<int32_t>(qubitIdx)});
+                               {static_cast<std::int32_t>(qubitIdx)});
   return resultBool;
 }
 
@@ -423,7 +425,7 @@ cudaq::ExecutionResult SimulatorTensorNetBase<ScalarType>::sample(
     const std::vector<std::size_t> &measuredBits, const int shots,
     bool includeSequentialData) {
   LOG_API_TIME();
-  std::vector<int32_t> measuredBitIds(measuredBits.begin(), measuredBits.end());
+  std::vector<std::int32_t> measuredBitIds(measuredBits.begin(), measuredBits.end());
   if (shots < 1) {
     auto allZ = cudaq::spin_op::identity();
     for (std::size_t t = 0; t < m_state->getNumQubits(); ++t)
@@ -611,9 +613,9 @@ void SimulatorTensorNetBase<ScalarType>::setRandomSeed(std::size_t randomSeed) {
   m_randomEngine = std::mt19937(randomSeed);
   // Although we set the pathfinder seed here, it is only deterministic when
   // the number of pathfinding threads is 1. Note that this does not override a
-  // user setting for this environment variable. cutensornet uses int32_t but
+  // user setting for this environment variable. cutensornet uses std::int32_t but
   // requires the environment variable to be positive
-  int32_t rndSeed = m_randomEngine();
+  std::int32_t rndSeed = m_randomEngine();
   rndSeed = std::abs(rndSeed);
   if (rndSeed == 0)
     rndSeed++;

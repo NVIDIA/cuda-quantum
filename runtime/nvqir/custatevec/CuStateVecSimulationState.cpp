@@ -41,7 +41,7 @@ std::complex<double> deviceInnerProduct(
     throw std::invalid_argument(
         "Cannot overlap sub-state vectors on different devices.");
   if (elementCount >
-      static_cast<std::size_t>(std::numeric_limits<int64_t>::max()))
+      static_cast<std::size_t>(std::numeric_limits<std::int64_t>::max()))
     throw std::overflow_error("Sub-state vector exceeds cuBLAS range.");
 
   HANDLE_CUDA_ERROR(cudaSetDevice(left.deviceId));
@@ -51,7 +51,7 @@ std::complex<double> deviceInnerProduct(
   if constexpr (std::is_same_v<Scalar, float>) {
     cuFloatComplex result{};
     HANDLE_CUBLAS_ERROR(cublasCdotc_64(
-        /*handle=*/handle, /*n=*/static_cast<int64_t>(elementCount),
+        /*handle=*/handle, /*n=*/static_cast<std::int64_t>(elementCount),
         /*x=*/static_cast<const cuFloatComplex *>(left.data), /*incx=*/1,
         /*y=*/static_cast<const cuFloatComplex *>(right.data), /*incy=*/1,
         /*result=*/&result));
@@ -61,7 +61,7 @@ std::complex<double> deviceInnerProduct(
   } else {
     cuDoubleComplex result{};
     HANDLE_CUBLAS_ERROR(cublasZdotc_64(
-        /*handle=*/handle, /*n=*/static_cast<int64_t>(elementCount),
+        /*handle=*/handle, /*n=*/static_cast<std::int64_t>(elementCount),
         /*x=*/static_cast<const cuDoubleComplex *>(left.data), /*incx=*/1,
         /*y=*/static_cast<const cuDoubleComplex *>(right.data), /*incy=*/1,
         /*result=*/&result));
@@ -72,10 +72,11 @@ std::complex<double> deviceInnerProduct(
 
 // Narrow an element count to the int32 a collective (all-gather/all-reduce)
 // expects, checking for overflow.
-int32_t checkedCollectiveCount(std::size_t count) {
-  if (count > static_cast<std::size_t>(std::numeric_limits<int32_t>::max()))
+std::int32_t checkedCollectiveCount(std::size_t count) {
+  if (count >
+      static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
     throw std::overflow_error("Collective element count exceeds int32 range.");
-  return static_cast<int32_t>(count);
+  return static_cast<std::int32_t>(count);
 }
 
 } // namespace
@@ -163,7 +164,7 @@ void CuStateVecSimulationState<Scalar>::copyStateToHost(
   if (!communicator)
     throw std::runtime_error("Distributed state has no communicator.");
   const std::size_t rankCount = static_cast<std::size_t>(communicator->size());
-  std::vector<int32_t> gatheredIndices(indices.size() * rankCount);
+  std::vector<std::int32_t> gatheredIndices(indices.size() * rankCount);
   communicator->allGather(indices.data(), gatheredIndices.data(),
                           checkedCollectiveCount(indices.size()), CUDA_R_32I);
   std::vector<std::complex<Scalar>> rankOrdered(local.size() * rankCount);
@@ -177,7 +178,7 @@ void CuStateVecSimulationState<Scalar>::copyStateToHost(
   std::vector<bool> assigned(gatheredIndices.size(), false);
   for (std::size_t position = 0; position < gatheredIndices.size();
        ++position) {
-    const int32_t index = gatheredIndices[position];
+    const std::int32_t index = gatheredIndices[position];
     if (index < 0 || static_cast<std::size_t>(index) >= assigned.size() ||
         assigned[index])
       throw std::runtime_error("Invalid distributed sub-state assignment.");
@@ -240,7 +241,7 @@ CuStateVecSimulationState<Scalar>::overlap(const SimulationState &other) {
   // the GPU.
   std::complex<double> localResult{};
   std::optional<CublasHandle> deviceHandle;
-  for (const int32_t index : indices) {
+  for (const std::int32_t index : indices) {
     state().stageSubStateVector(index);
     otherState->state().stageSubStateVector(index);
     const auto left = state().deviceSubStateVector(index);
@@ -280,7 +281,8 @@ CuStateVecSimulationState<Scalar>::amplitudeAt(std::size_t logicalIndex) {
   }
   const std::size_t index = physicalIndex(logicalIndex);
   const std::size_t subStateSize = std::size_t{1} << state().numLocalWires();
-  const int32_t subStateIndex = static_cast<int32_t>(index / subStateSize);
+  const std::int32_t subStateIndex =
+      static_cast<std::int32_t>(index / subStateSize);
   const auto localIndices = state().subStateIndices();
   const bool isLocal = std::find(localIndices.begin(), localIndices.end(),
                                  subStateIndex) != localIndices.end();
@@ -299,7 +301,7 @@ CuStateVecSimulationState<Scalar>::amplitudeAt(std::size_t logicalIndex) {
   if (!communicator)
     throw std::runtime_error("Distributed state has no communicator.");
   const std::size_t rankCount = static_cast<std::size_t>(communicator->size());
-  std::vector<int32_t> gathered(localIndices.size() * rankCount);
+  std::vector<std::int32_t> gathered(localIndices.size() * rankCount);
   communicator->allGather(localIndices.data(), gathered.data(),
                           checkedCollectiveCount(localIndices.size()),
                           CUDA_R_32I);
@@ -307,7 +309,7 @@ CuStateVecSimulationState<Scalar>::amplitudeAt(std::size_t logicalIndex) {
       std::find(gathered.begin(), gathered.end(), subStateIndex);
   if (position == gathered.end())
     throw std::runtime_error("Unable to locate distributed state amplitude.");
-  const int32_t owner = static_cast<int32_t>(
+  const std::int32_t owner = static_cast<std::int32_t>(
       std::distance(gathered.begin(), position) / localIndices.size());
   if (isLocal)
     state().getState(&result, index, index + 1);
@@ -456,7 +458,8 @@ template <typename Scalar>
 std::unique_ptr<CuStateVecSimulationState<Scalar>>
 CuStateVecSimulationState<Scalar>::create(std::size_t size, const void *data,
                                           bool allowFp32Emulation) {
-  const int32_t numWires = static_cast<int32_t>(checkedQubitCount(size));
+  const std::int32_t numWires =
+      static_cast<std::int32_t>(checkedQubitCount(size));
   if (!data)
     throw std::invalid_argument("State-vector data pointer cannot be null.");
   if (size == 1) {
@@ -471,7 +474,7 @@ CuStateVecSimulationState<Scalar>::create(std::size_t size, const void *data,
     return result;
   }
 
-  int32_t device = 0;
+  std::int32_t device = 0;
   HANDLE_CUDA_ERROR(cudaGetDevice(&device));
   auto state = CuStateVecState<Scalar>::createSingleDevice(
       numWires, numWires, device, allowFp32Emulation);

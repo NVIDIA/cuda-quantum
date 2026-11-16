@@ -10,6 +10,8 @@
 #include "cudaq/operators/helpers.h"
 #include <gtest/gtest.h>
 
+#include <cstdint>
+
 using namespace cudaq::detail;
 
 TEST(OperatorHelpersTest, GenerateAllStates_TwoQubits) {
@@ -17,7 +19,7 @@ TEST(OperatorHelpersTest, GenerateAllStates_TwoQubits) {
   cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
 
   auto states = generate_all_states(degrees, dimensions);
-  std::vector<std::vector<int64_t>> expected_states;
+  std::vector<std::vector<std::int64_t>> expected_states;
   expected_states.push_back({0, 0});
   expected_states.push_back({1, 0});
   expected_states.push_back({0, 1});
@@ -31,7 +33,7 @@ TEST(OperatorHelpersTest, GenerateAllStates_ThreeQubits) {
   cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 2}};
 
   auto states = generate_all_states(degrees, dimensions);
-  std::vector<std::vector<int64_t>> expected_states;
+  std::vector<std::vector<std::int64_t>> expected_states;
   expected_states.push_back({0, 0, 0});
   expected_states.push_back({1, 0, 0});
   expected_states.push_back({0, 1, 0});
@@ -49,7 +51,7 @@ TEST(OperatorHelpersTest, GenerateAllStates_Qudits) {
   cudaq::dimension_map dimensions = {{0, 2}, {1, 11}};
 
   auto states = generate_all_states(degrees, dimensions);
-  std::vector<std::vector<int64_t>> expected_states;
+  std::vector<std::vector<std::int64_t>> expected_states;
   expected_states.push_back({0, 0});
   expected_states.push_back({1, 0});
   expected_states.push_back({0, 1});

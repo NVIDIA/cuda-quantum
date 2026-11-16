@@ -32,7 +32,7 @@ namespace cudaq::cusv {
 template <typename Scalar>
 class CuStateVecBatch {
 public:
-  CuStateVecBatch(int32_t numWires, std::size_t capacity,
+  CuStateVecBatch(std::int32_t numWires, std::size_t capacity,
                   bool allowFp32Emulation, bool initializeZeroState = true);
   ~CuStateVecBatch();
   CuStateVecBatch(const CuStateVecBatch &) = delete;
@@ -66,16 +66,16 @@ public:
   /// state-major, then term-major.
   std::vector<double>
   expectationPauli(const std::vector<std::vector<custatevecPauli_t>> &paulis,
-                   const std::vector<std::vector<int32_t>> &targets);
+                   const std::vector<std::vector<std::int32_t>> &targets);
 
   /// Measure each batch member once without collapse.
   std::vector<custatevecIndex_t>
-  measure(const std::vector<int32_t> &wires,
+  measure(const std::vector<std::int32_t> &wires,
           const std::vector<double> &randomNumbers);
 
   /// Sample one completed batch member with its exact trajectory shot count.
   cudaq::ExecutionResult sample(std::size_t stateIndex,
-                                const std::vector<int32_t> &wires,
+                                const std::vector<std::int32_t> &wires,
                                 std::vector<double> randomNumbers,
                                 bool includeSequentialData);
 
@@ -83,7 +83,7 @@ private:
   void applyMatrices(void *states, const MatrixTask<Scalar> &task,
                      const std::vector<std::complex<Scalar>> &matrices,
                      std::size_t matrixCount, custatevecMatrixMapType_t mapType,
-                     const int32_t *matrixIndices);
+                     const std::int32_t *matrixIndices);
   std::vector<std::complex<Scalar>> innerProducts(const void *otherStates);
   void broadcastState();
   void ensureExpectationState();
@@ -108,7 +108,7 @@ private:
   std::size_t m_stateSize = 0;
   std::size_t m_size = 0;
   std::size_t m_capacity = 0;
-  int32_t m_numWires = 0;
+  std::int32_t m_numWires = 0;
 };
 
 extern template class CuStateVecBatch<float>;

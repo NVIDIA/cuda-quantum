@@ -492,9 +492,9 @@ public:
     // Reserve a frame from the selected channel. On acquire failure no frame is
     // owned yet, so trapping does not need a release callback.
     // Function signature of the acquire:
-    //   extern "C" int32_t __cudaq_device_call_acquire_realtime_frame(
-    //       uint32_t device_id, uint32_t function_id,
-    //       uint64_t request_size, uint64_t response_capacity,
+    //   extern "C" std::int32_t __cudaq_device_call_acquire_realtime_frame(
+    //       std::uint32_t device_id, std::uint32_t function_id,
+    //       std::uint64_t request_size, std::uint64_t response_capacity,
     //       void **frame_handle, void **request_payload,
     //       void **response_payload);
     auto acquireStatus = func::CallOp::create(
@@ -556,8 +556,8 @@ public:
     }
 
     // Dispatch the populated frame:
-    //   extern "C" int32_t __cudaq_device_call_dispatch_realtime_frame(
-    //       void *frame_handle, uint64_t *response_size);
+    //   extern "C" std::int32_t __cudaq_device_call_dispatch_realtime_frame(
+    //       void *frame_handle, std::uint64_t *response_size);
     auto status = func::CallOp::create(
         rewriter, loc, i32Ty, cudaq::runtime::deviceCallDispatchRealtimeFrame,
         ValueRange{frameHandle, responseLen});

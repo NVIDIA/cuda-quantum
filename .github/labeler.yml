@@ -104,6 +104,15 @@ cuda-q logical:
     - any-glob-to-any-file:
       - preview/logical/**
 
+edem:
+  - changed-files:
+    - any-glob-to-any-file:
+      - edem/**
+      - math/gf2/**
+      - pyproject.toml.edem
+      - docs/sphinx/using/edem.md
+      - .github/workflows/edem_*.yml
+
 testing:
   - changed-files:
     - any-glob-to-any-file:

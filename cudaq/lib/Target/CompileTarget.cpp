@@ -23,11 +23,9 @@ const std::string *cudaq::CompileTarget::getOverridePassPipeline() const {
 }
 
 /// Replace `%KEY%` and `%KEY:default%` placeholders from runtime options.
-/// Returns whether the pipeline contains a `%SEED%` placeholder.
-static bool substitutePipelinePlaceholders(
+static void substitutePipelinePlaceholders(
     std::string &pipeline,
     const std::map<std::string, std::string> &runtimeConfig) {
-  bool usesSeed = false;
   std::string::size_type pos = 0;
   while (pos < pipeline.size()) {
     auto start = pipeline.find('%', pos);
@@ -43,7 +41,6 @@ static bool substitutePipelinePlaceholders(
     std::string lower;
     for (char c : key)
       lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    usesSeed |= lower == "seed";
     auto it = runtimeConfig.find(lower);
 
     if (it != runtimeConfig.end()) {
@@ -57,7 +54,6 @@ static bool substitutePipelinePlaceholders(
       pos = end + 1;
     }
   }
-  return usesSeed;
 }
 
 /// Replace literal placeholder keys in a pipeline stage string.
@@ -85,8 +81,7 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
   auto prepPipeline = [&](const std::string &stage) {
     std::string pipeline = stage;
     if (!pipeline.empty()) {
-      bool usesSeed = substitutePipelinePlaceholders(pipeline, runtimeConfig);
-      target.resetOnRandomSeedSet |= usesSeed;
+      substitutePipelinePlaceholders(pipeline, runtimeConfig);
       applyPipelineSubstitutions(pipeline, pipelineSubstitutions);
     }
     return pipeline;
@@ -137,7 +132,8 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
       t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
       t.supportResourceCounts, t.supportExplicitMeasurements,
       t.supportObservableMeasurements, t.supportSampleWithoutMeasurements,
-      t.fullySpecialize, t.argumentSynthChangeSemantics, t.disableQubitMapping,
+      t.fullySpecialize, t.preserveLoops, t.noiseSupport, t.eraseQEC,
+      t.argumentSynthChangeSemantics, t.disableQubitMapping,
       t.replaceStateWithKernel);
 }
 
@@ -188,6 +184,8 @@ std::size_t std::hash<cudaq::config::QuakeUnmappedProfile>::operator()(
     cudaq::detail::hashCombine(seed, gate);
   cudaq::detail::hashCombine(seed, profile.approximationTolerance);
   cudaq::detail::hashCombine(seed, profile.costModel);
+  cudaq::detail::hashCombine(seed, profile.unrollLoops);
+  cudaq::detail::hashCombine(seed, profile.maxUnrollIterations);
   return seed;
 }
 

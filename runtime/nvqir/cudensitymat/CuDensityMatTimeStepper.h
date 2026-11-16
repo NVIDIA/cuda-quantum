@@ -12,6 +12,8 @@
 #include "cudaq/algorithms/base_time_stepper.h"
 #include <cudensitymat.h>
 
+#include <cstdint>
+
 namespace cudaq {
 class CuDensityMatTimeStepper : public base_time_stepper {
 public:
@@ -40,7 +42,7 @@ public:
   void computeImpl(
       cudensitymatState_t inState, cudensitymatState_t outState, double t,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
-      int64_t batchSize);
+      std::int64_t batchSize);
 
 private:
   cudensitymatHandle_t m_handle;

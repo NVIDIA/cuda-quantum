@@ -13,7 +13,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from cudaq.core.backends import CompileTarget, CustomTarget
+from cudaq.core._experimental import (CompilationStage, CompileTarget,
+                                      CostModel, CustomTarget, LoopUnrolling,
+                                      NoiseSupport, QuakeUnmappedProfile)
 from cudaq.util import trace
 
 from ..lower import (
@@ -397,7 +399,7 @@ def _cudaq_estimate_result(estimates):
     available); every tier, including LOGICAL, is also kept in ``annotations``.
     """
 
-    from cudaq.core.backends import EstimateResult
+    from cudaq.core.results import EstimateResult
     from .. import estimate
     from ..estimate.logical import logical_instruction_counts
 
@@ -528,13 +530,36 @@ class Target(CustomTarget):
 
     @staticmethod
     def _new_compile_target():
-        """Create the CUDA-Q compile configuration owned by one target."""
+        """Create the CUDA-Q compile target owned by one Logical target.
 
-        from ..compiler.quake import CUDAQ_TARGET_PREPARATION_PIPELINE
+        CUDA-Q compiles each kernel through one inferred ``quake-unmapped``
+        stage to the Quake that :func:`import_quake` accepts. The target
+        preserves loops through prep, and the stage unrolls only loops whose
+        index is used, because the import folds the rest. The stage leaves
+        rotation synthesis to Logical. A kernel that applies noise fails
+        to compile, and prep keeps QEC operations so that the import rejects
+        them, instead of Logical estimating the kernel without either.
 
-        target = CompileTarget(
-            custom_pipeline=CUDAQ_TARGET_PREPARATION_PIPELINE)
+        TODO: Expose the settings a user may want to change, such as the unroll
+        limit and the approximation tolerance, which would let CUDA-Q
+        synthesize rotations before import.
+        """
+
+        from ..compiler.quake import IMPORT_BASIS_GATES
+
+        profile = QuakeUnmappedProfile(
+            basis_gates=list(IMPORT_BASIS_GATES),
+            approximation_tolerance=0.0,
+            cost_model=CostModel.t_count,
+            unroll_loops=LoopUnrolling.index_use,
+            # Example 05's RSA-4096 kernel needs more than 4096 iterations.
+            max_unroll_iterations=2_048_000)
+        stage = CompilationStage(profile)
+        target = CompileTarget(stages=[stage])
         target.fully_specialize = True
+        target.preserve_loops = True
+        target.noise_support = NoiseSupport.unsupported
+        target.erase_qec = False
         target.support_resource_counts = False
         target.support_conditionals_on_measure_results = False
         return target
@@ -1047,11 +1072,11 @@ def surface_target(*,
                    next_backend=None):
     """Build a surface-code target, optionally legalizing to Clifford+T."""
 
-    from . import recipes
+    from ..architectures import surface
 
     return qec_target(
         "surface",
-        architecture=recipes.surface_architecture(distance),
+        architecture=surface.architecture(distance),
         logical_capacity=logical_capacity,
         next_backend=next_backend,
         clifford_t_precision=clifford_t_precision,
@@ -1076,9 +1101,9 @@ def surface_physical_target(*,
 
     from .. import devices
     from ..architecture import physical_actions, physical_instruments
-    from . import recipes
+    from ..architectures import surface
 
-    architecture = recipes.surface_architecture(distance)
+    architecture = surface.architecture(distance)
     builder = devices.DeviceBuilder("surfacePhysicalDevice", source_module=None)
     compute = builder.logical.add_compute(capacity=logical_capacity)
     encoded = builder.qec.bind(compute, architecture=architecture)
@@ -1107,11 +1132,11 @@ def surface_physical_target(*,
 def steane_target(*, logical_capacity=3, next_backend=None):
     """Build a Steane-code QEC target with an estimation-only terminal."""
 
-    from . import recipes
+    from ..architectures import steane
 
     return qec_target(
         "steane",
-        architecture=recipes.steane_architecture(),
+        architecture=steane.architecture(),
         logical_capacity=logical_capacity,
         next_backend=next_backend,
     )

@@ -92,6 +92,9 @@ cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
       } else if (option == "output_log") {
         cudaq::info("Enable output log support");
         config.outputLog = true;
+      } else if (option == "ir_profile") {
+        cudaq::info("Enable IR functions and calls");
+        config.irProfile = true;
       } else if (option == "erase_stack_bounding") {
         cudaq::info("Enable erasing stack bounding");
         config.eraseStackBounding = true;

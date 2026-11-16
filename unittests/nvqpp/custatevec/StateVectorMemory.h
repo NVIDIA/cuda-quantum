@@ -43,7 +43,7 @@ namespace detail {
 
 /// The migration tests place every rank on a single node, so ranks share one
 /// host memory pool.
-inline int32_t localRanks() {
+inline std::int32_t localRanks() {
   return cudaq::mpi::is_initialized() ? cudaq::mpi::num_ranks() : 1;
 }
 
@@ -80,23 +80,23 @@ usableHostBytes(const cudaq::cusv::CuStateVecConfig &config) {
 
 /// Widest state vector this rank can hold, in qubits, or -1 when not even a
 /// single amplitude fits.
-inline int32_t stateVectorCapacityQubits() {
+inline std::int32_t stateVectorCapacityQubits() {
   const auto config = cudaq::cusv::CuStateVecConfig::fromEnvironment();
   const std::size_t amplitudes =
       detail::usableGpuBytes(config) / sizeof(std::complex<SimulationScalar>);
   if (amplitudes == 0)
     return -1;
 
-  const int32_t deviceWires =
-      static_cast<int32_t>(std::bit_width(amplitudes)) - 1;
+  const std::int32_t deviceWires =
+      static_cast<std::int32_t>(std::bit_width(amplitudes)) - 1;
   const std::size_t deviceBytes =
       (std::size_t{1} << deviceWires) * sizeof(std::complex<SimulationScalar>);
-  const int32_t migrationWires = cudaq::cusv::migrationWireCapacity(
+  const std::int32_t migrationWires = cudaq::cusv::migrationWireCapacity(
       detail::usableHostBytes(config), deviceBytes);
   // A distributed run splits the state across ranks, so each process bit buys
   // one more qubit on top of this rank's device and host tiers.
-  const int32_t processBits =
-      static_cast<int32_t>(
+  const std::int32_t processBits =
+      static_cast<std::int32_t>(
           std::bit_width(static_cast<unsigned>(detail::localRanks()))) -
       1;
   return deviceWires + migrationWires + processBits;

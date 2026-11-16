@@ -319,6 +319,45 @@ def test_bell_pair(target):
     assert set(map(tuple, results)) == {(False, False), (True, True)}
 
 
+def import_kernel(kernel):
+    """Compiles a `@cudaq.kernel` for CUDA-Q Logical and imports it as P0."""
+    return cql.compiler.import_cudaq(kernel)
+
+
+@cudaq.kernel
+def bell_kernel() -> tuple[bool, bool]:
+    q = cudaq.qvector(2)
+    h(q[0])
+    x.ctrl(q[0], q[1])
+    return mz(q[0]), mz(q[1])
+
+
+@cudaq.kernel
+def reordered_bits() -> tuple[bool, bool, bool]:
+    q = cudaq.qvector(2)
+    x(q[1])
+    first = mz(q[0])
+    second = mz(q[1])
+    return second, first, second
+
+
+# The ordinary run of each kernel is the control for the kernel imported to P0
+# and compiled to P3.
+def test_imported_kernel_matches_ordinary_run():
+    direct = cudaq.run(bell_kernel, shots_count=RANDOM_SHOTS)
+    physical = cudaq.run(physical_build(import_kernel(bell_kernel)),
+                         shots_count=RANDOM_SHOTS)
+    assert set(direct) == {(False, False), (True, True)}
+    assert set(map(tuple, physical)) == {(False, False), (True, True)}
+
+
+def test_imported_kernel_keeps_result_order():
+    expected = (True, False, True)
+    assert cudaq.run(reordered_bits, shots_count=SHOTS) == [expected] * SHOTS
+    assert cudaq.run(physical_build(import_kernel(reordered_bits)),
+                     shots_count=SHOTS) == [list(expected)] * SHOTS
+
+
 @cudaq.kernel
 def ordinary_bool() -> bool:
     q = cudaq.qubit()

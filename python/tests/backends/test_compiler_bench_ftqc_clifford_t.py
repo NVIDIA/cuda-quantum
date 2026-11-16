@@ -170,13 +170,15 @@ def rotations():
     rx(0.2, q[0])
 
 
-def test_synthesis_preserves_unitary_within_tolerance():
+@pytest.mark.parametrize("level", range(4))
+def test_synthesis_preserves_unitary_within_tolerance(level):
     tolerance = 1e-6
     cudaq.set_target('qpp-cpu')
     exact = np.array(cudaq.get_unitary(rotations))
     cudaq.reset_target()
     set_target_with_tolerance(tolerance)
-    synthesized = np.array(cudaq.get_unitary(rotations))
+    synthesized = np.array(
+        cudaq.get_unitary(rotations, optimization_level=level))
 
     # Each of the three rotations is synthesized within the tolerance in
     # operator norm. Taking the global phase from the trace at most doubles the

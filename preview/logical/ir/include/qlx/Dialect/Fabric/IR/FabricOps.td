@@ -436,24 +436,27 @@ def Fabric_GadgetSpecOp : Fabric_Op<"gadget_spec", [Symbol]> {
   let hasVerifier = 1;
 }
 
-def Fabric_ProfileEndOp : Fabric_Op<"profile_end", [
-    Terminator, HasParent<"GadgetProfileOp">
+def Fabric_ContractEndOp : Fabric_Op<"contract_end", [
+    Terminator, HasParent<"GadgetContractOp">
   ]> {
-  let summary = "terminate a declarative gadget-analysis profile";
+  let summary = "terminate a declarative gadget contract";
   let assemblyFormat = "attr-dict";
 }
 
-def Fabric_GadgetProfileOp : Fabric_Op<"gadget_profile", [
+def Fabric_GadgetContractOp : Fabric_Op<"gadget_contract", [
     Symbol, IsolatedFromAbove,
-    SingleBlockImplicitTerminator<"ProfileEndOp">
+    SingleBlockImplicitTerminator<"ContractEndOp">
   ]> {
-  let summary = "success and boundary analysis overlay for one gadget";
+  let summary = "detector, observable, success, and boundary analysis for one gadget";
   let description = [{
-    References one executable gadget realization while separately declaring a
-    success and boundary interpretation. More than one profile may reference
-    the same gadget. Profile bodies are declarative: success and output
-    syndrome operations refer to stable measurement records through `records`
-    attributes rather than capturing SSA values from the gadget body.
+    References one executable gadget realization while separately declaring
+    its detector map, endpoint code presentations, observable rows, and success
+    conditions. The detector map and code presentations form the gadget
+    detector contract; the outcome map belongs to the gadget. More than one
+    contract may reference the same gadget. Contract rows refer to stable
+    measurement records through `records` attributes rather than capturing SSA
+    values from the gadget body. Local verification does not prove ideal
+    determinism or contract completeness.
   }];
   let arguments = (ins
     SymbolNameAttr:$sym_name,
@@ -473,11 +476,46 @@ def Fabric_GadgetProfileOp : Fabric_Op<"gadget_profile", [
 // Gadget analysis declarations
 //===----------------------------------------------------------------------===//
 
+def Fabric_DetectorOp : Fabric_Op<"detector", []> {
+  let summary = "declare one virtual-detector row of the affine detector map";
+  let description = [{
+    An affine parity over stable measurement records and input virtual
+    syndromes, intended to vanish on ideal outcomes. Rows may be redundant.
+    Local verification checks references; it does not prove determinism or
+    detector-contract completeness.
+  }];
+  let arguments = (ins
+    OptionalAttr<ArrayAttr>:$records,
+    OptionalAttr<ArrayAttr>:$input_syndromes,
+    OptionalAttr<BoolAttr>:$constant
+  );
+  let hasVerifier = 1;
+  let assemblyFormat = "attr-dict";
+}
+
+def Fabric_ObservableOp : Fabric_Op<"observable", []> {
+  let summary = "declare one indexed action-outcome row of the outcome map";
+  let description = [{
+    An affine parity of realization measurement records, with no incoming
+    virtual-syndrome dependence. Random outcomes are valid observables too.
+    When the GadgetSpec declares result rows, these rows must agree with that
+    outcome map in order, support, and constant.
+  }];
+  let arguments = (ins
+    I64Attr:$idx,
+    OptionalAttr<ArrayAttr>:$records,
+    OptionalAttr<ArrayAttr>:$input_syndromes,
+    OptionalAttr<BoolAttr>:$constant
+  );
+  let hasVerifier = 1;
+  let assemblyFormat = "attr-dict";
+}
+
 def Fabric_SuccessOp : Fabric_Op<"success", []> {
   let summary = "declare a success or postselection predicate over records";
   let description = [{
     Declares a mismatch parity over stable measurement records in a
-    `fabric.gadget_profile`: zero means accepted. It is analysis semantics, not
+    `fabric.gadget_contract`: zero means accepted. It is analysis semantics, not
     executable branch control. Retry, discard, and abort behavior belong to
     the enclosing protocol's explicit selection or retry operation.
   }];
@@ -491,12 +529,14 @@ def Fabric_SuccessOp : Fabric_Op<"success", []> {
 }
 
 def Fabric_OutputSyndromeOp : Fabric_Op<"output_syndrome", []> {
-  let summary = "assign one effective syndrome bit at an output profile port";
+  let summary = "assign one output virtual-syndrome bit of the detector map";
   let description = [{
-    Compiler-normalized scalar row defining one output effective-syndrome
-    component as an affine parity over incoming syndrome bits and stable
+    Compiler-normalized scalar row defining one output virtual-syndrome
+    component as an affine parity over incoming virtual syndromes and stable
     realization records. Source frontends bind whole typed syndrome bundles;
     ``port_index`` is the output endpoint ordinal in the gadget interface.
+    These expected stabilizer signs are distinct from the syndrome
+    coordinates of a residual boundary Pauli error.
   }];
   let arguments = (ins
     I64Attr:$port_index,
@@ -635,8 +675,8 @@ def Fabric_RelocateOp : Fabric_Op<"relocate", [
   ]> {
   let summary = "apply one selected nonlocal placement transition";
   let description = [{
-    Consumes one encoded owner at a trajectory boundary and returns its unique
-    successor after invoking the selected gadget/protocol realization. Source
+    Consumes one encoded patch value at a trajectory boundary and returns its
+    unique successor after invoking the selected gadget/protocol realization. Source
     and destination are nested machine-space references retained from P1;
     `transition` and `continuity_witness` preserve the authored worldline
     evidence. This is executable placement lowering, not a placement hint.
@@ -664,9 +704,9 @@ def Fabric_EstablishSupportOp : Fabric_Op<"establish_support", [
   ]> {
   let summary = "establish one selected distributed encoding support";
   let description = [{
-    Consumes the unique encoded owner initially resident in `primary`, invokes
+    Consumes the encoded patch value initially resident in `primary`, invokes
     a selected gadget or protocol that realizes the declared links/support,
-    and returns the same encoded owner with support distributed across the
+    and returns its successor patch value with support distributed across the
     ordered `spaces`.  `support_views` is aligned one-to-one with `spaces`.
     The ownership witness and link obligations are semantic evidence retained
     from P1; this operation is never a free metadata-only placement rewrite.
@@ -695,7 +735,7 @@ def Fabric_EstablishTopologicalRecordOp : Fabric_Op<
   let description = [{
     Invokes the selected gadget or protocol that establishes or validates a
     logical degree represented by a worldline/correlation record at the given
-    frontier.  The operation preserves one encoded owner and retains separate
+    frontier.  The operation threads one encoded patch value and retains separate
     support and logical-observable witnesses.  It is executable placement
     lowering, not an assertion that an arbitrary local patch is topological.
   }];
@@ -767,8 +807,9 @@ def Fabric_ProtocolOp : Fabric_Op<"protocol", [
   let description = [{
     Defines a reusable P2N protocol graph.  Its region may contain typed
     `fabric.call` operations, structured control, selection/retry policy,
-    resource flows, and explicit ownership-changing operations.  A protocol
-    is not an implementation registry and does not copy its callees.
+    resource flows, and explicit operations that consume and produce linear
+    values.  A protocol is not an implementation registry and does not copy
+    its callees.
 
     A protocol derived from one placed P1 helper occurrence carries
     `input_p1_kernel`, `input_p1_callee`, and `input_p1_scope` together. The
@@ -835,7 +876,7 @@ def Fabric_MapChildrenOp : Fabric_Op<"map_children", [
 }
 
 def Fabric_EncodingPackOp : Fabric_Op<"encoding_pack", []> {
-  let summary = "consume one complete child bundle and restore its parent owner";
+  let summary = "consume one complete child bundle and restore its parent patch";
   let arguments = (ins
     Fabric_PatchBundleType:$children,
     FlatSymbolRefAttr:$encoding
@@ -1068,7 +1109,7 @@ def Fabric_ReadSyndromeAncillasOp : Fabric_Op<"read_syndrome_ancillas", [
   let summary = "read already-entangled syndrome ancillas";
   let description = [{
     Measures the patch's `sx` partition followed by its `sz` partition and
-    returns the unchanged encoded owner plus a qualified syndrome record.
+    returns the successor encoded patch value plus a qualified syndrome record.
     This operation never prepares ancillas, applies extraction entangling
     gates, or infers a check schedule. Those operations must already be
     explicit in the realization. `qlx.extract_syndrome` expands the standard
@@ -1482,12 +1523,12 @@ def Fabric_UnpackResourceOp : Fabric_Op<"unpack_resource", []> {
   let summary = "transfer an encoded resource payload into one or more patches";
   let description = [{
     Consumes one linear resource payload and one or more distinct live anchor
-    patches. The first N results are the ownership successors of the N anchors;
+    patches. The first N results are the linear successors of the N anchors;
     the final N results are explicitly typed payload patches, one per anchor.
     `payload_logical_blocks` and `payload_logical_ports` map each logical in the
     resource action to a payload result and a code-logical port. Repeated
     logical operands in one packed block are therefore port mappings, never
-    duplicate patch owners or duplicate resource payloads.
+    duplicate patch values or duplicate resource payloads.
     `payload_logical_block_ids` carries the exact selected QEC block identity
     for every mapping row; selected three-qubit magic-state handoffs require
     it and replay authenticates it against the detached QEC selection witness.
@@ -1522,8 +1563,8 @@ def Fabric_UnpackResourceOp : Fabric_Op<"unpack_resource", []> {
 def Fabric_PackResourceOp : Fabric_Op<"pack_resource", []> {
   let summary = "transfer encoded patches into one linear resource payload";
   let description = [{
-    Consumes one or more distinct encoded patches and packages their ownership
-    as one typed resource payload. Payload order is semantic and is preserved
+    Consumes one or more distinct encoded patches and packages them as one
+    typed resource payload. Payload order is semantic and is preserved
     by a matching `fabric.unpack_resource`. The resource kind states the
     producer's payload claim; verification evidence on the producer establishes
     that the patches actually have the promised joint state. `payload_roles`

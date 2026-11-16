@@ -66,8 +66,9 @@ namespace cudaq::synth {
 /// the one it wraps.
 class OdgpStepper : public StepperBase<OdgpStepper, ZSqrt2> {
 public:
-  OdgpStepper(Interval I, Interval J,
-              uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
+  OdgpStepper(
+      Interval I, Interval J,
+      std::uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
   ~OdgpStepper();
 
   OdgpStepper(const OdgpStepper &) = delete;
@@ -109,8 +110,8 @@ private:
   // over the stepper's lifetime rather than reset on a yield: the scan
   // alternates between next() and setup_current_a(), each doing only a few
   // steps per call, so a per-loop budget would never trip.
-  uint64_t fruitless_steps_ = 0;
-  uint64_t max_scan_steps_;
+  std::uint64_t fruitless_steps_ = 0;
+  std::uint64_t max_scan_steps_;
 
   // Buffer aliased by the pointer returned from next().
   ZSqrt2 last_sol_;
@@ -150,7 +151,7 @@ class OdgpWithParityStepper
 public:
   OdgpWithParityStepper(
       Interval I, Interval J, ZSqrt2 parity_hint,
-      uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
+      std::uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
   ~OdgpWithParityStepper();
 
   OdgpWithParityStepper(const OdgpWithParityStepper &) = delete;
@@ -162,7 +163,7 @@ public:
 
 private:
   OdgpStepper inner_;
-  int32_t parity_p_;
+  std::int32_t parity_p_;
   ZSqrt2 last_sol_;
   int yielded_ = 0;
 };
@@ -180,7 +181,7 @@ class OdgpScaledStepper : public StepperBase<OdgpScaledStepper, DSqrt2> {
 public:
   OdgpScaledStepper(
       Interval I, Interval J, Integer denom_exp,
-      uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
+      std::uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
   ~OdgpScaledStepper();
 
   OdgpScaledStepper(const OdgpScaledStepper &) = delete;
@@ -215,7 +216,7 @@ class OdgpScaledWithParityStepper
 public:
   OdgpScaledWithParityStepper(
       Interval I, Interval J, Integer denom_exp, DSqrt2 parity_hint,
-      uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
+      std::uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
   ~OdgpScaledWithParityStepper();
 
   OdgpScaledWithParityStepper(const OdgpScaledWithParityStepper &) = delete;

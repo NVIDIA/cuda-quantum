@@ -11,19 +11,27 @@ from importlib.metadata import distribution
 import os
 from pathlib import Path
 import subprocess
+import sys
 
 import cudaq.logical as ql
+import cudaq_edem
 
 prefix = Path(os.environ["CUDA_QUANTUM_PATH"]).resolve()
 metadata = distribution("cudaq-logical")
 assert Path(ql.__file__).resolve().is_relative_to(prefix / "cudaq/logical")
 assert Path(metadata.locate_file("")).resolve() == prefix
 assert ql.__version__ == metadata.version
+assert cudaq_edem.project_DEM(cudaq_edem.EDEM()).is_dem
+
+# Run a shipped example, so the examples in the image stay working.
+examples = Path.home() / "logical-examples"
+subprocess.run(
+    [sys.executable,
+     str(examples / "00_logical_resource_estimate.py")],
+    check=True)
+
 
 # Simple program to exercise the `cudaq.logical` installation.
-# TODO: Use `examples` directory once location is finalized.
-
-
 @ql.program
 def bell() -> tuple[bool, bool]:
     q = ql.allocate(2, state=ql.types.zero)

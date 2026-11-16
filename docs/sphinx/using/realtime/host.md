@@ -195,9 +195,11 @@ example, the `GpuRoceTransceiver`/`DOCA` bridge packs `DOCA` `QP` handles,
 memory keys and ring buffer addresses into its context, and its hooks poll the
 `DOCA` completion queue and send with `BlueFlame`.
 
-A transport may instead replace the whole dispatch loop: its unified transport
-context then names a `cudaq_unified_launch_fn_t`, which the dispatcher calls in
-place of its own kernel.
+A transport could instead replace the whole dispatch loop: its unified
+transport context then named a `cudaq_unified_launch_fn_t`, which the
+dispatcher called in place of its own kernel.  That transport-side override is
+deprecated together with `cudaq_bridge_get_transport_context`; an application
+that wants its own loop installs it with `cudaq_dispatcher_set_unified_launch`.
 
 ### When to Use Which Mode
 

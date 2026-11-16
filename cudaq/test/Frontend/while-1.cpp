@@ -10,31 +10,33 @@
 
 #include "cudaq/qis/qubit_qis.h"
 
+#include <cstdint>
+
 __qpu_intrinsic__ void uma(cudaq::qubit &, cudaq::qubit &, cudaq::qubit &);
 
 __qpu__ void test1(cudaq::qview<> a, cudaq::qview<> b) {
-  uint32_t i = a.size();
+  std::uint32_t i = a.size();
   while (1) {
     uma(a[i - 1ul], b[i - 1ul], a[i]);
   }
 }
 
 __qpu__ void test2(cudaq::qview<> a, cudaq::qview<> b) {
-  uint32_t i = a.size();
+  std::uint32_t i = a.size();
   while (true) {
     uma(a[i - 1ul], b[i - 1ul], a[i]);
   }
 }
 
 __qpu__ void test3(cudaq::qview<> a, cudaq::qview<> b) {
-  uint32_t i = a.size();
+  std::uint32_t i = a.size();
   do {
     uma(a[i - 1ul], b[i - 1ul], a[i]);
   } while (false);
 }
 
 __qpu__ double test4(cudaq::qview<> a, cudaq::qview<> b) {
-  uint32_t i = a.size();
+  std::uint32_t i = a.size();
   double trouble = i;
   do {
     uma(a[i - 1ul], b[i - 1ul], a[i]);

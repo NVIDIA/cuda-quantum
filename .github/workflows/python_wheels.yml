@@ -640,7 +640,8 @@ jobs:
     # statevector simulator. Regressions that only manifest on the nvidia
     # target pass on qpp-cpu and so escape per-PR CI, which has no GPU. This
     # reuses the wheel built by build_wheel and runs a single representative
-    # config (amd64 / Python 3.11 / CUDA 12.6) to limit A100 runner cost.
+    # config (amd64 / Python 3.11 / CUDA 12.6) to limit A100 runner cost. It
+    # also runs the custabilizer tests, which need a GPU.
     name: Validate wheel on GPU (nvidia simulator)
     needs: [build_wheel, create_test_config]
     if: >-
@@ -733,6 +734,27 @@ jobs:
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "::error file=python_wheels.yml::Python tests on the nvidia simulator failed with status $pytest_status."
+              exit 1
+            fi
+
+      - name: Run Python tests on custabilizer simulator
+        # The step above ignores tests/backends, but custabilizer needs a GPU,
+        # so its tests run here rather than in the CPU wheel validation.
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: wheel_validation:local
+          shell: bash
+          run: |
+            # The test module skips itself when the target is unavailable, so
+            # check the target first: a missing library must not pass as skips.
+            python${{ inputs.python_version }} -c "import cudaq; cudaq.set_target('custabilizer')" || {
+              echo "::error file=python_wheels.yml::The custabilizer target is unavailable."
+              exit 1
+            }
+            python${{ inputs.python_version }} -m pytest -v --durations=0 /tmp/tests/backends/test_custabilizer.py
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=python_wheels.yml::Python tests on the custabilizer simulator failed with status $pytest_status."
               exit 1
             fi
 

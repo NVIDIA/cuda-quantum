@@ -351,11 +351,13 @@ cudaKernel_t g_own_dispatcher = nullptr;
 // where the block-partitioned increment handler does all of its bytes.  The
 // arguments are the kernel's parameters, in order.  Launched on `stream`,
 // which cudaq_dispatcher_stop waits on; a failure fails start().
-cudaq_status_t
-launch_own_dispatcher(void *transport_ctx, size_t tx_stride_sz,
-                      cudaq_function_entry_t *function_table, size_t func_count,
-                      volatile int *shutdown_flag, uint64_t *stats,
-                      uint32_t /*threads_per_block*/, cudaStream_t stream) {
+cudaq_status_t launch_own_dispatcher(void *transport_ctx, size_t tx_stride_sz,
+                                     cudaq_function_entry_t *function_table,
+                                     size_t func_count,
+                                     volatile int *shutdown_flag,
+                                     std::uint64_t *stats,
+                                     std::uint32_t /*threads_per_block*/,
+                                     cudaStream_t stream) {
   void *args[] = {&transport_ctx,  &tx_stride_sz, &shutdown_flag,
                   &function_table, &func_count,   &stats};
   CUlaunchConfig launch{};

@@ -23,3 +23,8 @@
 
 #define GET_OP_CLASSES
 #include "qlx/Dialect/QLX/IR/QLXOps.h.inc"
+
+namespace qlx {
+/// Logical action body; the registered mnemonic is retained for saved IR.
+using ActionBodyOp = ObjectiveBodyOp;
+} // namespace qlx

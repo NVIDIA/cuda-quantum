@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -173,7 +174,7 @@ static LogicalResult readPauli(Operation *owner, ValueRange inputs,
     return owner->emitOpError("requires x_mask, z_mask, and sign parameters");
   if (sign.getValue().getBitWidth() > 64)
     return owner->emitOpError("Pauli sign is not representable as i64");
-  int64_t signValue = sign.getValue().getSExtValue();
+  std::int64_t signValue = sign.getValue().getSExtValue();
   if (signValue != 1 && signValue != -1)
     return owner->emitOpError("Pauli sign must be +1 or -1");
 
@@ -190,7 +191,7 @@ static LogicalResult readPauli(Operation *owner, ValueRange inputs,
   for (auto [position, value] : llvm::enumerate(quantum)) {
     auto found = qidx.find(value);
     if (found == qidx.end())
-      return owner->emitOpError("Pauli operand has no tracked owner index");
+      return owner->emitOpError("Pauli operand has no tracked qubit index");
     if (xm[position])
       result.x.setBit(found->second);
     if (zm[position])
@@ -204,34 +205,34 @@ static LogicalResult readPauli(Operation *owner, ValueRange inputs,
 
 /// Return signed integer multiples of pi/2, or nullopt for a non-Clifford or
 /// non-exact rotation. The product sign is folded into the returned angle.
-static FailureOr<std::optional<int64_t>>
+static FailureOr<std::optional<std::int64_t>>
 exactCliffordTurns(ApplyOp apply, bool verifyNumeric = true) {
   auto parameters = apply.getParameters();
   if (!parameters)
-    return std::optional<int64_t>{};
+    return std::optional<std::int64_t>{};
   auto numerator = parameters->getAs<IntegerAttr>("angle_pi_numer");
   auto denominator = parameters->getAs<IntegerAttr>("angle_pi_denom");
   if (!numerator && !denominator)
-    return std::optional<int64_t>{};
+    return std::optional<std::int64_t>{};
   if (!numerator || !denominator || numerator.getValue().getBitWidth() > 64 ||
       denominator.getValue().getBitWidth() > 64)
     return apply.emitOpError(
                "exact angle metadata must use representable integer fields"),
            failure();
-  int64_t n = numerator.getValue().getSExtValue();
-  int64_t d = denominator.getValue().getSExtValue();
+  std::int64_t n = numerator.getValue().getSExtValue();
+  std::int64_t d = denominator.getValue().getSExtValue();
   if (n < 0 || d <= 0)
     return apply.emitOpError(
                "exact angle metadata requires nonnegative numerator and "
                "positive denominator"),
            failure();
   if ((2 * n) % d != 0)
-    return std::optional<int64_t>{};
+    return std::optional<std::int64_t>{};
   auto sign = parameters->getAs<IntegerAttr>("sign");
   if (!sign || sign.getValue().getBitWidth() > 64)
     return apply.emitOpError("exact Pauli rotation requires an i64 sign"),
            failure();
-  int64_t signValue = sign.getValue().getSExtValue();
+  std::int64_t signValue = sign.getValue().getSExtValue();
   if (signValue != 1 && signValue != -1)
     return apply.emitOpError("exact Pauli rotation sign must be +1 or -1"),
            failure();
@@ -248,7 +249,7 @@ exactCliffordTurns(ApplyOp apply, bool verifyNumeric = true) {
                  "exact angle metadata disagrees with the numeric operand"),
              failure();
   }
-  return std::optional<int64_t>{signValue * ((2 * n) / d)};
+  return std::optional<std::int64_t>{signValue * ((2 * n) / d)};
 }
 
 static DictionaryAttr transformedParameters(OpBuilder &builder,
@@ -315,7 +316,7 @@ static LogicalResult absorbBuiltin(ApplyOp apply, BuiltinAction action,
   };
   auto one = q(0);
   if (failed(one))
-    return apply.emitOpError("Clifford operand has no tracked owner index");
+    return apply.emitOpError("Clifford operand has no tracked qubit index");
   unsigned width = frame.size();
   auto rotate = [&](Pauli axis, int turns) { frame.absorb(axis, turns); };
   auto rz = [&](unsigned target, int turns) {
@@ -360,14 +361,14 @@ static LogicalResult absorbBuiltin(ApplyOp apply, BuiltinAction action,
   case BuiltinAction::cz: {
     auto two = q(1);
     if (failed(two))
-      return apply.emitOpError("CZ operand has no tracked owner index");
+      return apply.emitOpError("CZ operand has no tracked qubit index");
     cz(*one, *two);
     return success();
   }
   case BuiltinAction::cx: {
     auto two = q(1);
     if (failed(two))
-      return apply.emitOpError("CX operand has no tracked owner index");
+      return apply.emitOpError("CX operand has no tracked qubit index");
     h(*two);
     cz(*one, *two);
     h(*two);
@@ -396,8 +397,8 @@ static FailureOr<IndexedBlock> indexBlock(Block &block, bool allowPrepare) {
   for (Operation &operation : block) {
     if (auto prepare = dyn_cast<PrepareOp>(operation)) {
       if (!allowPrepare)
-        return prepare.emitOpError(
-                   "folded Clifford-frame bodies cannot allocate local owners"),
+        return prepare.emitOpError("folded Clifford-frame bodies cannot "
+                                   "allocate local qubit values"),
                failure();
       unsigned q = indexed.initial.size();
       indexed.qidx[prepare.getResult()] = q;
@@ -408,12 +409,13 @@ static FailureOr<IndexedBlock> indexBlock(Block &block, bool allowPrepare) {
       auto inputs = quantumValues(apply.getInputs());
       auto outputs = quantumValues(apply.getResults());
       if (inputs.size() != outputs.size())
-        return apply.emitOpError("cannot index non-owner-preserving action"),
+        return apply.emitOpError(
+                   "cannot index action that does not thread its qubits"),
                failure();
       for (auto [input, output] : llvm::zip(inputs, outputs)) {
         auto found = indexed.qidx.find(input);
         if (found == indexed.qidx.end())
-          return apply.emitOpError("input has no tracked owner index"),
+          return apply.emitOpError("input has no tracked qubit index"),
                  failure();
         indexed.qidx[output] = found->second;
       }
@@ -429,7 +431,7 @@ static FailureOr<IndexedBlock> indexBlock(Block &block, bool allowPrepare) {
           continue;
         auto found = indexed.qidx.find(input);
         if (found == indexed.qidx.end())
-          return repeat.emitOpError("carry has no tracked owner index"),
+          return repeat.emitOpError("carry has no tracked qubit index"),
                  failure();
         indexed.qidx[output] = found->second;
       }
@@ -437,7 +439,7 @@ static FailureOr<IndexedBlock> indexBlock(Block &block, bool allowPrepare) {
   }
   if (indexed.initial.empty())
     return emitError(block.getParentOp()->getLoc())
-               << "Clifford-frame normalization requires logical owners",
+               << "Clifford-frame normalization requires logical-qubit values",
            failure();
   return indexed;
 }
@@ -452,12 +454,12 @@ static LogicalResult normalizeRepeat(qlx::cflow::RepeatOp repeat,
   auto quantumInits = quantumValues(repeat.getInits());
   if (quantumInits.size() != frame.size())
     return repeat.emitOpError(
-        "Clifford-frame repeat must carry every live logical owner");
+        "Clifford-frame repeat must carry every live logical-qubit value");
   for (auto [position, value] : llvm::enumerate(quantumInits)) {
     auto found = indexed.qidx.find(value);
     if (found == indexed.qidx.end() || found->second != position)
       return repeat.emitOpError(
-          "Clifford-frame repeat carries must use canonical owner order");
+          "Clifford-frame repeat carries must use canonical qubit order");
   }
 
   InverseFrame bodyFrame = frame;
@@ -490,7 +492,7 @@ static LogicalResult normalizeBlock(Block &block, InverseFrame &frame,
   IndexedBlock indexed = std::move(*indexedOr);
   if (indexed.initial.size() != frame.size())
     return block.getParentOp()->emitOpError(
-        "logical owner count does not match the incoming Clifford frame");
+        "logical-qubit value count does not match the incoming Clifford frame");
   llvm::SmallVector<Value> current(indexed.initial.begin(),
                                    indexed.initial.end());
   InverseFrame incoming = frame;
@@ -579,11 +581,12 @@ static LogicalResult normalizeBlock(Block &block, InverseFrame &frame,
         if (!isa<LogicalQubitType>(value.getType()))
           continue;
         if (position >= current.size())
-          return yield.emitOpError("yield has too many logical owners");
+          return yield.emitOpError("yield has too many logical-qubit values");
         yield->setOperand(operand, current[position++]);
       }
       if (position != current.size())
-        return yield.emitOpError("yield does not carry every logical owner");
+        return yield.emitOpError(
+            "yield does not carry every logical-qubit value");
       continue;
     }
 
@@ -595,7 +598,7 @@ static LogicalResult normalizeBlock(Block &block, InverseFrame &frame,
           continue;
         auto found = indexed.qidx.find(value);
         if (found == indexed.qidx.end())
-          return discard.emitOpError("discard has no tracked owner index");
+          return discard.emitOpError("discard has no tracked qubit index");
         discard->setOperand(operand, current[found->second]);
         discarded.push_back(found->second);
       }

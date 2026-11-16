@@ -222,7 +222,7 @@ module {
 // -----
 
 module {
-  // expected-error@+2 {{leaves 1 live quantum owner(s); measure, sink, or return every wire}}
+  // expected-error@+2 {{leaves 1 live quantum value(s); measure, sink, or return every wire}}
   // expected-error@+1 {{failed to legalize operation 'func.func'}}
   func.func @__nvqpp__mlirgen__entry_owner_leak()
       attributes {"cudaq-entrypoint", "cudaq-kernel"} {
@@ -258,4 +258,196 @@ module {
     quake.sink %result : !quake.wire
     return %condition : i1
   }
+}
+
+// -----
+
+// A Python `tuple[bool, int]` result.
+module {
+  // expected-error@+2 {{Quake-to-P0 currently supports only i1 entry-point results and structs of i1}}
+  // expected-error@+1 {{failed to legalize operation 'func.func'}}
+  func.func @__nvqpp__mlirgen__mixed_tuple() -> !cc.struct<"tuple" {i1, i64}>
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %0 = cc.undef !cc.struct<"tuple" {i1, i64}>
+    return %0 : !cc.struct<"tuple" {i1, i64}>
+  }
+}
+
+// -----
+
+module {
+  // expected-error@+1 {{failed to legalize operation 'func.func'}}
+  func.func @__nvqpp__mlirgen__constant_member() -> !cc.struct<"tuple" {i1}>
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %true = arith.constant true
+    %0 = cc.undef !cc.struct<"tuple" {i1}>
+    // expected-error@+1 {{Quake-to-P0 supports cc.insert_value only of a discriminated measurement}}
+    %1 = cc.insert_value %0[0], %true : (!cc.struct<"tuple" {i1}>, i1) -> !cc.struct<"tuple" {i1}>
+    return %1 : !cc.struct<"tuple" {i1}>
+  }
+}
+
+// -----
+
+module {
+  // expected-error@+1 {{failed to legalize operation 'func.func'}}
+  func.func @__nvqpp__mlirgen__array_member() -> i1
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %0 = quake.null_wire
+    %m, %w = quake.mz %0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %bit = quake.discriminate %m : (!cc.measure_handle) -> i1
+    %1 = cc.undef !cc.array<i1 x 1>
+    // expected-error@+1 {{Quake-to-P0 supports cc.insert_value only into a struct built from cc.undef}}
+    %2 = cc.insert_value %1[0], %bit : (!cc.array<i1 x 1>, i1) -> !cc.array<i1 x 1>
+    quake.sink %w : !quake.wire
+    return %bit : i1
+  }
+}
+
+// -----
+
+module {
+  // expected-error@+1 {{failed to legalize operation 'func.func'}}
+  func.func @__nvqpp__mlirgen__nested_member() -> i1
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %0 = quake.null_wire
+    %m, %w = quake.mz %0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %bit = quake.discriminate %m : (!cc.measure_handle) -> i1
+    %1 = cc.undef !cc.struct<{!cc.struct<{i1}>}>
+    // expected-error@+1 {{Quake-to-P0 supports cc.insert_value only at a top-level struct member}}
+    %2 = cc.insert_value %1[0, 0], %bit : (!cc.struct<{!cc.struct<{i1}>}>, i1) -> !cc.struct<{!cc.struct<{i1}>}>
+    quake.sink %w : !quake.wire
+    return %bit : i1
+  }
+}
+
+// -----
+
+module {
+  // expected-error@+1 {{failed to legalize operation 'func.func'}}
+  func.func @__nvqpp__mlirgen__partial_tuple() -> !cc.struct<"tuple" {i1, i1}>
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %0 = quake.null_wire
+    %m, %w = quake.mz %0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %bit = quake.discriminate %m : (!cc.measure_handle) -> i1
+    %1 = cc.undef !cc.struct<"tuple" {i1, i1}>
+    %2 = cc.insert_value %1[0], %bit : (!cc.struct<"tuple" {i1, i1}>, i1) -> !cc.struct<"tuple" {i1, i1}>
+    quake.sink %w : !quake.wire
+    // expected-error@+1 {{returns a value that is not a discriminated measurement or a struct of them}}
+    return %2 : !cc.struct<"tuple" {i1, i1}>
+  }
+}
+
+// -----
+
+// The importer drops only the host registration of an entry point in the
+// module.
+module {
+  func.func @__nvqpp__mlirgen__entry()
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    return
+  }
+  // expected-error@+1 {{unexpected top-level operation at the Quake-to-P0 boundary}}
+  llvm.mlir.global external constant @other.kernelName("other\00") {addr_space = 0 : i32}
+}
+
+// -----
+
+module {
+  func.func @__nvqpp__mlirgen__entry()
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    return
+  }
+  // expected-error@+1 {{unexpected top-level operation at the Quake-to-P0 boundary}}
+  llvm.mlir.global_ctors ctors = [@initialize], priorities = [17 : i32], data = [#llvm.zero]
+  llvm.func @initialize() {
+    llvm.return
+  }
+}
+
+// -----
+
+// A registration constructor may only call the runtime's registration
+// functions.
+module {
+  func.func @__nvqpp__mlirgen__entry()
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    return
+  }
+  llvm.func @observable_effect()
+  // expected-error@+1 {{unexpected top-level operation at the Quake-to-P0 boundary}}
+  llvm.func @entry.kernelRegFunc() {
+    llvm.call @observable_effect() : () -> ()
+    llvm.return
+  }
+  llvm.mlir.global_ctors ctors = [@entry.kernelRegFunc], priorities = [17 : i32], data = [#llvm.zero]
+}
+
+// -----
+
+module {
+  func.func @__nvqpp__mlirgen__entry()
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    return
+  }
+  func.func private @observable_effect()
+  // expected-error@+1 {{unexpected top-level operation at the Quake-to-P0 boundary}}
+  llvm.func @entry.kernelRegFunc() {
+    func.call @observable_effect() : () -> ()
+    llvm.return
+  }
+  llvm.mlir.global_ctors ctors = [@entry.kernelRegFunc], priorities = [17 : i32], data = [#llvm.zero]
+}
+
+// -----
+
+// A registration constructor may only pass its own kernel's names.
+module {
+  func.func @__nvqpp__mlirgen__entry()
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    return
+  }
+  func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
+  // expected-error@+1 {{unexpected top-level operation at the Quake-to-P0 boundary}}
+  llvm.func @entry.kernelRegFunc() {
+    %0 = llvm.mlir.addressof @other.kernelName : !llvm.ptr
+    %1 = cc.cast %0 : (!llvm.ptr) -> !cc.ptr<i8>
+    func.call @cudaqRegisterKernelName(%1) : (!cc.ptr<i8>) -> ()
+    llvm.return
+  }
+  llvm.mlir.global external constant @other.kernelName("other\00") {addr_space = 0 : i32}
+}
+
+// -----
+
+// A `.kernelName` string must be the constant name of its kernel.
+module {
+  func.func @__nvqpp__mlirgen__entry()
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    return
+  }
+  // expected-error@+1 {{unexpected top-level operation at the Quake-to-P0 boundary}}
+  llvm.mlir.global external constant @entry.kernelName("other\00") {addr_space = 0 : i32}
+}
+
+// -----
+
+module {
+  func.func @__nvqpp__mlirgen__entry()
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    return
+  }
+  // expected-error@+1 {{unexpected top-level operation at the Quake-to-P0 boundary}}
+  llvm.mlir.global internal constant @entry.kernelName(42 : i64) : i64
+}
+
+// -----
+
+module {
+  func.func @__nvqpp__mlirgen__entry()
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    return
+  }
+  // expected-error@+1 {{unexpected top-level operation at the Quake-to-P0 boundary}}
+  llvm.mlir.global external @entry.kernelName("entry\00") {addr_space = 0 : i32}
 }

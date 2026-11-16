@@ -376,7 +376,7 @@ TEST(GridsynthDeterminismTest, WallClockDoesNotDecideTheOutcome) {
 
   auto synthesize = [&](GridsynthStats &stats) {
     cudaq::synth::GridsynthOptions options;
-    options.seed = uint64_t{4242};
+    options.seed = std::uint64_t{4242};
     llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
         Real(kSeedSensitiveTheta), Real(epsilon), options, &stats);
     EXPECT_TRUE(llvm::succeeded(result));
@@ -407,9 +407,9 @@ TEST(GridsynthDeterminismTest, TheFactoringBudgetBindsTheSearch) {
   ScopedPrecision precision(
       cudaq::synth::details::required_precision(Real(epsilon)));
 
-  auto work_done = [&](uint64_t max_factoring_iterations) {
+  auto work_done = [&](std::uint64_t max_factoring_iterations) {
     cudaq::synth::GridsynthOptions options;
-    options.seed = uint64_t{4242};
+    options.seed = std::uint64_t{4242};
     options.maxFactoringIterations = max_factoring_iterations;
     GridsynthStats stats;
     llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
@@ -434,9 +434,9 @@ TEST(GridsynthScanLimitTest, BoundsEnumerationWithoutBreakingTheSearch) {
   ScopedPrecision precision(
       cudaq::synth::details::required_precision(Real(epsilon)));
 
-  auto run = [&](uint64_t max_odgp_scan_steps, GridsynthStats &stats) {
+  auto run = [&](std::uint64_t max_odgp_scan_steps, GridsynthStats &stats) {
     cudaq::synth::GridsynthOptions options;
-    options.seed = uint64_t{4242};
+    options.seed = std::uint64_t{4242};
     options.maxOdgpScanSteps = max_odgp_scan_steps;
     llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
         Real(kSeedSensitiveTheta), Real(epsilon), options, &stats);
@@ -491,7 +491,7 @@ TEST(GridsynthStatsTest, CountersAreVisibleWhileTheSearchRuns) {
 
   // Reading a counter mid-update can only yield a stale value, never a torn
   // one: they are word-sized and only ever increase.
-  int64_t observed = 0;
+  std::int64_t observed = 0;
   while (!done && observed == 0)
     observed = stats.candidates_enumerated;
 
@@ -556,7 +556,7 @@ TEST(GridsynthConcurrencyTest, ConcurrentCallsAtDifferentEpsilonsStayInBounds) {
 // RNG seeding
 // ============================================================
 
-static std::string synthesize_with(std::optional<uint64_t> seed) {
+static std::string synthesize_with(std::optional<std::uint64_t> seed) {
   cudaq::synth::GridsynthOptions options;
   options.seed = seed;
   llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
@@ -626,7 +626,7 @@ TEST(GridsynthBoundTest, ExceedsTheExpectedDenominatorExponent) {
     const double expected_k = 2.0 * std::log2(1.0 / std::stod(epsilon));
     EXPECT_GT(cudaq::synth::details::max_denominator_exponent(
                   Real(std::string(epsilon))),
-              static_cast<int64_t>(expected_k))
+              static_cast<std::int64_t>(expected_k))
         << "bound too tight for epsilon=" << epsilon;
   }
 }
@@ -645,9 +645,9 @@ TEST(GridsynthBoundTest, StaysPositiveForLooseEpsilon) {
 // exponent instead of converting to a double: std::log2 of a flushed-to-zero
 // epsilon would be infinite, and the k-loop would be unbounded again.
 TEST(GridsynthBoundTest, FiniteAndMonotonicBelowTheDoubleRange) {
-  const int64_t k_1e400 =
+  const std::int64_t k_1e400 =
       cudaq::synth::details::max_denominator_exponent(Real("1e-400"));
-  const int64_t k_1e4000 =
+  const std::int64_t k_1e4000 =
       cudaq::synth::details::max_denominator_exponent(Real("1e-4000"));
 
   EXPECT_GT(k_1e400, 2 * 400);
@@ -796,7 +796,7 @@ TEST(GridsynthOrbitTest, EveryOrbitMemberHasTheSameError) {
 
   const double expected = std::stod(cudaq::synth::rz_gate_sequence_error(
       kPiOverEight, cudaq::synth::kmm_synthesize(*u)));
-  for (int32_t j = 0; j < 8; j++) {
+  for (std::int32_t j = 0; j < 8; j++) {
     cudaq::synth::DOmegaUnitary member(
         u->z(), cudaq::synth::mul_by_omega_power(u->w(), j), 0);
     EXPECT_DOUBLE_EQ(std::stod(cudaq::synth::rz_gate_sequence_error(
@@ -813,7 +813,7 @@ TEST(GridsynthOrbitTest, SelectedMemberIsMinimalByGateCount) {
   ASSERT_TRUE(llvm::succeeded(u));
   Circuit selected = cudaq::synth::kmm_synthesize(*u);
 
-  for (int32_t j = 0; j < 8; j++) {
+  for (std::int32_t j = 0; j < 8; j++) {
     Circuit member = cudaq::synth::kmm_synthesize(cudaq::synth::DOmegaUnitary(
         u->z(), cudaq::synth::mul_by_omega_power(u->w(), j), 0));
     EXPECT_GE(member.t_count(), selected.t_count()) << "j=" << j;
@@ -825,7 +825,7 @@ TEST(GridsynthOrbitTest, SelectedMemberIsMinimalByGateCount) {
 // Seeds still reach different grid points, so the circuit varies.
 TEST(GridsynthOrbitTest, ReproducerCostIsStableAcrossSeeds) {
   cudaq::synth::GridsynthOptions options;
-  for (uint64_t seed : {1, 2, 3, 4, 5, 6, 7, 8}) {
+  for (std::uint64_t seed : {1, 2, 3, 4, 5, 6, 7, 8}) {
     options.seed = seed;
     llvm::FailureOr<Circuit> result =
         cudaq::synth::gridsynth(Real(kPiOverEight), Real("1e-3"), options);

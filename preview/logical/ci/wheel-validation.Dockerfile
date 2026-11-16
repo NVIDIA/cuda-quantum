@@ -14,7 +14,8 @@
 # branch). The distro-specific setup below follows
 # docker/test/wheels/{ubuntu,fedora,redhat}.Dockerfile; the install under test
 # is the cudaq-logical wheel, resolved together with its CUDA-Q runtime
-# dependency from the wheels copied into /tmp/dist.
+# dependency from the wheels copied into /tmp/dist (the cudaq metapackage also
+# depends on cudaq-edem).
 
 ARG base_image=ubuntu:22.04
 FROM ${base_image}
@@ -23,7 +24,7 @@ ARG python_version=3.11
 ARG cudaq_version
 ARG cudaq_logical_version
 ARG pip_install_flags=""
-ARG preinstalled_modules="pytest"
+ARG preinstalled_modules="pytest stim>=1.16,<2"
 
 ARG DEBIAN_FRONTEND=noninteractive
 

@@ -88,6 +88,11 @@ public:
   /// @brief Whether the full target setup has completed.
   bool isTargetInitialized() const { return targetInitialized; }
 
+  using SimulatorFactory = nvqir::CircuitSimulator *(*)();
+
+  /// @brief Return the factory for the given simulator.
+  SimulatorFactory getSimulatorFactory(const std::string &name);
+
   /// @brief Return the registered simulator with the given name.
   nvqir::CircuitSimulator *getSimulator(const std::string &name);
 

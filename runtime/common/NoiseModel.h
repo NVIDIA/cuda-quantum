@@ -131,9 +131,20 @@ computeUnitaryMixture(
 /// is represented here as a 1d array (specifically a std::vector).
 struct kraus_op {
 
+  /// @brief The element type of the Kraus matrix data. Always double
+  /// precision regardless of the simulation precision (see `data` below).
+  using value_type = std::complex<double>;
+
   /// @brief Matrix data, represented as a 1d flattened
   // *row major* matrix.
-  std::vector<cudaq::complex> data;
+  // These values are always "double" regardless of whether cudaq::real is
+  // float or double. `kraus_op` objects are passed across shared library
+  // boundaries (e.g., constructed by the runtime or Python layer and consumed
+  // by simulator plugins compiled with a different CUDAQ_SIMULATION_SCALAR_*
+  // precision), so the element type must not depend on the translation unit.
+  // Otherwise even `data.size()` would be miscomputed by a consumer whose
+  // `cudaq::complex` differs from the producer's.
+  std::vector<value_type> data;
 
   /// @brief The number of rows in the matrix
   std::size_t nRows = 0;
@@ -142,34 +153,46 @@ struct kraus_op {
   /// NOTE we currently assume nRows == nCols
   std::size_t nCols = 0;
 
-  /// @brief The precision of the underlying data
-  // This data is populated when a `kraus_op` is created and can be used to
-  // introspect `kraus_op` objects across library boundary (e.g., when dynamic
-  // linking is involved).
-  const cudaq::simulation_precision precision =
-      std::is_same_v<cudaq::real, float> ? cudaq::simulation_precision::fp32
-                                         : cudaq::simulation_precision::fp64;
-
-  /// @brief Copy constructor
-  kraus_op(const kraus_op &) = default;
-
   /// @brief Constructor, initialize from vector data
-  kraus_op(std::vector<cudaq::complex> d) : data(d) {
-    auto nElements = d.size();
-    auto sqrtNEl = std::sqrt(nElements);
-    if (sqrtNEl * sqrtNEl != nElements)
-      throw std::runtime_error(
-          "Invalid number of elements to kraus_op. Must be square.");
-
-    nRows = (std::size_t)std::round(sqrtNEl);
-    nCols = nRows;
+  kraus_op(std::vector<value_type> d) : data(std::move(d)) {
+    setDimensionsFromSize(data.size());
   }
+
+  /// @brief Constructor, initialize from single-precision vector data.
+  /// The values are converted to double precision for storage.
+  // This is a template so that template argument deduction fails for
+  // braced-init-lists, keeping list construction unambiguous with the
+  // double-precision constructor above (e.g. `kraus_op({s, 0, 0, s})` or
+  // `kraus_op({{1.,0.},{0.,0.},{0.,0.},{1.,0.}})`). It is constrained to
+  // float so that other element types are rejected rather than silently
+  // narrowed.
+  template <typename T>
+    requires std::is_same_v<T, float>
+  kraus_op(const std::vector<std::complex<T>> &d)
+      : kraus_op(std::vector<value_type>(d.begin(), d.end())) {}
 
   /// @brief Constructor, initialize from initializer_list
   template <typename T>
   kraus_op(std::initializer_list<T> &&initList)
       : data(initList.begin(), initList.end()) {
-    auto nElements = initList.size();
+    setDimensionsFromSize(data.size());
+  }
+
+  /// @brief Return the adjoint of this kraus_op
+  kraus_op adjoint() const {
+    std::vector<value_type> newData(data.size());
+    // The adjoint has nCols rows and nRows columns (identical to nRows x
+    // nCols for the square matrices we currently support).
+    for (std::size_t i = 0; i < nCols; i++)
+      for (std::size_t j = 0; j < nRows; j++)
+        newData[i * nRows + j] = std::conj(data[j * nCols + i]);
+    return kraus_op(std::move(newData));
+  }
+
+private:
+  /// @brief Infer nRows/nCols from the number of matrix elements, requiring a
+  /// square matrix.
+  void setDimensionsFromSize(std::size_t nElements) {
     auto sqrtNEl = std::sqrt(nElements);
     if (sqrtNEl * sqrtNEl != nElements)
       throw std::runtime_error(
@@ -178,34 +201,12 @@ struct kraus_op {
     nRows = (std::size_t)std::round(sqrtNEl);
     nCols = nRows;
   }
-
-  /// @brief Set this kraus_op equal to the other
-  kraus_op &operator=(const kraus_op &other) {
-    data = other.data;
-    return *this;
-  }
-
-  /// @brief Return the adjoint of this kraus_op
-  kraus_op adjoint() const {
-    std::size_t N = data.size();
-    std::vector<cudaq::complex> newData(N);
-    for (std::size_t i = 0; i < nRows; i++)
-      for (std::size_t j = 0; j < nCols; j++)
-        newData[i * nRows + j] = std::conj(data[j * nCols + i]);
-    return kraus_op(newData);
-  }
 };
 
-void validateCompletenessRelation_fp32(const std::vector<kraus_op> &ops);
-void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops);
-void generateUnitaryParameters_fp32(
-    const std::vector<kraus_op> &ops,
-    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &,
-    std::vector<bool> &);
-void generateUnitaryParameters_fp64(
-    const std::vector<kraus_op> &ops,
-    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &,
-    std::vector<bool> &);
+void validateCompletenessRelation(const std::vector<kraus_op> &ops);
+void generateUnitaryParameters(const std::vector<kraus_op> &ops,
+                               std::vector<std::vector<std::complex<double>>> &,
+                               std::vector<double> &, std::vector<bool> &);
 
 /// @brief A kraus_channel represents a quantum noise channel
 /// on specific qubits. The action of the noise channel is
@@ -221,17 +222,7 @@ protected:
   std::vector<kraus_op> ops;
 
   /// @brief Validate that Sum K_i^† K_i = I
-  // Important: as this function dispatches different implementations based on
-  // `cudaq::complex`, which is a pre-processor define, do not call this in
-  // `NoiseModel.cpp`. `NoiseModel.cpp` is compiled as a `cudaq-common` library,
-  // which is not aware of the backend complex type.
-  void validateCompleteness() {
-    if constexpr (std::is_same_v<cudaq::complex::value_type, float>) {
-      validateCompletenessRelation_fp32(ops);
-      return;
-    }
-    validateCompletenessRelation_fp64(ops);
-  }
+  void validateCompleteness() { validateCompletenessRelation(ops); }
 
 public:
   /// @brief Noise type enumeration
@@ -250,7 +241,7 @@ public:
   /// @brief If all Kraus ops are - when scaled - unitary, this holds the
   /// unitary versions of those ops. These values are always "double" regardless
   /// of whether cudaq::real is float or double.
-  std::vector<std::vector<std::complex<double>>> unitary_ops;
+  std::vector<std::vector<kraus_op::value_type>> unitary_ops;
 
   /// @brief If all Kraus ops are - when scaled - unitary, this holds the
   /// probabilities of those ops. These values are always "double" regardless
@@ -334,13 +325,8 @@ public:
     unitary_ops.clear();
     probabilities.clear();
     identity_flags.clear();
-    if constexpr (std::is_same_v<cudaq::complex::value_type, float>) {
-      generateUnitaryParameters_fp32(ops, this->unitary_ops,
+    cudaq::generateUnitaryParameters(ops, this->unitary_ops,
                                      this->probabilities, this->identity_flags);
-      return;
-    }
-    generateUnitaryParameters_fp64(ops, this->unitary_ops, this->probabilities,
-                                   this->identity_flags);
   }
 
   /// @brief Check whether the operator at the given index is an identity.

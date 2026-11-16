@@ -9,6 +9,7 @@
 
 import importlib.util
 import os
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -107,3 +108,83 @@ def test_triton_import_order(tmp_path, cudaq_first):
         kernel.x(q)
         assert cudaq.sample(kernel, shots_count=10)["1"] == 10
     """))
+
+
+@pytest.fixture(scope="module")
+def compiled_kernel_library(tmp_path_factory):
+    """Build a plugin exactly as downstream nvq++ -c consumers do."""
+    nvqpp = shutil.which("nvq++")
+    cxx = shutil.which("c++")
+    if not nvqpp or not cxx:
+        pytest.skip("Compiled kernel library test requires nvq++ and c++")
+    directory = tmp_path_factory.mktemp("kernel-library")
+    source = directory / "kernel.cpp"
+    obj = directory / "kernel.o"
+    library = directory / "kernel.so"
+    source.write_text(
+        textwrap.dedent("""
+        #include <cudaq.h>
+
+        struct flip {
+          std::vector<bool> operator()(std::vector<bool> bits) __qpu__ {
+            cudaq::qvector q(bits.size());
+            for (std::size_t i = 0; i < bits.size(); ++i)
+              if (bits[i]) x(q[i]);
+            return cudaq::to_bools(mz(q));
+          }
+        };
+
+        extern "C" int run_kernel() {
+          return flip{}({true, false, true}) ==
+                 std::vector<bool>{true, false, true};
+        }
+    """))
+    for command in (
+        [
+            nvqpp, "--target", "qpp-cpu", "-c", "-fPIC",
+            str(source), "-o",
+            str(obj)
+        ],
+        [cxx, "-shared", str(obj), "-o",
+         str(library)],
+    ):
+        result = subprocess.run(command,
+                                capture_output=True,
+                                text=True,
+                                timeout=120)
+        assert result.returncode == 0, result.stdout + result.stderr
+    return library
+
+
+@pytest.mark.parametrize("binding", ["RTLD_NOW", "RTLD_LAZY"])
+def test_dlopen_compiled_kernel_without_global_llvm(tmp_path,
+                                                    compiled_kernel_library,
+                                                    binding):
+    run_child(
+        tmp_path, f"""
+        import ctypes
+        import os
+        import cudaq
+
+        process = ctypes.CDLL(None)
+        def check_scope():
+            for symbol in (
+                "_ZN4llvm2cl6Option11addArgumentEv",
+                "_ZTVN4llvm21BranchProbabilityInfo20BasicBlockCallbackVHE",
+                "_ZN4mlir11MLIRContextC1ENS0_9ThreadingE",
+            ):
+                assert not hasattr(process, symbol), symbol
+
+        check_scope()
+        library = ctypes.CDLL({str(compiled_kernel_library)!r},
+                              mode=os.{binding} | os.RTLD_LOCAL)
+        library.run_kernel.restype = ctypes.c_int
+        check_scope()
+        # A load alone misses broken launch forwarding and separate registries.
+        # Exercise both lazy target initialization and subsequent target changes.
+        assert library.run_kernel() == 1
+        for target in ("qpp-cpu", "density-matrix-cpu", "stim"):
+            cudaq.set_target(target)
+            assert library.run_kernel() == 1, target
+            check_scope()
+    """)

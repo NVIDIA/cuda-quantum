@@ -20,8 +20,10 @@ if(SKBUILD)
   # The wheel stages the entire native installation under cudaq_edem/.
   set(python_install_dir .)
 else()
-  set(python_install_dir
-    "${CMAKE_INSTALL_LIBDIR}/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages/cudaq_edem")
+  set(CUDAQ_EDEM_PYTHON_INSTALL_DIR
+    "${CMAKE_INSTALL_LIBDIR}/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages/cudaq_edem"
+    CACHE STRING "Install directory for cudaq_edem, relative to CMAKE_INSTALL_PREFIX")
+  set(python_install_dir "${CUDAQ_EDEM_PYTHON_INSTALL_DIR}")
 endif()
 set(CUDAQ_EDEM_PYTHON_INSTALL_DIR "${python_install_dir}" PARENT_SCOPE)
 file(RELATIVE_PATH CUDAQ_EDEM_PYTHON_CMAKE_DIR

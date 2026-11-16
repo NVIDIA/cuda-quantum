@@ -194,9 +194,11 @@ and its hooks poll the `DOCA` completion queue and send with `BlueFlame`.  See
 [device_code_contract.md](device_code_contract.md) for how bridges and
 applications build and hand over their device code.
 
-A transport may instead replace the whole dispatch loop: its UNIFIED transport
-context then names a `cudaq_unified_launch_fn_t`, which the dispatcher calls in
-place of its own kernel.
+A transport could instead replace the whole dispatch loop: its UNIFIED
+transport context then named a `cudaq_unified_launch_fn_t`, which the
+dispatcher called in place of its own kernel.  That transport-side override is
+deprecated together with `cudaq_bridge_get_transport_context`; an application
+that wants its own loop installs it with `cudaq_dispatcher_set_unified_launch`.
 
 ### When to Use Which Mode
 
@@ -560,10 +562,10 @@ plane that shape needs:
 
 | Shape | What the dispatcher takes from the bridge |
 |-------|-------------------------------------------|
-| HOST + REGULAR | The `RING_BUFFER` context (host views); `start()` then runs the host ring dispatch loop on a CPU thread |
+| HOST + REGULAR | The ring buffer (`cudaq_bridge_get_ring_buffer`, host views); `start()` then runs the host ring dispatch loop on a CPU thread |
 | HOST + UNIFIED | The provider's CPU data plane (`rx_poll` / `tx_publish`) |
-| DEVICE + REGULAR | The `RING_BUFFER` context; `start()` then launches the 3-kernel dispatch kernel from `libcudaq-realtime-dispatch.a` (see `cudaq_dispatcher_set_launch_fn`) |
-| DEVICE + UNIFIED | The launch override of the provider's UNIFIED transport context, if it names one.  Otherwise the provider's GPU data plane (`cudaq_bridge_get_gpu_dataplane`), linked on the first `cudaq_dispatcher_get_device_handler`.  A provider with neither is refused |
+| DEVICE + REGULAR | The ring buffer (`cudaq_bridge_get_ring_buffer`); `start()` then launches the 3-kernel dispatch kernel from `libcudaq-realtime-dispatch.a` (see `cudaq_dispatcher_set_launch_fn`) |
+| DEVICE + UNIFIED | The launch override of the provider's deprecated UNIFIED transport context, if it still names one.  Otherwise the provider's GPU data plane (`cudaq_bridge_get_gpu_dataplane`), linked on the first `cudaq_dispatcher_get_device_handler`.  A provider with neither is refused |
 
 Parameters:
 

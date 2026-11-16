@@ -11,6 +11,8 @@
 #include "cudaq/edem/noise.h"
 #include "cudaq/edem/owned.hpp"
 
+#include <cstdint>
+
 #if defined(__GNUC__) || defined(__clang__)
 #define CUDAQ_EDEM_NOISE_CPP_LOCAL __attribute__((visibility("hidden")))
 #else
@@ -42,11 +44,13 @@ public:
     return *this;
   }
   ~ColumnMapping() { cudaq_gf2_owned_buffer_release(&storage_); }
-  uint64_t size() const noexcept { return storage_.size / sizeof(uint64_t); }
-  const uint64_t *data() const & noexcept {
-    return static_cast<const uint64_t *>(storage_.data);
+  std::uint64_t size() const noexcept {
+    return storage_.size / sizeof(std::uint64_t);
   }
-  const uint64_t *data() const && = delete;
+  const std::uint64_t *data() const & noexcept {
+    return static_cast<const std::uint64_t *>(storage_.data);
+  }
+  const std::uint64_t *data() const && = delete;
   cudaq_gf2_owned_buffer release() noexcept {
     return std::exchange(storage_, {});
   }

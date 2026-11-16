@@ -214,12 +214,22 @@ void detail::initServerHelperAndExecutor(
   CUDAQ_INFO("Retrieving executor with name {}", qpuName);
   CUDAQ_INFO("Is this executor registered? {}",
              cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
-  executor = cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
-                 ? cudaq::registry::get<cudaq::Executor>(qpuName)
-                 : std::make_unique<cudaq::Executor>();
+  // Emulation uses the helper's compilation settings, but executes locally.
+  // Constructing a remote executor can start network connections (e.g. AWS
+  // metadata and S3 requests) even when no remote job will ever be submitted.
+  const auto emulate = backendConfig.find("emulate");
+  const bool isEmulated =
+      emulate != backendConfig.end() && emulate->second == "true";
+  executor =
+      !isEmulated && cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
+          ? cudaq::registry::get<cudaq::Executor>(qpuName)
+          : std::make_unique<cudaq::Executor>();
 
   // Give the server helper to the executor
   executor->setServerHelper(serverHelper.get());
+
+  // Register after client setup, which may initialize SDK statics.
+  detail::registerPlatformCleanup();
 
   // Construct the runtime target
   RuntimeTarget runtimeTarget;

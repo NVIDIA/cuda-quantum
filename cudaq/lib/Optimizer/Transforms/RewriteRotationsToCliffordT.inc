@@ -21,7 +21,7 @@ classifyCliffordTAngle(const llvm::APFloat &angle, double epsilon) {
 /// Emit the simplified representative of a `quarterTurns*pi/4` rotation.
 template <typename QOP>
 static Value emitSimplifiedRotation(PatternRewriter &rewriter, QOP rotation,
-                                    int64_t quarterTurns) {
+                                    std::int64_t quarterTurns) {
   static_assert(llvm::is_one_of<QOP, cudaq::quake::R1Op,
                                 cudaq::quake::RxOp, cudaq::quake::RyOp,
                                 cudaq::quake::RzOp>::value);

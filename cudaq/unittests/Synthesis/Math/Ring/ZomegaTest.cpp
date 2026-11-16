@@ -10,6 +10,8 @@
 
 #include "cudaq/Synthesis/Math/Ring/Zomega.h"
 
+#include <cstdint>
+
 namespace {
 
 using namespace cudaq::synth;
@@ -19,12 +21,12 @@ static const ZOmega kSqrt2{Integer(-1), Integer(0), Integer(1), Integer(0)};
 
 // Deterministic coefficient source, mixed in sign and magnitude.
 class Coefficients {
-  uint64_t state = 0x9e3779b97f4a7c15ull;
+  std::uint64_t state = 0x9e3779b97f4a7c15ull;
 
 public:
-  int64_t next() {
+  std::int64_t next() {
     state = state * 6364136223846793005ull + 1442695040888963407ull;
-    return static_cast<int64_t>(state >> 33) - (1 << 30);
+    return static_cast<std::int64_t>(state >> 33) - (1 << 30);
   }
 
   ZOmega next_zomega() {
@@ -35,7 +37,7 @@ public:
 
 TEST(ZOmegaInPlaceTest, MulByOmegaPowerMatchesOutOfPlace) {
   Coefficients gen;
-  for (int32_t n = 0; n < 16; ++n) {
+  for (std::int32_t n = 0; n < 16; ++n) {
     ZOmega x = gen.next_zomega();
     ZOmega expected = mul_by_omega_power(x, n);
     mul_by_omega_power_in_place(x, n);

@@ -15,6 +15,8 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/FormatAdapters.h"
 
+#include <cstdint>
+
 using namespace mlir;
 
 static LogicalResult emitOperation(nlohmann::json &json,
@@ -76,7 +78,7 @@ static LogicalResult emitOperation(nlohmann::json &json,
 static LogicalResult emitOperation(nlohmann::json &json,
                                    cudaq::Emitter &emitter,
                                    cudaq::quake::ExtractRefOp op) {
-  std::optional<int64_t> index = std::nullopt;
+  std::optional<std::int64_t> index = std::nullopt;
   if (op.hasConstantIndex())
     index = op.getConstantIndex();
   else

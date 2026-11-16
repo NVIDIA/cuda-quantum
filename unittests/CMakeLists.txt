@@ -224,7 +224,7 @@ target_link_libraries(test_utils
   gtest_main)
 cudaq_gtest_discover_tests(test_utils PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
-add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp)
+add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp qir/QIRSpecVerifierTester.cpp)
 target_link_libraries(test_nvqir_verify
   PRIVATE
     cudaq
@@ -243,11 +243,19 @@ target_link_libraries(test_exec_ctx_thread
   gtest_main)
 cudaq_gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
 
-add_executable(test_quantum_platform main.cpp common/QuantumPlatformTester.cpp)
+# Exercise the LLVM-free facade without linking the full runtime.
+add_executable(test_kernel_runtime common/KernelRuntimeTester.cpp)
+target_include_directories(test_kernel_runtime PRIVATE ${CMAKE_SOURCE_DIR}/runtime)
+target_link_libraries(test_kernel_runtime PRIVATE cudaq-kernel-runtime gtest_main)
+cudaq_gtest_discover_tests(test_kernel_runtime DISCOVERY_TIMEOUT 120)
+
+add_executable(test_quantum_platform main.cpp common/QuantumPlatformTester.cpp
+  common/RemoteExecutorTester.cpp)
 target_include_directories(test_quantum_platform PRIVATE .)
 target_link_libraries(test_quantum_platform
   PRIVATE
   cudaq
+  cudaq-common
   cudaq-platform-default
   nvqir
   gtest_main)

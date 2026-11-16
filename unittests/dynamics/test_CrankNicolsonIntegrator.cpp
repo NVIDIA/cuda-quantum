@@ -13,6 +13,7 @@
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cmath>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 
@@ -54,7 +55,7 @@ TEST_F(CrankNicolsonIntegratorTest, IntegrateLandsExactlyOnSchedulePoints) {
 
   const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
                                                              {0.0, 0.0}};
-  const std::vector<int64_t> dims = {2};
+  const std::vector<std::int64_t> dims = {2};
   cudaq::sum_op<cudaq::matrix_handler> ham(cudaq::spin_op::x(0));
   SystemDynamics system(dims, ham);
 
@@ -84,7 +85,7 @@ TEST_F(CrankNicolsonIntegratorTest, IntegrateLandsExactlyOnSchedulePoints) {
 TEST_F(CrankNicolsonIntegratorTest, CheckEvolve) {
   const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
                                                              {0.0, 0.0}};
-  const std::vector<int64_t> dims = {2};
+  const std::vector<std::int64_t> dims = {2};
   auto spin_op_x = cudaq::spin_op::x(0);
   cudaq::sum_op<cudaq::matrix_handler> ham(2.0 * M_PI * 0.1 * spin_op_x);
   SystemDynamics system(dims, ham);
@@ -128,7 +129,7 @@ TEST_F(CrankNicolsonIntegratorTest, CheckEvolve) {
 TEST_F(CrankNicolsonIntegratorTest, CloneReproducesTrajectory) {
   const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
                                                              {0.0, 0.0}};
-  const std::vector<int64_t> dims = {2};
+  const std::vector<std::int64_t> dims = {2};
   cudaq::sum_op<cudaq::matrix_handler> ham(2.0 * M_PI * 0.1 *
                                            cudaq::spin_op::x(0));
   SystemDynamics system(dims, ham);
@@ -170,7 +171,7 @@ TEST_F(CrankNicolsonIntegratorTest, CloneReproducesTrajectory) {
 TEST_F(CrankNicolsonIntegratorTest, CloneDoesNotShareState) {
   const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
                                                              {0.0, 0.0}};
-  const std::vector<int64_t> dims = {2};
+  const std::vector<std::int64_t> dims = {2};
   cudaq::sum_op<cudaq::matrix_handler> ham(2.0 * M_PI * 0.1 *
                                            cudaq::spin_op::x(0));
   SystemDynamics system(dims, ham);
@@ -216,7 +217,7 @@ TEST_F(CrankNicolsonIntegratorTest, CloneDoesNotShareState) {
 TEST_F(CrankNicolsonIntegratorTest, ConvergenceOrderVerification) {
   const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
                                                              {0.0, 0.0}};
-  const std::vector<int64_t> dims = {2};
+  const std::vector<std::int64_t> dims = {2};
   const double omega = 2.0 * M_PI * 0.1;
   cudaq::sum_op<cudaq::matrix_handler> ham(omega * cudaq::spin_op::x(0));
   SystemDynamics system(dims, ham);
@@ -269,7 +270,7 @@ TEST_F(CrankNicolsonIntegratorTest, ConvergenceOrderVerification) {
 TEST_F(CrankNicolsonIntegratorTest, NormPreservationLargeSteps) {
   const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
                                                              {0.0, 0.0}};
-  const std::vector<int64_t> dims = {2};
+  const std::vector<std::int64_t> dims = {2};
   cudaq::sum_op<cudaq::matrix_handler> ham(2.0 * M_PI * 0.1 *
                                            cudaq::spin_op::x(0));
   SystemDynamics system(dims, ham);

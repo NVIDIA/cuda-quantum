@@ -40,7 +40,7 @@ import cudaq.logical.protocols as protocols
 import cudaq.logical.qec as qec
 import cudaq.logical.std as standard
 import cudaq.logical.types as types
-from cudaq.logical.programs.decorators import objective as _objective
+from cudaq.logical.programs.decorators import action as _action
 
 from ..std import LogicalActionRef, LogicalInstrumentRef
 
@@ -272,7 +272,7 @@ def _audit_global_clifford(code, ell: int, kind: str) -> _CliffordSupport:
     )
 
 
-def _global_preparation_objective(code, logical_state, flip, name: str):
+def _global_preparation_action(code, logical_state, flip, name: str):
 
     def intent():
         values = []
@@ -282,13 +282,13 @@ def _global_preparation_objective(code, logical_state, flip, name: str):
         return tuple(values)
 
     result_annotation = tuple[tuple([types.logical_qubit] * code.k)]
-    intent.__name__ = intent.__qualname__ = f"{name}_objective"
+    intent.__name__ = intent.__qualname__ = f"{name}_action"
     intent.__signature__ = Signature((), return_annotation=result_annotation)
     intent.__annotations__ = {"return": result_annotation}
-    return _objective(intent, name=intent.__name__)
+    return _action(intent, name=intent.__name__)
 
 
-def _global_cnot_objective(code, name: str):
+def _global_cnot_action(code, name: str):
     controls = tuple(f"control{index}" for index in range(code.k))
     targets = tuple(f"target{index}" for index in range(code.k))
     names = controls + targets
@@ -301,7 +301,7 @@ def _global_cnot_objective(code, name: str):
         return tuple(values)
 
     result_annotation = tuple[tuple([types.logical_qubit] * (2 * code.k))]
-    intent.__name__ = intent.__qualname__ = f"{name}_objective"
+    intent.__name__ = intent.__qualname__ = f"{name}_action"
     intent.__signature__ = Signature(
         tuple(
             Parameter(
@@ -317,7 +317,7 @@ def _global_cnot_objective(code, name: str):
         },
         "return": result_annotation,
     }
-    return _objective(intent, name=intent.__name__)
+    return _action(intent, name=intent.__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1033,7 +1033,7 @@ class _CSSDefinitionBuilder:
             qubit for qubit in range(code.n) if (flip_mask >> qubit) & 1)
         suffix = "minus" if plus_basis else "one"
         operation = ops.z if plus_basis else ops.x
-        intent = _global_preparation_objective(
+        intent = _global_preparation_action(
             code,
             types.plus if plus_basis else types.zero,
             operation,
@@ -1100,7 +1100,7 @@ class _CSSDefinitionBuilder:
     def transversal_cx(self) -> gadgets.GadgetDefinition:
         encoding = self.encoding
         code = self.code
-        intent = _global_cnot_objective(code, f"{code.name}_transversal_cx")
+        intent = _global_cnot_action(code, f"{code.name}_transversal_cx")
 
         def realization(control, target):
             return ops.cx(control.data, target.data)
@@ -1526,8 +1526,8 @@ def _make_wsc_lowering(
     compile_site.__qualname__ = compile_site.__name__
     return qec.QECLowering(
         compile_site,
-        objective_family="pauli_product_measurement",
-        objective=standard.mpp,
+        action_family="pauli_product_measurement",
+        action=standard.mpp,
         codes=(encoding,),
         plugin="cudaq.logical.architectures.pinnacle_wsc",
         version="1.0.0",
@@ -2096,7 +2096,7 @@ def _make_rus_rotation_strategy(
             rejection_rows = (gadgets.SuccessPredicate(
                 gadgets.ProfileParity.from_value(
                     scratch_readout.record("mpp0.outcome")) ^ True),)
-        attempt_analysis = gadgets.GadgetProfile(
+        attempt_analysis = gadgets.GadgetContract(
             scratch_readout,
             success=rejection_rows,
             name=(f"{context.lowering.name}_{design.sha256[:12]}_rus_success"),

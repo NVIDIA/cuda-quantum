@@ -11,6 +11,7 @@ from typing import List
 import pytest
 
 import cudaq
+from cudaq._metadata import assertions_enabled as _cudaq_assertions_enabled
 import numpy as np
 
 
@@ -803,7 +804,17 @@ def test_custabilizer_qec_observable_annotations_preserve_raw_measurements():
     assert result.get_sequential_data() == ["101"] * 33
 
 
-@pytest.mark.parametrize("probability", [0.0, 1.0])
+# cudaq.run and a one-shot sample execute shot by shot on Stim's CPU frame
+# simulator, which aborts on a probability-1 Pauli channel when assertions are
+# enabled.
+_skip_stim_p1 = pytest.mark.skipif(
+    _cudaq_assertions_enabled,
+    reason="https://github.com/NVIDIA/cuda-quantum/issues/4026")
+
+
+# 0.5 keeps the shot-by-shot noisy path tested in builds that skip 1.0.
+@pytest.mark.parametrize(
+    "probability", [0.0, 0.5, pytest.param(1.0, marks=_skip_stim_p1)])
 @pytest.mark.parametrize("shots", [1, 33])
 def test_custabilizer_qec_noisy_conditional_feedback(probability, shots):
     """A measured fault drives feedback while reset clears the measured qubit."""
@@ -824,9 +835,15 @@ def test_custabilizer_qec_noisy_conditional_feedback(probability, shots):
                         noise_model=cudaq.NoiseModel(),
                         shots_count=shots)
     assert len(results) == shots
-    assert all(list(bits) == [False, bool(probability)] for bits in results)
+    if probability in (0.0, 1.0):
+        assert all(list(bits) == [False, bool(probability)] for bits in results)
+    else:
+        assert all(not bits[0] for bits in results)
+        if shots > 1:
+            assert {bits[1] for bits in results} == {False, True}
 
 
+@_skip_stim_p1
 @pytest.mark.parametrize("shots", [1, 129])
 def test_custabilizer_run_measurement_history(shots):
     """Run without conditionals preserves measurements across allocation/reset."""
@@ -853,7 +870,7 @@ def test_custabilizer_run_measurement_history(shots):
         assert {bits[0] for bits in results} == {False, True}
 
 
-@pytest.mark.parametrize("shots", [1, 65])
+@pytest.mark.parametrize("shots", [pytest.param(1, marks=_skip_stim_p1), 65])
 def test_custabilizer_broadcast_sampling_resets_state(shots):
     """Broadcast calls reset frames and measurement records between executions."""
 

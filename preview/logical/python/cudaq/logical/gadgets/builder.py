@@ -16,7 +16,7 @@ from typing import get_args, get_origin, get_type_hints
 import cudaq.mlir.ir as mlir_ir
 
 from cudaq.logical.algebra.angle import Angle
-from ..errors import InvalidSyndromeSchedule, ObjectiveMismatch
+from ..errors import InvalidSyndromeSchedule, ActionMismatch
 from cudaq.logical.programs.context import (
     pop_trace,
     push_trace,
@@ -44,7 +44,7 @@ from cudaq.logical.codes import (
 )
 from cudaq.logical.gadgets.definition import GadgetDefinition
 from cudaq.logical.gadgets.interface import patch
-from cudaq.logical.gadgets.profiles import GadgetProfile
+from cudaq.logical.gadgets.contracts import GadgetContract
 from cudaq.logical.gadgets.records import ProfileParity, RecordRef
 from cudaq.logical.gadgets.semantics import (
     OutcomeMap,
@@ -54,7 +54,7 @@ from cudaq.logical.gadgets.semantics import (
 from cudaq.logical.algebra.gf2 import GF2Matrix
 from cudaq.logical.devices.definition import QECRegion
 from cudaq.logical.programs.definition import ProgramDefinition
-from cudaq.logical.qec.objectives import SubsystemFragmentObjective
+from cudaq.logical.qec.actions import SubsystemFragmentAction
 from cudaq.logical.types.semantic import (
     record,
     resource,
@@ -63,7 +63,7 @@ from cudaq.logical.gadgets.specification import _inferred_port_table
 from ..std import (
     LogicalActionRef,
     LogicalInstrumentRef,
-    SyndromeExtractionObjective,
+    SyndromeExtractionAction,
 )
 
 
@@ -345,11 +345,11 @@ class GadgetBuilder:
                 context=self.context,
             )
         logical = self.definition.implements
-        self.logical_objective = logical
+        self.declared_action = logical
         logical_type = mlir_ir.Type.parse("!qlx.logical_qubit",
                                           context=self.context)
         if isinstance(logical, LogicalActionRef):
-            logical_symbol = self.transaction.objective(
+            logical_symbol = self.transaction.action(
                 family="action",
                 name=logical.name,
                 inputs=(logical_type,) * logical.arity,
@@ -360,12 +360,12 @@ class GadgetBuilder:
                 (logical_type,) * logical.arity,
                 context=self.context,
             )
-            self.objective_parameter_names = self._standard_parameter_names(
+            self.action_parameter_names = self._standard_parameter_names(
                 logical)
-            self.logical_objective_symbol = logical_symbol
-        elif isinstance(logical, SyndromeExtractionObjective):
+            self.declared_action_symbol = logical_symbol
+        elif isinstance(logical, SyndromeExtractionAction):
             logical_inputs = (logical_type,) * logical.arity
-            logical_symbol = self.transaction.objective(
+            logical_symbol = self.transaction.action(
                 family="instrument",
                 name=logical.name,
                 inputs=logical_inputs,
@@ -373,15 +373,15 @@ class GadgetBuilder:
             )
             logical_function_type = mlir_ir.FunctionType.get(
                 logical_inputs, (), context=self.context)
-            self.objective_parameter_names = tuple(
+            self.action_parameter_names = tuple(
                 f"q{index}" for index in range(logical.arity))
-            self.logical_objective_symbol = logical_symbol
+            self.declared_action_symbol = logical_symbol
         elif isinstance(logical, LogicalInstrumentRef):
             logical_inputs = (logical_type,) * logical.arity
             logical_results = ((logical_type,) * logical.result_arity
                                if logical.name.startswith("prepare_") else
                                (self.i1_type,) * logical.result_arity)
-            logical_symbol = self.transaction.objective(
+            logical_symbol = self.transaction.action(
                 family="instrument",
                 name=logical.name,
                 inputs=logical_inputs,
@@ -389,19 +389,19 @@ class GadgetBuilder:
             )
             logical_function_type = mlir_ir.FunctionType.get(
                 logical_inputs, logical_results, context=self.context)
-            self.objective_parameter_names = tuple(
+            self.action_parameter_names = tuple(
                 f"q{index}" for index in range(logical.arity))
-            self.logical_objective_symbol = logical_symbol
+            self.declared_action_symbol = logical_symbol
         elif isinstance(logical,
-                        ProgramDefinition) and logical.kind == "objective":
+                        ProgramDefinition) and logical.kind == "action":
             logical_handle = self.transaction.materialize(logical)
             logical_symbol = logical_handle.symbol
             inputs, results, _ = self.transaction.signature_of(logical)
             logical_function_type = mlir_ir.FunctionType.get(
                 inputs, results, context=self.context)
-            self.objective_parameter_names = tuple(logical.signature.parameters)
-            self.logical_objective_symbol = logical_handle.symbol
-        elif isinstance(logical, SubsystemFragmentObjective):
+            self.action_parameter_names = tuple(logical.signature.parameters)
+            self.declared_action_symbol = logical_handle.symbol
+        elif isinstance(logical, SubsystemFragmentAction):
             patch_inputs = sum(
                 kind == "patch" for kind, _ in self.input_boundaries)
             patch_results = sum(
@@ -410,57 +410,57 @@ class GadgetBuilder:
                 raise TypeError(
                     "cudaq.logical.qec.subsystem_fragment derivation currently "
                     "requires "
-                    "one inout encoded patch; use an explicit ObjectiveGraph for "
+                    "one inout encoded patch; use an explicit action declaration for "
                     "multi-block, split, merge, or terminal fragments")
             logical_symbol = None
             logical_function_type = self.function_type
-            self.objective_parameter_names = ()
-            self.logical_objective_symbol = None
+            self.action_parameter_names = ()
+            self.declared_action_symbol = None
             self._derive_subsystem_fragment = True
         elif logical is None:
             # A root P2 gadget may be the user-facing entry point instead of a
-            # selectable realization of a separate logical objective.  Keep
+            # selectable realization of a separate logical action.  Keep
             # its inferred boundary contract behind an internal entrypoint
             # declaration and gadget spec, but do not claim equivalence to a
-            # user-authored logical objective.
-            logical_symbol = self.transaction.objective(
+            # user-authored logical action.
+            logical_symbol = self.transaction.action(
                 family="instrument",
                 name=f"{self.definition.name}_entrypoint",
                 inputs=self.input_types,
                 results=self.result_types,
             )
             logical_function_type = self.function_type
-            self.objective_parameter_names = ()
-            self.logical_objective_symbol = logical_symbol
+            self.action_parameter_names = ()
+            self.declared_action_symbol = logical_symbol
         else:
             raise TypeError("@cudaq.logical.gadget implements= requires "
-                            "cudaq.logical.logical.<objective>, "
+                            "cudaq.logical.logical.<action>, "
                             "cudaq.logical.qec.subsystem_fragment, or a "
-                            "@cudaq.logical.objective definition")
+                            "@cudaq.logical.action definition")
         with self.context:
             logical_type_attr = mlir_ir.TypeAttr.get(logical_function_type)
             gadget_type_attr = mlir_ir.TypeAttr.get(self.function_type)
-        self.objective_symbol = self.transaction.unique_symbol(
+        self.action_symbol = self.transaction.unique_symbol(
             f"{self.definition.name}_objective")
-        objective_attrs = {
+        action_attrs = {
             "sym_name":
-                mlir_ir.StringAttr.get(self.objective_symbol,
+                mlir_ir.StringAttr.get(self.action_symbol,
                                        context=self.context),
             "function_type":
                 logical_type_attr,
         }
         if logical_symbol is not None:
-            objective_attrs["logical"] = mlir_ir.FlatSymbolRefAttr.get(
+            action_attrs["logical"] = mlir_ir.FlatSymbolRefAttr.get(
                 logical_symbol, context=self.context)
-        self.objective_operation = self._append_module_op(
-            "fabric.objective", objective_attrs)
+        self.action_operation = self._append_module_op("fabric.objective",
+                                                       action_attrs)
         self.spec_symbol = self.transaction.unique_symbol(
             f"{self.definition.name}_spec")
         attrs = {
             "sym_name":
                 mlir_ir.StringAttr.get(self.spec_symbol, context=self.context),
             "objective":
-                mlir_ir.FlatSymbolRefAttr.get(self.objective_symbol,
+                mlir_ir.FlatSymbolRefAttr.get(self.action_symbol,
                                               context=self.context),
             "function_type":
                 gadget_type_attr,
@@ -752,7 +752,7 @@ class GadgetBuilder:
             return
         if name in {"t", "tdg", "ccz", "ccx"}:
             raise TypeError(
-                f"logical objective contains non-Clifford action {name!r}")
+                f"logical action contains non-Clifford action {name!r}")
         if name in {"x", "y", "z", "h", "s", "sdg"}:
             if len(wires) != 1:
                 raise TypeError(f"logical action {name!r} requires one operand")
@@ -804,7 +804,7 @@ class GadgetBuilder:
                     z_mask ^= control_bit
                 images[index] = (x_mask, z_mask, phase)
             return
-        raise TypeError(f"unsupported Clifford objective action {name!r}")
+        raise TypeError(f"unsupported Clifford action {name!r}")
 
     @classmethod
     def _standard_clifford_action(cls, name, arity):
@@ -822,9 +822,8 @@ class GadgetBuilder:
         semantics = self._symbol_name(action.attributes["semantics"])
         program = self.transaction.find_symbol(semantics, "qlx.objective_body")
         if program is None:
-            raise ValueError(
-                "logical action semantics objective body is missing")
-        ports = tuple(self.objective_parameter_names)
+            raise ValueError("logical action semantics action body is missing")
+        ports = tuple(self.action_parameter_names)
         if len(ports) != arity:
             ports = tuple(range(arity))
         return CliffordAction.from_mlir_program(program, ports=ports).images
@@ -894,7 +893,13 @@ class GadgetBuilder:
                 self.block = gadget_block
         self.insertion_point = mlir_ir.InsertionPoint(self.block)
 
-    def _emit(self, name, *, operands=(), results=(), attributes=None):
+    def _emit(self,
+              name,
+              *,
+              operands=(),
+              results=(),
+              attributes=None,
+              regions=0):
         self._before_operation(name)
         with self.location:
             operation = mlir_ir.Operation.create(
@@ -902,6 +907,7 @@ class GadgetBuilder:
                 operands=list(operands),
                 results=list(results),
                 attributes=dict(attributes or {}),
+                regions=regions,
                 loc=self.location,
             )
             self.insertion_point.insert(operation)
@@ -953,6 +959,107 @@ class GadgetBuilder:
                 "a nonterminal BB depth-8 cycle must be continued immediately "
                 "with prime=False; no other authored operation may intervene, "
                 f"not {operation}")
+
+    @staticmethod
+    def _flatten_structured_values(value):
+        if isinstance(value, (tuple, list)):
+            result = []
+            for item in value:
+                result.extend(GadgetBuilder._flatten_structured_values(item))
+            return tuple(result)
+        return (value,)
+
+    def _cond_branch_clone(self, value):
+        if isinstance(value, PatchValue):
+            return self._new_patch(
+                value.mlir_value,
+                value.encoding,
+                epoch=value.epoch,
+                encoded_state_live=value._encoded_state_live,
+                terminal_only_reason=value._terminal_only_reason,
+                bb_syndrome_continuation=value._bb_syndrome_continuation,
+                carrier_frame=value.carrier_frame,
+            )
+        if isinstance(value, LogicalBool):
+            return LogicalBool(value.mlir_value,
+                               owner=self,
+                               location=self.location)
+        raise TypeError(
+            "cudaq.logical.cond gadget carries must be patch or bool values")
+
+    @staticmethod
+    def _consume_cond_branch_value(value, operation):
+        if isinstance(value, PatchValue):
+            value._consume(operation)
+
+    def cond(self, condition, then, else_, carries):
+        """Author one runtime ``cflow.if`` with linear gadget carries."""
+
+        if not isinstance(condition,
+                          LogicalBool) or condition.owner is not self:
+            raise TypeError(
+                "cudaq.logical.cond condition must be a bool from this gadget")
+        carries = tuple(carries)
+        result_types = tuple(value.mlir_value.type for value in carries)
+        for value in carries:
+            if getattr(value, "owner", None) is not self:
+                raise TypeError(
+                    "cudaq.logical.cond carries must belong to this gadget")
+            if not isinstance(value, (PatchValue, LogicalBool)):
+                raise TypeError(
+                    "cudaq.logical.cond gadget carries must be patch or bool values"
+                )
+            self._consume_cond_branch_value(value, "cflow.if")
+        operation = self._emit(
+            "cflow.if",
+            operands=[condition.mlir_value],
+            results=result_types,
+            regions=2,
+        )
+        parent_ip = self.insertion_point
+        try:
+            for region, callback in zip(operation.regions, (then, else_)):
+                block = region.blocks.append()
+                self.insertion_point = mlir_ir.InsertionPoint(block)
+                branch_values = tuple(
+                    self._cond_branch_clone(value) for value in carries)
+                returned = self._flatten_structured_values(
+                    callback(*branch_values))
+                if len(returned) != len(result_types):
+                    raise TypeError(
+                        "cudaq.logical.cond branches must return one value per carry"
+                    )
+                operands = []
+                for value, expected in zip(returned, result_types):
+                    if (getattr(value, "owner", None) is not self or
+                            value.mlir_value.type != expected):
+                        raise TypeError(
+                            "cudaq.logical.cond branch results must match carries"
+                        )
+                    self._consume_cond_branch_value(value, "cflow.yield")
+                    operands.append(value.mlir_value)
+                self._emit("cflow.yield", operands=operands)
+        finally:
+            self.insertion_point = parent_ip
+
+        results = []
+        for result, prototype in zip(operation.results, carries):
+            if isinstance(prototype, PatchValue):
+                results.append(
+                    self._new_patch(
+                        result,
+                        prototype.encoding,
+                        epoch=prototype.epoch,
+                        encoded_state_live=prototype._encoded_state_live,
+                        terminal_only_reason=prototype._terminal_only_reason,
+                        bb_syndrome_continuation=(
+                            prototype._bb_syndrome_continuation),
+                        carrier_frame=prototype.carrier_frame,
+                    ))
+            else:
+                results.append(
+                    LogicalBool(result, owner=self, location=self.location))
+        return tuple(results)
 
     def arguments(self):
         if self._arguments is None:
@@ -1082,14 +1189,14 @@ class GadgetBuilder:
         self._derive_inferred_outcome_map(values)
         self._emit("fabric.return", operands=operands)
         if self._derive_subsystem_fragment:
-            self._finish_subsystem_fragment_objective()
+            self._finish_subsystem_fragment_action()
         elif (any(child.operation.name == "fabric.epoch_transition"
                   for child in self.block.operations) and
               any(payload.profile.dynamic_phases
                   for kind, payload in self.input_boundaries
                   if kind == "patch")):
             raise TypeError("dynamic profile period gadgets require the exact "
-                            "cudaq.logical.qec.subsystem_fragment objective")
+                            "cudaq.logical.qec.subsystem_fragment action")
         if self._automorphism is not None:
             semantic_ops = [
                 child.operation.name
@@ -1112,7 +1219,7 @@ class GadgetBuilder:
     def _derive_clifford_call_equivalence(self):
         """Mark only the exact Clifford constructions verified natively."""
 
-        objective = self.logical_objective
+        objective = self.declared_action
         if not isinstance(objective, LogicalActionRef):
             return
         patch_encodings = tuple(
@@ -1169,7 +1276,7 @@ class GadgetBuilder:
             parities = tuple(value.producer for value in outcomes)
             if any(not isinstance(parity, ProfileParity)
                    for parity in parities):
-                raise ObjectiveMismatch(
+                raise ActionMismatch(
                     f"gadget {self.definition.name!r} returns a Boolean whose "
                     "affine stable-record OutcomeMap cannot be derived; "
                     "declare an explicit GadgetSpec or return supported "
@@ -1210,7 +1317,7 @@ class GadgetBuilder:
                 try:
                     port = input_endpoints.index(reference.port)
                 except ValueError as exc:
-                    raise ObjectiveMismatch(
+                    raise ActionMismatch(
                         "OutcomeMap input-syndrome term belongs to a different "
                         "gadget boundary") from exc
                 terms.append(OutcomeSyndromeTerm(port, reference.index))
@@ -1226,7 +1333,7 @@ class GadgetBuilder:
         self.spec_operation.attributes["outcome_map"] = self._outcome_map_attr(
             outcome_map)
 
-    def _finish_subsystem_fragment_objective(self):
+    def _finish_subsystem_fragment_action(self):
         semantic_ops = [
             child.operation.name
             for child in self.block.operations
@@ -1242,9 +1349,9 @@ class GadgetBuilder:
             detail = ", ".join(
                 unsupported) if unsupported else "untyped carrier operation"
             raise TypeError(
-                "cannot derive an exact subsystem-fragment objective from "
+                "cannot derive an exact subsystem-fragment action from "
                 f"{detail}; use a supported protected/gauge Pauli fragment or "
-                "an explicit ObjectiveGraph")
+                "an explicit action declaration")
 
         protected_kinds = {
             kind for step in self._subsystem_steps
@@ -1396,7 +1503,7 @@ class GadgetBuilder:
                 profile.symbol, context=self.context)
             fragment_values["period_closure"] = self._gf2_matrix_attr(
                 dynamic_encoding.profile.period_closure)
-        self.objective_operation.attributes["subsystem_fragment"] = (
+        self.action_operation.attributes["subsystem_fragment"] = (
             mlir_ir.DictAttr.get(fragment_values, context=self.context))
 
     def call(self, definition, args, kwargs):
@@ -1408,9 +1515,9 @@ class GadgetBuilder:
             raise TypeError(
                 "gadgets may call only other @cudaq.logical.gadget values")
         if analysis is not None:
-            if not isinstance(analysis, GadgetProfile):
+            if not isinstance(analysis, GadgetContract):
                 raise TypeError(
-                    "analysis= requires a cudaq.logical.GadgetProfile")
+                    "analysis= requires a cudaq.logical.GadgetContract")
             if analysis.gadget is not definition:
                 raise ValueError(
                     "analysis profile does not describe this gadget")
@@ -2071,7 +2178,7 @@ class GadgetBuilder:
         missing_map_records = sorted(map_records & set(missing))
         detail = (f"; semantic maps also reference {missing_map_records}"
                   if missing_map_records else "")
-        raise ObjectiveMismatch(
+        raise ActionMismatch(
             f"gadget {self.definition.name!r} record_schema names record(s) "
             f"the concrete realization does not produce: {missing}{detail}")
 
@@ -3043,34 +3150,34 @@ class GadgetBuilder:
 
     def _match_automorphism_action(self, encoding, x_action, z_action):
         code = encoding.code
-        arity = len(self.objective_parameter_names)
+        arity = len(self.action_parameter_names)
         if self.expected_clifford_action is None:
-            if isinstance(self.logical_objective, LogicalActionRef):
+            if isinstance(self.declared_action, LogicalActionRef):
                 self.expected_clifford_action = self._standard_clifford_action(
-                    self.logical_objective.name, self.logical_objective.arity)
-            elif (isinstance(self.logical_objective, ProgramDefinition) and
+                    self.declared_action.name, self.declared_action.arity)
+            elif (isinstance(self.declared_action, ProgramDefinition) and
                   self.transaction.materialize(
-                      self.logical_objective).kind == "action"):
+                      self.declared_action).kind == "action"):
                 self.expected_clifford_action = self._program_clifford_action(
-                    self.logical_objective_symbol, arity)
+                    self.declared_action_symbol, arity)
             else:
                 raise TypeError(
                     "a code-automorphism realization requires a Clifford "
-                    "action-like @cudaq.logical.objective")
+                    "action-like @cudaq.logical.action")
         if arity > code.k:
             raise ValueError(
-                "logical objective has more operands than the encoding exposes")
+                "logical action has more operands than the encoding exposes")
         requested = dict(self.definition.logical_ports)
-        unknown = set(requested) - set(self.objective_parameter_names)
+        unknown = set(requested) - set(self.action_parameter_names)
         if unknown:
             raise ValueError(
-                f"logical_ports contains unknown objective operands: {sorted(unknown)}"
+                f"logical_ports contains unknown action operands: {sorted(unknown)}"
             )
         constrained = {}
         for operand, port_name in requested.items():
             leaf_name = str(port_name).split(".")[-1]
             try:
-                constrained[self.objective_parameter_names.index(operand)] = (
+                constrained[self.action_parameter_names.index(operand)] = (
                     encoding.logical_port_indices[leaf_name])
             except KeyError as exc:
                 raise ValueError(
@@ -3125,18 +3232,18 @@ class GadgetBuilder:
         if not candidates:
             raise ValueError(
                 "code automorphism logical action does not implement the "
-                "declared objective under any logical-port binding")
+                "declared action under any logical-port binding")
         if len(candidates) != 1:
             from ..errors import AmbiguousLogicalPortMap
 
             raise AmbiguousLogicalPortMap(
                 "code automorphism matches the "
-                "declared objective under multiple bindings; specify only "
-                "logical_ports={objective.operands.name: encoding.ports.name}")
+                "declared action under multiple bindings; specify only "
+                "logical_ports={action.operands.name: encoding.ports.name}")
         mapping = candidates[0]
         binding = {
             name: encoding.logical_ports[mapping[index]]
-            for index, name in enumerate(self.objective_parameter_names)
+            for index, name in enumerate(self.action_parameter_names)
         }
         self.spec_operation.attributes["logical_ports"] = mlir_ir.DictAttr.get(
             {

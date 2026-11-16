@@ -386,7 +386,8 @@ def _matches_fixed(candidate, site: ActionSiteHandle, operation,
 
     # High-rate blocks may realize an objective over several placed logical
     # values. The Python boundary owns one patch per distinct block, while P1
-    # still has one value per logical port.
+    # still has one value per logical port. This covers both a same-block
+    # objective and multi-block gadgets such as paired_cx.
     parameter_annotations = [
         hints.get(name, parameter.annotation)
         for name, parameter in candidate.signature.parameters.items()
@@ -1323,6 +1324,8 @@ class _P1ToP2:
             "qec_selection_sha256": _qec_selection_sha256(self.qec_selection),
         }
         if self.network_plan is not None:
+            from ..qec import lattice_surgery
+
             lowering = next(
                 selected.selected
                 for selected in self.selected_sites.values()
@@ -1344,6 +1347,13 @@ class _P1ToP2:
                 "required_projector_pipeline_sha256":
                     (self.network_plan.required_projector_pipeline_sha256),
             })
+            replay_validator = lattice_surgery._replay_validator_identity(
+                self.network_compiler)
+            if replay_validator is None:
+                raise ValueError(
+                    "network P2 compilation requires an importable provider "
+                    "replay validator")
+            metadata_values["network_replay_validator"] = replay_validator
         self.protocol.attributes["metadata"] = _dictionary(
             self.context,
             metadata_values,
@@ -1396,6 +1406,11 @@ class _P1ToP2:
             for name in epoch.actions
         }
         for action in self.network_request.actions:
+            # A patch-graph interaction is a relation between patches.  Scalar
+            # readout still belongs to the network plan and protocol, but it
+            # is not an edge (or hyperedge) in this placement witness.
+            if len(action.site.placements) < 2:
+                continue
             epoch = epoch_by_action[action.site.symbol]
             interactions.append(
                 mlir_ir.DictAttr.get(
@@ -1534,10 +1549,6 @@ class _P1ToP2:
         placements = tuple(
             dict.fromkeys(value.placement for value in region.live_inputs))
         block_keys = tuple(self._block_key(value) for value in placements)
-        if len(set(block_keys)) != len(block_keys):
-            raise NotImplementedError(
-                "network-region emission for several logical ports packed in "
-                "one encoded block is not yet supported")
         encodings = {}
         for placement in placements:
             binding = self.binding_by_name.get(placement)
@@ -1556,9 +1567,8 @@ class _P1ToP2:
         )
         self.network_compiler.emit_region(plan, output)
         emissions = output._take_emissions()
-        live_by_placement = {}
-        for placement in placements:
-            block = self._block_key(placement)
+        live_by_block = {}
+        for placement, block in zip(placements, block_keys):
             value = self.block_state.get(block)
             if value is None:
                 for operation in operations:
@@ -1573,23 +1583,29 @@ class _P1ToP2:
                 raise ValueError(
                     f"network region has no live patch for placement {placement!r}"
                 )
-            live_by_placement[placement] = value
+            previous = live_by_block.setdefault(block, value)
+            if previous is not value:
+                raise ValueError(
+                    "packed network owners do not share one live block value")
 
         record_results = {}
         for epoch, protocol, emitted_placements, emitted_actions in emissions:
+            emitted_blocks = tuple(
+                dict.fromkeys(
+                    self._block_key(value) for value in emitted_placements))
             handle = self.transaction.materialize(protocol)
             inputs, results, _ = self.transaction.signature_of(protocol)
-            if len(inputs) != len(emitted_placements):
+            if len(inputs) != len(emitted_blocks):
                 raise ValueError(
                     "network epoch protocol input arity differs from its patches"
                 )
-            if len(results) != len(emitted_placements) + len(emitted_actions):
+            if len(results) != len(emitted_blocks) + len(emitted_actions):
                 raise ValueError(
                     "network epoch protocol must return every live patch followed "
                     "by one record per action")
             live_values = []
-            for placement, expected in zip(emitted_placements, inputs):
-                value = live_by_placement[placement]
+            for block, expected in zip(emitted_blocks, inputs):
+                value = live_by_block[block]
                 if value.type != expected:
                     raise ValueError(
                         "network epoch protocol patch type differs from its owner"
@@ -1613,16 +1629,16 @@ class _P1ToP2:
                                                context=self.context),
                 },
             )
-            for placement, result in zip(
-                    emitted_placements,
-                    tuple(call.results)[:len(emitted_placements)],
+            for block, result in zip(
+                    emitted_blocks,
+                    tuple(call.results)[:len(emitted_blocks)],
             ):
-                live_by_placement[placement] = result
-                self.block_state[self._block_key(placement)] = result
+                live_by_block[block] = result
+                self.block_state[block] = result
             record_results.update({
                 action: result for action, result in zip(
                     emitted_actions,
-                    tuple(call.results)[len(emitted_placements):],
+                    tuple(call.results)[len(emitted_blocks):],
                 )
             })
         for operation in operations:
@@ -1631,8 +1647,8 @@ class _P1ToP2:
             for result in operation.results:
                 binding = self._binding_for_value(result)
                 if binding is not None:
-                    self.value_map[result] = live_by_placement[
-                        binding.placement]
+                    self.value_map[result] = live_by_block[self._block_key(
+                        binding.placement)]
                 else:
                     self.value_map[result] = record_results[
                         selected.handle.symbol]
@@ -4486,10 +4502,6 @@ def _network_request(source, *, device, selection, policy=None):
             ) from exc
         blocks = tuple(block for block, _owner in bindings)
         owners = tuple(owner for _block, owner in bindings)
-        if len(set(blocks)) != len(blocks):
-            raise NotImplementedError(
-                "one network action cannot address multiple logical ports of "
-                "the same encoded block")
         actions.append(
             lattice_surgery.QECNetworkAction(
                 site=selected.handle,
@@ -4536,6 +4548,11 @@ def _network_request(source, *, device, selection, policy=None):
         architecture_digest,
         what=f"network compiler {selection.compiler.key!r} architecture digest",
     )
+    provider_policy = {
+        key: value
+        for key, value in dict(policy or {}).items()
+        if key != "qec_blocks"
+    }
     return lattice_surgery.QECNetworkRequest(
         source_sha256=_qec_network_source_sha256(
             source.module,
@@ -4550,7 +4567,7 @@ def _network_request(source, *, device, selection, policy=None):
         resources=tuple(resources),
         channel_ports=ports,
         channels=channels,
-        policy=dict(policy or {}),
+        policy=provider_policy,
     )
 
 
@@ -4599,6 +4616,8 @@ def lower_qec(source,
                 ("" if not details else f": {details}"))
         plan = network.compiler.plan_network(request, context)
         lattice_surgery.validate_network_plan(request, plan)
+        lattice_surgery.validate_provider_plan_artifact(network.compiler,
+                                                        request, plan)
         compiler = _P1ToP2(
             source,
             device,
