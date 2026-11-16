@@ -8,6 +8,7 @@
 
 #include "cudaq/edem/core.h"
 #include "cudaq/edem/format.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

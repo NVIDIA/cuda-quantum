@@ -11,6 +11,7 @@
 #pragma GCC visibility pop
 
 #include "csc_xor.h"
+
 #include <algorithm>
 #include <cstdint>
 #include <span>
