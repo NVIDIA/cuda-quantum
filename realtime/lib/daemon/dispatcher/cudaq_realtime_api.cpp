@@ -50,6 +50,31 @@ struct JitDeviceLibrary {
   std::unordered_set<void *> linked_functions;
 };
 
+// The flag a dispatch loop or kernel polls to stop: the dispatcher's own
+// storage, unless the deprecated cudaq_dispatcher_set_control named the
+// caller's.
+struct ShutdownControl {
+  // What the loop or kernel polls.
+  volatile int *flag = nullptr;
+  // The dispatcher's own storage.  HOST path: the plain word.  DEVICE path: a
+  // device word, allocated by the first start() and freed by destroy() once
+  // the kernel is known to have stopped, with stream-ordered calls (see
+  // prepare_own_device_control).
+  volatile int own_host = 0;
+  int *own_dev = nullptr;
+  // cudaq_dispatcher_set_control named the caller's flag and counter.
+  bool overridden = false;
+};
+
+// The word a dispatch loop or kernel counts processed requests into, with the
+// same choice of storage as ShutdownControl.
+struct ProcessedStats {
+  // What the loop or kernel counts into.
+  std::uint64_t *counter = nullptr;
+  std::uint64_t own_host = 0;
+  std::uint64_t *own_dev = nullptr;
+};
+
 struct cudaq_dispatcher_t {
   cudaq_dispatcher_config_t config{};
   cudaq_ringbuffer_t ringbuffer{};
@@ -57,20 +82,8 @@ struct cudaq_dispatcher_t {
   cudaq_dispatch_launch_fn_t launch_fn = nullptr;
   cudaq_unified_launch_fn_t unified_launch_fn = nullptr;
   void *transport_ctx = nullptr;
-  // The flag the dispatch loop polls to stop, and the word it counts
-  // processed requests into: the dispatcher's own words below, unless the
-  // deprecated cudaq_dispatcher_set_control named the caller's.
-  volatile int *shutdown_flag = nullptr;
-  std::uint64_t *stats = nullptr;
-  // The dispatcher's own control words.  HOST path: the two plain words.
-  // DEVICE path: two device words, allocated by the first start() and freed
-  // by destroy() once the kernel is known to have stopped, with stream-ordered
-  // calls (see prepare_own_device_control).
-  volatile int own_shutdown_flag = 0;
-  std::uint64_t own_stats = 0;
-  int *own_shutdown_flag_dev = nullptr;
-  std::uint64_t *own_stats_dev = nullptr;
-  bool control_overridden = false;
+  ShutdownControl control;
+  ProcessedStats stats;
   cudaStream_t stream = nullptr;
   bool running = false;
   // The unified loop's data-plane (HOST + UNIFIED path), copied in by
@@ -310,9 +323,9 @@ cudaq_status_t cudaq_dispatcher_destroy(cudaq_dispatcher_t *dispatcher) {
     if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
       // `const_cast` drops the flag's `volatile` qualifier (`reinterpret_cast`
       // can't cast away cv-qualifiers) so it can be written as a plain atomic.
-      if (dispatcher->shutdown_flag)
+      if (dispatcher->control.flag)
         reinterpret_cast<std::atomic<int> *>(
-            const_cast<int *>(dispatcher->shutdown_flag))
+            const_cast<int *>(dispatcher->control.flag))
             ->store(1, std::memory_order_relaxed);
       if (dispatcher->host_thread.joinable())
         dispatcher->host_thread.join();
@@ -329,8 +342,8 @@ cudaq_status_t cudaq_dispatcher_destroy(cudaq_dispatcher_t *dispatcher) {
   // Same rule for the dispatcher's own device control words: a kernel that
   // was never stopped still polls the flag and writes the counter.
   if (!dispatcher->stream) {
-    free_own_device_word(dispatcher->own_shutdown_flag_dev);
-    free_own_device_word(dispatcher->own_stats_dev);
+    free_own_device_word(dispatcher->control.own_dev);
+    free_own_device_word(dispatcher->stats.own_dev);
   }
   delete dispatcher;
   return CUDAQ_OK;
@@ -363,9 +376,9 @@ cudaq_status_t cudaq_dispatcher_set_control(cudaq_dispatcher_t *dispatcher,
   // missed, and stop() would then raise a flag nothing polls.
   if (dispatcher->running)
     return CUDAQ_ERR_INVALID_ARG;
-  dispatcher->shutdown_flag = shutdown_flag;
-  dispatcher->stats = stats;
-  dispatcher->control_overridden = true;
+  dispatcher->control.flag = shutdown_flag;
+  dispatcher->stats.counter = stats;
+  dispatcher->control.overridden = true;
   return CUDAQ_OK;
 }
 
@@ -838,17 +851,17 @@ static cudaError_t prepare_own_device_word(void **word, size_t size) {
 static cudaq_status_t
 prepare_own_device_control(cudaq_dispatcher_t *dispatcher) {
   if (prepare_own_device_word(
-          reinterpret_cast<void **>(&dispatcher->own_shutdown_flag_dev),
+          reinterpret_cast<void **>(&dispatcher->control.own_dev),
           sizeof(int)) != cudaSuccess ||
       prepare_own_device_word(
-          reinterpret_cast<void **>(&dispatcher->own_stats_dev),
-          sizeof(uint64_t)) != cudaSuccess) {
+          reinterpret_cast<void **>(&dispatcher->stats.own_dev),
+          sizeof(std::uint64_t)) != cudaSuccess) {
     // Not left latched for a retried start()'s post-launch check to misread.
     (void)cudaGetLastError();
     return CUDAQ_ERR_CUDA;
   }
-  dispatcher->shutdown_flag = dispatcher->own_shutdown_flag_dev;
-  dispatcher->stats = dispatcher->own_stats_dev;
+  dispatcher->control.flag = dispatcher->control.own_dev;
+  dispatcher->stats.counter = dispatcher->stats.own_dev;
   return CUDAQ_OK;
 }
 
@@ -857,7 +870,7 @@ prepare_own_device_control(cudaq_dispatcher_t *dispatcher) {
 // the linked module loaded under whatever may still run from it.
 static cudaq_status_t stop_device_kernel(cudaq_dispatcher_t *dispatcher) {
   int shutdown = 1;
-  if (cudaMemcpy(const_cast<int *>(dispatcher->shutdown_flag), &shutdown,
+  if (cudaMemcpy(const_cast<int *>(dispatcher->control.flag), &shutdown,
                  sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
   cudaStreamSynchronize(dispatcher->stream);
@@ -934,14 +947,14 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
     // The host loops run HOST_CALL handlers only and never touch the CUDA
     // runtime, so no device is selected here; a handler that uses CUDA
     // selects its own.
-    if (!dispatcher->control_overridden) {
-      dispatcher->own_shutdown_flag = 0;
-      dispatcher->own_stats = 0;
-      dispatcher->shutdown_flag = &dispatcher->own_shutdown_flag;
-      dispatcher->stats = &dispatcher->own_stats;
+    if (!dispatcher->control.overridden) {
+      dispatcher->control.own_host = 0;
+      dispatcher->stats.own_host = 0;
+      dispatcher->control.flag = &dispatcher->control.own_host;
+      dispatcher->stats.counter = &dispatcher->stats.own_host;
     }
-    volatile int *shutdown_flag = dispatcher->shutdown_flag;
-    std::uint64_t *stats = dispatcher->stats;
+    volatile int *shutdown_flag = dispatcher->control.flag;
+    std::uint64_t *stats = dispatcher->stats.counter;
     cudaq_function_table_t tbl = dispatcher->table;
     if (is_host_unified_dispatcher(dispatcher)) {
       // stop() and destroy() join the thread before the dispatcher goes away.
@@ -965,7 +978,7 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   // create() mapped a negative device_id to 0.
   if (cudaSetDevice(dispatcher->config.device_id) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
-  if (!dispatcher->control_overridden) {
+  if (!dispatcher->control.overridden) {
     status = prepare_own_device_control(dispatcher);
     if (status != CUDAQ_OK)
       return status;
@@ -1021,7 +1034,7 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
       const cudaq_status_t launched = dispatcher->unified_launch_fn(
           dispatcher->transport_ctx, dispatcher->config.slot_size,
           dispatcher->table.entries, dispatcher->table.count,
-          dispatcher->shutdown_flag, dispatcher->stats,
+          dispatcher->control.flag, dispatcher->stats.counter,
           dispatcher->config.threads_per_block, dispatcher->stream);
       if (launched != CUDAQ_OK) {
         fprintf(stderr,
@@ -1036,8 +1049,9 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
       const CUresult launched = launch_linked_unified_kernel(
           dispatcher->jit_device_lib.dispatch_kernel, dispatcher->transport_ctx,
           dispatcher->config.slot_size, dispatcher->table.entries,
-          dispatcher->table.count, dispatcher->shutdown_flag, dispatcher->stats,
-          dispatcher->config.threads_per_block, dispatcher->stream);
+          dispatcher->table.count, dispatcher->control.flag,
+          dispatcher->stats.counter, dispatcher->config.threads_per_block,
+          dispatcher->stream);
       if (launched != CUDA_SUCCESS) {
         fprintf(stderr, "CUDA error in dispatcher launch: CUresult %d\n",
                 static_cast<int>(launched));
@@ -1052,9 +1066,10 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
         dispatcher->ringbuffer.rx_data, dispatcher->ringbuffer.tx_data,
         dispatcher->ringbuffer.rx_stride_sz,
         dispatcher->ringbuffer.tx_stride_sz, dispatcher->table.entries,
-        dispatcher->table.count, dispatcher->shutdown_flag, dispatcher->stats,
-        dispatcher->config.num_slots, dispatcher->config.num_blocks,
-        dispatcher->config.threads_per_block, dispatcher->stream);
+        dispatcher->table.count, dispatcher->control.flag,
+        dispatcher->stats.counter, dispatcher->config.num_slots,
+        dispatcher->config.num_blocks, dispatcher->config.threads_per_block,
+        dispatcher->stream);
   }
 
   cudaError_t err = cudaGetLastError();
@@ -1080,9 +1095,9 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher) {
     // Both HOST paths (ring + unified) run on host_thread.
     // `const_cast` drops the flag's `volatile` qualifier (`reinterpret_cast`
     // can't cast away cv-qualifiers) so it can be written as a plain atomic.
-    if (dispatcher->shutdown_flag)
+    if (dispatcher->control.flag)
       reinterpret_cast<std::atomic<int> *>(
-          const_cast<int *>(dispatcher->shutdown_flag))
+          const_cast<int *>(dispatcher->control.flag))
           ->store(1, std::memory_order_relaxed);
     if (dispatcher->host_thread.joinable())
       dispatcher->host_thread.join();
@@ -1102,17 +1117,17 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
   if (!dispatcher || !out_packets)
     return CUDAQ_ERR_INVALID_ARG;
   // Nothing has run yet: the dispatcher's own counter is set up by start().
-  if (!dispatcher->stats) {
+  if (!dispatcher->stats.counter) {
     *out_packets = 0;
     return CUDAQ_OK;
   }
 
   if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
-    *out_packets = *dispatcher->stats;
+    *out_packets = *dispatcher->stats.counter;
     return CUDAQ_OK;
   }
 
-  if (cudaMemcpy(out_packets, dispatcher->stats, sizeof(std::uint64_t),
+  if (cudaMemcpy(out_packets, dispatcher->stats.counter, sizeof(std::uint64_t),
                  cudaMemcpyDeviceToHost) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
 
