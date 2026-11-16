@@ -33,6 +33,36 @@ static bool allocaOfUnspecifiedSize(cudaq::quake::AllocaOp alloc) {
   return false;
 }
 
+// Resolves the inclusive [lower, upper] bounds of a `quake.subveq` if they
+// are statically known. "Statically known" means either:
+//   * the op carries a constant lower/upper bound attribute
+//     (`hasConstantLowerBound`/`hasConstantUpperBound`), or
+//   * the op's SSA lower/upper operand is a constant integer recognized by
+//     `cudaq::opt::factory::getIntIfConstant`.
+// Returns `std::nullopt` otherwise.
+//
+// `quake.subveq` bounds are inclusive on both ends; see
+// `FixUnspecifiedSubveqPattern` and `CombineMeasurements` for the shared
+// convention.
+static std::optional<std::pair<std::int64_t, std::int64_t>>
+subveqStaticBounds(cudaq::quake::SubVeqOp op) {
+  std::int64_t lower;
+  if (op.hasConstantLowerBound())
+    lower = static_cast<std::int64_t>(op.getConstantLowerBound());
+  else if (auto v = cudaq::opt::factory::getIntIfConstant(op.getLower()))
+    lower = *v;
+  else
+    return std::nullopt;
+  std::int64_t upper;
+  if (op.hasConstantUpperBound())
+    upper = static_cast<std::int64_t>(op.getConstantUpperBound());
+  else if (auto v = cudaq::opt::factory::getIntIfConstant(op.getUpper()))
+    upper = *v;
+  else
+    return std::nullopt;
+  return std::make_pair(lower, upper);
+}
+
 static bool isUseConvertible(Operation *op) {
   if (isa<cudaq::quake::DeallocOp, cudaq::quake::GetMemberOp>(op))
     return true;
@@ -45,18 +75,10 @@ static bool isUseConvertible(Operation *op) {
   if (!sub)
     return false;
 
-  // op must be a SubVeqOp
-  auto lowInt = [&]() -> std::optional<std::int32_t> {
-    if (sub.hasConstantLowerBound())
-      return {sub.getConstantLowerBound()};
-    return cudaq::opt::factory::getIntIfConstant(sub.getLower());
-  }();
-  auto upInt = [&]() -> std::optional<std::int32_t> {
-    if (sub.hasConstantUpperBound())
-      return {sub.getConstantUpperBound()};
-    return cudaq::opt::factory::getIntIfConstant(sub.getUpper());
-  }();
-  if (!(lowInt && upInt))
+  // A subveq is convertible only when its bounds are statically known and
+  // every sub-user is itself convertible (so the per-element walk in
+  // `rewriteOpAndUsers` can complete factoring of the parent veq alloca).
+  if (!subveqStaticBounds(sub))
     return false;
   for (auto *subUser : sub->getUsers())
     if (!isUseConvertible(subUser))
@@ -132,15 +154,89 @@ public:
         // The python bridge can generate quake.alloca with size 0, which has no
         // semantics. Check here rather than propagating the bad IR.
         return failure();
-      } else {
-        // Uses are more complex so just concat the refs together.
-        SmallVector<Value> theRefs;
-        std::for_each(newAllocs.begin(), newAllocs.end(),
-                      [&](cudaq::quake::AllocaOp a) {
-                        theRefs.push_back(a.getResult());
-                      });
-        rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(allocOp, veqTy,
-                                                            theRefs);
+      }
+      // Uses are more complex so just concat the refs together.
+      SmallVector<Value> theRefs;
+      std::for_each(
+          newAllocs.begin(), newAllocs.end(),
+          [&](cudaq::quake::AllocaOp a) { theRefs.push_back(a.getResult()); });
+      auto concatOp = rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(
+          allocOp, veqTy, theRefs);
+
+      // Even in the fallback path, fold any constant-bounded `quake.subveq`
+      // by replacing it with a narrow `quake.concat` composed of the
+      // per-element alloca refs in the inclusive [lower, upper] range. Without
+      // this, downstream passes -- cable-rough-in in particular -- see a
+      // `subveq` whose defining op is opaque to them, so calls like
+      // `wait(q[1:3], d)` (which lower to `subveq` feeding a `call`) are not
+      // converted to wire form.
+      //
+      // Statically known bounds come from either the op's constant bound
+      // attribute (`hasConstantLowerBound` / `hasConstantUpperBound`) or a
+      // constant SSA integer recognized by
+      // `cudaq::opt::factory::getIntIfConstant`. Bounds are inclusive on both
+      // ends, per the shared convention with `FixUnspecifiedSubveqPattern`
+      // and `CombineMeasurements`. The new narrow concat has the same sized
+      // veq type as the source subveq produced (and is relaxed to an unsized
+      // veq downstream if a `relax_size` was wrapping the source subveq --
+      // `ForwardRelaxedSizePattern` cleans this up on the next canonicalize).
+      //
+      // We also re-process users of the new narrow concat, so chained
+      // `quake.subveq` operations (subveq(subveq(%v))) fold all the way down
+      // in a single pass; bounds of a chained subveq are relative to the
+      // narrow concat it slices, not to the parent alloca.
+      SmallVector<cudaq::quake::ConcatOp> concatsToProcess{concatOp};
+      while (!concatsToProcess.empty()) {
+        auto currentConcat = concatsToProcess.pop_back_val();
+        auto targets = currentConcat.getTargets();
+        auto viewSize = static_cast<std::int64_t>(targets.size());
+        SmallVector<Operation *> users{currentConcat->getUsers().begin(),
+                                      currentConcat->getUsers().end()};
+        for (auto *user : users) {
+          // Reach the underlying `quake.subveq`, peeling a `relax_size`
+          // wrapper if present (the canonical shape produced by
+          // `FixUnspecifiedSubveqPattern` for an unsized-veq subveq with
+          // constant bound attributes).
+          auto subveq = dyn_cast<cudaq::quake::SubVeqOp>(user);
+          if (!subveq) {
+            if (auto relax = dyn_cast<cudaq::quake::RelaxSizeOp>(user))
+              subveq =
+                  relax.getInputVec().getDefiningOp<cudaq::quake::SubVeqOp>();
+            if (!subveq)
+              continue;
+          }
+
+          auto bounds = subveqStaticBounds(subveq);
+          if (!bounds)
+            continue;
+          auto low = bounds->first;
+          auto up = bounds->second;
+          // [low, up] are relative to the current concat's view of the parent
+          // veq. For the parent concat itself this view spans the entire
+          // allocation (`viewSize == size`); for a chained narrow concat it
+          // is the narrow slice it was produced from. In all cases
+          // `viewSize <= size`, so checking `up < viewSize` covers both.
+          if (low < 0 || up < 0 || low > up ||
+              low >= viewSize ||
+              up >= viewSize)
+            continue;
+          std::size_t sliceSize = static_cast<std::size_t>(up - low + 1);
+
+          SmallVector<Value> slicedRefs;
+          slicedRefs.reserve(sliceSize);
+          for (std::int64_t i = low; i <= up; ++i)
+            slicedRefs.push_back(
+                targets[static_cast<std::size_t>(i)]);
+          auto narrowTy = cudaq::quake::VeqType::get(ctx, sliceSize);
+          rewriter.setInsertionPoint(subveq);
+          auto narrowConcat = cudaq::quake::ConcatOp::create(
+              rewriter, subveq->getLoc(), narrowTy, slicedRefs);
+          rewriter.replaceOp(subveq, narrowConcat.getResult());
+
+          // Re-process users of the new narrow concat so chained subveqs
+          // (subveq(subveq(%v))) fold all the way down.
+          concatsToProcess.push_back(narrowConcat);
+        }
       }
     }
     return success();
@@ -164,17 +260,14 @@ public:
         continue;
       }
       if (auto subveq = dyn_cast<cudaq::quake::SubVeqOp>(user)) {
-        auto lowInt = [&]() -> std::optional<std::int32_t> {
-          if (subveq.hasConstantLowerBound())
-            return {subveq.getConstantLowerBound()};
-          return cudaq::opt::factory::getIntIfConstant(subveq.getLower());
-        }();
-        if (!lowInt)
+        auto bounds = subveqStaticBounds(subveq);
+        if (!bounds)
           return failure();
+        auto lowInt = bounds->first;
         SmallVector<Operation *> subUsers{subveq->getUsers().begin(),
                                           subveq->getUsers().end()};
         for (auto *subUser : subUsers)
-          if (failed(rewriteOpAndUsers(subUser, *lowInt, rewriter, size,
+          if (failed(rewriteOpAndUsers(subUser, lowInt, rewriter, size,
                                        newAllocs)))
             return failure();
         rewriter.eraseOp(subveq);
