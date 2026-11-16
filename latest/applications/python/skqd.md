@@ -43,6 +43,21 @@ latest
         -   [Running on a
             GPU](../../using/basics/run_kernel.html#running-on-a-gpu){.reference
             .internal}
+    -   [Defining targets and customizing
+        compilation](../../using/basics/compile_kernel.html){.reference
+        .internal}
+        -   [Compiling for built-in
+            targets](../../using/basics/compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](../../using/basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](../../using/basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](../../using/basics/compile_kernel.html#customizing-all-the-way){.reference
+            .internal}
     -   [Troubleshooting](../../using/basics/troubleshooting.html){.reference
         .internal}
         -   [Debugging and Verbose Simulation
@@ -1081,8 +1096,7 @@ latest
         -   [TX
             modes](../../using/realtime/cpu_transport.html#tx-modes){.reference
             .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+        -   [Testing](../../using/realtime/cpu_transport.html#testing){.reference
             .internal}
     -   [Device Call
         Channels](../../using/realtime/device_call.html){.reference
@@ -2615,7 +2629,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![af7521e4d13f45fb9270c9906c7bd319](../../_images/speedup.png){.no-scaled-link
+![59594c330d7e4f1d9c21d5ea72880f0f](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2629,9 +2643,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![c91fda53b18e4417bf80e8cbd815c7c4](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![75e87450daaa4f6cb7c0e393599901f4](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![55c9913c24dc43f2874028312aaffdac](../../_images/efficiency.jpeg){.no-scaled-link
+![ffd47af74a1247d5a6e2be3385481981](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

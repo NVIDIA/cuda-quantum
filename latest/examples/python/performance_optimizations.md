@@ -43,6 +43,21 @@ latest
         -   [Running on a
             GPU](../../using/basics/run_kernel.html#running-on-a-gpu){.reference
             .internal}
+    -   [Defining targets and customizing
+        compilation](../../using/basics/compile_kernel.html){.reference
+        .internal}
+        -   [Compiling for built-in
+            targets](../../using/basics/compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](../../using/basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](../../using/basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](../../using/basics/compile_kernel.html#customizing-all-the-way){.reference
+            .internal}
     -   [Troubleshooting](../../using/basics/troubleshooting.html){.reference
         .internal}
         -   [Debugging and Verbose Simulation
@@ -1096,8 +1111,7 @@ latest
         -   [TX
             modes](../../using/realtime/cpu_transport.html#tx-modes){.reference
             .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+        -   [Testing](../../using/realtime/cpu_transport.html#testing){.reference
             .internal}
     -   [Device Call
         Channels](../../using/realtime/device_call.html){.reference
@@ -2102,14 +2116,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![1c03a943c8634baabced4c8856da1c5f](../../_images/gate-fuse.png)
+![213a27fcf1e143e8a3edf6e8d28adf5f](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![fab957876d44488f9d972494778b2ba3](../../_images/gatefusion.png)
+![06926acdb1f44123a080dd7bc16fb8d2](../../_images/gatefusion.png)
 :::
 :::
 :::

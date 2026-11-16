@@ -40,6 +40,21 @@ latest
         -   [Running on a
             GPU](using/basics/run_kernel.html#running-on-a-gpu){.reference
             .internal}
+    -   [Defining targets and customizing
+        compilation](using/basics/compile_kernel.html){.reference
+        .internal}
+        -   [Compiling for built-in
+            targets](using/basics/compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](using/basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](using/basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](using/basics/compile_kernel.html#customizing-all-the-way){.reference
+            .internal}
     -   [Troubleshooting](using/basics/troubleshooting.html){.reference
         .internal}
         -   [Debugging and Verbose Simulation
@@ -1089,8 +1104,7 @@ latest
         -   [TX
             modes](using/realtime/cpu_transport.html#tx-modes){.reference
             .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](using/realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+        -   [Testing](using/realtime/cpu_transport.html#testing){.reference
             .internal}
     -   [Device Call
         Channels](using/realtime/device_call.html){.reference .internal}
@@ -2107,6 +2121,9 @@ scope and limitations.
         Program](using/basics/build_kernel.html){.reference .internal}
     -   [Running your first CUDA-Q
         Program](using/basics/run_kernel.html){.reference .internal}
+    -   [Defining targets and customizing
+        compilation](using/basics/compile_kernel.html){.reference
+        .internal}
     -   [Troubleshooting](using/basics/troubleshooting.html){.reference
         .internal}
 -   [Examples](using/examples/examples.html){.reference .internal}

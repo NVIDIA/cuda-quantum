@@ -35,6 +35,20 @@ latest
         -   [Observe](run_kernel.html#observe){.reference .internal}
         -   [Running on a
             GPU](run_kernel.html#running-on-a-gpu){.reference .internal}
+    -   [Defining targets and customizing
+        compilation](compile_kernel.html){.reference .internal}
+        -   [Compiling for built-in
+            targets](compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](compile_kernel.html#customizing-all-the-way){.reference
+            .internal}
     -   [Troubleshooting](#){.current .reference .internal}
         -   [Debugging and Verbose Simulation
             Output](#debugging-and-verbose-simulation-output){.reference
@@ -1080,8 +1094,7 @@ latest
         -   [TX
             modes](../realtime/cpu_transport.html#tx-modes){.reference
             .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](../realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+        -   [Testing](../realtime/cpu_transport.html#testing){.reference
             .internal}
     -   [Device Call Channels](../realtime/device_call.html){.reference
         .internal}
@@ -2029,7 +2042,7 @@ latest
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](run_kernel.html "Running your first CUDA-Q Program"){.btn
+Previous](compile_kernel.html "Defining targets and customizing compilation"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../examples/examples.html "CUDA-Q by Example"){.btn
@@ -2191,7 +2204,7 @@ placing those dependencies in the process-wide symbol scope.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](run_kernel.html "Running your first CUDA-Q Program"){.btn
+Previous](compile_kernel.html "Defining targets and customizing compilation"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../examples/examples.html "CUDA-Q by Example"){.btn

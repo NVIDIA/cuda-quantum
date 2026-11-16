@@ -116,6 +116,13 @@
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/compile_kernel.html">   Defining targets and customizing compilation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../basics/compile_kernel.html#compiling-for-built-in-targets">Compiling for built-in targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler">Controlling the optimization level of the compiler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control">Using custom compile targets for finer-grained compilation control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/compile_kernel.html#customizing-all-the-way">Customizing all the way</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../basics/troubleshooting.html">   Troubleshooting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../basics/troubleshooting.html#python-stack-traces">Python Stack-Traces</a></li>
@@ -670,7 +677,7 @@
 <li class="toctree-l3"><a class="reference internal" href="cpu_transport.html#c-abi">C ABI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpu_transport.html#two-phase-bring-up-setup-connect">Two-phase bring-up (<code class="docutils literal notranslate"><span class="pre">setup</span></code> / <code class="docutils literal notranslate"><span class="pre">connect</span></code>)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpu_transport.html#tx-modes">TX modes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="cpu_transport.html#testing-hsb-bridge-cpu">Testing (<code class="docutils literal notranslate"><span class="pre">hsb_bridge_cpu</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cpu_transport.html#testing">Testing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="device_call.html">Device Call Channels</a><ul>
@@ -1168,11 +1175,13 @@ Users may also implement their own transport layer and make it accessible to <co
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Using Holoscan Sensor Bridge</label><div class="tab-content docutils">
 <ul class="simple">
 <li><p>CUDA Runtime with version 12.6+ or 13.x</p></li>
-<li><p><a class="reference external" href="https://developer.nvidia.com/doca-downloads">DOCA 3.4.0 installation</a> with <code class="code docutils literal notranslate"><span class="pre">gpunetio</span></code> support.</p></li>
+<li><p>For GPU RoCE: <a class="reference external" href="https://developer.nvidia.com/doca-downloads">DOCA 3.4.0 installation</a> with <code class="code docutils literal notranslate"><span class="pre">gpunetio</span></code> support.</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Please make sure <code class="code docutils literal notranslate"><span class="pre">doca-sdk-gpunetio</span></code> is installed along with <code class="code docutils literal notranslate"><span class="pre">doca-all</span></code>.</p>
+<p>Please make sure <code class="code docutils literal notranslate"><span class="pre">doca-sdk-gpunetio</span></code> is installed along with <code class="code docutils literal notranslate"><span class="pre">doca-all</span></code>.
+CPU RoCE uses <code class="docutils literal notranslate"><span class="pre">libibverbs</span></code> instead of DOCA. HSB playback requires the
+CUDA driver library (<code class="docutils literal notranslate"><span class="pre">libcuda.so.1</span></code>) with either bridge.</p>
 </div>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Using Custom Networking Layer</label><div class="tab-content docutils">
@@ -1241,50 +1250,50 @@ in the incoming array (unless in the <code class="code docutils literal notransl
 The validation includes checking the data correctness and measuring the round-trip latency.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Using Holoscan Sensor Bridge</label><div class="tab-content docutils">
-<p>The validation script has three defined kernel modes, one for a unified kernel (enabled with <code class="code docutils literal notranslate"><span class="pre">--unified</span></code>), one for a forward kernel
-(enabled with <code class="code docutils literal notranslate"><span class="pre">--forward</span></code>), and a 3-kernel setup (used by default).
+<p>The validation script has three defined kernel modes, one for a unified kernel (enabled with <code class="docutils literal notranslate"><span class="pre">--dispatch=unified</span></code>), one for a forward kernel
+(enabled with <code class="docutils literal notranslate"><span class="pre">--dispatch=forward</span></code>), and a 3-kernel setup (used by default).
 The forward kernel skips the RPC callback to measure the raw latency without any compute performed on the GPU.</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">bash validate.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">bash validate.sh --dispatch=unified \</span>
+<span class="go">  --bridge-arg="--device=mlx5_0 --peer-ip=192.168.0.2"</span>
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The command line arguments need to be adjusted based on the system setup:
-- <code class="code docutils literal notranslate"><span class="pre">--device</span></code> is the <code class="code docutils literal notranslate"><span class="pre">IB</span></code> device name that is connected to the FPGA.
-- <code class="code docutils literal notranslate"><span class="pre">--gpu</span></code> is the GPU device Id that we want to run the RPC callback on.
-- <code class="code docutils literal notranslate"><span class="pre">--fpga-ip</span></code> is the IP address of the <code class="code docutils literal notranslate"><span class="pre">HSB</span></code> FPGA.
-- <code class="code docutils literal notranslate"><span class="pre">--bridge-ip</span></code> is the IP address of the NIC on the host machine.
-- <code class="code docutils literal notranslate"><span class="pre">--page-size</span></code> is the ring buffer slot size in bytes.
-- <code class="code docutils literal notranslate"><span class="pre">--unified</span></code> or <code class="code docutils literal notranslate"><span class="pre">--forward</span></code> are the mutually exclusive flags to enable the unified or forward mode.</p>
+<p>The command line arguments need to be adjusted based on the system setup:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--device</span></code> is the <code class="docutils literal notranslate"><span class="pre">IB</span></code> device name that is connected to the FPGA.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--peer-ip</span></code> is the IP address of the <code class="docutils literal notranslate"><span class="pre">HSB</span></code> FPGA.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--gpu-id</span> <span class="pre">N</span></code> selects the GPU device (default: 0); <code class="docutils literal notranslate"><span class="pre">--cpu</span></code> selects CPU dispatch.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--dispatch=unified</span></code> or <code class="docutils literal notranslate"><span class="pre">--dispatch=forward</span></code> enables unified dispatch or native forwarding.</p></li>
+</ul>
 </div>
+<p>RoCE with GPU execution is the default. For a local <code class="docutils literal notranslate"><span class="pre">UDP</span></code> check without an FPGA,
+run <code class="docutils literal notranslate"><span class="pre">bash</span> <span class="pre">validate.sh</span> <span class="pre">--udp</span></code>.</p>
 <p>Upon successful completion, the above validation script should
-print out something similar to the following:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">=== Verification Summary ===</span>
-<span class="go">  ILA samples captured:   100</span>
-<span class="go">  tvalid=0 (idle):        0</span>
-<span class="go">  RPC responses:          100</span>
-<span class="go">  Non-RPC frames:         0</span>
-<span class="go">  Unique messages verified: 100 of 100</span>
-<span class="go">  Responses matched:    100</span>
-<span class="go">  Header errors:        0</span>
-<span class="go">  Payload errors:       0</span>
+print out something similar to the following (latency records abbreviated):</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">REPLIES PASS: 100/100 packets received correctly</span>
+<span class="go">CLOCK tick_period_numerator=1 tick_period_denominator=1000000000 tick_period_seconds=1e-09</span>
+<span class="go">LATENCY request_id=1 ticks=6348 ns=6348</span>
+<span class="go">...</span>
+<span class="go">LATENCY request_id=100 ticks=3589 ns=3589</span>
 
 <span class="go">=== PTP Round-Trip Latency ===</span>
 <span class="go">  Samples:  100</span>
 <span class="go">  Min:      3589 ns</span>
 <span class="go">  Max:      6348 ns</span>
 <span class="go">  Avg:      3872.0 ns</span>
-<span class="go">  CSV written: ptp_latency.csv</span>
-<span class="go">  RESULT: PASS</span>
-
-<span class="go">=== Shutting down ===</span>
+<span class="go">  Median:   3800 ns</span>
+<span class="go">PASS: 100/100 replies; latency_samples=100/100; provider=libcudaq-playback-provider-hsb.so</span>
+<span class="go">VALIDATION PASS execution=gpu dispatch=unified samples=100</span>
 </pre></div>
 </div>
+<p>Latency statistics are in nanoseconds; the clock time base is in seconds per tick.
+Unavailable timing is reported separately and does not fail packet validation.</p>
 </div>
 <input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">Using Custom Networking Layer</label><div class="tab-content docutils">
-<p>To measure latency with a custom networking implementation, implement a stimulus (data generation) tool that sends data to CUDA-Q Realtime according to the custom networking protocol.</p>
+<p>To measure latency with a custom networking implementation, implement a playback provider plugin that sends data to CUDA-Q Realtime according to the custom networking protocol.</p>
 <p>For example, in the HSB-based implementation, we use the <code class="code docutils literal notranslate"><span class="pre">ptp_timestamp</span></code> field in the <code class="code docutils literal notranslate"><span class="pre">RPCHeader</span></code> / <code class="code docutils literal notranslate"><span class="pre">RPCResponse</span></code> (see the message protocol documentation) to capture the timestamp for latency analysis. Specifically, the stimulus tool (FPGA) stores the ‘send’ timestamp in the <code class="code docutils literal notranslate"><span class="pre">RPCHeader</span></code> (incoming message), which will be echoed by the GPU in the outgoing <code class="code docutils literal notranslate"><span class="pre">RPCResponse</span></code> after processing it (e.g., with the RPC handler). Using the Integrated Logic Analyzer timestamp when the FPGA receives the response from the GPU, we can compute the round-trip latency.
-<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/unittests/utils/hsb_fpga_playback.cpp">This file</a> contains an example of such a data generation tool.</p>
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/validation/hsb_playback_provider.cpp">This file</a> contains an example of such a playback provider.</p>
 </div>
 </div>
 </section>

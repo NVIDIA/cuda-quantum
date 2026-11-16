@@ -116,6 +116,13 @@
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/compile_kernel.html">   Defining targets and customizing compilation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../basics/compile_kernel.html#compiling-for-built-in-targets">Compiling for built-in targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler">Controlling the optimization level of the compiler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control">Using custom compile targets for finer-grained compilation control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/compile_kernel.html#customizing-all-the-way">Customizing all the way</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../basics/troubleshooting.html">   Troubleshooting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../basics/troubleshooting.html#python-stack-traces">Python Stack-Traces</a></li>
@@ -670,7 +677,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#c-abi">C ABI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#two-phase-bring-up-setup-connect">Two-phase bring-up (<code class="docutils literal notranslate"><span class="pre">setup</span></code> / <code class="docutils literal notranslate"><span class="pre">connect</span></code>)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#tx-modes">TX modes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#testing-hsb-bridge-cpu">Testing (<code class="docutils literal notranslate"><span class="pre">hsb_bridge_cpu</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#testing">Testing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="device_call.html">Device Call Channels</a><ul>
@@ -1167,9 +1174,9 @@ works with either, and it pairs naturally with the <code class="docutils literal
 dispatch mode for a fully GPU-free decode loop.</p>
 <p>It serves two kinds of consumers:</p>
 <ul class="simple">
-<li><p><strong>Direct realtime dispatch</strong>: wired to a <code class="docutils literal notranslate"><span class="pre">libcudaq-realtime</span></code> dispatcher (e.g.
-<code class="docutils literal notranslate"><span class="pre">hsb_bridge_cpu</span></code> with <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_HOST_CALL</span></code>), as a drop-in CPU
-replacement for the GPU HSB transport.</p></li>
+<li><p><strong>Direct realtime dispatch</strong>: wired to a <code class="docutils literal notranslate"><span class="pre">libcudaq-realtime</span></code> dispatcher using
+<code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_HOST_CALL</span></code>, as a drop-in CPU replacement for the GPU HSB
+transport.</p></li>
 <li><p><strong>Compiler-lowered <code class="docutils literal notranslate"><span class="pre">device_call</span></code></strong>: it is the transport behind the
 <a class="reference internal" href="device_call.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> device-call channel</span></a>, so a quantum kernel’s
 <code class="docutils literal notranslate"><span class="pre">cudaq::device_call</span></code> – lowered by <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> to the realtime RPC ABI – can be
@@ -1241,9 +1248,9 @@ real FPGA RDMA-Writes syndromes and receives Sends. The
 <a class="reference internal" href="device_call.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> device-call channel</span></a> is built on exactly this
 pattern.</p>
 </section>
-<section id="testing-hsb-bridge-cpu">
-<h2>Testing (<code class="docutils literal notranslate"><span class="pre">hsb_bridge_cpu</span></code>)<a class="headerlink" href="#testing-hsb-bridge-cpu" title="Permalink to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">hsb_bridge_cpu</span></code> (<code class="docutils literal notranslate"><span class="pre">realtime/unittests/cpu_transport/</span></code>) is a GPU-less bridge that
+<section id="testing">
+<h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">roce_app</span> <span class="pre">--cpu</span></code> (<code class="docutils literal notranslate"><span class="pre">realtime/validation/</span></code>) is a GPU-less bridge that
 wires <code class="docutils literal notranslate"><span class="pre">CpuRoceTransceiver</span></code> to a <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_HOST_CALL</span></code> dispatcher – the
 CPU analogue of the GPU HSB bridge. <code class="docutils literal notranslate"><span class="pre">hsb_test_cpu.sh</span></code> orchestrates it against
 either the HSB FPGA emulator (<code class="docutils literal notranslate"><span class="pre">--emulate</span></code>) or a <strong>real FPGA containing the HSB

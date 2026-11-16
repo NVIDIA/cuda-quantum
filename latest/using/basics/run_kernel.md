@@ -34,6 +34,20 @@ latest
         -   [Run](#run){.reference .internal}
         -   [Observe](#observe){.reference .internal}
         -   [Running on a GPU](#running-on-a-gpu){.reference .internal}
+    -   [Defining targets and customizing
+        compilation](compile_kernel.html){.reference .internal}
+        -   [Compiling for built-in
+            targets](compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](compile_kernel.html#customizing-all-the-way){.reference
+            .internal}
     -   [Troubleshooting](troubleshooting.html){.reference .internal}
         -   [Debugging and Verbose Simulation
             Output](troubleshooting.html#debugging-and-verbose-simulation-output){.reference
@@ -1081,8 +1095,7 @@ latest
         -   [TX
             modes](../realtime/cpu_transport.html#tx-modes){.reference
             .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](../realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+        -   [Testing](../realtime/cpu_transport.html#testing){.reference
             .internal}
     -   [Device Call Channels](../realtime/device_call.html){.reference
         .internal}
@@ -2033,7 +2046,7 @@ latest
 Previous](build_kernel.html "Building your first CUDA-Q Program"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](troubleshooting.html "Troubleshooting"){.btn
+aria-hidden="true"}](compile_kernel.html "Defining targets and customizing compilation"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -2979,7 +2992,7 @@ seeing an output of the order: [`It`{.docutils .literal
 Previous](build_kernel.html "Building your first CUDA-Q Program"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](troubleshooting.html "Troubleshooting"){.btn
+aria-hidden="true"}](compile_kernel.html "Defining targets and customizing compilation"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

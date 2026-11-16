@@ -38,6 +38,21 @@ latest
         -   [Running on a
             GPU](../basics/run_kernel.html#running-on-a-gpu){.reference
             .internal}
+    -   [Defining targets and customizing
+        compilation](../basics/compile_kernel.html){.reference
+        .internal}
+        -   [Compiling for built-in
+            targets](../basics/compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](../basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](../basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](../basics/compile_kernel.html#customizing-all-the-way){.reference
+            .internal}
     -   [Troubleshooting](../basics/troubleshooting.html){.reference
         .internal}
         -   [Debugging and Verbose Simulation
@@ -1072,9 +1087,7 @@ latest
             .notranslate}]{.pre})](#two-phase-bring-up-setup-connect){.reference
             .internal}
         -   [TX modes](#tx-modes){.reference .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](#testing-hsb-bridge-cpu){.reference
-            .internal}
+        -   [Testing](#testing){.reference .internal}
     -   [Device Call Channels](device_call.html){.reference .internal}
         -   [The [`device_call`{.docutils .literal .notranslate}]{.pre}
             model](device_call.html#the-device-call-model){.reference
@@ -2058,10 +2071,9 @@ It serves two kinds of consumers:
 
 -   **Direct realtime dispatch**: wired to a
     [`libcudaq-realtime`{.docutils .literal .notranslate}]{.pre}
-    dispatcher (e.g. [`hsb_bridge_cpu`{.docutils .literal
-    .notranslate}]{.pre} with [`CUDAQ_DISPATCH_HOST_CALL`{.docutils
-    .literal .notranslate}]{.pre}), as a drop-in CPU replacement for the
-    GPU HSB transport.
+    dispatcher using [`CUDAQ_DISPATCH_HOST_CALL`{.docutils .literal
+    .notranslate}]{.pre}, as a drop-in CPU replacement for the GPU HSB
+    transport.
 
 -   **Compiler-lowered [`device_call`{.docutils .literal
     .notranslate}]{.pre}**: it is the transport behind the
@@ -2173,19 +2185,20 @@ channel]{.std .std-doc}](device_call.html){.reference .internal} is
 built on exactly this pattern.
 :::
 
-::: {#testing-hsb-bridge-cpu .section}
-## Testing ([`hsb_bridge_cpu`{.docutils .literal .notranslate}]{.pre})[¶](#testing-hsb-bridge-cpu "Permalink to this heading"){.headerlink}
+::: {#testing .section}
+## Testing[¶](#testing "Permalink to this heading"){.headerlink}
 
-[`hsb_bridge_cpu`{.docutils .literal .notranslate}]{.pre}
-([`realtime/unittests/cpu_transport/`{.docutils .literal
-.notranslate}]{.pre}) is a GPU-less bridge that wires
-[`CpuRoceTransceiver`{.docutils .literal .notranslate}]{.pre} to a
-[`CUDAQ_DISPATCH_HOST_CALL`{.docutils .literal .notranslate}]{.pre}
-dispatcher -- the CPU analogue of the GPU HSB bridge.
-[`hsb_test_cpu.sh`{.docutils .literal .notranslate}]{.pre} orchestrates
-it against either the HSB FPGA emulator ([`--emulate`{.docutils .literal
-.notranslate}]{.pre}) or a **real FPGA containing the HSB IP** (driven
-over the HSB control plane, exactly as the GPU path is):
+[`roce_app`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`--cpu`{.docutils .literal .notranslate}]{.pre}
+([`realtime/validation/`{.docutils .literal .notranslate}]{.pre}) is a
+GPU-less bridge that wires [`CpuRoceTransceiver`{.docutils .literal
+.notranslate}]{.pre} to a [`CUDAQ_DISPATCH_HOST_CALL`{.docutils .literal
+.notranslate}]{.pre} dispatcher -- the CPU analogue of the GPU HSB
+bridge. [`hsb_test_cpu.sh`{.docutils .literal .notranslate}]{.pre}
+orchestrates it against either the HSB FPGA emulator
+([`--emulate`{.docutils .literal .notranslate}]{.pre}) or a **real FPGA
+containing the HSB IP** (driven over the HSB control plane, exactly as
+the GPU path is):
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
