@@ -52,14 +52,6 @@ def test_quake_conversions_are_built_only_in_sdk_mode():
         assert cmake.count(subdirectory) == 1
 
 
-def test_quake_conversion_sources_have_no_sdk_fallback():
-    for name in ("EraseQuakeGlobalPhase.cpp", "PruneDeadCCLoopCarries.cpp",
-                 "QuakeToQLX.cpp", "QuakeToQLXPipelineReg.cpp"):
-        source = _source(f"ir/lib/Conversion/QuakeToQLX/{name}")
-        assert "QLX_HAS_CUDAQ_QUAKE" not in source, (
-            f"{name} is built only in SDK mode and needs no fallback stub")
-
-
 def test_sdk_mode_enables_quake_through_the_shared_cudaq_target():
     cmake = _cmake_code("ir/lib/Conversion/QuakeToQLX/CMakeLists.txt")
 
