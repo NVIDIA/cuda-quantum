@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "qlx-c/Dialect/Fabric.h"
-
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
 #include "mlir/CAPI/IR.h"
@@ -17,9 +16,7 @@
 #include "qlx/Dialect/Fabric/IR/FabricAttrs.h"
 #include "qlx/Dialect/Fabric/IR/FabricDialect.h"
 #include "qlx/Dialect/Fabric/IR/FabricTypes.h"
-
 #include "mlir/IR/BuiltinAttributes.h"
-
 #include <cstdint>
 
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Fabric, fabric,

@@ -9,11 +9,10 @@
 #pragma once
 
 #include <cassert>
+#include <cstdint>
 #include <gmp.h>
 #include <iostream>
 #include <string>
-
-#include <cstdint>
 
 //===----------------------------------------------------------------------===//
 // GMP-backed arbitrary-precision integer

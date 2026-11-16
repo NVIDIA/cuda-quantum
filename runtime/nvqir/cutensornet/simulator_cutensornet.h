@@ -147,5 +147,4 @@ protected:
 } // end namespace nvqir
 
 #include "simulator_cutensornet.inc"
-
 #include <cstdint>

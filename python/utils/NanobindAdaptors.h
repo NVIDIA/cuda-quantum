@@ -14,12 +14,10 @@
 #include <nanobind/stl/vector.h>
 
 #include "JsonNanobindAdaptors.h"
-
 #include "mlir-c/Bindings/Python/Interop.h"
 #include "mlir-c/IR.h"
 
 #include "llvm/ADT/Twine.h"
-
 #include <cstdint>
 
 // Type casters for MLIR C-API types.

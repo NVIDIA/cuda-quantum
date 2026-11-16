@@ -13,7 +13,6 @@
 #include "qlx/Dialect/LVM/IR/LVMTypes.h"
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
-
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/StringExtras.h"
@@ -1247,7 +1246,6 @@ void LVMDialect::initialize() {
   addOperations<
 #define GET_OP_LIST
 #include "qlx/Dialect/LVM/IR/LVMOps.cpp.inc"
-
 #include <cstdint>
       >();
 }

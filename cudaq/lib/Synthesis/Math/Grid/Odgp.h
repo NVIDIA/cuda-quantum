@@ -13,7 +13,6 @@
 #include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
 #include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
 #include "cudaq/Synthesis/Synthesis/GridsynthOptions.h"
-
 #include <cmath>
 #include <cstdint>
 #include <mpfr.h>

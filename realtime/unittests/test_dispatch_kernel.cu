@@ -14,7 +14,6 @@
 #include <unistd.h>
 #include <chrono>
 #include <iostream>
-
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel.cuh"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"

@@ -11,7 +11,6 @@
 #include "qlx/Dialect/LVM/IR/LVMOps.h"
 #include "qlx/Dialect/LVM/IR/LVMTypes.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
-
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringSet.h"
@@ -26,7 +25,6 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Parser/Parser.h"
-
 #include <cstdint>
 #include <limits>
 #include <set>

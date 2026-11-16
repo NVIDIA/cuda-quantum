@@ -8,7 +8,6 @@
 
 #include "Math/Geometry/Rectangle.h"
 #include "cudaq/Synthesis/Math/Real.h"
-
 #include <algorithm>
 
 namespace cudaq::synth {

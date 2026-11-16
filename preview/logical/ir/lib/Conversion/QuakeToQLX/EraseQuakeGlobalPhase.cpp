@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "qlx/Conversion/QuakeToQLXPasses.h"
-
 #include "mlir/IR/BuiltinOps.h"
 
 #ifdef QLX_HAS_CUDAQ_QUAKE

@@ -10,7 +10,6 @@
 
 #include "common/ServerHelper.h"
 #include "qrmi.h"
-
 #include <chrono>
 #include <cstdlib>
 #include <memory>

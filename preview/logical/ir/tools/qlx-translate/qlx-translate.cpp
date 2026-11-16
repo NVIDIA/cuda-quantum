@@ -19,7 +19,6 @@
 
 #include "qlx/Target/Fabric/EmitStim.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
-
 #include <cstdlib>
 
 int main(int argc, char **argv) {

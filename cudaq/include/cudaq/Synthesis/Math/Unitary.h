@@ -8,14 +8,13 @@
 
 #pragma once
 
+#include "cudaq/Synthesis/Circuit/Circuit.h"
+#include "cudaq/Synthesis/Math/Ring/Domega.h"
+#include "llvm/Support/LogicalResult.h"
 #include <array>
 #include <complex>
 #include <cstdint>
 #include <string>
-
-#include "cudaq/Synthesis/Circuit/Circuit.h"
-#include "cudaq/Synthesis/Math/Ring/Domega.h"
-#include "llvm/Support/LogicalResult.h"
 
 namespace cudaq::synth {
 

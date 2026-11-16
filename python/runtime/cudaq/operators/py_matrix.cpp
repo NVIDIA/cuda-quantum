@@ -16,7 +16,6 @@
 #include "py_helpers.h"
 #include "py_matrix.h"
 #include "cudaq/operators/matrix.h"
-
 #include <complex>
 
 namespace cudaq {

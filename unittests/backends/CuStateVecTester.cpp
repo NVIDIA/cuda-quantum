@@ -10,7 +10,6 @@
 #include "CuStateVecCircuitSimulatorEx.h"
 #include "cudaq/ptsbe/PTSBESampler.h"
 #include <cudaq.h>
-
 #include <gtest/gtest.h>
 
 #include <algorithm>

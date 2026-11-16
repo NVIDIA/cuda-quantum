@@ -11,9 +11,7 @@
 #include "cudaq_internal/device_call/RingBufferWrapper.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-
 #include "cudaq/runtime/logger/logger.h"
-
 #include <chrono>
 #include <mutex>
 #include <stdexcept>

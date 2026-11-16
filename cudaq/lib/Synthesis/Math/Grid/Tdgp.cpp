@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "Math/Grid/Tdgp.h"
-
 #include "Math/Geometry/ConvexSet.h"
 #include "Math/Geometry/Rectangle.h"
 #include "Math/Grid/Odgp.h"
@@ -15,7 +14,6 @@
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "llvm/Support/Debug.h"
-
 #include <algorithm>
 #include <cstdint>
 #include <utility>
