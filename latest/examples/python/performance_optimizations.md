@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-latest
+0.17.0
 :::
 
 ::: {role="search"}
@@ -1096,8 +1096,7 @@ latest
         -   [TX
             modes](../../using/realtime/cpu_transport.html#tx-modes){.reference
             .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+        -   [Testing](../../using/realtime/cpu_transport.html#testing){.reference
             .internal}
     -   [Device Call
         Channels](../../using/realtime/device_call.html){.reference
@@ -2102,14 +2101,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![70233d57d5a64442925c27eed645265e](../../_images/gate-fuse.png)
+![8f9c559ba3bf4a419bd4fa475ce174ec](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![28d02bb7bd504ed09b544965065128cb](../../_images/gatefusion.png)
+![c41e2a30680943419827d414ee543b0d](../../_images/gatefusion.png)
 :::
 :::
 :::

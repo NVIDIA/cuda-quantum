@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-latest
+0.17.0
 :::
 
 ::: {role="search"}
@@ -1107,8 +1107,7 @@ latest
         -   [TX
             modes](../../using/realtime/cpu_transport.html#tx-modes){.reference
             .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+        -   [Testing](../../using/realtime/cpu_transport.html#testing){.reference
             .internal}
     -   [Device Call
         Channels](../../using/realtime/device_call.html){.reference
@@ -8997,8 +8996,8 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[object]{.pre}](https://docs.python.org/3/builtins/functions.html#object "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.all_gather "Permalink to this definition"){.headerlink}\
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[object]{.pre}](https://docs.python.org/3/builtins/functions.html#object "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.all_gather "Permalink to this definition"){.headerlink}\
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
 :   Overloaded function.
 
@@ -9014,14 +9013,13 @@ discriminated bits into an integer.)
         .notranslate}]{.pre}` `{.docutils .literal
         .notranslate}[`->`{.docutils .literal
         .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`object`{.docutils .literal .notranslate}]{.pre}
+        .notranslate}[`list[float]`{.docutils .literal
+        .notranslate}]{.pre}
 
     Gather and scatter the [`local`{.code .docutils .literal
     .notranslate}]{.pre} list of floating-point numbers, returning a
     concatenation of all lists across all ranks. The total global list
-    size must be provided. The lists may differ in size, and a list may
-    be empty. If any rank has floating-point numbers, the result holds
-    floating-point numbers.
+    size must be provided.
 
     2.  [`all_gather(arg0:`{.docutils .literal
         .notranslate}]{.pre}` `{.docutils .literal
@@ -9035,14 +9033,13 @@ discriminated bits into an integer.)
         .notranslate}]{.pre}` `{.docutils .literal
         .notranslate}[`->`{.docutils .literal
         .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`object`{.docutils .literal .notranslate}]{.pre}
+        .notranslate}[`list[int]`{.docutils .literal
+        .notranslate}]{.pre}
 
     Gather and scatter the [`local`{.code .docutils .literal
     .notranslate}]{.pre} list of integers, returning a concatenation of
     all lists across all ranks. The total global list size must be
-    provided. The lists may differ in size, and a list may be empty. If
-    any rank has floating-point numbers, the result holds floating-point
-    numbers.
+    provided.
 
 ```{=html}
 <!-- -->

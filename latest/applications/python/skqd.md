@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-latest
+0.17.0
 :::
 
 ::: {role="search"}
@@ -1081,8 +1081,7 @@ latest
         -   [TX
             modes](../../using/realtime/cpu_transport.html#tx-modes){.reference
             .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+        -   [Testing](../../using/realtime/cpu_transport.html#testing){.reference
             .internal}
     -   [Device Call
         Channels](../../using/realtime/device_call.html){.reference
@@ -2615,7 +2614,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![f0936ad25e044f37839aea58f9199090](../../_images/speedup.png){.no-scaled-link
+![3e4accf493e34fa289dd6a60501fdfd2](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2629,9 +2628,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![fa886aeceed24f6ab9fe4f08451f8935](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![6b138d59e4954834a6f48ae2599fecbc](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![2e13ef8b69c948509e46495132b002ff](../../_images/efficiency.jpeg){.no-scaled-link
+![266ea20564cd42c4b97997ed8a16edfd](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

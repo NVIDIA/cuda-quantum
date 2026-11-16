@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../index.html){.icon .icon-home}
 
 ::: version
-latest
+0.17.0
 :::
 
 ::: {role="search"}
@@ -1064,8 +1064,7 @@ latest
             .internal}
         -   [TX modes](realtime/cpu_transport.html#tx-modes){.reference
             .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+        -   [Testing](realtime/cpu_transport.html#testing){.reference
             .internal}
     -   [Device Call Channels](realtime/device_call.html){.reference
         .internal}
@@ -3716,13 +3715,6 @@ The [[Dynamics Examples]{.std
 .internal} section of the docs contains a number of excellent dynamics
 examples demonstrating how to simulate basic physics models, specific
 qubit modalities, and utilize multi-GPU multi-Node capabilities.
-
-Benchmarks for measuring the performance of the [`dynamics`{.docutils
-.literal .notranslate}]{.pre} target on one or more GPUs, using a
-Heisenberg spin chain with dissipation and a Jaynes-Cummings cavity QED
-model, are described in the [benchmarks
-README](https://github.com/NVIDIA/cuda-quantum/blob/main/docs/sphinx/examples/python/dynamics/benchmarks/README.md){.reference
-.external}.
 :::
 :::
 :::

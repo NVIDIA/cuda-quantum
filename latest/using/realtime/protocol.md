@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-latest
+0.17.0
 :::
 
 ::: {role="search"}
@@ -1056,9 +1056,7 @@ latest
             .internal}
         -   [TX modes](cpu_transport.html#tx-modes){.reference
             .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](cpu_transport.html#testing-hsb-bridge-cpu){.reference
-            .internal}
+        -   [Testing](cpu_transport.html#testing){.reference .internal}
     -   [Device Call Channels](device_call.html){.reference .internal}
         -   [The [`device_call`{.docutils .literal .notranslate}]{.pre}
             model](device_call.html#the-device-call-model){.reference

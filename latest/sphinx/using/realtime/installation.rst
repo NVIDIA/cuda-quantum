@@ -18,11 +18,13 @@ Users may also implement their own transport layer and make it accessible to `cu
 .. tab:: Using Holoscan Sensor Bridge
 
   - CUDA Runtime with version 12.6+ or 13.x
-  - `DOCA 3.4.0 installation <https://developer.nvidia.com/doca-downloads>`__ with `gpunetio` support.
+  - For GPU RoCE: `DOCA 3.4.0 installation <https://developer.nvidia.com/doca-downloads>`__ with `gpunetio` support.
 
   .. note:: 
 
     Please make sure `doca-sdk-gpunetio` is installed along with `doca-all`.
+    CPU RoCE uses ``libibverbs`` instead of DOCA. HSB playback requires the
+    CUDA driver library (``libcuda.so.1``) with either bridge.
 
 .. tab:: Using Custom Networking Layer
 
@@ -95,52 +97,53 @@ The validation includes checking the data correctness and measuring the round-tr
 
 .. tab:: Using Holoscan Sensor Bridge
   
-  The validation script has three defined kernel modes, one for a unified kernel (enabled with `--unified`), one for a forward kernel
-  (enabled with `--forward`), and a 3-kernel setup (used by default).
+  The validation script has three defined kernel modes, one for a unified kernel (enabled with ``--dispatch=unified``), one for a forward kernel
+  (enabled with ``--dispatch=forward``), and a 3-kernel setup (used by default).
   The forward kernel skips the RPC callback to measure the raw latency without any compute performed on the GPU.
 
   .. code-block:: console
 
-      bash validate.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified 
+      bash validate.sh --dispatch=unified \
+        --bridge-arg="--device=mlx5_0 --peer-ip=192.168.0.2"
 
   .. note:: 
 
     The command line arguments need to be adjusted based on the system setup:
-    - `--device` is the `IB` device name that is connected to the FPGA.
-    - `--gpu` is the GPU device Id that we want to run the RPC callback on.
-    - `--fpga-ip` is the IP address of the `HSB` FPGA.
-    - `--bridge-ip` is the IP address of the NIC on the host machine.
-    - `--page-size` is the ring buffer slot size in bytes.
-    - `--unified` or `--forward` are the mutually exclusive flags to enable the unified or forward mode.
+
+    - ``--device`` is the ``IB`` device name that is connected to the FPGA.
+    - ``--peer-ip`` is the IP address of the ``HSB`` FPGA.
+    - ``--gpu-id N`` selects the GPU device (default: 0); ``--cpu`` selects CPU dispatch.
+    - ``--dispatch=unified`` or ``--dispatch=forward`` enables unified dispatch or native forwarding.
+
+  RoCE with GPU execution is the default. For a local ``UDP`` check without an FPGA,
+  run ``bash validate.sh --udp``.
   
   Upon successful completion, the above validation script should
-  print out something similar to the following:
+  print out something similar to the following (latency records abbreviated):
   
   .. code-block:: console
 
-      === Verification Summary ===
-        ILA samples captured:   100
-        tvalid=0 (idle):        0
-        RPC responses:          100
-        Non-RPC frames:         0
-        Unique messages verified: 100 of 100
-        Responses matched:    100
-        Header errors:        0
-        Payload errors:       0
-  
+      REPLIES PASS: 100/100 packets received correctly
+      CLOCK tick_period_numerator=1 tick_period_denominator=1000000000 tick_period_seconds=1e-09
+      LATENCY request_id=1 ticks=6348 ns=6348
+      ...
+      LATENCY request_id=100 ticks=3589 ns=3589
+
       === PTP Round-Trip Latency ===
         Samples:  100
         Min:      3589 ns
         Max:      6348 ns
         Avg:      3872.0 ns
-        CSV written: ptp_latency.csv
-        RESULT: PASS
-  
-      === Shutting down ===
+        Median:   3800 ns
+      PASS: 100/100 replies; latency_samples=100/100; provider=libcudaq-playback-provider-hsb.so
+      VALIDATION PASS execution=gpu dispatch=unified samples=100
+
+  Latency statistics are in nanoseconds; the clock time base is in seconds per tick.
+  Unavailable timing is reported separately and does not fail packet validation.
 
 .. tab:: Using Custom Networking Layer
 
-  To measure latency with a custom networking implementation, implement a stimulus (data generation) tool that sends data to CUDA-Q Realtime according to the custom networking protocol.
+  To measure latency with a custom networking implementation, implement a playback provider plugin that sends data to CUDA-Q Realtime according to the custom networking protocol.
   
   For example, in the HSB-based implementation, we use the `ptp_timestamp` field in the `RPCHeader` / `RPCResponse` (see the message protocol documentation) to capture the timestamp for latency analysis. Specifically, the stimulus tool (FPGA) stores the 'send' timestamp in the `RPCHeader` (incoming message), which will be echoed by the GPU in the outgoing `RPCResponse` after processing it (e.g., with the RPC handler). Using the Integrated Logic Analyzer timestamp when the FPGA receives the response from the GPU, we can compute the round-trip latency.
-  `This file <https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/unittests/utils/hsb_fpga_playback.cpp>`__ contains an example of such a data generation tool.
+  `This file <https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/validation/hsb_playback_provider.cpp>`__ contains an example of such a playback provider.

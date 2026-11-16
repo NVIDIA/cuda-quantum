@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](#){.icon .icon-home}
 
 ::: version
-latest
+0.17.0
 :::
 
 ::: {role="search"}
@@ -1089,8 +1089,7 @@ latest
         -   [TX
             modes](using/realtime/cpu_transport.html#tx-modes){.reference
             .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](using/realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+        -   [Testing](using/realtime/cpu_transport.html#testing){.reference
             .internal}
     -   [Device Call
         Channels](using/realtime/device_call.html){.reference .internal}
@@ -2068,7 +2067,7 @@ architecture co-design, currently in preview. See
 [cudaq-logical](./preview/logical/index.html#http://){.reference
 .external} for more information.
 
-You are browsing the documentation for latest version of CUDA-Q. You can
+You are browsing the documentation for 0.17.0 version of CUDA-Q. You can
 find documentation for all released versions
 [[here]{.doc}](versions.html){.reference .internal}.
 

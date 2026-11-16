@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-latest
+0.17.0
 :::
 
 ::: {role="search"}
@@ -1071,9 +1071,7 @@ latest
             .internal}
         -   [TX modes](cpu_transport.html#tx-modes){.reference
             .internal}
-        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
-            .notranslate}]{.pre})](cpu_transport.html#testing-hsb-bridge-cpu){.reference
-            .internal}
+        -   [Testing](cpu_transport.html#testing){.reference .internal}
     -   [Device Call Channels](device_call.html){.reference .internal}
         -   [The [`device_call`{.docutils .literal .notranslate}]{.pre}
             model](device_call.html#the-device-call-model){.reference
@@ -2068,7 +2066,7 @@ Using Holoscan Sensor Bridge
 ::: {.tab-content .docutils}
 -   CUDA Runtime with version 12.6+ or 13.x
 
--   [DOCA 3.4.0
+-   For GPU RoCE: [DOCA 3.4.0
     installation](https://developer.nvidia.com/doca-downloads){.reference
     .external} with [`gpunetio`{.code .docutils .literal
     .notranslate}]{.pre} support.
@@ -2078,7 +2076,10 @@ Note
 
 Please make sure [`doca-sdk-gpunetio`{.code .docutils .literal
 .notranslate}]{.pre} is installed along with [`doca-all`{.code .docutils
-.literal .notranslate}]{.pre}.
+.literal .notranslate}]{.pre}. CPU RoCE uses [`libibverbs`{.docutils
+.literal .notranslate}]{.pre} instead of DOCA. HSB playback requires the
+CUDA driver library ([`libcuda.so.1`{.docutils .literal
+.notranslate}]{.pre}) with either bridge.
 :::
 :::
 
@@ -2216,16 +2217,17 @@ Using Holoscan Sensor Bridge
 
 ::: {.tab-content .docutils}
 The validation script has three defined kernel modes, one for a unified
-kernel (enabled with [`--unified`{.code .docutils .literal
+kernel (enabled with [`--dispatch=unified`{.docutils .literal
 .notranslate}]{.pre}), one for a forward kernel (enabled with
-[`--forward`{.code .docutils .literal .notranslate}]{.pre}), and a
+[`--dispatch=forward`{.docutils .literal .notranslate}]{.pre}), and a
 3-kernel setup (used by default). The forward kernel skips the RPC
 callback to measure the raw latency without any compute performed on the
 GPU.
 
 ::: {.highlight-console .notranslate}
 ::: highlight
-    bash validate.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified
+    bash validate.sh --dispatch=unified \
+      --bridge-arg="--device=mlx5_0 --peer-ip=192.168.0.2"
 :::
 :::
 
@@ -2233,55 +2235,65 @@ GPU.
 Note
 
 The command line arguments need to be adjusted based on the system
-setup: - [`--device`{.code .docutils .literal .notranslate}]{.pre} is
-the [`IB`{.code .docutils .literal .notranslate}]{.pre} device name that
-is connected to the FPGA. - [`--gpu`{.code .docutils .literal
-.notranslate}]{.pre} is the GPU device Id that we want to run the RPC
-callback on. - [`--fpga-ip`{.code .docutils .literal
-.notranslate}]{.pre} is the IP address of the [`HSB`{.code .docutils
-.literal .notranslate}]{.pre} FPGA. - [`--bridge-ip`{.code .docutils
-.literal .notranslate}]{.pre} is the IP address of the NIC on the host
-machine. - [`--page-size`{.code .docutils .literal .notranslate}]{.pre}
-is the ring buffer slot size in bytes. - [`--unified`{.code .docutils
-.literal .notranslate}]{.pre} or [`--forward`{.code .docutils .literal
-.notranslate}]{.pre} are the mutually exclusive flags to enable the
-unified or forward mode.
+setup:
+
+-   [`--device`{.docutils .literal .notranslate}]{.pre} is the
+    [`IB`{.docutils .literal .notranslate}]{.pre} device name that is
+    connected to the FPGA.
+
+-   [`--peer-ip`{.docutils .literal .notranslate}]{.pre} is the IP
+    address of the [`HSB`{.docutils .literal .notranslate}]{.pre} FPGA.
+
+-   [`--gpu-id`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+    .literal .notranslate}[`N`{.docutils .literal .notranslate}]{.pre}
+    selects the GPU device (default: 0); [`--cpu`{.docutils .literal
+    .notranslate}]{.pre} selects CPU dispatch.
+
+-   [`--dispatch=unified`{.docutils .literal .notranslate}]{.pre} or
+    [`--dispatch=forward`{.docutils .literal .notranslate}]{.pre}
+    enables unified dispatch or native forwarding.
 :::
 
+RoCE with GPU execution is the default. For a local [`UDP`{.docutils
+.literal .notranslate}]{.pre} check without an FPGA, run
+[`bash`{.docutils .literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`validate.sh`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`--udp`{.docutils .literal .notranslate}]{.pre}.
+
 Upon successful completion, the above validation script should print out
-something similar to the following:
+something similar to the following (latency records abbreviated):
 
 ::: {.highlight-console .notranslate}
 ::: highlight
-    === Verification Summary ===
-      ILA samples captured:   100
-      tvalid=0 (idle):        0
-      RPC responses:          100
-      Non-RPC frames:         0
-      Unique messages verified: 100 of 100
-      Responses matched:    100
-      Header errors:        0
-      Payload errors:       0
+    REPLIES PASS: 100/100 packets received correctly
+    CLOCK tick_period_numerator=1 tick_period_denominator=1000000000 tick_period_seconds=1e-09
+    LATENCY request_id=1 ticks=6348 ns=6348
+    ...
+    LATENCY request_id=100 ticks=3589 ns=3589
 
     === PTP Round-Trip Latency ===
       Samples:  100
       Min:      3589 ns
       Max:      6348 ns
       Avg:      3872.0 ns
-      CSV written: ptp_latency.csv
-      RESULT: PASS
+      Median:   3800 ns
+    PASS: 100/100 replies; latency_samples=100/100; provider=libcudaq-playback-provider-hsb.so
+    VALIDATION PASS execution=gpu dispatch=unified samples=100
+:::
+:::
 
-    === Shutting down ===
-:::
-:::
+Latency statistics are in nanoseconds; the clock time base is in seconds
+per tick. Unavailable timing is reported separately and does not fail
+packet validation.
 :::
 
 Using Custom Networking Layer
 
 ::: {.tab-content .docutils}
 To measure latency with a custom networking implementation, implement a
-stimulus (data generation) tool that sends data to CUDA-Q Realtime
-according to the custom networking protocol.
+playback provider plugin that sends data to CUDA-Q Realtime according to
+the custom networking protocol.
 
 For example, in the HSB-based implementation, we use the
 [`ptp_timestamp`{.code .docutils .literal .notranslate}]{.pre} field in
@@ -2295,8 +2307,8 @@ in the outgoing [`RPCResponse`{.code .docutils .literal
 .notranslate}]{.pre} after processing it (e.g., with the RPC handler).
 Using the Integrated Logic Analyzer timestamp when the FPGA receives the
 response from the GPU, we can compute the round-trip latency. [This
-file](https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/unittests/utils/hsb_fpga_playback.cpp){.reference
-.external} contains an example of such a data generation tool.
+file](https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/validation/hsb_playback_provider.cpp){.reference
+.external} contains an example of such a playback provider.
 :::
 :::
 :::
