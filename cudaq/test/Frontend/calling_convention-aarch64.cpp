@@ -7,8 +7,11 @@
  ******************************************************************************/
 
 // This test is only valid for aarch64.
-// RUN: if [ `uname -m` = "aarch64" ] ; then \
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s ; fi
+// REQUIRES: host-aarch64
+// The CHECK lines use libstdc++ name mangling (std::pair, not libc++'s
+// std::__1::pair), so the test does not apply on macOS.
+// UNSUPPORTED: system-darwin
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include "cudaq/qis/qubit_qis.h"
 #include <tuple>
