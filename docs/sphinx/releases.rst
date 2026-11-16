@@ -26,7 +26,7 @@ contain the necessary build and runtime dependencies respectively to build and d
 CUDA-Q compiler extensions and integrations.
 
 We have completely overhauled our compiler configurability, improved performance across the
-board, and include a new custabilizer backend for faster stabilizer simulation. Take a look
+board, and include a new :code:`custabilizer` backend for faster stabilizer simulation. Take a look
 at the features and enhancements listed in the 
 `0.17.0 GitHub release <https://github.com/NVIDIA/cuda-quantum/releases/0.17.0>`__.
 
