@@ -10,6 +10,7 @@
 
 #include <cassert>
 #include <complex>
+#include <cstdint>
 #include <string>
 #include <utility>
 
@@ -169,9 +170,9 @@ public:
   /// is divisible by delta iff a + b + c + d is even (Definition D.1,
   /// Remark D.2, Lemma 7.3). Uses Integer::is_odd which is a single GMP
   /// bit test per field -- no heap allocation.
-  int32_t residue() const {
-    return (int32_t(_a.is_odd()) << 3) | (int32_t(_b.is_odd()) << 2) |
-           (int32_t(_c.is_odd()) << 1) | int32_t(_d.is_odd());
+  std::int32_t residue() const {
+    return (std::int32_t(_a.is_odd()) << 3) | (std::int32_t(_b.is_odd()) << 2) |
+           (std::int32_t(_c.is_odd()) << 1) | std::int32_t(_d.is_odd());
   }
 
   /// "(a, b, c, d)" rendering for debug logging.
@@ -190,7 +191,7 @@ private:
   Integer &c_mut() noexcept { return _c; }
   Integer &d_mut() noexcept { return _d; }
 
-  friend void mul_by_omega_power_in_place(ZOmega &x, int32_t n);
+  friend void mul_by_omega_power_in_place(ZOmega &x, std::int32_t n);
   friend void halve_sum_and_difference(ZOmega &z, ZOmega &w, ZOmega &scratch);
   friend void mul_by_sqrt2_in_place(ZOmega &x, ZOmega &scratch);
 };
@@ -211,9 +212,9 @@ inline ZSqrt2 ZSqrt2::from_zomega(const ZOmega &x) {
 //===----------------------------------------------------------------------===//
 
 /// In-place x *= omega^n.
-inline void mul_by_omega_power_in_place(ZOmega &x, int32_t n) {
+inline void mul_by_omega_power_in_place(ZOmega &x, std::int32_t n) {
   Integer wrapped;
-  for (int32_t i = 0, rounds = n & 0b111; i < rounds; ++i) {
+  for (std::int32_t i = 0, rounds = n & 0b111; i < rounds; ++i) {
     // (a, b, c, d) -> (b, c, d, -a). Each move is an mpz_swap.
     wrapped = std::move(x.a_mut());
     x.a_mut() = std::move(x.b_mut());
@@ -273,7 +274,7 @@ inline ZOmega mul_by_omega_inv(const ZOmega &x) {
 /// Multiplication by omega^n. Direct switch over n mod 8 (omega^8 = 1) to
 /// avoid building up |n| intermediate allocations from repeated single-step
 /// applications.
-inline ZOmega mul_by_omega_power(const ZOmega &x, int32_t n) {
+inline ZOmega mul_by_omega_power(const ZOmega &x, std::int32_t n) {
   n &= 0b111;
   switch (n) {
   case 0:

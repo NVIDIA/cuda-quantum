@@ -85,10 +85,11 @@ namespace cudaq::synth {
 /// returned by `next()` is valid until the next call to `next()` / `++it`.
 class TdgpStepper : public StepperBase<TdgpStepper, DOmega> {
 public:
-  TdgpStepper(Integer k, const ConvexSet &setA, const ConvexSet &setB,
-              const GridOp &opG_inv, Rectangle bboxA, Rectangle bboxB,
-              Interval bboxA_y_fattened, Interval bboxB_y_fattened,
-              uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
+  TdgpStepper(
+      Integer k, const ConvexSet &setA, const ConvexSet &setB,
+      const GridOp &opG_inv, Rectangle bboxA, Rectangle bboxB,
+      Interval bboxA_y_fattened, Interval bboxB_y_fattened,
+      std::uint64_t max_scan_steps = details::DEFAULT_MAX_ODGP_SCAN_STEPS);
   ~TdgpStepper();
 
   TdgpStepper(const TdgpStepper &) = delete;
@@ -113,7 +114,7 @@ private:
 
   // Forwarded to every inner ODGP stepper this one builds (the x-anchor
   // solve, the beta enumeration, and the per-beta alpha scans).
-  uint64_t max_scan_steps_;
+  std::uint64_t max_scan_steps_;
 
   // Line-scan parameters computed in the constructor (after the one-shot
   // x-anchor solve). alpha0_ is the anchor; dx_ is the per-step grid

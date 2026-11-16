@@ -47,13 +47,13 @@ module attributes {qlx.profiles = ["p3"]} {
   fabric.gadget @attempt() {
     fabric.return
   } {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @epsilon_profile for @attempt attributes {
+  fabric.gadget_contract @epsilon_profile for @attempt attributes {
     metadata = {
       success_probability = "5.551115123125783e-17",
       success_probability_evidence = "analysis:epsilon-test"
     }
   } {}
-  fabric.gadget_profile @near_one_profile for @attempt attributes {
+  fabric.gadget_contract @near_one_profile for @attempt attributes {
     metadata = {
       success_probability = "0.9999999999999999",
       success_probability_evidence = "analysis:near-one-test"

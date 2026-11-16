@@ -10,18 +10,20 @@
 
 #include "cudaq/qis/qubit_qis.h"
 
+#include <cstdint>
+
 __qpu__ std::uint64_t
 qubit_values_to_integer(const std::vector<cudaq::measure_result> &values) {
   std::uint64_t result = 0;
 
-  for (int64_t i = 0; i < values.size(); i++) {
+  for (std::int64_t i = 0; i < values.size(); i++) {
     result |= static_cast<std::uint64_t>(values[i]) << i;
   }
 
   return result;
 }
 
-__qpu__ uint64_t foo() {
+__qpu__ std::uint64_t foo() {
   cudaq::qvector v(2);
   x(v);
   auto results = mz(v);

@@ -193,7 +193,7 @@ module attributes {qlx.profiles = ["p3"]} {
     %next, %record = fabric.measure_product %patch {logical_indices = array<i64: 0>, patch_indices = array<i64: 0>, pauli_product = "Z", record = "final"} : (!fabric.patch<@source_code>) -> (!fabric.patch<@source_code>, i1)
     fabric.return %next, %record : !fabric.patch<@source_code>, i1
   }
-  fabric.gadget_profile @analysis for @source {
+  fabric.gadget_contract @analysis for @source {
     fabric.success {records = ["source.final.outcome"]}
   }
   phys.machine @arch {
@@ -261,7 +261,7 @@ module attributes {qlx.profiles = ["p3"]} {
   fabric.gadget @attempt() {
     fabric.return
   } {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @attempt_profile for @attempt {}
+  fabric.gadget_contract @attempt_profile for @attempt {}
   phys.machine @m {
     phys.resource_class @q {count = 1 : i64, kind = "qubit", native_actions = [], native_instruments = [@mz]}
   }

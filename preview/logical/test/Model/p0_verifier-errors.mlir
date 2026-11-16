@@ -52,7 +52,7 @@ module {
   }
 }
 
-// CHECK: error: runtime and resource orchestration is not legal inside a closed logical objective
+// CHECK: error: runtime and resource orchestration is not legal inside a closed logical action
 
 // -----
 
@@ -109,4 +109,4 @@ module {
   }
 }
 
-// CHECK: error: runtime and resource orchestration is not legal inside a closed logical objective
+// CHECK: error: runtime and resource orchestration is not legal inside a closed logical action

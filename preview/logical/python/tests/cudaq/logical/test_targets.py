@@ -13,8 +13,8 @@ import pytest
 
 import cudaq
 import cudaq.logical
-from cudaq._experimental import (CostModel, CustomTarget, LoopUnrolling,
-                                 NoiseSupport, QuakeUnmappedProfile)
+from cudaq.core._experimental import (CostModel, CustomTarget, LoopUnrolling,
+                                      NoiseSupport, QuakeUnmappedProfile)
 
 
 @cudaq.logical.program
@@ -223,6 +223,27 @@ def test_clifford_t_target_estimates_multi_controlled_gates(kernel, level):
         cudaq.reset_target()
 
     assert result.annotations
+
+
+@cudaq.kernel
+def h_rz_ctrl_r1():
+    q = cudaq.qvector(2)
+    h(q[0])
+    rz(0.3, q[0])
+    r1.ctrl(0.7, q[0], q[1])
+    mz(q)
+
+
+@pytest.mark.parametrize("level", [1, 2])
+def test_clifford_t_target_imports_optimizer_global_phase(level):
+    # The level-2 T-count optimizer factors out a quake.phase for this kernel.
+    try:
+        cudaq.set_target(cudaq.logical.targets.clifford_t_target())
+        result = cudaq.estimate(h_rz_ctrl_r1, optimization_level=level)
+    finally:
+        cudaq.reset_target()
+
+    assert result.annotations["LOGICAL"]
 
 
 def test_estimator_target_estimates_a_doubly_controlled_ry():
@@ -732,6 +753,29 @@ def test_estimate_resources_report_the_logical_profile():
     assert resources.count() == resources.depth
 
 
+@cudaq.kernel
+def estimate_bell_bits() -> tuple[bool, bool]:
+    qubits = cudaq.qvector(2)
+    h(qubits[0])
+    x.ctrl(qubits[0], qubits[1])
+    return mz(qubits[0]), mz(qubits[1])
+
+
+def test_estimate_accepts_a_kernel_that_returns_measured_bits():
+    # A kernel with a result reaches the importer with CUDA-Q's host launch
+    # code, and with its tuple as one struct.
+    try:
+        cudaq.set_target(cudaq.logical.targets.estimator)
+        result = cudaq.estimate(estimate_bell_bits)
+    finally:
+        cudaq.reset_target()
+
+    assert result.resources.num_qubits == 2
+    assert result.resources.count("h") == 1
+    assert result.resources.count_controls("x", 1) == 1
+    assert result.resources.count("mz") == 2
+
+
 def test_estimate_resources_stay_logical_on_a_full_stack():
     target = cudaq.logical.targets.surface_physical_target(logical_capacity=1)
     try:
@@ -822,3 +866,147 @@ def test_target_from_architecture_rejects_non_target_runtime_backend():
         cudaq.logical.targets.Target.from_architecture("bad_runtime",
                                                        device.logical,
                                                        runtime_backend=object())
+
+
+@pytest.mark.parametrize("program, expected", [
+    (qec_memory_program, False),
+    (qec_standard_css_program, True),
+])
+def test_surface_target_shares_definitions_and_lowers_without_synthesis(
+        program, expected):
+    from cudaq.logical.architectures import surface
+
+    definitions = surface.definitions(3)
+    target = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1, clifford_t_precision=None)
+    selected = target._device.logical_to_qec[0].architecture
+    assert any(g is definitions.prepare_zero for g in selected.link_roots)
+    assert any(g is definitions.memory_round for g in selected.link_roots)
+    assert any(g is definitions.measure_z for g in selected.link_roots)
+    root = target.runtime_endpoint
+    p0 = root.compile(cudaq.logical.compile(program))
+    p1 = root.next_backend.compile(p0)
+    p2 = root.next_backend.next_backend.compile(p1)
+    assert p2.profile in {"p2a", "p2n"}
+    physical = cudaq.logical.compile(
+        p2,
+        pipeline=cudaq.logical.compiler.pipelines.physical(),
+        device=target._device)
+    assert physical.stage == cudaq.logical.stages.P3
+    assert physical.module.operation.verify()
+    # Check both Z and X logical outcomes through the built-in surface recipe.
+    try:
+        cudaq.set_target("stim")
+        assert cudaq.run(physical, shots_count=8) == [expected] * 8
+    finally:
+        cudaq.reset_target()
+
+
+@pytest.mark.parametrize("preparation, measurement, expected", [
+    ("prepare_zero", "measure_z", False),
+    ("prepare_one", "measure_z", True),
+    ("prepare_plus", "measure_x", False),
+    ("prepare_minus", "measure_x", True),
+])
+def test_surface_preparations_and_readouts(preparation, measurement, expected):
+    from cudaq.logical.architectures import surface
+
+    definitions = surface.definitions(3)
+    prepare = getattr(definitions, preparation)
+    measure = getattr(definitions, measurement)
+
+    @cudaq.logical.protocol
+    def prepared_readout() -> bool:
+        block = cudaq.logical.allocate_patch(definitions.code, region="compute")
+        return measure(prepare(block))
+
+    target = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1, clifford_t_precision=None)
+    physical = cudaq.logical.compile(
+        prepared_readout,
+        pipeline=cudaq.logical.compiler.pipelines.physical(),
+        device=target._device)
+    try:
+        cudaq.set_target("stim")
+        assert cudaq.run(physical, shots_count=8) == [expected] * 8
+    finally:
+        cudaq.reset_target()
+
+
+@pytest.mark.parametrize("negative", [False, True])
+def test_native_physical_mpp_projects_record_and_sign(negative):
+    from cudaq.logical.architectures import surface
+    definitions = surface.definitions(3)
+    support = definitions.code.hz[0]
+    paulis = ("-" if negative else "") + "Z" * len(support)
+
+    @cudaq.logical.gadget
+    def stabilizer_readout() -> bool:
+        block = definitions.prepare_zero(
+            cudaq.logical.allocate_patch(definitions.code, region="compute"))
+        block, bits = cudaq.logical.ops.measure_pauli(block.data[support],
+                                                      paulis=paulis)
+        cudaq.logical.discard(block)
+        return cudaq.logical.ops.parity(bits)
+
+    target = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1, clifford_t_precision=None)
+    physical = cudaq.logical.compile(
+        stabilizer_readout,
+        pipeline=cudaq.logical.compiler.pipelines.physical(),
+        device=target._device)
+    assert "fabric-to-phys@0.3" in [e.producer for e in physical.evidence]
+    try:
+        cudaq.set_target("stim")
+        assert cudaq.run(physical, shots_count=8) == [negative] * 8
+    finally:
+        cudaq.reset_target()
+
+
+def test_stage_free_target_lowering_reuses_build_verification_authority():
+    from unittest.mock import patch
+
+    from cudaq.logical.lower.driver import lower
+
+    build = cudaq.logical.compile(bell_pair)
+    with patch.object(
+            type(build._module.operation),
+            "verify",
+            side_effect=AssertionError("stage-free clone was re-verified"),
+    ):
+        work, ctx = lower(
+            cudaq.logical.targets.LoweringSpec(
+                (), cudaq.logical.targets.emit_mlir()),
+            build,
+        )
+
+    assert work is not build._module
+    assert ctx._verification_receipt.module is work
+
+
+def test_transforming_target_lowering_still_verifies_its_output():
+    from unittest.mock import patch
+
+    from cudaq.logical.lower.driver import lower
+    from cudaq.logical.lower.stage import Stage
+
+    class NoopStage(Stage):
+
+        def apply(self, _module, _ctx):
+            pass
+
+    build = cudaq.logical.compile(bell_pair)
+    with patch.object(
+            type(build._module.operation),
+            "verify",
+            return_value=False,
+    ) as verify:
+        with pytest.raises(ValueError,
+                           match="target lowering produced invalid"):
+            lower(
+                cudaq.logical.targets.LoweringSpec(
+                    (NoopStage(),), cudaq.logical.targets.emit_mlir()),
+                build,
+            )
+
+    verify.assert_called_once_with()

@@ -426,19 +426,19 @@ int main(int argc, char **argv) {
   volatile int dispatcher_shutdown = 0;
   std::uint64_t packets_dispatched = 0;
   cudaq_ringbuffer_t ring{};
-  ring.rx_flags_host = reinterpret_cast<volatile uint64_t *>(
+  ring.rx_flags_host = reinterpret_cast<volatile std::uint64_t *>(
       cpu_roce_get_rx_ring_flag_addr(xcvr));
-  ring.tx_flags_host = reinterpret_cast<volatile uint64_t *>(
+  ring.tx_flags_host = reinterpret_cast<volatile std::uint64_t *>(
       cpu_roce_get_tx_ring_flag_addr(xcvr));
   ring.rx_data_host =
-      reinterpret_cast<uint8_t *>(cpu_roce_get_rx_ring_data_addr(xcvr));
+      reinterpret_cast<std::uint8_t *>(cpu_roce_get_rx_ring_data_addr(xcvr));
   ring.tx_data_host =
-      reinterpret_cast<uint8_t *>(cpu_roce_get_tx_ring_data_addr(xcvr));
+      reinterpret_cast<std::uint8_t *>(cpu_roce_get_tx_ring_data_addr(xcvr));
   ring.rx_stride_sz = cfg.page_size;
   ring.tx_stride_sz = cfg.page_size;
   cudaq_dispatcher_config_t dcfg{};
   dcfg.num_slots = cfg.num_pages;
-  dcfg.slot_size = static_cast<uint32_t>(cfg.page_size);
+  dcfg.slot_size = static_cast<std::uint32_t>(cfg.page_size);
   dcfg.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
   dcfg.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
   cudaq_function_table_t table{};

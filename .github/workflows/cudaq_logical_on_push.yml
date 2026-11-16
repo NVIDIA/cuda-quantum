@@ -35,6 +35,9 @@ jobs:
         with:
           paths: |
             preview/logical/
+            edem/
+            math/gf2/
+            pyproject.toml.edem
             .github/workflows/cudaq_logical_on_push.yml
             .github/workflows/cudaq_logical_build_or_retrieve.yml
             .github/workflows/cudaq_logical_build.yml

@@ -147,7 +147,7 @@ LogicalResult DomainOp::verify() {
     return sourcedActionSites.front().emitOpError(
         "source_site requires a containing symbol-table scope");
 
-  DenseMap<int64_t, SmallVector<ApplyOp, 1>> appliesBySite;
+  DenseMap<std::int64_t, SmallVector<ApplyOp, 1>> appliesBySite;
   scope->walk([&](KernelOp kernel) {
     if (lookupDomain(kernel.getOperation(), kernel.getDomainAttr()) != *this)
       return;
@@ -158,7 +158,7 @@ LogicalResult DomainOp::verify() {
   });
 
   for (ActionSiteOp site : sourcedActionSites) {
-    int64_t sourceSite = site.getSourceSiteAttr().getInt();
+    std::int64_t sourceSite = site.getSourceSiteAttr().getInt();
     if (sourceSite < 0)
       return site.emitOpError("source_site must be nonnegative");
     auto found = appliesBySite.find(sourceSite);
@@ -177,7 +177,7 @@ LogicalResult DomainOp::verify() {
           "an lvm.apply source_site requires kind = action");
     if (site.getObjectiveAttr() != source.getActionAttr())
       return site.emitOpError(
-          "objective does not match the source_site lvm.apply action");
+          "action does not match the source_site lvm.apply action");
     if (site.getPlacements() != source.getPlacements())
       return site.emitOpError(
           "placements do not match the source_site lvm.apply placements");
@@ -491,7 +491,7 @@ LogicalResult KernelOp::verify() {
         "lvm.return operands do not match function_type results");
 
   LogicalResult result = success();
-  llvm::DenseSet<int64_t> callScopes;
+  llvm::DenseSet<std::int64_t> callScopes;
   // The placed body may contain hundreds of thousands of logical operands.
   // A standalone SymbolTable::lookupSymbolIn performs a direct symbol-table
   // lookup without retaining an index between calls.  Build one domain index
@@ -502,7 +502,7 @@ LogicalResult KernelOp::verify() {
     if (failed(result))
       return;
     if (auto call = dyn_cast<CallOp>(nested)) {
-      int64_t scope = call.getScopeAttr().getInt();
+      std::int64_t scope = call.getScopeAttr().getInt();
       if (!callScopes.insert(scope).second) {
         call.emitOpError("scope must be unique within its lvm.kernel");
         result = failure();
@@ -832,7 +832,7 @@ static LogicalResult verifyPlacedCall(Operation *op, ArrayAttr placements,
   if (!declaration ||
       (expectInstrument && !isa<qlx::InstrumentDeclOp>(declaration)) ||
       (!expectInstrument && !isa<qlx::ActionOp>(declaration)))
-    return op->emitOpError("references missing or wrong-kind objective ")
+    return op->emitOpError("references missing or wrong-kind action ")
            << reference;
   auto functionType =
       expectInstrument
@@ -846,16 +846,14 @@ static LogicalResult verifyPlacedCall(Operation *op, ArrayAttr placements,
     // compare non-quantum types and arity while accepting that refinement.
     if (inputs.size() != functionType.getNumInputs() ||
         results.size() != functionType.getNumResults())
-      return op->emitOpError("objective arity does not match placed call");
+      return op->emitOpError("action arity does not match placed call");
     for (auto [actual, ideal] :
          llvm::zip(inputs.getTypes(), functionType.getInputs()))
       if (!isa<LogicalQubitType>(actual) && actual != ideal)
-        return op->emitOpError(
-            "non-quantum input type does not match objective");
+        return op->emitOpError("non-quantum input type does not match action");
     for (auto [actual, ideal] : llvm::zip(results, functionType.getResults()))
       if (!isa<LogicalQubitType>(actual) && actual != ideal)
-        return op->emitOpError(
-            "non-quantum result type does not match objective");
+        return op->emitOpError("non-quantum result type does not match action");
   }
   return success();
 }
@@ -1102,7 +1100,7 @@ LogicalResult ActionSiteOp::verify() {
       dyn_cast_or_null<qlx::BuiltinInstrumentAttr>(getObjectiveAttr());
   if (!builtin || builtin.getValue() != qlx::BuiltinInstrument::mpp)
     return emitOpError(
-        "communication action site objective must be the built-in MPP");
+        "communication action site must declare the built-in MPP");
   if (getChannelCapabilityAttr().getKey() != "qlx.machine/observable_remote")
     return emitOpError("communication action site requires observable_remote "
                        "channel capability");
@@ -1249,5 +1247,7 @@ void LVMDialect::initialize() {
   addOperations<
 #define GET_OP_LIST
 #include "qlx/Dialect/LVM/IR/LVMOps.cpp.inc"
+
+#include <cstdint>
       >();
 }

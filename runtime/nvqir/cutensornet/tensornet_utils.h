@@ -9,6 +9,7 @@
 #pragma once
 #include "cutensornet.h"
 #include <complex>
+#include <cstdint>
 #include <random>
 #include <vector>
 
@@ -48,7 +49,7 @@ allocateGateMatrix(const std::vector<std::complex<T>> &gateMatHost) {
 }
 
 /// @brief Generate an array of random values in the range (0.0, max)
-std::vector<double> randomValues(uint64_t num_samples, double max_value,
+std::vector<double> randomValues(std::uint64_t num_samples, double max_value,
                                  std::mt19937 &randomEngine);
 
 /// @brief Struct to allocate and clean up device memory scratch space.

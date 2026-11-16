@@ -1,0 +1,61 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
+// RUN:   two-qubit-gate-count-optimization-pipeline{level=2})' %s | FileCheck %s
+
+// Four Trotter steps of two `ZZ` interactions. Phase folding merges each
+// interaction's rotations into the last step, which leaves the controlled `x`
+// gates of the first three steps adjacent. The pipeline then cancels them.
+func.func @trotter() -> (!quake.measure, !quake.measure, !quake.measure)
+    attributes {"cudaq-entrypoint"} {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  %q2 = quake.alloca !quake.ref
+  %a = arith.constant 0.3 : f64
+  %b = arith.constant 0.2 : f64
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%a) %q1 : (f64, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%b) %q2 : (f64, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%a) %q1 : (f64, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%b) %q2 : (f64, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%a) %q1 : (f64, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%b) %q2 : (f64, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%a) %q1 : (f64, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%b) %q2 : (f64, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
+  %m2 = quake.mz %q2 : (!quake.ref) -> !quake.measure
+  return %m0, %m1, %m2 : !quake.measure, !quake.measure, !quake.measure
+}
+
+// CHECK-LABEL: func.func @trotter()
+// CHECK:         quake.x [
+// CHECK-NEXT:    quake.rz
+// CHECK-NEXT:    quake.x [
+// CHECK-NEXT:    quake.x [
+// CHECK-NEXT:    quake.rz
+// CHECK-NEXT:    quake.x [
+// CHECK-NOT:     quake.x
+// CHECK-NOT:     quake.rz
+// CHECK:         return

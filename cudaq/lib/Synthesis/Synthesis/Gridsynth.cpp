@@ -266,8 +266,8 @@ std::optional<DOmegaUnitary> nearest_zero_t_unitary(const Real &theta,
 
   // R_z has period 4*pi, so only m mod 8 matters for omega^m. Reducing before
   // narrowing as theta may be arbitrarily large.
-  int32_t m_mod8 = static_cast<int32_t>(m % Integer(8));
-  int32_t exponent = (-m_mod8) & 0b111;
+  std::int32_t m_mod8 = static_cast<std::int32_t>(m % Integer(8));
+  std::int32_t exponent = (-m_mod8) & 0b111;
 
   DOmegaUnitary candidate(mul_by_omega_power(DOmega::from_int(1), exponent),
                           DOmega::from_int(0), 0);
@@ -284,21 +284,21 @@ namespace cudaq::synth {
 // Search bound
 //===----------------------------------------------------------------------===//
 
-int64_t details::max_denominator_exponent(const Real &epsilon) {
+std::int64_t details::max_denominator_exponent(const Real &epsilon) {
   // Slack above the expected k, leaving generous room for the probabilistic
   // tail of the Diophantine step before the search is called off.
-  constexpr int64_t kSlack = 30;
+  constexpr std::int64_t kSlack = 30;
 
   // log2(1/epsilon) is read off the MPFR exponent rather than computed: for
   // epsilon = m * 2^e with 0.5 <= m < 1, floor(log2(epsilon)) is e - 1. That
   // stays exact for arbitrarily small epsilon, where converting to a double
   // first would flush to zero and hand back an unusable bound.
   const mpfr_exp_t e = mpfr_get_exp(epsilon.get_mpfr());
-  const int64_t log2_inv_epsilon = 1 - static_cast<int64_t>(e);
+  const std::int64_t log2_inv_epsilon = 1 - static_cast<std::int64_t>(e);
 
   // A loose epsilon (>= 1) makes log2(1/epsilon) negative; the slack alone is
   // the floor there.
-  return std::max<int64_t>(0, 2 * log2_inv_epsilon) + kSlack;
+  return std::max<std::int64_t>(0, 2 * log2_inv_epsilon) + kSlack;
 }
 
 mpfr_prec_t details::required_precision(const Real &epsilon) {
@@ -309,7 +309,7 @@ mpfr_prec_t details::required_precision(const Real &epsilon) {
   // epsilon below the double range yields a large precision rather than an
   // infinity that would be undefined to convert.
   const mpfr_exp_t e = mpfr_get_exp(epsilon.get_mpfr());
-  const int64_t log2_inv_epsilon = 1 - static_cast<int64_t>(e);
+  const std::int64_t log2_inv_epsilon = 1 - static_cast<std::int64_t>(e);
 
   return std::max<mpfr_prec_t>(
       kFloor,
@@ -451,10 +451,10 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
   // (Definition 5.20). The T-count of the final circuit is 2k-2 or 2k
   // (Lemma 7.3), so scanning k from 0 upwards finds the T-optimal
   // approximation.
-  const int64_t k_max = details::max_denominator_exponent(epsilon);
+  const std::int64_t k_max = details::max_denominator_exponent(epsilon);
   local.k_max = k_max;
   local.working_precision_bits =
-      static_cast<int64_t>(Real::get_default_precision());
+      static_cast<std::int64_t>(Real::get_default_precision());
 
   // Enumeration time is a residual: k-loop time minus solve time. The stepper
   // cannot be timed directly, as it advances inside the range-for.
@@ -469,12 +469,12 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
   Integer k = 0;
   for (; k <= k_max; k++) {
     CUDAQ_SYNTH_FENCE();
-    CUDAQ_SYNTH_OPEN_SUB("k = " + std::to_string(static_cast<int64_t>(k)));
+    CUDAQ_SYNTH_OPEN_SUB("k = " + std::to_string(static_cast<std::int64_t>(k)));
 
     TdgpStepper stepper(k, *region_or, unit_disk, opG_inv, transformed.bboxA,
                         transformed.bboxB, bboxA_y_fattened, bboxB_y_fattened,
                         options.maxOdgpScanSteps);
-    local.k_reached = static_cast<int64_t>(k);
+    local.k_reached = static_cast<std::int64_t>(k);
     local.enumeration_ns = elapsed_ns() - local.diophantine_ns;
     for (const DOmega &z : stepper) {
       // The deadline has to end the search itself: a solver that gives up
@@ -539,8 +539,8 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
         // T-count leads, so it cannot regress.
         DOmegaUnitary u_approx(z_reduced, w_reduced, 0);
         Circuit best = kmm_synthesize(u_approx);
-        int64_t t_count_ties = 0;
-        for (int32_t j = 1; j < 8; j++) {
+        std::int64_t t_count_ties = 0;
+        for (std::int32_t j = 1; j < 8; j++) {
           DOmegaUnitary candidate(z_reduced, mul_by_omega_power(w_reduced, j),
                                   0);
           Circuit circuit = kmm_synthesize(candidate);
@@ -560,7 +560,7 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
 
         local.enumeration_ns = elapsed_ns() - local.diophantine_ns;
         publish(GridsynthOutcome::Success);
-        std::string k_str = std::to_string(static_cast<int64_t>(k));
+        std::string k_str = std::to_string(static_cast<std::int64_t>(k));
         CUDAQ_SYNTH_CLOSE_SUCCESS("Diophantine succeeded at k=" + k_str);
         CUDAQ_SYNTH_CLOSE_SUCCESS("synthesized at k=" + k_str);
         return u_approx;

@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 
 namespace {
@@ -77,7 +78,7 @@ TEST(CpuRoceHololinkWrapper, AcceptsUnifiedAtCreate) {
   EXPECT_EQ(cpu_roce_get_page_size(handle), 256);
   EXPECT_EQ(cpu_roce_get_num_pages(handle), 8);
   // Before connect(), CallerDriven polls return false and do not throw.
-  uint32_t slot = 7;
+  std::uint32_t slot = 7;
   testing::internal::CaptureStderr();
   EXPECT_EQ(cpu_roce_rx_poll(handle, &slot), 0);
   EXPECT_EQ(slot, 7u);
@@ -89,7 +90,7 @@ TEST(CpuRoceHololinkWrapper, AcceptsUnifiedAtCreate) {
 TEST(CpuRoceHololinkWrapper, NonCallerDrivenHooksReturnZero) {
   auto handle = create_valid();
   ASSERT_NE(handle, nullptr);
-  uint32_t slot = 0;
+  std::uint32_t slot = 0;
   testing::internal::CaptureStderr();
   EXPECT_EQ(cpu_roce_rx_poll(handle, &slot), 0);
   EXPECT_EQ(cpu_roce_tx_publish(handle, 0), 0);
@@ -129,7 +130,7 @@ TEST(CpuRoceHololinkWrapper, NullHandleAccessorsPreserveCContract) {
   cpu_roce_close(nullptr);
   cpu_roce_blocking_monitor(nullptr);
   cpu_roce_set_local_ip(nullptr, "192.0.2.1");
-  uint32_t slot = 0;
+  std::uint32_t slot = 0;
   EXPECT_EQ(cpu_roce_rx_poll(nullptr, &slot), 0);
   EXPECT_EQ(cpu_roce_tx_publish(nullptr, 0), 0);
   cpu_roce_destroy_transceiver(nullptr);

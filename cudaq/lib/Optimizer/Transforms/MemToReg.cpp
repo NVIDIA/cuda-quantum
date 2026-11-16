@@ -498,6 +498,37 @@ private:
       scanVeqUses(veq, veq, 0, visited);
     }
 
+    // A `quake.concat` result is a root of its own, but its elements are the
+    // operands' qubits, so a memory-form access recorded against the result
+    // (a run-time `extract_ref`, say) is also an access to every operand. The
+    // operands then alias that access and cannot be tracked as wires. Push the
+    // opacity back to the operands' roots. A concat that is itself an operand
+    // only becomes opaque once an outer concat is processed, so go again until
+    // no concat is left to propagate.
+    SmallVector<cudaq::quake::ConcatOp> concats;
+    f.walk([&](cudaq::quake::ConcatOp concat) { concats.push_back(concat); });
+    SmallPtrSet<Operation *, 8> propagated;
+    for (bool changed = true; changed;) {
+      changed = false;
+      for (auto concat : concats) {
+        auto it = opaque.find(concat.getResult());
+        if (it == opaque.end() || it->second.empty() ||
+            !propagated.insert(concat).second)
+          continue;
+        changed = true;
+        for (Value target : concat.getTargets()) {
+          if (isa<cudaq::quake::RefType>(target.getType())) {
+            // An unresolvable ref is kept in memory form below regardless.
+            if (auto loc = resolveRefLocation(target))
+              markOpaque(loc->first, loc->second, 1);
+          } else if (auto base = resolveVeqBase(target)) {
+            markOpaque(base->first, base->second,
+                       cudaq::quake::getVeqSize(target));
+          }
+        }
+      }
+    }
+
     // 3. classify each ref. An unresolvable location, or a location covered by
     // a memory-form access, means the ref stays in memory form.
     for (Value ref : refs) {
@@ -529,6 +560,21 @@ private:
   DenseMap<Value, SmallVector<std::pair<std::size_t, std::size_t>, 2>> opaque;
 };
 } // namespace
+
+/// True if \p ref is a reference that is promoted to a wire value (via unwrap).
+/// A blacklisted reference stays in memory form, so it is left as it is.
+static bool isValuePromoted(Value ref, const QuantumRefAnalysis &refAnalysis) {
+  return isa<cudaq::quake::RefType>(ref.getType()) &&
+         !refAnalysis.isBlacklisted(ref);
+}
+
+/// True if \p op has a reference operand that is converted to a wire.
+static bool hasValuePromotedRef(Operation *op,
+                                const QuantumRefAnalysis &refAnalysis) {
+  return llvm::any_of(op->getOperands(), [&](Value opnd) {
+    return isValuePromoted(opnd, refAnalysis);
+  });
+}
 
 namespace {
 /// For operations that contain Regions, a data-flow analysis is done over all
@@ -1138,7 +1184,8 @@ namespace {
 /// QuakeOperator interface. Handle it special for now.
 class ResetOpPattern : public OpRewritePattern<cudaq::quake::ResetOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  ResetOpPattern(MLIRContext *ctx, const QuantumRefAnalysis &refAnalysis)
+      : OpRewritePattern(ctx), refAnalysis(refAnalysis) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::ResetOp op,
                                 PatternRewriter &rewriter) const override {
@@ -1146,6 +1193,8 @@ public:
     auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
     auto opnd = op.getTargets();
     assert(opnd.getType() == cudaq::quake::RefType::get(rewriter.getContext()));
+    if (!isValuePromoted(opnd, refAnalysis))
+      return failure();
     Value target = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
     auto newOp =
         cudaq::quake::ResetOp::create(rewriter, loc, TypeRange{wireTy}, target);
@@ -1153,11 +1202,15 @@ public:
                                                       opnd);
     return success();
   }
+
+private:
+  const QuantumRefAnalysis &refAnalysis;
 };
 
 class DeallocOpPattern : public OpRewritePattern<cudaq::quake::DeallocOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  DeallocOpPattern(MLIRContext *ctx, const QuantumRefAnalysis &refAnalysis)
+      : OpRewritePattern(ctx), refAnalysis(refAnalysis) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::DeallocOp op,
                                 PatternRewriter &rewriter) const override {
@@ -1165,27 +1218,32 @@ public:
     auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
     auto opnd = op.getReference();
     assert(isa<cudaq::quake::RefType>(opnd.getType()));
+    if (!isValuePromoted(opnd, refAnalysis))
+      return failure();
     Value target = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
     rewriter.replaceOpWithNewOp<cudaq::quake::SinkOp>(op, target);
     return success();
   }
+
+private:
+  const QuantumRefAnalysis &refAnalysis;
 };
 
 /// The evince operation is also an oddball like the reset operation.
 class EvinceOpPattern : public OpRewritePattern<cudaq::quake::EvinceOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  EvinceOpPattern(MLIRContext *ctx, const QuantumRefAnalysis &refAnalysis)
+      : OpRewritePattern(ctx), refAnalysis(refAnalysis) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::EvinceOp op,
                                 PatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
-    auto qrefTy = cudaq::quake::RefType::get(rewriter.getContext());
 
     SmallVector<Value> refArgs;
     SmallVector<Value> newArgs;
     for (Value arg : op.getArgs()) {
-      if (arg.getType() == qrefTy) {
+      if (isValuePromoted(arg, refAnalysis)) {
         Value wire = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, arg);
         newArgs.push_back(wire);
         refArgs.push_back(arg);
@@ -1204,6 +1262,9 @@ public:
     rewriter.eraseOp(op);
     return success();
   }
+
+private:
+  const QuantumRefAnalysis &refAnalysis;
 };
 } // namespace
 
@@ -1211,53 +1272,56 @@ template <typename OP>
 class Wrapper : public OpRewritePattern<OP> {
 public:
   using Base = OpRewritePattern<OP>;
-  using Base::Base;
+
+  Wrapper(MLIRContext *ctx, const QuantumRefAnalysis &refAnalysis)
+      : Base(ctx), refAnalysis(refAnalysis) {}
 
   LogicalResult matchAndRewrite(OP op,
                                 PatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
-    SmallVector<Value> unwrapCtrls;
     auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
-    auto qrefTy = cudaq::quake::RefType::get(rewriter.getContext());
-    // Scan the control and target positions. Any that were not Wires will be
-    // promoted to Wires via an unwrap operation. These unwrap ops become the
-    // arguments to the quantum value form of the new quantum operation.
+    // An operation may take both references and wires. Scan the control and
+    // target positions. Any reference that is converted to a wire is promoted
+    // via an unwrap operation. These unwrap ops become the arguments to the
+    // quantum value form of the new quantum operation. Any other operand, a
+    // wire, a veq or a reference that stays in memory form, is used as is.
+    SmallVector<Value> origOperands;
+    SmallVector<Value> newOperands;
+    auto convert = [&](ValueRange operands) {
+      for (Value opnd : operands) {
+        origOperands.push_back(opnd);
+        if (isValuePromoted(opnd, refAnalysis))
+          newOperands.push_back(
+              cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd));
+        else
+          newOperands.push_back(opnd);
+      }
+    };
+    SmallVector<Value> unwrapCtrls;
     if constexpr (!cudaq::quake::isMeasure<OP>) {
-      for (auto opnd : op.getControls()) {
-        auto opndTy = opnd.getType();
-        if (opndTy == qrefTy) {
-          auto unwrap =
-              cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
-          unwrapCtrls.push_back(unwrap);
-        } else {
-          unwrapCtrls.push_back(opnd);
-        }
-      }
+      convert(op.getControls());
+      unwrapCtrls = newOperands;
     }
-    SmallVector<Value> unwrapTargs;
-    for (auto opnd : op.getTargets()) {
-      auto opndTy = opnd.getType();
-      if (opndTy == qrefTy) {
-        auto unwrap =
-            cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
-        unwrapTargs.push_back(unwrap);
-      } else {
-        unwrapTargs.push_back(opnd);
-      }
-    }
+    convert(op.getTargets());
+    SmallVector<Value> unwrapTargs(newOperands.begin() + unwrapCtrls.size(),
+                                   newOperands.end());
 
-    auto threadWires = [&](const SmallVectorImpl<Value> &wireOperands,
-                           auto newOp, unsigned addend) {
-      unsigned count = 0;
-      for (auto i : llvm::enumerate(wireOperands)) {
-        auto opndTy = i.value().getType();
-        auto offset = i.index() + addend;
-        if (opndTy == qrefTy) {
-          cudaq::quake::WrapOp::create(rewriter, loc, newOp.getResult(offset),
-                                       i.value());
-        } else if (opndTy == wireTy) {
-          op.getResult(count++).replaceAllUsesWith(newOp.getResult(offset));
-        }
+    // Each wire operand of the new operation has a wire result, in order. The
+    // result of an operand that was a reference is stored back to it. The
+    // result of an operand that was a wire replaces the matching result of the
+    // original operation.
+    auto threadWires = [&](auto newOp, unsigned newBase, unsigned oldBase) {
+      unsigned newIdx = newBase;
+      unsigned oldIdx = oldBase;
+      for (auto [orig, now] : llvm::zip(origOperands, newOperands)) {
+        if (!cudaq::quake::isQuantumValueType(now.getType()))
+          continue;
+        if (isa<cudaq::quake::RefType>(orig.getType()))
+          cudaq::quake::WrapOp::create(rewriter, loc, newOp.getResult(newIdx),
+                                       orig);
+        else if (isa<cudaq::quake::WireType>(orig.getType()))
+          op.getResult(oldIdx++).replaceAllUsesWith(newOp.getResult(newIdx));
+        ++newIdx;
       }
       rewriter.eraseOp(op);
     };
@@ -1265,51 +1329,35 @@ public:
     if constexpr (cudaq::quake::isMeasure<OP>) {
       // The result type of the bits is the same. Add the wire types.
       SmallVector<Type> newTy = {op.getMeasOut().getType()};
-      SmallVector<Type> wireTys(unwrapTargs.size(), wireTy);
+      SmallVector<Type> wireTys(wireCount(unwrapTargs), wireTy);
       newTy.append(wireTys.begin(), wireTys.end());
       auto newOp = OP::create(rewriter, loc, newTy, unwrapTargs,
                               op.getRegisterNameAttr());
-      SmallVector<Value> wireOperands = op.getTargets();
       op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
-      threadWires(wireOperands, newOp, 1);
+      // Result 0 is the measured bits; the wires follow it.
+      constexpr int wireResultOffset = 1;
+      threadWires(newOp, wireResultOffset, wireResultOffset);
     } else {
-      // Scan the control and target positions. Any that were not wires
-      // originally are now placed in the result vector. Those new results are
-      // propagated to wrap operations.
-      auto numberOfWires = wireCount(unwrapCtrls, unwrapTargs);
-      SmallVector<Type> wireTys{numberOfWires, wireTy};
+      // Any operand that is a wire in the new operation is in the result
+      // vector. Those new results are propagated to wrap operations.
+      SmallVector<Type> wireTys(wireCount(unwrapCtrls) + wireCount(unwrapTargs),
+                                wireTy);
       auto newOp = OP::create(rewriter, loc, wireTys, op.getIsAdjAttr(),
                               op.getParameters(), unwrapCtrls, unwrapTargs,
                               op.getNegatedQubitControlsAttr());
-      auto wireOperands =
-          filteredByType(qrefTy, op.getControls(), op.getTargets());
-      threadWires(wireOperands, newOp, 0);
+      threadWires(newOp, 0, 0);
     }
     return success();
   }
 
-  static SmallVector<Value> filteredByType(Type qrefTy, ValueRange ctls,
-                                           ValueRange trgs) {
-    SmallVector<Value> result;
-    for (Value v : ctls)
-      if (v.getType() == qrefTy)
-        result.push_back(v);
-    for (Value v : trgs)
-      if (v.getType() == qrefTy)
-        result.push_back(v);
-    return result;
+  static std::size_t wireCount(ArrayRef<Value> operands) {
+    return llvm::count_if(operands, [](Value v) {
+      return cudaq::quake::isQuantumValueType(v.getType());
+    });
   }
 
-  static std::size_t wireCount(ArrayRef<Value> ctls, ArrayRef<Value> trgs) {
-    std::size_t result = 0;
-    for (Value v : ctls)
-      if (cudaq::quake::isQuantumValueType(v.getType()))
-        result++;
-    for (Value v : trgs)
-      if (cudaq::quake::isQuantumValueType(v.getType()))
-        result++;
-    return result;
-  }
+private:
+  const QuantumRefAnalysis &refAnalysis;
 };
 
 #define WRAPPER(OpClass) Wrapper<cudaq::quake::OpClass>
@@ -1338,24 +1386,26 @@ public:
     if (failed(preconditionChecks()))
       return;
 
-    // 1) Rewrite the quantum operations into the intermediate QLS form.
-    if (failed(convertToQLS()))
-      return;
-
-    // 2) Convert load/store memory ops to value form.
     // Merge references naming the same qubit before anything keys a binding
     // on one of them. This is what makes the pass independent of whether CSE
     // ran ahead of it.
     if (quantumValues)
       dedupQuantumRefs(func);
 
-    MemoryAnalysis memAnalysis(func);
     // Decide up front which qubits may be promoted. Everything the analysis
     // cannot prove is reached through exactly one reference is left in memory
     // form.
     QuantumRefAnalysis refAnalysis(func);
     numBlacklistedRefs += refAnalysis.numBlacklisted();
     numPromotedLocations += refAnalysis.numLocations();
+
+    // 1) Rewrite the quantum operations into the intermediate QLS form. A
+    // reference that stays in memory form is left as it is.
+    if (failed(convertToQLS(refAnalysis)))
+      return;
+
+    // 2) Convert load/store memory ops to value form.
+    MemoryAnalysis memAnalysis(func);
     SmallPtrSet<Operation *, 4> cleanUps;
     std::optional<DominanceInfo> domOpt;
     processOpWithRegions(func, memAnalysis, refAnalysis, cleanUps, domOpt);
@@ -1966,20 +2016,20 @@ public:
   }
 
   // Convert the function to "quantum load/store" (QLS) format.
-  LogicalResult convertToQLS() {
+  LogicalResult convertToQLS(const QuantumRefAnalysis &refAnalysis) {
     if (!quantumValues)
       return success();
     auto func = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern, DeallocOpPattern,
-                    EvinceOpPattern>(ctx);
+                    EvinceOpPattern>(ctx, refAnalysis);
     ConversionTarget target(*ctx);
     target
         .addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
                                cudaq::quake::DeallocOp, cudaq::quake::EvinceOp>(
-            [](Operation *op) {
-              return !cudaq::quake::hasNonVectorReference(op);
+            [&](Operation *op) {
+              return !hasValuePromotedRef(op, refAnalysis);
             });
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::WrapOp,
                       cudaq::quake::NullWireOp, cudaq::quake::SinkOp>();

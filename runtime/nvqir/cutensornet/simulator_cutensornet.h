@@ -116,7 +116,7 @@ protected:
 
 private:
   // Helper to apply a Kraus channel
-  void applyKrausChannel(const std::vector<int32_t> &qubits,
+  void applyKrausChannel(const std::vector<std::int32_t> &qubits,
                          const cudaq::kraus_channel &channel);
 
 protected:
@@ -147,3 +147,5 @@ protected:
 } // end namespace nvqir
 
 #include "simulator_cutensornet.inc"
+
+#include <cstdint>

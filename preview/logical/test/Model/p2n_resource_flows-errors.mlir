@@ -26,7 +26,7 @@ module attributes {qlx.profiles = ["p2n"]} {
       kind = "produce_t_state"
     }
   }
-  // expected-error @+1 {{result types must match the production objective}}
+  // expected-error @+1 {{result types must match the production action}}
   fabric.protocol @wrong_nested_resource : () -> !fabric.resource<@y_state> attributes {
     objective = @library::@produce_t
   } {
@@ -43,7 +43,7 @@ module attributes {qlx.profiles = ["p2n"]} {
   qlx.action @make_t : () -> !fabric.resource<@t_state> {
     kind = "make_t"
   }
-  // expected-error @+1 {{result types must match the production objective}}
+  // expected-error @+1 {{result types must match the production action}}
   fabric.protocol @wrong_aliased_resource : () -> !fabric.resource<@y_state> attributes {
     objective = @make_t
   } {
@@ -60,7 +60,7 @@ module attributes {qlx.profiles = ["p2n"]} {
   qlx.action @produce_t : () -> !fabric.resource<@t_state> {
     kind = "produce_t_state"
   }
-  // expected-error @+1 {{result types must match the production objective}}
+  // expected-error @+1 {{result types must match the production action}}
   fabric.protocol @wrong_resource : () -> !fabric.resource<@y_state> attributes {
     objective = @produce_t
   } {

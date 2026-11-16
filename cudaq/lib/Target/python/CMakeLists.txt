@@ -6,18 +6,52 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-find_package(Python 3 REQUIRED COMPONENTS Interpreter Development.Module)
-find_package(nanobind CONFIG REQUIRED)
-nanobind_add_module(CUDAQTargetPython NB_STATIC NB_DOMAIN cudaq
-  py_target.cpp py_profiles.cpp py_compile_target.cpp)
-target_link_libraries(CUDAQTargetPython PRIVATE CUDAQTargetConfig)
-target_compile_options(CUDAQTargetPython PRIVATE -fexceptions -frtti -Wno-cast-qual)
-set_target_properties(CUDAQTargetPython PROPERTIES
-  OUTPUT_NAME _target
-  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/cudaq/core")
-set_target_properties(nanobind-static PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
-install(TARGETS CUDAQTargetPython
-  LIBRARY DESTINATION cudaq/core COMPONENT CUDAQCorePythonModules)
+find_package(Python 3 REQUIRED COMPONENTS Interpreter)
+
+set(_target_py "${CMAKE_BINARY_DIR}/python/cudaq/core/_target.py")
+# Symlink the pure Python dataclasses to the build directory.
+add_custom_command(
+  OUTPUT "${_target_py}"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/_target.py"
+  COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/python/cudaq/core"
+  COMMAND "${CMAKE_COMMAND}" -E create_symlink
+    "${CMAKE_CURRENT_SOURCE_DIR}/_target.py" "${_target_py}")
+add_custom_target(CUDAQTargetPythonStaging ALL DEPENDS "${_target_py}")
+# Install the pure Python dataclasses next to the other `cudaq.core` modules.
+install(FILES _target.py
+  DESTINATION cudaq/core COMPONENT CUDAQCorePythonModules)
+
+# `cudaq.core._target` used to be a compiled extension module: make sure to
+# remove them from both the build directory and the install prefix.
+# TODO: this can probably be removed once no old build or install is left.
+file(GLOB _stale_target_libs
+  "${CMAKE_BINARY_DIR}/python/cudaq/core/_target*.so"
+  "${CMAKE_BINARY_DIR}/python/cudaq/core/_target*.pyd")
+if(_stale_target_libs)
+  file(REMOVE ${_stale_target_libs})
+endif()
+install(CODE [[
+  file(GLOB _stale_target_libs
+    "${CMAKE_INSTALL_PREFIX}/cudaq/core/_target*.so"
+    "${CMAKE_INSTALL_PREFIX}/cudaq/core/_target*.pyd")
+  if(_stale_target_libs)
+    file(REMOVE ${_stale_target_libs})
+  endif()
+]] COMPONENT CUDAQCorePythonModules)
+
+# The nanobind casters between those dataclasses and the C++ types.
+add_library(CUDAQTargetPython INTERFACE)
+target_sources(CUDAQTargetPython INTERFACE
+  "${CMAKE_CURRENT_SOURCE_DIR}/CompileTargetCaster.cpp")
+target_include_directories(CUDAQTargetPython INTERFACE
+  "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/..")
+target_include_directories(CUDAQTargetPython SYSTEM INTERFACE
+  $<TARGET_PROPERTY:reflectcpp,INTERFACE_INCLUDE_DIRECTORIES>)
+target_link_libraries(CUDAQTargetPython INTERFACE CUDAQTargetCatalog)
+
+# The casters import `cudaq.core._target` at runtime.
+add_dependencies(CUDAQTargetPython CUDAQTargetPythonStaging)
 
 if(CUDAQ_BUILD_TESTS)
   if(CUDAQ_TARGET_STANDALONE_BUILD)

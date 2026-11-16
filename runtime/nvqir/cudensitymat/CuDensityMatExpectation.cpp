@@ -11,6 +11,8 @@
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
 #include "cudaq/runtime/logger/logger.h"
+
+#include <cstdint>
 namespace cudaq {
 CuDensityMatExpectation::CuDensityMatExpectation(cudensitymatHandle_t handle,
                                                  cudensitymatOperator_t op)
@@ -34,7 +36,7 @@ void CuDensityMatExpectation::prepare(cudensitymatState_t state) {
 }
 std::vector<std::complex<double>>
 CuDensityMatExpectation::compute(cudensitymatState_t state, double time,
-                                 int64_t batchSize) {
+                                 std::int64_t batchSize) {
   std::size_t requiredBufferSize = 0;
   HANDLE_CUDM_ERROR(cudensitymatWorkspaceGetMemorySize(
       m_handle, m_workspace, CUDENSITYMAT_MEMSPACE_DEVICE,

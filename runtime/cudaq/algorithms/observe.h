@@ -17,6 +17,7 @@
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"
+#include <algorithm>
 #include <functional>
 #include <ranges>
 #include <type_traits>
@@ -190,6 +191,33 @@ inline auto distributeComputations(
   return observe_result(result, op, data);
 }
 
+/// @brief Combine the results that each MPI rank computed for its share of the
+/// terms of `H`. Each rank's vector holds the expectation values of its own
+/// terms (zero for terms computed elsewhere) and, in the last slot, its local
+/// total; one element-wise sum gives every rank the global total and
+/// `expectation(term)` for every term of `H`, as for `parallel::thread`.
+/// Only the per-term expectation values are combined, not the per-term counts,
+/// so `counts(term)` on the returned result is empty.
+inline observe_result allReduceObserveResult(observe_result &localResult,
+                                             const spin_op &H) {
+  std::vector<std::string> ids;
+  for (const auto &term : H)
+    ids.push_back(spin_op_term::canonicalize(term).get_term_id());
+  std::sort(ids.begin(), ids.end());
+  ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+  // `expectation` returns 0 for a term this rank did not compute.
+  auto localData = localResult.raw_data();
+  std::vector<double> local(ids.size() + 1);
+  for (std::size_t i = 0; i < ids.size(); ++i)
+    local[i] = localData.expectation(ids[i]);
+  local.back() = localResult.expectation();
+  auto global = mpi::all_reduce(local, std::plus<double>());
+  std::vector<ExecutionResult> results;
+  for (std::size_t i = 0; i < ids.size(); ++i)
+    results.emplace_back(CountsDictionary{}, ids[i], global[i]);
+  return observe_result(global.back(), H, sample_result(results));
+}
+
 } // namespace detail
 
 /// \overload
@@ -310,15 +338,13 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel,
         },
         localH, nQpus);
 
-    // combine all the data via an all_reduce
-    auto exp_val = localRankResult.expectation();
-    auto globalExpVal = mpi::all_reduce(exp_val, std::plus<double>());
     // we need the canonicalized version of H -
     // maybe we can get it from the context instead?
     cudaq::spin_op canonH;
     for (auto &&terms : spins)
       canonH += std::move(terms);
-    return observe_result(globalExpVal, canonH);
+    // combine all the data via an all_reduce
+    return detail::allReduceObserveResult(localRankResult, canonH);
 
   } else
     throw std::runtime_error("Invalid cudaq::par execution type.");

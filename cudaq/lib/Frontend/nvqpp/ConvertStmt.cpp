@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Builders.h"
+#include <cstdint>
 #include <optional>
 #include <tuple>
 #include <vector>
@@ -309,7 +310,7 @@ QuakeBridgeVisitor::visit(clang::CXXForRangeStmt *x) {
   } else if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(buffer.getType());
              veqTy && veqTy.hasSpecifiedSize()) {
     Value iters = arith::ConstantIntOp::create(
-        builder, loc, i64Ty, static_cast<int64_t>(veqTy.getSize()));
+        builder, loc, i64Ty, static_cast<std::int64_t>(veqTy.getSize()));
     auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region,
                            Block &block) {
       OpBuilder::InsertionGuard guard(builder);

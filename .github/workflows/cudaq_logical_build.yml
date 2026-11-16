@@ -150,6 +150,13 @@ jobs:
           name: ${{ inputs.runtime_artifact_name }}
           path: dist
 
+      - name: Download cudaq-edem wheel
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cudaq_edem-*-cp${{ needs.resolve.outputs.python_tag }}-*manylinux_2_28_${{ needs.resolve.outputs.arch }}.whl
+          path: dist
+          merge-multiple: true
+
       - name: Download devel wheel
         uses: actions/download-artifact@v8
         with:
@@ -210,7 +217,6 @@ jobs:
           uv pip install \
             "nanobind>=2.4,<3" \
             "scikit-build-core==0.12.2" \
-            "setuptools-scm>=8,<9" \
             "auditwheel==6.5.0" \
             "cmake>=3.30" \
             ninja \
@@ -230,6 +236,7 @@ jobs:
           # cudaq-devel without resolving the `cudaq` PyPI dependency.
           uv pip install -f dist "$runtime_wheel"
           uv pip install --no-deps -f dist "cudaq-devel==$CUDAQ_VERSION"
+          uv pip install --no-deps dist/cudaq_edem-*.whl
 
       # The release workflow also reaches this path. Exercise the SDK's external
       # consumer once per architecture, not only the Logical build itself.
@@ -241,14 +248,6 @@ jobs:
         id: build
         working-directory: preview/logical
         run: |
-          # Resolve the version while the checkout is still clean. Stamping
-          # the runtime dependencies below intentionally modifies pyproject,
-          # which must not add setuptools-scm's dirty-tree date suffix.
-          logical_scmversion="$(
-            python -m setuptools_scm -c python/pyproject.toml
-          )"
-          logical_version=$(echo ${logical_scmversion} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
-
           python scripts/stamp_cudaq_runtime_dependency.py python/pyproject.toml \
             --distribution cudaq-core \
             --distribution cuda-quantum-cu12 \
@@ -260,7 +259,6 @@ jobs:
           # preview/logical/cmake/SetupCUDAQ.cmake); the gcc-12 step above
           # exists to satisfy exactly this.
           CMAKE_ARGS="${CMAKE_ARGS-} -DQLX_VERIFY_TOOLCHAIN=ON" \
-            SETUPTOOLS_SCM_PRETEND_VERSION="$logical_version" \
             SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" \
             uv build --wheel --no-build-isolation \
               --out-dir .wheel-raw python
@@ -287,6 +285,8 @@ jobs:
             --exclude libMLIRPythonSupport-cudaq.so \
             --exclude libgmp.so.10 \
             --exclude libmpfr.so.6 \
+            --exclude libcudaq-edem.so.0 \
+            --exclude libcudaq-gf2.so.0 \
             --wheel-dir dist "$RAW_WHEEL"
 
           wheel="$(find dist -name "cudaq_logical-*-cp${PY_TAG}-*${PLAT}.whl" -print -quit)"
@@ -366,10 +366,8 @@ jobs:
           name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
           path: dist
 
-      # The cudaq metapackage depends on the matching cudaq-edem wheel, which
-      # the workflow that provides the metapackage builds in the same run.
+      # Logical depends on EDEM even when no metapackage is requested.
       - name: Download cudaq-edem wheels
-        if: ${{ env.METAPACKAGE_ARTIFACT_NAME != '' }}
         uses: actions/download-artifact@v8
         with:
           pattern: cudaq_edem-*
@@ -439,6 +437,13 @@ jobs:
           python -c "from cudaq import logical; print(logical.std.idle)"
           python -c "from cudaq.logical import program; print(program)"
           python /tmp/test_installation.py --logical --frontend
+      - name: Test Logical release installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv pip install "pytest>=7.0" "virtualenv>=20"
+          python -m pytest docker/test/installer/test_install_logical_wheel.py -v
+
       - name: Run cudaq.logical Python tests
         shell: bash
         timeout-minutes: 30
@@ -447,7 +452,7 @@ jobs:
           QLX_SCHEDULE_DUMP_DIR: ${{ runner.temp }}/qlx-schedule-dumps
         run: |
           set -euo pipefail
-          uv pip install "pytest>=7.0"
+          uv pip install -r preview/logical/requirements-test.txt
 
           # Run from the workspace root: `python -m pytest` puts the working
           # directory on sys.path, and preview/logical/python holds a source-only

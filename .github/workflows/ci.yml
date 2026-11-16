@@ -416,7 +416,7 @@ jobs:
   # released with both the CUDA 12 and the CUDA 13 frontend wheels.
   python_wheels_cu13:
     name: Create CUDA 13 Python wheels
-    needs: [metadata, config_wheeldeps, python_devel_wheel]
+    needs: [metadata, config_wheeldeps, python_devel_wheel, edem_wheels]
     if:
       github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast !=
       'true'

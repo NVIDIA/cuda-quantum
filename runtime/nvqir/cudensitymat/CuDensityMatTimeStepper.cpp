@@ -10,6 +10,7 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
+#include <cstdint>
 #include <map>
 
 namespace cudaq {
@@ -61,7 +62,7 @@ CuDensityMatTimeStepper::workspaceState(std::size_t index,
 void CuDensityMatTimeStepper::computeImpl(
     cudensitymatState_t inState, cudensitymatState_t outState, double t,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    int64_t batchSize) {
+    std::int64_t batchSize) {
   // Prepare workspace
   cudensitymatWorkspaceDescriptor_t workspace;
   HANDLE_CUDM_ERROR(cudensitymatCreateWorkspace(m_handle, &workspace));

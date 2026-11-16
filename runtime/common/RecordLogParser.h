@@ -140,10 +140,10 @@ public:
 /// A helper class to manage the underlying memory buffer used by
 /// 'RecordLogParser'. For container types, i.e. composite records, the buffer
 /// acts as outer vector with pointers to inner buffers. The storage of each
-/// numeric array comes from `::operator new`, as `std::allocator` allocates,
-/// so that a `std::vector` can adopt it. The handler frees that storage, and
-/// each `std::vector<bool>` built in the buffer, unless `releaseArrayStorage`
-/// hands them to a caller.
+/// numeric array comes from `operator new` in the global namespace, as
+/// `std::allocator` allocates, so that a `std::vector` can adopt it.
+/// The handler frees that storage, and each `std::vector<bool>` built in the
+/// buffer, unless `releaseArrayStorage` hands them to a caller.
 class BufferHandler {
 public:
   BufferHandler() = default;
@@ -466,7 +466,7 @@ public:
   /// Hand the storage of each array, including each `std::vector<bool>`, to
   /// the caller. Call it after copying the data buffer, because the copy
   /// refers to that storage and takes it over. The numeric arrays come from
-  /// `::operator new`, so a `std::vector` can adopt them.
+  /// `operator new` in the global namespace, so a `std::vector` can adopt them.
   void releaseArrayStorage() { bufferHandler.releaseArrayStorage(); }
 
   /// Get the size of the data buffer (in bytes).

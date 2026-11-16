@@ -52,7 +52,7 @@ const char *kPlainAngles[] = {"0.5", "1.0", "2.0",
 const char *kEpsilons[] = {"1e-2", "1e-3", "1e-4", "1e-5",
                            "1e-6", "1e-7", "1e-8"};
 
-const uint64_t kSeeds[] = {1, 2, 3, 4, 5, 6, 7};
+const std::uint64_t kSeeds[] = {1, 2, 3, 4, 5, 6, 7};
 
 std::vector<std::string> sweep_angles() {
   std::vector<std::string> angles;
@@ -73,7 +73,8 @@ struct Cost {
 };
 
 llvm::FailureOr<Cost> synthesize(const std::string &theta,
-                                 const std::string &epsilon, uint64_t seed) {
+                                 const std::string &epsilon,
+                                 std::uint64_t seed) {
   ScopedDefaultPrecision prec(
       cudaq::synth::details::required_precision(Real(epsilon)));
 
@@ -91,7 +92,7 @@ llvm::FailureOr<Cost> synthesize(const std::string &theta,
 struct Row {
   std::string theta;
   std::string epsilon;
-  uint64_t seed = 0;
+  std::uint64_t seed = 0;
   Cost cost;
 };
 
@@ -144,7 +145,7 @@ TEST(GridsynthSweepTest, CostsMatchTheRecordedFixture) {
 TEST(GridsynthSweepTest, DISABLED_PrintSweepData) {
   for (const std::string &theta : sweep_angles())
     for (const char *epsilon : kEpsilons)
-      for (uint64_t seed : kSeeds) {
+      for (std::uint64_t seed : kSeeds) {
         llvm::FailureOr<Cost> cost = synthesize(theta, epsilon, seed);
         ASSERT_TRUE(llvm::succeeded(cost))
             << "synthesis failed for theta=" << theta << " epsilon=" << epsilon

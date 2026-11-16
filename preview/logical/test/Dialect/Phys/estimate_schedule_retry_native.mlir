@@ -47,7 +47,7 @@ module attributes {qlx.profiles = ["p3"]} {
   fabric.gadget @attempt() {
     fabric.return
   } {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @attempt_profile for @attempt attributes {
+  fabric.gadget_contract @attempt_profile for @attempt attributes {
     metadata = {success_probability = "0.5",
                 success_probability_evidence = "analysis:test"}
   } {}

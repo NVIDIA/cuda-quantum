@@ -15,7 +15,7 @@ module attributes {qlx.profiles = ["p3"]} {
   fabric.gadget @attempt() {
     fabric.return
   } {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @attempt_profile for @attempt {}
+  fabric.gadget_contract @attempt_profile for @attempt {}
 
   phys.machine @arch {
     phys.resource_class @qubits {

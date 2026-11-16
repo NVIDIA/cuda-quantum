@@ -33,7 +33,8 @@
 // operator overloads that mimic native integer types.
 //
 // Integer-width conventions:
-//   - Public API uses int32_t / int64_t from <cstdint> (LLVM convention).
+//   - Public API uses std::int32_t / std::int64_t from <cstdint> (LLVM
+//   convention).
 //   - At GMP API boundaries we cast to `long` / `unsigned long` as the
 //     library ABI demands; the casts are lossless on LP64 (Linux).
 
@@ -50,7 +51,7 @@ private:
 
   // |rhs| in the unsigned type GMP's `_ui` entry points take. Negating in the
   // unsigned domain is well defined at INT64_MIN, where `-rhs` would overflow.
-  static unsigned long magnitude(int64_t rhs) {
+  static unsigned long magnitude(std::int64_t rhs) {
     auto u = static_cast<unsigned long>(rhs);
     return rhs < 0 ? 0UL - u : u;
   }
@@ -62,9 +63,9 @@ public:
 
   Integer() { mpz_init(value_); }
 
-  Integer(int32_t val) { mpz_init_set_si(value_, static_cast<long>(val)); }
+  Integer(std::int32_t val) { mpz_init_set_si(value_, static_cast<long>(val)); }
 
-  Integer(int64_t val) { mpz_init_set_si(value_, static_cast<long>(val)); }
+  Integer(std::int64_t val) { mpz_init_set_si(value_, static_cast<long>(val)); }
 
   Integer(const Integer &other) { mpz_init_set(value_, other.value_); }
 
@@ -93,12 +94,12 @@ public:
     return *this;
   }
 
-  Integer &operator=(int32_t val) {
+  Integer &operator=(std::int32_t val) {
     mpz_set_si(value_, static_cast<long>(val));
     return *this;
   }
 
-  Integer &operator=(int64_t val) {
+  Integer &operator=(std::int64_t val) {
     mpz_set_si(value_, static_cast<long>(val));
     return *this;
   }
@@ -107,12 +108,12 @@ public:
   // Conversions
   //===--------------------------------------------------------------------===//
 
-  explicit operator int32_t() const {
-    return static_cast<int32_t>(mpz_get_si(value_));
+  explicit operator std::int32_t() const {
+    return static_cast<std::int32_t>(mpz_get_si(value_));
   }
 
-  explicit operator int64_t() const {
-    return static_cast<int64_t>(mpz_get_si(value_));
+  explicit operator std::int64_t() const {
+    return static_cast<std::int64_t>(mpz_get_si(value_));
   }
 
   explicit operator double() const { return mpz_get_d(value_); }
@@ -191,10 +192,10 @@ public:
     return *this;
   }
 
-  // Compound assignment with int64_t. The mpz_*_ui helpers consume the
+  // Compound assignment with std::int64_t. The mpz_*_ui helpers consume the
   // absolute value of `rhs`, so we branch on the sign rather than build a
   // temporary Integer.
-  Integer &operator+=(int64_t rhs) {
+  Integer &operator+=(std::int64_t rhs) {
     if (rhs >= 0)
       mpz_add_ui(value_, value_, magnitude(rhs));
     else
@@ -202,7 +203,7 @@ public:
     return *this;
   }
 
-  Integer &operator-=(int64_t rhs) {
+  Integer &operator-=(std::int64_t rhs) {
     if (rhs >= 0)
       mpz_sub_ui(value_, value_, magnitude(rhs));
     else
@@ -210,12 +211,12 @@ public:
     return *this;
   }
 
-  Integer &operator*=(int64_t rhs) {
+  Integer &operator*=(std::int64_t rhs) {
     mpz_mul_si(value_, value_, static_cast<long>(rhs));
     return *this;
   }
 
-  Integer &operator/=(int64_t rhs) {
+  Integer &operator/=(std::int64_t rhs) {
     assert(rhs != 0 && "Integer::operator/=: division by zero");
     bool neg = rhs < 0;
     mpz_tdiv_q_ui(value_, value_, magnitude(rhs));
@@ -224,7 +225,7 @@ public:
     return *this;
   }
 
-  Integer &operator%=(int64_t rhs) {
+  Integer &operator%=(std::int64_t rhs) {
     assert(rhs != 0 && "Integer::operator%=: modulo by zero");
     // C++ semantics: the remainder takes the sign of the dividend, so the
     // sign of `rhs` is irrelevant once we pass the absolute value to GMP.
@@ -283,13 +284,13 @@ public:
   // Bitwise
   //===--------------------------------------------------------------------===//
 
-  Integer operator<<(int32_t shift) const {
+  Integer operator<<(std::int32_t shift) const {
     Integer result;
     mpz_mul_2exp(result.value_, value_, static_cast<mp_bitcnt_t>(shift));
     return result;
   }
 
-  Integer operator>>(int32_t shift) const {
+  Integer operator>>(std::int32_t shift) const {
     Integer result;
     mpz_tdiv_q_2exp(result.value_, value_, static_cast<mp_bitcnt_t>(shift));
     return result;
@@ -327,12 +328,12 @@ public:
     return result;
   }
 
-  Integer &operator<<=(int32_t shift) {
+  Integer &operator<<=(std::int32_t shift) {
     mpz_mul_2exp(value_, value_, static_cast<mp_bitcnt_t>(shift));
     return *this;
   }
 
-  Integer &operator>>=(int32_t shift) {
+  Integer &operator>>=(std::int32_t shift) {
     mpz_tdiv_q_2exp(value_, value_, static_cast<mp_bitcnt_t>(shift));
     return *this;
   }
@@ -378,12 +379,12 @@ inline Integer ntz(const Integer &n) {
     return Integer(0);
 
   mp_bitcnt_t trailing_zeros = mpz_scan1(n.get_mpz_t(), 0);
-  return Integer(static_cast<int64_t>(trailing_zeros));
+  return Integer(static_cast<std::int64_t>(trailing_zeros));
 }
 
 /// Sign of x as -1, 0, or +1.
-inline int32_t sign(const Integer &x) {
-  return static_cast<int32_t>(mpz_sgn(x.get_mpz_t()));
+inline std::int32_t sign(const Integer &x) {
+  return static_cast<std::int32_t>(mpz_sgn(x.get_mpz_t()));
 }
 
 /// Floor of the square root for a non-negative integer.
@@ -405,10 +406,11 @@ inline Integer floordiv(const Integer &x, const Integer &y) {
   return result;
 }
 
-/// `floordiv` overload for an int32_t divisor: avoids materializing a temporary
-/// Integer for the common case, and -- when `y` is a positive power of two
+/// `floordiv` overload for an std::int32_t divisor: avoids materializing a
+/// temporary Integer for the common case, and -- when `y` is a positive power
+/// of two
 /// -- swaps the O(limbs) general division for a single GMP limb shift.
-inline Integer floordiv(const Integer &x, int32_t y) {
+inline Integer floordiv(const Integer &x, std::int32_t y) {
   Integer result;
   if (y > 0 && (y & (y - 1)) == 0) {
     const unsigned k =
@@ -455,7 +457,7 @@ inline Integer gcd(Integer a, Integer b) {
 /// @param reps Number of Miller-Rabin rounds; higher values reduce the
 ///             false-positive rate. GMP only uses this for the "probably
 ///             prime" return path.
-inline bool is_probably_prime(const Integer &n, int32_t reps = 4) {
+inline bool is_probably_prime(const Integer &n, std::int32_t reps = 4) {
   if (n == Integer(0) || n == Integer(1))
     return false;
   Integer m = n;
@@ -463,225 +465,227 @@ inline bool is_probably_prime(const Integer &n, int32_t reps = 4) {
     m = -m;
   if (m < Integer(2))
     return false;
-  int32_t result =
-      static_cast<int32_t>(mpz_probab_prime_p(m.get_mpz_t(), reps));
+  std::int32_t result =
+      static_cast<std::int32_t>(mpz_probab_prime_p(m.get_mpz_t(), reps));
   return result != 0; // 2 = definitely prime, 1 = probably prime, 0 = composite
 }
 
 //===----------------------------------------------------------------------===//
-// Mixed Integer / int64_t arithmetic (avoid temporary Integer construction)
+// Mixed Integer / std::int64_t arithmetic (avoid temporary Integer
+// construction)
 //===----------------------------------------------------------------------===//
 
-inline Integer operator+(const Integer &lhs, int64_t rhs) {
+inline Integer operator+(const Integer &lhs, std::int64_t rhs) {
   Integer result(lhs);
   result += rhs;
   return result;
 }
-inline Integer operator+(int64_t lhs, const Integer &rhs) {
+inline Integer operator+(std::int64_t lhs, const Integer &rhs) {
   Integer result(rhs);
   result += lhs;
   return result;
 }
-inline Integer operator-(const Integer &lhs, int64_t rhs) {
+inline Integer operator-(const Integer &lhs, std::int64_t rhs) {
   Integer result(lhs);
   result -= rhs;
   return result;
 }
-inline Integer operator-(int64_t lhs, const Integer &rhs) {
+inline Integer operator-(std::int64_t lhs, const Integer &rhs) {
   Integer result(lhs);
-  // rhs may exceed the int64_t range, so subtract with mpz rather than
+  // rhs may exceed the std::int64_t range, so subtract with mpz rather than
   // narrowing it first.
   mpz_sub(result.get_mpz_t(), result.get_mpz_t(), rhs.get_mpz_t());
   return result;
 }
-inline Integer operator*(const Integer &lhs, int64_t rhs) {
+inline Integer operator*(const Integer &lhs, std::int64_t rhs) {
   Integer result(lhs);
   result *= rhs;
   return result;
 }
-inline Integer operator*(int64_t lhs, const Integer &rhs) {
+inline Integer operator*(std::int64_t lhs, const Integer &rhs) {
   Integer result(rhs);
   result *= lhs;
   return result;
 }
-inline Integer operator/(const Integer &lhs, int64_t rhs) {
+inline Integer operator/(const Integer &lhs, std::int64_t rhs) {
   Integer result(lhs);
   result /= rhs;
   return result;
 }
-inline Integer operator/(int64_t lhs, const Integer &rhs) {
+inline Integer operator/(std::int64_t lhs, const Integer &rhs) {
   Integer result(lhs);
   // Division by a large rhs still needs a full mpz operation.
   mpz_tdiv_q(result.get_mpz_t(), result.get_mpz_t(), rhs.get_mpz_t());
   return result;
 }
-inline Integer operator%(const Integer &lhs, int64_t rhs) {
+inline Integer operator%(const Integer &lhs, std::int64_t rhs) {
   Integer result(lhs);
   result %= rhs;
   return result;
 }
-inline Integer operator%(int64_t lhs, const Integer &rhs) {
+inline Integer operator%(std::int64_t lhs, const Integer &rhs) {
   Integer result(lhs);
   mpz_tdiv_r(result.get_mpz_t(), result.get_mpz_t(), rhs.get_mpz_t());
   return result;
 }
-inline Integer operator<<(int64_t lhs, const Integer &rhs) {
+inline Integer operator<<(std::int64_t lhs, const Integer &rhs) {
   Integer temp(lhs);
-  // Defer to the Integer-shift overload: casting the count to int32_t would
-  // silently wrap a shift wider than 2^31.
+  // Defer to the Integer-shift overload: casting the count to std::int32_t
+  // would silently wrap a shift wider than 2^31.
   return temp << rhs;
 }
 
 //===----------------------------------------------------------------------===//
-// Comparison with int64_t (use mpz_cmp_si directly to dodge a temporary)
+// Comparison with std::int64_t (use mpz_cmp_si directly to dodge a temporary)
 //===----------------------------------------------------------------------===//
 //
-// On 64-bit Linux long == int64_t, so the cast is lossless.
+// On 64-bit Linux long == std::int64_t, so the cast is lossless.
 
-inline bool operator==(const Integer &lhs, int64_t rhs) {
+inline bool operator==(const Integer &lhs, std::int64_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) == 0;
 }
-inline bool operator!=(const Integer &lhs, int64_t rhs) {
+inline bool operator!=(const Integer &lhs, std::int64_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) != 0;
 }
-inline bool operator<(const Integer &lhs, int64_t rhs) {
+inline bool operator<(const Integer &lhs, std::int64_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) < 0;
 }
-inline bool operator<=(const Integer &lhs, int64_t rhs) {
+inline bool operator<=(const Integer &lhs, std::int64_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) <= 0;
 }
-inline bool operator>(const Integer &lhs, int64_t rhs) {
+inline bool operator>(const Integer &lhs, std::int64_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) > 0;
 }
-inline bool operator>=(const Integer &lhs, int64_t rhs) {
+inline bool operator>=(const Integer &lhs, std::int64_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) >= 0;
 }
 
-inline bool operator==(int64_t lhs, const Integer &rhs) {
+inline bool operator==(std::int64_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) == 0;
 }
-inline bool operator!=(int64_t lhs, const Integer &rhs) {
+inline bool operator!=(std::int64_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) != 0;
 }
-inline bool operator<(int64_t lhs, const Integer &rhs) {
+inline bool operator<(std::int64_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) > 0;
 }
-inline bool operator<=(int64_t lhs, const Integer &rhs) {
+inline bool operator<=(std::int64_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) >= 0;
 }
-inline bool operator>(int64_t lhs, const Integer &rhs) {
+inline bool operator>(std::int64_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) < 0;
 }
-inline bool operator>=(int64_t lhs, const Integer &rhs) {
+inline bool operator>=(std::int64_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) <= 0;
 }
 
 //===----------------------------------------------------------------------===//
-// Bitwise operations with int64_t
+// Bitwise operations with std::int64_t
 //===----------------------------------------------------------------------===//
 
-inline Integer operator&(const Integer &lhs, int64_t rhs) {
+inline Integer operator&(const Integer &lhs, std::int64_t rhs) {
   return lhs & Integer(rhs);
 }
-inline Integer operator|(const Integer &lhs, int64_t rhs) {
+inline Integer operator|(const Integer &lhs, std::int64_t rhs) {
   return lhs | Integer(rhs);
 }
-inline Integer operator^(const Integer &lhs, int64_t rhs) {
+inline Integer operator^(const Integer &lhs, std::int64_t rhs) {
   return lhs ^ Integer(rhs);
 }
 
-inline Integer operator&(int64_t lhs, const Integer &rhs) {
+inline Integer operator&(std::int64_t lhs, const Integer &rhs) {
   return Integer(lhs) & rhs;
 }
-inline Integer operator|(int64_t lhs, const Integer &rhs) {
+inline Integer operator|(std::int64_t lhs, const Integer &rhs) {
   return Integer(lhs) | rhs;
 }
-inline Integer operator^(int64_t lhs, const Integer &rhs) {
+inline Integer operator^(std::int64_t lhs, const Integer &rhs) {
   return Integer(lhs) ^ rhs;
 }
 
 //===----------------------------------------------------------------------===//
-// Mixed arithmetic / comparison / bitwise with int32_t (delegate to int64_t)
+// Mixed arithmetic / comparison / bitwise with std::int32_t (delegate to
+// std::int64_t)
 //===----------------------------------------------------------------------===//
 
-inline Integer operator+(const Integer &lhs, int32_t rhs) {
-  return lhs + static_cast<int64_t>(rhs);
+inline Integer operator+(const Integer &lhs, std::int32_t rhs) {
+  return lhs + static_cast<std::int64_t>(rhs);
 }
-inline Integer operator+(int32_t lhs, const Integer &rhs) {
-  return static_cast<int64_t>(lhs) + rhs;
+inline Integer operator+(std::int32_t lhs, const Integer &rhs) {
+  return static_cast<std::int64_t>(lhs) + rhs;
 }
-inline Integer operator-(const Integer &lhs, int32_t rhs) {
-  return lhs - static_cast<int64_t>(rhs);
+inline Integer operator-(const Integer &lhs, std::int32_t rhs) {
+  return lhs - static_cast<std::int64_t>(rhs);
 }
-inline Integer operator-(int32_t lhs, const Integer &rhs) {
-  return static_cast<int64_t>(lhs) - rhs;
+inline Integer operator-(std::int32_t lhs, const Integer &rhs) {
+  return static_cast<std::int64_t>(lhs) - rhs;
 }
-inline Integer operator*(const Integer &lhs, int32_t rhs) {
-  return lhs * static_cast<int64_t>(rhs);
+inline Integer operator*(const Integer &lhs, std::int32_t rhs) {
+  return lhs * static_cast<std::int64_t>(rhs);
 }
-inline Integer operator*(int32_t lhs, const Integer &rhs) {
-  return static_cast<int64_t>(lhs) * rhs;
+inline Integer operator*(std::int32_t lhs, const Integer &rhs) {
+  return static_cast<std::int64_t>(lhs) * rhs;
 }
-inline Integer operator/(const Integer &lhs, int32_t rhs) {
-  return lhs / static_cast<int64_t>(rhs);
+inline Integer operator/(const Integer &lhs, std::int32_t rhs) {
+  return lhs / static_cast<std::int64_t>(rhs);
 }
-inline Integer operator/(int32_t lhs, const Integer &rhs) {
-  return static_cast<int64_t>(lhs) / rhs;
+inline Integer operator/(std::int32_t lhs, const Integer &rhs) {
+  return static_cast<std::int64_t>(lhs) / rhs;
 }
-inline Integer operator%(const Integer &lhs, int32_t rhs) {
-  return lhs % static_cast<int64_t>(rhs);
+inline Integer operator%(const Integer &lhs, std::int32_t rhs) {
+  return lhs % static_cast<std::int64_t>(rhs);
 }
-inline Integer operator%(int32_t lhs, const Integer &rhs) {
-  return static_cast<int64_t>(lhs) % rhs;
+inline Integer operator%(std::int32_t lhs, const Integer &rhs) {
+  return static_cast<std::int64_t>(lhs) % rhs;
 }
 
-// Comparisons with int32_t -- mpz_cmp_si directly avoids constructing a
+// Comparisons with std::int32_t -- mpz_cmp_si directly avoids constructing a
 // temporary Integer(rhs).
-inline bool operator==(const Integer &lhs, int32_t rhs) {
+inline bool operator==(const Integer &lhs, std::int32_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) == 0;
 }
-inline bool operator!=(const Integer &lhs, int32_t rhs) {
+inline bool operator!=(const Integer &lhs, std::int32_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) != 0;
 }
-inline bool operator<(const Integer &lhs, int32_t rhs) {
+inline bool operator<(const Integer &lhs, std::int32_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) < 0;
 }
-inline bool operator<=(const Integer &lhs, int32_t rhs) {
+inline bool operator<=(const Integer &lhs, std::int32_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) <= 0;
 }
-inline bool operator>(const Integer &lhs, int32_t rhs) {
+inline bool operator>(const Integer &lhs, std::int32_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) > 0;
 }
-inline bool operator>=(const Integer &lhs, int32_t rhs) {
+inline bool operator>=(const Integer &lhs, std::int32_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) >= 0;
 }
 
-inline bool operator==(int32_t lhs, const Integer &rhs) {
+inline bool operator==(std::int32_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) == 0;
 }
-inline bool operator!=(int32_t lhs, const Integer &rhs) {
+inline bool operator!=(std::int32_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) != 0;
 }
-inline bool operator<(int32_t lhs, const Integer &rhs) {
+inline bool operator<(std::int32_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) > 0;
 }
-inline bool operator<=(int32_t lhs, const Integer &rhs) {
+inline bool operator<=(std::int32_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) >= 0;
 }
-inline bool operator>(int32_t lhs, const Integer &rhs) {
+inline bool operator>(std::int32_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) < 0;
 }
-inline bool operator>=(int32_t lhs, const Integer &rhs) {
+inline bool operator>=(std::int32_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) <= 0;
 }
 
-inline Integer operator&(const Integer &lhs, int32_t rhs) {
+inline Integer operator&(const Integer &lhs, std::int32_t rhs) {
   return lhs & Integer(rhs);
 }
-inline Integer operator|(const Integer &lhs, int32_t rhs) {
+inline Integer operator|(const Integer &lhs, std::int32_t rhs) {
   return lhs | Integer(rhs);
 }
-inline Integer operator^(const Integer &lhs, int32_t rhs) {
+inline Integer operator^(const Integer &lhs, std::int32_t rhs) {
   return lhs ^ Integer(rhs);
 }
 

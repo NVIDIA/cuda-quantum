@@ -157,7 +157,7 @@ def test_static_estimate_expands_folded_call_multiplicity_analytically():
 
 
 def test_static_profile_counts_analysis_and_realization_separately():
-    profile = cql.gadgets.GadgetProfile(
+    profile = cql.gadgets.GadgetContract(
         memory,
         success=(cql.gadgets.SuccessPredicate(memory.record("r1.s0")),),
         name="memory_analysis",
@@ -221,7 +221,7 @@ def test_selected_fabric_walk_preserves_invocation_provenance(attach_profile):
         if attach_profile:
             with mlir_ir.InsertionPoint(module.body):
                 profile = mlir_ir.Operation.create(
-                    "fabric.gadget_profile",
+                    "fabric.gadget_contract",
                     attributes={
                         "sym_name": mlir_ir.StringAttr.get("selected_profile"),
                         "gadget": mlir_ir.FlatSymbolRefAttr.get("encoded_h"),
@@ -300,6 +300,35 @@ def test_summarized_fabric_walk_validates_unselected_calls(callee, diagnostic):
                                 _fresh_module=lambda: module)
     with pytest.raises(ValueError, match=diagnostic):
         count(malformed)
+
+
+def test_selected_wsc_output_syndromes_do_not_block_static_costing():
+    builder = cql.devices.DeviceBuilder("PinnacleStaticEstimateTest")
+    compute = builder.logical.add_compute(capacity=2)
+    builder.qec.bind(compute, architecture=pinnacle.gb30)
+    device = builder.build()
+
+    @cql.program
+    def wsc_product() -> bool:
+        data = cql.ops.allocate(2, state=cql.types.zero, name="data")
+        data[0], data[1], result = cql.ops.mpp(
+            cql.types.X(data[0]) @ cql.types.Z(data[1]))
+        cql.ops.discard(data)
+        return result
+
+    build = cql.compile(
+        wsc_product,
+        pipeline=cql.compiler.pipelines.qec(),
+        device=device,
+        policy={"rounds": 2},
+    )
+
+    assert "fabric.output_syndrome" in build.to_mlir()
+    estimate = cql.analysis.estimate(build, tier=Tier.STATIC)
+    # Contract rows are analysis declarations, not executable quantum work.
+    assert "output_syndrome" not in estimate.operation_counts
+    assert estimate.logical_qubits_peak >= 2
+    assert sum(estimate.operation_counts.values()) > 0
 
 
 def test_estimation_tiers_fail_closed_when_fidelity_inputs_are_missing():
@@ -400,7 +429,7 @@ def test_analytical_single_attempt_retry_executes_once(probability):
         return block, bit
 
     evidence = "analysis:declared-probability-model"
-    profile = cql.gadgets.GadgetProfile(
+    profile = cql.gadgets.GadgetContract(
         attempt,
         success=(cql.gadgets.SuccessPredicate(attempt.record("mpp0.outcome")),),
         metadata={

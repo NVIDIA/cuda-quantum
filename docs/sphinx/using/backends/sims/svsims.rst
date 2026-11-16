@@ -109,7 +109,7 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
     - Description
   * - ``CUDAQ_FUSION_MAX_QUBITS``
     - integer (maximum effective value: 10)
-    - The maximum number of qubits used for dense gate fusion. When unset, ``cuStateVecEx`` `automatically selects the fusion size <https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/api-reference/custatevecex/index.html#svupdater-api>`__. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion.
+    - The maximum number of qubits used for dense gate fusion. When unset, ``cuStateVecEx`` `automatically selects the fusion size <https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/api-reference/custatevecex/index.html#svupdater-api>`__. On compute capability 10.7 (Rubin) with ``cuStateVec`` 1.15 or earlier, CUDA-Q instead selects 3 in `FP64` and 4 in `FP32`, which measured faster than the library choice there. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion.
   * - ``CUDAQ_FUSION_DIAGONAL_GATE_MAX_QUBITS``
     - integer greater than or equal to -1 (maximum effective value: 20)
     - The maximum number of qubits used for diagonal gate fusion. When unset or set to -1, ``cuStateVecEx`` automatically selects the fusion size. Values greater than 20 are clamped to 20, while 0 disables diagonal gate fusion.
@@ -269,7 +269,7 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
     - The qubit count threshold where state vector distribution is activated. Below this threshold, simulation is performed as independent (non-distributed) tasks across all MPI processes for optimal performance. Default is 25. 
   * - ``CUDAQ_MGPU_FUSE``
     - integer (maximum effective value: 10)
-    - Legacy multi-GPU alias for ``CUDAQ_FUSION_MAX_QUBITS``. The generic variable takes precedence when both are set. When neither variable is set, ``cuStateVecEx`` automatically selects the dense fusion size. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion.
+    - Legacy multi-GPU alias for ``CUDAQ_FUSION_MAX_QUBITS``. The generic variable takes precedence when both are set. When neither variable is set, ``cuStateVecEx`` automatically selects the dense fusion size. The Rubin exception described for ``CUDAQ_FUSION_MAX_QUBITS`` applies. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion.
   * - ``CUDAQ_MGPU_P2P_DEVICE_BITS``
     - non-negative integer
     - Specify the number of global device-index bits that use GPUDirect P2P communication. A value of 0 disables P2P communication.

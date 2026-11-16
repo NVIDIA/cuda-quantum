@@ -26,7 +26,7 @@ class CuStateVecCommunicator;
 
 /// Device resources backing one currently staged Ex sub-state vector.
 struct DeviceSubStateVector {
-  int32_t deviceId = 0;
+  std::int32_t deviceId = 0;
   const void *data = nullptr;
   cudaStream_t stream = nullptr;
   custatevecHandle_t handle = nullptr;
@@ -49,19 +49,19 @@ bool contains(const std::vector<T> &values, const T &value) {
 
 /// Query an int32 array property of a distributed descriptor: read the element
 /// count via `countProp`, then fill the array via `arrayProp`.
-inline std::vector<int32_t>
+inline std::vector<std::int32_t>
 queryInt32ArrayProperty(custatevecExStateVectorDescriptor_t state,
                         custatevecExStateVectorProperty_t countProp,
                         custatevecExStateVectorProperty_t arrayProp) {
-  int32_t count = 0;
+  std::int32_t count = 0;
   HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorGetProperty(
       /*stateVector=*/state, /*property=*/countProp, /*value=*/&count,
       /*sizeInBytes=*/sizeof(count)));
-  std::vector<int32_t> result(count);
+  std::vector<std::int32_t> result(count);
   if (count != 0)
     HANDLE_CUSTATEVEC_ERROR(custatevecExStateVectorGetProperty(
         /*stateVector=*/state, /*property=*/arrayProp, /*value=*/result.data(),
-        /*sizeInBytes=*/result.size() * sizeof(int32_t)));
+        /*sizeInBytes=*/result.size() * sizeof(std::int32_t)));
   return result;
 }
 
@@ -77,16 +77,17 @@ queryInt32ArrayProperty(custatevecExStateVectorDescriptor_t state,
 template <typename Scalar>
 class CuStateVecState {
 public:
-  static CuStateVecState createSingleDevice(int32_t maxWires,
-                                            int32_t maxDeviceWires,
-                                            int32_t deviceId,
+  static CuStateVecState createSingleDevice(std::int32_t maxWires,
+                                            std::int32_t maxDeviceWires,
+                                            std::int32_t deviceId,
                                             bool allowFp32Emulation);
   static CuStateVecState
-  createMultiProcess(int32_t maxWires, int32_t maxDeviceWires, int32_t deviceId,
+  createMultiProcess(std::int32_t maxWires, std::int32_t maxDeviceWires,
+                     std::int32_t deviceId,
                      custatevecExMemorySharingMethod_t memorySharingMethod,
                      const std::vector<custatevecExGlobalIndexBitClass_t>
                          &globalIndexBitClasses,
-                     const std::vector<int32_t> &globalIndexBits,
+                     const std::vector<std::int32_t> &globalIndexBits,
                      std::size_t transferWorkspaceSize,
                      std::shared_ptr<CuStateVecCommunicator> communicator,
                      bool allowFp32Emulation);
@@ -98,32 +99,33 @@ public:
   CuStateVecState &operator=(const CuStateVecState &) = delete;
 
   custatevecExStateVectorDescriptor_t descriptor() const { return m_state; }
-  int32_t numWires() const;
+  std::int32_t numWires() const;
   custatevecExStateVectorDistributionType_t distributionType() const;
-  int32_t numLocalWires() const;
-  int32_t numMigrationWires() const;
-  int32_t maxLocalWires() const;
-  int32_t maxMigrationWires() const;
-  std::vector<int32_t> wireOrdering() const;
-  std::vector<int32_t> subStateIndices() const;
-  std::vector<int32_t> deviceSubStateIndices() const;
-  DeviceSubStateVector deviceSubStateVector(int32_t index) const;
-  DeviceSubStateVector writableDeviceSubStateVector(int32_t index);
+  std::int32_t numLocalWires() const;
+  std::int32_t numMigrationWires() const;
+  std::int32_t maxLocalWires() const;
+  std::int32_t maxMigrationWires() const;
+  std::vector<std::int32_t> wireOrdering() const;
+  std::vector<std::int32_t> subStateIndices() const;
+  std::vector<std::int32_t> deviceSubStateIndices() const;
+  DeviceSubStateVector deviceSubStateVector(std::int32_t index) const;
+  DeviceSubStateVector writableDeviceSubStateVector(std::int32_t index);
   CuStateVecState cloneEmpty() const;
   void copyFrom(const CuStateVecState &other);
   std::shared_ptr<CuStateVecCommunicator> communicator() const {
     return m_communicator;
   }
 
-  void addWires(custatevecExIndexBitDomain_t domain, int32_t count);
+  void addWires(custatevecExIndexBitDomain_t domain, std::int32_t count);
   void setZeroState();
   void exposeResources() const;
-  void stageSubStateVector(int32_t index) const;
+  void stageSubStateVector(std::int32_t index) const;
   void synchronize() const;
   void getState(std::complex<Scalar> *data, custatevecIndex_t begin,
-                custatevecIndex_t end, int32_t maxConcurrentCopies = 1) const;
+                custatevecIndex_t end,
+                std::int32_t maxConcurrentCopies = 1) const;
   void setState(const std::complex<Scalar> *data, custatevecIndex_t begin,
-                custatevecIndex_t end, int32_t maxConcurrentCopies = 1);
+                custatevecIndex_t end, std::int32_t maxConcurrentCopies = 1);
   /// Imports a complete state directly from CUDA-accessible memory. For a
   /// distributed state, each rank copies only its assigned global sub-states.
   bool setStateFromDevicePointer(const void *data, std::size_t size);
@@ -133,12 +135,12 @@ public:
   /// requires host migration or distribution, so the caller can use the
   /// general matrix-based path.
   bool appendState(const void *data, std::size_t size);
-  void permuteIndexBits(const std::vector<int32_t> &permutation);
+  void permuteIndexBits(const std::vector<std::int32_t> &permutation);
 
   /// If the wire ordering is not the identity, permute the index bits back to
   /// it and synchronize; otherwise a no-op.
   void normalizeWireOrdering();
-  void reassignWireOrdering(const std::vector<int32_t> &ordering);
+  void reassignWireOrdering(const std::vector<std::int32_t> &ordering);
 
 private:
   explicit CuStateVecState(custatevecExStateVectorDescriptor_t state,

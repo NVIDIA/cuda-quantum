@@ -32,11 +32,7 @@ from cudaq.logical.programs.definition import (
     DefinitionHandle,
     ProgramDefinition,
 )
-from cudaq.logical.gadgets import (
-    GadgetDefinition,
-    GadgetProfile,
-    SuccessPredicate,
-)
+from cudaq.logical.gadgets import GadgetDefinition
 from cudaq.logical.stages import P2
 from cudaq.logical.architecture.physical_definition import PhysicalDefinition
 from cudaq.logical.protocols.definition import ProtocolDefinition
@@ -103,13 +99,14 @@ class UnplacedBuilder:
             },
             "return": _return_annotation(results),
         }
-        definition_kind = "program" if _kind == "program" else "objective"
-        objective_kind = "auto" if _kind == "program" else _kind
+        definition_kind = "program" if _kind == "program" else "action"
+        action_kind = ("auto" if _kind == "program" else
+                       "unitary" if _kind == "action" else _kind)
         self.definition = ProgramDefinition(
             provider,
             name=str(name),
             kind=definition_kind,
-            objective_kind=objective_kind,
+            action_kind=action_kind,
         )
         self.transaction = CompilationContext()
         self._backend = _UnplacedBackend(self.transaction, self.definition)
@@ -187,7 +184,7 @@ class UnplacedBuilder:
         else:
             raise TypeError(
                 "UnplacedBuilder.apply expects a standard action or "
-                "@cudaq.logical.objective definition")
+                "@cudaq.logical.action definition")
         if isinstance(results, list) and len(results) == 1:
             return results[0]
         return tuple(results) if isinstance(results, list) else results
@@ -199,7 +196,7 @@ class UnplacedBuilder:
         if not isinstance(instrument, LogicalInstrumentRef):
             raise TypeError(
                 "UnplacedBuilder.instrument expects a standard instrument or "
-                "@cudaq.logical.objective definition")
+                "@cudaq.logical.action definition")
         if parameters:
             raise TypeError("standard direct instruments take no parameters")
         if instrument.name == "prepare_zero":
@@ -282,8 +279,8 @@ class UnplacedBuilder:
         if self.definition.kind == "program":
             handle = DefinitionHandle(self._backend.symbol, "program", "p0")
         else:
-            family = self._backend.objective_family()
-            objective = self.transaction.declare_objective(
+            family = self._backend.action_family()
+            objective = self.transaction.declare_action(
                 family=family,
                 requested_symbol=self.definition.name,
                 kind="composite",
@@ -767,63 +764,6 @@ class CodeBuilder:
         )
 
 
-class GadgetProfileBuilder:
-    """Incremental convenience utility that freezes to GadgetProfile."""
-
-    def __init__(
-        self,
-        gadget,
-        *,
-        code_profile=None,
-        input_profiles=None,
-        output_profiles=None,
-        name=None,
-        metadata=None,
-    ):
-        self.gadget, self.name = gadget, name
-        self.code_profile = code_profile
-        self.input_profiles = input_profiles
-        self.output_profiles = output_profiles
-        self.metadata = metadata
-        self._success = []
-        self._boundary = {}
-
-    def success(self, parity):
-        self._success.append(SuccessPredicate(parity))
-        return self
-
-    def bind(self, target, value):
-        from cudaq.logical.gadgets import (
-            ProfileVectorExpr,
-            SyndromeBundleRef,
-        )
-
-        if not isinstance(target, SyndromeBundleRef):
-            raise TypeError(
-                "bind target must be an output endpoint.syndrome bundle")
-        if target.endpoint.gadget is not self.gadget:
-            raise ValueError("profile binding target belongs to another gadget")
-        if target in self._boundary:
-            raise ValueError("an output syndrome bundle may be bound only once")
-        width = (self.code_profile.effective_stabilizers.nrows
-                 if self.code_profile is not None else target.width)
-        self._boundary[target] = ProfileVectorExpr.from_value(value,
-                                                              width=width)
-        return self
-
-    def finish(self):
-        return GadgetProfile(
-            self.gadget,
-            code_profile=self.code_profile,
-            input_profiles=self.input_profiles,
-            output_profiles=self.output_profiles,
-            success=tuple(self._success),
-            boundary=self._boundary,
-            name=self.name,
-            metadata=self.metadata,
-        )
-
-
 class PhysicalBuilder:
     """Advanced direct P3 event-graph authoring over a concrete architecture."""
 
@@ -957,6 +897,5 @@ __all__ = [
     "GadgetBuilder",
     "ProtocolBuilder",
     "CodeBuilder",
-    "GadgetProfileBuilder",
     "PhysicalBuilder",
 ]

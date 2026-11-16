@@ -11,6 +11,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <unistd.h>
@@ -33,7 +34,7 @@ ChromeTraceBackend::~ChromeTraceBackend() {
 
 void ChromeTraceBackend::onBegin(const TraceEvent &) {}
 
-void ChromeTraceBackend::onEnd(const TraceEvent &e, uint64_t durUs) {
+void ChromeTraceBackend::onEnd(const TraceEvent &e, std::uint64_t durUs) {
   Event ev;
   ev.name.assign(e.name);
   ev.category.assign(e.category);

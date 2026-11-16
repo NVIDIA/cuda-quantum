@@ -50,10 +50,10 @@ module attributes {qlx.profiles = ["p2n"]} {
     }
     fabric.return %selected, %mismatch : !fabric.patch<@code>, i1
   } {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @attempt_profile for @attempt {
+  fabric.gadget_contract @attempt_profile for @attempt {
     fabric.success {records = ["attempt.ready.data0"]}
   }
-  fabric.gadget_profile @attempt_profile_again for @attempt
+  fabric.gadget_contract @attempt_profile_again for @attempt
       attributes {metadata = {variant = "second"}} {
     fabric.success {records = ["attempt.ready.data0"]}
   }
@@ -74,7 +74,7 @@ module attributes {qlx.profiles = ["p2n"]} {
     } : (!fabric.patch<@code>) -> (!fabric.patch<@code>, i1)
     fabric.return %next, %ready : !fabric.patch<@code>, i1
   } {realization_boundary = {}, spec = @direct_attempt_spec}
-  fabric.gadget_profile @direct_attempt_profile for @direct_attempt {
+  fabric.gadget_contract @direct_attempt_profile for @direct_attempt {
     fabric.success {constant = true,
                     records = ["direct_attempt.ready.outcome"]}
   }

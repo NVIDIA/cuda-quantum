@@ -94,7 +94,7 @@ module {
     } : !lvm.logical_resource<"t_state", @logical::@magic>, (!lvm.logical_qubit<@logical::@compute>) -> !lvm.logical_qubit<@logical::@compute>
     lvm.return %next : !lvm.logical_qubit<@logical::@compute>
   }
-  // expected-error @+1 {{retained stream transfer objective must exactly equal its P1 resource-consume action}}
+  // expected-error @+1 {{retained stream transfer action must exactly equal its P1 resource-consume action}}
   fabric.protocol @wrong_inject : (!fabric.patch<@code>, !fabric.resource<@t_state>) -> !fabric.patch<@code> attributes {
     objective = #qlx.action<s>
   } {
@@ -122,7 +122,7 @@ module {
   qlx.action @same_shape_wrong_role : () -> !fabric.resource<@t_state> {
     kind = "transport_t_state"
   }
-  // expected-error @+1 {{retained stream produced_by objective must be the exact 'produce_t_state' qlx.action}}
+  // expected-error @+1 {{retained stream produced_by action must be the exact 'produce_t_state' qlx.action}}
   fabric.protocol @wrong_objective : () -> !fabric.resource<@t_state> attributes {
     objective = @same_shape_wrong_role
   } {

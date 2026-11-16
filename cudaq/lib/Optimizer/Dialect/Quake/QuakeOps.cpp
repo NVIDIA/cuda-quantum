@@ -26,6 +26,7 @@
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <unordered_set>
 
@@ -556,9 +557,9 @@ ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
     return failure();
   result.addAttribute(cudaq::runtime::operandSegmentSizes,
                       parser.getBuilder().getDenseI32ArrayAttr(
-                          {static_cast<int32_t>(calleeOperand.size()),
-                           static_cast<int32_t>(controlOperands.size()),
-                           static_cast<int32_t>(miscOperands.size())}));
+                          {static_cast<std::int32_t>(calleeOperand.size()),
+                           static_cast<std::int32_t>(controlOperands.size()),
+                           static_cast<std::int32_t>(miscOperands.size())}));
   result.addTypes(applyTy.getResults());
   if (isDirect) {
     if (parser.resolveOperands(
@@ -636,9 +637,9 @@ ParseResult cudaq::quake::ApplyNoiseOp::parse(OpAsmParser &parser,
     return failure();
   result.addAttribute(cudaq::runtime::operandSegmentSizes,
                       parser.getBuilder().getDenseI32ArrayAttr(
-                          {static_cast<int32_t>(keyOperand.size()),
-                           static_cast<int32_t>(parameterOperands.size()),
-                           static_cast<int32_t>(targetOperands.size())}));
+                          {static_cast<std::int32_t>(keyOperand.size()),
+                           static_cast<std::int32_t>(parameterOperands.size()),
+                           static_cast<std::int32_t>(targetOperands.size())}));
   result.addTypes(applyTy.getResults());
   if (parser.resolveOperands(llvm::concat<const OpAsmParser::UnresolvedOperand>(
                                  keyOperand, parameterOperands, targetOperands),
@@ -783,7 +784,8 @@ void printRawString(OpAsmPrinter &printer, OP refOp, Value stringVal,
 void cudaq::quake::ExpPauliOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<BindExpPauliWord, AdjustAdjointExpPauliPattern,
-               EraseEmptyVeqControlPattern<ExpPauliOp>>(context);
+               EraseEmptyVeqControlPattern<ExpPauliOp>,
+               EraseAllFalseNegatedControlsPattern<ExpPauliOp>>(context);
 }
 
 LogicalResult cudaq::quake::ExpPauliOp::verify() {
@@ -1325,8 +1327,8 @@ void cudaq::quake::PhaseOp::getOperatorMatrix(Matrix &matrix) {
 void cudaq::quake::PhaseOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<AdjustAdjointPhasePattern, EraseZeroPhasePattern,
-               MergeAdjacentPhasePattern, EraseEmptyVeqControlPattern<PhaseOp>>(
-      context);
+               MergeAdjacentPhasePattern, EraseEmptyVeqControlPattern<PhaseOp>,
+               EraseAllFalseNegatedControlsPattern<PhaseOp>>(context);
 }
 
 void cudaq::quake::PhasedRxOp::getOperatorMatrix(Matrix &matrix) {
@@ -1487,7 +1489,9 @@ LogicalResult cudaq::quake::CustomUnitaryCallOp::verify() {
 
 void cudaq::quake::CustomUnitaryCallOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryCallOp>>(context);
+  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryCallOp>,
+               EraseAllFalseNegatedControlsPattern<CustomUnitaryCallOp>>(
+      context);
 }
 
 void cudaq::quake::CustomUnitaryConstantOp::getOperatorMatrix(Matrix &matrix) {
@@ -1581,7 +1585,9 @@ LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {
 
 void cudaq::quake::CustomUnitaryConstantOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryConstantOp>>(context);
+  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryConstantOp>,
+               EraseAllFalseNegatedControlsPattern<CustomUnitaryConstantOp>>(
+      context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1725,7 +1731,8 @@ WIRE_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 #define INSTANTIATE_OPERATOR_CANONICALIZATION(Op)                              \
   void cudaq::quake::Op::getCanonicalizationPatterns(                          \
       RewritePatternSet &patterns, MLIRContext *context) {                     \
-    patterns.add<EraseEmptyVeqControlPattern<Op>>(context);                    \
+    patterns.add<EraseEmptyVeqControlPattern<Op>,                              \
+                 EraseAllFalseNegatedControlsPattern<Op>>(context);            \
   }
 
 BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_CANONICALIZATION)

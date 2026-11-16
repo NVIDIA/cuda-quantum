@@ -11,6 +11,8 @@
 #include "cudaq/edem/composition.h"
 #include "cudaq/edem/owned.hpp"
 
+#include <cstdint>
+
 #if defined(__GNUC__) || defined(__clang__)
 #define CUDAQ_EDEM_COMPOSITION_CPP_LOCAL __attribute__((visibility("hidden")))
 #else
@@ -26,7 +28,7 @@ inline namespace v0 {
 /// Exchange the C ownership record, rather than these helpers' C++ types,
 /// across package boundaries.
 [[nodiscard]] CUDAQ_EDEM_COMPOSITION_CPP_LOCAL inline cudaq_edem_status
-compose_chain(const cudaq_edem_view *occurrences, uint32_t count,
+compose_chain(const cudaq_edem_view *occurrences, std::uint32_t count,
               PackedEDEM &result,
               const cudaq_gf2_memory *memory = nullptr) noexcept {
   cudaq_gf2_owned_buffer owner{};

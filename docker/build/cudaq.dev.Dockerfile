@@ -154,7 +154,7 @@ ARG install=
 RUN if [ "$run_tests" = "true" ] && [ -n "$install" ]; then \
         install=`echo $install | xargs` && export $install; \
         cd $CUDAQ_REPO_ROOT && \
-        python3 -m pip install "lit<23" pytest-xdist --break-system-packages && \
+        python3 -m pip install -r preview/logical/requirements-test.txt --break-system-packages && \
         QLX_VERIFY_TOOLCHAIN=ON bash scripts/build_cudaq.sh -v -I -L || exit 1; \
         ctest_listing="$(ctest --test-dir build/preview/logical -N)" && \
         echo "$ctest_listing" && \
@@ -172,7 +172,7 @@ ARG install=
 RUN if [ "$run_tests" = "true" ] && [ -n "$install" ]; then \
         install=`echo $install | xargs` && export $install; \
         cd $CUDAQ_REPO_ROOT && \
-        python3 -m pip install "lit<23" pytest-xdist --break-system-packages && \
+        python3 -m pip install -r preview/logical/requirements-test.txt --break-system-packages && \
         CUDAQ_BUILD_TESTS=FALSE bash scripts/build_cudaq.sh -v -i -- \
             -DCUDAQ_TEST_OMP_SLOTS=2 -DCUDAQ_ENABLE_LOGICAL=ON || exit 1; \
         PYTEST_ADDOPTS="-n $(( ($(nproc) + 1) / 2 ))" OMP_NUM_THREADS=1 \

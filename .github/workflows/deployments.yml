@@ -924,7 +924,7 @@ jobs:
 
   python_wheels:
     name: Create Python wheels
-    needs: [metadata, config, python_devel_wheel]
+    needs: [metadata, config, python_devel_wheel, edem_wheels]
     if: ${{ !cancelled() && ! inputs.devcontainer_only && needs.metadata.result == 'success' && needs.config.result == 'success' }}
     strategy:
       matrix:

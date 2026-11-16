@@ -10,12 +10,23 @@ from __future__ import annotations
 
 import json
 from hashlib import sha256
+from importlib import import_module
 import runpy
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[4]
+
+
+@pytest.mark.parametrize("module_name", [
+    "cudaq.logical.qec.surface",
+    "cudaq.logical.qec.qldpc",
+])
+def test_qec_exports_resolve(module_name):
+    module = import_module(module_name)
+    for name in module.__all__:
+        assert hasattr(module, name), f"{module_name} exports undefined {name}"
 
 
 def test_device_timing_units_and_operating_point():
@@ -73,9 +84,13 @@ def test_product_stage_estimation_and_target_surface():
     )
     assert hasattr(fabric_dialect, "ResourceRequestOp")
     assert {name for name in vars(_qlx_ops_gen) if name.endswith("Op")
-           } == {name for name in vars(qlx_dialect) if name.endswith("Op")}
+           } | {"ActionBodyOp"} == {
+               name for name in vars(qlx_dialect) if name.endswith("Op")
+           }
     assert {name for name in vars(_fabric_ops_gen) if name.endswith("Op")
-           } == {name for name in vars(fabric_dialect) if name.endswith("Op")}
+           } | {"ActionOp"} == {
+               name for name in vars(fabric_dialect) if name.endswith("Op")
+           }
     assert "resource" in cql.types.__all__
     authoring_verbs = {
         "allocate_patch",
@@ -305,6 +320,27 @@ def test_import_cudaq_rejects_a_noisy_kernel(capfd):
     with pytest.raises(RuntimeError, match="Quake lowering failed"):
         cql.compiler.import_cudaq(noisy)
     assert "the target does not support noise" in capfd.readouterr().err
+
+
+def test_cudaq_qvector_and_scalar_import_as_zero_preparation():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def qvector_entry():
+        register = cudaq.qvector(3)
+        scalar = cudaq.qubit()
+        h(register)
+        mz(register)
+        mz(scalar)
+
+    imported = cql.compiler.import_cudaq(qvector_entry)
+    text = imported.to_mlir()
+
+    assert text.count('qlx.prepare "zero"') == 4
+    assert text.count("#qlx.action<h>") == 3
+    assert text.count("qlx.measure <Z>") == 4
+    assert imported.module.operation.verify()
 
 
 def test_logical_estimate_is_invariant_under_cached_view_mutation():

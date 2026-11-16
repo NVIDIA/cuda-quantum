@@ -11,7 +11,7 @@
 #
 # Builds cudaq-realtime-cpu-roce-transport: the cpu_roce_* C ABI over
 # Hololink's CpuRoceTransceiver. Used by:
-#   - hsb_bridge_cpu (Phase 1, FPGA-facing bridge; tx_mode=kRdmaSend -- the
+#   - roce_app --cpu (Phase 1, FPGA-facing bridge; tx_mode=kRdmaSend -- the
 #     bridge Sends to the FPGA, which Writes its syndromes back)
 #   - CpuRoceChannel (Phase 2, device_call caller / FPGA stand-in;
 #     tx_mode=kRdmaWriteWithImm -- Writes requests like an FPGA)

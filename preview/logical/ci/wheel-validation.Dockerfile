@@ -24,7 +24,7 @@ ARG python_version=3.11
 ARG cudaq_version
 ARG cudaq_logical_version
 ARG pip_install_flags=""
-ARG preinstalled_modules="pytest"
+ARG preinstalled_modules="pytest stim>=1.16,<2"
 
 ARG DEBIAN_FRONTEND=noninteractive
 

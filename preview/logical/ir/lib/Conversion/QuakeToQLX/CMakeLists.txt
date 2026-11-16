@@ -28,6 +28,7 @@ qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
 )
 
 add_mlir_conversion_library(MLIRQuakeToQLX
+  EraseQuakeGlobalPhase.cpp
   PruneDeadCCLoopCarries.cpp
   QuakeToQLX.cpp
   QuakeToQLXPipelineReg.cpp

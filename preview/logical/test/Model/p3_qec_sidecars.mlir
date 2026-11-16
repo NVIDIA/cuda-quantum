@@ -21,7 +21,7 @@ module attributes {qlx.profiles = ["p3"]} {
     } : (!fabric.patch<@source_code>) -> (!fabric.patch<@source_code>, i1)
     fabric.return %next, %record : !fabric.patch<@source_code>, i1
   }
-  fabric.gadget_profile @analysis for @source {
+  fabric.gadget_contract @analysis for @source {
     fabric.success {records = ["source.final.outcome"]}
   }
   phys.machine @arch {

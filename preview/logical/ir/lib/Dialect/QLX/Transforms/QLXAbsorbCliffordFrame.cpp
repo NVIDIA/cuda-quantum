@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -173,7 +174,7 @@ static LogicalResult readPauli(Operation *owner, ValueRange inputs,
     return owner->emitOpError("requires x_mask, z_mask, and sign parameters");
   if (sign.getValue().getBitWidth() > 64)
     return owner->emitOpError("Pauli sign is not representable as i64");
-  int64_t signValue = sign.getValue().getSExtValue();
+  std::int64_t signValue = sign.getValue().getSExtValue();
   if (signValue != 1 && signValue != -1)
     return owner->emitOpError("Pauli sign must be +1 or -1");
 
@@ -204,34 +205,34 @@ static LogicalResult readPauli(Operation *owner, ValueRange inputs,
 
 /// Return signed integer multiples of pi/2, or nullopt for a non-Clifford or
 /// non-exact rotation. The product sign is folded into the returned angle.
-static FailureOr<std::optional<int64_t>>
+static FailureOr<std::optional<std::int64_t>>
 exactCliffordTurns(ApplyOp apply, bool verifyNumeric = true) {
   auto parameters = apply.getParameters();
   if (!parameters)
-    return std::optional<int64_t>{};
+    return std::optional<std::int64_t>{};
   auto numerator = parameters->getAs<IntegerAttr>("angle_pi_numer");
   auto denominator = parameters->getAs<IntegerAttr>("angle_pi_denom");
   if (!numerator && !denominator)
-    return std::optional<int64_t>{};
+    return std::optional<std::int64_t>{};
   if (!numerator || !denominator || numerator.getValue().getBitWidth() > 64 ||
       denominator.getValue().getBitWidth() > 64)
     return apply.emitOpError(
                "exact angle metadata must use representable integer fields"),
            failure();
-  int64_t n = numerator.getValue().getSExtValue();
-  int64_t d = denominator.getValue().getSExtValue();
+  std::int64_t n = numerator.getValue().getSExtValue();
+  std::int64_t d = denominator.getValue().getSExtValue();
   if (n < 0 || d <= 0)
     return apply.emitOpError(
                "exact angle metadata requires nonnegative numerator and "
                "positive denominator"),
            failure();
   if ((2 * n) % d != 0)
-    return std::optional<int64_t>{};
+    return std::optional<std::int64_t>{};
   auto sign = parameters->getAs<IntegerAttr>("sign");
   if (!sign || sign.getValue().getBitWidth() > 64)
     return apply.emitOpError("exact Pauli rotation requires an i64 sign"),
            failure();
-  int64_t signValue = sign.getValue().getSExtValue();
+  std::int64_t signValue = sign.getValue().getSExtValue();
   if (signValue != 1 && signValue != -1)
     return apply.emitOpError("exact Pauli rotation sign must be +1 or -1"),
            failure();
@@ -248,7 +249,7 @@ exactCliffordTurns(ApplyOp apply, bool verifyNumeric = true) {
                  "exact angle metadata disagrees with the numeric operand"),
              failure();
   }
-  return std::optional<int64_t>{signValue * ((2 * n) / d)};
+  return std::optional<std::int64_t>{signValue * ((2 * n) / d)};
 }
 
 static DictionaryAttr transformedParameters(OpBuilder &builder,

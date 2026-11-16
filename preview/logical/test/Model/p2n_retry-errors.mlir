@@ -36,7 +36,7 @@ module {
     } : (!fabric.patch<@c>) -> (!fabric.patch<@c>, i1)
     fabric.return %next, %ok : !fabric.patch<@c>, i1
   } {realization_boundary = {}, spec = @evidenced_spec}
-  fabric.gadget_profile @evidenced_profile for @evidenced_gadget {
+  fabric.gadget_contract @evidenced_profile for @evidenced_gadget {
     fabric.success {records = ["evidenced_gadget.accepted.outcome"]}
   }
   fabric.protocol @evidenced_attempt
