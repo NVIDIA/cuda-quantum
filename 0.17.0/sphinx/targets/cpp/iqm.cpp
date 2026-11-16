@@ -1,0 +1,60 @@
+// Compile and run with:
+// ```
+// nvq++ --target iqm iqm.cpp -o out.x && ./out.x
+// ```
+// Assumes a valid set of credentials have been stored.
+
+#include <cudaq.h>
+#include <fstream>
+
+// Define a simple quantum kernel to execute on IQM Server.
+struct ghz {
+  // Maximally entangled state between 5 qubits on a Crystal QPU.
+
+  void operator()() __qpu__ {
+    cudaq::qvector q(5);
+    h(q[0]);
+
+    // Note that as a user you do not have to worry about the physical
+    // constraints of qubit connectivity when writing a circuit. The CUDA-Q
+    // compiler will automatically (and transparently) generate the necessary
+    // instructions to swap qubits as needed to satisfy the connectivity of
+    // the QPU.
+    // When this program is executed the current dynamic quantum architecture
+    // of the addressed QPU is retrieved and the `transpiler` gets a map with
+    // the qubits and their connectivity. It places the algorithm on the qubits
+    // and add swaps when needed by the circuit. With this the same code can
+    // run on different QPU layouts without any changes.
+    for (int i = 0; i < 4; i++) {
+      x<cudaq::ctrl>(q[i], q[i + 1]);
+    }
+    mz(q);
+  }
+};
+
+int main() {
+  // Submit to IQM Server asynchronously. E.g, continue executing
+  // code in the file until the job has been returned.
+  auto future = cudaq::sample_async(ghz{});
+  // ... classical code to execute in the meantime ...
+
+  // Can write the future to file:
+  {
+    std::ofstream out("saveMe.json");
+    out << future;
+  }
+
+  // Then come back and read it in later.
+  cudaq::async_result<cudaq::sample_result> readIn;
+  std::ifstream in("saveMe.json");
+  in >> readIn;
+
+  // Get the results of the read in future.
+  auto async_counts = readIn.get();
+  async_counts.dump();
+
+  // OR: Submit to IQM Server synchronously. E.g, wait for the job
+  // result to be returned before proceeding.
+  auto counts = cudaq::sample(ghz{});
+  counts.dump();
+}
