@@ -9,7 +9,7 @@
 import cmath, numpy as np, pytest, random
 from cudaq import operators, boson
 from cudaq.operators import *
-from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import ComplexMatrix
+from cudaq import ComplexMatrix
 from op_utils import *  # test helpers
 
 
