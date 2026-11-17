@@ -203,33 +203,6 @@ private:
     try {
       ringBuffer.configure("gpu", deviceId, channelConfig);
 
-      // Device-resident so the persistent dispatch kernel polls from L2, not
-      // PCIe; host signals via cudaMemcpyAsync on controlStream below.
-      void *d_shutdown = nullptr;
-      if (cudaMalloc(&d_shutdown, sizeof(int)) != cudaSuccess)
-        throw DeviceCallError(DeviceCallStatus::CudaError,
-                              "failed to allocate device_call shutdown flag");
-      d_shutdownFlag = static_cast<volatile int *>(d_shutdown);
-      if (cudaMemset(const_cast<int *>(d_shutdownFlag), /*value=*/0,
-                     sizeof(int)) != cudaSuccess)
-        throw DeviceCallError(DeviceCallStatus::CudaError,
-                              "failed to initialize device_call shutdown flag");
-
-      if (cudaMalloc(&d_stats, sizeof(std::uint64_t)) != cudaSuccess)
-        throw DeviceCallError(DeviceCallStatus::CudaError,
-                              "failed to allocate device_call stats");
-      if (cudaMemset(d_stats, 0, sizeof(std::uint64_t)) != cudaSuccess)
-        throw DeviceCallError(DeviceCallStatus::CudaError,
-                              "failed to initialize device_call stats");
-
-      // Non-blocking so the shutdown memcpy bypasses implicit synchronization
-      // with the dispatcher's blocking stream; a sync cudaMemcpy on the default
-      // stream would wait for the persistent dispatch kernel and deadlock.
-      if (cudaStreamCreateWithFlags(&controlStream, cudaStreamNonBlocking) !=
-          cudaSuccess)
-        throw DeviceCallError(DeviceCallStatus::CudaError,
-                              "failed to create device_call control stream");
-
       CUDAQ_DBG("[device-call] gpu dispatcher starting device={} slots={} "
                 "slotSize={} functions={}",
                 deviceId, ringBuffer.numSlots(), ringBuffer.slotSize(),
@@ -264,8 +237,6 @@ private:
       CUDAQ_CHECK_DISPATCHER_STATUS(
           cudaq_dispatcher_set_function_table(dispatcher, &table));
       CUDAQ_CHECK_DISPATCHER_STATUS(
-          cudaq_dispatcher_set_control(dispatcher, d_shutdownFlag, d_stats));
-      CUDAQ_CHECK_DISPATCHER_STATUS(
           cudaq_dispatcher_set_launch_fn(dispatcher, launchFn));
       CUDAQ_CHECK_DISPATCHER_STATUS(cudaq_dispatcher_start(dispatcher));
 
@@ -279,27 +250,13 @@ private:
     }
   }
 
-  void signalShutdownNoLock() {
-    if (!d_shutdownFlag || !controlStream)
-      return;
-
-    CUDAQ_DBG("[device-call] gpu dispatcher signal shutdown");
-    const int h_shutdown = /*shutdown=*/1;
-    if (cudaMemcpyAsync(const_cast<int *>(d_shutdownFlag), &h_shutdown,
-                        sizeof(int), cudaMemcpyHostToDevice,
-                        controlStream) == cudaSuccess)
-      cudaStreamSynchronize(controlStream);
-  }
-
   void stopNoLock() {
-    const bool hasResources = started || dispatcher || dispatchManager ||
-                              controlStream || d_shutdownFlag || d_stats ||
-                              ringBuffer.configured();
+    const bool hasResources =
+        started || dispatcher || dispatchManager || ringBuffer.configured();
     if (!hasResources)
       return;
     CUDAQ_DBG("[device-call] gpu dispatcher stop started={}", started);
     if (started && dispatcher) {
-      signalShutdownNoLock();
       cudaq_dispatcher_stop(dispatcher);
       if (synchronizeFn)
         synchronizeFn();
@@ -311,20 +268,6 @@ private:
     if (dispatchManager) {
       cudaq_dispatch_manager_destroy(dispatchManager);
       dispatchManager = nullptr;
-    }
-
-    if (controlStream) {
-      cudaStreamDestroy(controlStream);
-      controlStream = nullptr;
-    }
-
-    if (d_shutdownFlag) {
-      cudaFree(const_cast<int *>(d_shutdownFlag));
-      d_shutdownFlag = nullptr;
-    }
-    if (d_stats) {
-      cudaFree(d_stats);
-      d_stats = nullptr;
     }
 
     ringBuffer.reset();
@@ -342,9 +285,6 @@ private:
   bool started = false;
   cudaq_dispatch_manager_t *dispatchManager = nullptr;
   cudaq_dispatcher_t *dispatcher = nullptr;
-  volatile int *d_shutdownFlag = nullptr;
-  std::uint64_t *d_stats = nullptr;
-  cudaStream_t controlStream = nullptr;
   mutable std::mutex mutex;
 };
 

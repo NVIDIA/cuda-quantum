@@ -304,39 +304,29 @@ void configure_grid_dispatcher(cudaq_dispatcher_t *dispatcher, int device,
             << " B dynamic shared memory per block" << std::endl;
 }
 
-// Tables and control storage must outlive the dispatcher and bridge, including
-// partial initialization. CPU mode never allocates/frees CUDA memory.
+// Tables must outlive the dispatcher and bridge, including partial
+// initialization. CPU mode never allocates/frees CUDA memory.
 struct Resources {
   /// Owns transport resources.
   cudaq_realtime_bridge_handle_t bridge = nullptr;
   /// Creates/manages the dispatcher.
   cudaq_dispatch_manager_t *manager = nullptr;
   cudaq_dispatcher_t *dispatcher = nullptr; ///< Absent in native forward mode.
-  volatile int host_shutdown = 0; ///< Stop flag read by the CPU dispatcher.
-  std::uint64_t host_stats = 0;   ///< CPU dispatcher's processed-request count.
   cudaq_function_entry_t host_entries[1]{}; ///< Host increment handler entry.
-  int *mapped_shutdown = nullptr; ///< Host allocation also readable by the GPU.
-  /// GPU allocation for the processed count.
-  std::uint64_t *device_stats = nullptr;
   /// GPU handler table storage.
   cudaq_function_entry_t *device_entries = nullptr;
   /// Grid dispatcher's per-block SM ids (--dispatcher=grid only).
   std::uint32_t *grid_sm_ids = nullptr;
 
+  // The dispatcher owns its stop flag and raises it itself.
   void stop() {
-    // Set mapped memory before stop()'s CUDA copy: the default stream may
-    // otherwise wait for the persistent kernels that this flag terminates.
-    if (mapped_shutdown) {
-      *static_cast<volatile int *>(mapped_shutdown) = 1;
-      __sync_synchronize();
-    }
     if (dispatcher)
       HANDLE_REALTIME_ERROR(cudaq_dispatcher_stop(dispatcher));
   }
 
   ~Resources() {
     // Stop dispatch before releasing the bridge's rings, then free the table
-    // and control storage. Null members also allow cleanup after partial setup.
+    // storage. Null members also allow cleanup after partial setup.
     try {
       stop();
     } catch (const std::exception &error) {
@@ -352,12 +342,8 @@ struct Resources {
     }
     if (device_entries)
       cudaFree(device_entries);
-    if (device_stats)
-      cudaFree(device_stats);
     if (grid_sm_ids)
       cudaFree(grid_sm_ids);
-    if (mapped_shutdown)
-      cudaFreeHost(mapped_shutdown);
   }
 };
 } // namespace
@@ -439,32 +425,14 @@ int main(int argument_count, char **arguments) {
           cudaq_dispatcher_set_bridge(resources.dispatcher, resources.bridge));
 
       // The single entry maps rpc_increment to a host or device handler.
-      // Control pointers must be accessible from the same execution path.
       cudaq_function_table_t table{};
       table.count = 1;
-      volatile int *shutdown = &resources.host_shutdown;
-      std::uint64_t *stats = &resources.host_stats;
       if (config.cpu) {
         // CPU dispatch uses ordinary host memory and makes no CUDA allocations.
         setup_rpc_increment_function_table_host(resources.host_entries);
         table.entries = resources.host_entries;
       } else {
-        // A mapped stop flag lets the host stop persistent GPU kernels without
-        // first waiting for a CUDA copy. Counters and handlers live on device.
-        HANDLE_CUDA_ERROR(cudaHostAlloc(&resources.mapped_shutdown, sizeof(int),
-                                        cudaHostAllocMapped));
-        *resources.mapped_shutdown = 0;
-        int *device_shutdown = nullptr;
-        // The device alias need not equal the host pointer. Pass that alias
-        // to the kernel while retaining the host pointer for shutdown writes.
-        HANDLE_CUDA_ERROR(cudaHostGetDevicePointer(
-            &device_shutdown, resources.mapped_shutdown, 0));
-        shutdown = device_shutdown;
-        HANDLE_CUDA_ERROR(
-            cudaMalloc(&resources.device_stats, sizeof(std::uint64_t)));
-        HANDLE_CUDA_ERROR(
-            cudaMemset(resources.device_stats, 0, sizeof(std::uint64_t)));
-        stats = resources.device_stats;
+        // The handler table lives on device.
         HANDLE_CUDA_ERROR(cudaMalloc(&resources.device_entries,
                                      sizeof(cudaq_function_entry_t)));
         // Unified GPU dispatch links its module at runtime, so resolve the
@@ -490,10 +458,9 @@ int main(int argument_count, char **arguments) {
         configure_grid_dispatcher(resources.dispatcher, config.gpu,
                                   config.blocks, config.threads,
                                   resources.grid_sm_ids);
-      // Control storage and handler entries stay owned by Resources for the
-      // entire run; the dispatcher receives pointers, not independent copies.
-      HANDLE_REALTIME_ERROR(
-          cudaq_dispatcher_set_control(resources.dispatcher, shutdown, stats));
+      // Handler entries stay owned by Resources for the entire run; the
+      // dispatcher receives a pointer, not an independent copy. It owns its
+      // stop flag and processed-request counter.
       HANDLE_REALTIME_ERROR(cudaq_dispatcher_start(resources.dispatcher));
     }
     // 4. Launch transport work after dispatch is ready. The shell runner waits
