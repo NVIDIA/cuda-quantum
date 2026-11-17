@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 #
-# Builds an Ubuntu 24.04 image containing source code for a set of apt and pip
+# Builds an Ubuntu 26.04 image containing source code for a set of apt and pip
 # packages plus the repo's tpls/ (third-party library) source. Tpls are cloned
 # at build time using .gitmodules and a lock file (commit + path per line) via
 # git clone --no-checkout --filter=tree:0 + fetch + checkout.
@@ -37,7 +37,7 @@
 #   NOTICE_PIP_cudaq_cu<N>, NOTICE_PIP_cudaqx_cu<N>, NOTICE_PIP_cudaq-decoding_cu<N>, NOTICE_PIP_macos_cu<N> - pip attribution per variant (from generate_pip_attribution.py)
 #   NOTICE_APT_cudaq_cu<N>, NOTICE_APT_cudaqx_cu<N>, NOTICE_APT_cudaq-decoding_cu<N> - apt attribution per variant (from generate_apt_attribution.py)
 
-ARG base_image=ubuntu:24.04
+ARG base_image=ubuntu:26.04
 FROM ${base_image}
 
 SHELL ["/bin/bash", "-c"]
@@ -73,7 +73,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget \
     && rm -f "/var/tmp/${doca_deb}" \
     && apt-get update -y
 
-# Enable source repositories (Ubuntu 24.04 DEB822 format)
+# Enable source repositories (Ubuntu 24.04+ DEB822 format)
 RUN if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
       sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources; \
     else \

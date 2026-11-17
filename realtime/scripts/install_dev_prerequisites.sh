@@ -45,13 +45,20 @@ if [ -x "$(command -v apt-get)" ]; then
   # Needed to build HSB from source below.
   retry apt-get install -y --no-install-recommends git ninja-build pkg-config
 
-  # [libibverbs]
-  echo "Installing libibverbs..."
-  retry apt-get install -y --no-install-recommends libibverbs-dev
+  if [ "$(. /etc/os-release && printf '%s' "$VERSION_ID")" = "26.04" ]; then
+    # doca-all pins the OFED rdma-core, which cannot be installed next to
+    # 26.04's own rdma-core. The GPUNetIO dev package brings the verbs headers.
+    cudaq_realtime_add_doca_repo
+    DEBIAN_FRONTEND=noninteractive retry apt-get -y install --no-install-recommends libdoca-sdk-gpunetio-dev
+  else
+    # [libibverbs]
+    echo "Installing libibverbs..."
+    retry apt-get install -y --no-install-recommends libibverbs-dev
 
-  # [DOCA Host]
-  cudaq_realtime_add_doca_repo
-  DEBIAN_FRONTEND=noninteractive retry apt-get -y install doca-all libdoca-sdk-gpunetio-dev
+    # [DOCA Host]
+    cudaq_realtime_add_doca_repo
+    DEBIAN_FRONTEND=noninteractive retry apt-get -y install doca-all libdoca-sdk-gpunetio-dev
+  fi
 
   # [Holoscan SDK]
   cudaq_realtime_install_holoscan

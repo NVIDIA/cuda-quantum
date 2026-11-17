@@ -32,12 +32,12 @@ on:
         required: false
         type: boolean
         default: false
-        description: Include the matching Python 3.12 CUDA-Q Logical wheel from this run. The caller must wait for wheel production.
+        description: Include the matching CUDA-Q Logical wheel (Python 3.12 for CUDA 12 images, 3.14 otherwise) from this run. The caller must wait for wheel production.
       include_edem:
         required: false
         type: boolean
         default: false
-        description: Include the matching Python 3.12 cudaq-edem wheel from this run. The caller must wait for wheel production.
+        description: Include the matching cudaq-edem wheel (Python 3.12 for CUDA 12 images, 3.14 otherwise) from this run. The caller must wait for wheel production.
       environment:
         required: false
         type: string
@@ -206,8 +206,9 @@ jobs:
           # cuda-cudart-dev ships the CUDA headers CuPy JITs against at runtime.
           build-args: |
             ompidev_image=${{ inputs.ompidev_image }}
-            base_image=nvcr.io/nvidia/cuda:${{ inputs.cuda_version }}.0-runtime-ubuntu24.04
-            cuda_version=${{ inputs.cuda_version }}
+            base_image=nvcr.io/nvidia/cuda:${{ inputs.cuda_version == '13.0' && '13.3' || inputs.cuda_version }}.0-runtime-ubuntu${{ startsWith(inputs.cuda_version, '12.') && '24.04' || '26.04' }}
+            cuda_version=${{ inputs.cuda_version == '13.0' && '13.3' || inputs.cuda_version }}
+            python_version=${{ startsWith(inputs.cuda_version, '12.') && '3.12' || '3.14' }}
             cuda_packages=cuda-cudart-dev
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
@@ -540,7 +541,7 @@ jobs:
         id: prereqs
         run: |
           if ${{ needs.ompi_image.result == 'skipped' }}; then
-            base_image=ghcr.io/nvidia/ubuntu:24.04
+            base_image=ghcr.io/nvidia/ubuntu:26.04
           elif ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.ompi_image.outputs.tar_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
@@ -748,8 +749,8 @@ jobs:
         run: |
           docker run --privileged multiarch/qemu-user-static:latest --reset -p yes --credential yes
 
-      # Ubuntu 24.04 release images use Python 3.12. The `cudaq.logical` and
-      # cudaq-edem wheels are CUDA version-independent.
+      # CUDA 12 images: Ubuntu 24.04, Python 3.12; others: 26.04, 3.14. The `cudaq.logical`
+      # and cudaq-edem wheels are CUDA version-independent.
       - name: Select Python wheels
         if: inputs.include_logical || inputs.include_edem
         id: wheels
@@ -758,6 +759,7 @@ jobs:
           PLATFORM: ${{ inputs.platforms }}
           INCLUDE_LOGICAL: ${{ inputs.include_logical }}
           INCLUDE_EDEM: ${{ inputs.include_edem }}
+          PYTHON_TAG: ${{ startsWith(inputs.cuda_version, '12.') && 'cp312' || 'cp314' }}
         run: |
           case "$PLATFORM" in
             linux/amd64) arch=x86_64 ;;
@@ -779,7 +781,7 @@ jobs:
           fi
           {
             echo "kinds=${kinds[*]}"
-            echo "pattern=cudaq_${names}-*-cp312-*manylinux_2_28_${arch}.whl"
+            echo "pattern=cudaq_${names}-*-${PYTHON_TAG}-*manylinux_2_28_${arch}.whl"
           } >> "$GITHUB_OUTPUT"
 
       - name: Download Python wheels
@@ -828,6 +830,7 @@ jobs:
             deprecation_notice=${{ steps.prereqs.outputs.deprecation_notice }}
             include_logical=${{ inputs.include_logical }}
             include_edem=${{ inputs.include_edem }}
+            libstdcxx_version=${{ startsWith(inputs.cuda_version, '12.') && '13' || '15' }}
           tags: ${{ steps.cudaq_metadata.outputs.tags }}
           labels: ${{ steps.cudaq_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}

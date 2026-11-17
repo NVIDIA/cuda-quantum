@@ -29,6 +29,10 @@ set (STIM_DEPENDENCIES libstim fmt::fmt-header-only cudaq-logger cudaq-common)
 # So override that here.
 target_compile_options(libstim PRIVATE -Wno-all)
 
+# The pinned Stim headers use uint64_t without including <cstdint>, which
+# libstdc++ 16 no longer provides transitively.
+target_compile_options(libstim PRIVATE "SHELL:-include cstdint")
+
 target_include_directories(${LIBRARY_NAME}
     PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>

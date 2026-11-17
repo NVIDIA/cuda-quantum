@@ -37,7 +37,10 @@ RUN if [ -n "$mpi" ]; \
         if [ ! -z "$MPI_PATH" ]; then \
             echo "Using a base image with MPI is not supported when passing a 'mpi' build argument." && exit 1; \
         else \
-			apt update && apt install -y lib$mpi-dev ; \
+			apt update && apt install -y lib$mpi-dev && \
+			# Clang uses the newest GCC dir, which OpenMPI can leave without libstdc++.
+			gcc_dir=$(ls -d /usr/lib/gcc/$(uname -m)-linux-gnu/* | sort -V | tail -1) && \
+			apt install -y libstdc++-${gcc_dir##*/}-dev ; \
 		fi \
     fi
 

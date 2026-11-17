@@ -15,8 +15,10 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ompi -f docker/build/devdeps.ompi.Dockerfile .
 
-ARG cuda_version=12.6
-FROM nvidia/cuda:${cuda_version}.0-devel-ubuntu24.04
+# 26.04 images exist only for CUDA 13.3+.
+ARG cuda_version=13.3
+ARG ubuntu_version=26.04
+FROM nvidia/cuda:${cuda_version}.0-devel-ubuntu${ubuntu_version}
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 ARG cuda_version
@@ -64,21 +66,31 @@ RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://
 
 ARG DOCA_VERSION=3.1.0-091000-25.07
 ENV SHARP_INSTALL_PREFIX=/opt/mellanox/sharp
-RUN arch=$([ "$TARGETARCH" = "arm64" ] && echo arm64 || echo amd64) \
-    && doca_deb="doca-host_${DOCA_VERSION}-ubuntu2404_${arch}.deb" \
-    && wget -q -nc --no-check-certificate -P /var/tmp \
-        "https://www.mellanox.com/downloads/DOCA/DOCA_v3.1.0/host/${doca_deb}" \
-    && dpkg -i "/var/tmp/${doca_deb}" \
-    && apt-get update -y \
-    && apt-get install -y --no-install-recommends \
-        libibverbs1 libibverbs-dev ibverbs-providers \
-        librdmacm1 librdmacm-dev \
-        libibumad3 libibumad-dev \
-        libibmad5 libibmad-dev \
-        libxpmem0 libxpmem-dev xpmem knem \
-        sharp \
-    && echo "$SHARP_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
-    && rm -f "/var/tmp/${doca_deb}" \
+# DOCA 3.1.0 is only published for Ubuntu 24.04; 26.04 uses the distribution's
+# RDMA libraries (no SHARP, xpmem or knem).
+RUN . /etc/os-release \
+    && if [ "$VERSION_ID" != "26.04" ]; then \
+        arch=$([ "$TARGETARCH" = "arm64" ] && echo arm64 || echo amd64) \
+        && doca_deb="doca-host_${DOCA_VERSION}-ubuntu2404_${arch}.deb" \
+        && wget -q -nc --no-check-certificate -P /var/tmp \
+            "https://www.mellanox.com/downloads/DOCA/DOCA_v3.1.0/host/${doca_deb}" \
+        && dpkg -i "/var/tmp/${doca_deb}" \
+        && apt-get update -y \
+        && apt-get install -y --no-install-recommends \
+            libibverbs1 libibverbs-dev ibverbs-providers \
+            librdmacm1 librdmacm-dev \
+            libibumad3 libibumad-dev \
+            libibmad5 libibmad-dev \
+            libxpmem0 libxpmem-dev xpmem knem \
+            sharp \
+        && echo "$SHARP_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
+        && rm -f "/var/tmp/${doca_deb}"; \
+    else \
+        apt-get update -y && apt-get install -y --no-install-recommends \
+            ibverbs-providers ibverbs-utils \
+            libibmad-dev libibumad-dev libibverbs-dev librdmacm-dev \
+            libibmad5 libibumad3 libibverbs1 librdmacm1t64; \
+    fi \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 # Optional runtime diagnostics (ibv_devinfo, rdma_*, ib_write_bw, ofed_info):
 # RUN apt-get update -y \
@@ -101,7 +113,8 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     && rm -rf /var/tmp/gdrcopy-${GDRCOPY_VERSION} /var/tmp/v${GDRCOPY_VERSION}.tar.gz \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include:$CPATH"
+# The CUDA base image does not set CPATH.
+ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include"
 ENV LIBRARY_PATH="$GDRCOPY_INSTALL_PREFIX/lib64:$LIBRARY_PATH"
 
 # 5 - Install UCX version 1.21.0
@@ -113,7 +126,8 @@ RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp \
     && tar -x -f /var/tmp/ucx-${UCX_VERSION}.tar.gz -C /var/tmp -z \
     && cd /var/tmp/ucx-${UCX_VERSION} \
     && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
-    &&  CC=gcc CFLAGS="$common_flags" \
+    # UCX's -Werror trips on newer glibc/GCC warnings.
+    &&  CC=gcc CFLAGS="$common_flags -Wno-error" \
         CXX=g++ CXXFLAGS="$common_flags" \
         F77=gfortran F90=gfortran FFLAGS="$common_flags" \
         FC=gfortran FCFLAGS="$common_flags" \
@@ -138,7 +152,7 @@ RUN echo "$UCX_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig
 ENV LD_LIBRARY_PATH="$UCX_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
     PATH="$UCX_INSTALL_PREFIX/bin:$PATH"
 
-# 6 - Install UCC version 1.8.0 (latest stable) with UCX + SHARP + CUDA
+# 6 - Install UCC version 1.8.0 (latest stable) with UCX + CUDA (+ SHARP where DOCA provides it)
 
 ENV UCC_VERSION=1.8.0
 ENV UCC_INSTALL_PREFIX=/usr/local/ucc
@@ -156,7 +170,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
         ./configure --prefix="$UCC_INSTALL_PREFIX" \
             --with-ucx="$UCX_INSTALL_PREFIX" \
             --with-cuda="$CUDA_INSTALL_PREFIX" \
-            --with-sharp="$SHARP_INSTALL_PREFIX" \
+            $([ -d "$SHARP_INSTALL_PREFIX" ] && echo --with-sharp="$SHARP_INSTALL_PREFIX" || echo --without-sharp) \
             --enable-optimizations \
     && make -j$(nproc) && make -j$(nproc) install \
     && echo "$UCC_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \

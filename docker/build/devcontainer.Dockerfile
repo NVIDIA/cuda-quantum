@@ -63,21 +63,30 @@ RUN rm -f /etc/apt/sources.list.d/cuda.list
 ARG TARGETARCH
 ARG DOCA_VERSION=3.1.0-091000-25.07
 ENV SHARP_INSTALL_PREFIX=/opt/mellanox/sharp
-RUN arch=$([ "$TARGETARCH" = "arm64" ] && echo arm64 || echo amd64) \
-    && doca_deb="doca-host_${DOCA_VERSION}-ubuntu2404_${arch}.deb" \
-    && wget -q -nc --no-check-certificate -P /var/tmp \
-        "https://www.mellanox.com/downloads/DOCA/DOCA_v3.1.0/host/${doca_deb}" \
-    && dpkg -i "/var/tmp/${doca_deb}" \
-    && apt-get update -y \
-    && apt-get install -y --no-install-recommends \
-        libibverbs1 libibverbs-dev ibverbs-providers \
-        librdmacm1 librdmacm-dev \
-        libibumad3 libibumad-dev \
-        libibmad5 libibmad-dev \
-        libxpmem0 libxpmem-dev xpmem knem \
-        sharp \
-    && echo "$SHARP_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
-    && rm -f "/var/tmp/${doca_deb}" \
+# DOCA 3.1.0 is only published for Ubuntu 24.04; 26.04 uses the distribution's
+# RDMA libraries (no SHARP, xpmem or knem).
+RUN . /etc/os-release \
+    && if [ "$VERSION_ID" != "26.04" ]; then \
+        arch=$([ "$TARGETARCH" = "arm64" ] && echo arm64 || echo amd64) \
+        && doca_deb="doca-host_${DOCA_VERSION}-ubuntu2404_${arch}.deb" \
+        && wget -q -nc --no-check-certificate -P /var/tmp \
+            "https://www.mellanox.com/downloads/DOCA/DOCA_v3.1.0/host/${doca_deb}" \
+        && dpkg -i "/var/tmp/${doca_deb}" \
+        && apt-get update -y \
+        && apt-get install -y --no-install-recommends \
+            libibverbs1 libibverbs-dev ibverbs-providers \
+            librdmacm1 librdmacm-dev \
+            libibumad3 libibumad-dev \
+            libibmad5 libibmad-dev \
+            libxpmem0 libxpmem-dev xpmem knem \
+            sharp \
+        && echo "$SHARP_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
+        && rm -f "/var/tmp/${doca_deb}"; \
+    else \
+        apt-get update -y && apt-get install -y --no-install-recommends \
+            ibverbs-providers ibverbs-utils libibverbs-dev \
+            libibmad5 libibumad3 libibverbs1 librdmacm1t64; \
+    fi \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 # Optional runtime diagnostics (ibv_devinfo, rdma_*, ib_write_bw, ofed_info):
 # RUN apt-get update -y \
@@ -184,7 +193,8 @@ RUN if [ -n "$cuda_packages" ]; then \
         fi \
         && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
         && cuda_packages=$(echo "$cuda_packages" | tr ' ' '\n' | xargs -I {} echo {}-$(echo ${CUDA_VERSION} | cut -d. -f1-2 | tr . -)) \
-        && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/$arch_folder/cuda-keyring_1.1-1_all.deb" \
+        && distro=ubuntu$(. /etc/os-release && echo "${VERSION_ID//./}") \
+        && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch_folder/cuda-keyring_1.1-1_all.deb" \
         && dpkg -i cuda-keyring_1.1-1_all.deb \
         && apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages $cuda_packages \
         && rm cuda-keyring_1.1-1_all.deb \
@@ -218,27 +228,32 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 # Note: for docker images, we fixed the cuquantum version (with `==`) to avoid unintentional upgrades.
 # e.g., API marked as deprecated in a minor version upgrade may break build.
 # For Python pip installations, we allow minor version upgrades with `~=`, assuming the API is stable.
+ARG python_version=3.14
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip && \
     apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    if [ "$(echo $CUDA_VERSION | cut -d . -f1)" = "13" ]; then \
-        cupy_version=13.6.0; \
-    else \
-        cupy_version=13.4.1; \
+    if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "${python_version}" ]; then \
+        echo "expecting Python version ${python_version}" >&2 && exit 1; \
     fi && \
-    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==${cupy_version} cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==26.9.0 && \
-    if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.12" ]; then \
-        echo "expecting Python version 3.12"; \
-    fi
+    cuda_major=$(echo $CUDA_VERSION | cut -d . -f1) && \
+    # cupy 13.x has no cp314 wheels.
+    if [ "${python_version}" = "3.14" ]; then \
+        cupy_version=">=14.0.0"; \
+    elif [ "$cuda_major" = "13" ]; then \
+        cupy_version="==13.6.0"; \
+    else \
+        cupy_version="==13.4.1"; \
+    fi && \
+    python3 -m pip install --break-system-packages "cupy-cuda${cuda_major}x${cupy_version}" cuquantum-cu${cuda_major}==26.9.0
 
-ARG CUQUANTUM_INSTALL_PREFIX=/usr/local/lib/python3.12/dist-packages/cuquantum
+ARG CUQUANTUM_INSTALL_PREFIX=/usr/local/lib/python${python_version}/dist-packages/cuquantum
 ENV CUQUANTUM_INSTALL_PREFIX="$CUQUANTUM_INSTALL_PREFIX"
 ENV CUQUANTUM_ROOT="$CUQUANTUM_INSTALL_PREFIX"
 ENV CUQUANTUM_PATH="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
-ARG CUTENSOR_INSTALL_PREFIX=/usr/local/lib/python3.12/dist-packages/cutensor
+ARG CUTENSOR_INSTALL_PREFIX=/usr/local/lib/python${python_version}/dist-packages/cutensor
 ENV CUTENSOR_INSTALL_PREFIX="$CUTENSOR_INSTALL_PREFIX"
 ENV CUTENSOR_ROOT="$CUTENSOR_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
