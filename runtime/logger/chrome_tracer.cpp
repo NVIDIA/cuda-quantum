@@ -8,7 +8,6 @@
 
 #include "cudaq/runtime/logger/chrome_tracer.h"
 #include "cudaq/runtime/logger/logger.h"
-
 #include <nlohmann/json.hpp>
 
 #include <cstdint>

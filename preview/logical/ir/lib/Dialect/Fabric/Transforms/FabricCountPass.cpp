@@ -43,7 +43,6 @@
 #include "qlx/Dialect/Fabric/IR/FabricTypes.h"
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
-
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/STLExtras.h"
@@ -58,7 +57,6 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Pass/Pass.h"
-
 #include <algorithm>
 #include <cstdint>
 #include <functional>

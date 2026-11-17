@@ -14,7 +14,6 @@
 #include "qlx/Dialect/Phys/IR/PhysOps.h"
 #include "qlx/Dialect/Phys/IR/SpacetimeDerivation.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
-
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
@@ -31,7 +30,6 @@
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/SymbolTable.h"
-
 #include <algorithm>
 #include <array>
 #include <cmath>

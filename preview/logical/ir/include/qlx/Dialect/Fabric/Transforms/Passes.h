@@ -9,7 +9,6 @@
 #pragma once
 
 #include "mlir/Pass/Pass.h"
-
 #include <memory>
 
 namespace qlx {

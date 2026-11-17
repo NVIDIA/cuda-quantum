@@ -10,7 +10,6 @@
 #include "qlx/Dialect/Event/IR/EventInterfaces.h"
 #include "qlx/Dialect/Event/IR/EventOps.h"
 #include "qlx/Dialect/Event/IR/EventTypes.h"
-
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -27,7 +26,6 @@ using namespace qlx::event;
 //===----------------------------------------------------------------------===//
 
 #include "qlx/Dialect/Event/IR/EventDialect.cpp.inc"
-
 #include "qlx/Dialect/Event/IR/EventInterfaces.cpp.inc"
 
 #define GET_TYPEDEF_CLASSES

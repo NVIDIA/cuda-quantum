@@ -10,7 +10,6 @@
 
 #include "cudaq/edem/noise.h"
 #include "cudaq/edem/owned.hpp"
-
 #include <cstdint>
 
 #if defined(__GNUC__) || defined(__clang__)

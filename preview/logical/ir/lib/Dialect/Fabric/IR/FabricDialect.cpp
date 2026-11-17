@@ -19,7 +19,6 @@
 #include "qlx/Dialect/QLX/IR/QLXAttrs.h"
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
-
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
@@ -38,7 +37,6 @@
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Interfaces/CallInterfaces.h"
-
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -208,7 +206,6 @@ public:
 //===----------------------------------------------------------------------===//
 
 #include "qlx/Dialect/Fabric/IR/FabricDialect.cpp.inc"
-
 #include "qlx/Dialect/Fabric/IR/FabricInterfaces.cpp.inc"
 
 //===----------------------------------------------------------------------===//

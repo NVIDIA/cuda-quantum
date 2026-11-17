@@ -14,7 +14,6 @@
 #include "cudaq/ptsbe/PTSBEExecutionData.h"
 #include "cudaq/ptsbe/PTSBESample.h"
 #include "cudaq/ptsbe/PTSBESampleResult.h"
-
 #include <cmath>
 
 using namespace cudaq::ptsbe;

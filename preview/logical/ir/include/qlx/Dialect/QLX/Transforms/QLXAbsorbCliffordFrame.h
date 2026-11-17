@@ -10,7 +10,6 @@
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Support/LogicalResult.h"
-
 #include <string>
 
 namespace qlx {

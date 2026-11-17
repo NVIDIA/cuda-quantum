@@ -8,7 +8,6 @@
 
 #include "cudaq/edem/core.h"
 #include "cudaq/gf2/core.h"
-
 #include <cstdint>
 #include <type_traits>
 
