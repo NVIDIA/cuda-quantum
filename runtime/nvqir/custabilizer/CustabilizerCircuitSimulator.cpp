@@ -9,7 +9,6 @@
 #include "CustabilizerErrorHandling.h"
 #include "stim/mem/simd_util.h"
 #include "../stim/StimCircuitSimulator.h"
-
 #include <algorithm>
 #include <array>
 #include <cassert>

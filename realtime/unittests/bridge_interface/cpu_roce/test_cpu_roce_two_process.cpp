@@ -34,7 +34,6 @@
 #include "cudaq/realtime/testing/roce_probe.h"
 #include "cudaq/realtime/testing/server_process.h"
 #include "cudaq/realtime/testing/test_utils.h"
-
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>

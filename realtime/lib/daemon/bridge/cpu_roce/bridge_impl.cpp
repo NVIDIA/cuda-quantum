@@ -79,7 +79,6 @@
 
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
-
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>

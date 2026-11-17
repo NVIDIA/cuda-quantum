@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "CuStateVecBatch.h"
-
 #include <gtest/gtest.h>
 
 #include <cstdint>

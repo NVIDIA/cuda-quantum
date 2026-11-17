@@ -12,7 +12,6 @@
 #include "cudaq/Synthesis/Math/Ring/Zomega.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/LogicalResult.h"
-
 #include <cassert>
 #include <chrono>
 #include <cmath>

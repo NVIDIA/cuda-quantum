@@ -9,7 +9,6 @@
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include <cudaq.h>
-
 #include <vector>
 
 void fillVector(std::vector<int> &out, int seed);

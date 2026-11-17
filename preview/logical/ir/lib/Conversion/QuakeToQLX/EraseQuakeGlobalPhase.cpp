@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "qlx/Conversion/QuakeToQLXPasses.h"
-
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/IR/BuiltinOps.h"
 

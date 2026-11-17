@@ -14,14 +14,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "qlx/Target/Fabric/EmitStim.h"
-
 #include "qlx/Dialect/Cflow/IR/CflowDialect.h"
 #include "qlx/Dialect/Cflow/IR/CflowOps.h"
 #include "qlx/Dialect/Fabric/IR/FabricAttrs.h"
 #include "qlx/Dialect/Fabric/IR/FabricDialect.h"
 #include "qlx/Dialect/Fabric/IR/FabricOps.h"
 #include "qlx/Dialect/Fabric/IR/FabricTypes.h"
-
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/MapVector.h"
@@ -35,7 +33,6 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
-
 #include <algorithm>
 #include <cmath>
 #include <cstdint>

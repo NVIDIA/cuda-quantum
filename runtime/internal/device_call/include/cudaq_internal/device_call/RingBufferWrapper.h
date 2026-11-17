@@ -11,7 +11,6 @@
 #include "cudaq_internal/device_call/DeviceCallChannel.h"
 #include "cudaq_internal/device_call/DeviceCallError.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
-
 #include <chrono>
 #include <cstddef>
 #include <cstdint>

@@ -9,7 +9,6 @@
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include "cudaq/qis/qubit_qis.h"
-
 #include <cstdint>
 
 __qpu_intrinsic__ void uma(cudaq::qubit &, cudaq::qubit &, cudaq::qubit &);

@@ -13,7 +13,6 @@
 #include "qlx/Dialect/Phys/IR/PhysOps.h"
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
-
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringSet.h"
@@ -23,7 +22,6 @@
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
-
 #include <cmath>
 #include <cstdint>
 #include <limits>

@@ -10,7 +10,6 @@
 
 #include "llvm/ADT/StringRef.h"
 #include "mlir/Support/LogicalResult.h"
-
 #include <cstdint>
 
 namespace qlx::phys {

@@ -9,7 +9,6 @@
 #include <gtest/gtest.h>
 
 #include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
-
 #include <cstdint>
 
 namespace {

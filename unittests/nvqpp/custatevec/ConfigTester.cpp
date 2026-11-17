@@ -9,7 +9,6 @@
 #include "CuStateVecConfig.h"
 #include "CuStateVecDevice.h"
 #include "CuStateVecGateEngine.h"
-
 #include <gtest/gtest.h>
 
 #include <cstdint>
