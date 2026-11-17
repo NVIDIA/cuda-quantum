@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "qlx/Dialect/QLX/Transforms/QLXAbsorbCliffordFrame.h"
-
 #include "qlx/Dialect/Cflow/IR/CflowOps.h"
 #include "qlx/Dialect/QLX/IR/QLXAttrs.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
@@ -19,7 +18,6 @@
 #include "llvm/Support/MathExtras.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Builders.h"
-
 #include <algorithm>
 #include <cmath>
 #include <cstdint>

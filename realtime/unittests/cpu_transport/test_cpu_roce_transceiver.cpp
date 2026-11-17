@@ -25,7 +25,6 @@
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
 #include "cudaq/realtime/testing/roce_probe.h"
 #include "cudaq/realtime/testing/test_utils.h"
-
 #include <gtest/gtest.h>
 
 #include <chrono>

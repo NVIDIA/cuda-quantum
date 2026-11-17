@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-
 #include <cudaq.h>
 #include <iostream>
 

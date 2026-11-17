@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "cudaq/distributed/mpi_plugin.h"
-
 #include <custatevecEx_ext.h>
 
 #include <cstddef>

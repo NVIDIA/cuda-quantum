@@ -18,7 +18,6 @@
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
-
 #include <cstdint>
 
 #define DEBUG_TYPE "quake-to-llvm"

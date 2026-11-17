@@ -9,7 +9,6 @@
 #pragma once
 
 #include "cudaq/runtime/logger/tracer.h"
-
 #include <cstdint>
 
 namespace cudaq {

@@ -27,7 +27,6 @@
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/unified_device_transport.cuh"
 #include "cudaq/realtime/daemon/dispatcher/unified_dispatch_device.cuh"
-
 #include <cstdint>
 #include <cuda_runtime.h>
 

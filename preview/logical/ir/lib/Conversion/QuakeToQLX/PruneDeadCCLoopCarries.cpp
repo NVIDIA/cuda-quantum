@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "qlx/Conversion/QuakeToQLXPasses.h"
-
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "llvm/ADT/STLExtras.h"

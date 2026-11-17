@@ -10,7 +10,6 @@
 
 #include "CuStateVecConfig.h"
 #include "CuStateVecDevice.h"
-
 #include <cudaq.h>
 #include <gtest/gtest.h>
 

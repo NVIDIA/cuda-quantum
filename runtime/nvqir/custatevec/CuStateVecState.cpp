@@ -7,10 +7,8 @@
  ******************************************************************************/
 
 #include "CuStateVecState.h"
-
 #include "CuStateVecCommunicator.h"
 #include "CuStateVecError.h"
-
 #include <algorithm>
 #include <bit>
 #include <complex>

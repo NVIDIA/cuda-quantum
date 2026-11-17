@@ -10,12 +10,10 @@
 #define CUDAQ_LOGICAL_ANALYSIS_CODEPRESENTATION_H
 
 #include "qlx/Dialect/Fabric/IR/FabricOps.h"
-
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallBitVector.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Support/LogicalResult.h"
-
 #include <string>
 
 namespace cudaq::logical {

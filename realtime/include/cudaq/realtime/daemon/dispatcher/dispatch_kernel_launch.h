@@ -9,7 +9,6 @@
 #pragma once
 
 #include "cudaq/realtime/daemon/dispatcher/rpc_wire_format.h"
-
 #include <cstddef>
 #include <cstdint>
 

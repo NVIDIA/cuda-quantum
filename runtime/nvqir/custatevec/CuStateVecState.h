@@ -9,7 +9,6 @@
 #pragma once
 
 #include "CuStateVecError.h"
-
 #include <custatevecEx.h>
 
 #include <algorithm>

@@ -10,7 +10,6 @@
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel.cuh"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
-
 #include <cuda_runtime.h>
 #include <cuda_device_runtime_api.h>
 #include <cstdint>

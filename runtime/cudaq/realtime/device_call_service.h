@@ -9,7 +9,6 @@
 #pragma once
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
-
 #include <cuda_runtime_api.h>
 
 #include <cstdint>

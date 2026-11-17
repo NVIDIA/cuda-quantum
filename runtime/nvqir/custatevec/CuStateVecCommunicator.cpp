@@ -7,12 +7,10 @@
  ******************************************************************************/
 
 #include "CuStateVecCommunicator.h"
-
 #include "CuStateVecError.h"
 #include "cudaq/cudaq_mpi.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
-
 #include <custatevecEx_ext.h>
 #include <dlfcn.h>
 

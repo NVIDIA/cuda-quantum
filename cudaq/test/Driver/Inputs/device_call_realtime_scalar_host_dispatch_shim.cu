@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "device_call_realtime_lib.cuh"
-
 #include "DeviceCallLibrary.h"
 
 CUDAQ_DEVICE_CALL_LIBRARY_BEGIN(test_device_call_scalar)

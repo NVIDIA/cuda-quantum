@@ -11,7 +11,6 @@
 #include "qlx/Analysis/GadgetEDEM.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/CAPI/Support.h"
-
 #include <new>
 #include <stdexcept>
 

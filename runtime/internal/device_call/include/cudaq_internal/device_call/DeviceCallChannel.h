@@ -10,7 +10,6 @@
 
 #include "common/Registry.h"
 #include "cudaq/realtime/device_call_service.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <memory>

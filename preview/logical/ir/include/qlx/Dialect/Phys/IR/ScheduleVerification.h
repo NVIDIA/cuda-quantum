@@ -12,7 +12,6 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "mlir/Support/LogicalResult.h"
-
 #include <cstdint>
 #include <optional>
 

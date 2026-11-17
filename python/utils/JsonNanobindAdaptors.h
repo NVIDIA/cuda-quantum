@@ -12,7 +12,6 @@
 #include <nanobind/stl/string.h>
 
 #include "nlohmann/json.hpp"
-
 #include <cstdint>
 
 namespace nanobind {

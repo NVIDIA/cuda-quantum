@@ -10,7 +10,6 @@
 #ifdef CUDAQ_PASQAL_QRMI_ENABLED
 #include "PasqalUtils.h"
 #include "QrmiUtils.h"
-
 #include <cstdint>
 #include <cstdlib>
 #include <utility>

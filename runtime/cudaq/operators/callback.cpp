@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "callback.h"
-
 #include <complex>
 #include <cstdint>
 #include <functional>
