@@ -33,13 +33,10 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-
 #include "cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.h"
-
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/Support/LogicalResult.h"
-
 #include <cstdint>
 #include <optional>
 #include <string>
