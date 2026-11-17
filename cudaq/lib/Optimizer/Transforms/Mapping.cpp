@@ -2787,6 +2787,17 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           analysisOk = false;
           return;
         }
+        if (auto meas = dyn_cast<cudaq::quake::MeasurementInterface>(op);
+            meas && meas.isJointMeasurement() && meas.getTargets().size() > 1) {
+          op.emitOpError(
+              "qubit mapping is defined over a two-qubit coupling graph; "
+              "decompose joint measurements before mapping");
+          signalPassFailure();
+          LLVM_DEBUG(llvm::dbgs() << "joint measurement of >1 qubit not "
+                                     "expected");
+          analysisOk = false;
+          return;
+        }
         if (isa<cudaq::quake::MeasurementInterface>(op))
           for (auto virtualQ : virtualOperands)
             userQubitsMeasured.push_back(virtualQ.index);
