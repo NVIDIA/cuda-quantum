@@ -80,23 +80,18 @@ def test_runtime_extras_map_to_the_cudaq_runtime_wheels():
     assert extras["cu13"] == ["cuda-quantum-cu13"]
 
 
-def test_version_is_dynamic_and_uses_logical_tags():
+def test_version_is_static_and_matches_the_installed_package():
     from packaging.version import Version
 
     import cudaq.logical
 
-    pyproject = _load_pyproject()
-    project = pyproject["project"]
-    assert "version" not in project
-    assert "version" in project["dynamic"]
-
-    provider = pyproject["tool"]["scikit-build"]["metadata"]["version"]
-    assert provider["provider"].endswith(".metadata.setuptools_scm")
-
-    scm = pyproject["tool"]["setuptools_scm"]
-    assert "cudaq-logical/v" in scm["tag_regex"]
-    assert scm["git_describe_command"][-1] == "cudaq-logical/v*"
-    assert str(Version(cudaq.logical.__version__))
+    project = _load_pyproject()["project"]
+    assert "version" not in project.get("dynamic", [])
+    declared = Version(project["version"])
+    # Source-tree and staged builds have no wheel metadata and report a
+    # development version, so only installed wheels can be compared.
+    if cudaq.logical.__version__ != "0.0.0.dev0":
+        assert declared == Version(cudaq.logical.__version__)
 
 
 def test_preview_warning_is_emitted_once_on_import(tmp_path):

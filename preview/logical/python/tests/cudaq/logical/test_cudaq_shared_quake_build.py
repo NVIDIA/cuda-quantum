@@ -38,19 +38,30 @@ def _after(text: str, marker: str, *, source: str) -> str:
     return suffix
 
 
+def test_quake_conversions_are_built_only_in_sdk_mode():
+    cmake = _cmake_code("ir/CMakeLists.txt")
+    sdk_block = _after(cmake,
+                       "if(QLX_USE_CUDAQ_SDK)",
+                       source="ir/CMakeLists.txt").partition("endif()")[0]
+
+    for conversion in ("QuakeToQLX", "PhysToQuake"):
+        subdirectory = f"add_subdirectory(lib/Conversion/{conversion})"
+        assert subdirectory in sdk_block, (
+            f"{conversion} needs CUDA-Q's Quake dialect and must be added "
+            "only when QLX_USE_CUDAQ_SDK is ON")
+        assert cmake.count(subdirectory) == 1
+
+
 def test_sdk_mode_enables_quake_through_the_shared_cudaq_target():
     cmake = _cmake_code("ir/lib/Conversion/QuakeToQLX/CMakeLists.txt")
-    sdk_configuration = _after(cmake,
-                               "if(QLX_USE_CUDAQ_SDK)",
-                               source="QuakeToQLX/CMakeLists.txt")
 
     assert re.search(
         r"target_link_libraries\(\s*QLXCUDAQuantumDialects\s+INTERFACE\s+cudaq::MLIR\s*\)",
-        sdk_configuration,
+        cmake,
     ), "SDK mode must resolve CUDA-Q dialects through cudaq::MLIR"
-    assert "NOT IS_DIRECTORY" in sdk_configuration
-    assert "CUDAQ_INCLUDE_DIR" in sdk_configuration
-    assert "STATIC IMPORTED" not in sdk_configuration
+    assert "NOT IS_DIRECTORY" in cmake
+    assert "CUDAQ_INCLUDE_DIR" in cmake
+    assert "STATIC IMPORTED" not in cmake
 
 
 def test_quake_import_has_no_static_cudaq_dialect_fallback():
@@ -134,11 +145,18 @@ def test_quake_targets_use_the_shared_mlir_link_selector():
     tool = _cmake_code("ir/tools/qlx-opt/CMakeLists.txt")
     tool_source = _source("ir/tools/qlx-opt/qlx-opt.cpp")
 
-    assert conversion.count("qlx_select_mlir_link_libraries(") == 2
+    tool_sdk_block = _after(
+        tool, "if(QLX_USE_CUDAQ_SDK)",
+        source="qlx-opt/CMakeLists.txt").partition("endif()")[0]
+
+    assert conversion.count("qlx_select_mlir_link_libraries(") == 1
     assert "QLXCUDAQuantumDialects" in conversion
-    assert "QLXCUDAQuantumDialects" in tool
-    assert "${_qlx_quake_mlir_link_libraries}" in conversion
-    assert "${_qlx_quake_mlir_link_libraries}" in tool
+    assert "${_qlx_mlir_link_libraries}" in conversion
+    assert "QLXCUDAQuantumDialects" in tool_sdk_block
+    assert "${_qlx_quake_mlir_link_libraries}" in tool_sdk_block
+    assert "MLIRQuakeToQLX" in tool_sdk_block
+    assert tool.count("MLIRQuakeToQLX") == 1, (
+        "qlx-opt must link MLIRQuakeToQLX only in SDK mode")
     assert "qlx::registerAllQLXPasses();" in tool_source
     assert re.search(
         r"#ifdef\s+QLX_HAS_CUDAQ_QUAKE\s+"
