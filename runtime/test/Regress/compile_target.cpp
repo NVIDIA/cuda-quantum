@@ -17,11 +17,13 @@
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/OptimizationLevel.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Pass/PassManager.h"
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -274,14 +276,17 @@ public:
         cudaq::config::QuakeReferenceSemanticsProfile>(output);
   }
 
-  std::optional<StagePasses>
-  getStagePasses(const cudaq::config::Profile &,
-                 const cudaq::config::Profile &output,
-                 const cudaq::CompileOptions &options) const override {
+  mlir::LogicalResult addStagePasses(const cudaq::config::Profile &,
+                                     const cudaq::config::Profile &output,
+                                     const cudaq::CompileOptions &options,
+                                     StagePasses &passes) const override {
     if (!std::holds_alternative<cudaq::config::QuakeReferenceSemanticsProfile>(
             output))
-      return std::nullopt;
-    return StagePasses{.preDeployPasses = "func.func(add-measurements)"};
+      return mlir::failure();
+    passes.preDeployPasses = [](mlir::OpPassManager &pm) {
+      pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createAddMeasurements());
+    };
+    return mlir::success();
   }
 };
 

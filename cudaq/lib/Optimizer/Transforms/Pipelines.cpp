@@ -155,8 +155,8 @@ void cudaq::opt::registerConvertToLinearValuesPipeline() {
 /// Build the prep pipeline that every target runs. A target sets `erase-noise`
 /// or `erase-qec` to false when its consumer has to see those operations, and
 /// sets `reject-noise` when a kernel that applies noise must fail to compile.
-static void createTargetPrepPipeline(OpPassManager &pm,
-                                     const TargetPrepPipelineOptions &options) {
+void cudaq::opt::addJITPrepPipeline(OpPassManager &pm,
+                                    const JITPrepPipelineOptions &options) {
   if (options.rejectNoise)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createVerifyNoNoise());
   if (options.eraseNoise)
@@ -193,12 +193,19 @@ static void createTargetPrepPipeline(OpPassManager &pm,
 /// between the JIT high-level and JIT mid-level target-specific pipelines from
 /// the `.yml` file. The two differ only in the options the compiler passes.
 static void registerTargetPrepPipelines() {
+  auto build = [](OpPassManager &pm, const TargetPrepPipelineOptions &opts) {
+    cudaq::opt::addJITPrepPipeline(
+        pm, {.eraseNoise = opts.eraseNoise,
+             .rejectNoise = opts.rejectNoise,
+             .eraseQEC = opts.eraseQEC,
+             .applyConstProp = opts.applyConstProp,
+             .allowEarlyExit = opts.allowEarlyExit,
+             .disableLoopUnrolling = opts.disableLoopUnrolling});
+  };
   PassPipelineRegistration<TargetPrepPipelineOptions>(
-      "hw-jit-prep-pipeline", "Prep for any hardware target.",
-      createTargetPrepPipeline);
+      "hw-jit-prep-pipeline", "Prep for any hardware target.", build);
   PassPipelineRegistration<TargetPrepPipelineOptions>(
-      "emul-jit-prep-pipeline", "Prep for any emulation target.",
-      createTargetPrepPipeline);
+      "emul-jit-prep-pipeline", "Prep for any emulation target.", build);
 }
 
 void cudaq::opt::addDecomposition(OpPassManager &pm,
@@ -227,19 +234,18 @@ static void addSharedCleanup(OpPassManager &funcPM,
 /// Level 1 only cleans up. Level 2 also fuses one-qubit chains, folds
 /// phases, and snaps angles within `approximation-tolerance` of a Clifford+T
 /// value. No pass erases a rotation larger than that tolerance.
-static void
-addCliffordTOptimization(OpPassManager &pm,
-                         const CliffordTOptimizationPipelineOptions &options) {
-  if (options.level == 0)
+void cudaq::opt::addCliffordTOptimizationPipeline(
+    OpPassManager &pm, unsigned level, double approximationTolerance) {
+  if (level == 0)
     return;
   auto &cleanupPM = pm.nest<func::FuncOp>();
-  addSharedCleanup(cleanupPM, options.approximationTolerance);
-  if (options.level == 1)
+  addSharedCleanup(cleanupPM, approximationTolerance);
+  if (level == 1)
     return;
 
   cudaq::opt::Fuse1QToU3Options fuseOpts;
   fuseOpts.cost = "clifford-t-free";
-  fuseOpts.epsilon = options.approximationTolerance;
+  fuseOpts.epsilon = approximationTolerance;
   cleanupPM.addPass(cudaq::opt::createFuse1QToU3(fuseOpts));
   // Expand each fused u3 into the form the fusion chose, so that phase
   // folding and snapping see rotations.
@@ -252,9 +258,9 @@ addCliffordTOptimization(OpPassManager &pm,
   funcPM.addPass(cudaq::opt::createPhaseFolding());
   funcPM.addPass(createCanonicalizerPass());
   cudaq::opt::QuakeSimplifyOptions snapOpts;
-  snapOpts.threshold = options.approximationTolerance;
+  snapOpts.threshold = approximationTolerance;
   snapOpts.rotationsToCliffordT = true;
-  snapOpts.cliffordTEpsilon = options.approximationTolerance;
+  snapOpts.cliffordTEpsilon = approximationTolerance;
   funcPM.addPass(cudaq::opt::createQuakeSimplify(snapOpts));
   funcPM.addPass(cudaq::opt::createNormalizePhasePlacement());
   funcPM.addPass(cudaq::opt::createLowerPhase());
@@ -266,14 +272,13 @@ addCliffordTOptimization(OpPassManager &pm,
 
 /// Reduce the two-qubit gate count before mapping. Level 1 runs the shared
 /// cleanup, which erases no rotation, and level 2 also folds phases.
-static void addTwoQubitGateCountOptimization(
-    OpPassManager &pm,
-    const TwoQubitGateCountOptimizationPipelineOptions &options) {
-  if (options.level == 0)
+void cudaq::opt::addTwoQubitGateCountOptimizationPipeline(OpPassManager &pm,
+                                                          unsigned level) {
+  if (level == 0)
     return;
   auto &funcPM = pm.nest<func::FuncOp>();
   addSharedCleanup(funcPM, /*approximationTolerance=*/0.0);
-  if (options.level == 1)
+  if (level == 1)
     return;
   funcPM.addPass(cudaq::opt::createPhaseFolding());
   addSharedCleanup(funcPM, /*approximationTolerance=*/0.0);
@@ -283,7 +288,10 @@ void cudaq::opt::registerTwoQubitGateCountOptimizationPipeline() {
   PassPipelineRegistration<TwoQubitGateCountOptimizationPipelineOptions>(
       "two-qubit-gate-count-optimization-pipeline",
       "Reduce the two-qubit gate count before mapping.",
-      addTwoQubitGateCountOptimization);
+      [](OpPassManager &pm,
+         const TwoQubitGateCountOptimizationPipelineOptions &opts) {
+        addTwoQubitGateCountOptimizationPipeline(pm, opts.level);
+      });
 }
 
 bool cudaq::opt::canOptimizeTwoQubitGateCount(ArrayRef<std::string> basis) {
@@ -333,21 +341,22 @@ bool cudaq::opt::needsCliffordTSynthesis(std::span<const std::string> basis) {
 /// as Clifford+T gates within `approximation-tolerance`, on references or
 /// wires. From level 2,
 /// also simplify and normalize the emitted Clifford+T words.
-static void
-addCliffordTSynthesis(OpPassManager &pm,
-                      const CliffordTSynthesisPipelineOptions &options) {
+void cudaq::opt::addCliffordTSynthesisPipeline(OpPassManager &pm,
+                                               ArrayRef<std::string> basis,
+                                               unsigned level,
+                                               double approximationTolerance,
+                                               std::uint64_t seed) {
   // A target basis that expresses any of these rotations exactly keeps that
   // rotation exact rather than approximating it. For example, `r1` in a basis
   // without `rz` stays exact, although synthesis would lower it to `rz` first.
   // Another rotation that such a basis cannot take fails in `basis-conversion`
   // either way.
-  ArrayRef<std::string> basis = options.basis;
   if (!cudaq::opt::needsCliffordTSynthesis(basis))
     return;
   cudaq::opt::addDecomposition(pm, {"RxToRz", "RyToRz", "R1ToRz"});
   cudaq::opt::CliffordTSynthesisOptions synthesisOpts;
-  synthesisOpts.epsilon = options.approximationTolerance;
-  synthesisOpts.seed = options.seed;
+  synthesisOpts.epsilon = approximationTolerance;
+  synthesisOpts.seed = seed;
   // The optimizer erases small rotations, bounded by the same tolerance.
   synthesisOpts.skipBelow = 0;
   // TODO: Synthesize controlled rotations once controlled Clifford+T synthesis
@@ -359,20 +368,27 @@ addCliffordTSynthesis(OpPassManager &pm,
   // Erase the uncontrolled omega phase of each Clifford+T word.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  if (options.level >= 2)
-    addCliffordTCleanup(pm.nest<func::FuncOp>(),
-                        options.approximationTolerance);
+  if (level >= 2)
+    addCliffordTCleanup(pm.nest<func::FuncOp>(), approximationTolerance);
 }
 
 void cudaq::opt::registerCliffordTPipelines() {
   PassPipelineRegistration<CliffordTOptimizationPipelineOptions>(
       "clifford-t-optimization-pipeline",
       "Reduce the T count and non-Clifford rotations before synthesis.",
-      addCliffordTOptimization);
+      [](OpPassManager &pm, const CliffordTOptimizationPipelineOptions &opts) {
+        addCliffordTOptimizationPipeline(pm, opts.level,
+                                         opts.approximationTolerance);
+      });
   PassPipelineRegistration<CliffordTSynthesisPipelineOptions>(
       "clifford-t-synthesis-pipeline",
       "Rewrite constant-angle rotations as Clifford+T gates.",
-      addCliffordTSynthesis);
+      [](OpPassManager &pm, const CliffordTSynthesisPipelineOptions &opts) {
+        const std::vector<std::string> basis(opts.basis.begin(),
+                                             opts.basis.end());
+        addCliffordTSynthesisPipeline(pm, basis, opts.level,
+                                      opts.approximationTolerance, opts.seed);
+      });
 }
 
 void cudaq::opt::addPhaseLifecycle(OpPassManager &pm) {
@@ -382,9 +398,8 @@ void cudaq::opt::addPhaseLifecycle(OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(mlir::createCanonicalizerPass());
 }
 
-static void
-createTargetDeployPipeline(OpPassManager &pm,
-                           const TargetDeployPipelineOptions &options) {
+void cudaq::opt::addJITDeployPipeline(OpPassManager &pm,
+                                      const JITDeployPipelineOptions &options) {
   cudaq::opt::createClassicalOptimizationPipeline(
       pm, std::nullopt, std::nullopt, std::nullopt,
       {options.disableLoopUnrolling});
@@ -402,7 +417,8 @@ static void registerTargetDeployPipeline() {
   PassPipelineRegistration<TargetDeployPipelineOptions>(
       "jit-deploy-pipeline", "Standard deployment pipeline for all targets.",
       [](OpPassManager &pm, const TargetDeployPipelineOptions &options) {
-        ::createTargetDeployPipeline(pm, options);
+        cudaq::opt::addJITDeployPipeline(
+            pm, {.disableLoopUnrolling = options.disableLoopUnrolling});
       });
 }
 
@@ -412,8 +428,8 @@ void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
   pm.addPass(createSymbolDCEPass());
 }
 
-static void createJITTargetFinalizePipeline(
-    OpPassManager &pm, const TargetFinalizationJitPipelineOptions &options) {
+void cudaq::opt::addJITFinalizePipeline(
+    OpPassManager &pm, const JITFinalizePipelineOptions &options) {
   if (options.lowerDeviceCalls)
     pm.addPass(cudaq::opt::createQIRDeviceCall());
   cudaq::opt::addAggressiveInlining(pm);
@@ -429,7 +445,8 @@ static void registerTargetFinalizePipeline() {
       "Standard JIT finalization pipeline for all targets.",
       [](OpPassManager &pm,
          const TargetFinalizationJitPipelineOptions &options) {
-        createJITTargetFinalizePipeline(pm, options);
+        cudaq::opt::addJITFinalizePipeline(
+            pm, {.lowerDeviceCalls = options.lowerDeviceCalls});
       });
 }
 

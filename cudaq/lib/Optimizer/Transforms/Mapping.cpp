@@ -3393,6 +3393,14 @@ struct MappingPipelineOptions
   PassOptions::Option<bool> nonComposable{*this, "raise-fatal-errors"};
 };
 
+void addMappingPipeline(OpPassManager &pm, const MappingFuncOptions &options) {
+  MappingPrepOptions prepOpts;
+  prepOpts.device = options.device;
+  prepOpts.nonComposable = options.nonComposable;
+  pm.addPass(cudaq::opt::createMappingPrep(prepOpts));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createMappingFunc(options));
+}
+
 /// Register the mapping pipeline. Route the appropriate options to the
 /// appropriate pass in the pass pipeline.
 void registerMappingPipeline() {
@@ -3404,13 +3412,6 @@ void registerMappingPipeline() {
             to = from;
         };
 
-        // Add the prep pass
-        MappingPrepOptions prepOpts;
-        setIt(prepOpts.device, opt.device);
-        setIt(prepOpts.nonComposable, opt.nonComposable);
-        pm.addPass(cudaq::opt::createMappingPrep(prepOpts));
-
-        // Add the per-function pass
         MappingFuncOptions funcOpts;
         setIt(funcOpts.device, opt.device);
         setIt(funcOpts.extendedLayerSize, opt.extendedLayerSize);
@@ -3424,7 +3425,7 @@ void registerMappingPipeline() {
         setIt(funcOpts.islandPackingAttemptBudget,
               opt.islandPackingAttemptBudget);
         setIt(funcOpts.nonComposable, opt.nonComposable);
-        pm.addNestedPass<func::FuncOp>(cudaq::opt::createMappingFunc(funcOpts));
+        addMappingPipeline(pm, funcOpts);
       });
 }
 } // namespace cudaq::opt

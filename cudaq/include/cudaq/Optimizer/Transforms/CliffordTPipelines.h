@@ -9,10 +9,9 @@
 #pragma once
 
 // What a lowering handler needs to know to schedule
-// `clifford-t-optimization-pipeline` and `clifford-t-synthesis-pipeline`.
-// Handlers plan pipelines as text, so this header includes no LLVM or MLIR
-// header. The functions are defined in `OptTransforms`, because their answers
-// come from the decomposition-pattern graph.
+// `clifford-t-optimization-pipeline` and `clifford-t-synthesis-pipeline`.The
+// functions are defined in `OptTransforms`, because their answers come from the
+// decomposition-pattern graph.
 
 #include <span>
 #include <string>
