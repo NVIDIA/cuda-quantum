@@ -1413,7 +1413,7 @@ context, finds its kernel with <code class="docutils literal notranslate"><span 
 and launches it any way it likes, for example with the driver’s
 <code class="docutils literal notranslate"><span class="pre">cuLaunchKernelEx</span></code>; see
 <code class="docutils literal notranslate"><span class="pre">realtime/docs/device_code_contract.md</span></code></p></li>
-<li><p>All other wiring (<code class="docutils literal notranslate"><span class="pre">set_function_table</span></code>, <code class="docutils literal notranslate"><span class="pre">set_control</span></code>) remains the same</p></li>
+<li><p>All other wiring (<code class="docutils literal notranslate"><span class="pre">set_function_table</span></code>) remains the same</p></li>
 </ul>
 </section>
 <section id="wiring-example-unified-mode-with-gpurocetransceiver">
@@ -1443,7 +1443,6 @@ and launches it any way it likes, for example with the driver’s
 <span class="c1">// ... fill the DEVICE_CALL entry with `handler`, copy the table to the device</span>
 
 <span class="n">cudaq_dispatcher_set_function_table</span><span class="p">(</span><span class="n">dispatcher</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">table</span><span class="p">);</span>
-<span class="n">cudaq_dispatcher_set_control</span><span class="p">(</span><span class="n">dispatcher</span><span class="p">,</span><span class="w"> </span><span class="n">d_shutdown_flag</span><span class="p">,</span><span class="w"> </span><span class="n">d_stats</span><span class="p">);</span>
 <span class="n">cudaq_dispatcher_start</span><span class="p">(</span><span class="n">dispatcher</span><span class="p">);</span>
 <span class="n">cudaq_bridge_launch</span><span class="p">(</span><span class="n">bridge</span><span class="p">);</span>
 </pre></div>
@@ -1660,7 +1659,7 @@ in the GpuRoceTransceiver, not in this API.</p></li>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">out_dispatcher</span></code>: receives the created dispatcher handle.</p></li>
 </ul>
-<p>Call this before wiring ring buffers, function tables, or control state.</p>
+<p>Call this before wiring ring buffers or function tables.</p>
 <p><strong><code>cudaq_dispatcher_destroy</code></strong> releases a dispatcher
 after it has been stopped.</p>
 <p>Parameters:</p>
@@ -1730,20 +1729,22 @@ there is no separate runtime registration call.</p></li>
 <li><p>If no entry matches, the dispatcher clears the slot without a response.</p></li>
 <li><p>Suggested: use stable, human-readable handler names (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;mock_decode&quot;</span></code>).</p></li>
 </ul>
-<p><strong><code>cudaq_dispatcher_set_control</code></strong> supplies
-the shutdown flag and stats buffer the dispatch kernel uses
-for termination and bookkeeping.</p>
-<p>Parameters:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">dispatcher</span></code>: dispatcher handle.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">shutdown_flag</span></code>: device-visible flag used to signal shutdown.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">stats</span></code>: device-visible stats buffer.</p></li>
-</ul>
-<p>Call this before starting the dispatcher; both buffers must remain valid for
-the dispatcher’s lifetime.</p>
+<p><strong><code>cudaq_dispatcher_set_control</code></strong> is deprecated.
+The dispatcher owns the shutdown flag its loop polls and the counter it
+adds processed requests to: <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_start</span></code> sets them up (zeroed
+at each start), <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_stop</span></code> raises the flag, and
+<code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_get_processed</span></code> reads the count. The call remains for
+applications not yet moved: it overrides both words with the caller’s
+(device-visible on the device path), which must then stay valid until the
+dispatcher is destroyed. The override’s words are used as given:
+<code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_start</span></code> does not zero them, so the caller clears the flag
+before a restart. Call it before <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_start</span></code>; it is refused
+while the dispatcher runs.</p>
 <p><strong><code>cudaq_dispatcher_set_launch_fn</code></strong> provides
 the host-side launch wrapper that invokes the dispatch kernel
-with the correct grid/block dimensions.</p>
+with the correct grid/block dimensions, on the stream it is given:
+<code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_stop</span></code> raises the shutdown flag and then waits on that
+stream for the kernel to exit.</p>
 <p>Parameters:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">dispatcher</span></code>: dispatcher handle.</p></li>
@@ -1759,8 +1760,11 @@ the persistent dispatch kernel and begins processing slots.</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">dispatcher</span></code>: dispatcher handle.</p></li>
 </ul>
-<p>Call this only after ring buffers, function table, control buffers, and launch
-function are set.</p>
+<p>Call this once the dispatcher is wired for its shape: the function table, and
+the ring buffer or bridge (host unified needs the bridge’s CPU data plane;
+device unified needs the bridge’s GPU data plane or
+<code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_unified_launch</span></code>). <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_launch_fn</span></code> is
+optional on the device ring path.</p>
 <p><strong><code>cudaq_dispatcher_stop</code></strong> signals
 the dispatch kernel to exit and waits for it to shut down.</p>
 <p>Parameters:</p>
@@ -1769,8 +1773,10 @@ the dispatch kernel to exit and waits for it to shut down.</p>
 </ul>
 <p>Call this during tear-down before destroying the dispatcher.</p>
 <p><strong><code>cudaq_dispatcher_get_processed</code></strong> reads
-the processed‑packet counter from the stats buffer
-to support debugging or throughput tracking.</p>
+the dispatcher’s processed‑request counter to support debugging or
+throughput tracking. With the dispatcher’s own counter it is zero before
+the first start; it is final once <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_stop</span></code> has returned (the
+host loops publish their count when they exit).</p>
 <p>Parameters:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">dispatcher</span></code>: dispatcher handle.</p></li>
@@ -1944,9 +1950,6 @@ the slot as complete only after the flag is set.</p>
 <span class="n">table</span><span class="p">.</span><span class="n">entries</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">d_entries</span><span class="p">;</span>
 <span class="n">table</span><span class="p">.</span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">func_count_</span><span class="p">;</span>
 <span class="n">ASSERT_EQ</span><span class="p">(</span><span class="n">cudaq_dispatcher_set_function_table</span><span class="p">(</span><span class="n">dispatcher_</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">table</span><span class="p">),</span><span class="w"> </span><span class="n">CUDAQ_OK</span><span class="p">);</span>
-
-<span class="n">ASSERT_EQ</span><span class="p">(</span><span class="n">cudaq_dispatcher_set_control</span><span class="p">(</span><span class="n">dispatcher_</span><span class="p">,</span><span class="w"> </span><span class="n">d_shutdown_flag_</span><span class="p">,</span><span class="w"> </span><span class="n">d_stats_</span><span class="p">),</span>
-<span class="w">          </span><span class="n">CUDAQ_OK</span><span class="p">);</span>
 
 <span class="n">ASSERT_EQ</span><span class="p">(</span><span class="n">cudaq_dispatcher_set_launch_fn</span><span class="p">(</span>
 <span class="w">              </span><span class="n">dispatcher_</span><span class="p">,</span>
