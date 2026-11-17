@@ -539,7 +539,7 @@ def _emit_source_block(kernel, qubits, block, q_indices, c_indices):
 
 def _emit_if_else(kernel, qubits, instruction, circuit, q_mapping, c_mapping):
     operation = instruction.operation
-    # Block qubits and clbits map positionally to the instruction's.
+    # Block qubits and `clbits` map positionally to the instruction's.
     q_indices = _bit_indices(circuit, instruction.qubits, q_mapping)
     c_indices = _bit_indices(circuit, instruction.clbits, c_mapping)
     true_body = operation.blocks[0]
@@ -590,7 +590,7 @@ def _has_if_else(qiskit_circuit):
 
 def _build_source_kernel(qiskit_circuit):
     """Build a kernel-mode kernel for a circuit with `if_else`, which the
-    builder cannot express. The kernel returns every clbit, in index order."""
+    builder cannot express. The kernel returns every `clbit`, in index order."""
     import cudaq
     from ..kernel.kernel_decorator import PyKernelDecorator
 
