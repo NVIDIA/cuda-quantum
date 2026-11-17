@@ -11,7 +11,6 @@
 #include "cudaq/Optimizer/Transforms/CliffordTPipelines.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/Passes.h"
-
 #include <cstdint>
 
 using namespace mlir;

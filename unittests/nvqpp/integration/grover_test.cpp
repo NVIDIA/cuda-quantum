@@ -8,7 +8,6 @@
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
-
 #include <numeric>
 
 #ifndef CUDAQ_BACKEND_STIM

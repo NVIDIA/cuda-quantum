@@ -8,7 +8,6 @@
 
 #include "CUDAQTestUtils.h"
 #include "QuantinuumHelper.h"
-
 #include <gtest/gtest.h>
 
 CUDAQ_TEST(QuantinuumTester, checkResultJsonProcessing) {

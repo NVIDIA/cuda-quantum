@@ -11,7 +11,6 @@
 #include "cudaq/Synthesis/Math/Unitary.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
 #include "llvm/Support/LogicalResult.h"
-
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>

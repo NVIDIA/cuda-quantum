@@ -11,7 +11,6 @@
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
 #include "cudaq/runtime/logger/logger.h"
-
 #include <cstdint>
 namespace cudaq {
 CuDensityMatExpectation::CuDensityMatExpectation(cudensitymatHandle_t handle,

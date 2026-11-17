@@ -11,5 +11,4 @@
 #include "mlir/IR/OpDefinition.h"
 
 #include "qlx/Dialect/Fabric/IR/FabricAttrs.h"
-
 #include "qlx/Dialect/Fabric/IR/FabricInterfaces.h.inc"

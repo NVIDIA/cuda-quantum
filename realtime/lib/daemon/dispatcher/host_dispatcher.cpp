@@ -12,7 +12,6 @@
 #include "cudaq/realtime/daemon/dispatcher/cpu_relax.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-
 #include <atomic>
 #include <cassert>
 #include <cstdint>

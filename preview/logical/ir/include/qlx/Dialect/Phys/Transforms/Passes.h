@@ -14,9 +14,7 @@
 #include "mlir/Pass/Pass.h"
 
 #include "qlx/Dialect/Phys/Transforms/ScheduleModel.h"
-
 #include "llvm/ADT/StringRef.h"
-
 #include <string>
 
 namespace qlx::phys {

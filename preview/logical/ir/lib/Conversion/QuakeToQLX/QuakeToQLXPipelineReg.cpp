@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "qlx/Conversion/QuakeToQLXPasses.h"
-
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
 

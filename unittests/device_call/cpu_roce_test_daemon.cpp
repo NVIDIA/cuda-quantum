@@ -40,7 +40,6 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/host_dispatch_loop.h"
-
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>

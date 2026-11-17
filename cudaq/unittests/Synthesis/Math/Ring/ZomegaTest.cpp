@@ -9,7 +9,6 @@
 #include <gtest/gtest.h>
 
 #include "cudaq/Synthesis/Math/Ring/Zomega.h"
-
 #include <cstdint>
 
 namespace {

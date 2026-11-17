@@ -11,7 +11,6 @@
 #include "CuStateVecConfig.h"
 #include "CuStateVecState.h"
 #include "CuStateVecTasks.h"
-
 #include <cstddef>
 #include <memory>
 #include <span>

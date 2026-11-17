@@ -9,7 +9,6 @@
 #include <gtest/gtest.h>
 
 #include "cudaq/Synthesis/Math/Unitary.h"
-
 #include <cstdint>
 
 namespace {

@@ -11,7 +11,6 @@
 #include "qlx/Analysis/EdemFaults.h"
 #include "qlx/Analysis/IdealOutcomes.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
-
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
@@ -22,7 +21,6 @@
 
 #include "cudaq/edem/core.h"
 #include "mlir/IR/Verifier.h"
-
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>

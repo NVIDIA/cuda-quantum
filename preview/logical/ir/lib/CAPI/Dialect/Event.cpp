@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "qlx-c/Dialect/Event.h"
-
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
 #include "mlir/CAPI/IR.h"
@@ -16,7 +15,6 @@
 
 #include "qlx/Dialect/Event/IR/EventDialect.h"
 #include "qlx/Dialect/Event/IR/EventTypes.h"
-
 #include "mlir/IR/BuiltinAttributes.h"
 
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Event, event, qlx::event::EventDialect)

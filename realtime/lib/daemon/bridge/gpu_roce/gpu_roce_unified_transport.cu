@@ -27,10 +27,8 @@
 
 #include "gpu_roce_device_transport.cuh"
 #include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_doca_transport_ctx.h"
-
 #include <cstdint>
 #include <cuda_runtime.h>
-
 #include "gpu_roce_transceiver.cuh"
 
 //==============================================================================

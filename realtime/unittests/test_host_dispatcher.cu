@@ -14,7 +14,6 @@
 #include <thread>
 #include <unistd.h>
 #include <vector>
-
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"

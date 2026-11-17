@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "evaluation.h"
-
 #include <cstdint>
 
 namespace cudaq {

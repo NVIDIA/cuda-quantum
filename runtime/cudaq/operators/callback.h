@@ -10,7 +10,6 @@
 
 #include "cudaq/operators/matrix.h"
 #include "cudaq/qis/state.h"
-
 #include <complex>
 #include <cstdint>
 #include <functional>

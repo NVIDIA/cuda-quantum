@@ -22,6 +22,9 @@ scipy==1.16.3
 requests==2.33.0
 pydantic==2.12.5
 openfermionpyscf==0.5; python_version < "3.14"
+# pyscf 2.15.1 ships no macOS arm64 wheel and its sdist fails to build
+# (missing libxcfun.patch). Pin to the last release with prebuilt wheels.
+pyscf==2.15.0; python_version < "3.14"
 h5py==3.12.1; python_version < "3.14"
 matplotlib
 pyspelling==2.10
