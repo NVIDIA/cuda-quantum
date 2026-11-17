@@ -27,6 +27,7 @@ class ExecutionContext;
 
 namespace mlir {
 class ModuleOp;
+class OpPassManager;
 class MLIRContext;
 class ExecutionEngine;
 
@@ -36,6 +37,8 @@ class FuncOp;
 } // namespace mlir
 
 namespace cudaq_internal::compiler {
+
+struct JITPassPipeline;
 
 class Compiler {
   /// @brief Flag indicating whether we should perform the passes in a
@@ -77,21 +80,21 @@ class Compiler {
 
   // ---- Common helpers used by `compile` ----
 
-  /// Run an arbitrary MLIR pass pipeline string on a module.
-  void applyPipeline(const std::string &pipeline, mlir::ModuleOp moduleOp,
-                     const std::string &kernelName);
+  /// Run \p pipeline on a module.
+  void applyPipeline(const mlir::OpPassManager &pipeline,
+                     mlir::ModuleOp moduleOp, const std::string &kernelName);
 
   /// Build the module, merge closures, and synthesize arguments.
   std::tuple<mlir::ModuleOp, mlir::func::FuncOp, bool>
   prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
                 cudaq::KernelArgs args, bool isEntryPoint);
 
-  /// Delay combine-measurements for emulation, then run the main pass
-  /// pipeline built from \p resolvedOptions, the options resolved for this
-  /// compile.  Returns
-  ///  - whether combine-measurements was delayed,
-  ///  - the pass pipeline that was executed.
-  std::pair<bool, std::string>
+  /// Run the main pass pipeline built from \p resolvedOptions, the options
+  /// resolved for this compile, and return it. When emulating or measuring an
+  /// observable, the pipeline leaves out `combine-measurements`, which
+  /// `assembleCompiledModule` runs after building the JIT code. The pipeline
+  /// is empty when the target has none or the options skip it.
+  JITPassPipeline
   executeMainPipeline(mlir::ModuleOp moduleOp, const std::string &kernelName,
                       const cudaq::CompileOptions &resolvedOptions);
 
@@ -142,40 +145,12 @@ public:
           std::shared_ptr<mlir::MLIRContext> context = nullptr);
 };
 
-/// Build the JIT pass pipeline for \p target. On failure, set \p diagnostic to
-/// say which stage failed and why, and return `nullopt`.
-///
-/// Each stage can add passes before deploy, after deploy, and after finalize
-/// (see `StagePasses`). Passes that different stages add at the same place run
-/// in stage order. For example, if the first stage adds `A` before deploy and
-/// `B` after deploy, and the second stage adds `C` after deploy and `D` after
-/// finalize, the pipeline is
-/// `canonicalize, prep, A, deploy, B, C, finalize, D`.
-///
-/// A stage's lowering decides its passes:
-///  - An inferred lowering uses the first handler in \p handlers that can
-///    lower the previous stage's output profile (`unchecked` for the first
-///    stage) to this stage's output profile.
-///  - A custom lowering puts its high-, mid-, and low-level pipelines before
-///    deploy, after deploy, and after finalize.
-///  - An override pipeline replaces the whole pipeline, so it must be the
-///    target's only stage.
-///
-/// The emission format and `CompileOptions::emulate` set the options of prep,
-/// deploy, and finalize. If the target sets `disable_qubit_mapping`, every
-/// `qubit-mapping` in the result gets `device=bypass`.
-std::optional<std::string>
-getPassPipeline(const cudaq::CompileTarget &target,
-                const cudaq::CompileOptions &options,
-                const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
-                std::string &diagnostic);
-
 /// Whether compiles for \p target substitute the values of an entry point's
 /// arguments instead of taking them at run time. That holds when the platform
 /// cannot take arguments at run time (`fullySpecialize`) or when the handler
-/// that `getPassPipeline` selects for an inferred stage requires argument
-/// values. Custom and override stages are opaque, so a target whose custom
-/// pipeline needs values sets `fullySpecialize`.
+/// that `getPassPipeline` (JITTargetPipeline.h) selects for an inferred stage
+/// requires argument values. Custom and override stages are opaque, so a target
+/// whose custom pipeline needs values sets `fullySpecialize`.
 ///
 /// The compiler, the Python compiled-module cache, and Python argument packing
 /// all read this answer, and they must agree, because the arguments are laid
