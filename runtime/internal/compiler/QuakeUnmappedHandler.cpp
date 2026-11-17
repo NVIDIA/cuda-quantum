@@ -41,7 +41,9 @@ static void addFusePasses(mlir::OpPassManager &pm,
   if (tCount) {
     fuseOptions.cost = "clifford-t-free";
     fuseOptions.epsilon = profile.approximationTolerance;
-    if (schedulesCliffordTSynthesis(profile))
+    // With a u3 synthesizer, fuse every chain that has a rotation into a u3
+    // for the synthesizer, by keeping rotations out of the basis.
+    if (schedulesCliffordTSynthesis(profile) && !profile.u3Synthesis)
       basis = cudaq::opt::cliffordTDecompositionBasis(profile.basisGates);
   } else {
     fuseOptions.cost = "rotation-count";
@@ -82,21 +84,26 @@ addCostModelPasses(mlir::OpPassManager &pm,
     funcPM.addPass(cudaq::opt::createNormalizePhasePlacement());
     funcPM.addPass(cudaq::opt::createLowerPhase());
   }
+  // A u3 synthesizer needs the u3 gates that fusion creates, at every level.
+  const bool synthesizeU3 =
+      profile.u3Synthesis && schedulesCliffordTSynthesis(profile);
   if (level >= 1) {
     if (tCount)
       cudaq::opt::addCliffordTOptimizationPipeline(pm, level, tolerance);
     else
       cudaq::opt::addTwoQubitGateCountOptimizationPipeline(pm, level);
-    addFusePasses(pm, profile);
   }
+  if (level >= 1 || synthesizeU3)
+    addFusePasses(pm, profile);
   // The synthesis pipeline adds no passes when the basis can express one of
   // the rotations it synthesizes exactly. Otherwise it needs the rotations
-  // that each fused `u3` stands for.
+  // that each fused `u3` stands for, unless a u3 synthesizer takes the u3s.
   if (schedulesCliffordTSynthesis(profile)) {
-    if (level >= 1)
+    if (level >= 1 && !synthesizeU3)
       cudaq::opt::addDecomposition(pm, {"U3ToRotations"});
-    cudaq::opt::addCliffordTSynthesisPipeline(pm, profile.basisGates, level,
-                                              tolerance, seed);
+    cudaq::opt::addCliffordTSynthesisPipeline(
+        pm, profile.basisGates, level, tolerance, seed,
+        synthesizeU3 ? profile.u3Synthesis->fn : nullptr);
   }
 }
 
@@ -127,6 +134,10 @@ public:
     // can't express one.
     if (profile.costModel == cudaq::config::CostModel::two_qubit_gate_count &&
         !cudaq::opt::canOptimizeTwoQubitGateCount(basis))
+      return mlir::failure();
+    // A u3 synthesizer only replaces rotation synthesis for `t-count`.
+    if (profile.u3Synthesis &&
+        profile.costModel != cudaq::config::CostModel::t_count)
       return mlir::failure();
     passes.postDeployPasses =
         [profile, level = static_cast<unsigned>(options.optimizationLevel),

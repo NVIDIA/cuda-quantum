@@ -9,6 +9,7 @@
 #include "CompileTargetCaster.h"
 #include "Reflection.h"
 #include <cctype>
+#include <nanobind/stl/function.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/variant.h>
@@ -203,6 +204,54 @@ struct type_caster<cudaq::config::Codegen>
       return true;
     }
     return struct_caster::from_python(src, flags, cleanup);
+  }
+};
+
+/// `U3Synthesizer` is a Python callable `(theta, phi, lam, epsilon) -> [str]`.
+template <>
+struct type_caster<cudaq::config::U3Synthesizer> {
+  NB_TYPE_CASTER(cudaq::config::U3Synthesizer,
+                 const_name("Callable[[float, float, float, float], "
+                            "Sequence[str]]"))
+
+  /// nanobind's `std::function` caster takes the GIL to call the Python
+  /// callable, to convert its result, and to release it.
+  using PyFn =
+      std::function<std::vector<std::string>(double, double, double, double)>;
+
+  /// Reports a Python exception as an error.
+  struct PyU3Synthesizer {
+    PyFn callable;
+
+    cudaq::config::U3SynthesisResult
+    operator()(double theta, double phi, double lambda, double epsilon) const {
+      gil_scoped_acquire gil;
+      try {
+        return {callable(theta, phi, lambda, epsilon), std::nullopt};
+      } catch (const std::exception &e) {
+        return {{}, e.what()};
+      }
+    }
+  };
+
+  bool from_python(handle src, uint8_t flags, cleanup_list *cleanup) noexcept {
+    if (!PyCallable_Check(src.ptr()))
+      return false;
+    make_caster<PyFn> caster;
+    if (!caster.from_python(src, flags, cleanup))
+      return false;
+    value.fn = std::make_shared<const cudaq::config::U3Synthesizer::Fn>(
+        PyU3Synthesizer{std::move(caster.value)});
+    return true;
+  }
+
+  static handle from_cpp(const cudaq::config::U3Synthesizer &value, rv_policy,
+                         cleanup_list *) noexcept {
+    if (const auto *py =
+            value.fn ? value.fn->target<PyU3Synthesizer>() : nullptr)
+      return make_caster<PyFn>::from_cpp(py->callable, rv_policy::automatic,
+                                         nullptr);
+    return none().release();
   }
 };
 

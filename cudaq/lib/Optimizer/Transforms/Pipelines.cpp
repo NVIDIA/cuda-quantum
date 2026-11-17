@@ -342,11 +342,10 @@ bool cudaq::opt::needsCliffordTSynthesis(std::span<const std::string> basis) {
 /// as Clifford+T gates within `approximation-tolerance`, on references or
 /// wires. From level 2,
 /// also simplify and normalize the emitted Clifford+T words.
-void cudaq::opt::addCliffordTSynthesisPipeline(OpPassManager &pm,
-                                               ArrayRef<std::string> basis,
-                                               unsigned level,
-                                               double approximationTolerance,
-                                               std::uint64_t seed) {
+void cudaq::opt::addCliffordTSynthesisPipeline(
+    OpPassManager &pm, ArrayRef<std::string> basis, unsigned level,
+    double approximationTolerance, std::uint64_t seed,
+    std::shared_ptr<const cudaq::config::U3Synthesizer::Fn> u3Synthesis) {
   // A target basis that expresses any of these rotations exactly keeps that
   // rotation exact rather than approximating it. For example, `r1` in a basis
   // without `rz` stays exact, although synthesis would lower it to `rz` first.
@@ -354,6 +353,13 @@ void cudaq::opt::addCliffordTSynthesisPipeline(OpPassManager &pm,
   // either way.
   if (!cudaq::opt::needsCliffordTSynthesis(basis))
     return;
+  // A user synthesizer replaces each u3, and gridsynth only sees the rotations
+  // left over, such as those of a u3 that `U3ToRotations` lowers exactly.
+  if (u3Synthesis) {
+    pm.addPass(
+        createU3Synthesis(approximationTolerance, std::move(u3Synthesis)));
+    cudaq::opt::addDecomposition(pm, {"U3ToRotations"});
+  }
   cudaq::opt::addDecomposition(pm, {"RxToRz", "RyToRz", "R1ToRz"});
   cudaq::opt::CliffordTSynthesisOptions synthesisOpts;
   synthesisOpts.epsilon = approximationTolerance;

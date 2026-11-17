@@ -457,3 +457,55 @@ def test_remote_tracing_does_not_emit_target_code():
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
+
+
+def u3_synthesis_target(u3_synthesis):
+    return CompileTarget(ir_output_profile=QuakeUnmappedProfile(
+        basis_gates=["h", "s", "t", "x", "y", "z", "x(1)"],
+        approximation_tolerance=1e-6,
+        cost_model="t_count",
+        u3_synthesis=u3_synthesis))
+
+
+@cudaq.kernel
+def one_qubit_rotation_chain():
+    q = cudaq.qubit()
+    rz(0.1234, q)
+    h(q)
+    rz(0.2345, q)
+    t(q)
+    mz(q)
+
+
+def test_u3_synthesis_replaces_rotation_synthesis():
+    calls = []
+
+    def synthesize(theta, phi, lam, epsilon):
+        calls.append((theta, phi, lam, epsilon))
+        return ["h", "t", "sdg", "h"]
+
+    ops = compiled_quake_ops(one_qubit_rotation_chain,
+                             u3_synthesis_target(synthesize))
+    names = [name for name, _ in ops]
+
+    # The whole chain is fused into one u3, synthesized by the callable.
+    assert len(calls) == 1
+    assert calls[0][3] == 1e-6
+    assert not {"quake.rx", "quake.ry", "quake.rz", "quake.u3"} & set(names)
+    assert "quake.t" in names
+
+
+def test_u3_synthesis_error_fails_compilation():
+
+    def synthesize(theta, phi, lam, epsilon):
+        raise RuntimeError("no word for you")
+
+    with pytest.raises(Exception):
+        compiled_quake_ops(one_qubit_rotation_chain,
+                           u3_synthesis_target(synthesize))
+
+
+def test_u3_synthesis_requires_t_count():
+    with pytest.raises(ValueError, match="t_count"):
+        QuakeUnmappedProfile(cost_model="two_qubit_gate_count",
+                             u3_synthesis=lambda *args: [])

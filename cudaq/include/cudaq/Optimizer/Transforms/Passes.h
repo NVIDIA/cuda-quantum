@@ -12,6 +12,7 @@
 // These transforms can generally be thought of as "optimizations" or "rewrites"
 // on the IR.
 
+#include "cudaq/Target/Profile/U3Synthesizer.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
@@ -108,6 +109,14 @@ createArgumentSynthesisPass(mlir::ArrayRef<mlir::StringRef> funcNames,
 #define GEN_PASS_REGISTRATION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 
+/// Create `u3-synthesis`, a prototype pass that replaces each uncontrolled
+/// constant-angle `u3` by the Clifford+T word that \p fn returns for it within
+/// \p epsilon. \p fn is called once per distinct angle triple, and the global
+/// phase of the word is dropped.
+std::unique_ptr<mlir::Pass>
+createU3Synthesis(double epsilon,
+                  std::shared_ptr<const cudaq::config::U3Synthesizer::Fn> fn);
+
 /// Helper to run the memory to register pass on classical values. Does not
 /// convert the quantum code to register (wire) form.
 inline std::unique_ptr<mlir::Pass> createClassicalMemToReg() {
@@ -173,11 +182,11 @@ void addCliffordTOptimizationPipeline(mlir::OpPassManager &pm, unsigned level,
 /// rotations that \p basis cannot express exactly as Clifford+T gates within
 /// \p approximationTolerance, using random seed \p seed. From \p level 2, it
 /// also cleans up the Clifford+T words it emits.
-void addCliffordTSynthesisPipeline(mlir::OpPassManager &pm,
-                                   mlir::ArrayRef<std::string> basis,
-                                   unsigned level,
-                                   double approximationTolerance,
-                                   std::uint64_t seed);
+void addCliffordTSynthesisPipeline(
+    mlir::OpPassManager &pm, mlir::ArrayRef<std::string> basis, unsigned level,
+    double approximationTolerance, std::uint64_t seed,
+    std::shared_ptr<const cudaq::config::U3Synthesizer::Fn> u3Synthesis =
+        nullptr);
 
 //===================== CX optimization pipelines =======================
 
