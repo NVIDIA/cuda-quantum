@@ -73,7 +73,8 @@ def _convert_to_p0(text: str, *, root: str | None = None) -> mlir_ir.Module:
 
     Loads the Quake-import plugin, which registers the quake/cc dialects backed
     by CUDA-Q's shared MLIR library, parses the Quake, and runs the typed
-    ``convert-quake-to-qlx`` pass owned by the QLX host runtime -- all
+    ``quake-to-qlx-pipeline`` (``prepare-quake-for-qlx`` followed by
+    ``convert-quake-to-qlx``) owned by the QLX host runtime -- all
     in-process, with no subprocess and no output-text round-trip.
 
     The P0 boundary is enforced by the QLX op verifiers (``ProgramOp`` /
@@ -141,7 +142,7 @@ def _run_quake_to_p0_pass(module, *, root: str | None = None):
             "QLX_USE_CUDAQ_SDK")
     native.load_plugin(_quake_plugin_path())
     converted = mlir_ir.Module._CAPICreate(native.clone_module_capsule(module))
-    pipeline = "prepare-quake-for-qlx,convert-quake-to-qlx"
+    pipeline = "quake-to-qlx-pipeline"
     if root is not None:
         if not isinstance(root, str) or not root:
             raise TypeError("root must be a non-empty CUDA-Q entry-point name")

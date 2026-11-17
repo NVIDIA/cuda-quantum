@@ -8,7 +8,7 @@
 
 // REQUIRES: qlx-opt, cudaq-quake
 // RUN: qlx-opt --prepare-quake-for-qlx %s | FileCheck %s --check-prefix=CLEAN --implicit-check-not=cc.undef --implicit-check-not=ub.poison
-// RUN: qlx-opt --prepare-quake-for-qlx --convert-quake-to-qlx %s | FileCheck %s --check-prefix=P0 --implicit-check-not=quake. --implicit-check-not=cc.
+// RUN: qlx-opt --quake-to-qlx-pipeline %s | FileCheck %s --check-prefix=P0 --implicit-check-not=quake. --implicit-check-not=cc.
 
 module {
   func.func @__nvqpp__mlirgen__dead_loop_carry()
