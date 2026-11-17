@@ -34,6 +34,12 @@ def _from_qasm_str(qasm):
     return cudaq.contrib.from_qiskit(QuantumCircuit.from_qasm_str(qasm))
 
 
+def _run_results(kernel, shots_count=100):
+    return {
+        tuple(result) for result in cudaq.run(kernel, shots_count=shots_count)
+    }
+
+
 def _from_qasm_file(qasm):
     with tempfile.NamedTemporaryFile(mode="w", suffix=".qasm",
                                      delete=False) as f:
@@ -627,16 +633,22 @@ class TestFromQiskit:
         with pytest.raises(ValueError, match="Gate 'rx'"):
             cudaq.contrib.from_qiskit(qc)
 
-    def test_control_flow_raises_unsupported_input_error(self):
-        """Test Qiskit control flow fails before parameter conversion."""
-        qasm = """
-        OPENQASM 2.0;
-        include "qelib1.inc";
-        qreg q[1];
-        creg c[1];
-        if(c==1) x q[0];
-        """
-        qc = QuantumCircuit.from_qasm_str(qasm)
+    @pytest.mark.parametrize("control_flow",
+                             ["for_loop", "while_loop", "switch"])
+    def test_loops_and_switch_raise_value_error(self, control_flow):
+        """Only `if_else` control flow is supported."""
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        if control_flow == "for_loop":
+            with qc.for_loop(range(2)):
+                qc.x(0)
+        elif control_flow == "while_loop":
+            with qc.while_loop((qc.clbits[0], 1)):
+                qc.x(0)
+        else:
+            with qc.switch(qc.clbits[0]) as case:
+                with case(0):
+                    qc.x(0)
 
         with pytest.raises(ValueError, match="classical control flow"):
             cudaq.contrib.from_qiskit(qc)
@@ -769,18 +781,19 @@ class TestFromQasm:
         assert resources.get("ccx", 0) == 1
         assert "majority" not in resources
 
-    def test_qasm_control_flow_raises_value_error(self):
-        """Test OpenQASM if statements report unsupported control flow."""
+    def test_qasm_if_converts(self):
+        """OpenQASM `if` converts, and the creg starts at 0."""
         qasm = """
         OPENQASM 2.0;
         include "qelib1.inc";
         qreg q[1];
         creg c[1];
         if(c==1) x q[0];
+        measure q[0] -> c[0];
         """
 
-        with pytest.raises(ValueError, match="classical control flow"):
-            _from_qasm_str(qasm)
+        kernel = _from_qasm_file(qasm)
+        assert _run_results(kernel) == {(False,)}
 
     def test_qasm_u0_global_phase_is_unsupported(self):
         """Test u0 remains unsupported because it is a global phase."""
@@ -980,3 +993,146 @@ class TestSourceKernel:
                 count for name, count in expected.items()
         }
         assert _resource_counts(kernel) == expected
+
+
+class TestClassicalControlFlow:
+    """Tests for converting `if_else` to a kernel-mode kernel."""
+
+    def test_measurement_feedback(self):
+        qasm = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[2];
+        creg c[2];
+        x q[0];
+        measure q[0] -> c[0];
+        if(c==1) x q[1];
+        measure q[1] -> c[1];
+        """
+        kernel = _from_qasm_str(qasm)
+        assert _run_results(kernel) == {(True, True)}
+
+    def test_register_value_condition(self):
+        """`if(c==2)` fires only when c[1] is 1 and c[0] is 0."""
+        qasm = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[3];
+        creg c[2];
+        h q[0];
+        h q[1];
+        measure q[0] -> c[0];
+        measure q[1] -> c[1];
+        if(c==2) x q[2];
+        measure q[2] -> c[0];
+        """
+        kernel = _from_qasm_str(qasm)
+        assert _run_results(kernel, 500) == {(False, False), (True, True),
+                                             (False, True)}
+
+    def test_register_value_out_of_range(self):
+        """A value the register cannot hold never fires, so only else runs."""
+        q = qiskit.QuantumRegister(2)
+        c = qiskit.ClassicalRegister(1)
+        qc = QuantumCircuit(q, c)
+        with qc.if_test((c, 2)) as else_:
+            qc.x(0)
+        with else_:
+            qc.x(1)
+        qc.measure(1, 0)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        assert "if" not in kernel.funcSrc
+        assert _run_results(kernel) == {(True,)}
+
+    def test_clbit_condition_with_else(self):
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], 0)) as else_:
+            qc.x(1)
+        with else_:
+            qc.measure(0, 1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        # c[0] = 0 sets q[1] but leaves c[1]; c[0] = 1 copies c[0] to c[1].
+        assert _run_results(kernel, 500) == {(False, False), (True, True)}
+
+    def test_nested_if(self):
+        qc = QuantumCircuit(3, 3)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], 1)) as else_:
+            qc.x(1)
+            with qc.if_test((qc.clbits[0], 0)):
+                qc.x(2)
+        with else_:
+            qc.x(2)
+            qc.measure(2, 1)
+        qc.measure(1, 2)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        assert _run_results(kernel, 500) == {(True, False, True),
+                                             (False, True, False)}
+
+    def test_empty_body(self):
+        qc = QuantumCircuit(1, 1)
+        with qc.if_test((qc.clbits[0], 1)):
+            qc.barrier()
+        kernel = cudaq.contrib.from_qiskit(qc)
+        assert _run_results(kernel) == {(False,)}
+
+    def test_gates_in_body_match_builder(self):
+        """Emitters reached only through `_SourceKernel` produce the gates
+        the builder path produces for the same circuit."""
+        custom = QuantumCircuit(2, name="custom_pair")
+        custom.h(0)
+        custom.cx(0, 1)
+        custom_gate = custom.to_gate()
+
+        def add_gates(qc):
+            qc.ccx(0, 1, 2)
+            qc.cswap(0, 1, 2)
+            qc.csdg(0, 1)
+            qc.append(Gate("ctdg", 2, []), [1, 2])
+            qc.append(Gate("cu3", 2, [0.1, 0.2, 0.3]), [0, 1])
+            qc.sx(2)
+            qc.append(custom_gate, [1, 2])
+
+        expected = QuantumCircuit(3, 1)
+        add_gates(expected)
+        expected_counts = _resource_counts(cudaq.contrib.from_qiskit(expected))
+
+        conditional = QuantumCircuit(3, 1)
+        with conditional.if_test((conditional.clbits[0], 0)):
+            add_gates(conditional)
+        counts = cudaq.estimate_resources(
+            cudaq.contrib.from_qiskit(conditional)).to_dict()
+
+        # csdg and ctdg are emitted as their exact `r1.ctrl` phase.
+        expected_counts["cr1"] = expected_counts.get("cr1", 0) + 2
+        for name in ("cs", "ct"):
+            expected_counts[name] -= 1
+            if expected_counts[name] == 0:
+                del expected_counts[name]
+        assert counts == expected_counts
+
+    def test_expression_condition_raises_value_error(self):
+        expr = qiskit.circuit.classical.expr
+        qc = QuantumCircuit(1, 2)
+        with qc.if_test(expr.logic_and(qc.clbits[0], qc.clbits[1])):
+            qc.x(0)
+
+        with pytest.raises(ValueError, match="not classical expressions"):
+            cudaq.contrib.from_qiskit(qc)
+
+    def test_sample_rejects_conditional_kernel(self):
+        """The conditional kernel returns its clbits, so it needs `run`."""
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], 1)):
+            qc.x(0)
+        kernel = cudaq.contrib.from_qiskit(qc)
+
+        with pytest.raises(RuntimeError, match="Consider using `run`"):
+            cudaq.sample(kernel)

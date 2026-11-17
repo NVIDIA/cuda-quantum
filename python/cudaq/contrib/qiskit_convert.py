@@ -23,6 +23,7 @@ import numpy as np
 from ..kernel.kernel_builder import make_kernel
 
 _CUSTOM_DEFINITION_EXPANSION_LIMIT = 10
+_SOURCE_KERNEL_NAME = "from_qiskit_kernel"
 _CONTROL_FLOW_OPERATION_NAMES = {
     "if_else", "for_loop", "while_loop", "switch_case"
 }
@@ -488,6 +489,130 @@ def _emit_direct_operation(kernel, qubits, operation, op_name, q_indices,
     return True
 
 
+def _clbit_name(index):
+    return f"c_{index}"
+
+
+def _bit_indices(circuit, bits, mapping):
+    indices = [circuit.find_bit(bit).index for bit in bits]
+    if mapping is not None:
+        indices = [mapping[index] for index in indices]
+    return indices
+
+
+def _condition_terms(condition, circuit, c_mapping):
+    """Return the terms of an `if_else` condition, which all must hold, or
+    `None` if the condition can never hold."""
+    if not isinstance(condition, tuple):
+        raise ValueError(
+            "cudaq.contrib.from_qiskit() supports `if_else` conditions on a "
+            "classical bit or register compared with a value, not classical "
+            "expressions.")
+    from qiskit.circuit import ClassicalRegister
+
+    target, value = condition
+    bits = list(target) if isinstance(target, ClassicalRegister) else [target]
+    value = int(value)
+    if value < 0 or value >= 1 << len(bits):
+        return None
+    terms = []
+    for position, index in enumerate(_bit_indices(circuit, bits, c_mapping)):
+        name = _clbit_name(index)
+        terms.append(name if (value >> position) & 1 else f"not {name}")
+    return terms
+
+
+def _emit_source_body(kernel, qubits, block, q_indices, c_indices):
+    for instruction in block.data:
+        _emit_source_instruction(kernel, qubits, instruction, block, q_indices,
+                                 c_indices)
+
+
+def _emit_source_block(kernel, qubits, block, q_indices, c_indices):
+    start = len(kernel.lines)
+    kernel.indent += 1
+    _emit_source_body(kernel, qubits, block, q_indices, c_indices)
+    if len(kernel.lines) == start:
+        kernel.emit("pass")
+    kernel.indent -= 1
+
+
+def _emit_if_else(kernel, qubits, instruction, circuit, q_mapping, c_mapping):
+    operation = instruction.operation
+    # Block qubits and clbits map positionally to the instruction's.
+    q_indices = _bit_indices(circuit, instruction.qubits, q_mapping)
+    c_indices = _bit_indices(circuit, instruction.clbits, c_mapping)
+    true_body = operation.blocks[0]
+    false_body = operation.blocks[1] if len(operation.blocks) > 1 else None
+
+    terms = _condition_terms(operation.condition, circuit, c_mapping)
+    if terms is None:
+        if false_body is not None:
+            _emit_source_body(kernel, qubits, false_body, q_indices, c_indices)
+        return
+    if not terms:
+        _emit_source_body(kernel, qubits, true_body, q_indices, c_indices)
+        return
+
+    kernel.emit(f"if {' and '.join(terms)}:")
+    _emit_source_block(kernel, qubits, true_body, q_indices, c_indices)
+    if false_body is not None:
+        kernel.emit("else:")
+        _emit_source_block(kernel, qubits, false_body, q_indices, c_indices)
+
+
+def _emit_source_instruction(kernel, qubits, instruction, circuit, q_mapping,
+                             c_mapping):
+    operation = instruction.operation
+    op_name = _operation_name(operation)
+    if op_name == "if_else":
+        _emit_if_else(kernel, qubits, instruction, circuit, q_mapping,
+                      c_mapping)
+        return
+
+    if op_name == "measure":
+        q_indices = _bit_indices(circuit, instruction.qubits, q_mapping)
+        c_indices = _bit_indices(circuit, instruction.clbits, c_mapping)
+        _validate_direct_operation(operation, op_name, q_indices, c_indices,
+                                   DIRECT_OPERATION_SPECS[op_name])
+        kernel.emit(
+            f"{_clbit_name(c_indices[0])} = bool(mz({qubits[q_indices[0]]}))")
+        return
+
+    _emit_instruction(kernel, qubits, instruction, circuit, q_mapping, 0)
+
+
+def _has_if_else(qiskit_circuit):
+    return any(
+        _operation_name(instruction.operation) == "if_else"
+        for instruction in qiskit_circuit.data)
+
+
+def _build_source_kernel(qiskit_circuit):
+    """Build a kernel-mode kernel for a circuit with `if_else`, which the
+    builder cannot express. The kernel returns every clbit, in index order."""
+    import cudaq
+    from ..kernel.kernel_decorator import PyKernelDecorator
+
+    clbits = [_clbit_name(i) for i in range(qiskit_circuit.num_clbits)]
+    kernel = _SourceKernel()
+    kernel.emit(f"q = cudaq.qvector({qiskit_circuit.num_qubits})")
+    for clbit in clbits:
+        kernel.emit(f"{clbit} = False")
+    qubits = [f"q[{i}]" for i in range(qiskit_circuit.num_qubits)]
+    for instruction in qiskit_circuit.data:
+        _emit_source_instruction(kernel, qubits, instruction, qiskit_circuit,
+                                 None, None)
+    kernel.emit(f"return [{', '.join(clbits)}]")
+
+    source = "\n".join(
+        [f"def {_SOURCE_KERNEL_NAME}() -> list[bool]:", *kernel.lines, ""])
+    return PyKernelDecorator(source,
+                             kernelName=_SOURCE_KERNEL_NAME,
+                             defer_compilation=False,
+                             overrideGlobalScopedVars={"cudaq": cudaq})
+
+
 def from_qasm(qasm_file):
     """Create a CUDA-Q kernel from an OpenQASM file.
 
@@ -568,6 +693,9 @@ def _build_kernel(qiskit_circuit):
     """
     # Ensure Qiskit is available (validates input type indirectly)
     _try_import_qiskit()
+
+    if _has_if_else(qiskit_circuit):
+        return _build_source_kernel(qiskit_circuit)
 
     kernel = make_kernel()
     num_qubits = qiskit_circuit.num_qubits
