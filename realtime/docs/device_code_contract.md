@@ -263,7 +263,7 @@ built and embedded by `cudaq_realtime_add_dispatch_kernel` in
 3. `cudaq_dispatcher_get_device_handler` (`cudaq_realtime.h`) for each handler.
    The first call links and loads the module.
 4. Fill the function table with those addresses, then
-   `cudaq_dispatcher_set_function_table` and `cudaq_dispatcher_set_control`.
+   `cudaq_dispatcher_set_function_table`.
 5. `cudaq_dispatcher_start`.
 
 `realtime/unittests/test_server/cudaq_realtime_test_server.cpp`
