@@ -126,8 +126,7 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_9]], %[[VAL_14]]) {registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_15:.*]] = cc.address_of @cstr.72303030303000 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_15]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_14]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_18:.*]] = cc.load %[[VAL_17]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_18:.*]] = call @__quantum__qis__read_result__body(%[[VAL_14]]) : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i1
 // CHECK:           %[[VAL_19:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_20:.*]] = cc.cast unsigned %[[VAL_18]] : (i1) -> i8
 // CHECK:           cc.store %[[VAL_20]], %[[VAL_19]] : !cc.ptr<i8>
@@ -135,8 +134,7 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_10]], %[[VAL_21]]) {registerName = "r00001"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_22:.*]] = cc.address_of @cstr.72303030303100 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_23:.*]] = cc.cast %[[VAL_22]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_24:.*]] = cc.cast %[[VAL_21]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_25:.*]] = cc.load %[[VAL_24]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_25:.*]] = call @__quantum__qis__read_result__body(%[[VAL_21]]) : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i1
 // CHECK:           %[[VAL_26:.*]] = cc.compute_ptr %[[VAL_13]][1] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_27:.*]] = cc.cast unsigned %[[VAL_25]] : (i1) -> i8
 // CHECK:           cc.store %[[VAL_27]], %[[VAL_26]] : !cc.ptr<i8>
@@ -144,8 +142,7 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_11]], %[[VAL_28]]) {registerName = "r00002"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_29:.*]] = cc.address_of @cstr.72303030303200 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_30:.*]] = cc.cast %[[VAL_29]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_31:.*]] = cc.cast %[[VAL_28]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_32:.*]] = cc.load %[[VAL_31]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_32:.*]] = call @__quantum__qis__read_result__body(%[[VAL_28]]) : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i1
 // CHECK:           %[[VAL_33:.*]] = cc.compute_ptr %[[VAL_13]][2] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_34:.*]] = cc.cast unsigned %[[VAL_32]] : (i1) -> i8
 // CHECK:           cc.store %[[VAL_34]], %[[VAL_33]] : !cc.ptr<i8>
@@ -153,8 +150,7 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_12]], %[[VAL_35]]) {registerName = "r00003"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_36:.*]] = cc.address_of @cstr.72303030303300 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_37:.*]] = cc.cast %[[VAL_36]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_38:.*]] = cc.cast %[[VAL_35]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_39:.*]] = cc.load %[[VAL_38]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_39:.*]] = call @__quantum__qis__read_result__body(%[[VAL_35]]) : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i1
 // CHECK:           %[[VAL_40:.*]] = cc.compute_ptr %[[VAL_13]][3] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_41:.*]] = cc.cast unsigned %[[VAL_39]] : (i1) -> i8
 // CHECK:           cc.store %[[VAL_41]], %[[VAL_40]] : !cc.ptr<i8>

@@ -121,10 +121,11 @@ listReachableFunctions(clang::CallGraphNode *cgn) {
   return result;
 }
 
-// Does `ty` refer to a Quake quantum type? This also checks custom recursive
-// types. It does not check builtin recursive types; e.g., `!llvm.ptr<T>`.
+// Does `ty` refer to a Quake quantum type (`!quake.measure` is classical)? This
+// also checks custom recursive types. It does not check builtin recursive
+// types; e.g., `!llvm.ptr<T>`.
 static bool isQubitType(Type ty) {
-  if (cudaq::quake::isQuakeType(ty))
+  if (cudaq::quake::isQuantumType(ty))
     return true;
   // FIXME: next if case is a bug.
   if (auto vecTy = dyn_cast<cudaq::cc::SequenceType>(ty))
@@ -133,11 +134,11 @@ static bool isQubitType(Type ty) {
 }
 
 // Check the builtin type FunctionType to see if it has any references to Quake
-// qubit types or `cc.measure_handle` in its arguments and/or results, in any
+// qubit types or `!quake.measure` in its arguments and/or results, in any
 // position the kernel boundary classifier needs to treat as device-only.
 static bool hasAnyQuakeOrHandleTypes(FunctionType funcTy) {
   auto isDeviceOnly = [](Type ty) {
-    return isQubitType(ty) || cudaq::cc::containsMeasureHandle(ty);
+    return isQubitType(ty) || cudaq::cc::containsMeasureType(ty);
   };
   for (auto ty : funcTy.getInputs())
     if (isDeviceOnly(ty))
@@ -154,10 +155,10 @@ static bool hasAnyQuakeOrHandleTypes(FunctionType funcTy) {
 // qubit references).
 static bool containsHandleInSignature(FunctionType funcTy) {
   for (auto ty : funcTy.getInputs())
-    if (cudaq::cc::containsMeasureHandle(ty))
+    if (cudaq::cc::containsMeasureType(ty))
       return true;
   for (auto ty : funcTy.getResults())
-    if (cudaq::cc::containsMeasureHandle(ty))
+    if (cudaq::cc::containsMeasureType(ty))
       return true;
   return false;
 }

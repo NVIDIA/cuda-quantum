@@ -797,11 +797,11 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   if (!regName.empty())
     strAttr = builder.getStringAttr(regName);
 
-  // `mz`/`mx`/`my` produce a `!cc.measure_handle` (or
-  // `!cc.sequence<!cc.measure_handle>` when the target is a vector).
+  // `mz`/`mx`/`my` produce a `!quake.measure` (or
+  // `!cc.sequence<!quake.measure>` when the target is a vector).
   // Discrimination is deferred to consumer sites, matching the AST-bridge
   // behavior.
-  Type measTy = cc::MeasureHandleType::get(builder.getContext());
+  Type measTy = quake::MeasureType::get(builder.getContext());
   if (!isa<cudaq::quake::RefType>(type))
     measTy = cc::SequenceType::get(measTy);
   Value handle;

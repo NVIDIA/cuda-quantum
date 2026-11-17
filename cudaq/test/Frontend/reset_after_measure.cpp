@@ -19,7 +19,7 @@ void no_reuse() __qpu__ {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_no_reuse._Z8no_reusev() 
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
 // clang-format on
 
 void explicit_reset_after_mz() __qpu__ {
@@ -34,7 +34,7 @@ void explicit_reset_after_mz() __qpu__ {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_explicit_reset_after_mz._Z23explicit_reset_after_mzv() 
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
 // CHECK:           quake.reset %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // clang-format on
@@ -51,9 +51,9 @@ void reuse1() __qpu__ {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_reuse1._Z6reuse1v() 
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
 // CHECK:           quake.reset %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 // CHECK:           cc.if(%[[VAL_2]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
@@ -73,16 +73,16 @@ void reuse2() __qpu__ {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_reuse2._Z6reuse2v() 
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "res" : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "res" : (!quake.ref) -> !quake.measure
 // CHECK:           quake.reset %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 // CHECK:           cc.if(%[[VAL_2]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.measure_handle
-// CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_4D:.*]] = quake.discriminate %[[VAL_4]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[VAL_3:.*]] = cc.alloca !quake.measure
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_4D:.*]] = quake.discriminate %[[VAL_4]] : (!quake.measure) -> i1
 // CHECK:           cc.if(%[[VAL_4D]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
@@ -107,16 +107,16 @@ void reuse3() __qpu__ {
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           quake.x {{\[}}%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] name "res" : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] name "res" : (!quake.ref) -> !quake.measure
 // CHECK:           quake.reset %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.measure_handle
-// CHECK:           cc.store %[[VAL_2]], %[[VAL_4]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_5D:.*]] = quake.discriminate %[[VAL_5]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[VAL_4:.*]] = cc.alloca !quake.measure
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_4]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_5D:.*]] = quake.discriminate %[[VAL_5]] : (!quake.measure) -> i1
 // CHECK:           cc.if(%[[VAL_5D]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:             quake.x %[[VAL_1]] : (!quake.ref) -> ()

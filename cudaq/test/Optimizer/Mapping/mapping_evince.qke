@@ -30,12 +30,12 @@ func.func @test_evince_after_measurements() attributes {"cudaq-kernel", quake.cu
   %p1 = cc.compute_ptr %buf[1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
   %seq = cc.sequence_init %buf : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.sequence<i1>
   quake.evince %seq : (!cc.sequence<i1>) -> ()
-  %m0, %w0 = quake.mz %2#0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-  %d0 = quake.discriminate %m0 : (!cc.measure_handle) -> i1
+  %m0, %w0 = quake.mz %2#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %d0 = quake.discriminate %m0 : (!quake.measure) -> i1
   %b0 = cc.cast unsigned %d0 : (i1) -> i8
   cc.store %b0, %p0 : !cc.ptr<i8>
-  %m1, %w1 = quake.mz %2#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-  %d1 = quake.discriminate %m1 : (!cc.measure_handle) -> i1
+  %m1, %w1 = quake.mz %2#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %d1 = quake.discriminate %m1 : (!quake.measure) -> i1
   %b1 = cc.cast unsigned %d1 : (i1) -> i8
   cc.store %b1, %p1 : !cc.ptr<i8>
   quake.return_wire %w0 : !quake.wire

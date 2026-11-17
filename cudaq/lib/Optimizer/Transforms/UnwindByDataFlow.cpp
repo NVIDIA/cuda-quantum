@@ -273,7 +273,7 @@ public:
     // landingPadMap.
     SmallVector<Value> vars;
     for (Value v : unwind->getOperands()) {
-      if (cudaq::quake::isQuakeType(v.getType())) {
+      if (cudaq::quake::isQuantumType(v.getType())) {
         unwind->emitWarning("unsupported types");
         return failure();
       }

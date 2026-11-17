@@ -73,8 +73,8 @@ module {
   func.func @bool_result() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.alloca !quake.ref
     quake.x %0 : (!quake.ref) -> ()
-    %measOut = quake.mz %0 : (!quake.ref) -> !cc.measure_handle
-    %1 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+    %measOut = quake.mz %0 : (!quake.ref) -> !quake.measure
+    %1 = quake.discriminate %measOut : (!quake.measure) -> i1
     return %1 : i1
   }
 }
@@ -93,7 +93,7 @@ module {
     cc.store %arg0, %0 : !cc.ptr<i64>
     %1 = quake.alloca !quake.ref
     quake.x %1 : (!quake.ref) -> ()
-    %measOut = quake.mz %1 : (!quake.ref) -> !cc.measure_handle
+    %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
     %2 = cc.load %0 : !cc.ptr<i64>
     %c1_i64 = arith.constant 1 : i64
     %3 = arith.subi %2, %c1_i64 : i64
@@ -116,7 +116,7 @@ module {
     cc.store %arg0, %0 : !cc.ptr<i64>
     %1 = quake.alloca !quake.ref
     quake.x %1 : (!quake.ref) -> ()
-    %measOut = quake.mz %1 : (!quake.ref) -> !cc.measure_handle
+    %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
     %2 = cc.load %0 : !cc.ptr<i64>
     %c1_i64 = arith.constant 1 : i64
     %3 = arith.subi %2, %c1_i64 : i64
@@ -139,7 +139,7 @@ module {
     cc.store %arg0, %0 : !cc.ptr<i64>
     %1 = quake.alloca !quake.ref
     quake.x %1 : (!quake.ref) -> ()
-    %measOut = quake.mz %1 : (!quake.ref) -> !cc.measure_handle
+    %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
     %2 = cc.load %0 : !cc.ptr<i64>
     %c1_i64 = arith.constant 1 : i64
     %3 = arith.subi %2, %c1_i64 : i64
@@ -162,7 +162,7 @@ module {
     cc.store %arg0, %0 : !cc.ptr<i64>
     %1 = quake.alloca !quake.ref
     quake.x %1 : (!quake.ref) -> ()
-    %measOut = quake.mz %1 : (!quake.ref) -> !cc.measure_handle
+    %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
     %2 = cc.load %0 : !cc.ptr<i64>
     %c1_i64 = arith.constant 1 : i64
     %3 = arith.subi %2, %c1_i64 : i64
@@ -184,7 +184,7 @@ module {
     cc.store %arg0, %0 : !cc.ptr<f64>
     %1 = quake.alloca !quake.ref
     quake.x %1 : (!quake.ref) -> ()
-    %measOut = quake.mz %1 : (!quake.ref) -> !cc.measure_handle
+    %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
     %2 = cc.load %0 : !cc.ptr<f64>
     %cst = arith.constant 5.000000e-01 : f64
     %3 = arith.subf %2, %cst : f64
@@ -207,7 +207,7 @@ module {
     cc.store %arg0, %0 : !cc.ptr<f64>
     %1 = quake.alloca !quake.ref
     quake.x %1 : (!quake.ref) -> ()
-    %measOut = quake.mz %1 : (!quake.ref) -> !cc.measure_handle
+    %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
     %2 = cc.load %0 : !cc.ptr<f64>
     %cst = arith.constant 5.000000e-01 : f64
     %3 = arith.subf %2, %cst : f64
@@ -231,10 +231,10 @@ module {
     cc.store %arg1, %0 : !cc.ptr<f64>
     %2 = quake.null_wire
     %3 = quake.x %2 : (!quake.wire) -> !quake.wire
-    %measOut, %wires = quake.mz %3 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %measOut, %wires = quake.mz %3 : (!quake.wire) -> (!quake.measure, !quake.wire)
     %4 = cc.load %1 : !cc.ptr<i64>
     %5 = cc.load %0 : !cc.ptr<f64>
-    %6 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+    %6 = quake.discriminate %measOut : (!quake.measure) -> i1
     %7 = cc.undef !cc.struct<"tuple" {i1, i64, f64}>
     %8 = cc.insert_value %7[0], %6 : (!cc.struct<"tuple" {i1, i64, f64}>, i1) -> !cc.struct<"tuple" {i1, i64, f64}>
     %9 = cc.insert_value %8[1], %4 : (!cc.struct<"tuple" {i1, i64, f64}>, i64) -> !cc.struct<"tuple" {i1, i64, f64}>
@@ -264,19 +264,19 @@ module {
     %2 = quake.null_wire
     %3 = quake.x %0 : (!quake.wire) -> !quake.wire
     %4 = quake.x %2 : (!quake.wire) -> !quake.wire
-    %measOut, %wires = quake.mz %3 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %measOut_0, %wires_1 = quake.mz %1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %measOut_2, %wires_3 = quake.mz %4 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %5 = cc.alloca !cc.array<!cc.measure_handle x 3>
-    %6 = cc.cast %5 : (!cc.ptr<!cc.array<!cc.measure_handle x 3>>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
-    %7 = cc.cast %5 : (!cc.ptr<!cc.array<!cc.measure_handle x 3>>) -> !cc.ptr<!cc.measure_handle>
-    cc.store %measOut, %7 : !cc.ptr<!cc.measure_handle>
-    %8 = cc.compute_ptr %5[1] : (!cc.ptr<!cc.array<!cc.measure_handle x 3>>) -> !cc.ptr<!cc.measure_handle>
-    cc.store %measOut_0, %8 : !cc.ptr<!cc.measure_handle>
-    %9 = cc.compute_ptr %5[2] : (!cc.ptr<!cc.array<!cc.measure_handle x 3>>) -> !cc.ptr<!cc.measure_handle>
-    cc.store %measOut_2, %9 : !cc.ptr<!cc.measure_handle>
-    %10 = cc.sequence_init %6, %c3_i64 : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
-    %11 = quake.discriminate %10 : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+    %measOut, %wires = quake.mz %3 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %measOut_0, %wires_1 = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %measOut_2, %wires_3 = quake.mz %4 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %5 = cc.alloca !cc.array<!quake.measure x 3>
+    %6 = cc.cast %5 : (!cc.ptr<!cc.array<!quake.measure x 3>>) -> !cc.ptr<!cc.array<!quake.measure x ?>>
+    %7 = cc.cast %5 : (!cc.ptr<!cc.array<!quake.measure x 3>>) -> !cc.ptr<!quake.measure>
+    cc.store %measOut, %7 : !cc.ptr<!quake.measure>
+    %8 = cc.compute_ptr %5[1] : (!cc.ptr<!cc.array<!quake.measure x 3>>) -> !cc.ptr<!quake.measure>
+    cc.store %measOut_0, %8 : !cc.ptr<!quake.measure>
+    %9 = cc.compute_ptr %5[2] : (!cc.ptr<!cc.array<!quake.measure x 3>>) -> !cc.ptr<!quake.measure>
+    cc.store %measOut_2, %9 : !cc.ptr<!quake.measure>
+    %10 = cc.sequence_init %6, %c3_i64 : (!cc.ptr<!cc.array<!quake.measure x ?>>, i64) -> !cc.sequence<!quake.measure>
+    %11 = quake.discriminate %10 : (!cc.sequence<!quake.measure>) -> !cc.sequence<i1>
     %12 = cc.sequence_data %11 : (!cc.sequence<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
     %13 = cc.sequence_size %11 : (!cc.sequence<i1>) -> i64
     %14 = cc.cast %12 : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
@@ -316,7 +316,7 @@ module {
     %cst_1 = arith.constant 2.500000e-01 : f64
     %0 = quake.null_wire
     %1 = quake.x %0 : (!quake.wire) -> !quake.wire
-    %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
     %2 = cc.alloca !cc.array<f64 x 3>
     %3 = cc.cast %2 : (!cc.ptr<!cc.array<f64 x 3>>) -> !cc.ptr<f64>
     cc.store %cst, %3 : !cc.ptr<f64>
@@ -361,7 +361,7 @@ module {
     cc.store %arg0, %0 : !cc.ptr<!cc.sequence<i64>>
     %3 = quake.null_wire
     %4 = quake.x %3 : (!quake.wire) -> !quake.wire
-    %measOut, %wires = quake.mz %4 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %measOut, %wires = quake.mz %4 : (!quake.wire) -> (!quake.measure, !quake.wire)
     %5 = cc.load %0 : !cc.ptr<!cc.sequence<i64>>
     %6 = cc.sequence_data %5 : (!cc.sequence<i64>) -> !cc.ptr<!cc.array<i8 x ?>>
     %7 = cc.sequence_size %5 : (!cc.sequence<i64>) -> i64
@@ -442,11 +442,11 @@ module {
     %c8_i64 = arith.constant 8 : i64
     %0 = quake.null_wire
     %1 = quake.x %0 : (!quake.wire) -> !quake.wire
-    %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %2 = cc.alloca !cc.measure_handle
-    cc.store %measOut, %2 : !cc.ptr<!cc.measure_handle>
-    %3 = cc.load %2 : !cc.ptr<!cc.measure_handle>
-    %4 = quake.discriminate %3 : (!cc.measure_handle) -> i1
+    %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %2 = cc.alloca !quake.measure
+    cc.store %measOut, %2 : !cc.ptr<!quake.measure>
+    %3 = cc.load %2 : !cc.ptr<!quake.measure>
+    %4 = quake.discriminate %3 : (!quake.measure) -> i1
     %5 = cc.alloca i1
     cc.store %4, %5 : !cc.ptr<i1>
     %6 = cc.load %5 : !cc.ptr<i1>
@@ -499,16 +499,16 @@ module {
     %1 = quake.null_wire
     %2 = quake.h %0 : (!quake.wire) -> !quake.wire
     %3:2 = quake.x [%2] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-    %measOut, %wires = quake.mz %3#0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %measOut_0, %wires_1 = quake.mz %3#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %4 = cc.alloca !cc.array<!cc.measure_handle x 2>
-    %5 = cc.cast %4 : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
-    %6 = cc.cast %4 : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
-    cc.store %measOut, %6 : !cc.ptr<!cc.measure_handle>
-    %7 = cc.compute_ptr %4[1] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
-    cc.store %measOut_0, %7 : !cc.ptr<!cc.measure_handle>
-    %8 = cc.sequence_init %5, %c2_i64 : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
-    %9 = quake.discriminate %8 : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+    %measOut, %wires = quake.mz %3#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %measOut_0, %wires_1 = quake.mz %3#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %4 = cc.alloca !cc.array<!quake.measure x 2>
+    %5 = cc.cast %4 : (!cc.ptr<!cc.array<!quake.measure x 2>>) -> !cc.ptr<!cc.array<!quake.measure x ?>>
+    %6 = cc.cast %4 : (!cc.ptr<!cc.array<!quake.measure x 2>>) -> !cc.ptr<!quake.measure>
+    cc.store %measOut, %6 : !cc.ptr<!quake.measure>
+    %7 = cc.compute_ptr %4[1] : (!cc.ptr<!cc.array<!quake.measure x 2>>) -> !cc.ptr<!quake.measure>
+    cc.store %measOut_0, %7 : !cc.ptr<!quake.measure>
+    %8 = cc.sequence_init %5, %c2_i64 : (!cc.ptr<!cc.array<!quake.measure x ?>>, i64) -> !cc.sequence<!quake.measure>
+    %9 = quake.discriminate %8 : (!cc.sequence<!quake.measure>) -> !cc.sequence<i1>
     %10 = cc.sequence_data %9 : (!cc.sequence<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
     %11 = cc.sequence_size %9 : (!cc.sequence<i1>) -> i64
     %12 = cc.cast %10 : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
@@ -541,14 +541,14 @@ module {
 SAVED_AFTER_RESET = """
 module {
   func.func @saved_after_reset() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-    %0 = cc.alloca !cc.measure_handle
+    %0 = cc.alloca !quake.measure
     %1 = quake.null_wire
     %2 = quake.x %1 : (!quake.wire) -> !quake.wire
-    %measOut, %wires = quake.mz %2 name "m" : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    cc.store %measOut, %0 : !cc.ptr<!cc.measure_handle>
+    %measOut, %wires = quake.mz %2 name "m" : (!quake.wire) -> (!quake.measure, !quake.wire)
+    cc.store %measOut, %0 : !cc.ptr<!quake.measure>
     %3 = quake.reset %wires : (!quake.wire) -> !quake.wire
-    %4 = cc.load %0 : !cc.ptr<!cc.measure_handle>
-    %5 = quake.discriminate %4 : (!cc.measure_handle) -> i1
+    %4 = cc.load %0 : !cc.ptr<!quake.measure>
+    %5 = quake.discriminate %4 : (!quake.measure) -> i1
     quake.sink %3 : !quake.wire
     return %5 : i1
   }
@@ -566,7 +566,7 @@ module {
   func.func @void_entry() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.null_wire
     %1 = quake.x %0 : (!quake.wire) -> !quake.wire
-    %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
     quake.sink %wires : !quake.wire
     return
   }
@@ -583,8 +583,8 @@ module {
   func.func @apply_and_measure(%arg0: !cc.callable<(!quake.ref) -> ()>) -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.alloca !quake.ref
     cc.call_callable %arg0, %0 : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> () {symbol = "f"}
-    %measOut = quake.mz %0 : (!quake.ref) -> !cc.measure_handle
-    %1 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+    %measOut = quake.mz %0 : (!quake.ref) -> !quake.measure
+    %1 = quake.discriminate %measOut : (!quake.measure) -> i1
     return %1 : i1
   }
 }

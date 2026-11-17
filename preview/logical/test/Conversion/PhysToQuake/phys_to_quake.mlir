@@ -54,11 +54,11 @@ phys.graph @entry on @machine : () -> () {
 // CHECK:           %[[RESET_5:.*]] = quake.reset %[[H_1]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[RESET_6:.*]] = quake.reset %[[RESET_5]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[H_2:.*]] = quake.h %[[RESET_6]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[H_2]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[H_2]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[H_3:.*]] = quake.h %[[MZ_0]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[H_3]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[H_3]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[H_4:.*]] = quake.h %[[MZ_1]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_2:.*]], %[[MZ_2:.*]] = quake.mz %[[H_4]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[VAL_2:.*]], %[[MZ_2:.*]] = quake.mz %[[H_4]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           quake.sink %[[MZ_2]] : !quake.wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
 // CHECK:           %[[X_0:.*]] = quake.x %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
@@ -187,9 +187,9 @@ phys.graph @entry on @machine : (index, f64, i1, i8, i16, i32, i64, f32) -> (!ph
 // CHECK-SAME:      %[[ARG7:[^:]*]]: f32) -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", quake.optimizationLevel = 0 : i32} {
 // CHECK:           %[[INDEX_CAST_0:.*]] = arith.index_cast %[[ARG0]] : i64 to index
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
-// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[NULL_WIRE_0]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[NULL_WIRE_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           quake.sink %[[MZ_0]] : !quake.wire
-// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!quake.measure) -> i1
 // CHECK:           %[[CONSTANT_0:.*]] = arith.constant true
 // CHECK:           %[[XORI_0:.*]] = arith.xori %[[DISCRIMINATE_0]], %[[CONSTANT_0]] : i1
 // CHECK:           %[[CONSTANT_1:.*]] = arith.constant true
@@ -302,12 +302,12 @@ module attributes {qlx.profiles = ["p3"]} {
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
 // CHECK:           %[[X_0:.*]] = quake.x %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[X_1:.*]] = quake.x %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[X_0]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[X_1]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[X_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[X_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[NULL_WIRE_2:.*]] = quake.null_wire
 // CHECK:           %[[X_2:.*]] = quake.x %[[NULL_WIRE_2]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!cc.measure_handle) -> i1
-// CHECK:           %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!quake.measure) -> i1
+// CHECK:           %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 // CHECK:           %[[XORI_0:.*]] = arith.xori %[[DISCRIMINATE_0]], %[[DISCRIMINATE_1]] : i1
 // CHECK:           %[[X_3:.*]] = quake.x %[[X_2]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[XORI_1:.*]] = arith.xori %[[DISCRIMINATE_0]], %[[DISCRIMINATE_1]] : i1
@@ -353,12 +353,12 @@ phys.graph @entry on @m : () -> (!phys.record<@bit>, !phys.record<@bit>) {
 // CHECK:           %[[X_1:.*]]:2 = quake.x {{\[}}%[[H_2]]] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[H_3:.*]] = quake.h %[[X_1]]#0 : (!quake.wire) -> !quake.wire
 // CHECK:           %[[S_1:.*]] = quake.s %[[H_3]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[X_1]]#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[X_1]]#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           quake.sink %[[MZ_0]] : !quake.wire
 // CHECK:           %[[NULL_WIRE_3:.*]] = quake.null_wire
 // CHECK:           %[[X_2:.*]]:2 = quake.x {{\[}}%[[H_1]]] %[[NULL_WIRE_3]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[X_3:.*]]:2 = quake.x {{\[}}%[[S_1]]] %[[X_2]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[X_3]]#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[X_3]]#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           quake.sink %[[MZ_1]] : !quake.wire
 // CHECK:           %[[S_2:.*]] = quake.s<adj> %[[X_2]]#0 : (!quake.wire) -> !quake.wire
 // CHECK:           %[[H_4:.*]] = quake.h %[[S_2]] : (!quake.wire) -> !quake.wire
@@ -388,8 +388,8 @@ phys.graph @entry on @m : () -> (!phys.record<@bit>, !phys.record<@bit>) {
 // CHECK:           quake.sink %[[H_10]] : !quake.wire
 // CHECK:           quake.sink %[[S_5]] : !quake.wire
 // CHECK:           quake.sink %[[X_9]]#1 : !quake.wire
-// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!cc.measure_handle) -> i1
-// CHECK:           %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!quake.measure) -> i1
+// CHECK:           %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 // CHECK:           %[[CONSTANT_3:.*]] = arith.constant true
 // CHECK:           %[[XORI_0:.*]] = arith.xori %[[DISCRIMINATE_1]], %[[CONSTANT_3]] : i1
 // CHECK:           cc.store %[[DISCRIMINATE_0]], %{{.*}} : !cc.ptr<i1>
@@ -463,36 +463,36 @@ phys.graph @entry on @m : () -> (!phys.record<@bit>, !phys.record<@bit>, i1) {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", quake.optimizationLevel = 0 : i32} {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[H_0:.*]] = quake.h %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[H_0]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[MZ_0]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[VAL_2:.*]], %[[MZ_2:.*]] = quake.mz %[[MZ_1]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[H_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[MZ_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_2:.*]], %[[MZ_2:.*]] = quake.mz %[[MZ_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!quake.measure) -> i1
 // CHECK:           %[[IF_0:.*]]:2 = cc.if(%[[DISCRIMINATE_0]]) ((%[[VAL_3:.*]] = %[[MZ_2]])) -> (!quake.wire, i1) {
-// CHECK:             %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[VAL_2]] : (!cc.measure_handle) -> i1
+// CHECK:             %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
 // CHECK:             %[[X_0:.*]] = quake.x %[[VAL_3]] : (!quake.wire) -> !quake.wire
 // CHECK:             %[[NULL_WIRE_1:.*]] = quake.null_wire
-// CHECK:             %[[VAL_4:.*]], %[[MZ_3:.*]] = quake.mz %[[NULL_WIRE_1]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:             %[[VAL_4:.*]], %[[MZ_3:.*]] = quake.mz %[[NULL_WIRE_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:             quake.sink %[[MZ_3]] : !quake.wire
-// CHECK:             %[[DISCRIMINATE_2:.*]] = quake.discriminate %[[VAL_4]] : (!cc.measure_handle) -> i1
+// CHECK:             %[[DISCRIMINATE_2:.*]] = quake.discriminate %[[VAL_4]] : (!quake.measure) -> i1
 // CHECK:             cc.continue %[[X_0]], %[[DISCRIMINATE_2]] : !quake.wire, i1
 // CHECK:           } else {
-// CHECK:             %[[DISCRIMINATE_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.measure_handle) -> i1
-// CHECK:             %[[DISCRIMINATE_4:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+// CHECK:             %[[DISCRIMINATE_3:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
+// CHECK:             %[[DISCRIMINATE_4:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 // CHECK:             cc.continue %[[VAL_3]], %[[DISCRIMINATE_4]] : !quake.wire, i1
 // CHECK:           }
 // CHECK:           %[[NULL_WIRE_2:.*]] = quake.null_wire
 // CHECK:           %[[CONSTANT_0:.*]] = arith.constant 2 : i64
 // CHECK:           %[[CONSTANT_1:.*]] = arith.constant 0 : i64
-// CHECK:           %[[DISCRIMINATE_5:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[DISCRIMINATE_5:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 // CHECK:           %[[LOOP_0:.*]]:4 = cc.loop while ((%[[VAL_6:.*]] = %[[CONSTANT_1]], %[[VAL_7:.*]] = %[[IF_0]]#0, %[[VAL_9:.*]] = %[[NULL_WIRE_2]], %[[VAL_10:.*]] = %[[DISCRIMINATE_5]]) -> (i64, !quake.wire, !quake.wire, i1)) {
 // CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_6]], %[[CONSTANT_0]] : i64
 // CHECK:             cc.condition %[[CMPI_0]](%[[VAL_6]], %[[VAL_7]], %[[VAL_9]], %[[VAL_10]] : i64, !quake.wire, !quake.wire, i1)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_11:.*]]: i64, %[[VAL_12:.*]]: !quake.wire, %[[VAL_13:.*]]: !quake.wire, %[[VAL_14:.*]]: i1):
-// CHECK:             %[[DISCRIMINATE_6:.*]] = quake.discriminate %[[VAL_2]] : (!cc.measure_handle) -> i1
+// CHECK:             %[[DISCRIMINATE_6:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
 // CHECK:             %[[X_1:.*]] = quake.x %[[VAL_13]] : (!quake.wire) -> !quake.wire
-// CHECK:             %[[VAL_15:.*]], %[[MZ_4:.*]] = quake.mz %[[X_1]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:             %[[DISCRIMINATE_7:.*]] = quake.discriminate %[[VAL_15]] : (!cc.measure_handle) -> i1
+// CHECK:             %[[VAL_15:.*]], %[[MZ_4:.*]] = quake.mz %[[X_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:             %[[DISCRIMINATE_7:.*]] = quake.discriminate %[[VAL_15]] : (!quake.measure) -> i1
 // CHECK:             cc.continue %[[VAL_11]], %[[VAL_12]], %[[MZ_4]], %[[DISCRIMINATE_7]] : i64, !quake.wire, !quake.wire, i1
 // CHECK:           } step {
 // CHECK:           ^bb0(%[[VAL_16:.*]]: i64, %[[VAL_17:.*]]: !quake.wire, %[[VAL_18:.*]]: !quake.wire, %[[VAL_19:.*]]: i1):
@@ -517,17 +517,17 @@ phys.graph @entry on @m : () -> (!phys.record<@bit>, !phys.record<@bit>, i1) {
 // CHECK:           }
 // CHECK:           %[[CONSTANT_6:.*]] = arith.constant true
 // CHECK:           %[[LOOP_2:.*]]:3 = cc.loop while ((%[[VAL_30:.*]] = %[[LOOP_1]]#1, %[[VAL_32:.*]] = %[[LOOP_1]]#2, %[[VAL_33:.*]] = %[[CONSTANT_6]]) -> (!quake.wire, !quake.wire, i1)) {
-// CHECK:             %[[DISCRIMINATE_8:.*]] = quake.discriminate %[[VAL_2]] : (!cc.measure_handle) -> i1
+// CHECK:             %[[DISCRIMINATE_8:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
 // CHECK:             cc.condition %[[VAL_33]](%[[VAL_30]], %[[VAL_32]], %[[VAL_33]] : !quake.wire, !quake.wire, i1)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_34:.*]]: !quake.wire, %[[VAL_35:.*]]: !quake.wire, %[[VAL_36:.*]]: i1):
-// CHECK:             %[[DISCRIMINATE_9:.*]] = quake.discriminate %[[VAL_2]] : (!cc.measure_handle) -> i1
+// CHECK:             %[[DISCRIMINATE_9:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
 // CHECK:             %[[H_1:.*]] = quake.h %[[VAL_34]] : (!quake.wire) -> !quake.wire
-// CHECK:             %[[VAL_37:.*]], %[[MZ_5:.*]] = quake.mz %[[H_1]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:             %[[DISCRIMINATE_10:.*]] = quake.discriminate %[[VAL_37]] : (!cc.measure_handle) -> i1
+// CHECK:             %[[VAL_37:.*]], %[[MZ_5:.*]] = quake.mz %[[H_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:             %[[DISCRIMINATE_10:.*]] = quake.discriminate %[[VAL_37]] : (!quake.measure) -> i1
 // CHECK:             cc.continue %[[MZ_5]], %[[VAL_35]], %[[DISCRIMINATE_10]] : !quake.wire, !quake.wire, i1
 // CHECK:           }
-// CHECK:           %[[DISCRIMINATE_11:.*]] = quake.discriminate %[[VAL_2]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[DISCRIMINATE_11:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
 // CHECK:           quake.sink %[[LOOP_2]]#0 : !quake.wire
 // CHECK:           quake.sink %[[LOOP_2]]#1 : !quake.wire
 // CHECK:           cc.store %[[IF_0]]#1, %{{.*}} : !cc.ptr<i1>
@@ -559,14 +559,14 @@ phys.graph @entry on @m : (i1) -> !phys.record<@bit> {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
 // CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[X_0]]#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[X_0]]#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           quake.sink %[[MZ_0]] : !quake.wire
-// CHECK:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[X_0]]#0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[X_0]]#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           quake.sink %[[MZ_1]] : !quake.wire
-// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!quake.measure) -> i1
 // CHECK:           %[[CONSTANT_0:.*]] = arith.constant true
 // CHECK:           %[[XORI_0:.*]] = arith.xori %[[DISCRIMINATE_0]], %[[CONSTANT_0]] : i1
-// CHECK:           %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 // CHECK:           %[[SELECT_0:.*]] = arith.select %[[ARG0]], %[[XORI_0]], %[[DISCRIMINATE_1]] : i1
 // CHECK:           return %[[SELECT_0]] : i1
 // CHECK:         }

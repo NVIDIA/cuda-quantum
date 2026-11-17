@@ -260,12 +260,12 @@ QuakeBridgeVisitor::visit(clang::CXXForRangeStmt *x) {
             if (isBool) {
               atOffset = cc::CastOp::create(builder, loc, builder.getI1Type(),
                                             atOffset);
-            } else if (isa<cc::MeasureHandleType>(atOffset.getType())) {
+            } else if (isa<quake::MeasureType>(atOffset.getType())) {
               // `for (bool b : mz(reg))` binds an `i1` loop variable to a
-              // container of `!cc.measure_handle`. Mirror
+              // container of `!quake.measure`. Mirror
               // `measure_handle::operator bool()` and lower the handle through
               // `quake.discriminate` before storing into the `i1` slot.
-              // Without it the `cc.store` value type (`!cc.measure_handle`) and
+              // Without it the `cc.store` value type (`!quake.measure`) and
               // pointer element type (`i1`) disagree and the verifier rejects
               // the module. A `measure_handle` loop variable
               // (`for (auto b : mz(reg))`) keeps the handle and is unaffected.
@@ -401,7 +401,7 @@ QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::ReturnStmt *x) {
       // returning a descriptor that aliases a buffer freed when the callee
       // returns.
       if (auto sv = dyn_cast<cc::SequenceType>(result.getType());
-          sv && isa<cc::MeasureHandleType>(sv.getElementType()))
+          sv && isa<quake::MeasureType>(sv.getElementType()))
         resTy = result.getType();
       if (load.getType() == builder.getI8Type()) {
         auto fnTy = load->getParentOfType<func::FuncOp>().getFunctionType();

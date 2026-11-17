@@ -597,7 +597,7 @@ QuakeBridgeVisitor::declareVariable(clang::VarDecl *x, Type type,
       // Other element types (notably `std::vector<bool>` and numeric vectors)
       // keep the existing value-domain symbol-table entry; their assignment
       // story is unchanged by this patch.
-      bool isHandleVec = isa<cc::MeasureHandleType>(elementType);
+      bool isHandleVec = isa<quake::MeasureType>(elementType);
       if (isHandleVec) {
         // The initializer may itself be a pointer-form lvalue (e.g. reading
         // another handle-vector local). Normalize to the descriptor value

@@ -229,7 +229,7 @@ private:
   OpBuilder builder;
   SymbolTableCollection symbols;
   /// Classical values and records. A measured record maps to its
-  /// `!cc.measure_handle` until a Boolean is read from it, then to that `i1`.
+  /// `!quake.measure` until a Boolean is read from it, then to that `i1`.
   /// A record from `arith.select` or from a region boundary maps to an `i1`.
   /// States are tracked in `wires`.
   IRMapping values;
@@ -627,7 +627,7 @@ LogicalResult GraphLowering::lowerMeasure(qlx::phys::MeasureOp op) {
     wire = emitH(builder, loc, wire);
   auto *ctx = builder.getContext();
   auto mz = cudaq::quake::MzOp::create(
-      builder, loc, cudaq::cc::MeasureHandleType::get(ctx),
+      builder, loc, cudaq::quake::MeasureType::get(ctx),
       TypeRange{cudaq::quake::WireType::get(ctx)}, ValueRange{wire},
       StringAttr{});
   // The record stays a measurement handle until a Boolean is read from it
@@ -682,7 +682,7 @@ GraphLowering::lowerMeasureProduct(qlx::phys::MeasureProductOp op) {
     setWire(input, emitBasisChange(builder, loc, label, /*undo=*/true, cx[0]));
   }
   auto mz = cudaq::quake::MzOp::create(
-      builder, loc, cudaq::cc::MeasureHandleType::get(ctx),
+      builder, loc, cudaq::quake::MeasureType::get(ctx),
       TypeRange{cudaq::quake::WireType::get(ctx)}, ValueRange{ancilla},
       StringAttr{});
   cudaq::quake::SinkOp::create(builder, loc, mz.getWires().front());
@@ -1066,7 +1066,7 @@ LogicalResult GraphLowering::lowerWhile(qlx::cflow::WhileOp op) {
 /// that the first read dominates reuse that `i1`.
 Value GraphLowering::toBoolean(Value physValue) {
   Value value = values.lookup(physValue);
-  if (!isa<cudaq::cc::MeasureHandleType>(value.getType()))
+  if (!isa<cudaq::quake::MeasureType>(value.getType()))
     return value;
   Location loc = physValue.getLoc();
   Value bit = cudaq::quake::DiscriminateOp::create(builder, loc,
