@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --outline-unitaries %s | FileCheck %s
+// RUN: cudaq-opt --outline-unitaries --outline-unitaries %s | FileCheck %s --check-prefix=NOREPEATS
 
 // The chain captures its input wire and returns its final wire through a call.
 func.func @unitary_chain(%q: !quake.wire) -> !quake.wire {
@@ -55,6 +56,21 @@ func.func @hard_boundary(%q: !quake.wire) -> !quake.wire {
 // CHECK: quake.x %[[FIRST]]
 // CHECK: %[[SECOND:.*]] = cc.call_callable %[[SECOND_LAMBDA]]
 // CHECK-NEXT: return %[[SECOND]] : !quake.wire
+
+// Outlined groups should not be outlined when pass run multiple times.
+func.func @dont_outline_twice(%q: !quake.wire) -> !quake.wire {
+  %h = quake.h %q : (!quake.wire) -> !quake.wire
+  return %h : !quake.wire
+}
+// NOREPEATS-LABEL:   func.func @dont_outline_twice(
+// NOREPEATS-SAME:         %[[ARG0:.*]]: !quake.wire) -> !quake.wire {
+// NOREPEATS-NEXT:              %[[CREATE_LAMBDA_0:.*]] = cc.create_lambda {
+// NOREPEATS-NEXT:             %[[H_0:.*]] = quake.h %[[ARG0]] : (!quake.wire) -> !quake.wire
+// NOREPEATS-NEXT:             cc.return %[[H_0]] : !quake.wire
+// NOREPEATS-NEXT:           } : !cc.callable<() -> !quake.wire>
+// NOREPEATS-NEXT:           %[[CALL_CALLABLE_0:.*]] = cc.call_callable %[[CREATE_LAMBDA_0]] : (!cc.callable<() -> !quake.wire>) -> !quake.wire
+// NOREPEATS-NEXT:           return %[[CALL_CALLABLE_0]] : !quake.wire
+// NOREPEATS-NEXT:         }
 
 // Measurements stay between the calls and receive the first call's output.
 func.func @trailing_measurement(%q: !quake.wire) -> !quake.wire {

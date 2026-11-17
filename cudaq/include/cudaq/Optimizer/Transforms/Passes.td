@@ -1711,7 +1711,9 @@ def OutlineUnitaries : Pass<"outline-unitaries", "mlir::func::FuncOp"> {
     and returns results used outside each group. Groups do not cross block
     boundaries or hard boundaries identified by the analysis.
 
-    Every nonempty unitary group must be outlined. Selected operations must
+    Groups that already occupy an entire single-block `cc.create_lambda`
+    body, apart from its `cc.return`, are left unchanged. Every other
+    nonempty unitary group must be outlined. Selected operations must
     be memory-effect-free and have supported wire semantics; reference-semantics
     groups are rejected. External consumers of group results must be in the
     same block, wire inputs and outputs must form supported linear dataflow,
