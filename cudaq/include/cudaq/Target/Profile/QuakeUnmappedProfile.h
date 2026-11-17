@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/Target/Profile/U3Synthesizer.h"
 #include <functional>
 #include <optional>
 #include <string>
@@ -83,6 +84,12 @@ struct QuakeUnmappedProfile {
   /// The most iterations of a loop that the stage unrolls. A selected loop
   /// with more iterations stays rolled.
   unsigned maxUnrollIterations = 1024;
+
+  /// Prototype: a synthesizer for `u3` gates, settable from Python only (not
+  /// from YAML). Only valid with the `t_count` cost model. When set and the
+  /// stage synthesizes rotations, every one-qubit rotation chain is fused into
+  /// a `u3` and replaced by the Clifford+T word this returns.
+  std::optional<U3Synthesizer> u3Synthesis = std::nullopt;
 
   bool operator==(const QuakeUnmappedProfile &other) const = default;
 };

@@ -186,6 +186,9 @@ std::size_t std::hash<cudaq::config::QuakeUnmappedProfile>::operator()(
   cudaq::detail::hashCombine(seed, profile.costModel);
   cudaq::detail::hashCombine(seed, profile.unrollLoops);
   cudaq::detail::hashCombine(seed, profile.maxUnrollIterations);
+  if (profile.u3Synthesis)
+    cudaq::detail::hashCombine(
+        seed, static_cast<const void *>(profile.u3Synthesis->fn.get()));
   return seed;
 }
 

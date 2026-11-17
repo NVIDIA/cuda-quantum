@@ -95,6 +95,7 @@ add_cudaq_library(OptTransforms
   StackFramePrealloc.cpp
   StatePreparation.cpp
   StaticQubitTarget.cpp
+  U3Synthesis.cpp
   UnitarySynthesis.cpp
   UnwindByDataFlow.cpp
   UpdateRegisterNames.cpp

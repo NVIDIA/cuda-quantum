@@ -161,6 +161,8 @@ template <typename E>
 std::string cxxValue(E value) {
   return cxxTypeName<E>() + "::" + rfl::enum_to_string(value);
 }
+// Set from Python only, so a YAML target never has one.
+std::string cxxValue(const cudaq::config::U3Synthesizer &) { return "{}"; }
 template <typename T>
 std::string cxxValue(const std::optional<T> &value) {
   return value ? cxxValue(*value) : "std::nullopt";
