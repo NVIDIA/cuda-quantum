@@ -41,6 +41,17 @@ struct TargetPrepPipelineOptions
       *this, "no-loop-unroll",
       llvm::cl::desc("Disable loop unrolling and preserve cc.loop operations."),
       llvm::cl::init(false)};
+  PassOptions::Option<bool> lowerGates{
+      *this, "lower-gates",
+      llvm::cl::desc("Rewrite custom unitaries and state initialization as "
+                     "gates. A target turns this off when it applies both "
+                     "directly."),
+      llvm::cl::init(true)};
+  PassOptions::Option<bool> normalize{
+      *this, "normalize",
+      llvm::cl::desc("Optimize the classical code. A target turns this off "
+                     "when its stages normalize the kernel."),
+      llvm::cl::init(true)};
 };
 
 struct TargetDeployPipelineOptions
@@ -78,6 +89,12 @@ struct TargetFinalizationJitPipelineOptions
       *this, "lower-device-calls",
       llvm::cl::desc(
           "Lower device calls (to normal function calls) in JIT pipeline."),
+      llvm::cl::init(true)};
+  PassOptions::Option<bool> normalize{
+      *this, "normalize",
+      llvm::cl::desc("Inline calls, expand negated controls, and "
+                     "canonicalize. A target turns this off when its stages "
+                     "normalize the kernel."),
       llvm::cl::init(true)};
 };
 
@@ -152,9 +169,15 @@ void cudaq::opt::registerConvertToLinearValuesPipeline() {
       addConvertToLinearValues);
 }
 
-/// Build the prep pipeline that every target runs. A target sets `erase-noise`
-/// or `erase-qec` to false when its consumer has to see those operations, and
-/// sets `reject-noise` when a kernel that applies noise must fail to compile.
+/// Build the prep pipeline that every target runs. The options switch its
+/// steps. A target turns off `erase-noise` or `erase-qec` when its consumer has
+/// to see those operations, and sets `reject-noise` when a kernel that applies
+/// noise must fail to compile. It turns off `lower-gates` when it applies
+/// custom unitaries and state initialization directly, and `normalize` when
+/// its stages normalize the kernel.
+// TODO: Remove `lower-gates` and `normalize`, here and on the finalize
+// pipeline, once prep and finalize are composed from separately scheduled
+// steps, as `JITTargetPipeline.cpp` describes.
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
   if (options.rejectNoise)
@@ -170,21 +193,26 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-  cudaq::opt::createClassicalOptimizationPipeline(
-      pm, std::nullopt, {options.allowEarlyExit}, std::nullopt,
-      {options.disableLoopUnrolling});
+  if (options.normalize)
+    cudaq::opt::createClassicalOptimizationPipeline(
+        pm, std::nullopt, {options.allowEarlyExit}, std::nullopt,
+        {options.disableLoopUnrolling});
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  // Synthesis creates ApplyOps, which activate only when every control is |1>.
-  // Expand negated controls into X conjugation before creating those calls.
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-  pm.addPass(cudaq::opt::createUnitarySynthesis());
+  if (options.lowerGates) {
+    // Synthesis creates ApplyOps, which activate only when every control is
+    // |1>. Expand negated controls into X conjugation before creating those
+    // calls.
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+    pm.addPass(cudaq::opt::createUnitarySynthesis());
+  }
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
   pm.addPass(cudaq::opt::createApplySpecialization(
       {.constantPropagation = options.applyConstProp}));
   cudaq::opt::addAggressiveInlining(pm);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
+  if (options.lowerGates)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
 }
 
 /// Register the standard initial pipeline run for ALL target machines, as
@@ -265,7 +293,8 @@ addCliffordTOptimization(OpPassManager &pm,
 }
 
 /// Reduce the two-qubit gate count before mapping. Level 1 runs the shared
-/// cleanup, which erases no rotation, and level 2 also folds phases.
+/// cleanup, which removes a rotation only when it is exactly the identity, and
+/// level 2 also folds phases.
 static void addTwoQubitGateCountOptimization(
     OpPassManager &pm,
     const TwoQubitGateCountOptimizationPipelineOptions &options) {
@@ -420,6 +449,12 @@ static void createJITTargetFinalizePipeline(
     OpPassManager &pm, const TargetFinalizationJitPipelineOptions &options) {
   if (options.lowerDeviceCalls)
     pm.addPass(cudaq::opt::createQIRDeviceCall());
+  // Without normalization, finalize only lowers device calls and erases
+  // unused symbols.
+  if (!options.normalize) {
+    pm.addPass(createSymbolDCEPass());
+    return;
+  }
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::createTargetFinalizePipeline(pm);

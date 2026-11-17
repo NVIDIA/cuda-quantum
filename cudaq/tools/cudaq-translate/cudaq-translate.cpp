@@ -184,15 +184,18 @@ int main(int argc, char **argv) {
   llvm::StringSwitch<std::function<void()>>(convertPair.first)
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
+               // TODO: `nvq++` output takes the level from codegen until
+               // `nvq++` runs the target's stages at build time.
                bool anyFuncAtLevel0 =
                    llvm::any_of(module->getOps<mlir::func::FuncOp>(),
                                 cudaq::runtime::isQuantumOptimizationDisabled);
-               bool useValueSemantics =
-                   !disableQuantumOptimization && !anyFuncAtLevel0;
+               auto mode =
+                   disableQuantumOptimization || anyFuncAtLevel0
+                       ? cudaq::opt::CodegenMode::normalize
+                       : cudaq::opt::CodegenMode::normalize_and_optimize;
                cudaq::opt::addAggressiveInlining(pm);
                cudaq::opt::createTargetFinalizePipeline(pm);
-               cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue,
-                                                      useValueSemantics);
+               cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue, mode);
              })
       .Case("openqasm2",
             [&]() {

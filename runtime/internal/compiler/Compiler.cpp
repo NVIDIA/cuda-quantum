@@ -192,8 +192,8 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
   bool isFullySpecialized = true;
   auto rawArgs = args.getTypeErased();
   auto packed = args.getPacked();
+  mlir::PassManager pm(contextPtr);
   if (!args.empty()) {
-    mlir::PassManager pm(contextPtr);
     if (printEachPass != cudaq::PrintEachPassMode::None)
       moduleOp.dump();
     if (isPython && rawArgs)
@@ -267,16 +267,6 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
             cudaq::opt::createReplaceStateWithKernel());
         cudaq::opt::addAggressiveInlining(pm);
       }
-
-      bool hasResult = !!cudaq::runtime::getReturnType(epFunc);
-      // Run GKE to generate `.thunk` / `.argsCreator` when the kernel has a
-      // result or any unspecialized arguments so they can be properly marshaled
-      if (isEntryPoint && (hasResult || !isFullySpecialized)) {
-        pm.addPass(cudaq::opt::createGenerateKernelExecution(
-            {.positNullary = isFullySpecialized, .ignoreHostFunction = true}));
-        pm.addPass(cudaq::opt::createRunSemanticsHackery());
-      }
-      pm.addPass(mlir::createSymbolDCEPass());
     } else if (packed) {
       CUDAQ_INFO("Run Quake Synth.\n");
       pm.addPass(
@@ -290,28 +280,44 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
     // runPassManager).
     if (printEachPass == cudaq::PrintEachPassMode::ArgSynthesis)
       pm.enableIRPrinting();
-    if (failed(cudaq_internal::compiler::runPassManager(
-            pm, moduleOp.getOperation())))
-      throw std::runtime_error(
-          "Could not successfully apply kernel specialization.");
   }
+
+  // The target pipeline starts without unused private symbols, so that no
+  // stage spends time on declarations and kernels that the entry point does
+  // not reach. Passes that need an intrinsic declare it again on demand.
+  pm.addPass(mlir::createSymbolDCEPass());
+  if (failed(cudaq_internal::compiler::runPassManager(pm,
+                                                      moduleOp.getOperation())))
+    throw std::runtime_error(
+        "Could not successfully apply kernel specialization.");
 
   return {moduleOp, epFunc, isFullySpecialized};
 }
 
-std::pair<bool, std::string>
+void cudaq_internal::compiler::Compiler::generateHostFunctions(
+    mlir::ModuleOp moduleOp, bool isFullySpecialized) {
+  mlir::PassManager pm(moduleOp.getContext());
+  pm.addPass(cudaq::opt::createGenerateKernelExecution(
+      {.positNullary = isFullySpecialized, .ignoreHostFunction = true}));
+  pm.addPass(cudaq::opt::createRunSemanticsHackery());
+  if (failed(cudaq_internal::compiler::runPassManager(pm,
+                                                      moduleOp.getOperation())))
+    throw std::runtime_error("Could not generate kernel execution code.");
+}
+
+std::pair<bool, cudaq_internal::compiler::PassPipeline>
 cudaq_internal::compiler::Compiler::executeMainPipeline(
     mlir::ModuleOp moduleOp, const std::string &kernelName,
     const cudaq::CompileOptions &resolvedOptions) {
   if (resolvedOptions.skipTargetLoweringPipeline || !target.hasPassPipeline()) {
-    return {false, ""};
+    return {false, {}};
   }
   std::string diagnostic;
-  auto stagedPipeline =
+  auto passPipeline =
       getPassPipeline(target, resolvedOptions, handlers, diagnostic);
-  if (!stagedPipeline)
+  if (!passPipeline)
     throw std::runtime_error(diagnostic);
-  auto passPipelineConfig = std::move(*stagedPipeline);
+  auto &passPipelineConfig = passPipeline->text;
   auto combineMeasurements =
       passPipelineConfig.find("combine-measurements") != std::string::npos;
   if (emulate && combineMeasurements) {
@@ -324,39 +330,55 @@ cudaq_internal::compiler::Compiler::executeMainPipeline(
                passPipelineConfig);
   }
   applyPipeline(passPipelineConfig, moduleOp, kernelName);
-  return {combineMeasurements, passPipelineConfig};
+  return {combineMeasurements, std::move(*passPipeline)};
+}
+
+cudaq::opt::CodegenMode cudaq_internal::compiler::codegenMode(
+    const cudaq::CompiledModule::CompilationMetadata &metadata) {
+  if (metadata.everyStageNormalizedKernel)
+    return cudaq::opt::CodegenMode::emit_only;
+  if (metadata.optimizationLevel == cudaq::OptimizationLevel::O0)
+    return cudaq::opt::CodegenMode::normalize;
+  return cudaq::opt::CodegenMode::normalize_and_optimize;
 }
 
 cudaq::CompiledModule
 cudaq_internal::compiler::Compiler::assembleCompiledModule(
     const std::string &kernelName,
-    std::vector<std::pair<std::string, mlir::ModuleOp>> &modules, bool needJit,
-    bool isFullySpecialized, bool isEntryPoint, bool runCombineMeasurements,
+    std::vector<std::pair<std::string, mlir::ModuleOp>> &modules,
+    const AssemblyRequest &request,
     std::optional<cudaq::Resources> resourceCounts,
     cudaq::CompiledModule::CompilationMetadata metadata,
     std::shared_ptr<mlir::MLIRContext> context) {
+  const auto mode = codegenMode(metadata);
   std::vector<
       cudaq_internal::compiler::CompiledModuleHelper::NamedCompiledArtifact>
       artifacts;
   cudaq::ResultInfo resultInfo;
-  const bool disableQuantumOpts =
-      metadata.optimizationLevel == cudaq::OptimizationLevel::O0;
-  if (needJit) {
+  if (request.needsJit) {
     for (auto &[name, module] : modules) {
       auto clonedModule = module.clone();
+      // The host functions that marshal the kernel's arguments and result are
+      // only called through the JIT, so they are generated on the module that
+      // the JIT compiles. No kernel pass runs on them, and the emitted target
+      // code and the MLIR artifact do not carry them.
+      if (request.needsHostFunctions)
+        generateHostFunctions(clonedModule, request.isFullySpecialized);
       std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
-      auto funcOp = module.template lookupSymbol<mlir::func::FuncOp>(fullName);
+      auto funcOp =
+          clonedModule.template lookupSymbol<mlir::func::FuncOp>(fullName);
       mlir::Type resultTy = cudaq::runtime::getReturnType(funcOp);
       resultInfo =
           cudaq_internal::compiler::CompiledModuleHelper::createResultInfo(
-              resultTy, isEntryPoint, module);
+              resultTy, request.isEntryPoint, clonedModule);
       auto jitArtifacts =
           cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
               kernelName,
               cudaq_internal::compiler::createJITEngine(
-                  clonedModule, target.codegen.emissionFormat, isEntryPoint,
-                  disableQuantumOpts),
-              resultInfo, isFullySpecialized);
+                  clonedModule, target.codegen.emissionFormat,
+                  request.isEntryPoint, mode),
+              resultInfo, request.needsHostFunctions,
+              request.isFullySpecialized);
       // The first artifact is the kernel entry point; rename it to the
       // per-module name (relevant for the multi-module observe path where the
       // module name is a Pauli term id)
@@ -372,7 +394,7 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
     }
   }
 
-  if (runCombineMeasurements)
+  if (request.combineMeasurements)
     for (auto &[name, module] : modules)
       applyPipeline("func.func(combine-measurements)", module, kernelName);
 
@@ -380,7 +402,7 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
       options.emitTargetCode && !target.codegen.emissionFormat.empty();
   for (auto &[name, module] : modules) {
     if (emitCode) {
-      auto [code, outputNames] = emitTargetCode(module, disableQuantumOpts);
+      auto [code, outputNames] = emitTargetCode(module, mode);
       artifacts.push_back(
           cudaq_internal::compiler::CompiledModuleHelper::createCodegenArtifact(
               name, std::move(code), std::move(outputNames)));
@@ -421,17 +443,20 @@ static void disableQuantumOptimization(mlir::ModuleOp moduleOp) {
 /// read out whatever qubits are left at the end. A cost model's optimization
 /// runs `dqe` from level 1, which erases a qubit that no gate uses, and mapping
 /// moves qubits to device positions. The mapper uses the measurements to
-/// record how to put results back in the kernel's qubit order.
-// TODO: NVIDIA/cuda-quantum#5777 adds `sample`'s measurements after the
-// pipeline and keeps idle qubits through `dqe` with `quake.evince`. When it
-// lands, this check can go, and the reorder index can come from the compiler.
+/// record how to put results back in the kernel's qubit order. The `gate-count`
+/// cost model is the exception: its stage keeps the implicit output, so `dqe`
+/// erases no qubit, and the stage does not map qubits.
+// TODO: NVIDIA/cuda-quantum#5875 adds `sample`'s measurements after the
+// pipeline. When it lands, this check can go, and the reorder index can come
+// from the compiler.
 static bool mayMoveQubits(const cudaq::CompileTarget &target) {
   return llvm::any_of(target.stages, [](const auto &stage) {
     const auto &profile = stage.irOutputProfile;
     const auto *unmapped =
         std::get_if<cudaq::config::QuakeUnmappedProfile>(&profile);
     return std::holds_alternative<cudaq::config::QuakeMappedProfile>(profile) ||
-           (unmapped && unmapped->costModel);
+           (unmapped && unmapped->costModel &&
+            !cudaq_internal::compiler::compilesForSimulator(*unmapped));
   });
 }
 
@@ -455,6 +480,11 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
   assert(!context || context.get() == m_module.getContext());
   auto [moduleOp, epFunc, isFullySpecialized] =
       prepareModule(kernelName, m_module, args, isEntryPoint);
+  // An entry point launched with type-erased arguments needs `.thunk` and
+  // `.argsCreator` when it has a result or any unspecialized argument.
+  const bool hasResult = !!cudaq::runtime::getReturnType(epFunc);
+  const bool needsHostFunctions = isEntryPoint && args.hasTypeErased() &&
+                                  (hasResult || !isFullySpecialized);
 
   // `options` holds what the caller requested. The compile path below reads
   // `resolvedOptions`, which carries the values resolved for this kernel.
@@ -569,7 +599,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
       // introduce gates that aren't supported by the backend, so we need to
       // re-run the gate set mapping if that existed in the original pass
       // pipeline.
-      auto csvSplit = cudaq::split(passPipeline, ',');
+      auto csvSplit = cudaq::split(passPipeline.text, ',');
       for (auto &pass : csvSplit)
         if (pass.ends_with("-gate-set-mapping"))
           applyPipeline(pass, tmpModuleOp, kernelName);
@@ -582,19 +612,24 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
     modules.emplace_back(kernelName, moduleOp);
   }
 
-  bool needJit = emulate || emitResourceCounts || options.emitJit;
   return assembleCompiledModule(
-      kernelName, modules, needJit, isFullySpecialized, isEntryPoint,
-      emulate && combineMeasurements, std::move(resourceCounts),
+      kernelName, modules,
+      {.needsJit = emulate || emitResourceCounts || options.emitJit,
+       .needsHostFunctions = needsHostFunctions,
+       .isFullySpecialized = isFullySpecialized,
+       .isEntryPoint = isEntryPoint,
+       .combineMeasurements = emulate && combineMeasurements},
+      std::move(resourceCounts),
       {.reorderIdx = mapping_reorder_idx,
        .hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes,
-       .optimizationLevel = resolvedOptions.optimizationLevel},
+       .optimizationLevel = resolvedOptions.optimizationLevel,
+       .everyStageNormalizedKernel = passPipeline.everyStageNormalizesKernel},
       context);
 }
 
 std::pair<std::string, std::string>
-cudaq_internal::compiler::Compiler::emitTargetCode(mlir::ModuleOp module,
-                                                   bool disableQuantumOpts) {
+cudaq_internal::compiler::Compiler::emitTargetCode(
+    mlir::ModuleOp module, cudaq::opt::CodegenMode codegenMode) {
   const auto &codegenTranslation = target.codegen.emissionFormat;
   const auto &postCodegenPasses = target.codegen.postCodegenPasses;
   mlir::OwningOpRef<ModuleOp> compiled_module = module.clone();
@@ -609,7 +644,7 @@ cudaq_internal::compiler::Compiler::emitTargetCode(mlir::ModuleOp module,
     if (failed(translation(*compiled_module, codegenTranslation, outStr,
                            postCodegenPasses, printIR,
                            printEachPass == cudaq::PrintEachPassMode::All,
-                           enablePassStatistics, disableQuantumOpts)))
+                           enablePassStatistics, codegenMode)))
       throw std::runtime_error("Could not successfully translate to " +
                                codegenTranslation + ".");
   } else {

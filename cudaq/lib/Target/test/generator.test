@@ -24,6 +24,9 @@
 # DB: extern "C" void cudaq_target_db_abi_v1() {}
 # DB: const TargetConfig kBuiltinTarget_lit_defaults
 # DB: .Name = "lit-defaults"
+# DB-SAME: .costModel = cudaq::config::CostModel::gate_count,
+# DB-SAME: .maxUnrollIterations = 50,
+# DB-SAME: .preserveLoops = false, .noiseSupport = cudaq::NoiseSupport::supported, .eraseQEC = false,
 # DB: const TargetConfig kBuiltinTarget_lit_backend
 # DB: {"lit-defaults", &kBuiltinTarget_lit_defaults},
 

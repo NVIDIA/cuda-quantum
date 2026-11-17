@@ -68,6 +68,35 @@
 // CHECK-NEXT: symbol-dce
 // CHECK-EMPTY:
 
+// A simulator compiles through the stage that the version 1 converter infers.
+// Prep keeps noise and QEC operations and leaves the gates that hardware lacks
+// to the simulator, deploy does not run, and prep and finalize skip what the
+// stage repeats. The `gate-count` stage converts to wires at level 0, with
+// `exp_pauli` left on references and the implicit output kept for `get_state`,
+// and from level 1 runs `quake-simplify` and `dqe`.
+// CHECK-LABEL: qpp-cpu level 0:
+// CHECK-NEXT: canonicalize
+// CHECK-NEXT: hw-jit-prep-pipeline{allow-early-exit=false erase-noise=false erase-qec=false lower-gates=false normalize=false}
+// CHECK-NEXT: prepare-for-wireset{maximum-iterations=50 decompose-exp-pauli=false erase-implicit-output=false}
+// CHECK-NEXT: jit-finalize-pipeline{lower-device-calls=true normalize=false}
+// CHECK-EMPTY:
+
+// CHECK-LABEL: qpp-cpu level 1:
+// CHECK:       prepare-for-wireset{maximum-iterations=50 decompose-exp-pauli=false erase-implicit-output=false}
+// CHECK-NEXT:  func.func(quake-simplify{threshold=0},dqe)
+// CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=gate-count basis=},canonicalize)
+// CHECK-NEXT:  jit-finalize-pipeline{lower-device-calls=true normalize=false}
+
+// `nvidia` declares its simulators in a configuration matrix. It compiles as
+// its default entry, so it gets the same stage. Options that match no entry
+// and an unknown option are errors.
+// CHECK-LABEL: nvidia level 1:
+// CHECK:       func.func(quake-simplify{threshold=0},dqe)
+// CHECK-LABEL: nvidia with mgpu,mqpu:
+// CHECK-NEXT:  Target 'nvidia' has no configuration for the requested options.
+// CHECK-LABEL: nvidia with bogus:
+// CHECK-NEXT:  Unknown feature flag 'bogus'
+
 // The Clifford+T target lists one `quake-unmapped` stage with the `t-count`
 // cost model, whose passes run between deploy and finalize. Its basis has no
 // rotation gate, so the stage synthesizes. The stage lowers the `quake.phase`
@@ -112,6 +141,14 @@
 // CHECK-LABEL: t-count to u3 level 0:
 // CHECK-NOT:   fuse-1q-to-u3
 // CHECK:       jit-finalize-pipeline
+
+// Without a cost model or basis, the stage needs no gate lowering, so deploy
+// does not run, and it adds no pass, so prep and finalize skip nothing.
+// CHECK-LABEL: no cost model or basis:
+// CHECK-NEXT:  canonicalize
+// CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false lower-gates=false}
+// CHECK-NEXT:  jit-finalize-pipeline{lower-device-calls=true}
+// CHECK-EMPTY:
 
 // A `two-qubit-gate-count` stage whose basis can't express a controlled `x`
 // fails when its handler builds the pipeline.
@@ -170,6 +207,7 @@
 #include "cudaq/Target/TargetCatalog.h"
 #include <filesystem>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 /// Plan the JIT pipeline of \p target through the built-in lowering handlers,
@@ -181,7 +219,8 @@ static void printPipeline(const std::string &label,
   std::string diagnostic;
   auto planned = cudaq_internal::compiler::getPassPipeline(
       target, options, handlers, diagnostic);
-  const std::string pipeline = planned ? *planned : "FAILED: " + diagnostic;
+  const std::string pipeline =
+      planned ? planned->text : "FAILED: " + diagnostic;
   std::cout << label << ":\n";
   unsigned depth = 0;
   for (char c : pipeline) {
@@ -232,11 +271,27 @@ int main(int argc, char **argv) {
   emulated.emulate = true;
   printPipeline(catalog, "quantum_machines", emulated, " emulated");
 
+  cudaq::CompileOptions level0;
+  level0.optimizationLevel = cudaq::OptimizationLevel::O0;
+  printPipeline(catalog, "qpp-cpu", level0, " level 0");
+  cudaq::CompileOptions level1;
+  level1.optimizationLevel = cudaq::OptimizationLevel::O1;
+  printPipeline(catalog, "qpp-cpu", level1, " level 1");
+  printPipeline(catalog, "nvidia", level1, " level 1");
+  if (const auto *nvidia = catalog.lookup("nvidia"))
+    for (const std::string option : {"mgpu,mqpu", "bogus"}) {
+      std::cout << "nvidia with " << option << ":\n";
+      try {
+        cudaq::CompileTarget::createFromConfig(*nvidia->config,
+                                               {{"option", option}});
+      } catch (const std::runtime_error &error) {
+        std::cout << error.what() << "\n\n";
+      }
+    }
+
   cudaq::CompileOptions level2;
   level2.optimizationLevel = cudaq::OptimizationLevel::O2;
   printPipeline(catalog, "compiler-bench-ftqc-clifford-t", level2);
-  cudaq::CompileOptions level0;
-  level0.optimizationLevel = cudaq::OptimizationLevel::O0;
   printPipeline(catalog, "compiler-bench-ftqc-clifford-t", level0, " level 0");
   cudaq::CompileTarget tCountToU3;
   tCountToU3.stages.push_back(
@@ -247,10 +302,13 @@ int main(int argc, char **argv) {
                .costModel = cudaq::config::CostModel::t_count},
        .lowering = cudaq::config::InferredLowering{}});
   printPipeline("t-count to u3 level 2", tCountToU3, level2);
-  cudaq::CompileOptions level1;
-  level1.optimizationLevel = cudaq::OptimizationLevel::O1;
   printPipeline("t-count to u3 level 1", tCountToU3, level1);
   printPipeline("t-count to u3 level 0", tCountToU3, level0);
+  cudaq::CompileTarget noCostModelOrBasis;
+  noCostModelOrBasis.stages.push_back(
+      {.irOutputProfile = cudaq::config::QuakeUnmappedProfile{},
+       .lowering = cudaq::config::InferredLowering{}});
+  printPipeline("no cost model or basis", noCostModelOrBasis, level2);
   cudaq::CompileTarget noTwoQubitGate;
   noTwoQubitGate.stages.push_back(
       {.irOutputProfile =

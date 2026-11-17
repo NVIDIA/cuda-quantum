@@ -189,6 +189,26 @@ public:
   // Helper to determine the codegen config based on CLI arguments
   std::string
   getCodeGenSpec(const std::map<std::string, std::string> &targetArgs) const;
+
+  /// Returns the declared argument that \p argKey names. The key is either the
+  /// argument's own name, as Python passes it, or that name with the
+  /// `--target-` or `--<target name>-` prefix of the command line. Returns
+  /// null when no argument matches.
+  const TargetArgument *findArgument(const std::string &argKey) const;
+
+  /// Returns the configuration-matrix entry that \p targetArgs select: the
+  /// entry whose option flags match, or the default entry when no option is
+  /// given.
+  /// Returns null when the target has no matrix or no entry matches. Throws
+  /// `std::runtime_error` when an option names an unknown feature flag.
+  const BackendFeatureMap *selectFeatureConfig(
+      const std::map<std::string, std::string> &targetArgs) const;
+
+  /// Returns the backend configuration that \p targetArgs select: the
+  /// selected configuration-matrix entry, or `BackendConfig` for a target
+  /// without a matrix. Returns null when there is none.
+  const BackendEndConfigEntry *
+  selectBackend(const std::map<std::string, std::string> &targetArgs) const;
 };
 
 /// Result of checking an external target's CUDA-Q compatibility metadata.

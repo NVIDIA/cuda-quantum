@@ -71,16 +71,31 @@ getInferredStagePasses(const cudaq_internal::compiler::LoweringHandler *handler,
   return passes;
 }
 
+namespace {
+/// Holds the passes and facts of all of a target's stages together, in stage
+/// order.
+struct TargetPasses {
+  std::string preDeployPasses{};
+  std::string postDeployPasses{};
+  std::string postFinalizePasses{};
+  /// Whether any stage has `StagePasses::needsGateLowering` set.
+  bool anyStageNeedsGateLowering = false;
+  /// Whether every stage has `StagePasses::normalizesKernel` set.
+  bool everyStageNormalizesKernel = true;
+};
+} // namespace
+
 /// Build the JIT pipeline from `canonicalize`, prep, deploy, and finalize,
 /// with the stages' passes around them. The emission format, `emulate`, and
 /// the target's loop, noise, and QEC settings set the options of prep, deploy,
 /// and finalize. An option appears in the text only when it differs from its
 /// default, so existing targets keep their pipeline text. Emulation's prep is
-/// the exception: it has always spelled out `erase-noise`.
-static std::string
-buildPassPipeline(const cudaq_internal::compiler::StagePasses &targetPasses,
-                  const cudaq::CompileTarget &target,
-                  const cudaq::CompileOptions &options) {
+/// the exception: it has always spelled out `erase-noise`. Deploy only lowers
+/// gates and cleans up after that, so it is left out when no stage needs gate
+/// lowering.
+static std::string buildPassPipeline(const TargetPasses &targetPasses,
+                                     const cudaq::CompileTarget &target,
+                                     const cudaq::CompileOptions &options) {
   const std::string lowerDeviceCalls =
       (target.codegen.emissionFormat == "nop" && !options.emulate) ? "false"
                                                                    : "true";
@@ -96,6 +111,21 @@ buildPassPipeline(const cudaq_internal::compiler::StagePasses &targetPasses,
           ? " reject-noise=true"
           : "";
   const std::string eraseQEC = target.eraseQEC ? "" : " erase-qec=false";
+  // When no stage needs gates lowered, the target applies custom unitaries
+  // and state initialization directly, so prep does not rewrite them as gates.
+  const std::string lowerGates =
+      targetPasses.anyStageNeedsGateLowering ? "" : " lower-gates=false";
+  // A stage that normalizes the kernel ran `prepare-for-wireset`. That
+  // pipeline optimizes the classical code itself, and it leaves the kernel
+  // inlined and canonical, so the normalization in prep and finalize would
+  // repeat its work. Prep can only skip it when it also skips gate lowering,
+  // because gate lowering runs on the optimized code.
+  // TODO: Remove these switches once prep and finalize are composed from
+  // separately scheduled steps, which needs pipelines built as pass objects.
+  const std::string normalize = targetPasses.everyStageNormalizesKernel &&
+                                        !targetPasses.anyStageNeedsGateLowering
+                                    ? " normalize=false"
+                                    : "";
 
   std::string passPipeline = "canonicalize";
   if (options.emulate)
@@ -103,36 +133,40 @@ buildPassPipeline(const cudaq_internal::compiler::StagePasses &targetPasses,
         passPipeline, "emul-jit-prep-pipeline{erase-noise=" +
                           std::string(eraseNoise ? "true" : "false") +
                           rejectNoise + " allow-early-exit=" + allowEarlyExit +
-                          noLoopUnroll + eraseQEC + "}");
+                          noLoopUnroll + eraseQEC + lowerGates + normalize +
+                          "}");
   else
     appendPipelineStage(
         passPipeline,
         "hw-jit-prep-pipeline{allow-early-exit=" + allowEarlyExit +
             noLoopUnroll + (eraseNoise ? "" : " erase-noise=false") +
-            rejectNoise + eraseQEC + "}");
+            rejectNoise + eraseQEC + lowerGates + normalize + "}");
 
   const std::string deployStage =
       unrollLoops ? "jit-deploy-pipeline"
                   : "jit-deploy-pipeline{no-loop-unroll=true}";
   const std::string finalizeStage =
-      "jit-finalize-pipeline{lower-device-calls=" + lowerDeviceCalls + "}";
+      "jit-finalize-pipeline{lower-device-calls=" + lowerDeviceCalls +
+      normalize + "}";
 
   appendPipelineStage(passPipeline, targetPasses.preDeployPasses);
-  appendPipelineStage(passPipeline, deployStage);
+  if (targetPasses.anyStageNeedsGateLowering)
+    appendPipelineStage(passPipeline, deployStage);
   appendPipelineStage(passPipeline, targetPasses.postDeployPasses);
   appendPipelineStage(passPipeline, finalizeStage);
   appendPipelineStage(passPipeline, targetPasses.postFinalizePasses);
   return passPipeline;
 }
 
-std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
+std::optional<cudaq_internal::compiler::PassPipeline>
+cudaq_internal::compiler::getPassPipeline(
     const cudaq::CompileTarget &target, const cudaq::CompileOptions &options,
     const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
     std::string &diagnostic) {
   if (target.stages.empty())
-    return std::string{};
+    return PassPipeline{};
 
-  StagePasses targetPasses;
+  TargetPasses targetPasses;
   cudaq::config::Profile inputProfile = cudaq::config::UncheckedProfile{};
   for (std::size_t i = 0; i < target.stages.size(); ++i) {
     const auto &stage = target.stages[i];
@@ -152,10 +186,12 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
         if (target.stages.size() > 1)
           return failStage(
               "an override pipeline must be the target's only stage");
-        return applyDisableQubitMapping(custom->overridePassPipeline, target);
+        return PassPipeline{
+            applyDisableQubitMapping(custom->overridePassPipeline, target)};
       }
       // A custom stage's high-, mid-, and low-level pipelines run before
-      // deploy, between deploy and finalize, and after finalize.
+      // deploy, between deploy and finalize, and after finalize. Nothing says
+      // what the pipelines do, so the stage keeps the conservative defaults.
       stagePasses = StagePasses{.preDeployPasses = custom->highLevelPipeline,
                                 .postDeployPasses = custom->midLevelPipeline,
                                 .postFinalizePasses = custom->lowLevelPipeline};
@@ -184,11 +220,15 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
                         stagePasses->postDeployPasses);
     appendPipelineStage(targetPasses.postFinalizePasses,
                         stagePasses->postFinalizePasses);
+    targetPasses.anyStageNeedsGateLowering |= stagePasses->needsGateLowering;
+    targetPasses.everyStageNormalizesKernel &= stagePasses->normalizesKernel;
     inputProfile = stage.irOutputProfile;
   }
 
-  return applyDisableQubitMapping(
-      buildPassPipeline(targetPasses, target, options), target);
+  return PassPipeline{
+      .text = applyDisableQubitMapping(
+          buildPassPipeline(targetPasses, target, options), target),
+      .everyStageNormalizesKernel = targetPasses.everyStageNormalizesKernel};
 }
 
 bool cudaq_internal::compiler::specializesArguments(

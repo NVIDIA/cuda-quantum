@@ -17,9 +17,10 @@ inline std::pair<Block *, Block *> findCloneRange(Block *first, Block *last) {
 }
 
 /// The number of iterations of a counted \p loop, or `nullopt` when it cannot
-/// be read yet. The loop analysis counts a loop whose bound is a constant
-/// behind a cast, but the count is read from an `arith.constant`. Such a loop
-/// has to wait: the greedy driver folds the cast and visits the loop again.
+/// be read yet. The loop analysis treats a loop as counted when its bound is a
+/// constant behind a cast, but this function reads the count only from an
+/// `arith.constant`. Such a loop has to wait until the greedy driver folds the
+/// cast and visits the loop again.
 static std::optional<std::size_t>
 unrollLoopByValue(cudaq::cc::LoopOp loop,
                   const cudaq::opt::LoopComponents &components) {

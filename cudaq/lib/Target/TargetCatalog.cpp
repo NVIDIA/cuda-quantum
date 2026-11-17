@@ -237,7 +237,7 @@ cudaq::config::ResolvedTarget cudaq::config::TargetCatalog::resolveEntry(
     const std::map<std::string, std::string> &args) const {
   ResolvedTarget result;
   result.entry = &entry;
-  const auto *backend = selectBackend(*entry.config, args);
+  const auto *backend = entry.config->selectBackend(args);
   if (backend) {
     result.resolved.platformName =
         backend->PlatformLibrary.empty()

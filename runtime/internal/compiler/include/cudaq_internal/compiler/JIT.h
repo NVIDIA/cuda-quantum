@@ -8,6 +8,7 @@
 #pragma once
 
 #include "common/CompiledModule.h"
+#include "cudaq/Optimizer/CodeGen/CodegenMode.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -37,6 +38,6 @@ namespace cudaq_internal::compiler {
 /// state owned by its caller.
 cudaq::JitEngine createJITEngine(mlir::ModuleOp &moduleOp,
                                  llvm::StringRef convertTo, bool isEntryPoint,
-                                 bool disableQuantumOpts = false);
+                                 cudaq::opt::CodegenMode codegenMode);
 
 } // namespace cudaq_internal::compiler

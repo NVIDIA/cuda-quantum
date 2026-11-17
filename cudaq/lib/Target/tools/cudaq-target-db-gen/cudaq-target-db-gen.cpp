@@ -296,6 +296,9 @@ std::string cxxCompileTarget(const cudaq::CompileTarget &compileTarget) {
      << ".supportSampleWithoutMeasurements = "
      << cxxBool(compileTarget.supportSampleWithoutMeasurements) << ", "
      << ".fullySpecialize = " << cxxBool(compileTarget.fullySpecialize) << ", "
+     << ".preserveLoops = " << cxxBool(compileTarget.preserveLoops) << ", "
+     << ".noiseSupport = " << cxxValue(compileTarget.noiseSupport) << ", "
+     << ".eraseQEC = " << cxxBool(compileTarget.eraseQEC) << ", "
      << ".argumentSynthChangeSemantics = "
      << cxxBool(compileTarget.argumentSynthChangeSemantics) << ", "
      << ".disableQubitMapping = " << cxxBool(compileTarget.disableQubitMapping)

@@ -52,15 +52,9 @@ static void lazyInitSimulator() {
 }
 
 static bool isSimulationConfig(const cudaq::config::TargetConfig &config) {
-  const cudaq::config::BackendEndConfigEntry *backend = nullptr;
-  for (const auto &entry : config.ConfigMap)
-    if (entry.Default)
-      backend = &entry.Config;
-  if (!backend && config.BackendConfig)
-    backend = &*config.BackendConfig;
-  if (!backend)
-    return false;
-  return backend->PlatformQpu.empty() &&
+  // The target's default configuration decides.
+  const auto *backend = config.selectBackend({});
+  return backend && backend->PlatformQpu.empty() &&
          backend->LibraryModeExecutionManager.empty();
 }
 

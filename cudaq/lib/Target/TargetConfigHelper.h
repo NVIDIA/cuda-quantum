@@ -18,12 +18,6 @@ namespace cudaq::config {
 std::string processRuntimeArgs(const TargetConfig &config,
                                const std::map<std::string, std::string> &args);
 
-/// Select the backend entry implied by `args` (configuration-matrix /
-/// default `config:`). Returns nullptr when the target has no backend config.
-const BackendEndConfigEntry *
-selectBackend(const TargetConfig &config,
-              const std::map<std::string, std::string> &args);
-
 /// True after `disableYAMLTargetConfigParsing()` has been called in this
 /// process.
 bool isDisabledYAMLParsing();

@@ -70,6 +70,7 @@ class CostModel(enum.Enum):
     """The cost function to use for gate count optimization in the compiler."""
     t_count = enum.auto()
     two_qubit_gate_count = enum.auto()
+    gate_count = enum.auto()
 
 
 class LoopUnrolling(enum.Enum):
