@@ -65,6 +65,10 @@ def ConvertQuakeToQLX : Pass<"convert-quake-to-qlx", "mlir::ModuleOp"> {
     specialization, quantum-call inlining, control expansion, and gate
     decomposition. Neither this conversion pass nor QLX's
     `prepare-quake-for-qlx` boundary-cleanup pipeline runs that CUDA-Q pipeline.
+
+    This pass expects `prepare-quake-for-qlx` to have run first. Callers should
+    use the `quake-to-qlx-pipeline` named pipeline, which runs both and forwards
+    `entry-point`. This pass stays registered alone for tests of one stage.
   }];
   let options = [
     Option<"entryPoint", "entry-point", "std::string",

@@ -13,16 +13,32 @@
 
 namespace qlx {
 
-void registerPrepareQuakeForQLXPipeline() {
+void buildPrepareQuakeForQLXPipeline(mlir::OpPassManager &pm) {
+  pm.addPass(qlx::createEraseQuakeGlobalPhase());
+  pm.addPass(qlx::createPruneDeadCCLoopCarries());
+}
+
+void buildQuakeToQLXPipeline(mlir::OpPassManager &pm,
+                             const QuakeToQLXPipelineOptions &options) {
+  buildPrepareQuakeForQLXPipeline(pm);
+  ConvertQuakeToQLXOptions convertOptions;
+  convertOptions.entryPoint = options.entryPoint;
+  pm.addPass(qlx::createConvertQuakeToQLX(convertOptions));
+}
+
+void registerQuakeToQLXPipelines() {
   static bool registered = []() {
     mlir::PassPipelineRegistration<>(
         "prepare-quake-for-qlx",
         "Finalize CUDA-Q Quake already lowered through "
         "convert-to-linear-values for QLX P0 conversion",
-        [](mlir::OpPassManager &pm) {
-          pm.addPass(qlx::createEraseQuakeGlobalPhase());
-          pm.addPass(qlx::createPruneDeadCCLoopCarries());
-        });
+        buildPrepareQuakeForQLXPipeline);
+    mlir::PassPipelineRegistration<QuakeToQLXPipelineOptions>(
+        "quake-to-qlx-pipeline",
+        "Convert CUDA-Q Quake already lowered through "
+        "convert-to-linear-values to QLX P0: runs prepare-quake-for-qlx, then "
+        "convert-quake-to-qlx",
+        buildQuakeToQLXPipeline);
     return true;
   }();
   (void)registered;
