@@ -628,12 +628,15 @@ def from_qasm(qasm_file):
         `qasm_file`: Path to the OpenQASM file as a string.
 
     Returns:
-        A CUDA-Q kernel equivalent to the OpenQASM circuit.
+        A CUDA-Q kernel equivalent to the OpenQASM circuit. A circuit with
+        `if` statements gives a kernel that returns its classical bits (see
+        `from_qiskit`).
 
     Raises:
         ImportError: If Qiskit is not installed.
         FileNotFoundError: If the QASM file does not exist.
         RuntimeError: If the QASM file cannot be parsed.
+        ValueError: If the circuit contains unsupported gates or control flow.
     """
     _warn_deprecated("from_qasm")
 
@@ -664,11 +667,17 @@ def from_qiskit(qiskit_circuit):
         `qiskit_circuit`: A `Qiskit.QuantumCircuit` instance.
 
     Returns:
-        A CUDA-Q kernel equivalent to the input Qiskit circuit.
+        A CUDA-Q kernel equivalent to the input Qiskit circuit. If the
+        circuit contains `if_else`, the kernel branches on measurement
+        results and returns all classical bits as a `list[bool]`, in index
+        order. Use it with `cudaq.run` or `cudaq.estimate_resources`;
+        `cudaq.sample` does not accept it.
 
     Raises:
         ImportError: If Qiskit is not installed.
-        ValueError: If the circuit contains unsupported gates.
+        ValueError: If the circuit contains unsupported gates, `for_loop`,
+            `while_loop` or `switch_case`, or an `if_else` condition that is
+            a classical expression.
 
     Supported gates:
         - Single qubit: `h`, `x`, `y`, `z`, `s`, `t`, `sdg`, `tdg`, `id` (identity)
@@ -680,6 +689,7 @@ def from_qiskit(qiskit_circuit):
         - Controlled parametric: `crx`, `cry`, `crz`, `cp`, `cu1`,
           `cphase`, `cu3`
         - Special: `sx`, `sxdg`, barrier, measure, reset
+        - Control flow: `if_else` on a classical bit or register
     """
     _warn_deprecated("from_qiskit")
     return _build_kernel(qiskit_circuit)
