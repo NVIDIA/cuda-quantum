@@ -907,8 +907,8 @@ def FactorQuantumAllocations :
   ];
 }
 
-def Squash1QToU3 : Pass<"squash-1q-to-u3", "mlir::func::FuncOp"> {
-  let summary = "Squash constant one-qubit gate sequences into a single u3.";
+def Fuse1QToU3 : Pass<"fuse-1q-to-u3", "mlir::func::FuncOp"> {
+  let summary = "Fuse constant one-qubit gate sequences into a single u3.";
   let description = [{
     Consumes and produces the linear SSA `!quake.wire` form created by
     `convert-to-linear-values`.
@@ -931,12 +931,17 @@ def Squash1QToU3 : Pass<"squash-1q-to-u3", "mlir::func::FuncOp"> {
        Which decomposition was used is recorded in the `euler` attribute of the
        `u3` gate.
     
-    Unless `always-squash` is set, the sequence is replaced only when the
-    decomposition is strictly cheaper than the sequence, based on the chosen
-    cost function. `cost=rotation-count` counts the number of non-zero
-    rotations that the sequence decomposes to. `cost=clifford-t-free` counts the
-    number of rotations that cannot be synthesized as a single gate in the
-    Clifford+T basis, i.e. with angles that are not multiples of `pi/4`.
+    A sequence that contains a gate outside `basis` is always replaced by a u3
+    op. Any other sequence is replaced only when the decomposition of the u3
+    is strictly cheaper than the sequence, based on the chosen cost function:
+     - `cost=rotation-count` minimizes the number of non-zero rotations; a `u3`
+       can always be expressed in at most 3 rotations.
+     - `cost=clifford-t-free` minimizes the number of rotations that cannot be
+       synthesized as a single gate in the Clifford+T basis, i.e. with angles
+       that are not multiples of `pi/4`.
+    `basis` entries use the `basis-conversion` syntax: `u3` and `u3(n)` both
+    cover an uncontrolled `u3`, but `x(1)` does not cover an uncontrolled `x`.
+    An empty `basis` covers every gate.
     
     The pass does not try forms with `ry` on the outside, such as
     `ry`-`rx`-`ry`. They sometimes save one rotation in the sequence, but
@@ -955,8 +960,9 @@ def Squash1QToU3 : Pass<"squash-1q-to-u3", "mlir::func::FuncOp"> {
       "For `clifford-t-free`, the operator-norm distance within which a "
       "rotation counts as a quarter turn. Use the epsilon of the downstream "
       "Clifford+T legalization. Zero counts only exact quarter turns.">,
-    Option<"alwaysSquash", "always-squash", "bool", /*default=*/"false",
-      "Squash every sequence, even when that is not cheaper.">,
+    ListOption<"basis", "basis", "std::string",
+      "Gates the target accepts. A sequence with a gate outside it is always "
+      "fused (empty = every gate accepted).">,
   ];
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "cudaq::quake::QuakeDialect"];

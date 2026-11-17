@@ -71,14 +71,15 @@
 // The Clifford+T target lists one `quake-unmapped` stage with the `t-count`
 // cost model, whose passes run between deploy and finalize. Its basis has no
 // rotation gate, so the stage synthesizes. The stage lowers the `quake.phase`
-// that decomposition leaves before the optimizer runs.
+// that decomposition leaves before the optimizer runs. Synthesis handles the
+// rotations, so the fusion allows them as basis gates.
 // CHECK-LABEL: compiler-bench-ftqc-clifford-t:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
 // CHECK-NEXT:  func.func(normalize-phase-placement,lower-phase)
 // CHECK-NEXT:  clifford-t-optimization-pipeline{level=2 approximation-tolerance=1e-10}
-// CHECK-NEXT:  func.func(squash-1q-to-u3{cost=clifford-t-free epsilon=1e-10},canonicalize)
+// CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=clifford-t-free epsilon=1e-10 basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz},canonicalize)
 // CHECK-NEXT:  decomposition{enable-patterns=U3ToRotations}
 // CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1) level=2 approximation-tolerance=1e-10}
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
@@ -95,32 +96,21 @@
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
 
-// Without a cost model, a `quake-unmapped` stage only squashes one-qubit
-// chains, from level 1, which needs wires.
-// CHECK-LABEL: no cost model:
-// CHECK:       jit-deploy-pipeline
-// CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
-// CHECK-NEXT:  func.func(squash-1q-to-u3{cost=rotation-count},canonicalize)
-// CHECK-NEXT:  basis-conversion{basis=h,x(1)}
-// CHECK-NEXT:  jit-finalize-pipeline
-
 // A `t-count` stage whose basis has `u3` needs no synthesis, so it does not
-// expand the `u3` again. From level 2 it squashes every one-qubit chain into a
-// `u3`, which the basis keeps.
+// expand the `u3` again. The basis has no rotation, so the fusion turns every
+// chain with a rotation into a `u3`, which the basis keeps.
 // CHECK-LABEL: t-count to u3 level 2:
 // CHECK:       clifford-t-optimization-pipeline{level=2 approximation-tolerance=1e-10}
-// CHECK-NEXT:  func.func(squash-1q-to-u3{cost=clifford-t-free epsilon=1e-10 always-squash=true},canonicalize)
-// CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=u3,h,x(1) level=2 approximation-tolerance=1e-10}
+// CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=clifford-t-free epsilon=1e-10 basis=u3,h,x(1)},canonicalize)
 // CHECK-NEXT:  basis-conversion{basis=u3,h,x(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
 
-// At level 1, the squash replaces only the chains it makes cheaper.
 // CHECK-LABEL: t-count to u3 level 1:
 // CHECK:       clifford-t-optimization-pipeline{level=1 approximation-tolerance=1e-10}
-// CHECK-NEXT:  func.func(squash-1q-to-u3{cost=clifford-t-free epsilon=1e-10},canonicalize)
+// CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=clifford-t-free epsilon=1e-10 basis=u3,h,x(1)},canonicalize)
 
 // CHECK-LABEL: t-count to u3 level 0:
-// CHECK-NOT:   squash-1q-to-u3
+// CHECK-NOT:   fuse-1q-to-u3
 // CHECK:       jit-finalize-pipeline
 
 // A `two-qubit-gate-count` stage whose basis can't express a controlled `x`
@@ -132,7 +122,7 @@
 // The NISQ target decomposes and optimizes in its `quake-unmapped` stage,
 // keeping controlled `x` for phase folding until its basis conversion, and
 // maps in its `quake-mapped` stage. Both stages convert to wires at every
-// level, and level 1 adds only the two optimization pipelines and the squash
+// level, and level 1 adds only the two optimization pipelines and the fusion
 // of one-qubit chains.
 // CHECK-LABEL: compiler-bench-nisq on path(4) level 0:
 // CHECK:       jit-deploy-pipeline
@@ -149,7 +139,7 @@
 // CHECK-NEXT:  decomposition{basis=h,rx,ry,rz,x,z(1),x(1)}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
 // CHECK-NEXT:  two-qubit-gate-count-optimization-pipeline{level=1}
-// CHECK-NEXT:  func.func(squash-1q-to-u3{cost=rotation-count},canonicalize)
+// CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=rotation-count basis=h,rx,ry,rz,x,z(1)},canonicalize)
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
 // CHECK-NEXT:  prepare-for-wireset{add-wireset=true maximum-iterations=1024}
 // CHECK-NEXT:  qubit-mapping{device=path(4) raise-fatal-errors=true}
@@ -241,12 +231,6 @@ int main(int argc, char **argv) {
   cudaq::CompileOptions level0;
   level0.optimizationLevel = cudaq::OptimizationLevel::O0;
   printPipeline(catalog, "compiler-bench-ftqc-clifford-t", level0, " level 0");
-  cudaq::CompileTarget noCostModel;
-  noCostModel.stages.push_back(
-      {.irOutputProfile =
-           cudaq::config::QuakeUnmappedProfile{.basisGates = {"h", "x(1)"}},
-       .lowering = cudaq::config::InferredLowering{}});
-  printPipeline("no cost model", noCostModel, level2);
   cudaq::CompileTarget tCountToU3;
   tCountToU3.stages.push_back(
       {.irOutputProfile =

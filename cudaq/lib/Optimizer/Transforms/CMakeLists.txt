@@ -39,11 +39,13 @@ add_cudaq_library(OptTransforms
   EraseNopCalls.cpp
   EraseQEC.cpp
   EraseVectorCopyCtor.cpp
+  EulerDecomposition.cpp
   ExpandControlNegations.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
   ExpandVeqUses.cpp
   FactorQuantumAlloc.cpp
+  Fuse1QToU3.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp
@@ -90,8 +92,6 @@ add_cudaq_library(OptTransforms
   SROA.cpp
   ShrinkWrap.cpp
   SingleQubitChain.cpp
-  SingleQubitEuler.cpp
-  Squash1QToU3.cpp
   StackFramePrealloc.cpp
   StatePreparation.cpp
   StaticQubitTarget.cpp

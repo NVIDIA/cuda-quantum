@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #include "DecompositionPatterns.h"
+#include "EulerDecomposition.h"
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
 #include "QuakeOperatorCreator.h"
-#include "SingleQubitEuler.h"
 #include "StaticQubitTarget.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -2100,8 +2100,8 @@ REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, {"rz<adj>", "rz"});
 // decomposition hint in the form of a `euler` op attribute, the decomposition
 // will be performed according to the hint (either `ZXZ` or `XZX`).
 struct U3ToRotationsType; // forward declare the pattern type, defined in the
+                          // macro below
 
-// macro below
 struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
                                                           cudaq::quake::U3Op> {
   using cudaq::DecompositionPattern<U3ToRotationsType,
@@ -2129,7 +2129,7 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
           op, "U3ToRotations requires phi and lambda to have the same type");
 
     if (controls.empty())
-      if (auto decomposition = getConstantDecomposition(op)) {
+      if (auto decomposition = cudaq::opt::EulerDecomposition::get(op)) {
         SmallVector<Value> targets{decomposition->emit(rewriter, loc, target)};
         rewriter.replaceOp(op, cudaq::quake::getWireValues({}, targets));
         return success();
@@ -2176,24 +2176,6 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     rewriter.replaceOp(
         op, cudaq::quake::getWireValues(correction.controls, targets));
     return success();
-  }
-
-private:
-  /// The Euler form of a `u3` whose angles are all constants, or nothing.
-  static std::optional<cudaq::opt::EulerDecomposition>
-  getConstantDecomposition(cudaq::quake::U3Op op) {
-    SmallVector<std::complex<double>, 4> columnMajor;
-    op.getOperatorMatrix(columnMajor);
-    if (columnMajor.size() != 4)
-      return std::nullopt;
-    std::pair axes{cudaq::quake::Pauli::Z, cudaq::quake::Pauli::X};
-    if (auto name =
-            op->getAttrOfType<StringAttr>(cudaq::opt::eulerFormAttrName))
-      if (auto parsed = cudaq::opt::parseEulerForm(name.getValue()))
-        axes = *parsed;
-    return cudaq::opt::EulerDecomposition::get(
-        Eigen::Map<const Eigen::Matrix2cd>(columnMajor.data()), axes.first,
-        axes.second);
   }
 };
 REGISTER_DECOMPOSITION_PATTERN(U3ToRotations, {"u3", "rz", "rx"},

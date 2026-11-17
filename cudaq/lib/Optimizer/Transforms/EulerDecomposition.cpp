@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "SingleQubitEuler.h"
+#include "EulerDecomposition.h"
 #include "CliffordTAngle.h"
 #include "PhaseUtilities.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
@@ -116,12 +116,28 @@ llvm::StringRef cudaq::opt::EulerDecomposition::formName() const {
   return outer == Pauli::Z ? "zxz" : "xzx";
 }
 
-std::optional<std::pair<Pauli, Pauli>>
-cudaq::opt::parseEulerForm(llvm::StringRef name) {
-  if (name == "zxz")
-    return std::pair{Pauli::Z, Pauli::X};
-  if (name == "xzx")
-    return std::pair{Pauli::X, Pauli::Z};
+/// Return the matrix of a `u3` op.
+static std::optional<Eigen::Matrix2cd> getMatrix(cudaq::quake::U3Op u3) {
+  SmallVector<std::complex<double>, 4> columnMajor;
+  u3.getOperatorMatrix(columnMajor);
+  if (columnMajor.size() != 4) {
+    // could not infer the op matrix (runtime arguments)
+    return std::nullopt;
+  }
+  return Eigen::Map<const Eigen::Matrix2cd>(columnMajor.data());
+}
+
+std::optional<cudaq::opt::EulerDecomposition>
+cudaq::opt::EulerDecomposition::get(cudaq::quake::U3Op u3) {
+  // Default to ZXZ form...
+  std::pair<Pauli, Pauli> axes{Pauli::Z, Pauli::X};
+  if (auto name = u3->getAttrOfType<StringAttr>(cudaq::opt::eulerFormAttrName))
+    // ...but override to XZX if there is an`euler=xzx` attribute
+    if (name == "xzx")
+      axes = std::pair{Pauli::X, Pauli::Z};
+
+  if (auto matrix = getMatrix(u3))
+    return EulerDecomposition::get(*matrix, axes.first, axes.second);
   return std::nullopt;
 }
 

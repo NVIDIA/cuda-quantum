@@ -8,10 +8,10 @@
 
 // RUN: cudaq-opt --pass-pipeline='builtin.module( \
 // RUN:   decomposition{enable-patterns=U3ToRotations},convert-to-linear-values, \
-// RUN:   func.func(squash-1q-to-u3{cost=clifford-t-free}), \
+// RUN:   func.func(fuse-1q-to-u3{cost=clifford-t-free}), \
 // RUN:   decomposition{enable-patterns=U3ToRotations},func.func(canonicalize))' %s | FileCheck %s
 // RUN: cudaq-opt --pass-pipeline='builtin.module( \
-// RUN:   func.func(squash-1q-to-u3{cost=clifford-t-free}))' %s | \
+// RUN:   func.func(fuse-1q-to-u3{cost=clifford-t-free}))' %s | \
 // RUN:   FileCheck %s --check-prefix=NESTED
 
 // A controlled gate or a non-constant parameter ends a chain. The controlled

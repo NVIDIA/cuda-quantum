@@ -350,7 +350,7 @@ void test_staged_skip(mlir::MLIRContext *ctx) {
 // CHECK: quake.r1
 // CHECK-NOT: quake.mz
 
-/// Four one-qubit rotations that `squash-1q-to-u3` squashes into one `u3`,
+/// Four one-qubit rotations that `fuse-1q-to-u3` fuses into one `u3`,
 /// which decomposes into three rotations.
 static const char *fusableRotationsKernel = R"#(
 func.func @__nvqpp__mlirgen__fusable() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -401,11 +401,11 @@ func.func @__nvqpp__mlirgen__longLoop() attributes {"cudaq-entrypoint", "cudaq-k
 }
 )#";
 
-/// A `quake-unmapped` stage squashes the rotations only from level 1, and a
+/// A `quake-unmapped` stage fuses the rotations only from level 1, and a
 /// loop it cannot unroll stays rolled and is still counted. Without a rotation
 /// in the basis, every level synthesizes, and the strict basis conversion
-/// rejects any rotation left over. With `u3` in the basis, the squashed `u3`
-/// stays.
+/// rejects any rotation left over. With `u3` but no rotation in the basis,
+/// every rotation is fused into a `u3`, which stays.
 void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
   using cudaq::OptimizationLevel;
   const auto count = [&](const std::string &heading, const char *kernelName,
@@ -445,9 +445,7 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
         OptimizationLevel::O2);
   count("Clifford+T exact angle", "expPauli", expPauliKernel, cliffordT,
         OptimizationLevel::O0);
-  const std::vector<std::string> u3 = {"u3", "h", "rx", "rz", "x(1)"};
-  count("U3 level 0", "fusable", fusableRotationsKernel, u3,
-        OptimizationLevel::O0);
+  const std::vector<std::string> u3 = {"u3", "h", "x(1)"};
   count("U3 level 1", "fusable", fusableRotationsKernel, u3,
         OptimizationLevel::O1);
   count("U3 level 2", "fusable", fusableRotationsKernel, u3,
@@ -470,8 +468,6 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
 // CHECK: r1: 0{{$}}
 // CHECK-LABEL: Clifford+T exact angle resource counts:
 // CHECK: total: 1{{$}}
-// CHECK-LABEL: U3 level 0 resource counts:
-// CHECK: total: 4{{$}}
 // CHECK-LABEL: U3 level 1 resource counts:
 // CHECK: rz: 0{{$}}
 // CHECK: total: 1{{$}}

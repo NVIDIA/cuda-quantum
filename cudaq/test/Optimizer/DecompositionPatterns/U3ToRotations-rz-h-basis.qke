@@ -6,24 +6,22 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --convert-to-linear-values --squash-1q-to-u3 --canonicalize %s | \
-// RUN:   FileCheck %s
+// RUN: cudaq-opt '--decomposition=basis=rz,h' %s | FileCheck %s --implicit-check-not=quake.u3 --implicit-check-not=quake.rx
 
-// Three rotations about alternating axes are already as short as any Euler
-// form, so they stay.
+// A u3 decomposes to Rz+H as three rotations and two Hadamards (plus a phase correction).
 
-// CHECK-LABEL: func.func @not_cheaper(
-// CHECK:         quake.unwrap
+// CHECK-LABEL: func.func @u3(
+// CHECK:         quake.rz
+// CHECK-NEXT:    quake.h
 // CHECK-NEXT:    quake.rz
-// CHECK-NEXT:    quake.rx
+// CHECK-NEXT:    quake.h
 // CHECK-NEXT:    quake.rz
-// CHECK-NEXT:    quake.wrap
-func.func @not_cheaper(%q: !quake.ref) {
-  %a = arith.constant 0.3 : f64
-  %b = arith.constant 0.4 : f64
-  %c = arith.constant 0.5 : f64
-  quake.rz (%a) %q : (f64, !quake.ref) -> ()
-  quake.rx (%b) %q : (f64, !quake.ref) -> ()
-  quake.rz (%c) %q : (f64, !quake.ref) -> ()
+// CHECK-NEXT:    quake.phase
+// CHECK-NEXT:    return
+func.func @u3(%q: !quake.ref) {
+  %theta = arith.constant 7.850000e-01 : f64
+  %phi = arith.constant 1.230000e-01 : f64
+  %lambda = arith.constant 4.560000e-01 : f64
+  quake.u3 (%theta, %phi, %lambda) %q : (f64, f64, f64, !quake.ref) -> ()
   return
 }

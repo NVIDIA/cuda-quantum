@@ -225,7 +225,7 @@ static void addSharedCleanup(OpPassManager &funcPM,
 }
 
 /// Reduce the T count and non-Clifford rotations before Clifford+T synthesis.
-/// Level 1 only cleans up. Level 2 also squashes one-qubit chains, folds
+/// Level 1 only cleans up. Level 2 also fuses one-qubit chains, folds
 /// phases, and snaps angles within `approximation-tolerance` of a Clifford+T
 /// value. No pass erases a rotation larger than that tolerance.
 static void
@@ -238,15 +238,15 @@ addCliffordTOptimization(OpPassManager &pm,
   if (options.level == 1)
     return;
 
-  cudaq::opt::Squash1QToU3Options squashOpts;
-  squashOpts.cost = "clifford-t-free";
-  squashOpts.epsilon = options.approximationTolerance;
-  cleanupPM.addPass(cudaq::opt::createSquash1QToU3(squashOpts));
-  // Expand each squashed u3 into the form the squash chose, so that phase
+  cudaq::opt::Fuse1QToU3Options fuseOpts;
+  fuseOpts.cost = "clifford-t-free";
+  fuseOpts.epsilon = options.approximationTolerance;
+  cleanupPM.addPass(cudaq::opt::createFuse1QToU3(fuseOpts));
+  // Expand each fused u3 into the form the fusion chose, so that phase
   // folding and snapping see rotations.
   cudaq::opt::addDecomposition(pm, {"U3ToRotations"});
   auto &funcPM = pm.nest<func::FuncOp>();
-  // Merge the constants that the squash creates.
+  // Merge the constants that the fusion creates.
   funcPM.addPass(createCanonicalizerPass());
   // Fold phases before snapping to expose shared rotations, and again at the
   // end to capture the exact phase terms that Clifford+T normalization exposes.

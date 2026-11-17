@@ -8,11 +8,12 @@
 
 #pragma once
 
-// Euler decompositions of one-qubit unitaries, shared by `squash-1q-to-u3`,
-// which chooses a form and records it on a `quake.u3`, and the `U3ToRotations`
-// decomposition pattern, which emits the recorded form.
+// Euler decompositions of one-qubit unitaries, shared by `fuse-1q-to-u3`,
+// which uses them for decomposition cost estimatations, and the `U3ToRotations`
+// decomposition pattern.
 
 #include "common/EigenDense.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "llvm/ADT/StringRef.h"
 #include "mlir/IR/Builders.h"
@@ -22,8 +23,8 @@
 
 namespace cudaq::opt {
 
-/// The discardable attribute on a `quake.u3` that hints the preferred Euler
-/// decomposition, as chosen by `squash-1q-to-u3` (`"zxz"` or `"xzx"`).
+/// The discard-able attribute on a `quake.u3` that hints the preferred Euler
+/// decomposition, as chosen by `fuse-1q-to-u3` (`"zxz"` or `"xzx"`).
 inline constexpr llvm::StringLiteral eulerFormAttrName = "euler";
 
 /// The represented matrix is
@@ -35,37 +36,43 @@ struct EulerDecomposition {
   double phase;
 
   /// Decompose `u` into rotations about `outerAxis`, `middleAxis`, and
-  /// `outerAxis`, which must be ZXZ or XZX. Angles within roundoff of a
-  /// multiple of pi/4, zero included, are replaced by that exact multiple.
+  /// `outerAxis`, which must be ZXZ or XZX.
+  ///
+  /// Rounds angles within rounding error of a multiple of pi/4.
   static EulerDecomposition get(const Eigen::Matrix2cd &u,
                                 cudaq::quake::Pauli outerAxis,
                                 cudaq::quake::Pauli middleAxis);
+
+  /// Decompose `u3` into rotations.
+  ///
+  /// Decomposes into ZXZ or XZX based on the value of the `euler` attribute,
+  /// if present. Defaults to ZXZ decomposition.
+  static std::optional<EulerDecomposition> get(cudaq::quake::U3Op u3);
 
   /// The number of nonzero rotations `emit` creates.
   unsigned numRotations() const;
 
   /// The `u3(theta, phi, lambda)` angles of the represented matrix, up to a
-  /// global phase. Only valid for the ZXZ form. Angles within roundoff of a
-  /// multiple of pi/4 are replaced by that exact multiple.
+  /// global phase. Only valid for the ZXZ form.
+  ///
+  /// Rounds angles within rounding error of a multiple of pi/4.
   std::array<double, 3> toU3Angles() const;
 
   /// The name of this form for `eulerFormAttrName`.
   llvm::StringRef formName() const;
 
-  /// Emit the nonzero rotations and an exact phase correction on the scalar
-  /// `input` wire or reference, and return the wire it produces (or `input`
-  /// for a reference).
+  /// Emit the nonzero rotations of the decomposition on the `input` wire.
+  ///
+  /// Returns the wire it produces.
   mlir::Value emit(mlir::OpBuilder &builder, mlir::Location location,
                    mlir::Value input) const;
 };
 
-/// Parse an Euler form name. Returns the (outer, middle) axes, or nothing for
-/// an unknown name.
+/// Parse an Euler form name. If valid returns the (outer, middle) axes.
 std::optional<std::pair<cudaq::quake::Pauli, cudaq::quake::Pauli>>
 parseEulerForm(llvm::StringRef name);
 
-/// Snap `angle`, which a pass computed with an error of a few ulps, to an exact
-/// multiple of pi/4 when it is within roundoff of one.
+/// Snap `angle` to an exact multiple of pi/4 when it is within rounding error.
 double snapAngleToQuarterTurn(double angle);
 
 } // namespace cudaq::opt
