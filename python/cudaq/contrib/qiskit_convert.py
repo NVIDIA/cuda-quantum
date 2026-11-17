@@ -327,6 +327,84 @@ DIRECT_OPERATION_SPECS = {
 }
 
 
+class _SourceKernel:
+    """Records the builder calls made by the gate emitters as kernel-mode
+    source lines. Qubits are source strings such as ``"q[0]"``. Unsupported
+    builder methods raise.
+    """
+
+    _SINGLE_QUBIT = ("h", "x", "y", "z", "s", "t", "sdg", "tdg", "reset")
+    _ROTATIONS = ("rx", "ry", "rz", "r1")
+    _CONTROLLED = {"cx": "x", "cy": "y", "cz": "z", "ch": "h"}
+    _CONTROLLED_ROTATIONS = {"crx": "rx", "cry": "ry", "crz": "rz", "cr1": "r1"}
+
+    def __init__(self, indent=1):
+        self.lines = []
+        self.indent = indent
+
+    def emit(self, line):
+        self.lines.append("    " * self.indent + line)
+
+    def _call(self, name, *operands):
+        self.emit(f"{name}({', '.join(operands)})")
+
+    @staticmethod
+    def _angle(value):
+        return repr(float(value))
+
+    @staticmethod
+    def _controls(controls):
+        return list(controls) if isinstance(controls, list) else [controls]
+
+    def _controlled(self, name, angles, controls, *targets):
+        self._call(f"{name}.ctrl", *[self._angle(a) for a in angles],
+                   *self._controls(controls), *targets)
+
+    def __getattr__(self, attr_name):
+        if attr_name in self._SINGLE_QUBIT:
+            return lambda target: self._call(attr_name, target)
+        if attr_name in self._ROTATIONS:
+            return lambda theta, target: self._call(attr_name, self._angle(
+                theta), target)
+        if attr_name in self._CONTROLLED:
+            gate = self._CONTROLLED[attr_name]
+            return lambda controls, target: self._controlled(
+                gate, (), controls, target)
+        if attr_name in self._CONTROLLED_ROTATIONS:
+            gate = self._CONTROLLED_ROTATIONS[attr_name]
+            return lambda theta, controls, target: self._controlled(
+                gate, (theta,), controls, target)
+        raise AttributeError(
+            f"'{attr_name}' is not supported when converting Qiskit "
+            "classical control flow to a CUDA-Q kernel.")
+
+    def swap(self, qubit_a, qubit_b):
+        self._call("swap", qubit_a, qubit_b)
+
+    def cswap(self, controls, qubit_a, qubit_b):
+        self._controlled("swap", (), controls, qubit_a, qubit_b)
+
+    def u3(self, theta, phi, delta, target):
+        self._call("u3", self._angle(theta), self._angle(phi),
+                   self._angle(delta), target)
+
+    def cu3(self, theta, phi, delta, controls, target):
+        self._controlled("u3", (theta, phi, delta), controls, target)
+
+    # Kernel mode has no adjoint-controlled S/T, so use the equivalent `r1`.
+    def cs(self, control, target, isAdj=False):
+        if isAdj:
+            self._controlled("r1", (-np.pi / 2,), control, target)
+        else:
+            self._controlled("s", (), control, target)
+
+    def ct(self, control, target, isAdj=False):
+        if isAdj:
+            self._controlled("r1", (-np.pi / 4,), control, target)
+        else:
+            self._controlled("t", (), control, target)
+
+
 def _validate_direct_operation(operation, op_name, q_indices, c_indices, spec):
     if spec.num_qubits is not None and len(q_indices) != spec.num_qubits:
         raise _invalid_gate_error(

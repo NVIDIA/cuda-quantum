@@ -14,6 +14,8 @@ import os
 import tempfile
 
 import cudaq
+from cudaq.contrib import qiskit_convert
+from cudaq.kernel.kernel_decorator import PyKernelDecorator
 
 # Skip all tests if qiskit is not installed
 qiskit = pytest.importorskip("qiskit")
@@ -878,3 +880,103 @@ class TestDeprecation:
         counts = cudaq.sample(kernel)
         assert "00" in counts
         assert "11" in counts
+
+
+class TestSourceKernel:
+    """Tests for `_SourceKernel`."""
+
+    @staticmethod
+    def _record(op_name, num_qubits, params):
+        recorder = qiskit_convert._SourceKernel()
+        spec = qiskit_convert.DIRECT_OPERATION_SPECS[op_name]
+        spec.emitter(recorder, [f"q[{i}]" for i in range(num_qubits)],
+                     list(range(num_qubits)), params)
+        return recorder.lines
+
+    @staticmethod
+    def _builder_counts(op_name, num_qubits, params):
+        kernel = cudaq.make_kernel()
+        qubits = kernel.qalloc(num_qubits)
+        spec = qiskit_convert.DIRECT_OPERATION_SPECS[op_name]
+        spec.emitter(kernel, [qubits[i] for i in range(num_qubits)],
+                     list(range(num_qubits)), params)
+        return _resource_counts(kernel)
+
+    @staticmethod
+    def _compile(lines, num_qubits):
+        src = "\n".join([
+            "def recorded():", f"    q = cudaq.qvector({num_qubits})", *lines,
+            ""
+        ])
+        return PyKernelDecorator(src,
+                                 kernelName="recorded",
+                                 defer_compilation=False,
+                                 overrideGlobalScopedVars={"cudaq": cudaq})
+
+    @pytest.mark.parametrize(
+        "op_name, lines",
+        [
+            ("h", ["h(q[0])"]),
+            ("tdg", ["tdg(q[0])"]),
+            ("reset", ["reset(q[0])"]),
+            ("swap", ["swap(q[0], q[1])"]),
+            ("cx", ["x.ctrl(q[0], q[1])"]),
+            ("ch", ["h.ctrl(q[0], q[1])"]),
+            ("ccx", ["x.ctrl(q[0], q[1], q[2])"]),
+            ("mcx", ["x.ctrl(q[0], q[1], q[2], q[3])"]),
+            ("cswap", ["swap.ctrl(q[0], q[1], q[2])"]),
+            ("cs", ["s.ctrl(q[0], q[1])"]),
+            ("ct", ["t.ctrl(q[0], q[1])"]),
+            ("csdg", [f"r1.ctrl({-np.pi / 2!r}, q[0], q[1])"]),
+            ("ctdg", [f"r1.ctrl({-np.pi / 4!r}, q[0], q[1])"]),
+            ("rx", ["rx(0.25, q[0])"]),
+            ("p", ["r1(0.25, q[0])"]),
+            ("crz", ["rz.ctrl(0.25, q[0], q[1])"]),
+            ("cp", ["r1.ctrl(0.25, q[0], q[1])"]),
+            ("u3", ["u3(0.25, 0.5, 0.75, q[0])"]),
+            ("cu3", ["u3.ctrl(0.25, 0.5, 0.75, q[0], q[1])"]),
+            ("id", []),
+            ("barrier", []),
+        ],
+    )
+    def test_recorded_source(self, op_name, lines):
+        spec = qiskit_convert.DIRECT_OPERATION_SPECS[op_name]
+        num_qubits = spec.num_qubits or 4
+        params = [0.25, 0.5, 0.75][:spec.num_params]
+        assert self._record(op_name, num_qubits,
+                            params) == ["    " + line for line in lines]
+
+    def test_angles_round_trip_exactly(self):
+        theta = 0.1 + 0.2
+        (line,) = self._record("rx", 1, [theta])
+        assert float(line.strip()[len("rx("):].split(",")[0]) == theta
+
+    def test_indent(self):
+        recorder = qiskit_convert._SourceKernel(indent=3)
+        recorder.x("q[0]")
+        assert recorder.lines == [" " * 12 + "x(q[0])"]
+
+    def test_unknown_builder_method_raises(self):
+        recorder = qiskit_convert._SourceKernel()
+        with pytest.raises(AttributeError, match="'mz' is not supported"):
+            recorder.mz("q[0]")
+
+    @pytest.mark.parametrize("op_name", [
+        name for name in qiskit_convert.DIRECT_OPERATION_SPECS
+        if name != "measure"
+    ])
+    def test_recorded_source_matches_builder(self, op_name):
+        """Recorded source compiles and matches the builder's gate counts."""
+        spec = qiskit_convert.DIRECT_OPERATION_SPECS[op_name]
+        num_qubits = spec.num_qubits or 4
+        params = [0.25, 0.5, 0.75][:spec.num_params]
+
+        kernel = self._compile(self._record(op_name, num_qubits, params),
+                               num_qubits)
+        expected = self._builder_counts(op_name, num_qubits, params)
+        # csdg/ctdg are recorded as `r1.ctrl`.
+        expected = {
+            ("cr1" if name in ("cs", "ct") and op_name in ("csdg", "ctdg") else name):
+                count for name, count in expected.items()
+        }
+        assert _resource_counts(kernel) == expected
