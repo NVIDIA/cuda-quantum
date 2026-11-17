@@ -26,14 +26,12 @@
 #include <functional>
 #include <string>
 
-#ifdef QLX_HAS_CUDAQ_QUAKE
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
-#endif
 
 namespace qlx {
 #define GEN_PASS_DEF_CONVERTQUAKETOQLX
@@ -43,8 +41,6 @@ namespace qlx {
 using namespace mlir;
 
 namespace {
-
-#ifdef QLX_HAS_CUDAQ_QUAKE
 
 // Mutable per-region conversion state threaded through importOperation so that
 // structured bodies (cflow.repeat / cflow.if) can be imported recursively.
@@ -1782,21 +1778,5 @@ private:
     return success();
   }
 };
-
-#else
-
-class ConvertQuakeToQLXPass
-    : public qlx::impl::ConvertQuakeToQLXBase<ConvertQuakeToQLXPass> {
-public:
-  using ConvertQuakeToQLXBase::ConvertQuakeToQLXBase;
-
-  void runOnOperation() override {
-    getOperation().emitError(
-        "Quake-to-P0 support was not enabled; enable QLX_USE_CUDAQ_SDK");
-    signalPassFailure();
-  }
-};
-
-#endif
 
 } // namespace
