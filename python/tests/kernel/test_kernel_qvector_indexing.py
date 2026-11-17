@@ -30,6 +30,25 @@ def test_qvector_captured_index(index, expected):
     assert counts[expected] == 10
 
 
+@pytest.mark.parametrize('size, expected', [(3, '111'), (4, '1011'),
+                                            (5, '10011'), (6, '100011')])
+def test_qvector_negative_modulo_index_wraps_around(size, expected):
+    # `(i - 1) % size` must select the previous qubit around the ring for
+    # every ring size. With an unsigned remainder, `-1 % size` was `0` for
+    # every size that is not a power of two, so the first control targeted
+    # itself.
+
+    @cudaq.kernel
+    def ring(size: int):
+        q = cudaq.qvector(size)
+        x(q[0])
+        for i in range(size):
+            x.ctrl(q[i], q[(i - 1) % size])
+
+    counts = cudaq.sample(ring, size, shots_count=10)
+    assert counts[expected] == 10
+
+
 @pytest.mark.skip_arm64_jit
 @pytest.mark.parametrize(
     'index',
