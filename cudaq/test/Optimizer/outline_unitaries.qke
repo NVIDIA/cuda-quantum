@@ -2,8 +2,8 @@
 // Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
 // All rights reserved.                                                       //
 //                                                                            //
-// This source code and the accompanying materials are made available under    //
-// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
 // RUN: cudaq-opt --outline-unitaries %s | FileCheck %s
@@ -57,6 +57,36 @@ func.func @hard_boundary(%q: !quake.wire) -> !quake.wire {
 // CHECK: %[[SECOND:.*]] = cc.call_callable %[[SECOND_LAMBDA]]
 // CHECK-NEXT: return %[[SECOND]] : !quake.wire
 
+// A non-terminator hard boundary inside a nested block keeps the first
+// outlined call before the constant and both groups inside the scope.
+func.func @nested_hard_boundary(%q: !quake.wire) -> !quake.wire {
+  %result = cc.scope -> (!quake.wire) {
+    %h = quake.h %q : (!quake.wire) -> !quake.wire
+    %boundary = arith.constant 0 : i64
+    %x = quake.x %h : (!quake.wire) -> !quake.wire
+    cc.continue %x : !quake.wire
+  }
+  return %result : !quake.wire
+}
+// CHECK-LABEL: func.func @nested_hard_boundary(
+// CHECK-SAME: %[[NB_Q:.*]]: !quake.wire) -> !quake.wire {
+// CHECK-NEXT: %[[NB_SCOPE:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT: %[[NB_L0:.*]] = cc.create_lambda {
+// CHECK-NEXT: %[[NB_H:.*]] = quake.h %[[NB_Q]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT: cc.return %[[NB_H]] : !quake.wire
+// CHECK-NEXT: } : !cc.callable<() -> !quake.wire>
+// CHECK-NEXT: %[[NB_CALL0:.*]] = cc.call_callable %[[NB_L0]] : (!cc.callable<() -> !quake.wire>) -> !quake.wire
+// CHECK-NEXT: %{{.*}} = arith.constant 0 : i64
+// CHECK-NEXT: %[[NB_L1:.*]] = cc.create_lambda {
+// CHECK-NEXT: %[[NB_X:.*]] = quake.x %[[NB_CALL0]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT: cc.return %[[NB_X]] : !quake.wire
+// CHECK-NEXT: } : !cc.callable<() -> !quake.wire>
+// CHECK-NEXT: %[[NB_CALL1:.*]] = cc.call_callable %[[NB_L1]] : (!cc.callable<() -> !quake.wire>) -> !quake.wire
+// CHECK-NEXT: cc.continue %[[NB_CALL1]] : !quake.wire
+// CHECK-NEXT: }
+// CHECK-NEXT: return %[[NB_SCOPE]] : !quake.wire
+// CHECK-NEXT: }
+
 // Outlined groups should not be outlined when pass run multiple times.
 func.func @dont_outline_twice(%q: !quake.wire) -> !quake.wire {
   %h = quake.h %q : (!quake.wire) -> !quake.wire
@@ -71,6 +101,23 @@ func.func @dont_outline_twice(%q: !quake.wire) -> !quake.wire {
 // NOREPEATS-NEXT:           %[[CALL_CALLABLE_0:.*]] = cc.call_callable %[[CREATE_LAMBDA_0]] : (!cc.callable<() -> !quake.wire>) -> !quake.wire
 // NOREPEATS-NEXT:           return %[[CALL_CALLABLE_0]] : !quake.wire
 // NOREPEATS-NEXT:         }
+
+// A static Pauli word does not introduce a memory read, so this is
+// expected to pass.
+func.func @static_pauli_word(%q: !quake.wire, %theta: f64) -> !quake.wire {
+  %out = quake.exp_pauli (%theta) %q to "X" : (f64, !quake.wire) -> !quake.wire
+  return %out : !quake.wire
+}
+// CHECK-LABEL:   func.func @static_pauli_word(
+// CHECK-SAME:         %[[ARG0:.*]]: !quake.wire,
+// CHECK-SAME:         %[[ARG1:.*]]: f64) -> !quake.wire {
+// CHECK-NEXT:           %[[CREATE_LAMBDA_0:.*]] = cc.create_lambda {
+// CHECK-NEXT:             %[[EXP_PAULI_0:.*]] = quake.exp_pauli (%[[ARG1]]) %[[ARG0]] to "X" : (f64, !quake.wire) -> !quake.wire
+// CHECK-NEXT:             cc.return %[[EXP_PAULI_0]] : !quake.wire
+// CHECK-NEXT:           } : !cc.callable<() -> !quake.wire>
+// CHECK-NEXT:           %[[CALL_CALLABLE_0:.*]] = cc.call_callable %[[CREATE_LAMBDA_0]] : (!cc.callable<() -> !quake.wire>) -> !quake.wire
+// CHECK-NEXT:           return %[[CALL_CALLABLE_0]] : !quake.wire
+// CHECK-NEXT:         }
 
 // Measurements stay between the calls and receive the first call's output.
 func.func @trailing_measurement(%q: !quake.wire) -> !quake.wire {

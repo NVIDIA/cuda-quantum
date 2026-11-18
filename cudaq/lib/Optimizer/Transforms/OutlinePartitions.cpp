@@ -122,8 +122,8 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
   for (Value out : llvm::concat<const Value>(nonWireOutputs, outputs))
     for (Operation *user : out.getUsers())
       if (!inPartition.contains(user) && user->getBlock() != block)
-        return reject(
-            "external result consumers must belong to the same block");
+        return reject("external result consumers must belong to the same block",
+                      user);
 
   auto inputList = inputs.takeVector();
   auto nonWireInputList = nonWireInputs.takeVector();
