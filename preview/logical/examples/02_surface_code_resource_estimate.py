@@ -12,6 +12,7 @@ import cudaq
 import cudaq.logical as cql
 
 
+# %%
 # Prepare and measure one or more logical qubits in the Z basis.
 @cudaq.kernel
 def logical_zero_memory(logical_qubits: int):
@@ -20,7 +21,7 @@ def logical_zero_memory(logical_qubits: int):
 
 
 # %%
-# Select a distance-three surface-code target with room for one logical qubit.
+# Select a distance-11 surface-code target with room for three logical qubits.
 logical_qubits = 3
 target = cql.targets.surface_physical_target(
     logical_capacity=logical_qubits,

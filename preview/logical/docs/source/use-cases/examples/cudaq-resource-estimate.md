@@ -1,7 +1,7 @@
 # Surface-code resource estimate
 
 [`02_surface_code_resource_estimate.py`](../../../../examples/02_surface_code_resource_estimate.py)
-prepares and measures one or more logical zero using a distance-three surface
+prepares and measures one or more logical zero states using a distance-11 surface
 code.
 The target handles encoding, physical lowering, and scheduling; the example
 reports physical qubits and scheduled runtime from the `SCHEDULE` annotation.
