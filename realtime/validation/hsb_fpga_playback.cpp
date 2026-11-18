@@ -23,7 +23,6 @@
 ///       --page-size=384 --num-pages=128 --num-messages=100
 
 #include "hsb_playback_io.h"
-
 #include <algorithm>
 #include <chrono>
 #include <csignal>

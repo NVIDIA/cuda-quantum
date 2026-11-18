@@ -18,7 +18,6 @@
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
 #include "rpc_increment_handler.cuh"
-
 #include <cstdint>
 #include <cstring> // std::memset
 #include <cuda_runtime.h>

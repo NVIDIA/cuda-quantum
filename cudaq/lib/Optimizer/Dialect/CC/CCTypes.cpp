@@ -170,7 +170,6 @@ cc::SequenceType::verify(function_ref<InFlightDiagnostic()> emitError,
 
 #define GET_TYPEDEF_CLASSES
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.cpp.inc"
-
 #include <cstdint>
 
 //===----------------------------------------------------------------------===//

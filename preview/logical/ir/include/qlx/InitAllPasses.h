@@ -26,7 +26,7 @@ inline void registerAllQLXPasses() {
   registerQLXConversionPasses();
 #ifdef QLX_HAS_CUDAQ_QUAKE
   registerQuakeToQLXPasses();
-  registerPrepareQuakeForQLXPipeline();
+  registerQuakeToQLXPipelines();
   registerPhysToQuakePasses();
 #endif
   fabric::registerFabricTransformPasses();

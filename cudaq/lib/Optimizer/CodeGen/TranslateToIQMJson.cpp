@@ -14,7 +14,6 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/FormatAdapters.h"
-
 #include <cstdint>
 
 using namespace mlir;

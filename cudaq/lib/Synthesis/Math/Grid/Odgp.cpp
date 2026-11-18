@@ -7,10 +7,8 @@
  ******************************************************************************/
 
 #include "Math/Grid/Odgp.h"
-
 #include "Support/StreamOps.h"
 #include "llvm/Support/Debug.h"
-
 #include <algorithm>
 #include <array>
 #include <cassert>

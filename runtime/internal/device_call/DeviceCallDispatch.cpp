@@ -11,9 +11,7 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/device_call_service.h"
-
 #include "cudaq/runtime/logger/logger.h"
-
 #include <cuda_runtime.h>
 
 #include <cerrno>

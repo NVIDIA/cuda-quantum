@@ -11,7 +11,6 @@
 #include "cudaq/Synthesis/Math/Integer.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "llvm/Support/LogicalResult.h"
-
 #include <cassert>
 #include <cstdint>
 #include <utility>

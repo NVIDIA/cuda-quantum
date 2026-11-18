@@ -10,7 +10,6 @@
 #include "cudaq/runtime/logger/chrome_tracer.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/runtime/logger/spdlog_tracer.h"
-
 #include <atomic>
 #include <chrono>
 #include <cstdint>

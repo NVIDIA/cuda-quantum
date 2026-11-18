@@ -9,7 +9,6 @@
 #include "Math/Geometry/Ellipse.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
-
 #include <cassert>
 
 namespace cudaq::synth {

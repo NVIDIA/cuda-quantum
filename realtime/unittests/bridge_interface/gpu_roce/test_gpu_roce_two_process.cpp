@@ -55,7 +55,6 @@
 #include "cudaq/realtime/testing/roce_probe.h"
 #include "cudaq/realtime/testing/server_process.h"
 #include "cudaq/realtime/testing/test_utils.h"
-
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 

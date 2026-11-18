@@ -29,7 +29,7 @@ on:
         description:
           Version of the already-built cudaq-logical wheel. When set, this
           authoritative value is used instead of recomputing the version
-          independently via setuptools-scm.
+          independently from preview/logical/python/pyproject.toml.
       edem_wheel_artifacts:
         required: false
         type: string

@@ -14,9 +14,7 @@
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
 #include <cudaq/optimizers.h>
-
 #include <numeric>
-
 #include <thrust/complex.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>

@@ -19,7 +19,6 @@
 #include "CuStateVecSimulatorDetail.h"
 #include "Gates.h"
 #include "cudaq/ptsbe/PTSBESamplerImpl.h"
-
 #include <algorithm>
 #include <bit>
 #include <cassert>

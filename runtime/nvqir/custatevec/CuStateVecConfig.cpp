@@ -8,7 +8,6 @@
 
 #include "CuStateVecConfig.h"
 #include "cudaq/runtime/logger/logger.h"
-
 #include <algorithm>
 #include <bit>
 #include <charconv>

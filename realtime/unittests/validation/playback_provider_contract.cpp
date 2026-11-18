@@ -14,7 +14,6 @@
 /// its compatible RTH/peer running.
 #include "playback_common.h"
 #include "playback_provider_support.h"
-
 #include <cstddef>
 #include <cstdint>
 

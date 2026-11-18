@@ -304,40 +304,6 @@ func.func @do_not_merge_wire_chain(%a: f64, %b: f64) {
 // CHECK-LABEL: func.func @do_not_merge_wire_chain
 // CHECK-COUNT-2: quake.phase
 
-// This is deliberately a repairable, non-linear wire form: %first#0 is
-// consumed by %second and also has a stale successor-block use. It is not
-// valid final wire IR, but canonicalization must decline the merge rather
-// than asserting while erasing %first.
-//
-func.func @do_not_merge_repairable_multiuse(%a: f64, %b: f64, %cond: i1) {
-  %control = quake.null_wire
-  %anchor = quake.null_wire
-  %first:2 = quake.phase (%a) [%control] %anchor
-      : (f64, !quake.wire, !quake.wire)
-        -> (!quake.wire, !quake.wire)
-  %second:2 = quake.phase (%b) [%first#0] %first#1
-      : (f64, !quake.wire, !quake.wire)
-        -> (!quake.wire, !quake.wire)
-
-  // %second's live results are forwarded correctly as a sigma split.
-  cf.cond_br %cond,
-      ^left(%second#0, %second#1 : !quake.wire, !quake.wire),
-      ^right(%second#0, %second#1 : !quake.wire, !quake.wire)
-
-^left(%left_control: !quake.wire, %left_anchor: !quake.wire):
-  quake.sink %first#0 : !quake.wire
-  quake.sink %left_control : !quake.wire
-  quake.sink %left_anchor : !quake.wire
-  return
-
-^right(%right_control: !quake.wire, %right_anchor: !quake.wire):
-  quake.sink %right_control : !quake.wire
-  quake.sink %right_anchor : !quake.wire
-  return
-}
-// CHECK-LABEL: func.func @do_not_merge_repairable_multiuse(
-// CHECK-COUNT-2: quake.phase
-
 // Merge two phases separated by 2nd phase's negate angle
 func.func @merge_with_negate_in_between(%theta0: f64, %theta1: f64) {
   %anchor = quake.null_wire

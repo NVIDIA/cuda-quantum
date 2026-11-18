@@ -27,7 +27,6 @@
 /// enough to stand in for the far end here, needing no library at all.
 
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
-
 #include <gtest/gtest.h>
 
 #include <arpa/inet.h>

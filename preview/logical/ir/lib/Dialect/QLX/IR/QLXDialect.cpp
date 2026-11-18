@@ -18,7 +18,6 @@
 #include "qlx/Dialect/QLX/IR/QLXAttrs.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
 #include "qlx/Dialect/QLX/IR/QLXTypes.h"
-
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
@@ -29,7 +28,6 @@
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/SymbolTable.h"
-
 #include <cstdint>
 #include <functional>
 

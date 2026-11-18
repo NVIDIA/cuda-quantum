@@ -48,21 +48,6 @@ static LogicalResult verifyWireResultsAreLinear(Operation *op) {
       if (uniqs.size() == 1 &&
           (*uniqs.begin())->hasTrait<OpTrait::IsTerminator>())
         continue;
-      std::unordered_set<Block *> blocks;
-      for (auto *u : uniqs)
-        blocks.insert(u->getBlock());
-      if (blocks.size() == uniqs.size()) {
-        // MLIR's canonicalizer has degenerated the linear type invariants for
-        // us and they need to be reconstructed. There is no good way to get
-        // MLIR to understand that a Value might have some semantics other than
-        // pure SSA, so the canonicalizer feels it is free to duplicate uses
-        // whenever it feels like it. The way to prevent this is to always
-        // disable region simplification, but that is very Draconian. We
-        // actually want region simplification, we just do not want values of
-        // linear type to have multiple uses and control-flow path information
-        // (phi-nodes) dropped on the floor.
-        continue;
-      }
       return op->emitOpError(
           "wires are a linear type and must have exactly one use");
     }

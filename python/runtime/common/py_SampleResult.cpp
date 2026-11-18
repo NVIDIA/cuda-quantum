@@ -20,7 +20,6 @@
 
 #include "common/SampleResult.h"
 #include "nlohmann/json.hpp"
-
 #include <map>
 #include <sstream>
 
