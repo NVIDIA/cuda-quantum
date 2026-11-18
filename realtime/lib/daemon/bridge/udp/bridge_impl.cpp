@@ -59,7 +59,6 @@
 
 #include "cudaq/realtime/cpu_transport/udp_wrapper.h"
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
-
 #include <cuda_runtime_api.h>
 
 #include <cstdint>

@@ -10,7 +10,6 @@
 
 #include "CuStateVecTasks.h"
 #include "common/SampleResult.h"
-
 #include <cublas_v2.h>
 #include <custatevec.h>
 

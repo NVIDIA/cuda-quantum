@@ -17,7 +17,6 @@
 #include "qlx/Dialect/Phys/IR/SpacetimeDerivation.h"
 #include "qlx/Dialect/QLX/IR/QLXAttrs.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
-
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
@@ -39,7 +38,6 @@
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/IR/Verifier.h"
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>

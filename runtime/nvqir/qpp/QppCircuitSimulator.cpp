@@ -9,7 +9,6 @@
 #include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "nvqir/Gates.h"
-
 #include <bit>
 #include <iostream>
 #include <qpp.h>

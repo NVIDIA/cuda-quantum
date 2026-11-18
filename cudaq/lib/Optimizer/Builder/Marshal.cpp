@@ -10,7 +10,6 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "llvm/ADT/TypeSwitch.h"
-
 #include <cstdint>
 
 using namespace mlir;

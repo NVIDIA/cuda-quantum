@@ -10,13 +10,11 @@
 #include "common/BraketServerHelper.h"
 #include "common/FmtCore.h"
 #include "nlohmann/json.hpp"
-
 #include <aws/braket/model/Association.h>
 #include <aws/braket/model/AssociationType.h>
 #include <aws/braket/model/CreateQuantumTaskRequest.h>
 #include <aws/braket/model/GetQuantumTaskRequest.h>
 #include <aws/braket/model/QuantumTaskStatus.h>
-
 #include <aws/s3-crt/model/CreateBucketRequest.h>
 #include <aws/s3-crt/model/GetObjectRequest.h>
 

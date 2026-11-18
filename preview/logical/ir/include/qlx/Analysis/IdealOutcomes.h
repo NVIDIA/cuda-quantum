@@ -10,11 +10,9 @@
 #define CUDAQ_LOGICAL_ANALYSIS_IDEALOUTCOMES_H
 
 #include "qlx/Target/Fabric/EmitStim.h"
-
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallBitVector.h"
 #include "llvm/Support/Error.h"
-
 #include <cstdint>
 #include <string>
 #include <vector>

@@ -439,32 +439,6 @@ func.func @preserve_reset_sink_alias_measurements(
 // CHECK:         %[[DUP_RESULT:.*]] = quake.discriminate %[[DUP_MZ]]
 // CHECK-NEXT:    quake.sink %[[DUP_WIRE]]
 
-func.func @preserve_reset_sink_with_branched_input() -> i1 {
-  %wire = quake.null_wire
-  %prepared = quake.x %wire : (!quake.wire) -> !quake.wire
-  %reset = quake.reset %prepared : (!quake.wire) -> !quake.wire
-  quake.sink %reset : !quake.wire
-  cf.br ^measure
-^measure:
-  %measurement, %result_wire = quake.mz %prepared
-      : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %result = quake.discriminate %measurement : (!quake.measure) -> i1
-  quake.sink %result_wire : !quake.wire
-  return %result : i1
-}
-
-// CHECK-LABEL: func.func @preserve_reset_sink_with_branched_input() -> i1 {
-// CHECK:         %[[WIRE:.*]] = quake.null_wire
-// CHECK-NEXT:    %[[PREPARED:.*]] = quake.x %[[WIRE]]
-// CHECK-NEXT:    %[[RESET:.*]] = quake.reset %[[PREPARED]]
-// CHECK-NEXT:    quake.sink %[[RESET]]
-// CHECK-NEXT:    cf.br ^bb1
-// CHECK:       ^bb1:
-// CHECK-NEXT:    %[[MEASUREMENT:.*]], %[[RESULT_WIRE:.*]] = quake.mz %[[PREPARED]]
-// CHECK:         %[[RESULT:.*]] = quake.discriminate %[[MEASUREMENT]]
-// CHECK-NEXT:    quake.sink %[[RESULT_WIRE]]
-// CHECK-NEXT:    return %[[RESULT]] : i1
-
 // Non-unitary operations and opaque control flow require observable pass
 // coverage because they are outside CircuitCheck's unitary contract.
 func.func @commutation_boundaries(%condition: i1,

@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "device_call_realtime_lib.cuh"
-
 #include "DeviceCallLibrary.h"
 
 constexpr auto countTrueBitsSchema =

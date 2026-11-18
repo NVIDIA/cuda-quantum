@@ -7,10 +7,8 @@
  ******************************************************************************/
 
 #include "CuStateVecSimulationState.h"
-
 #include "CuStateVecCommunicator.h"
 #include "CuStateVecError.h"
-
 #include <algorithm>
 #include <cmath>
 #include <cstdint>

@@ -9,7 +9,6 @@
 #include "cudaq/Synthesis/Synthesis/KmmSynthesize.h"
 #include "Support/StreamOps.h"
 #include "llvm/Support/Debug.h"
-
 #include <algorithm>
 #include <array>
 #include <cassert>

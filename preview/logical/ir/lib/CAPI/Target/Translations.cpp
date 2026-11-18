@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "qlx-c/Target/Translations.h"
-
 #include "mlir-c/Support.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/CAPI/Support.h"
@@ -16,10 +15,8 @@
 #include "qlx/Target/Fabric/EmitStim.h"
 
 #include "qlx/Analysis/GadgetEDEM.h"
-
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/raw_ostream.h"
-
 #include <string>
 
 namespace {
