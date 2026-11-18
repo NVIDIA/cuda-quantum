@@ -9,7 +9,7 @@
 // REQUIRES: qlx-opt, cudaq-quake
 // RUN: qlx-opt --prepare-quake-for-qlx --split-input-file %s | \
 // RUN:   FileCheck %s --check-prefix=PREP --implicit-check-not=quake.phase
-// RUN: qlx-opt --prepare-quake-for-qlx --convert-quake-to-qlx \
+// RUN: qlx-opt --quake-to-qlx-pipeline \
 // RUN:   --split-input-file %s | \
 // RUN:   FileCheck %s --check-prefix=P0 --implicit-check-not=quake. \
 // RUN:   --implicit-check-not=pauli_rotation

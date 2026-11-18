@@ -15,7 +15,6 @@
 #include "qlx/Dialect/Phys/IR/PhysDialect.h"
 #include "qlx/Dialect/Phys/IR/PhysOps.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
-
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/SymbolTable.h"
@@ -34,7 +33,6 @@
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/MathExtras.h"
-
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>

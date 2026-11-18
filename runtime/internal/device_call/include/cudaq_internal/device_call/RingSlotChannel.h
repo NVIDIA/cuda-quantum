@@ -32,11 +32,8 @@
 #include "cudaq_internal/device_call/DeviceCallChannel.h"
 #include "cudaq_internal/device_call/DeviceCallError.h"
 #include "cudaq_internal/device_call/RpcFrame.h"
-
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-
 #include "cudaq/runtime/logger/logger.h"
-
 #include <atomic>
 #include <chrono>
 #include <cstdint>

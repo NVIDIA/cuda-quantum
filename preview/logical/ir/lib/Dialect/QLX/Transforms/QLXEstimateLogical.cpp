@@ -12,7 +12,6 @@
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
 #include "qlx/Dialect/QLX/IR/QLXTypes.h"
-
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MathExtras.h"
@@ -20,7 +19,6 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Pass/Pass.h"
-
 #include <cstdint>
 #include <limits>
 #include <map>

@@ -10,7 +10,6 @@
 
 #include "common/ServerHelper.h"
 #include "nlohmann/json.hpp"
-
 #include <stdexcept>
 #include <string>
 #include <string_view>

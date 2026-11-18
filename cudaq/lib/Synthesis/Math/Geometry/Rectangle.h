@@ -11,7 +11,6 @@
 #include "Math/Geometry/ConvexSet.h"
 #include "Math/Geometry/Interval.h"
 #include "cudaq/Synthesis/Math/Real.h"
-
 #include <array>
 #include <optional>
 #include <string>

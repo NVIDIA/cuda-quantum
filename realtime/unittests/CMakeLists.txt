@@ -131,14 +131,8 @@ if(CMAKE_CUDA_COMPILER)
 endif()
 
 # ==============================================================================
-# HSB bridge/emulator/playback tools (optional, not CI)
+# Transport and bridge tests
 # ==============================================================================
-
-# utils defines rpc_increment_ft, which the test server links for its device
-# path, so it is configured before test_server.
-if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
-  add_subdirectory(utils)
-endif()
 
 # Transport-agnostic two-process test server.  Links cudaq-realtime, which
 # only exists when CUDA was found, and must be configured BEFORE the transport
@@ -157,6 +151,9 @@ add_subdirectory(bridge_interface/gpu_loopback)
 
 # The public headers must compile as C.
 add_subdirectory(c_api)
+
+# Playback-provider contract tests require neither CUDA nor hardware.
+add_subdirectory(validation)
 
 # UDP bridge provider tests: self-gated on the always-built udp provider
 # target, so they run in CI without any HSB/RDMA setup.

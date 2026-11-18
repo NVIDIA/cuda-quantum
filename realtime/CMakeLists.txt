@@ -198,6 +198,9 @@ endif()
 
 if (CUDAQ_REALTIME_BUILD_TESTS)
   include(CTest)
+  # Configure validation tools before tests that reuse their handlers/plugins.
+  add_subdirectory(validation)
+  set(CUDAQ_REALTIME_VALIDATION_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/validation)
   add_subdirectory(unittests)
 endif()
 

@@ -12,18 +12,16 @@
 # /opt/nvidia/cudaq/realtime unless the installer was given --installpath.
 install_dir="$(cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")" && pwd)"
 
-# Check LD_LIBRARY_PATH contains the install_dir/lib path
-if [[ ":$LD_LIBRARY_PATH:" != *":$install_dir/lib:"* ]]; then
-  echo "Warning: LD_LIBRARY_PATH does not contain $install_dir/lib. Please add it to your environment variables to ensure CUDA-Q Realtime works correctly." >&2
-  echo "For example, you can run: export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:$install_dir/lib"
-fi
+# Help needs no initialized hardware.
+for argument in "$@"; do
+  if [[ "$argument" == --help || "$argument" == -h ]]; then
+    exec bash "$install_dir/utils/validation_test.sh" --help
+  fi
+done
 
 bin_dir="$install_dir/bin"
-# Call the `gpu_roce_test.sh` script to validate the installation, forward all the command line arguments to it.
-bash "$install_dir/utils/gpu_roce_test.sh" "$@" --bin-dir "$bin_dir"
-
-# Check the status of the gpu_roce test script to determine if the validation was successful.
-if [[ $? -ne 0 ]]; then
-  echo "Failed to validate gpu_roce test application. Please refer to the documentation for troubleshooting." >&2
-  exit 1
-fi
+# Use the same provider-independent runner as a local realtime build. Preserve
+# its exit status, including unsupported configurations and incomplete runs.
+exec bash "$install_dir/utils/validation_test.sh" \
+  "--validation-app=$bin_dir/validation_app" \
+  "--playback-app=$bin_dir/playback_app" "$@"

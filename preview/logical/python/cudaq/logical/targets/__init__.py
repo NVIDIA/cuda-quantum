@@ -233,14 +233,22 @@ class ProgramBackend(Backend):
             **options,
         )
 
-    def compile(self, source, *, arguments=(), **_options):
-        from ..compiler import Build, import_cudaq
+    def compile(self, source, **_options):
+        from ..compiler import Build
         from ..compiler.quake import import_quake
         if isinstance(source, Build):
             return source
-        if hasattr(source, "mlir_module"):
-            return import_quake(str(source.mlir_module))
-        return import_cudaq(source, *tuple(arguments or ()))
+        if not hasattr(source, "mlir_module"):
+            raise TypeError(
+                "ProgramBackend compiles a Build or a CompiledModule, not "
+                f"{type(source).__name__}; compile a CUDA-Q kernel for this "
+                "target first with cudaq.compile(kernel, target=target)")
+        module = source.mlir_module
+        if module is None:
+            raise ValueError("the CompiledModule carries no MLIR module; "
+                             "compile it for a target whose endpoint does not "
+                             "consume JIT-compiled code")
+        return import_quake(module)
 
     def stack_metadata(self):
         entries = [("source", "CUDA-Q / Quake")]

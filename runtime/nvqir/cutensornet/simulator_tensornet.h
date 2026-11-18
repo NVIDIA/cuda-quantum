@@ -11,7 +11,6 @@
 #include "tn_simulation_state.h"
 #include "cudaq/cudaq_mpi.h"
 #include "cudaq/runtime/logger/cudaq_fmt.h"
-
 #include <cstdint>
 
 // Forward declaration

@@ -42,9 +42,7 @@
 // phase2_imm_convention.
 
 #include "cudaq_internal/device_call/RingSlotChannel.h"
-
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
-
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>

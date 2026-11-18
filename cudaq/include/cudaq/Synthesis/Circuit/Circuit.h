@@ -10,7 +10,6 @@
 
 #include "cudaq/Synthesis/Circuit/Gate.h"
 #include "llvm/Support/LogicalResult.h"
-
 #include <ostream>
 #include <string>
 #include <string_view>

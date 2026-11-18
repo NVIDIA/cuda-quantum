@@ -7,10 +7,8 @@
  ******************************************************************************/
 
 #include "CuStateVecBatch.h"
-
 #include "CuStateVecError.h"
 #include "CuStateVecState.h"
-
 #include <algorithm>
 #include <bitset>
 #include <cmath>

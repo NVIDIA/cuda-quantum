@@ -13,7 +13,6 @@
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "cudaq/Synthesis/Math/Ring/Zomega.h"
 #include "llvm/Support/LogicalResult.h"
-
 #include <array>
 #include <cassert>
 #include <complex>

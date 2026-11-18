@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
-
 #include "Support/StreamOps.h"
 #include "llvm/Support/Debug.h"
 
@@ -20,7 +19,6 @@
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Unitary.h"
 #include "cudaq/Synthesis/Synthesis/KmmSynthesize.h"
-
 #include <algorithm>
 #include <chrono>
 #include <cstdint>

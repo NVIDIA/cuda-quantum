@@ -7,14 +7,12 @@
  *******************************************************************************/
 
 #include "qlx/Analysis/CodePresentation.h"
-
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/SHA256.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/SymbolTable.h"
-
 #include <cstdint>
 #include <limits>
 #include <utility>

@@ -3,7 +3,7 @@
 Using the [CUDA-Q Realtime host API](cudaq_realtime_host_api.md), one can
 build an end-to-end RPC dispatch solution, as demonstrated in the
 GpuRoceTransceiver RDMA example  with a simple increment RPC handler
-(`realtime/unittests/utils`).  
+(`realtime/validation`).
 
 In addition to building an end-to-end application based on specific networking software,
 e.g., GpuRoceTransceiver in the above example, we also provide a networking provider
@@ -96,7 +96,7 @@ cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge);
 cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge);
 ```
 
-An example of using this wrapper interface can be found at `realtime/unittests/bridge_interface/gpu_roce/gpu_roce_bridge.cpp`.
+An example of using this wrapper interface can be found at `realtime/validation/roce_app.cpp`.
 
 ## Extending CUDA-Q realtime with a custom networking interface
 

@@ -10,7 +10,6 @@
 #include "Support/StreamOps.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "llvm/Support/Debug.h"
-
 #include <algorithm>
 #include <cstdint>
 

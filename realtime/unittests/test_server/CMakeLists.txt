@@ -15,12 +15,11 @@
 # rather than living under bridge_interface/<transport>/.
 
 # The increment handler + function-table initialiser is shared with
-# hsb_bridge_cpu, where it is compiled BELOW that directory's CPU RoCE return()
-# guard.  Referencing the source directly keeps this target independent of
+# roce_app.  Referencing the source directly keeps this target independent of
 # the CPU RoCE transport being built.
 add_executable(cudaq-realtime-test-server
   cudaq_realtime_test_server.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/../cpu_transport/init_rpc_increment_function_table_host.cpp
+  ${CUDAQ_REALTIME_SOURCE_DIR}/validation/init_rpc_increment_function_table_host.cpp
 )
 
 # CUDA headers only (no CUDA link): cudaq_realtime.h transitively includes
@@ -43,8 +42,8 @@ target_link_libraries(cudaq-realtime-test-server PRIVATE
   Threads::Threads
 )
 
-# --path=device needs the device increment handler, which is built only with
-# the gpu_roce tooling (unittests/utils, configured before this directory).
+# --path=device uses the shared device increment handler, configured before
+# this directory independently of any transport SDK.
 # The dispatch kernels in libcudaq-realtime-dispatch.a and the handler are
 # device-linked into this binary, so they share one CUDA module.  The
 # CUDAQ_REALTIME_TEST_SERVER_DEVICE_PATH property is what the device-path

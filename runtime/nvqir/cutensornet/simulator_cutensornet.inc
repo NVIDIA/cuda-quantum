@@ -12,7 +12,6 @@
 #include "tensornet_spin_op.h"
 #include "cudaq/cudaq_mpi.h"
 #include "cudaq/platform/qpu_utils.h"
-
 #include <cstdint>
 
 namespace nvqir {

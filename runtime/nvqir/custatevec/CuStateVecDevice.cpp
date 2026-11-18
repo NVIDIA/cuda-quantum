@@ -7,9 +7,7 @@
  ******************************************************************************/
 
 #include "CuStateVecDevice.h"
-
 #include "CuStateVecError.h"
-
 #include <cuda_runtime_api.h>
 #include <custatevec.h>
 

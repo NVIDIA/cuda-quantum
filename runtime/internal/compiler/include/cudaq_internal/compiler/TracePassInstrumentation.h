@@ -9,9 +9,7 @@
 #pragma once
 
 #include "cudaq/runtime/logger/tracer.h"
-
 #include "mlir/Pass/PassInstrumentation.h"
-
 #include <vector>
 
 namespace cudaq {

@@ -12,7 +12,7 @@
 /// Parallels gpu_roce_wrapper.h (which wraps GpuRoceTransceiver) so the
 /// existing bridge-tool patterns can swap in the CPU transport with
 /// minimal changes.  Used by:
-///   - hsb_bridge_cpu     (Phase 1, FPGA-facing; default tx_mode_send_for_fpga)
+///   - `roce_app --cpu`   (FPGA-facing; default tx_mode_send_for_fpga)
 ///   - CpuRoceChannel     (Phase 2, plugged into PR #4565's DeviceCallChannel
 ///                         framework; tx_mode_write_with_imm_for_peer)
 ///   - cpu_roce_test_daemon (Phase 2 service-end;

@@ -89,7 +89,7 @@ jobs:
       hsb_ref: ${{ inputs.hsb_ref || '' }}
 
   test_installer:
-    name: Test Installer  
+    name: Test Installer
     needs: build_installer
     strategy:
       matrix:
@@ -127,7 +127,7 @@ jobs:
           chmod +x "$installer_file"
           ./"$installer_file" --accept
 
-      - name: Test CUDA Quantum Realtime installation
+      - name: Build and run installed GPU dispatch example
         shell: bash
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
@@ -157,6 +157,60 @@ jobs:
           make -j$(nproc)
           ./dispatch_kernel
   
+  test_installer_validation:
+    name: Validate installation validation (UDP)
+    needs: build_installer
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+        distro: ['ubuntu24.04', 'ubi9']
+      fail-fast: false
+    runs-on: ${{ contains(matrix.platform, 'arm') && 'linux-arm64-cpu8' || 'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+      packages: read
+
+    container:
+      image: ${{ matrix.distro == 'ubi9' && 'registry.access.redhat.com/ubi9/ubi:9.6' || 'ubuntu:24.04' }}
+
+    steps:
+      - name: Download installer
+        uses: actions/download-artifact@v8
+        with:
+          name: install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }}
+          path: ./installers
+
+      - name: Install archive utilities
+        shell: bash
+        run: |
+          if command -v apt-get >/dev/null; then
+            apt-get update
+            apt-get install -y --no-install-recommends tar gzip
+          else
+            dnf install -y tar gzip
+          fi
+
+      - name: Install CUDA Quantum Realtime using installer
+        shell: bash
+        run: |
+          cd ./installers
+          installer_file=$(ls install_cuda_quantum_realtime_*)
+          echo "Found installer: $installer_file"
+          bash "$installer_file" --accept
+
+      # Exercise the validation script and UDP playback/bridge plugins from a
+      # plain installation, without an FPGA or build-tree dependencies.
+      - name: Validate installation validation (UDP)
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset LD_LIBRARY_PATH
+          # Validate UDP with separate CPU receive, dispatch and transmit threads.
+          bash /opt/nvidia/cudaq/realtime/validate.sh --udp
+          # Validate UDP with unified CPU receive, dispatch and transmit execution.
+          bash /opt/nvidia/cudaq/realtime/validate.sh --udp --dispatch=unified
+
   build_realtime:
     name: Build
     needs: changes
@@ -273,7 +327,7 @@ jobs:
             | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
           echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' \
             | tee /etc/apt/sources.list.d/kitware.list >/dev/null
-          apt update && apt install -y --no-install-recommends binutils kitware-archive-keyring cmake libibverbs1
+          apt update && apt install -y --no-install-recommends binutils kitware-archive-keyring cmake libibverbs1 python3
           cd /workspace/realtime/build
           ctest -V
 
@@ -372,6 +426,6 @@ jobs:
             | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
           echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' \
             | tee /etc/apt/sources.list.d/kitware.list >/dev/null
-          apt update && apt install -y --no-install-recommends binutils kitware-archive-keyring cmake
+          apt update && apt install -y --no-install-recommends binutils kitware-archive-keyring cmake python3
           cd /workspace/realtime/build
           ctest -V
