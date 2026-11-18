@@ -13,7 +13,7 @@ target.
    precision and reading the resulting Clifford+T resources.
 3. `02_surface_code_resource_estimate.py` descends through surface-code and
    physical compilation and reports physical qubits and scheduled runtime for
-   one logical memory.
+   a trivial kernel with one or more logical qubits.
 4. `03_fermi_hubbard.py` moves beyond teaching-scale kernels and estimates a
    Trotterized Fermi--Hubbard workload.
 5. `04_carbon_code.py` removes the built-in-target convenience and constructs

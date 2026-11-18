@@ -12,7 +12,7 @@ import cudaq
 import cudaq.logical as cql
 
 
-# Prepare and measure one logical qubit in the Z basis.
+# Prepare and measure one or more logical qubits in the Z basis.
 @cudaq.kernel
 def logical_zero_memory(logical_qubits: int):
     qubits = cudaq.qvector(logical_qubits)
