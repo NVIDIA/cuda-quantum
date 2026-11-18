@@ -12,7 +12,6 @@
 #include "CuStateVecCommunicator.h"
 #include "cudaq/cudaq_mpi.h"
 #include "cudaq/runtime/logger/logger.h"
-
 #include <algorithm>
 #include <array>
 #include <bit>

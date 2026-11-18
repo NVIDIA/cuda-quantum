@@ -8,14 +8,12 @@
 
 #include "cudaq_internal/device_call/DeviceCallChannel.h"
 #include "cudaq_internal/device_call/DeviceCallError.h"
-
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Path.h"
-
 #include <cstdlib>
 #include <dlfcn.h>
 #include <mutex>

@@ -10,7 +10,6 @@
 
 #include "qlx/Dialect/Fabric/IR/FabricOps.h"
 #include "qlx/Dialect/Fabric/Transforms/Passes.h"
-
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/IR/BuiltinOps.h"

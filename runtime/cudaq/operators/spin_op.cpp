@@ -13,7 +13,6 @@
 #include "common/EigenSparse.h"
 #include "cudaq/operators.h"
 #include "cudaq/operators/matrix.h"
-
 #include "cudaq/spin_op.h"
 
 namespace cudaq {

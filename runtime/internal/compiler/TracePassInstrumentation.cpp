@@ -7,9 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
-
 #include "mlir/Pass/Pass.h"
-
 #include <utility>
 
 namespace cudaq {

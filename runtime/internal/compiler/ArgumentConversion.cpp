@@ -21,7 +21,6 @@
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Parser/Parser.h"
-
 #include <cstdint>
 
 using namespace mlir;

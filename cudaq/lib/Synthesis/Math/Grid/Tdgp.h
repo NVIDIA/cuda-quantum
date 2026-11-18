@@ -15,7 +15,6 @@
 #include "Support/Stepper.h"
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
-
 #include <cstdint>
 #include <optional>
 #include <string>

@@ -13,7 +13,6 @@
 #include "qlx/Dialect/Phys/IR/ScheduleVerification.h"
 #include "qlx/Dialect/Phys/Transforms/Passes.h"
 #include "qlx/Dialect/Phys/Transforms/ScheduleModel.h"
-
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/SymbolTable.h"
@@ -28,7 +27,6 @@
 #include "llvm/ADT/StringSet.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>

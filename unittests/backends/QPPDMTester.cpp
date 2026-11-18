@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "QppDMCircuitSimulator.cpp"
-
 #include <gtest/gtest.h>
 #include <iostream>
 

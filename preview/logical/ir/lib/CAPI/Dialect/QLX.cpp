@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "qlx-c/Dialect/QLX.h"
-
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
 #include "mlir/CAPI/IR.h"

@@ -9,7 +9,6 @@
 #pragma once
 
 #include "cudaq/Synthesis/Math/Integer.h"
-
 #include <cstdint>
 
 // Enable mpfr_set_sj / mpfr_get_sj (intmax_t variants). Needed so that

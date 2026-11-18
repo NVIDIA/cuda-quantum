@@ -13,7 +13,6 @@
 #include "CuStateVecError.h"
 #include "CuStateVecTasks.h"
 #include "common/ObserveResult.h"
-
 #include <algorithm>
 #include <cassert>
 #include <complex>

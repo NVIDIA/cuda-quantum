@@ -18,11 +18,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "PopulateSubmodules.h"
-
 #include "qlx-c/Dialect/Fabric.h"
-
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
-
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 

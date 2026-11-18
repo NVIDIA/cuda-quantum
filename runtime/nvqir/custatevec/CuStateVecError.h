@@ -9,12 +9,10 @@
 #pragma once
 
 #include "cudaq/runtime/logger/cudaq_fmt.h"
-
 #include <cublas_v2.h>
 #include <cuda_runtime_api.h>
 #include <curand.h>
 #include <custatevec.h>
-
 #include <stdexcept>
 
 #define HANDLE_CUSTATEVEC_ERROR(x)                                             \

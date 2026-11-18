@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
-
 #include <gtest/gtest.h>
 
 #include <cstddef>

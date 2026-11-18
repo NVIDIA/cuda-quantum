@@ -11,7 +11,6 @@
 #include "Math/Geometry/ConvexSet.h"
 #include "Math/Geometry/Ellipse.h"
 #include "cudaq/Synthesis/Math/Real.h"
-
 #include <array>
 #include <optional>
 #include <utility>

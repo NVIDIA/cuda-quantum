@@ -13,7 +13,6 @@
 #include "Math/Geometry/Rectangle.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "llvm/Support/LogicalResult.h"
-
 #include <array>
 #include <cmath>
 #include <optional>

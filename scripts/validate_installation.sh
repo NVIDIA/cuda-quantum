@@ -200,29 +200,33 @@ else
     let "failed+=1"
 fi
 
+# The repo and release image keep the C++ sources under cpp/; the installer
+# test image flattens them (examples/basics/...).
+cpp_subdir=$([ -d examples/cpp ] && echo cpp/ || echo "")
+
 # Long-running tests
 tensornet_backend_skipped_tests=(\
-    examples/cpp/other/builder/vqe_h2_builder.cpp \
-    examples/cpp/other/builder/qaoa_maxcut_builder.cpp \
-    applications/cpp/vqe_h2.cpp \
-    applications/cpp/qaoa_maxcut.cpp \
-    examples/cpp/other/builder/builder.cpp \
-    applications/cpp/amplitude_estimation.cpp)
+    examples/${cpp_subdir}other/builder/vqe_h2_builder.cpp \
+    examples/${cpp_subdir}other/builder/qaoa_maxcut_builder.cpp \
+    applications/${cpp_subdir}vqe_h2.cpp \
+    applications/${cpp_subdir}qaoa_maxcut.cpp \
+    examples/${cpp_subdir}other/builder/builder.cpp \
+    applications/${cpp_subdir}amplitude_estimation.cpp)
 
 # Examples the Clifford-only simulators can run: main() executes only Clifford
 # kernels and calls neither get_state nor observe.
 clifford_backends="stim custabilizer"
 clifford_examples=(\
-    examples/cpp/basics/bernstein_vazirani.cpp \
-    examples/cpp/basics/mid_circuit_measurement.cpp \
-    examples/cpp/basics/static_kernel.cpp \
-    examples/cpp/building_kernels.cpp \
-    examples/cpp/executing_kernels_run.cpp \
-    examples/cpp/executing_kernels_run_custom.cpp \
-    examples/cpp/executing_kernels_sample.cpp \
-    examples/cpp/executing_kernels_sample_async.cpp \
-    examples/cpp/measuring_kernels.cpp \
-    examples/cpp/sample_to_run_migration.cpp)
+    examples/${cpp_subdir}basics/bernstein_vazirani.cpp \
+    examples/${cpp_subdir}basics/mid_circuit_measurement.cpp \
+    examples/${cpp_subdir}basics/static_kernel.cpp \
+    examples/${cpp_subdir}building_kernels.cpp \
+    examples/${cpp_subdir}executing_kernels_run.cpp \
+    examples/${cpp_subdir}executing_kernels_run_custom.cpp \
+    examples/${cpp_subdir}executing_kernels_sample.cpp \
+    examples/${cpp_subdir}executing_kernels_sample_async.cpp \
+    examples/${cpp_subdir}measuring_kernels.cpp \
+    examples/${cpp_subdir}sample_to_run_migration.cpp)
 
 echo "============================="
 echo "==        C++ Tests        =="
@@ -377,7 +381,7 @@ else
         echo "Skipping MPI C++ examples: found $gpu_count GPU(s), need at least 4."
     else
         echo "Running MPI C++ examples with $gpu_count GPUs."
-        for mpi_ex in $(find examples/cpp/mpi -name '*.cpp' | sort); do
+        for mpi_ex in $(find examples/${cpp_subdir}mpi -name '*.cpp' | sort); do
             filename=$(basename -- "$mpi_ex")
             filename="${filename%.*}"
             let "samples+=1"

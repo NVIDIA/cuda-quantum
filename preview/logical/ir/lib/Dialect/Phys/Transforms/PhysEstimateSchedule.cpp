@@ -13,7 +13,6 @@
 #include "qlx/Dialect/Phys/IR/PhysOps.h"
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
-
 #include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/Hashing.h"
@@ -30,7 +29,6 @@
 #include "mlir/IR/Threading.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Pass/Pass.h"
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>

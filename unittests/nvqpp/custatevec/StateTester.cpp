@@ -9,7 +9,6 @@
 #include "CuStateVecSimulationState.h"
 #include "CuStateVecState.h"
 #include "common/EigenDense.h"
-
 #include <gtest/gtest.h>
 #include <unsupported/Eigen/KroneckerProduct>
 

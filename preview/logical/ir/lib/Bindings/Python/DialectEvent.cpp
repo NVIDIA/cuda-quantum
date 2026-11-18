@@ -7,11 +7,8 @@
  ******************************************************************************/
 
 #include "PopulateSubmodules.h"
-
 #include "qlx-c/Dialect/Event.h"
-
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
-
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 

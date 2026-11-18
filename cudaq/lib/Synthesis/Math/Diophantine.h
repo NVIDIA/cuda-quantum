@@ -12,7 +12,6 @@
 #include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
 #include "cudaq/Synthesis/Synthesis/GridsynthStats.h"
 #include "llvm/Support/LogicalResult.h"
-
 #include <chrono>
 #include <cstdint>
 #include <memory>

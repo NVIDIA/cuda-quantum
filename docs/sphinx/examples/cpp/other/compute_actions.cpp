@@ -16,7 +16,6 @@
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
-
 #include <map>
 #include <vector>
 

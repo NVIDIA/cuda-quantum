@@ -31,9 +31,7 @@
 /// default; the env var overrides it.
 
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-
 #include <gtest/gtest.h>
-
 #include <poll.h>
 #include <signal.h>
 #include <sys/wait.h>
