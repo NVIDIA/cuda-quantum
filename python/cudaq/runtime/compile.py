@@ -17,7 +17,7 @@ CompiledModule = cudaq_runtime.CompiledModule
 def compile(kernel, *args, target=None, optimization_level=None):
     """
     Compiles the given quantum kernel for a target without launching it, and
-    returns the result as a :class:`CompiledModule`.
+    returns the result as a ``CompiledModule``.
 
     The kernel is compiled with the compile target and for the runtime endpoint
     of ``target``, exactly as a launch (e.g. :func:`cudaq.sample`) would
@@ -45,7 +45,7 @@ def compile(kernel, *args, target=None, optimization_level=None):
           precedence. Defaults to CUDA-Q's default level.
 
     Returns:
-      :class:`CompiledModule`: The compiled kernel.
+      ``CompiledModule``: The compiled kernel.
     """
     if isa_kernel_decorator(kernel):
         decorator = kernel
