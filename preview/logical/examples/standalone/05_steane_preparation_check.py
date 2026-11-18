@@ -58,7 +58,7 @@ def allocate_zero():
 
 # %%
 # Extract the six stabilizers without measuring the data carriers. X checks
-# use q.sx[i] and Z checks use q.sz[i]. The gadget returns the live block
+# use `q.sx[i]` and Z checks use `q.sz[i]`. The gadget returns the live block
 # followed by the three X-check and three Z-check results, in that order.
 #
 # The logical action describes ideal code-space behavior: a stabilizer check
@@ -235,9 +235,9 @@ print(f"{flagged} nonzero syndrome(s) in {len(noisy_checks)} noisy shots")
 # from a syndrome, and applying or tracking the correction, is the job of a
 # decoder. Two routes from here:
 #
-# * Export a detector error model. The EDEM workflow turns a gadget's fault
+# * Export a detector error model. The `EDEM` workflow turns a gadget's fault
 #   model into a file whose detectors and observables a decoder consumes. See
-#   docs/source/use-cases/gadget-edems.md in this repository.
+#   `docs/source/use-cases/gadget-edems.md` in this repository.
 # * Use CUDA-Q QEC directly for decoders (including GPU and real-time
 #   decoders) and numerical experiments:
 #   https://nvidia.github.io/cudaq-qec/components/qec/index.html
