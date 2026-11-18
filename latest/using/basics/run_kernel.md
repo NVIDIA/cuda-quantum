@@ -2754,7 +2754,6 @@ C++
 ::: highlight
     #include <cudaq.h>
     #include <cudaq/algorithm.h>
-
     #include <iostream>
 
     __qpu__ void kernel() {
