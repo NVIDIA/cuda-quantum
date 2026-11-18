@@ -254,6 +254,17 @@ jobs:
             --distribution cuda-quantum-cu13 \
             --version "$CUDAQ_VERSION"
 
+          # Add the CUDA-Q local label (+<sha>) so pip does not pick the
+          # PyPI release of the same version instead of this wheel.
+          if [[ "$CUDAQ_VERSION" == *+* ]]; then
+            local_label="${CUDAQ_VERSION#*+}"
+            sed -i -E "s/^version = \"([0-9]+\.[0-9]+\.[0-9]+)\"$/version = \"\1+${local_label}\"/" python/pyproject.toml
+            if ! grep -qE "^version = \"[0-9]+\.[0-9]+\.[0-9]+\+${local_label}\"$" python/pyproject.toml; then
+              echo "::error::Could not add the local version label to preview/logical/python/pyproject.toml."
+              exit 1
+            fi
+          fi
+
           mkdir -p .wheel-raw
           # Audit the toolchain against the one CUDA-Q was built with (see
           # preview/logical/cmake/SetupCUDAQ.cmake); the gcc-12 step above
