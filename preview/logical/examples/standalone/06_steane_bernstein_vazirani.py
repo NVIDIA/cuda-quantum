@@ -12,9 +12,10 @@ Each input and the oracle ancilla occupy a [[7,1,3]] code block. With the
 reserves six syndrome carriers per block, for 429 carriers in total.
 All gates are Clifford, so the circuit can run on the Stim simulator.
 
-This is ideal encoded computation. The encoder is not a fault-tolerant
-preparation protocol, and the example does not perform noisy error correction
-or decoding. The preparation check verifies encoded |0> before the run.
+This example runs noiselessly. It shows the logical circuit and the
+transversal gates, but not fault tolerance: the encoder is not a
+fault-tolerant preparation protocol, and the example performs no syndrome
+extraction, error correction, or decoding.
 """
 
 # %%
@@ -49,39 +50,6 @@ def encoded_zero(q: cql.patch[CODE]) -> cql.patch[CODE]:
 
 def allocate_zero():
     return encoded_zero(cql.ops.allocate_patch(CODE, region="compute"))
-
-
-# %%
-# Check all six stabilizers and logical Z on a separate prepared block. The
-# syndrome carrier measures each stabilizer as a whole product, and `cql.mpp`
-# measures logical Z. No data carrier is measured individually. A False
-# outcome means eigenvalue +1.
-@cql.gadget(implements=cql.std.LogicalInstrumentRef("check_steane_zero", 1, 7))
-def check_zero(
-        q: cql.patch[CODE]) -> tuple[bool, bool, bool, bool, bool, bool, bool]:
-    checks = []
-    for basis, supports in (("X", CODE.hx), ("Z", CODE.hz)):
-        for support in supports:
-            q = cql.ops.reset(q.sx[0])
-            if basis == "X":
-                q = cql.ops.h(q.sx[0])
-            for index in support:
-                if basis == "X":
-                    q = cql.ops.cx(q.sx[0], q.data[index])
-                else:
-                    q = cql.ops.cx(q.data[index], q.sx[0])
-            if basis == "X":
-                q = cql.ops.h(q.sx[0])
-            q, bits = cql.ops.mz(q.sx[0])
-            checks.append(cql.ops.parity(bits))
-    q, logical_z = cql.mpp(cql.types.Z(q[0]))
-    cql.discard(q)
-    return (*checks, logical_z)
-
-
-@cql.protocol
-def preparation_check() -> tuple[bool, bool, bool, bool, bool, bool, bool]:
-    return check_zero(allocate_zero())
 
 
 # %%
@@ -120,7 +88,6 @@ def make_device():
                               blocks * CODE.block.size,
                               native_actions=actions.clifford_set(),
                               native_instruments=(instruments.MZ,
-                                                  instruments.MX,
                                                   instruments.MPP)))
     builder.physical.set_operating_point(timing={"cycle_ns": 1.0})
     return builder.build()
@@ -138,10 +105,6 @@ def physical(protocol, device):
 # the first input block to the last, matching SECRET from left to right.
 device = make_device()
 cudaq.set_target("stim")
-checks = cudaq.run(physical(preparation_check, device), shots_count=SHOTS)
-assert checks == [[False] * 7] * SHOTS
-print(f"encoded preparation: all seven checks passed in {SHOTS} shots")
-
 results = cudaq.run(physical(bernstein_vazirani, device), shots_count=SHOTS)
 assert results == [[bit == "1" for bit in SECRET]] * SHOTS
 recovered = "".join(str(int(bit)) for bit in results[0])
