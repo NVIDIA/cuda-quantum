@@ -35,7 +35,7 @@ def compile(kernel, *args, target=None, optimization_level=None):
       kernel (:class:`Kernel`): The :class:`Kernel` to compile.
       *args (Optional[Any]): The concrete values to compile the kernel for.
           Leave empty if the kernel doesn't accept any arguments.
-      target (Optional[CompileTarget | CustomTarget]): The target to compile
+      target (Optional[`CompileTarget` | `CustomTarget`]): The target to compile
           for. A ``CompileTarget`` supplies the compilation configuration;
           a ``CustomTarget`` also supplies runtime endpoint capabilities.
           Defaults to the target currently installed with
