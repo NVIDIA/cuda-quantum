@@ -86,7 +86,7 @@ runtime implementation.
 landing payloads directly in host memory at microsecond latency. It is an
 *external* channel: unlike the in-process channels, its service runs in a
 **separate process** (or a real FPGA) reached over the network. The transport is
-`CpuRoceTransceiver`, described in [CPU RoCE Transport](cpu_transport.md).
+`CpuRoceTransceiver`.
 
 ### Wire pattern (FPGA-compatible)
 

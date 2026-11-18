@@ -124,6 +124,8 @@ exclude_patterns = [
     'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md',
     'examples/plugins/mlir_extension/README.md',
     'examples/python/dynamics/benchmarks/README.md',
+    # Staged copies of realtime/docs, included by the using/realtime pages.
+    '_mdgen/realtime/**',
 ]
 
 compiler_developer_docs = (
