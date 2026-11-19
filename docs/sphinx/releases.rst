@@ -18,7 +18,7 @@ This release comes with a range of exciting new features.
 
 We now distribute a new `EDEM package <https://pypi.org/project/cudaq-edem/>`__ to facilitate
 building DEMs dynamically for QEC at scale.
-We have also created a separate `cudaq-core PyPI package <<https://pypi.org/project/cudaq-core/>`__
+We have also created a separate `cudaq-core PyPI package <https://pypi.org/project/cudaq-core/>`__
 that contains the runtime dependencies for the 
 `cudaq-devel package <https://github.com/NVIDIA/cuda-quantum/releases/tag/0.17.0>`__ 
 that can be found as artifact in the GitHub release. These two packages
