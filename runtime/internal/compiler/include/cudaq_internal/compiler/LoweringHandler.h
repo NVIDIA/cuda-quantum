@@ -9,6 +9,8 @@
 #pragma once
 
 #include "cudaq/Target/Profile/AllProfiles.h"
+#include "mlir/Support/LogicalResult.h"
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -18,11 +20,20 @@ namespace cudaq {
 struct CompileOptions;
 }
 
+namespace mlir {
+class OpPassManager;
+}
+
 namespace cudaq_internal::compiler {
 
-/// The passes one compilation stage adds to the JIT pipeline. The pipeline
-/// runs `canonicalize`, prep, deploy, and finalize once for the whole target,
-/// and each field says where a stage's passes go:
+/// Appends a stage's passes to the pipeline at one of the places in
+/// `StagePasses`.
+using AddPassesFn = std::function<void(mlir::OpPassManager &)>;
+
+/// The compilation phases that each successive compilation stage appends to.
+///
+/// The pipeline runs `canonicalize`, prep, deploy, and finalize once for the
+/// whole target, and each field says where a stage's passes go:
 ///
 /// \code
 ///   canonicalize
@@ -38,15 +49,20 @@ namespace cudaq_internal::compiler {
 /// of the stages before it. Without them, a second stage's passes before
 /// deploy would run ahead of the first stage's passes after deploy.
 /// `getPassPipeline` checks each stage and rejects a target that breaks either
-/// limit. It also uses this struct to collect the passes of all stages, in
-/// stage order.
+/// limit.
+///
+/// Each field appends the stage's passes at its place, to a pass manager
+/// anchored on `builtin.module`, and is empty when the stage adds nothing
+/// there. MLIR cannot move passes between pass managers, so a stage gives
+/// functions that add its passes rather than the passes themselves, and
+/// `getPassPipeline` calls each one where its passes belong.
 struct StagePasses {
-  /// Passes that run after prep and before deploy.
-  std::string preDeployPasses{};
-  /// Passes that run after deploy and before finalize.
-  std::string postDeployPasses{};
-  /// Passes that run after finalize.
-  std::string postFinalizePasses{};
+  /// Adds the passes that run after prep and before deploy.
+  AddPassesFn preDeployPasses;
+  /// Adds the passes that run after deploy and before finalize.
+  AddPassesFn postDeployPasses;
+  /// Adds the passes that run after finalize.
+  AddPassesFn postFinalizePasses;
 };
 
 /// Interface for lowering between IR profiles.
@@ -66,16 +82,17 @@ public:
   /// handler. `specializesArguments` looks handlers up before a launch's
   /// options exist, and it must find the same handler that the compiler
   /// uses. A handler can still choose its passes from the options in
-  /// `getStagePasses`.
+  /// `addStagePasses`.
   virtual bool supports(const cudaq::config::Profile &input,
                         const cudaq::config::Profile &output) const = 0;
 
-  /// Return the passes this handler adds to lower \p input into \p output, or
-  /// `nullopt` if this handler cannot perform that lowering.
-  virtual std::optional<StagePasses>
-  getStagePasses(const cudaq::config::Profile &input,
-                 const cudaq::config::Profile &output,
-                 const cudaq::CompileOptions &options) const = 0;
+  /// Set the fields of \p passes to add the passes that lower \p input into
+  /// \p output. Fail if this handler cannot perform that lowering. The
+  /// functions may run after this returns, so they capture what they need by
+  /// value.
+  virtual mlir::LogicalResult addStagePasses(
+      const cudaq::config::Profile &input, const cudaq::config::Profile &output,
+      const cudaq::CompileOptions &options, StagePasses &passes) const = 0;
 
   /// Whether this stage needs the values of the kernel's arguments. If it
   /// does, the compiler replaces each argument with its value before the
@@ -93,24 +110,16 @@ public:
   }
 };
 
-/// Pipeline text for `prepare-for-wireset`, which unrolls the loops that
+/// Append `prepare-for-wireset`, which unrolls the loops that
 /// \p profile selects, up to its limit, and moves the kernel's qubits onto
 /// wires. A qubit picked by a longer loop or a run-time index stays a
 /// reference. Stages run it at every optimization level, since the level only
 /// changes how much we optimize, not the representation. With \p addWireSet,
 /// it also borrows every qubit from a new wire set, which `qubit-mapping`
 /// needs.
-inline std::string
-convertToWires(const cudaq::config::QuakeUnmappedProfile &profile,
-               bool addWireSet = false) {
-  return std::string("prepare-for-wireset{") +
-         (addWireSet ? "add-wireset=true " : "") +
-         "maximum-iterations=" + std::to_string(profile.maxUnrollIterations) +
-         (profile.unrollLoops == cudaq::config::LoopUnrolling::index_use
-              ? " unroll-only-index-use-loops=true"
-              : "") +
-         "}";
-}
+void addConvertToWires(mlir::OpPassManager &pm,
+                       const cudaq::config::QuakeUnmappedProfile &profile,
+                       bool addWireSet = false);
 
 /// Return the first handler in \p handlers supporting the conversion
 /// \p input -> \p output, or nullptr if none does.

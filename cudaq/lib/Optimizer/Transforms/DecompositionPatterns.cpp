@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "DecompositionPatterns.h"
+#include "EulerDecomposition.h"
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
 #include "QuakeOperatorCreator.h"
@@ -2088,14 +2089,19 @@ REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, {"rz<adj>", "rz"});
 
 // quake.u3(θ,ϕ,λ) target
 // ──────────────────────────────────
-// quake.rz(λ) target
-// quake.rx(π/2) target
-// quake.rz(θ) target
-// quake.rx(-π/2) target
-// quake.rz(ϕ) target
+// quake.rz(λ - π/2) target
+// quake.rx(θ) target
+// quake.rz(ϕ + π/2) target
+//
+// U3(θ,ϕ,λ) = exp(i(ϕ+λ)/2) Rz(ϕ) Ry(θ) Rz(λ) and Ry(θ) = Rz(π/2) Rx(θ)
+// Rz(-π/2), so the phase (ϕ+λ)/2 is corrected exactly.
+//
+// If the u3 is uncontrolled, has constant constant angles and contains a
+// decomposition hint in the form of a `euler` op attribute, the decomposition
+// will be performed according to the hint (either `ZXZ` or `XZX`).
 struct U3ToRotationsType; // forward declare the pattern type, defined in the
+                          // macro below
 
-// macro below
 struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
                                                           cudaq::quake::U3Op> {
   using cudaq::DecompositionPattern<U3ToRotationsType,
@@ -2122,6 +2128,13 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
       return rewriter.notifyMatchFailure(
           op, "U3ToRotations requires phi and lambda to have the same type");
 
+    if (controls.empty())
+      if (auto decomposition = cudaq::opt::EulerDecomposition::get(op)) {
+        SmallVector<Value> targets{decomposition->emit(rewriter, loc, target)};
+        rewriter.replaceOp(op, cudaq::quake::getWireValues({}, targets));
+        return success();
+      }
+
     // Preserve a literal zero so emitPhaseCorrection can omit the correction.
     // Constructing 0 + 0 and dividing first would hide it from the helper.
     const bool hasZeroPhase = matchPattern(phi, m_AnyZeroFloat()) &&
@@ -2135,27 +2148,20 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
       lam = arith::NegFOp::create(rewriter, loc, lam);
     }
 
-    // Necessary/Helpful constants
-    Type angleType = op.getParameter(0).getType();
-    Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
-    Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
+    Value pi_2 = createConstant(loc, M_PI_2, phi.getType(), rewriter);
+    Value firstAngle = arith::SubFOp::create(rewriter, loc, lam, pi_2);
+    Value lastAngle = arith::AddFOp::create(rewriter, loc, phi, pi_2);
 
     SmallVector<Value> targets{target};
     auto negatedControls = op.getNegatedQubitControlsAttr();
     cudaq::quake::createAndThreadGate<cudaq::quake::RzOp>(
-        rewriter, loc, UnitAttr{}, ValueRange{lam}, controls, targets,
+        rewriter, loc, UnitAttr{}, ValueRange{firstAngle}, controls, targets,
         negatedControls);
     cudaq::quake::createAndThreadGate<cudaq::quake::RxOp>(
-        rewriter, loc, UnitAttr{}, ValueRange{pi_2}, controls, targets,
-        negatedControls);
-    cudaq::quake::createAndThreadGate<cudaq::quake::RzOp>(
         rewriter, loc, UnitAttr{}, ValueRange{theta}, controls, targets,
         negatedControls);
-    cudaq::quake::createAndThreadGate<cudaq::quake::RxOp>(
-        rewriter, loc, UnitAttr{}, ValueRange{negPi_2}, controls, targets,
-        negatedControls);
     cudaq::quake::createAndThreadGate<cudaq::quake::RzOp>(
-        rewriter, loc, UnitAttr{}, ValueRange{phi}, controls, targets,
+        rewriter, loc, UnitAttr{}, ValueRange{lastAngle}, controls, targets,
         negatedControls);
 
     Value phase = op.getParameters()[1];
@@ -2172,7 +2178,8 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(U3ToRotations, {"u3(n)", "rz(n)", "rx(n)"});
+REGISTER_DECOMPOSITION_PATTERN(U3ToRotations, {"u3", "rz", "rx"},
+                               {"u3(n)", "rz(n)", "rx(n)"});
 
 } // namespace
 

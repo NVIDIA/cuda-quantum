@@ -56,7 +56,7 @@ struct PrepareForWiresetPipelineOptions
 };
 } // namespace
 
-static void createPrepareForWiresetPipeline(
+void cudaq::opt::addPrepareForWiresetPipeline(
     OpPassManager &pm, const cudaq::opt::LoopUnrollOptions &loopUnrollOptions,
     bool addWireset) {
   auto &funcPM = pm.nest<func::FuncOp>();
@@ -125,7 +125,7 @@ void cudaq::opt::registerPrepareForWiresetPipeline() {
               opt.unrollOnlyAliasingQuantumAccessLoops);
         setIt(loopUnrollOptions.unrollOnlyIndexUseLoops,
               opt.unrollOnlyIndexUseLoops);
-        createPrepareForWiresetPipeline(pm, loopUnrollOptions, opt.addWireset);
+        addPrepareForWiresetPipeline(pm, loopUnrollOptions, opt.addWireset);
       });
 }
 
