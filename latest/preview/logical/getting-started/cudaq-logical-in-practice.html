@@ -80,7 +80,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/examples/index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/logical-resource-estimate.html">Logical Resource Estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/clifford-t.html">Clifford+T Synthesis</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/cudaq-resource-estimate.html">Surface-code resource estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/carbon-code.html">Carbon Code Target</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/gidney-ekera.html">Gidney–Ekerå RSA</a></li>
@@ -91,6 +91,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/p1-placement.html">P1 Placement</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/code-and-gadget.html">Code and Gadget</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/steane-preparation-check.html">Steane Preparation Check with Noise on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
@@ -392,9 +393,6 @@ representation, which can be inspected independently of the Bell kernel:</p>
 
 
 <span class="n">code</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">materialize</span><span class="p">(</span><span class="n">Steane</span><span class="p">)</span>
-
-<span class="k">assert</span> <span class="p">(</span><span class="n">Steane</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">Steane</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">Steane</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">Steane</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">13</span>
 </pre></div>
 </div>
 <p>The same code is also available as the built-in <code class="docutils literal notranslate"><span class="pre">cql.codes.Steane</span></code>. To use it,
@@ -521,10 +519,13 @@ explicit estimates below share:</p>
 </section>
 <section id="compile-the-kernel-for-cuda-q-logical">
 <h2>4. Compile the kernel for CUDA-Q Logical<a class="headerlink" href="#compile-the-kernel-for-cuda-q-logical" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">cql.compiler.import_cudaq</span></code> compiles the kernel to a logical program, a P0
+<p><code class="docutils literal notranslate"><span class="pre">cudaq.compile</span></code> compiles the kernel with the target’s pipeline without
+launching it. Pass the compiled module directly to
+<code class="docutils literal notranslate"><span class="pre">cql.compiler.import_quake</span></code> to create a logical program, a P0
 <a class="reference internal" href="concepts.html#definitions-builds-and-compilation"><span class="std std-ref">build</span></a>. The P0 program returns
 one result per measurement, in the kernel’s return order:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">logical</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">import_cudaq</span><span class="p">(</span><span class="n">bell_pair</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">module</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">bell_pair</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
+<span class="n">logical</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">import_quake</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Pass the build to <code class="docutils literal notranslate"><span class="pre">cql.estimate</span></code> to count its logical resources:</p>
@@ -659,13 +660,6 @@ static counts with typed views; the schedule results are available in the
 <span class="n">kernel_static</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">FabricCounts</span><span class="o">.</span><span class="n">from_annotations</span><span class="p">(</span><span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span>
 <span class="n">kernel_schedule</span> <span class="o">=</span> <span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"SCHEDULE"</span><span class="p">]</span>
 
-<span class="k">assert</span> <span class="n">kernel_logical</span><span class="o">.</span><span class="n">logical_qubits_peak</span> <span class="o">==</span> <span class="n">logical_resources</span><span class="o">.</span><span class="n">logical_qubits_peak</span>
-<span class="k">assert</span> <span class="n">kernel_logical</span><span class="o">.</span><span class="n">actions</span> <span class="o">==</span> <span class="n">logical_resources</span><span class="o">.</span><span class="n">actions</span>
-<span class="k">assert</span> <span class="n">kernel_static</span><span class="o">.</span><span class="n">patches_peak</span> <span class="o">==</span> <span class="n">static_resources</span><span class="o">.</span><span class="n">patches_peak</span>
-<span class="k">assert</span> <span class="n">kernel_static</span><span class="o">.</span><span class="n">gadget_calls</span> <span class="o">==</span> <span class="n">static_resources</span><span class="o">.</span><span class="n">gadget_calls</span>
-<span class="k">assert</span> <span class="n">kernel_schedule</span><span class="p">[</span><span class="s2">"physical_qubits"</span><span class="p">]</span> <span class="o">==</span> <span class="n">schedule_resources</span><span class="o">.</span><span class="n">physical_qubits</span>
-<span class="k">assert</span> <span class="n">kernel_schedule</span><span class="p">[</span><span class="s2">"event_count"</span><span class="p">]</span> <span class="o">==</span> <span class="n">schedule_resources</span><span class="o">.</span><span class="n">event_count</span>
-<span class="k">assert</span> <span class="n">kernel_schedule</span><span class="p">[</span><span class="s2">"makespan_ns"</span><span class="p">]</span> <span class="o">==</span> <span class="n">schedule_resources</span><span class="o">.</span><span class="n">makespan_ns</span>
 </pre></div>
 </div>
 <p>Both entry points estimate the same Bell pair on the same device. An

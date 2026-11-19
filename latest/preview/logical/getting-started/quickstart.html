@@ -80,7 +80,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/examples/index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/logical-resource-estimate.html">Logical Resource Estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/clifford-t.html">Clifford+T Synthesis</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/cudaq-resource-estimate.html">Surface-code resource estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/carbon-code.html">Carbon Code Target</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/gidney-ekera.html">Gidney–Ekerå RSA</a></li>
@@ -91,6 +91,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/p1-placement.html">P1 Placement</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/code-and-gadget.html">Code and Gadget</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/steane-preparation-check.html">Steane Preparation Check with Noise on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
@@ -374,31 +375,14 @@ Hadamard and controlled-X action counts:</p>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">estimator</span><span class="p">)</span>
 
 <span class="c1"># %%</span>
-<span class="c1"># Estimate the kernel. For logical targets, `estimate.resources` reports the</span>
-<span class="c1"># logical program: gate counts, qubits, and depth. Measurements appear as `mz`</span>
-<span class="c1"># and qubit preparations as `reset`.</span>
+<span class="c1"># Estimate the kernel and read its logical-qubit and gate counts.</span>
 <span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">bell_pair</span><span class="p">)</span>
 <span class="n">resources</span> <span class="o">=</span> <span class="n">estimate</span><span class="o">.</span><span class="n">resources</span>
 
-<span class="k">assert</span> <span class="n">resources</span><span class="o">.</span><span class="n">num_qubits</span> <span class="o">==</span> <span class="mi">2</span>
-<span class="k">assert</span> <span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"h"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-<span class="k">assert</span> <span class="n">resources</span><span class="o">.</span><span class="n">count_controls</span><span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-<span class="k">assert</span> <span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"mz"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
-
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Logical Bell-pair resources:"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  peak logical qubits: </span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">num_qubits</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  logical operations: </span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  logical depth (serial upper bound): </span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">depth</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  logical gate counts: </span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-
-<span class="c1"># %%</span>
-<span class="c1"># Going deeper: `resources` is a summary of the full logical estimate stored in</span>
-<span class="c1"># `estimate.annotations["LOGICAL"]`. That annotation also carries details that</span>
-<span class="c1"># `Resources` cannot express, such as idle sites, discards, synthesis demand,</span>
-<span class="c1"># and resource requests. Rehydrate it as a typed object when you need them.</span>
-<span class="n">logical</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">LogicalEstimate</span><span class="o">.</span><span class="n">from_annotations</span><span class="p">(</span><span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">logical</span><span class="o">.</span><span class="n">logical_qubits_peak</span> <span class="o">==</span> <span class="n">resources</span><span class="o">.</span><span class="n">num_qubits</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  logical estimate: </span><span class="si">{</span><span class="n">logical</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Hadamard actions: </span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">'h'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  controlled-X actions: </span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">count_controls</span><span class="p">(</span><span class="s1">'x'</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

@@ -1643,6 +1643,9 @@ latest
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.translate){.reference
                 .internal}
+            -   [[`compile()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.compile){.reference
+                .internal}
             -   [[`estimate()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.estimate){.reference
                 .internal}
@@ -2962,6 +2965,76 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     .docutils .literal .notranslate}[`void`{.code .docutils .literal
     .notranslate}]{.pre} }
     :::
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[compile]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[target]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[optimization_level]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.compile "Permalink to this definition"){.headerlink}
+
+:   Compiles the given quantum kernel for a target without launching it,
+    and returns the result as a [`CompiledModule`{.docutils .literal
+    .notranslate}]{.pre}.
+
+    The kernel is compiled with the compile target and for the runtime
+    endpoint of [`target`{.docutils .literal .notranslate}]{.pre},
+    exactly as a launch (e.g. [[`cudaq.sample()`{.xref .py .py-func
+    .docutils .literal
+    .notranslate}]{.pre}](#cudaq.sample "cudaq.sample"){.reference
+    .internal}) would compile it. In particular, a JIT-compiled entry
+    point is built if, and only if, such a launch would build one. The
+    MLIR the target's pipeline produced is available as
+    [`CompiledModule.mlir_module`{.docutils .literal
+    .notranslate}]{.pre}. When [`target`{.docutils .literal
+    .notranslate}]{.pre} is a bare [`CompileTarget`{.docutils .literal
+    .notranslate}]{.pre}, runtime endpoint capabilities come from the
+    currently installed target.
+
+    Launch policies are not taken into account: the module is compiled
+    with the default options, not those a specific algorithm such as
+    [[`cudaq.observe()`{.xref .py .py-func .docutils .literal
+    .notranslate}]{.pre}](#cudaq.observe "cudaq.observe"){.reference
+    .internal} would request.
+
+    Parameters[:]{.colon}
+
+    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal} to compile.
+
+        -   **\*args** (*Optional\[Any\]*) -- The concrete values to
+            compile the kernel for. Leave empty if the kernel doesn't
+            accept any arguments.
+
+        -   **target** (Optional\[[`CompileTarget`{.code .docutils
+            .literal .notranslate}]{.pre} \| [`CustomTarget`{.code
+            .docutils .literal .notranslate}]{.pre}\]) -- The target to
+            compile for. A [`CompileTarget`{.docutils .literal
+            .notranslate}]{.pre} supplies the compilation configuration;
+            a [`CustomTarget`{.docutils .literal .notranslate}]{.pre}
+            also supplies runtime endpoint capabilities. Defaults to the
+            target currently installed with [[`cudaq.set_target()`{.xref
+            .py .py-func .docutils .literal
+            .notranslate}]{.pre}](#cudaq.set_target "cudaq.set_target"){.reference
+            .internal}.
+
+        -   **optimization_level**
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
+            .external}*\]*) -- The quantum optimization level, an
+            integer between 0 and 3. A level declared on the kernel
+            takes precedence. Defaults to CUDA-Q's default level.
+
+    Returns[:]{.colon}
+
+    :   The compiled kernel.
+
+    Return type[:]{.colon}
+
+    :   [`CompiledModule`{.docutils .literal .notranslate}]{.pre}
 
 ```{=html}
 <!-- -->

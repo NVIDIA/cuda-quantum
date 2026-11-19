@@ -21,7 +21,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="CUDA-Q Logical Resource Estimate" href="cudaq-resource-estimate.html" />
+    <link rel="next" title="Surface-code resource estimate" href="cudaq-resource-estimate.html" />
     <link rel="prev" title="Logical Resource Estimate" href="logical-resource-estimate.html" /> 
 </head>
 
@@ -80,7 +80,7 @@
 <li class="toctree-l2 current"><a class="reference internal" href="index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="logical-resource-estimate.html">Logical Resource Estimate</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Clifford+T Synthesis</a></li>
-<li class="toctree-l3"><a class="reference internal" href="cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cudaq-resource-estimate.html">Surface-code resource estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="carbon-code.html">Carbon Code Target</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gidney-ekera.html">Gidney–Ekerå RSA</a></li>
@@ -91,6 +91,7 @@
 <li class="toctree-l3"><a class="reference internal" href="p1-placement.html">P1 Placement</a></li>
 <li class="toctree-l3"><a class="reference internal" href="code-and-gadget.html">Code and Gadget</a></li>
 <li class="toctree-l3"><a class="reference internal" href="physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="steane-preparation-check.html">Steane Preparation Check with Noise on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
@@ -321,7 +322,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="logical-resource-estimate.html" class="btn btn-neutral float-left" title="Logical Resource Estimate" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cudaq-resource-estimate.html" class="btn btn-neutral float-right" title="CUDA-Q Logical Resource Estimate" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cudaq-resource-estimate.html" class="btn btn-neutral float-right" title="Surface-code resource estimate" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -371,8 +372,6 @@ synthesizes a CUDA-Q rotation into Clifford+T operations before estimation.</p>
     <span class="n">precision</span><span class="p">:</span> <span class="n">estimate_at_precision</span><span class="p">(</span><span class="n">precision</span><span class="p">)</span> <span class="k">for</span> <span class="n">precision</span> <span class="ow">in</span> <span class="n">precisions</span>
 <span class="p">}</span>
 
-<span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">estimate</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"t"</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">estimate</span> <span class="ow">in</span> <span class="n">estimates</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Clifford+T resources by rotation precision:"</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">precision</span><span class="p">,</span> <span class="n">estimate</span> <span class="ow">in</span> <span class="n">estimates</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
     <span class="n">resources</span> <span class="o">=</span> <span class="n">estimate</span><span class="o">.</span><span class="n">resources</span>
@@ -380,14 +379,6 @@ synthesizes a CUDA-Q rotation into Clifford+T operations before estimation.</p>
           <span class="sa">f</span><span class="s2">"T=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">'t'</span><span class="p">)</span><span class="si">}</span><span class="s2">, "</span>
           <span class="sa">f</span><span class="s2">"T-depth=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">t_depth</span><span class="si">}</span><span class="s2">, "</span>
           <span class="sa">f</span><span class="s2">"depth=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">depth</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-
-<span class="c1"># %%</span>
-<span class="c1"># Going deeper: the full logical estimate lives in</span>
-<span class="c1"># `estimate.annotations["LOGICAL"]`. For example, `synthesis_demand` lists the</span>
-<span class="c1"># gates that a fault-tolerant machine has to synthesize or distill.</span>
-<span class="n">tightest</span> <span class="o">=</span> <span class="n">estimates</span><span class="p">[</span><span class="n">precisions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"Synthesis demand at the tightest precision:"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">tightest</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s1">'LOGICAL'</span><span class="p">][</span><span class="s1">'synthesis_demand'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><a class="reference internal" href="index.html"><span class="std std-doc">Back to examples</span></a></p>
@@ -398,7 +389,7 @@ synthesizes a CUDA-Q rotation into Clifford+T operations before estimation.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="logical-resource-estimate.html" class="btn btn-neutral float-left" title="Logical Resource Estimate" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cudaq-resource-estimate.html" class="btn btn-neutral float-right" title="CUDA-Q Logical Resource Estimate" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cudaq-resource-estimate.html" class="btn btn-neutral float-right" title="Surface-code resource estimate" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CUDA-Q Logical Resource Estimate &mdash; CUDA-Q Logical  documentation</title>
+  <title>Surface-code resource estimate &mdash; CUDA-Q Logical  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -80,7 +80,7 @@
 <li class="toctree-l2 current"><a class="reference internal" href="index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="logical-resource-estimate.html">Logical Resource Estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="clifford-t.html">Clifford+T Synthesis</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Surface-code resource estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="carbon-code.html">Carbon Code Target</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gidney-ekera.html">Gidney–Ekerå RSA</a></li>
@@ -91,6 +91,7 @@
 <li class="toctree-l3"><a class="reference internal" href="p1-placement.html">P1 Placement</a></li>
 <li class="toctree-l3"><a class="reference internal" href="code-and-gadget.html">Code and Gadget</a></li>
 <li class="toctree-l3"><a class="reference internal" href="physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="steane-preparation-check.html">Steane Preparation Check with Noise on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
@@ -315,7 +316,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="index.html">CUDA-Q Logical by Example</a></li>
-      <li class="breadcrumb-item active">CUDA-Q Logical Resource Estimate</li>
+      <li class="breadcrumb-item active">Surface-code resource estimate</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/use-cases/examples/cudaq-resource-estimate.md.txt" rel="nofollow"> View page source</a>
       </li>
@@ -328,28 +329,19 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section class="tex2jax_ignore mathjax_ignore" id="cuda-q-logical-resource-estimate">
-<h1>CUDA-Q Logical Resource Estimate<a class="headerlink" href="#cuda-q-logical-resource-estimate" title="Link to this heading"></a></h1>
+  <section class="tex2jax_ignore mathjax_ignore" id="surface-code-resource-estimate">
+<h1>Surface-code resource estimate<a class="headerlink" href="#surface-code-resource-estimate" title="Link to this heading"></a></h1>
 <p><a class="reference download internal" download="" href="../../_downloads/adb34a8f84d9e16e562e16765068038f/02_surface_code_resource_estimate.py"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">02_surface_code_resource_estimate.py</span></code></span></a>
-lowers a CUDA-Q kernel through configurable surface-code targets and reports
-the resulting resources.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
-<span class="c1"># Copyright (c) 2026 NVIDIA Corporation &amp; Affiliates.                          #</span>
-<span class="c1"># All rights reserved.                                                         #</span>
-<span class="c1">#                                                                              #</span>
-<span class="c1"># This source code and the accompanying materials are made available under     #</span>
-<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
-<span class="c1"># ============================================================================ #</span>
-<span class="sd">"""Explore physical surface-code estimates with a configurable target."""</span>
-
-<span class="c1"># %%</span>
-<span class="c1"># Import CUDA-Q and the CUDA-Q Logical target and result APIs.</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+prepares and measures one or more logical zero states using a distance-11 surface
+code.
+The target handles encoding, physical lowering, and scheduling; the example
+reports physical qubits and scheduled runtime from the <code class="docutils literal notranslate"><span class="pre">SCHEDULE</span></code> annotation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
 
 
 <span class="c1"># %%</span>
-<span class="c1"># Author a logical-zero memory kernel whose qubit demand is a parameter.</span>
+<span class="c1"># Prepare and measure one or more logical qubits in the Z basis.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">logical_zero_memory</span><span class="p">(</span><span class="n">logical_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">logical_qubits</span><span class="p">)</span>
@@ -357,101 +349,42 @@ the resulting resources.</p>
 
 
 <span class="c1"># %%</span>
-<span class="c1"># Establish a one-qubit, distance-three reference configuration.</span>
-<span class="n">baseline_qubits</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="n">baseline_target</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">surface_physical_target</span><span class="p">(</span>
-    <span class="n">logical_capacity</span><span class="o">=</span><span class="n">baseline_qubits</span><span class="p">,</span>
-    <span class="n">distance</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<span class="c1"># Select a distance-11 surface-code target with room for three logical qubits.</span>
+<span class="n">logical_qubits</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">surface_physical_target</span><span class="p">(</span>
+    <span class="n">logical_capacity</span><span class="o">=</span><span class="n">logical_qubits</span><span class="p">,</span>
+    <span class="n">distance</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">baseline_target</span><span class="p">)</span>
-<span class="n">baseline_target</span><span class="o">.</span><span class="n">print_stack</span><span class="p">()</span>
-
-<span class="n">baseline_estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">logical_zero_memory</span><span class="p">,</span> <span class="n">baseline_qubits</span><span class="p">)</span>
-<span class="n">baseline_analytical</span> <span class="o">=</span> <span class="n">baseline_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"ANALYTICAL"</span><span class="p">]</span>
-<span class="n">baseline_schedule</span> <span class="o">=</span> <span class="n">baseline_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"SCHEDULE"</span><span class="p">]</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
 
 <span class="c1"># %%</span>
-<span class="c1"># Increase the workload capacity and code distance in a second physical study.</span>
-<span class="n">scaled_qubits</span> <span class="o">=</span> <span class="mi">3</span>
-<span class="n">scaled_target</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">surface_physical_target</span><span class="p">(</span>
-    <span class="n">logical_capacity</span><span class="o">=</span><span class="n">scaled_qubits</span><span class="p">,</span>
-    <span class="n">distance</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">scaled_target</span><span class="p">)</span>
+<span class="c1"># The target handles encoding, physical lowering, and scheduling.</span>
+<span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">logical_zero_memory</span><span class="p">,</span> <span class="n">logical_qubits</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">estimate</span><span class="p">)</span>
 
-<span class="n">scaled_estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">logical_zero_memory</span><span class="p">,</span> <span class="n">scaled_qubits</span><span class="p">)</span>
-<span class="n">scaled_static</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">FabricCounts</span><span class="o">.</span><span class="n">from_annotations</span><span class="p">(</span>
-    <span class="n">scaled_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span>
-<span class="n">scaled_analytical</span> <span class="o">=</span> <span class="n">scaled_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"ANALYTICAL"</span><span class="p">]</span>
-<span class="n">scaled_schedule</span> <span class="o">=</span> <span class="n">scaled_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"SCHEDULE"</span><span class="p">]</span>
+<span class="c1">#%%</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"SCHEDULE"</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Surface-code memory resources:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  physical qubits: </span><span class="si">{</span><span class="n">schedule</span><span class="p">[</span><span class="s1">'physical_qubits'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  makespan: </span><span class="si">{</span><span class="n">schedule</span><span class="p">[</span><span class="s1">'makespan_ns'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
 
 <span class="c1"># %%</span>
-<span class="c1"># Hold the layout fixed while changing the physical operating assumptions.</span>
-<span class="n">sensitivity_target</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">surface_physical_target</span><span class="p">(</span>
-    <span class="n">logical_capacity</span><span class="o">=</span><span class="n">scaled_qubits</span><span class="p">,</span>
-    <span class="n">distance</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-    <span class="n">p_phys</span><span class="o">=</span><span class="mf">1.0e-4</span><span class="p">,</span>
-    <span class="n">failure_budget</span><span class="o">=</span><span class="mf">1.0e-6</span><span class="p">,</span>
-    <span class="n">cycle_time</span><span class="o">=</span><span class="mf">5.0e-9</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">sensitivity_target</span><span class="p">)</span>
+<span class="c1"># The target is a stack of layers, one per level of abstraction in CUDA-Q</span>
+<span class="c1"># Logical. Print the stack to see which layers it is made of.</span>
+<span class="n">target</span><span class="o">.</span><span class="n">print_stack</span><span class="p">()</span>
 
-<span class="n">sensitivity_estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">logical_zero_memory</span><span class="p">,</span> <span class="n">scaled_qubits</span><span class="p">)</span>
-<span class="n">sensitivity_analytical</span> <span class="o">=</span> <span class="n">sensitivity_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"ANALYTICAL"</span><span class="p">]</span>
-<span class="n">sensitivity_schedule</span> <span class="o">=</span> <span class="n">sensitivity_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"SCHEDULE"</span><span class="p">]</span>
-
-<span class="c1"># %%</span>
-<span class="c1"># Verify which metrics change with layout and operating-point parameters.</span>
-<span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">scaled_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span>
-    <span class="s2">"LOGICAL"</span><span class="p">,</span>
-    <span class="s2">"STATIC"</span><span class="p">,</span>
-    <span class="s2">"ANALYTICAL"</span><span class="p">,</span>
-    <span class="s2">"SCHEDULE"</span><span class="p">,</span>
-<span class="p">}</span>
-<span class="k">assert</span> <span class="n">baseline_schedule</span><span class="p">[</span><span class="s2">"physical_qubits"</span><span class="p">]</span> <span class="o">==</span> <span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Surface</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">size</span>
-<span class="k">assert</span> <span class="n">scaled_static</span><span class="o">.</span><span class="n">logical_qubits_peak</span> <span class="o">==</span> <span class="n">scaled_qubits</span>
-<span class="k">assert</span> <span class="n">scaled_schedule</span><span class="p">[</span><span class="s2">"physical_qubits"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">baseline_schedule</span><span class="p">[</span><span class="s2">"physical_qubits"</span><span class="p">]</span>
-<span class="k">assert</span> <span class="n">scaled_schedule</span><span class="p">[</span><span class="s2">"event_count"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">baseline_schedule</span><span class="p">[</span><span class="s2">"event_count"</span><span class="p">]</span>
-<span class="k">assert</span> <span class="n">sensitivity_schedule</span><span class="p">[</span><span class="s2">"physical_qubits"</span><span class="p">]</span> <span class="o">==</span> <span class="n">scaled_schedule</span><span class="p">[</span>
-    <span class="s2">"physical_qubits"</span><span class="p">]</span>
-<span class="k">assert</span> <span class="n">sensitivity_schedule</span><span class="p">[</span><span class="s2">"event_count"</span><span class="p">]</span> <span class="o">==</span> <span class="n">scaled_schedule</span><span class="p">[</span><span class="s2">"event_count"</span><span class="p">]</span>
-<span class="k">assert</span> <span class="n">sensitivity_schedule</span><span class="p">[</span><span class="s2">"makespan_ns"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">scaled_schedule</span><span class="p">[</span><span class="s2">"makespan_ns"</span><span class="p">]</span>
-<span class="k">assert</span> <span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s2">"logical_error"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">scaled_analytical</span><span class="p">[</span>
-    <span class="s2">"logical_error"</span><span class="p">]</span>
-<span class="k">assert</span> <span class="n">scaled_analytical</span><span class="p">[</span><span class="s2">"budget_met"</span><span class="p">]</span>
-<span class="k">assert</span> <span class="ow">not</span> <span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s2">"budget_met"</span><span class="p">]</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s2">"Surface-code layout scaling:"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"  baseline (1 logical qubit, distance 3):"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    physical qubits: </span><span class="si">{</span><span class="n">baseline_schedule</span><span class="p">[</span><span class="s1">'physical_qubits'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    scheduled events: </span><span class="si">{</span><span class="n">baseline_schedule</span><span class="p">[</span><span class="s1">'event_count'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    makespan: </span><span class="si">{</span><span class="n">baseline_schedule</span><span class="p">[</span><span class="s1">'makespan_ns'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"  scaled memory (3 logical qubits, distance 5):"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    physical qubits: </span><span class="si">{</span><span class="n">scaled_schedule</span><span class="p">[</span><span class="s1">'physical_qubits'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    scheduled events: </span><span class="si">{</span><span class="n">scaled_schedule</span><span class="p">[</span><span class="s1">'event_count'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    makespan: </span><span class="si">{</span><span class="n">scaled_schedule</span><span class="p">[</span><span class="s1">'makespan_ns'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s2">"Operating-point sensitivity at 3 logical qubits and distance 5:"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"  target defaults:"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    cycle time: </span><span class="si">{</span><span class="n">scaled_analytical</span><span class="p">[</span><span class="s1">'cycle_time'</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1.0e9</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    physical error rate: </span><span class="si">{</span><span class="n">scaled_analytical</span><span class="p">[</span><span class="s1">'p_phys'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    failure budget: "</span>
-      <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">scaled_analytical</span><span class="p">[</span><span class="s1">'failure_budget'</span><span class="p">][</span><span class="s1">'total'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    logical error: </span><span class="si">{</span><span class="n">scaled_analytical</span><span class="p">[</span><span class="s1">'logical_error'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    budget met: </span><span class="si">{</span><span class="n">scaled_analytical</span><span class="p">[</span><span class="s1">'budget_met'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    scheduled makespan: </span><span class="si">{</span><span class="n">scaled_schedule</span><span class="p">[</span><span class="s1">'makespan_ns'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"  changed physical assumptions:"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    cycle time: "</span>
-      <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s1">'cycle_time'</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1.0e9</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    physical error rate: </span><span class="si">{</span><span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s1">'p_phys'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    failure budget: "</span>
-      <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s1">'failure_budget'</span><span class="p">][</span><span class="s1">'total'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    logical error: </span><span class="si">{</span><span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s1">'logical_error'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    budget met: </span><span class="si">{</span><span class="n">sensitivity_analytical</span><span class="p">[</span><span class="s1">'budget_met'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    scheduled makespan: "</span>
-      <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sensitivity_schedule</span><span class="p">[</span><span class="s1">'makespan_ns'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> ns"</span><span class="p">)</span>
+<span class="c1">#%%</span>
+<span class="c1"># Each layer contributes its own annotations to the estimate. Print them all</span>
+<span class="c1"># to see the full estimates across every layer.</span>
+<span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">:"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">e</span><span class="p">]:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    </span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">e</span><span class="p">][</span><span class="n">item</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>For the result layers and model assumptions, see
+<a class="reference internal" href="../estimation.html"><span class="std std-doc">Resource estimation</span></a>.</p>
 <p><a class="reference internal" href="index.html"><span class="std std-doc">Back to examples</span></a></p>
 </section>
 

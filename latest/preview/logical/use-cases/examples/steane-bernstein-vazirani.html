@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="T-State Distillation" href="distillation.html" />
-    <link rel="prev" title="Standalone Physical Schedule" href="physical-schedule.html" /> 
+    <link rel="prev" title="Steane Preparation Check with Noise on Stim" href="steane-preparation-check.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -80,7 +80,7 @@
 <li class="toctree-l2"><a class="reference internal" href="index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="logical-resource-estimate.html">Logical Resource Estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="clifford-t.html">Clifford+T Synthesis</a></li>
-<li class="toctree-l3"><a class="reference internal" href="cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cudaq-resource-estimate.html">Surface-code resource estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="carbon-code.html">Carbon Code Target</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gidney-ekera.html">Gidney–Ekerå RSA</a></li>
@@ -91,6 +91,7 @@
 <li class="toctree-l3"><a class="reference internal" href="p1-placement.html">P1 Placement</a></li>
 <li class="toctree-l3"><a class="reference internal" href="code-and-gadget.html">Code and Gadget</a></li>
 <li class="toctree-l3"><a class="reference internal" href="physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="steane-preparation-check.html">Steane Preparation Check with Noise on Stim</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
@@ -320,7 +321,7 @@
             <a href="../../_sources/use-cases/examples/steane-bernstein-vazirani.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="physical-schedule.html" class="btn btn-neutral float-left" title="Standalone Physical Schedule" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="steane-preparation-check.html" class="btn btn-neutral float-left" title="Steane Preparation Check with Noise on Stim" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="distillation.html" class="btn btn-neutral float-right" title="T-State Distillation" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -332,7 +333,7 @@
 <h1>Steane-Encoded Bernstein–Vazirani on Stim<a class="headerlink" href="#steane-encoded-bernsteinvazirani-on-stim" title="Link to this heading"></a></h1>
 <p><a class="reference download internal" download="" href="../../_downloads/115ccbf838c7dd8cb2b3c5599dbd3ac1/06_steane_bernstein_vazirani.py"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">standalone/06_steane_bernstein_vazirani.py</span></code></span></a>
 recovers a hidden bit string using encoded Steane qubits and <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code> on
-Stim. It verifies the encoded preparation before the run.</p>
+Stim.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
 <span class="c1"># Copyright (c) 2026 NVIDIA Corporation &amp; Affiliates.                          #</span>
 <span class="c1"># All rights reserved.                                                         #</span>
@@ -347,9 +348,10 @@ Stim. It verifies the encoded preparation before the run.</p>
 <span class="sd">reserves six syndrome carriers per block, for 429 carriers in total.</span>
 <span class="sd">All gates are Clifford, so the circuit can run on the Stim simulator.</span>
 
-<span class="sd">This is ideal encoded computation. The encoder is not a fault-tolerant</span>
-<span class="sd">preparation protocol, and the example does not perform noisy error correction</span>
-<span class="sd">or decoding. The preparation check verifies encoded |0&gt; before the run.</span>
+<span class="sd">This example runs noiselessly. It shows the logical circuit and the</span>
+<span class="sd">transversal gates, but not fault tolerance: the encoder is not a</span>
+<span class="sd">fault-tolerant preparation protocol, and the example performs no syndrome</span>
+<span class="sd">extraction, error correction, or decoding.</span>
 <span class="sd">"""</span>
 
 <span class="c1"># %%</span>
@@ -384,39 +386,6 @@ Stim. It verifies the encoded preparation before the run.</p>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">allocate_zero</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">encoded_zero</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">allocate_patch</span><span class="p">(</span><span class="n">CODE</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="s2">"compute"</span><span class="p">))</span>
-
-
-<span class="c1"># %%</span>
-<span class="c1"># Check all six stabilizers and logical Z on a separate prepared block. The</span>
-<span class="c1"># syndrome carrier measures each stabilizer as a whole product, and `cql.mpp`</span>
-<span class="c1"># measures logical Z. No data carrier is measured individually. A False</span>
-<span class="c1"># outcome means eigenvalue +1.</span>
-<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">std</span><span class="o">.</span><span class="n">LogicalInstrumentRef</span><span class="p">(</span><span class="s2">"check_steane_zero"</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">check_zero</span><span class="p">(</span>
-        <span class="n">q</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">CODE</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
-    <span class="n">checks</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">basis</span><span class="p">,</span> <span class="n">supports</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"X"</span><span class="p">,</span> <span class="n">CODE</span><span class="o">.</span><span class="n">hx</span><span class="p">),</span> <span class="p">(</span><span class="s2">"Z"</span><span class="p">,</span> <span class="n">CODE</span><span class="o">.</span><span class="n">hz</span><span class="p">)):</span>
-        <span class="k">for</span> <span class="n">support</span> <span class="ow">in</span> <span class="n">supports</span><span class="p">:</span>
-            <span class="n">q</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">sx</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">basis</span> <span class="o">==</span> <span class="s2">"X"</span><span class="p">:</span>
-                <span class="n">q</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">sx</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">support</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">basis</span> <span class="o">==</span> <span class="s2">"X"</span><span class="p">:</span>
-                    <span class="n">q</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">sx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">q</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">q</span><span class="o">.</span><span class="n">sx</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">basis</span> <span class="o">==</span> <span class="s2">"X"</span><span class="p">:</span>
-                <span class="n">q</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">sx</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="n">q</span><span class="p">,</span> <span class="n">bits</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">sx</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="n">checks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">parity</span><span class="p">(</span><span class="n">bits</span><span class="p">))</span>
-    <span class="n">q</span><span class="p">,</span> <span class="n">logical_z</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">mpp</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">Z</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-    <span class="n">cql</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span><span class="o">*</span><span class="n">checks</span><span class="p">,</span> <span class="n">logical_z</span><span class="p">)</span>
-
-
-<span class="nd">@cql</span><span class="o">.</span><span class="n">protocol</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">preparation_check</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
-    <span class="k">return</span> <span class="n">check_zero</span><span class="p">(</span><span class="n">allocate_zero</span><span class="p">())</span>
 
 
 <span class="c1"># %%</span>
@@ -455,7 +424,6 @@ Stim. It verifies the encoded preparation before the run.</p>
                               <span class="n">blocks</span> <span class="o">*</span> <span class="n">CODE</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
                               <span class="n">native_actions</span><span class="o">=</span><span class="n">actions</span><span class="o">.</span><span class="n">clifford_set</span><span class="p">(),</span>
                               <span class="n">native_instruments</span><span class="o">=</span><span class="p">(</span><span class="n">instruments</span><span class="o">.</span><span class="n">MZ</span><span class="p">,</span>
-                                                  <span class="n">instruments</span><span class="o">.</span><span class="n">MX</span><span class="p">,</span>
                                                   <span class="n">instruments</span><span class="o">.</span><span class="n">MPP</span><span class="p">)))</span>
     <span class="n">builder</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">set_operating_point</span><span class="p">(</span><span class="n">timing</span><span class="o">=</span><span class="p">{</span><span class="s2">"cycle_ns"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">})</span>
     <span class="k">return</span> <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
@@ -473,10 +441,6 @@ Stim. It verifies the encoded preparation before the run.</p>
 <span class="c1"># the first input block to the last, matching SECRET from left to right.</span>
 <span class="n">device</span> <span class="o">=</span> <span class="n">make_device</span><span class="p">()</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"stim"</span><span class="p">)</span>
-<span class="n">checks</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">physical</span><span class="p">(</span><span class="n">preparation_check</span><span class="p">,</span> <span class="n">device</span><span class="p">),</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">SHOTS</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">checks</span> <span class="o">==</span> <span class="p">[[</span><span class="kc">False</span><span class="p">]</span> <span class="o">*</span> <span class="mi">7</span><span class="p">]</span> <span class="o">*</span> <span class="n">SHOTS</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"encoded preparation: all seven checks passed in </span><span class="si">{</span><span class="n">SHOTS</span><span class="si">}</span><span class="s2"> shots"</span><span class="p">)</span>
-
 <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">physical</span><span class="p">(</span><span class="n">bernstein_vazirani</span><span class="p">,</span> <span class="n">device</span><span class="p">),</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">SHOTS</span><span class="p">)</span>
 <span class="k">assert</span> <span class="n">results</span> <span class="o">==</span> <span class="p">[[</span><span class="n">bit</span> <span class="o">==</span> <span class="s2">"1"</span> <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="n">SECRET</span><span class="p">]]</span> <span class="o">*</span> <span class="n">SHOTS</span>
 <span class="n">recovered</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">bit</span><span class="p">))</span> <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -490,7 +454,7 @@ Stim. It verifies the encoded preparation before the run.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="physical-schedule.html" class="btn btn-neutral float-left" title="Standalone Physical Schedule" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="steane-preparation-check.html" class="btn btn-neutral float-left" title="Steane Preparation Check with Noise on Stim" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="distillation.html" class="btn btn-neutral float-right" title="T-State Distillation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
