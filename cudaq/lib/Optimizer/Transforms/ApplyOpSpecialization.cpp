@@ -2076,10 +2076,9 @@ public:
       auto arrAttr = cast<DenseI32ArrayAttr>(
           op->getAttr(cudaq::runtime::operandSegmentSizes));
       // Walk over any floating-point parameters to `op` and negate them.
-      for (auto iter = op->getOperands().begin(),
-                endIter = op->getOperands().begin() + arrAttr[0];
-           iter != endIter; ++iter) {
-        Value val = *iter;
+      // For single-parameter rotations: negate the angle.
+      if (arrAttr[0] == 1) {
+        Value val = op->getOperand(0);
         Value neg = arith::NegFOp::create(builder, loc, val.getType(), val);
         mapper.map(val, neg);
         opWasNegated = true;
