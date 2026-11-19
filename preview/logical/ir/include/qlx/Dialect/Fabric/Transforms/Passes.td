@@ -89,11 +89,11 @@ def FabricLowerProtocols : Pass<"fabric-lower-protocols", "::mlir::ModuleOp"> {
 }
 
 //===----------------------------------------------------------------------===//
-// FabricInlineRealisations
+// FabricInlineRealization
 //===----------------------------------------------------------------------===//
 
-def FabricInlineRealisations
-    : Pass<"fabric-inline-realisations", "::mlir::ModuleOp"> {
+def FabricInlineRealization
+    : Pass<"fabric-inline-realization", "::mlir::ModuleOp"> {
   let summary = "Inline referenced Fabric realization circuits into gadgets";
   let description = [{
     Clones each referenced `fabric.circuit` body into the signature-compatible
