@@ -48,8 +48,34 @@ func.func @nested_exp_pauli(%outer: i1, %inner: i1, %theta: f64) attributes {"cu
 // PREP-DAG: quake.sink %[[SECOND]] : !quake.wire
 
 // QIR-LABEL: func.func @nested_exp_pauli(
-// QIR: cf.cond_br
-// QIR: call @__quantum__qis__exp_pauli(
-// QIR: cf.cond_br
-// QIR: call @__quantum__qis__h(
+// QIR-SAME: %[[OUTER:[^:]+]]: i1, %[[INNER:[^:]+]]: i1, %[[THETA:[^:]+]]: f64)
+// QIR-DAG: %[[LEN:[^ ]+]] = arith.constant 2 : i64
+// QIR-DAG: %[[WORD:[^ ]+]] = cc.alloca !cc.array<!cc.struct<{!cc.ptr<i8>, i64}> x 1>
+// QIR: %[[A:[^ ]+]] = call @__quantum__rt__qubit_allocate()
+// QIR: %[[B:[^ ]+]] = call @__quantum__rt__qubit_allocate()
+// QIR: cf.cond_br %[[OUTER]], ^[[APPLY:bb[0-9]+]], ^[[DONE:bb[0-9]+]]
+// QIR: ^[[APPLY]]:
+// QIR: %[[XS:[^ ]+]] = call @__quantum__rt__array_create_1d(
+// QIR: %[[X:[^ ]+]] = call @__quantum__rt__array_get_element_ptr_1d(%[[XS]],
+// QIR: cc.store %[[A]], %[[X]] :
+// QIR: %[[YS:[^ ]+]] = call @__quantum__rt__array_create_1d(
+// QIR: %[[Y:[^ ]+]] = call @__quantum__rt__array_get_element_ptr_1d(%[[YS]],
+// QIR: cc.store %[[B]], %[[Y]] :
+// QIR: %[[TARGETS:[^ ]+]] = call @__quantum__rt__array_concatenate(%[[XS]], %[[YS]])
+// QIR: %[[LITERAL:[^ ]+]] = cc.address_of @[[GLOBAL:[^ ]+]] :
+// QIR: %[[DATA:[^ ]+]] = cc.cast %[[LITERAL]] :
+// QIR: %[[DATA_SLOT:[^ ]+]] = cc.cast %[[WORD]] :
+// QIR: cc.store %[[DATA]], %[[DATA_SLOT]] :
+// QIR: %[[LEN_SLOT:[^ ]+]] = cc.compute_ptr %[[WORD]][0, 1]
+// QIR: cc.store %[[LEN]], %[[LEN_SLOT]] :
+// QIR: %[[WORD_ARG:[^ ]+]] = cc.cast %[[WORD]] :
+// QIR: call @__quantum__qis__exp_pauli(%[[THETA]], %[[TARGETS]], %[[WORD_ARG]])
+// QIR: cf.cond_br %[[INNER]], ^[[ROTATE:bb[0-9]+]], ^[[DONE]]
+// QIR: ^[[ROTATE]]:
+// QIR: call @__quantum__qis__h(%[[B]])
+// QIR: cf.br ^[[DONE]]
+// QIR: ^[[DONE]]:
+// QIR-DAG: call @__quantum__rt__qubit_release(%[[A]])
+// QIR-DAG: call @__quantum__rt__qubit_release(%[[B]])
 // QIR: return
+// QIR: llvm.mlir.global private constant @[[GLOBAL]]("XY\00")

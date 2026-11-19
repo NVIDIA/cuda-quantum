@@ -6,8 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --verify-each "--codegen-for-qir=convert-to=qir value-semantics=true" %s | FileCheck %s
-// RUN: cudaq-opt --verify-each "--codegen-for-qir=convert-to=qir-adaptive value-semantics=true" %s | FileCheck %s
+// RUN: cudaq-opt --verify-each "--codegen-for-qir=convert-to=qir value-semantics=true" %s | FileCheck %s --check-prefixes=CHECK,FULL
+// RUN: cudaq-opt --verify-each "--codegen-for-qir=convert-to=qir-adaptive value-semantics=true" %s | FileCheck %s --check-prefixes=CHECK,ADAPTIVE
 
 // One SWAP output stays live across the inner conditional. Bypassing its
 // join before QIR conversion gives that wire a use on each incoming path.
@@ -26,8 +26,27 @@ func.func @nested_swap(%outer: i1, %inner: i1) attributes {"cudaq-entrypoint", "
 }
 
 // CHECK-LABEL: llvm.func @nested_swap(
-// CHECK: llvm.cond_br
-// CHECK: llvm.call @__quantum__qis__swap
-// CHECK: llvm.cond_br
-// CHECK: llvm.call @__quantum__qis__h
+// CHECK-SAME: %[[OUTER:[^:]+]]: i1, %[[INNER:[^:]+]]: i1)
+// FULL: %[[A:[^ ]+]] = llvm.call @__quantum__rt__qubit_allocate()
+// FULL: %[[B:[^ ]+]] = llvm.call @__quantum__rt__qubit_allocate()
+// ADAPTIVE-DAG: %[[ZERO:[^ ]+]] = llvm.mlir.constant(0 : i64)
+// ADAPTIVE-DAG: %[[ONE:[^ ]+]] = llvm.mlir.constant(1 : i64)
+// ADAPTIVE-DAG: %[[A:[^ ]+]] = llvm.inttoptr %[[ZERO]] :
+// ADAPTIVE-DAG: %[[B:[^ ]+]] = llvm.inttoptr %[[ONE]] :
+// CHECK: llvm.cond_br %[[OUTER]], ^[[SWAP:bb[0-9]+]], ^[[DONE:bb[0-9]+]]
+// CHECK: ^[[SWAP]]:
+// FULL: llvm.call @__quantum__qis__swap(%[[A]], %[[B]])
+// ADAPTIVE: llvm.call @__quantum__qis__swap__body(%[[A]], %[[B]])
+// CHECK: llvm.cond_br %[[INNER]], ^[[ROTATE:bb[0-9]+]], ^[[DONE]]
+// CHECK: ^[[ROTATE]]:
+// FULL: llvm.call @__quantum__qis__h(%[[B]])
+// ADAPTIVE: llvm.call @__quantum__qis__h__body(%[[B]])
+// CHECK: llvm.br ^[[DONE]]
+// CHECK: ^[[DONE]]:
+// FULL: llvm.call @__quantum__qis__mz_handle__to__register(%[[A]], {{[^)]+}}) {registerName = "r00000"}
+// FULL: llvm.call @__quantum__qis__mz_handle__to__register(%[[B]], {{[^)]+}}) {registerName = "r00001"}
+// FULL-DAG: llvm.call @__quantum__rt__qubit_release(%[[A]])
+// FULL-DAG: llvm.call @__quantum__rt__qubit_release(%[[B]])
+// ADAPTIVE: llvm.call @__quantum__qis__mz__body(%[[A]], {{[^)]+}}) {registerName = "r00000"}
+// ADAPTIVE: llvm.call @__quantum__qis__mz__body(%[[B]], {{[^)]+}}) {registerName = "r00001"}
 // CHECK: llvm.return
