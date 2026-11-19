@@ -3097,6 +3097,21 @@ struct QuakeToQIRAPIPrepPass
     if (apiFields.size() > 1)
       qirVersion = apiFields[1];
 
+    // Bind constant Pauli words before converting their buffers to QIR.
+    // Restrict rewriting to these gates so CFG branches keep their wires.
+    SmallVector<Operation *> pauliOps;
+    module.walk([&](cudaq::quake::ExpPauliOp op) { pauliOps.push_back(op); });
+    if (!pauliOps.empty()) {
+      RewritePatternSet patterns(&getContext());
+      cudaq::quake::ExpPauliOp::getCanonicalizationPatterns(patterns,
+                                                            &getContext());
+      GreedyRewriteConfig config;
+      config.setStrictness(GreedyRewriteStrictness::ExistingAndNewOps);
+      if (failed(
+              applyOpPatternsGreedily(pauliOps, std::move(patterns), config)))
+        return signalPassFailure();
+    }
+
     {
       auto *ctx = &getContext();
       RewritePatternSet patterns(ctx);
@@ -3314,12 +3329,12 @@ void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
   pm.addPass(cudaq::opt::createQuakeToQIRAPIPrep(prepApiOpt));
   pm.addNestedPass<func::FuncOp>(
       cudaq::opt::createEraseCompilerGeneratedEvince());
-  // Fuse SSI blocks after erasure of all fake quake.evince.
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createLowerToCG());
   QuakeToQIRAPIOptions apiOpt{.api = api.str(), .opaquePtr = opaquePtr};
   pm.addPass(cudaq::opt::createQuakeToQIRAPI(apiOpt));
   pm.addPass(cudaq::opt::createQirInsertArrayRecord());
+  // Fuse forwarding blocks once wires are QIR handles. Bypassing a join
+  // earlier can duplicate a live wire operand across its predecessors.
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<LLVM::LLVMFuncOp>(createCanonicalizerPass());
   QuakeToQIRAPIFinalOptions finalApiOpt{.api = api.str()};

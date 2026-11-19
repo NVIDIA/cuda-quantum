@@ -135,6 +135,8 @@ static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "full:" +
                                                    convertFields.second.str());
   } else if (convertFields.first == "qir-base") {
+    // Base profile needs a single block to move measurements to the end.
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurements());
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "base-profile:" +
                                                    convertFields.second.str());
@@ -213,8 +215,6 @@ createTargetCodegenPipeline(OpPassManager &pm,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
 
   cudaq::opt::addLowerToCFG(pm);
-  // Merge the trivial blocks left behind by lowering.
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
   cudaq::opt::addLowerToCFG(pm);
