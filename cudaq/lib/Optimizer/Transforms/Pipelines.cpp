@@ -290,6 +290,10 @@ bool cudaq::opt::canOptimizeTwoQubitGateCount(ArrayRef<std::string> basis) {
   return basis.empty() || cudaq::canDecomposeTo("x(1)", basis);
 }
 
+bool cudaq::opt::canFuseToU3(ArrayRef<std::string> basis) {
+  return basis.empty() || cudaq::canDecomposeTo("u3", basis);
+}
+
 /// Simplify and normalize the Clifford+T words that synthesis emits.
 /// Clifford+T normalization emits a global phase, so lower it again.
 static void addCliffordTCleanup(OpPassManager &funcPM,

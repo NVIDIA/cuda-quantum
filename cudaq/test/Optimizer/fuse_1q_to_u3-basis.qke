@@ -20,6 +20,14 @@
 // RUN: FileCheck %s --check-prefix=SYNTHESIS --input-file=%t.synthesis
 // RUN: CircuitCheck --input=%t.synthesis %s
 
+// The NISQ basis keeps `h`, `x`, and the rotations. Every gate in it costs
+// one, so a chain of basis gates is fused only into fewer gates.
+// RUN: cudaq-opt --convert-to-linear-values \
+// RUN:   '--fuse-1q-to-u3=basis=h,rx,ry,rz,x,z(1)' --canonicalize %s \
+// RUN:   -o %t.nisq
+// RUN: FileCheck %s --check-prefix=NISQ --input-file=%t.nisq
+// RUN: CircuitCheck --input=%t.nisq %s
+
 // Three rotations about alternating axes are as short as any Euler form, so u3 fusion does
 // not happen if the basis gates include rotations.
 
@@ -94,5 +102,19 @@ func.func @no_optimization(%q: !quake.ref)
     attributes {quake.optimizationLevel = 0 : i32} {
   %a = arith.constant 0.3 : f64
   quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// Two gates in the basis stay, since any fusion expands to at least two
+// rotations.
+
+// NISQ-LABEL:       func.func @x_h(
+// NISQ:               quake.unwrap
+// NISQ-NEXT:          quake.x
+// NISQ-NEXT:          quake.h
+// NISQ-NEXT:          quake.wrap
+func.func @x_h(%q: !quake.ref) {
+  quake.x %q : (!quake.ref) -> ()
+  quake.h %q : (!quake.ref) -> ()
   return
 }

@@ -19,7 +19,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <array>
@@ -149,32 +148,32 @@ public:
   }
 };
 
-/// Minimize the number of rotations that would be required to express the chain
-/// of ops.
-class RotationCountModel final : public CostModel {
+/// Cost function to minimize the (estimated) number of gates after basis
+/// conversion.
+///
+/// Every non-`u3` gate costs one. A `u3` costs one when `u3` is a basis gate,
+/// and otherwise costs the number of rotations `U3ToRotations` expands it into.
+class GateCountModel final : public CostModel {
 public:
-  Cost getGateCost(Operation *gate) const override {
-    unsigned numRotations =
-        llvm::TypeSwitch<Operation *, unsigned>(gate)
-            .Case<cudaq::quake::R1Op, cudaq::quake::RxOp, cudaq::quake::RzOp,
-                  cudaq::quake::SOp, cudaq::quake::TOp, cudaq::quake::XOp,
-                  cudaq::quake::ZOp>([](auto) { return 1; })
-            .Case<cudaq::quake::YOp>([](auto) { return 2; })
-            .Case<cudaq::quake::HOp, cudaq::quake::RyOp>([](auto) { return 3; })
-            .Default([](Operation *) -> unsigned {
-              llvm_unreachable("not a fusable gate");
-            });
-    return {numRotations, 0};
-  }
+  explicit GateCountModel(bool containsU3) : containsU3(containsU3) {}
+
+  Cost getGateCost(Operation *) const override { return {1, 0}; }
 
   Cost
   getDecompositionCost(const EulerDecomposition &decomposition) const override {
-    return {decomposition.numRotations(), 0};
+    return {containsU3 ? 1u : decomposition.numRotations(), 0};
   }
+
+private:
+  /// Whether the basis is empty or contains an uncontrolled `u3`.
+  bool containsU3;
 };
 
-/// Clifford+T gates and Clifford rotations are free: minimize the number of
-/// rotations that need approximate Clifford+T synthesis.
+/// Cost function to minimize the number of rotations that cannot be expressed
+/// with a single Cliffrd+T gate.
+///
+/// Rotations with angles that are multiples of pi/8 are free. Every other
+/// rotation costs one.
 class CliffordTFreeModel final : public CostModel {
 public:
   /// `epsilon` is the operator-norm distance within which a rotation counts as
@@ -365,15 +364,23 @@ public:
     if (!std::isfinite(epsilon) || epsilon < 0.0)
       return emitError(UnknownLoc::get(context),
                        "fuse-1q-to-u3 epsilon must be finite and non-negative");
-    if (cost == "rotation-count")
-      costModel = std::make_shared<RotationCountModel>();
-    else if (cost == "clifford-t-free")
-      costModel = std::make_shared<CliffordTFreeModel>(epsilon);
-    else
-      return emitError(UnknownLoc::get(context),
-                       "fuse-1q-to-u3 cost must be rotation-count or "
-                       "clifford-t-free");
     basisInfo.assign(basis.begin(), basis.end());
+    if (cost == "gate-count") {
+      const cudaq::detail::OperatorInfo u3("u3");
+      const bool containsU3 =
+          basisInfo.empty() ||
+          llvm::any_of(basisInfo,
+                       [&](const cudaq::detail::OperatorInfo &entry) {
+                         return entry.covers(u3);
+                       });
+      costModel = std::make_shared<GateCountModel>(containsU3);
+    } else if (cost == "clifford-t-free") {
+      costModel = std::make_shared<CliffordTFreeModel>(epsilon);
+    } else {
+      return emitError(UnknownLoc::get(context),
+                       "fuse-1q-to-u3 cost must be 'gate-count' or "
+                       "'clifford-t-free'");
+    }
     return success();
   }
 

@@ -934,8 +934,10 @@ def Fuse1QToU3 : Pass<"fuse-1q-to-u3", "mlir::func::FuncOp"> {
     A sequence that contains a gate outside `basis` is always replaced by a u3
     op. Any other sequence is replaced only when the decomposition of the u3
     is strictly cheaper than the sequence, based on the chosen cost function:
-     - `cost=rotation-count` minimizes the number of non-zero rotations; a `u3`
-       can always be expressed in at most 3 rotations.
+     - `cost=gate-count` minimizes the number of gates. Every gate in the
+       sequence costs one. A `u3` costs one when `basis` covers it, and
+       otherwise the number of non-zero rotations it decomposes into, (at most
+       3).
      - `cost=clifford-t-free` minimizes the number of rotations that cannot be
        synthesized as a single gate in the Clifford+T basis, i.e. with angles
        that are not multiples of `pi/4`.
@@ -954,8 +956,8 @@ def Fuse1QToU3 : Pass<"fuse-1q-to-u3", "mlir::func::FuncOp"> {
     are skipped.
   }];
   let options = [
-    Option<"cost", "cost", "std::string", /*default=*/"\"rotation-count\"",
-      "What to minimize: `rotation-count` or `clifford-t-free`.">,
+    Option<"cost", "cost", "std::string", /*default=*/"\"gate-count\"",
+      "What to minimize: `gate-count` or `clifford-t-free`.">,
     Option<"epsilon", "epsilon", "double", /*default=*/"0.0",
       "For `clifford-t-free`, the operator-norm distance within which a "
       "rotation counts as a quarter turn. Use the epsilon of the downstream "

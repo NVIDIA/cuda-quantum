@@ -119,6 +119,13 @@
 // CHECK-NEXT:  FAILED: compile target stage 1: the selected lowering handler
 // CHECK-SAME:  failed to construct a pipeline from unchecked to quake-unmapped
 
+// A stage whose basis can't express a `u3` plans no single-qubit fusion, and
+// warns instead.
+// CHECK:       Single-qubit gate fusion skipped: no known decomposition lowers u3 to the basis gates [h, s, t, x, x(1)].
+// CHECK-LABEL: no u3 decomposition level 1:
+// CHECK:       two-qubit-gate-count-optimization-pipeline{level=1}
+// CHECK-NEXT:  basis-conversion{basis=h,s,t,x,x(1)}
+
 // The NISQ target decomposes and optimizes in its `quake-unmapped` stage,
 // keeping controlled `x` for phase folding until its basis conversion, and
 // maps in its `quake-mapped` stage. Both stages convert to wires at every
@@ -139,7 +146,7 @@
 // CHECK-NEXT:  decomposition{basis=h,rx,ry,rz,x,z(1),x(1)}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
 // CHECK-NEXT:  two-qubit-gate-count-optimization-pipeline{level=1}
-// CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=rotation-count basis=h,rx,ry,rz,x,z(1)},canonicalize)
+// CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=gate-count basis=h,rx,ry,rz,x,z(1)},canonicalize)
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
 // CHECK-NEXT:  prepare-for-wireset{add-wireset=true maximum-iterations=1024}
 // CHECK-NEXT:  qubit-mapping{device=path(4) raise-fatal-errors=true}
@@ -252,6 +259,14 @@ int main(int argc, char **argv) {
                .costModel = cudaq::config::CostModel::two_qubit_gate_count},
        .lowering = cudaq::config::InferredLowering{}});
   printPipeline("no two-qubit gate", noTwoQubitGate, {});
+  cudaq::CompileTarget noU3Decomposition;
+  noU3Decomposition.stages.push_back(
+      {.irOutputProfile =
+           cudaq::config::QuakeUnmappedProfile{
+               .basisGates = {"h", "s", "t", "x", "x(1)"},
+               .costModel = cudaq::config::CostModel::two_qubit_gate_count},
+       .lowering = cudaq::config::InferredLowering{}});
+  printPipeline("no u3 decomposition level 1", noU3Decomposition, level1);
 
   if (const auto *nisq = catalog.lookup("compiler-bench-nisq")) {
     auto onPath = cudaq::CompileTarget::createFromConfig(*nisq->config, {});

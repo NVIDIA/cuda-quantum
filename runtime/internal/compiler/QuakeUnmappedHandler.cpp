@@ -10,11 +10,13 @@
 #include "cudaq_internal/compiler/LoweringHandler.h"
 #include "cudaq/Optimizer/Transforms/CliffordTPipelines.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringExtras.h"
 #include <iomanip>
 #include <limits>
 #include <locale>
+#include <optional>
 #include <sstream>
 
 /// Print \p tolerance with every digit the passes need to read it back,
@@ -39,37 +41,40 @@ static bool schedulesCliffordTSynthesis(
 }
 
 /// The passes that fuse each one-qubit gate sequence into a single `u3`. A
-/// sequence is replaced only when that is cheaper, or, when it contains a gate
+/// sequence is replaced only when that is cheaper, or when it contains a gate
 /// outside of the profile basis.
-static std::string
-fusePasses(const cudaq::config::QuakeUnmappedProfile &profile,
-           const cudaq::CompileOptions &options) {
+///
+/// If `u3` cannot be decomposed into the provided basis, `std::nullopt` is
+/// returned and a warning stating that single-qubits cannot be fused for the
+/// provided basis is emitted.
+static std::optional<std::string>
+fusePasses(const cudaq::config::QuakeUnmappedProfile &profile) {
   const bool tCount = profile.costModel == cudaq::config::CostModel::t_count;
 
-  // The cost function to minimize: either the total number of rotations or only
-  // non-Clifford rotations.
-  std::string fuseCost;
   // Define the set of allowed gates. The presence of gates outside of the
   // basis forces fusion no matter the cost model. If rotation synthesis will
   // run, allow rotation gates. An empty basis allows all gates.
-  std::string basis;
-
-  if (tCount) {
-    fuseCost = "clifford-t-free epsilon=" +
-               formatTolerance(profile.approximationTolerance);
-    auto basisGates =
-        schedulesCliffordTSynthesis(profile)
-            ? cudaq::opt::cliffordTDecompositionBasis(profile.basisGates)
-            : profile.basisGates;
-    basis = llvm::join(basisGates, ",");
-  } else {
-    fuseCost = "rotation-count";
-    basis = llvm::join(profile.basisGates, ",");
+  const std::vector<std::string> basis =
+      tCount && schedulesCliffordTSynthesis(profile)
+          ? cudaq::opt::cliffordTDecompositionBasis(profile.basisGates)
+          : profile.basisGates;
+  if (!cudaq::opt::canFuseToU3(basis)) {
+    CUDAQ_WARN("Single-qubit gate fusion skipped: no known decomposition "
+               "lowers u3 to the basis gates [{}]. Is the basis complete? "
+               "Add u3, or a rotation gate, or register the required gate "
+               "decomposition to solve this.",
+               llvm::join(profile.basisGates, ", "));
+    return std::nullopt;
   }
 
-  std::string fusion =
-      "fuse-1q-to-u3{cost=" + fuseCost + " basis=" + basis + "}";
-  return "func.func(" + fusion + ",canonicalize)";
+  // The cost function to minimize: either the number of gates or only the
+  // rotations that need approximate synthesis.
+  const std::string fuseCost =
+      tCount ? "clifford-t-free epsilon=" +
+                   formatTolerance(profile.approximationTolerance)
+             : std::string("gate-count");
+  return "func.func(fuse-1q-to-u3{cost=" + fuseCost +
+         " basis=" + llvm::join(basis, ",") + "},canonicalize)";
 }
 
 /// The passes that optimize for the profile's cost model. A non-empty basis
@@ -102,13 +107,17 @@ costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
         std::string(tCount ? "clifford-t" : "two-qubit-gate-count") +
         "-optimization-pipeline{level=" + std::to_string(level) +
         (tCount ? " approximation-tolerance=" + tolerance : "") + "}");
-  if (level >= 1)
-    passes.push_back(fusePasses(profile, options));
+  std::optional<std::string> fusion;
+  if (level >= 1) {
+    fusion = fusePasses(profile);
+    if (fusion)
+      passes.push_back(*fusion);
+  }
   // The synthesis pipeline adds no passes when the basis can express one of
   // the rotations it synthesizes exactly. Otherwise it needs the rotations
   // that each fused `u3` stands for.
   if (schedulesCliffordTSynthesis(profile)) {
-    if (level >= 1)
+    if (fusion)
       passes.push_back("decomposition{enable-patterns=U3ToRotations}");
     const std::string seed =
         options.seed ? " seed=" + std::to_string(*options.seed) : "";
