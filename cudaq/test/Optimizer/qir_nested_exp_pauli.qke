@@ -31,9 +31,21 @@ func.func @nested_exp_pauli(%outer: i1, %inner: i1, %theta: f64) attributes {"cu
 }
 
 // PREP-LABEL: func.func @nested_exp_pauli(
-// PREP: cf.cond_br
-// PREP: quake.exp_pauli {{.*}} to "XY" : (f64, !quake.wire, !quake.wire)
-// PREP: cf.cond_br
+// PREP-SAME: %[[OUTER:[^:]+]]: i1, %[[INNER:[^:]+]]: i1, %[[THETA:[^:]+]]: f64)
+// PREP: %[[A:[^ ]+]] = quake.null_wire
+// PREP: %[[B:[^ ]+]] = quake.null_wire
+// PREP: cf.cond_br %[[OUTER]], ^[[APPLY:bb[0-9]+]](%[[A]], %[[B]] : !quake.wire, !quake.wire), ^[[DONE:bb[0-9]+]](%[[A]], %[[B]] : !quake.wire, !quake.wire)
+// PREP: ^[[APPLY]](%[[X:[^:]+]]: !quake.wire, %[[Y:[^:]+]]: !quake.wire):
+// PREP: %[[P:[^:]+]]:2 = quake.exp_pauli (%[[THETA]]) %[[X]], %[[Y]] to "XY" : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// PREP: cf.cond_br %[[INNER]], ^[[ROTATE:bb[0-9]+]](%[[P]]#1 : !quake.wire), ^[[JOIN:bb[0-9]+]](%[[P]]#1 : !quake.wire)
+// PREP: ^[[ROTATE]](%[[Q:[^:]+]]: !quake.wire):
+// PREP: %[[H:[^ ]+]] = quake.h %[[Q]] : (!quake.wire) -> !quake.wire
+// PREP: cf.br ^[[JOIN]](%[[H]] : !quake.wire)
+// PREP: ^[[JOIN]](%[[Z:[^:]+]]: !quake.wire):
+// PREP: cf.br ^[[DONE]](%[[P]]#0, %[[Z]] : !quake.wire, !quake.wire)
+// PREP: ^[[DONE]](%[[FIRST:[^:]+]]: !quake.wire, %[[SECOND:[^:]+]]: !quake.wire):
+// PREP-DAG: quake.sink %[[FIRST]] : !quake.wire
+// PREP-DAG: quake.sink %[[SECOND]] : !quake.wire
 
 // QIR-LABEL: func.func @nested_exp_pauli(
 // QIR: cf.cond_br
