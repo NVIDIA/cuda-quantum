@@ -80,14 +80,14 @@ class LowerProtocolsForBackend(Stage):
 
         from cudaq.logical._native import native
 
-        native.run_pass(module, "fabric-inline-realisations")
+        native.run_pass(module, "fabric-inline-realization")
         native.run_pass(
             module,
             f"fabric-lower-protocols{{root-symbol={ctx.entry}}}",
         )
 
     def describe(self) -> str:
-        return "native:fabric-inline-realisations+fabric-lower-protocols"
+        return "native:fabric-inline-realization+fabric-lower-protocols"
 
 
 class SelectFabricSource(Stage):

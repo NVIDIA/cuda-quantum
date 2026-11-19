@@ -630,7 +630,7 @@ void LinkedLibraryHolder::setTarget(const CompileTarget &compileTarget,
 void LinkedLibraryHolder::setQPUs(
     quantum_platform &platform, const CompileTarget &compileTarget,
     const std::vector<RuntimeEndpoint> &endpoints) {
-  platform.clearQPUs();
+  platform.clearQPUs(endpoints);
   for (const auto &endpoint : endpoints)
     platform.addQPU(compileTarget, endpoint);
 }

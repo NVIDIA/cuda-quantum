@@ -18,9 +18,7 @@
 //   Group F - CUDAQ_DBG no-op when CUDAQ_DEBUG is undefined
 
 #include "cudaq/runtime/logger/logger.h"
-
 #include <gtest/gtest.h>
-
 #include <regex>
 #include <stdexcept>
 #include <string>

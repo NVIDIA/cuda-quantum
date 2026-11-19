@@ -64,6 +64,22 @@ def test_target_define_exposes_a_one_level_backend_endpoint():
     assert cudaq.logical.emit(bell_pair, target=target).startswith("module")
 
 
+def test_program_backend_compiles_a_compiled_module():
+    compiled = cudaq.compile(logical_zero_readout,
+                             target=cudaq.logical.targets.estimator)
+
+    build = cudaq.logical.targets.estimator.runtime_endpoint.compile(compiled)
+
+    assert build.profile == "p0"
+
+
+def test_program_backend_rejects_a_kernel():
+    endpoint = cudaq.logical.targets.estimator.runtime_endpoint
+
+    with pytest.raises(TypeError, match=r"cudaq\.compile"):
+        endpoint.compile(logical_zero_readout)
+
+
 def test_target_print_stack_reports_its_runtime_backends(capsys):
     assert cudaq.logical.targets.mlir.print_stack() is None
 
@@ -225,6 +241,27 @@ def test_clifford_t_target_estimates_multi_controlled_gates(kernel, level):
     assert result.annotations
 
 
+@cudaq.kernel
+def h_rz_ctrl_r1():
+    q = cudaq.qvector(2)
+    h(q[0])
+    rz(0.3, q[0])
+    r1.ctrl(0.7, q[0], q[1])
+    mz(q)
+
+
+@pytest.mark.parametrize("level", [1, 2])
+def test_clifford_t_target_imports_optimizer_global_phase(level):
+    # The level-2 T-count optimizer factors out a quake.phase for this kernel.
+    try:
+        cudaq.set_target(cudaq.logical.targets.clifford_t_target())
+        result = cudaq.estimate(h_rz_ctrl_r1, optimization_level=level)
+    finally:
+        cudaq.reset_target()
+
+    assert result.annotations["LOGICAL"]
+
+
 def test_estimator_target_estimates_a_doubly_controlled_ry():
     try:
         cudaq.set_target(cudaq.logical.targets.estimator)
@@ -291,15 +328,18 @@ def test_optimization_levels_merge_rotations(level, rotations):
     assert resources.count("pauli_rotation") == rotations
 
 
-def test_import_cudaq_compiles_at_the_given_level():
+def test_compile_import_compiles_at_the_given_level():
     # The build hash covers the module text, whose symbol names vary between
     # compiles, so compare everything else.
     def without_hash(estimate):
         return {k: v for k, v in estimate.items() if k != "build_sha256"}
 
     def imported(level):
-        build = cudaq.logical.compiler.import_cudaq(ising_trotter_steps,
-                                                    optimization_level=level)
+        build = cudaq.logical.compiler.import_quake(
+            str(
+                cudaq.compile(ising_trotter_steps,
+                              target=cudaq.logical.targets.estimator,
+                              optimization_level=level).mlir_module))
         return without_hash(
             cudaq.logical.analysis.estimate(
                 build, tier=cudaq.logical.analysis.Tier.LOGICAL).to_dict())
@@ -626,7 +666,7 @@ def qec_standard_css_program() -> bool:
     (cudaq.logical.targets.surface_target, True),
     (cudaq.logical.targets.steane_target, False),
 ])
-def test_predefined_qec_targets_lower_through_their_linked_realisations(
+def test_predefined_qec_targets_lower_through_their_linked_realizations(
         factory, synthesis):
     root = factory(logical_capacity=1).runtime_endpoint
 
@@ -730,6 +770,29 @@ def test_estimate_resources_report_the_logical_profile():
     # Depth is the serial sum of everything counted in the profile's bound.
     assert resources.depth == profile.action_depth_upper_bound
     assert resources.count() == resources.depth
+
+
+@cudaq.kernel
+def estimate_bell_bits() -> tuple[bool, bool]:
+    qubits = cudaq.qvector(2)
+    h(qubits[0])
+    x.ctrl(qubits[0], qubits[1])
+    return mz(qubits[0]), mz(qubits[1])
+
+
+def test_estimate_accepts_a_kernel_that_returns_measured_bits():
+    # A kernel with a result reaches the importer with CUDA-Q's host launch
+    # code, and with its tuple as one struct.
+    try:
+        cudaq.set_target(cudaq.logical.targets.estimator)
+        result = cudaq.estimate(estimate_bell_bits)
+    finally:
+        cudaq.reset_target()
+
+    assert result.resources.num_qubits == 2
+    assert result.resources.count("h") == 1
+    assert result.resources.count_controls("x", 1) == 1
+    assert result.resources.count("mz") == 2
 
 
 def test_estimate_resources_stay_logical_on_a_full_stack():
@@ -917,3 +980,52 @@ def test_native_physical_mpp_projects_record_and_sign(negative):
         assert cudaq.run(physical, shots_count=8) == [negative] * 8
     finally:
         cudaq.reset_target()
+
+
+def test_stage_free_target_lowering_reuses_build_verification_authority():
+    from unittest.mock import patch
+
+    from cudaq.logical.lower.driver import lower
+
+    build = cudaq.logical.compile(bell_pair)
+    with patch.object(
+            type(build._module.operation),
+            "verify",
+            side_effect=AssertionError("stage-free clone was re-verified"),
+    ):
+        work, ctx = lower(
+            cudaq.logical.targets.LoweringSpec(
+                (), cudaq.logical.targets.emit_mlir()),
+            build,
+        )
+
+    assert work is not build._module
+    assert ctx._verification_receipt.module is work
+
+
+def test_transforming_target_lowering_still_verifies_its_output():
+    from unittest.mock import patch
+
+    from cudaq.logical.lower.driver import lower
+    from cudaq.logical.lower.stage import Stage
+
+    class NoopStage(Stage):
+
+        def apply(self, _module, _ctx):
+            pass
+
+    build = cudaq.logical.compile(bell_pair)
+    with patch.object(
+            type(build._module.operation),
+            "verify",
+            return_value=False,
+    ) as verify:
+        with pytest.raises(ValueError,
+                           match="target lowering produced invalid"):
+            lower(
+                cudaq.logical.targets.LoweringSpec(
+                    (NoopStage(),), cudaq.logical.targets.emit_mlir()),
+                build,
+            )
+
+    verify.assert_called_once_with()

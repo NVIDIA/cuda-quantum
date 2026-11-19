@@ -15,6 +15,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Analysis/CallGraph.h"
+#include <cstdint>
 
 using namespace mlir;
 
@@ -272,7 +273,7 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, func::FuncOp op) {
 
 static LogicalResult emitOperation(cudaq::Emitter &emitter,
                                    cudaq::quake::ExtractRefOp op) {
-  std::optional<int64_t> index = std::nullopt;
+  std::optional<std::int64_t> index = std::nullopt;
   if (op.hasConstantIndex())
     index = op.getConstantIndex();
   else

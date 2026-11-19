@@ -11,16 +11,17 @@
 #pragma GCC visibility pop
 #include "cudaq/gf2/format.h"
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 
 namespace {
-void *heap_allocate(void *, uint64_t bytes, uint32_t alignment) {
+void *heap_allocate(void *, std::uint64_t bytes, std::uint32_t alignment) {
   if (!bytes || bytes > SIZE_MAX || !alignment ||
       (alignment & (alignment - 1)) || alignment > alignof(std::max_align_t))
     return nullptr;
   return std::malloc(static_cast<size_t>(bytes));
 }
-void heap_deallocate(void *, void *pointer, uint64_t, uint32_t) {
+void heap_deallocate(void *, void *pointer, std::uint64_t, std::uint32_t) {
   std::free(pointer);
 }
 } // namespace

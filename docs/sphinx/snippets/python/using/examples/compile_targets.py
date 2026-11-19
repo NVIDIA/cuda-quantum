@@ -32,8 +32,8 @@ assert inferred.stages[0].lowering is None
 # pipeline explicitly.
 explicit = CompileTarget(
     custom_pipeline=CustomPipelineLowering(
-        high_level="expand-measurements",
-        mid_level="basis-conversion{basis=" + ",".join(basis) + "}",
+        high_level_pipeline="expand-measurements",
+        mid_level_pipeline="basis-conversion{basis=" + ",".join(basis) + "}",
     ),
     codegen="qir-base",
 )

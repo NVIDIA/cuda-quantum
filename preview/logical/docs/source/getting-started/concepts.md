@@ -25,7 +25,7 @@ Quantum values have **linear ownership**: each live qubit has one current value.
 A gate consumes its input values and returns their successors. Reassigning the
 results keeps the program's references current:
 
-```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+```{literalinclude} ../../../examples/standalone/01_logical_placement.py
 :language: python
 :start-at:     qubits = cql.allocate
 :end-at:     return cql.measure_z

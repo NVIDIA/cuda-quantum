@@ -41,7 +41,7 @@ ALL_EXAMPLES = (*KERNEL_EXAMPLES, *STANDALONE_EXAMPLES, *GADGET_EXAMPLES)
 # timing entry in `pytest --durations`).
 EXPECTED_EXAMPLE_COUNTS = {
     "kernel": 7,
-    "standalone": 8,
+    "standalone": 9,
     "gadgets": 5,
 }
 
@@ -63,8 +63,8 @@ def test_expected_example_count():
 def test_example_executes(example, monkeypatch, tmp_path):
     import cudaq
 
-    # Without a GPU, example 08 runs on `density-matrix-cpu`, which is slow.
-    if (example.name == "08_t_factory_evaluation.py" and
+    # Without a GPU, example 07 runs on `density-matrix-cpu`, which is slow.
+    if (example.name == "07_t_factory_evaluation.py" and
             cudaq.num_available_gpus() == 0):
         pytest.skip("requires a GPU; the CPU density-matrix fallback is slow")
     monkeypatch.syspath_prepend(str(EXAMPLE_ROOT))

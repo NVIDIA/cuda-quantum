@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "cudaq/distributed/mpi_plugin.h"
-
 #include <custatevecEx_ext.h>
 
 #include <cstddef>
@@ -80,7 +79,8 @@ CudaqCommunicator &asCudaq(custatevecExCommunicator_t *communicator) {
 // custatevecExCommunicatorInterface_t vtables. cuStateVecEx invokes them
 // through those function pointers, so each signature is fixed by the
 // custatevecEx typedefs.
-custatevecExCommunicatorStatus_t getVersion(int32_t *major, int32_t *minor) {
+custatevecExCommunicatorStatus_t getVersion(std::int32_t *major,
+                                            std::int32_t *minor) {
   if (!major || !minor)
     return status(1);
   *major = 1;
@@ -92,13 +92,13 @@ custatevecExCommunicatorStatus_t initialize(void *, int *argc, char ***argv) {
   try {
     std::scoped_lock lock(initializationMutex);
     auto &mpi = plugin();
-    int32_t initialized = 0;
+    std::int32_t initialized = 0;
     const int queryStatus = mpi.get()->initialized(&initialized);
     if (queryStatus != 0)
       return status(queryStatus);
     if (!initialized) {
       const int initStatus =
-          mpi.get()->initialize(reinterpret_cast<int32_t *>(argc), argv);
+          mpi.get()->initialize(reinterpret_cast<std::int32_t *>(argc), argv);
       if (initStatus != 0)
         return status(initStatus);
       initializedByBridge = true;
@@ -112,7 +112,7 @@ custatevecExCommunicatorStatus_t initialize(void *, int *argc, char ***argv) {
 custatevecExCommunicatorStatus_t initialized(void *, int *flag) {
   try {
     return status(
-        plugin().get()->initialized(reinterpret_cast<int32_t *>(flag)));
+        plugin().get()->initialized(reinterpret_cast<std::int32_t *>(flag)));
   } catch (...) {
     return status(1);
   }
@@ -134,7 +134,8 @@ custatevecExCommunicatorStatus_t finalize(void *) {
 
 custatevecExCommunicatorStatus_t finalized(void *, int *flag) {
   try {
-    return status(plugin().get()->finalized(reinterpret_cast<int32_t *>(flag)));
+    return status(
+        plugin().get()->finalized(reinterpret_cast<std::int32_t *>(flag)));
   } catch (...) {
     return status(1);
   }
@@ -147,8 +148,8 @@ cudaqDistributedCommunicator_t activeCommunicator() {
   return *plugin().getComm();
 }
 
-custatevecExCommunicatorStatus_t getSizeAndRank(void *, int32_t *size,
-                                                int32_t *rank) {
+custatevecExCommunicatorStatus_t getSizeAndRank(void *, std::int32_t *size,
+                                                std::int32_t *rank) {
   try {
     auto &mpi = plugin();
     const auto communicator = activeCommunicator();
@@ -171,14 +172,14 @@ custatevecExCommunicatorStatus_t getSize(custatevecExCommunicator_t *value,
                                          int *size) {
   auto &comm = asCudaq(value);
   return status(comm.distributed->getNumRanks(
-      &comm.communicator, reinterpret_cast<int32_t *>(size)));
+      &comm.communicator, reinterpret_cast<std::int32_t *>(size)));
 }
 
 custatevecExCommunicatorStatus_t getRank(custatevecExCommunicator_t *value,
                                          int *rank) {
   auto &comm = asCudaq(value);
   return status(comm.distributed->getProcRank(
-      &comm.communicator, reinterpret_cast<int32_t *>(rank)));
+      &comm.communicator, reinterpret_cast<std::int32_t *>(rank)));
 }
 
 custatevecExCommunicatorStatus_t barrier(custatevecExCommunicator_t *value) {
@@ -252,7 +253,7 @@ allgatherv(custatevecExCommunicator_t *value, const void *sendBuffer,
 custatevecExCommunicatorStatus_t sendAsync(custatevecExCommunicator_t *value,
                                            const void *buffer, int count,
                                            cudaDataType_t type, int peer,
-                                           int32_t tag) {
+                                           std::int32_t tag) {
   auto &comm = asCudaq(value);
   try {
     return status(comm.distributed->SendAsync(&comm.communicator, buffer, count,
@@ -266,7 +267,7 @@ custatevecExCommunicatorStatus_t sendAsync(custatevecExCommunicator_t *value,
 custatevecExCommunicatorStatus_t recvAsync(custatevecExCommunicator_t *value,
                                            void *buffer, int count,
                                            cudaDataType_t type, int peer,
-                                           int32_t tag) {
+                                           std::int32_t tag) {
   auto &comm = asCudaq(value);
   try {
     return status(comm.distributed->RecvAsync(&comm.communicator, buffer, count,
@@ -280,7 +281,7 @@ custatevecExCommunicatorStatus_t recvAsync(custatevecExCommunicator_t *value,
 custatevecExCommunicatorStatus_t
 sendRecvAsync(custatevecExCommunicator_t *value, const void *sendBuffer,
               void *receiveBuffer, int count, cudaDataType_t type, int peer,
-              int32_t tag) {
+              std::int32_t tag) {
   auto &comm = asCudaq(value);
   try {
     return status(comm.distributed->SendRecvAsync(

@@ -11,7 +11,6 @@
 
 #include "cudaq/runtime/logger/chrome_tracer.h"
 #include "cudaq/runtime/logger/tracer.h"
-
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 

@@ -21,6 +21,7 @@
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Parser/Parser.h"
+#include <cstdint>
 
 using namespace mlir;
 
@@ -28,7 +29,7 @@ template <typename A>
 Value genIntegerConstant(OpBuilder &builder, A v, unsigned bits) {
   return arith::ConstantIntOp::create(builder, builder.getUnknownLoc(),
                                       builder.getIntegerType(bits),
-                                      static_cast<int64_t>(v));
+                                      static_cast<std::int64_t>(v));
 }
 
 static Value genConstant(OpBuilder &builder, bool v) {
@@ -308,7 +309,7 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
   auto *entryBlock = &numQubitsFunc.getRegion().front();
   newBuilder.setInsertionPointToStart(entryBlock);
   Value size = arith::ConstantIntOp::create(newBuilder, loc, retType,
-                                            static_cast<int64_t>(0));
+                                            static_cast<std::int64_t>(0));
 
   // Process block recursively to calculate and return allocation size
   // and remove everything else.

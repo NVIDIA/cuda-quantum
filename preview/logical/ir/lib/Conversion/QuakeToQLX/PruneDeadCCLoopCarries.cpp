@@ -7,22 +7,18 @@
  ******************************************************************************/
 
 #include "qlx/Conversion/QuakeToQLXPasses.h"
-
+#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
-#include "mlir/IR/BuiltinOps.h"
-
-#ifdef QLX_HAS_CUDAQ_QUAKE
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/UB/IR/UBOps.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
-#endif
 
 namespace qlx {
 #define GEN_PASS_DEF_PRUNEDEADCCLOOPCARRIES
@@ -32,8 +28,6 @@ namespace qlx {
 using namespace mlir;
 
 namespace {
-
-#ifdef QLX_HAS_CUDAQ_QUAKE
 
 static LogicalResult validateSupportedLoop(cudaq::cc::LoopOp loop) {
   auto reject = [&](StringRef reason) -> LogicalResult {
@@ -150,19 +144,5 @@ public:
       }
   }
 };
-
-#else
-
-class PruneDeadCCLoopCarriesPass
-    : public qlx::impl::PruneDeadCCLoopCarriesBase<PruneDeadCCLoopCarriesPass> {
-public:
-  void runOnOperation() override {
-    getOperation().emitError(
-        "Quake loop cleanup was not enabled; enable QLX_USE_CUDAQ_SDK");
-    signalPassFailure();
-  }
-};
-
-#endif
 
 } // namespace

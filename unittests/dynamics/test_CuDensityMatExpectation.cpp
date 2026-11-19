@@ -13,6 +13,7 @@
 #include "test_Mocks.h"
 #include <CuDensityMatErrorHandling.h>
 #include <CuDensityMatExpectation.h>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>
@@ -36,7 +37,7 @@ protected:
 };
 
 TEST_F(CuDensityMatExpectationTest, checkCompute) {
-  const std::vector<int64_t> dims = {10};
+  const std::vector<std::int64_t> dims = {10};
   // Check number operator on boson Fock space
   auto op = cudaq::matrix_op::number(0);
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
@@ -60,7 +61,7 @@ TEST_F(CuDensityMatExpectationTest, checkCompute) {
 }
 
 TEST_F(CuDensityMatExpectationTest, checkCompositeSystem) {
-  const std::vector<int64_t> dims = {2, 10};
+  const std::vector<std::int64_t> dims = {2, 10};
   // Check number operator on boson Fock space
   auto op = cudaq::matrix_op::number(1);
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
@@ -92,7 +93,7 @@ TEST_F(CuDensityMatExpectationTest, checkCompositeSystem) {
 }
 
 TEST_F(CuDensityMatExpectationTest, checkCompositeSystemDensityMatrix) {
-  const std::vector<int64_t> dims = {2, 10};
+  const std::vector<std::int64_t> dims = {2, 10};
   // Check number operator on boson Fock space
   auto op = cudaq::matrix_op::number(1);
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
@@ -126,7 +127,7 @@ TEST_F(CuDensityMatExpectationTest, checkCompositeSystemDensityMatrix) {
 }
 
 TEST_F(CuDensityMatExpectationTest, checkCompositeSystemDensityMatrixKron) {
-  const std::vector<int64_t> dims = {2, 10};
+  const std::vector<std::int64_t> dims = {2, 10};
   // Check number operator on boson Fock space
   auto op = cudaq::matrix_op::number(1);
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
@@ -159,7 +160,7 @@ TEST_F(CuDensityMatExpectationTest, checkCompositeSystemDensityMatrixKron) {
 }
 
 TEST_F(CuDensityMatExpectationTest, checkBatchedState1) {
-  const std::vector<int64_t> dims = {2};
+  const std::vector<std::int64_t> dims = {2};
   auto op_t = cudaq::spin::z(0);
   cudaq::sum_op<cudaq::matrix_handler> op(op_t);
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
@@ -190,7 +191,7 @@ TEST_F(CuDensityMatExpectationTest, checkBatchedState1) {
 TEST_F(CuDensityMatExpectationTest, checkBatchedState2) {
   constexpr int N = 10;
   constexpr int numStates = 4;
-  const std::vector<int64_t> dims = {N};
+  const std::vector<std::int64_t> dims = {N};
   auto op_t = cudaq::boson_op::number(0);
   cudaq::sum_op<cudaq::matrix_handler> op(op_t);
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()

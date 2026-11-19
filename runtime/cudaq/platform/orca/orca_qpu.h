@@ -12,7 +12,6 @@
 #include "common/SampleResult.h"
 #include "policy.h"
 #include "cudaq/platform/quantum_platform.h"
-
 #include <functional>
 #include <vector>
 

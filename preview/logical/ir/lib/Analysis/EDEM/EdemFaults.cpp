@@ -7,9 +7,7 @@
  *******************************************************************************/
 
 #include "qlx/Analysis/EdemFaults.h"
-
 #include "llvm/Support/JSON.h"
-
 #include <algorithm>
 #include <cmath>
 #include <cstdint>

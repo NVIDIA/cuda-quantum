@@ -1,0 +1,582 @@
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+/// @file hsb_fpga_playback.cpp
+/// @brief Generic RPC playback tool for HSB FPGA / emulator testing.
+///
+/// Sends RPC messages to the FPGA (or emulator) via the HSB control
+/// plane, triggering RDMA transmission to the bridge.  After playback, reads
+/// back responses from the ILA capture RAM and verifies them.
+///
+/// For the generic bridge, the payload is a sequence of ascending bytes and
+/// the expected response is each byte incremented by 1.
+///
+/// Usage:
+///   ./hsb_fpga_playback \
+///       --hsb-ip 192.168.0.2 \
+///       --bridge-qp=0x5 --bridge-rkey=12345 --bridge-buffer=0x7f... \
+///       --page-size=384 --num-pages=128 --num-messages=100
+
+#include "hsb_playback_io.h"
+#include <algorithm>
+#include <chrono>
+#include <csignal>
+#include <cstdint>
+#include <cstring>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <set>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <tuple>
+#include <vector>
+
+#include <hololink/core/data_channel.hpp>
+#include <hololink/core/enumerator.hpp>
+#include <hololink/core/hololink.hpp>
+#include <hololink/core/metadata.hpp>
+#include <hololink/core/timeout.hpp>
+
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+
+namespace {
+using namespace cudaq::realtime::validation::hsb;
+
+// ============================================================================
+// Playback BRAM Constants
+// ============================================================================
+volatile std::sig_atomic_t loop_stop_requested = 0;
+
+extern "C" void request_loop_stop(int) { loop_stop_requested = 1; }
+
+// ============================================================================
+// ILA Capture Constants (SIF TX at 0x4000_0000)
+//
+// Each captured sample is 585 bits:
+//   [511:0]   sif_tx_axis_tdata_0
+//   [512]     sif_tx_axis_tvalid_0
+//   [513]     sif_tx_axis_tlast_0
+//   [520:514] sif_ila_wr_tcnt_0
+//   [584:521] current_ptp_timestamp {sec[31:0], nsec[31:0]}
+// ============================================================================
+// ============================================================================
+// Arguments
+// ============================================================================
+
+struct PlaybackArgs {
+  std::string hsb_ip = "192.168.0.2";
+  std::uint16_t control_port = 8192;
+  std::uint32_t bridge_qp = 0;
+  std::uint32_t bridge_rkey = 0;
+  std::uint64_t bridge_buffer = 0;
+  size_t page_size = 384;
+  unsigned num_pages = 128;
+  std::uint32_t num_messages = 100;
+  std::uint32_t payload_size = 8;
+  std::uint32_t vp_address = 0x1000;
+  std::uint32_t hif_address = 0x0800;
+  std::string bridge_ip = "10.0.0.1";
+  bool verify = true;
+  bool loop = false;
+  bool emulator = false;
+  bool forward = false; ///< Forward (echo) mode: accept RPC_MAGIC_REQUEST
+};
+
+PlaybackArgs parse_args(int argc, char *argv[]) {
+  PlaybackArgs args;
+  for (int i = 1; i < argc; i++) {
+    std::string a = argv[i];
+    auto next = [&]() -> std::string {
+      if (i + 1 < argc)
+        return argv[++i];
+      return {};
+    };
+    auto val_of = [&](const std::string &prefix) -> std::string {
+      return a.substr(prefix.size());
+    };
+    if (a.find("--hsb-ip=") == 0)
+      args.hsb_ip = val_of("--hsb-ip=");
+    else if (a == "--hsb-ip")
+      args.hsb_ip = next();
+    else if (a.find("--control-ip=") == 0)
+      args.hsb_ip = val_of("--control-ip=");
+    else if (a.find("--control-port=") == 0)
+      args.control_port = std::stoi(val_of("--control-port="));
+    else if (a.find("--bridge-qp=") == 0)
+      args.bridge_qp = std::stoul(val_of("--bridge-qp="), nullptr, 0);
+    else if (a.find("--bridge-rkey=") == 0)
+      args.bridge_rkey = std::stoul(val_of("--bridge-rkey="), nullptr, 0);
+    else if (a.find("--bridge-buffer=") == 0)
+      args.bridge_buffer = std::stoull(val_of("--bridge-buffer="), nullptr, 0);
+    else if (a.find("--page-size=") == 0)
+      args.page_size = std::stoull(val_of("--page-size="));
+    else if (a.find("--num-pages=") == 0)
+      args.num_pages = std::stoul(val_of("--num-pages="));
+    else if (a == "--num-pages")
+      args.num_pages = std::stoul(next());
+    else if (a.find("--num-messages=") == 0)
+      args.num_messages = std::stoul(val_of("--num-messages="));
+    else if (a == "--num-messages")
+      args.num_messages = std::stoul(next());
+    else if (a.find("--payload-size=") == 0)
+      args.payload_size = std::stoul(val_of("--payload-size="));
+    else if (a.find("--vp-address=") == 0)
+      args.vp_address = std::stoul(val_of("--vp-address="), nullptr, 0);
+    else if (a.find("--hif-address=") == 0)
+      args.hif_address = std::stoul(val_of("--hif-address="), nullptr, 0);
+    else if (a.find("--bridge-ip=") == 0)
+      args.bridge_ip = val_of("--bridge-ip=");
+    else if (a == "--no-verify")
+      args.verify = false;
+    else if (a == "--loop")
+      args.loop = true;
+    else if (a == "--emulator")
+      args.emulator = true;
+    else if (a == "--forward")
+      args.forward = true;
+    else if (a == "--help" || a == "-h") {
+      std::cout
+          << "Usage: hsb_fpga_playback [options]\n"
+          << "\nGeneric RPC playback tool for HSB FPGA/emulator.\n"
+          << "\nOptions:\n"
+          << "  --hsb-ip ADDR       FPGA/emulator IP (default: 192.168.0.2)\n"
+          << "  --control-port=N      UDP control port (default: 8192)\n"
+          << "  --bridge-qp=N         Bridge QP number\n"
+          << "  --bridge-rkey=N       Bridge RKey\n"
+          << "  --bridge-buffer=ADDR  Bridge buffer address\n"
+          << "  --page-size=N         Ring buffer slot size (default: 384)\n"
+          << "  --num-pages N         Ring buffer slots (default: 128)\n"
+          << "  --num-messages N      Number of RPC messages (default: 100)\n"
+          << "  --payload-size=N      Bytes per RPC payload (default: 8)\n"
+          << "  --vp-address=ADDR     VP register base (default: 0x1000)\n"
+          << "  --hif-address=ADDR    HIF register base (default: 0x0800)\n"
+          << "  --bridge-ip=ADDR      Bridge IP for FPGA (default: 10.0.0.1)\n"
+          << "  --emulator            Using emulator (skip FPGA reset)\n"
+          << "  --no-verify           Skip ILA response verification\n"
+          << "  --loop                Continuously replay the loaded BRAM "
+             "windows "
+             "until Ctrl-C (requires --no-verify)\n"
+          << "  --forward             Forward (echo) mode: accept echoed "
+             "requests\n";
+      exit(0);
+    }
+  }
+  return args;
+}
+
+// ============================================================================
+// BRAM helpers
+// ============================================================================
+
+/// Build one RPC request for the increment handler.
+/// Layout: [RPCHeader (24 bytes, ptp_timestamp zeroed)][data bytes...]
+/// The FPGA overwrites header bytes 16-23 (ptp_timestamp field) with the PTP
+/// send timestamp at transmit time.
+std::vector<std::uint8_t> build_rpc_message(std::uint32_t msg_index,
+                                            std::uint32_t payload_size) {
+  using cudaq::realtime::fnv1a_hash;
+  using cudaq::realtime::RPCHeader;
+
+  constexpr std::uint32_t FUNC_ID = fnv1a_hash("rpc_increment");
+
+  std::vector<std::uint8_t> msg(sizeof(RPCHeader) + payload_size, 0);
+  auto *hdr = reinterpret_cast<RPCHeader *>(msg.data());
+  hdr->magic = cudaq::realtime::RPC_MAGIC_REQUEST;
+  hdr->function_id = FUNC_ID;
+  hdr->arg_len = payload_size;
+  hdr->request_id = msg_index;
+  hdr->ptp_timestamp = 0;
+
+  std::uint8_t *payload = msg.data() + sizeof(RPCHeader);
+  for (std::uint32_t i = 0; i < payload_size; i++)
+    payload[i] = static_cast<std::uint8_t>((msg_index + i) & 0xFF);
+
+  return msg;
+}
+
+/// Extract the echoed PTP send timestamp from RPCResponse.ptp_timestamp.
+/// The dispatch kernel echoes this field from RPCHeader.ptp_timestamp.
+std::uint64_t
+extract_echoed_ptp_timestamp(const cudaq::realtime::RPCResponse *resp) {
+  return resp->ptp_timestamp;
+}
+
+} // namespace
+
+// ============================================================================
+// Main
+// ============================================================================
+
+int main(int argc, char *argv[]) {
+  auto args = parse_args(argc, argv);
+  if (args.loop && args.verify) {
+    std::cerr << "ERROR: --loop requires --no-verify because a continuous "
+                 "loop has no finite ILA response sequence\n";
+    return 2;
+  }
+  // This direct FPGA utility intentionally offers manual loop control only.
+  // The CUDA-QX syndrome player adds software-emulator statistics and finite
+  // acceptance criteria through its --control-port contract.
+
+  std::cout << "=== HSB Generic RPC Playback ===" << std::endl;
+  std::cout << "HSB: " << args.hsb_ip << std::endl;
+  std::cout << "Messages: " << args.num_messages << std::endl;
+  std::cout << "Payload size: " << args.payload_size << " bytes" << std::endl;
+
+  // ------------------------------------------------------------------
+  // Build HSB DataChannel
+  // ------------------------------------------------------------------
+  hololink::Metadata channel_metadata;
+
+  if (args.emulator) {
+    channel_metadata["channel_ip"] = args.hsb_ip;
+    channel_metadata["cpnx_ip"] = args.hsb_ip;
+    channel_metadata["control_port"] =
+        static_cast<std::int64_t>(args.control_port);
+    channel_metadata["hsb_ip_version"] = static_cast<std::int64_t>(0x2602);
+    channel_metadata["fpga_uuid"] = std::string("emulator");
+    channel_metadata["serial_number"] = std::string("emulator-0");
+    channel_metadata["peer_ip"] = args.hsb_ip;
+    channel_metadata["vp_mask"] = static_cast<std::int64_t>(0x1);
+    channel_metadata["data_plane"] = static_cast<std::int64_t>(0);
+    channel_metadata["sensor"] = static_cast<std::int64_t>(0);
+    channel_metadata["sif_address"] = static_cast<std::int64_t>(0);
+    channel_metadata["vp_address"] = static_cast<std::int64_t>(args.vp_address);
+    channel_metadata["hif_address"] =
+        static_cast<std::int64_t>(args.hif_address);
+  } else {
+    channel_metadata = hololink::Enumerator::find_channel(args.hsb_ip);
+    hololink::DataChannel::use_sensor(channel_metadata, 0);
+  }
+
+  hololink::DataChannel hsb_channel(channel_metadata);
+  auto hsb = hsb_channel.hololink();
+
+  hsb->start();
+  if (!args.emulator) {
+    hsb->reset();
+  }
+
+  // ------------------------------------------------------------------
+  // Configure FPGA SIF for RDMA target
+  // ------------------------------------------------------------------
+  size_t frame_size = sizeof(cudaq::realtime::RPCHeader) + args.payload_size;
+  size_t bytes_per_window = ((frame_size + 63) / 64) * 64;
+
+  std::cout << "\n[1/4] Configuring RDMA target..." << std::endl;
+  std::cout << "  Bridge QP: 0x" << std::hex << args.bridge_qp << std::dec
+            << std::endl;
+  std::cout << "  Bridge RKey: " << args.bridge_rkey << std::endl;
+  std::cout << "  Bridge Buffer: 0x" << std::hex << args.bridge_buffer
+            << std::dec << std::endl;
+  std::cout << "  Page size: " << args.page_size << " bytes" << std::endl;
+  std::cout << "  Num pages: " << args.num_pages << std::endl;
+  std::cout << "  Frame size: " << bytes_per_window << " bytes" << std::endl;
+
+  hsb_channel.authenticate(args.bridge_qp, args.bridge_rkey);
+  hsb_channel.configure_roce(args.bridge_buffer,
+                             static_cast<std::uint32_t>(bytes_per_window),
+                             static_cast<std::uint32_t>(args.page_size),
+                             args.num_pages, ROCEV2_UDP_PORT);
+
+  std::cout << "  RDMA target configured" << std::endl;
+
+  // ------------------------------------------------------------------
+  // Disable player, configure registers, load BRAM
+  // ------------------------------------------------------------------
+  std::cout << "\n[2/4] Loading RPC messages into BRAM..." << std::endl;
+
+  if (!hsb->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET, PLAYER_DISABLE))
+    throw std::runtime_error("Failed to disable player");
+
+  hololink::Hololink::WriteData config_write;
+  config_write.queue_write_uint32(PLAYER_ADDR + PLAYER_WINDOW_SIZE_OFFSET,
+                                  static_cast<std::uint32_t>(bytes_per_window));
+  config_write.queue_write_uint32(
+      PLAYER_ADDR + PLAYER_WINDOW_NUMBER_OFFSET,
+      static_cast<std::uint32_t>(args.num_messages));
+  config_write.queue_write_uint32(PLAYER_ADDR + PLAYER_TIMER_OFFSET,
+                                  RF_SOC_TIMER_SCALE *
+                                      DEFAULT_TIMER_SPACING_US);
+  if (!hsb->write_uint32(config_write))
+    throw std::runtime_error("Failed to configure player");
+
+  // Build and load RPC messages
+  std::vector<std::vector<std::uint8_t>> windows;
+  windows.reserve(args.num_messages);
+  for (std::uint32_t i = 0; i < args.num_messages; i++) {
+    auto msg = build_rpc_message(i, args.payload_size);
+    msg.resize(bytes_per_window, 0); // pad to window boundary
+    windows.push_back(std::move(msg));
+  }
+
+  write_bram(*hsb, windows, bytes_per_window);
+  std::cout << "  BRAM write completed (" << args.num_messages << " messages)"
+            << std::endl;
+
+  // Verify BRAM contents
+  std::cout << "  Verifying BRAM..." << std::endl;
+  if (!verify_bram(*hsb, windows, bytes_per_window)) {
+    std::cerr << "  BRAM readback verification FAILED" << std::endl;
+  } else {
+    std::cout << "  BRAM readback verification PASSED" << std::endl;
+  }
+
+  // ------------------------------------------------------------------
+  // Arm ILA and trigger playback
+  // ------------------------------------------------------------------
+  std::cout << "\n[3/4] Triggering playback..." << std::endl;
+
+  if (args.verify) {
+    ila_disable(*hsb);
+    ila_reset(*hsb);
+    ila_enable(*hsb);
+    std::cout << "  ILA: armed for capture" << std::endl;
+  }
+
+  // Disable metadata packet (set bit 16 of METADATA_PACKET_ADDR via RMW)
+  // Needed for FPGA bitfile 0x0227+; comment out for older bitfiles (e.g.
+  // 0x2601).
+  {
+    std::uint32_t val = hsb->read_uint32(METADATA_PACKET_ADDR);
+    if (!hsb->write_uint32(METADATA_PACKET_ADDR, val | (1u << 16)))
+      throw std::runtime_error("Failed to disable metadata packet");
+  }
+
+  // Set SIF TX streaming threshold to zero for immediate streaming.
+  if (!hsb->write_uint32(SIF_TX_THRESHOLD_ADDR, SIF_TX_THRESHOLD_IMMEDIATE))
+    throw std::runtime_error("Failed to set SIF TX streaming threshold");
+
+  const std::uint32_t player_enable =
+      args.loop ? PLAYER_ENABLE_LOOP : PLAYER_ENABLE_SINGLEPASS;
+  if (!hsb->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET, player_enable))
+    throw std::runtime_error("Failed to enable player");
+
+  std::cout << "  Playback triggered: " << args.num_messages << " messages"
+            << (args.loop ? " (continuous loop mode)" : "") << std::endl;
+
+  if (args.loop) {
+    loop_stop_requested = 0;
+    std::signal(SIGINT, request_loop_stop);
+    std::cout << "  Loop playback is running. Press Ctrl-C to disable the "
+                 "player and exit."
+              << std::endl;
+    while (!loop_stop_requested)
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if (!hsb->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET, PLAYER_DISABLE))
+      throw std::runtime_error("Failed to disable loop player");
+    std::cout << "  Loop playback disabled." << std::endl;
+    return 0;
+  }
+
+  // ------------------------------------------------------------------
+  // Wait and verify ILA capture
+  // ------------------------------------------------------------------
+  if (args.verify) {
+    std::cout << "\n[4/4] Verifying responses..." << std::endl;
+
+    constexpr int kStableChecks = 2;
+    constexpr int kPollIntervalMs = 500;
+    constexpr int kVerifyTimeoutMs = 30000;
+    std::cout << "  Waiting for ILA capture to stabilize (timeout "
+              << kVerifyTimeoutMs << " ms)..." << std::endl;
+
+    std::uint32_t prev_count = 0;
+    int stable = 0;
+    int elapsed = 0;
+    while (elapsed < kVerifyTimeoutMs) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(kPollIntervalMs));
+      elapsed += kPollIntervalMs;
+      std::uint32_t count = ila_sample_count(*hsb);
+      if (count > 0 && count == prev_count)
+        ++stable;
+      else
+        stable = 0;
+      prev_count = count;
+      if (stable >= kStableChecks)
+        break;
+    }
+
+    std::uint32_t actual_samples = ila_sample_count(*hsb);
+    ila_disable(*hsb);
+
+    if (actual_samples == 0) {
+      std::cerr << "  ILA: captured 0 samples (timeout " << kVerifyTimeoutMs
+                << " ms)" << std::endl;
+      return 1;
+    }
+    std::cout << "  ILA: captured " << actual_samples << " samples"
+              << std::endl;
+
+    // Read all captured samples
+    auto samples = ila_dump(*hsb, actual_samples);
+    std::cout << "  Read " << samples.size() << " samples from ILA"
+              << std::endl;
+
+    std::uint32_t matched = 0;
+    std::uint32_t header_errors = 0;
+    std::uint32_t payload_errors = 0;
+    std::uint32_t tvalid_zero = 0;
+    std::uint32_t rpc_responses = 0;
+    std::uint32_t non_rpc_frames = 0;
+    std::set<std::uint32_t> seen_request_ids;
+
+    std::int64_t lat_min = std::numeric_limits<std::int64_t>::max();
+    std::int64_t lat_max = std::numeric_limits<std::int64_t>::min();
+    std::int64_t lat_sum = 0;
+    std::uint32_t lat_count = 0;
+
+    struct LatencySample {
+      std::uint32_t shot;
+      std::uint32_t send_sec, send_nsec;
+      std::uint32_t recv_sec, recv_nsec;
+      std::int64_t delta_ns;
+    };
+    std::vector<LatencySample> lat_samples;
+
+    for (auto &sample : samples) {
+      if (!get_bit(sample, ILA_TVALID_BIT)) {
+        ++tvalid_zero;
+        continue;
+      }
+
+      auto payload = extract_payload_bytes(sample, 64);
+
+      auto *resp = reinterpret_cast<const cudaq::realtime::RPCResponse *>(
+          payload.data());
+
+      std::uint32_t expected_magic = args.forward
+                                         ? cudaq::realtime::RPC_MAGIC_REQUEST
+                                         : cudaq::realtime::RPC_MAGIC_RESPONSE;
+
+      if (resp->magic != expected_magic) {
+        ++non_rpc_frames;
+        continue;
+      }
+
+      ++rpc_responses;
+
+      if (!args.forward && resp->status != 0) {
+        std::cerr << "  Response request_id=" << resp->request_id
+                  << ": error status " << resp->status << std::endl;
+        ++header_errors;
+        continue;
+      }
+
+      std::uint32_t rid = resp->request_id;
+      seen_request_ids.insert(rid);
+
+      if (!args.forward) {
+        const std::uint8_t *result_data =
+            payload.data() + sizeof(cudaq::realtime::RPCResponse);
+        bool ok = true;
+        std::uint32_t check_len = std::min(resp->result_len, args.payload_size);
+
+        for (std::uint32_t j = 0; j < check_len && ok; j++) {
+          std::uint8_t expected =
+              static_cast<std::uint8_t>(((rid + j) & 0xFF) + 1);
+          if (result_data[j] != expected) {
+            if (payload_errors < 5) {
+              std::cerr << "  Shot " << rid << " byte " << j << ": expected "
+                        << (int)expected << " got " << (int)result_data[j]
+                        << std::endl;
+            }
+            ok = false;
+          }
+        }
+
+        if (ok)
+          ++matched;
+        else
+          ++payload_errors;
+      } else {
+        ++matched;
+      }
+
+      // PTP round-trip latency: send timestamp from response header,
+      // receive timestamp from ILA bits [584:521].
+      {
+        std::uint64_t send_raw = extract_echoed_ptp_timestamp(resp);
+        std::uint64_t recv_raw = extract_ila_ptp_timestamp(sample);
+        if (send_raw != 0 && recv_raw != 0) {
+          auto send_ts = decode_ptp(send_raw);
+          auto recv_ts = decode_ptp(recv_raw);
+          std::int64_t delta = ptp_delta_ns(send_ts, recv_ts);
+          lat_sum += delta;
+          ++lat_count;
+          if (delta < lat_min)
+            lat_min = delta;
+          if (delta > lat_max)
+            lat_max = delta;
+
+          lat_samples.push_back({rid, send_ts.sec, send_ts.nsec, recv_ts.sec,
+                                 recv_ts.nsec, delta});
+
+          if (lat_count <= 5) {
+            std::cout << "  Msg " << std::setw(3) << rid
+                      << ": send={sec=" << send_ts.sec
+                      << ", nsec=" << send_ts.nsec
+                      << "} recv={sec=" << recv_ts.sec
+                      << ", nsec=" << recv_ts.nsec << "} delta=" << delta
+                      << " ns" << std::endl;
+          }
+        }
+      }
+    }
+
+    std::cout << "\n=== Verification Summary ===" << std::endl;
+    std::cout << "  ILA samples captured:   " << actual_samples << std::endl;
+    std::cout << "  tvalid=0 (idle):        " << tvalid_zero << std::endl;
+    std::cout << "  RPC responses:          " << rpc_responses << std::endl;
+    std::cout << "  Non-RPC frames:         " << non_rpc_frames << std::endl;
+    std::cout << "  Unique messages verified: " << seen_request_ids.size()
+              << " of " << args.num_messages << std::endl;
+    std::cout << "  Responses matched:    " << matched << std::endl;
+    std::cout << "  Header errors:        " << header_errors << std::endl;
+    std::cout << "  Payload errors:       " << payload_errors << std::endl;
+
+    if (lat_count > 0) {
+      double lat_avg = static_cast<double>(lat_sum) / lat_count;
+      std::cout << "\n=== PTP Round-Trip Latency ===" << std::endl;
+      std::cout << "  Samples:  " << lat_count << std::endl;
+      std::cout << "  Min:      " << lat_min << " ns" << std::endl;
+      std::cout << "  Max:      " << lat_max << " ns" << std::endl;
+      std::cout << "  Avg:      " << std::fixed << std::setprecision(1)
+                << lat_avg << " ns" << std::endl;
+      const std::string csv_path = "ptp_latency.csv";
+      std::ofstream csv(csv_path);
+      if (csv.is_open()) {
+        csv << "shot,send_sec,send_nsec,recv_sec,recv_nsec,delta_ns\n";
+        for (auto &s : lat_samples)
+          csv << s.shot << "," << s.send_sec << "," << s.send_nsec << ","
+              << s.recv_sec << "," << s.recv_nsec << "," << s.delta_ns << "\n";
+        csv.close();
+        std::cout << "  CSV written: " << csv_path << std::endl;
+      }
+    } else {
+      std::cout << "\n  PTP latency: no valid timestamps found" << std::endl;
+    }
+
+    if (payload_errors == 0 && header_errors == 0 &&
+        seen_request_ids.size() > 0) {
+      std::cout << "  RESULT: PASS" << std::endl;
+      return 0;
+    } else {
+      std::cout << "  RESULT: FAIL" << std::endl;
+      return 1;
+    }
+  } else {
+    std::cout << "\n[4/4] Verification skipped (--no-verify)" << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    std::cout << "\n*** PLAYBACK COMPLETE ***" << std::endl;
+    return 0;
+  }
+}

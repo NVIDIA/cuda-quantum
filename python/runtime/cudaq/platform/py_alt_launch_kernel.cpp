@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "py_alt_launch_kernel.h"
+#include "CompileTargetCaster.h"
 #include "CompiledModuleCache.h"
 #include "ProgramFingerprint.h"
 #include "common/AnalogHamiltonian.h"
@@ -52,6 +53,7 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/Passes.h"
+#include <cstdint>
 #include <fmt/core.h>
 #include <mlir/IR/OwningOpRef.h>
 #include <nanobind/nanobind.h>
@@ -695,7 +697,7 @@ static void appendTheResultValue(ModuleOp module, const std::string &name,
 
 /// Derive a word-sized value from the digest for human-readable logging.
 /// Never used for comparison — reuse validation compares full digests.
-static std::size_t digestLogValue(const std::array<uint8_t, 32> &digest) {
+static std::size_t digestLogValue(const std::array<std::uint8_t, 32> &digest) {
   std::size_t value;
   std::memcpy(&value, digest.data(), sizeof(value));
   return value;
@@ -802,7 +804,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   // compile-time dependencies keep the all-zeros digest on both sides of the
   // comparison. When no honest fingerprint can be computed (unowned
   // dependencies), fall back to compiling every call.
-  std::array<uint8_t, 32> programDigest = {};
+  std::array<std::uint8_t, 32> programDigest = {};
   mlir::OwningOpRef<ModuleOp> resolvedModule;
   const bool fingerprinted = cacheable && hasCompileTimeDependencies;
   if (fingerprinted) {

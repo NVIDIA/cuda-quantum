@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // RUN: qlx-opt %s | FileCheck %s --check-prefix=ROUNDTRIP
-// RUN: qlx-opt --fabric-inline-realisations %s | FileCheck %s --check-prefix=INLINE
+// RUN: qlx-opt --fabric-inline-realization %s | FileCheck %s --check-prefix=INLINE
 
 module attributes {qlx.profiles = ["p2a"]} {
   fabric.circuit @flip_body(%value: i1) -> i1 {

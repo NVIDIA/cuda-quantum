@@ -10,7 +10,6 @@
 // [Begin Observe1]
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
-
 #include <iostream>
 
 __qpu__ void kernel() {

@@ -8,6 +8,7 @@
 
 #include "cudaq/operators.h"
 #include "cudaq/operators/matrix.h"
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 
@@ -55,9 +56,9 @@ void checkEqual(cudaq::complex_matrix a, cudaq::complex_matrix b) {
 
 void checkEqual(const cudaq::complex_matrix &denseMat,
                 const cudaq::mdiag_sparse_matrix &diaMat) {
-  int64_t dim = denseMat.rows();
+  std::int64_t dim = denseMat.rows();
   const auto &[buffer, offsets] = diaMat;
-  for (int64_t i = -(dim - 1); i < dim; ++i) {
+  for (std::int64_t i = -(dim - 1); i < dim; ++i) {
     const auto iter = std::find(offsets.begin(), offsets.end(), i);
     if (iter != offsets.end()) {
       const auto idx = std::distance(offsets.begin(), iter);

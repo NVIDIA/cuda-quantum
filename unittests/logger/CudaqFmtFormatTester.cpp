@@ -17,7 +17,6 @@
 // runtime/logger/logger.cpp.
 
 #include "cudaq/runtime/logger/cudaq_fmt.h"
-
 #include <gtest/gtest.h>
 
 #include <chrono>

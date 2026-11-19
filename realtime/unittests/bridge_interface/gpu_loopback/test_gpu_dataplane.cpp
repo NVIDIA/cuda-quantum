@@ -76,7 +76,7 @@ cudaq_status_t launch_own_dispatcher(void *transport_ctx, size_t tx_stride_sz,
                                      cudaq_function_entry_t *function_table,
                                      size_t func_count,
                                      volatile int *shutdown_flag,
-                                     uint64_t *stats, uint32_t,
+                                     std::uint64_t *stats, std::uint32_t,
                                      cudaStream_t stream) {
   void *args[] = {&transport_ctx,  &tx_stride_sz, &shutdown_flag,
                   &function_table, &func_count,   &stats};
@@ -103,7 +103,8 @@ cudaEvent_t own_dispatcher_done = nullptr;
 cudaq_status_t launch_then_fail(void *transport_ctx, size_t tx_stride_sz,
                                 cudaq_function_entry_t *function_table,
                                 size_t func_count, volatile int *shutdown_flag,
-                                uint64_t *stats, uint32_t threads_per_block,
+                                std::uint64_t *stats,
+                                std::uint32_t threads_per_block,
                                 cudaStream_t stream) {
   if (launch_own_dispatcher(transport_ctx, tx_stride_sz, function_table,
                             func_count, shutdown_flag, stats, threads_per_block,
@@ -131,27 +132,11 @@ protected:
                    << major << "x";
 #endif
     ASSERT_EQ(cudaq_dispatch_manager_create(&manager), CUDAQ_OK);
-    // The kernel polls the flag, so the host must reach it while the kernel
-    // runs: mapped pinned memory, written through its host view.
-    void *h_flag = nullptr;
-    ASSERT_EQ(cudaHostAlloc(&h_flag, sizeof(int), cudaHostAllocMapped),
-              cudaSuccess);
-    h_shutdown = static_cast<volatile int *>(h_flag);
-    *h_shutdown = 0;
-    void *d_flag = nullptr;
-    ASSERT_EQ(cudaHostGetDevicePointer(&d_flag, h_flag, 0), cudaSuccess);
-    d_shutdown = static_cast<volatile int *>(d_flag);
-    ASSERT_EQ(cudaMalloc(&d_stats, sizeof(std::uint64_t)), cudaSuccess);
-    ASSERT_EQ(cudaMemset(d_stats, 0, sizeof(std::uint64_t)), cudaSuccess);
     ASSERT_EQ(cudaMalloc(&d_entries, sizeof(cudaq_function_entry_t)),
               cudaSuccess);
   }
 
   void TearDown() override {
-    // A resident kernel only sees the flag through its host view; stop()'s
-    // own write would queue behind the kernel.
-    if (h_shutdown)
-      *h_shutdown = 1;
     for (auto *dispatcher : dispatchers) {
       cudaq_dispatcher_stop(dispatcher);
       cudaq_dispatcher_destroy(dispatcher);
@@ -161,23 +146,38 @@ protected:
     if (manager)
       cudaq_dispatch_manager_destroy(manager);
     cudaFree(d_entries);
-    cudaFree(d_stats);
-    if (h_shutdown)
-      cudaFreeHost(const_cast<int *>(h_shutdown));
+    // The set_control override's words, when a test allocated them: freed
+    // after the dispatcher that polled them has been stopped.
+    if (override_stats)
+      cudaFree(override_stats);
+    if (override_shutdown)
+      cudaFree(override_shutdown);
   }
 
-  cudaq_realtime_bridge_handle_t bridge(std::vector<std::string> args = {}) {
+  cudaq_realtime_bridge_handle_t
+  bridge(std::vector<std::string> args = {},
+         const char *library = GPU_LOOPBACK_BRIDGE_PATH) {
     std::vector<char *> argv;
     for (auto &arg : args)
       argv.push_back(arg.data());
     cudaq_realtime_bridge_handle_t b = nullptr;
-    EXPECT_EQ(cudaq_bridge_create_from_library(&b, GPU_LOOPBACK_BRIDGE_PATH,
-                                               static_cast<int>(argv.size()),
-                                               argv.data()),
+    EXPECT_EQ(cudaq_bridge_create_from_library(
+                  &b, library, static_cast<int>(argv.size()), argv.data()),
               CUDAQ_OK);
     if (b)
       bridges.push_back(b);
     return b;
+  }
+
+  // The same provider built as one written before interface version 5.
+  cudaq_realtime_bridge_handle_t legacy_bridge() {
+    return bridge({}, GPU_LOOPBACK_LEGACY_BRIDGE_PATH);
+  }
+
+  // The same provider built the way the interface doc describes a new one:
+  // without the deprecated get_transport_context entry.
+  cudaq_realtime_bridge_handle_t no_tc_bridge() {
+    return bridge({}, GPU_LOOPBACK_NO_TC_BRIDGE_PATH);
   }
 
   cudaq_dispatcher_t *
@@ -192,7 +192,7 @@ protected:
     return d;
   }
 
-  // One DEVICE_CALL entry for `fn`, plus the control words.
+  // One DEVICE_CALL entry for `fn`.
   void install(cudaq_dispatcher_t *d, void *fn) {
     cudaq_function_entry_t entry;
     std::memset(&entry, 0, sizeof(entry));
@@ -204,15 +204,29 @@ protected:
         cudaSuccess);
     cudaq_function_table_t table{d_entries, 1};
     ASSERT_EQ(cudaq_dispatcher_set_function_table(d, &table), CUDAQ_OK);
-    ASSERT_EQ(cudaq_dispatcher_set_control(d, d_shutdown, d_stats), CUDAQ_OK);
+  }
+
+  // The deprecated override: device words of this fixture's in place of the
+  // dispatcher's own.
+  void override_control(cudaq_dispatcher_t *d) {
+    ASSERT_EQ(cudaMalloc(&override_shutdown, sizeof(int)), cudaSuccess);
+    ASSERT_EQ(cudaMemset(override_shutdown, 0, sizeof(int)), cudaSuccess);
+    ASSERT_EQ(cudaMalloc(&override_stats, sizeof(std::uint64_t)), cudaSuccess);
+    ASSERT_EQ(cudaMemset(override_stats, 0, sizeof(std::uint64_t)),
+              cudaSuccess);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    ASSERT_EQ(
+        cudaq_dispatcher_set_control(d, override_shutdown, override_stats),
+        CUDAQ_OK);
+#pragma GCC diagnostic pop
   }
 
   // Plays the wire for started dispatcher `d` over bridge `b`, then stops it
   // and checks that every request was counted.
   void round_trip(cudaq_realtime_bridge_handle_t b, cudaq_dispatcher_t *d) {
     cudaq_ringbuffer_t ring{};
-    ASSERT_EQ(cudaq_bridge_get_transport_context(b, RING_BUFFER, &ring),
-              CUDAQ_OK);
+    ASSERT_EQ(cudaq_bridge_get_ring_buffer(b, &ring), CUDAQ_OK);
     std::uint32_t num_slots = 0, slot_size = 0;
     ASSERT_EQ(cudaq_bridge_get_ring_geometry(b, &num_slots, &slot_size),
               CUDAQ_OK);
@@ -253,7 +267,6 @@ protected:
                        0, __ATOMIC_RELEASE);
     }
 
-    *h_shutdown = 1;
     ASSERT_EQ(cudaq_dispatcher_stop(d), CUDAQ_OK);
     std::uint64_t processed = 0;
     ASSERT_EQ(cudaq_dispatcher_get_processed(d, &processed), CUDAQ_OK);
@@ -280,10 +293,9 @@ protected:
   }
 
   cudaq_dispatch_manager_t *manager = nullptr;
-  volatile int *h_shutdown = nullptr;
-  volatile int *d_shutdown = nullptr;
-  std::uint64_t *d_stats = nullptr;
   cudaq_function_entry_t *d_entries = nullptr;
+  int *override_shutdown = nullptr;
+  std::uint64_t *override_stats = nullptr;
   std::vector<cudaq_dispatcher_t *> dispatchers;
   std::vector<cudaq_realtime_bridge_handle_t> bridges;
 };
@@ -298,6 +310,188 @@ TEST_F(GpuDataplaneTest, RoundTripWrapsTheRing) {
   install(d, fn);
   ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
   round_trip(b, d);
+}
+
+// The typed ring query and the deprecated untyped one hand out the same ring.
+TEST_F(GpuDataplaneTest, GetRingBufferMatchesTheDeprecatedQuery) {
+  auto b = bridge();
+  cudaq_ringbuffer_t ring{};
+  ASSERT_EQ(cudaq_bridge_get_ring_buffer(b, &ring), CUDAQ_OK);
+  EXPECT_NE(ring.rx_flags, nullptr);
+  EXPECT_NE(ring.tx_flags, nullptr);
+  EXPECT_NE(ring.rx_data, nullptr);
+  EXPECT_NE(ring.tx_data, nullptr);
+  EXPECT_EQ(cudaq_bridge_get_ring_buffer(b, nullptr), CUDAQ_ERR_INVALID_ARG);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  cudaq_ringbuffer_t old{};
+  ASSERT_EQ(cudaq_bridge_get_transport_context(b, RING_BUFFER, &old), CUDAQ_OK);
+  // No launch override here: the unified query is refused, as before.
+  cudaq_unified_dispatch_ctx_t unified{};
+  EXPECT_EQ(cudaq_bridge_get_transport_context(b, UNIFIED, &unified),
+            CUDAQ_ERR_UNSUPPORTED);
+#pragma GCC diagnostic pop
+  EXPECT_EQ(old.rx_flags, ring.rx_flags);
+  EXPECT_EQ(old.tx_flags, ring.tx_flags);
+  EXPECT_EQ(old.rx_data, ring.rx_data);
+  EXPECT_EQ(old.tx_data, ring.tx_data);
+  EXPECT_EQ(old.rx_stride_sz, ring.rx_stride_sz);
+  EXPECT_EQ(old.tx_stride_sz, ring.tx_stride_sz);
+}
+
+// A provider written before version 5 leaves get_ring_buffer NULL and answers
+// RING_BUFFER through the deprecated entry; the API falls back to it, so the
+// provider works unchanged: a ring-shape dispatcher wires through
+// set_bridge, and a unified one still round-trips over its GPU data plane.
+TEST_F(GpuDataplaneTest, OldStyleProviderStillServesTheRing) {
+  auto b = legacy_bridge();
+  ASSERT_NE(b, nullptr);
+  cudaq_ringbuffer_t ring{};
+  ASSERT_EQ(cudaq_bridge_get_ring_buffer(b, &ring), CUDAQ_OK);
+  EXPECT_NE(ring.rx_flags, nullptr);
+  EXPECT_NE(ring.tx_data, nullptr);
+
+  // A caller not yet moved off the deprecated query (cudaq-qec's device-graph
+  // consumer) over this provider takes the shim's fallback branch.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  cudaq_ringbuffer_t old{};
+  ASSERT_EQ(cudaq_bridge_get_transport_context(b, RING_BUFFER, &old), CUDAQ_OK);
+  cudaq_unified_dispatch_ctx_t unified{};
+  EXPECT_EQ(cudaq_bridge_get_transport_context(b, UNIFIED, &unified),
+            CUDAQ_ERR_UNSUPPORTED);
+#pragma GCC diagnostic pop
+  EXPECT_EQ(old.rx_flags, ring.rx_flags);
+  EXPECT_EQ(old.tx_flags, ring.tx_flags);
+  EXPECT_EQ(old.rx_data, ring.rx_data);
+  EXPECT_EQ(old.tx_data, ring.tx_data);
+  EXPECT_EQ(old.rx_stride_sz, ring.rx_stride_sz);
+  EXPECT_EQ(old.tx_stride_sz, ring.tx_stride_sz);
+
+  auto *ring_dispatcher =
+      dispatcher(CUDAQ_DISPATCH_PATH_DEVICE, CUDAQ_KERNEL_REGULAR);
+  EXPECT_EQ(cudaq_dispatcher_set_bridge(ring_dispatcher, b), CUDAQ_OK);
+
+  auto b2 = legacy_bridge();
+  auto *d = dispatcher();
+  ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b2), CUDAQ_OK);
+  void *fn = nullptr;
+  ASSERT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn), CUDAQ_OK);
+  install(d, fn);
+  ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+  round_trip(b2, d);
+}
+
+// The shape the interface doc describes for a new provider: get_ring_buffer
+// filled, no get_transport_context entry.  The typed query serves the rings,
+// the deprecated query forwards for RING_BUFFER and is refused for UNIFIED
+// instead of calling through a NULL entry, and both dispatcher shapes wire.
+TEST_F(GpuDataplaneTest, ProviderWithoutTransportContextEntry) {
+  auto b = no_tc_bridge();
+  ASSERT_NE(b, nullptr);
+  cudaq_ringbuffer_t ring{};
+  ASSERT_EQ(cudaq_bridge_get_ring_buffer(b, &ring), CUDAQ_OK);
+  EXPECT_NE(ring.rx_flags, nullptr);
+  EXPECT_NE(ring.tx_data, nullptr);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  cudaq_ringbuffer_t old{};
+  ASSERT_EQ(cudaq_bridge_get_transport_context(b, RING_BUFFER, &old), CUDAQ_OK);
+  cudaq_unified_dispatch_ctx_t unified{};
+  EXPECT_EQ(cudaq_bridge_get_transport_context(b, UNIFIED, &unified),
+            CUDAQ_ERR_UNSUPPORTED);
+#pragma GCC diagnostic pop
+  EXPECT_EQ(old.rx_flags, ring.rx_flags);
+  EXPECT_EQ(old.tx_data, ring.tx_data);
+
+  auto *ring_dispatcher =
+      dispatcher(CUDAQ_DISPATCH_PATH_DEVICE, CUDAQ_KERNEL_REGULAR);
+  EXPECT_EQ(cudaq_dispatcher_set_bridge(ring_dispatcher, b), CUDAQ_OK);
+
+  auto b2 = no_tc_bridge();
+  auto *d = dispatcher();
+  ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b2), CUDAQ_OK);
+  void *fn = nullptr;
+  ASSERT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn), CUDAQ_OK);
+  install(d, fn);
+  ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+  round_trip(b2, d);
+}
+
+// Nothing has run before start(), so the count is zero rather than an error.
+TEST_F(GpuDataplaneTest, GetProcessedIsZeroBeforeStart) {
+  auto *d = dispatcher();
+  std::uint64_t processed = 42;
+  ASSERT_EQ(cudaq_dispatcher_get_processed(d, &processed), CUDAQ_OK);
+  EXPECT_EQ(processed, 0u);
+}
+
+// stop() ends the kernel on its own (round_trip raises no flag); a second
+// stop() is a no-op, and the count survives it.
+TEST_F(GpuDataplaneTest, StopIsIdempotentAndKeepsTheCount) {
+  auto b = bridge();
+  auto *d = dispatcher();
+  ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b), CUDAQ_OK);
+  void *fn = nullptr;
+  ASSERT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn), CUDAQ_OK);
+  install(d, fn);
+  ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+  round_trip(b, d);
+  std::uint64_t before = 0;
+  ASSERT_EQ(cudaq_dispatcher_get_processed(d, &before), CUDAQ_OK);
+  ASSERT_EQ(cudaq_dispatcher_stop(d), CUDAQ_OK);
+  std::uint64_t after = 0;
+  ASSERT_EQ(cudaq_dispatcher_get_processed(d, &after), CUDAQ_OK);
+  EXPECT_GT(after, 0u);
+  EXPECT_EQ(after, before);
+}
+
+// Each start() zeroes the dispatcher's own words: started again after stop(),
+// it reports only the second run's requests.
+TEST_F(GpuDataplaneTest, RestartZeroesTheCount) {
+  auto b = bridge();
+  auto *d = dispatcher();
+  ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b), CUDAQ_OK);
+  void *fn = nullptr;
+  ASSERT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn), CUDAQ_OK);
+  install(d, fn);
+  ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+  round_trip(b, d);
+  std::uint64_t first = 0;
+  ASSERT_EQ(cudaq_dispatcher_get_processed(d, &first), CUDAQ_OK);
+  ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+  round_trip(b, d);
+  std::uint64_t second = 0;
+  ASSERT_EQ(cudaq_dispatcher_get_processed(d, &second), CUDAQ_OK);
+  EXPECT_EQ(second, first);
+}
+
+// The deprecated override still routes the kernel's flag and count to the
+// caller's device words: stop() raises that flag, and the count lands there.
+TEST_F(GpuDataplaneTest, SetControlStillOverridesTheWords) {
+  auto b = bridge();
+  auto *d = dispatcher();
+  ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b), CUDAQ_OK);
+  void *fn = nullptr;
+  ASSERT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn), CUDAQ_OK);
+  install(d, fn);
+  override_control(d);
+  ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+  round_trip(b, d);
+  std::uint64_t processed = 0, counted = 0;
+  int flag = 0;
+  ASSERT_EQ(cudaq_dispatcher_get_processed(d, &processed), CUDAQ_OK);
+  ASSERT_EQ(cudaMemcpy(&counted, override_stats, sizeof(counted),
+                       cudaMemcpyDeviceToHost),
+            cudaSuccess);
+  ASSERT_EQ(cudaMemcpy(&flag, override_shutdown, sizeof(flag),
+                       cudaMemcpyDeviceToHost),
+            cudaSuccess);
+  EXPECT_GT(counted, 0u);
+  EXPECT_EQ(counted, processed);
+  EXPECT_EQ(flag, 1);
 }
 
 // The application's own kernel, from this binary's device code, started by
@@ -355,7 +549,6 @@ TEST_F(GpuDataplaneTest, StartStopsAKernelItsLauncherEnqueuedBeforeFailing) {
   ASSERT_EQ(cudaq_dispatcher_set_unified_launch(d, launch_then_fail, nullptr),
             CUDAQ_OK);
   EXPECT_EQ(cudaq_dispatcher_start(d), CUDAQ_ERR_INTERNAL);
-  EXPECT_EQ(static_cast<int>(*h_shutdown), 1);
   // The kernel, and the marker behind it, finished before start returned.
   EXPECT_EQ(cudaEventQuery(own_dispatcher_done), cudaSuccess);
   cudaEventDestroy(own_dispatcher_done);

@@ -150,7 +150,6 @@ static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
 static void
 createCommonTargetCodegenPipeline(OpPassManager &pm,
                                   const TargetCodegenPipelineOptions &options) {
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
@@ -192,6 +191,12 @@ createTargetCodegenPipeline(OpPassManager &pm,
   // instead, so it still rejects borrowed wires here.
   if (fullQIR)
     pm.addPass(cudaq::opt::createWireSetToNullWires());
+  // A QIR API that cannot lower negated controls gets them expanded before
+  // simplification, which can then cancel the X pairs.
+  const bool supportNegatedControls = cudaq::opt::qirAPISupportsNegatedControls(
+      fullQIR ? "full" : "base-profile");
+  if (!supportNegatedControls)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   createCommonTargetCodegenPipeline(pm, options);
   if (useValueSemantics) {
     cudaq::opt::addConvertToLinearValues(pm);
@@ -202,9 +207,10 @@ createTargetCodegenPipeline(OpPassManager &pm,
       cudaq::opt::createEraseCompilerGeneratedEvince());
 
   cudaq::opt::addPhaseLifecycle(pm);
-  // LowerPhase can leave negative controls on the R1/Rz it creates, so we need
-  // to run this pass again to expand those negations.
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  // `LowerPhase` can leave negative controls on the R1/Rz it creates, so we
+  // need to run this pass again to expand those negations.
+  if (!supportNegatedControls)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
 
   cudaq::opt::addLowerToCFG(pm);
   // Merge the trivial blocks left behind by lowering.

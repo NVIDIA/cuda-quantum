@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-
 #include <cudaq/algorithm.h>
 
 inline std::vector<int> range(int N) {

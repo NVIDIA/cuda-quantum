@@ -8,17 +8,17 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 
 /* Private host loop for already-validated matrices and vectors. */
-static inline void cudaq_gf2_csc_xor_kernel(uint32_t columns,
-                                            const uint64_t *column_offsets,
-                                            const uint32_t *row_indices,
-                                            const uint8_t *input,
-                                            uint8_t *output) {
-  for (uint64_t column = 0; column < columns; ++column)
+static inline void cudaq_gf2_csc_xor_kernel(std::uint32_t columns,
+                                            const std::uint64_t *column_offsets,
+                                            const std::uint32_t *row_indices,
+                                            const std::uint8_t *input,
+                                            std::uint8_t *output) {
+  for (std::uint64_t column = 0; column < columns; ++column)
     if (input[column])
-      for (uint64_t p = column_offsets[column]; p < column_offsets[column + 1];
-           ++p)
+      for (std::uint64_t p = column_offsets[column];
+           p < column_offsets[column + 1]; ++p)
         output[row_indices[p]] ^= 1;
 }

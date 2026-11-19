@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
-
 #include <iostream>
 #include <set>
 

@@ -12,6 +12,7 @@
 #include "cudaq/operators.h"
 #include <CuDensityMatErrorHandling.h>
 #include <complex>
+#include <cstdint>
 #include <cstdlib>
 #include <gtest/gtest.h>
 #include <memory>
@@ -47,7 +48,7 @@ makeConverter(cudensitymatHandle_t handle, const char *maxFusedDimension) {
   return converter;
 }
 
-std::size_t hilbertSpaceDimension(const std::vector<int64_t> &dims) {
+std::size_t hilbertSpaceDimension(const std::vector<std::int64_t> &dims) {
   std::size_t dim = 1;
   for (auto extent : dims)
     dim *= static_cast<std::size_t>(extent);
@@ -68,7 +69,8 @@ std::vector<std::complex<double>> randomValues(std::size_t count) {
 
 // The matrix of `op` on the full space, with the first degree varying fastest
 // as in the state.
-complex_matrix fullMatrix(const Operator &op, const std::vector<int64_t> &dims,
+complex_matrix fullMatrix(const Operator &op,
+                          const std::vector<std::int64_t> &dims,
                           const Parameters &parameters) {
   dimension_map dimensions;
   for (std::size_t i = 0; i < dims.size(); ++i)
@@ -113,7 +115,7 @@ complex_matrix fullMatrix(const Operator &op, const std::vector<int64_t> &dims,
 //   - 1/2 (L_k^dagger L_k rho + rho L_k^dagger L_k)), computed on the host.
 std::vector<std::complex<double>> hostLiouvillianAction(
     const Operator &ham, const std::vector<Operator> &collapseOps,
-    const std::vector<int64_t> &dims, const Parameters &parameters,
+    const std::vector<std::int64_t> &dims, const Parameters &parameters,
     const std::vector<std::complex<double>> &rhoData) {
   const auto dim = hilbertSpaceDimension(dims);
   complex_matrix rho(dim, dim);
@@ -143,7 +145,8 @@ std::vector<std::complex<double>> hostLiouvillianAction(
 
 // -i H psi, computed on the host.
 std::vector<std::complex<double>>
-hostHamiltonianAction(const Operator &ham, const std::vector<int64_t> &dims,
+hostHamiltonianAction(const Operator &ham,
+                      const std::vector<std::int64_t> &dims,
                       const Parameters &parameters,
                       const std::vector<std::complex<double>> &psi) {
   const auto h = fullMatrix(ham, dims, parameters);
@@ -179,7 +182,7 @@ protected:
   std::vector<std::complex<double>>
   applyLiouvillian(const char *maxFusedDimension, const Operator &ham,
                    const std::vector<Operator> &collapseOps,
-                   const std::vector<int64_t> &dims,
+                   const std::vector<std::int64_t> &dims,
                    const Parameters &parameters,
                    const std::vector<std::complex<double>> &stateData,
                    bool isMasterEquation = true) {
@@ -208,7 +211,7 @@ protected:
   // each fusion cap.
   void checkFusionMatches(const Operator &ham,
                           const std::vector<Operator> &collapseOps,
-                          const std::vector<int64_t> &dims,
+                          const std::vector<std::int64_t> &dims,
                           const Parameters &parameters = {}) {
     const auto dim = hilbertSpaceDimension(dims);
     const auto rho = randomValues(dim * dim);
@@ -225,7 +228,7 @@ protected:
   // Checks the state vector Liouvillian, -i H, against the host reference for
   // each fusion cap.
   void checkStateVectorFusionMatches(const Operator &ham,
-                                     const std::vector<int64_t> &dims) {
+                                     const std::vector<std::int64_t> &dims) {
     const auto psi = randomValues(hilbertSpaceDimension(dims));
     const auto expected = hostHamiltonianAction(ham, dims, {}, psi);
     for (const char *maxFusedDimension : maxFusedDimensions)
@@ -241,7 +244,7 @@ protected:
 // with the single-site decay operators. The complex coupling makes the
 // Hamiltonian non-Hermitian, so its left and right actions differ.
 TEST_F(OperatorFusionTest, HeisenbergChainWithDecay) {
-  const std::vector<int64_t> dims(4, 2);
+  const std::vector<std::int64_t> dims(4, 2);
   auto spinHam = spin_op::empty();
   for (std::size_t i = 0; i + 1 < dims.size(); ++i) {
     spinHam += 1.0 * spin_op::x(i) * spin_op::x(i + 1);
@@ -262,7 +265,7 @@ TEST_F(OperatorFusionTest, HeisenbergChainWithDecay) {
 // that and fuse on one side only. The complex drive makes the Hamiltonian
 // non-Hermitian.
 TEST_F(OperatorFusionTest, NonNormalCollapseOperatorsOnMixedModeSizes) {
-  const std::vector<int64_t> dims = {3, 10};
+  const std::vector<std::int64_t> dims = {3, 10};
   Operator ham(0.7 * boson_op::number(0) + 0.4 * boson_op::number(1) +
                0.25 * (boson_op::create(0) * boson_op::annihilate(1) +
                        boson_op::annihilate(0) * boson_op::create(1)));
@@ -279,7 +282,7 @@ TEST_F(OperatorFusionTest, NonNormalCollapseOperatorsOnMixedModeSizes) {
 // of the 6-level mode keeps its L^dagger L factors, which fuse into one
 // multi-diagonal operator unless fusion is disabled.
 TEST_F(OperatorFusionTest, ParameterizedCoefficientsStayUnfused) {
-  const std::vector<int64_t> dims = {2, 6};
+  const std::vector<std::int64_t> dims = {2, 6};
   const auto omega = [](const Parameters &parameters) {
     return parameters.at("omega");
   };
@@ -303,14 +306,14 @@ TEST_F(OperatorFusionTest, ParameterizedCoefficientsStayUnfused) {
 // anticommutator part is fused, and L rho L^dagger stays unfused.
 TEST_F(OperatorFusionTest, MixedDegreeCollapseOperators) {
   {
-    const std::vector<int64_t> dims = {2, 2};
+    const std::vector<std::int64_t> dims = {2, 2};
     Operator ham(0.5 * spin_op::z(0) + 0.3 * spin_op::z(1));
     std::vector<Operator> collapseOps = {
         Operator(boson_op::annihilate(0) + boson_op::annihilate(1))};
     checkFusionMatches(ham, collapseOps, dims);
   }
   {
-    const std::vector<int64_t> dims = {2, 12};
+    const std::vector<std::int64_t> dims = {2, 12};
     Operator ham(0.5 * boson_op::number(0) + 0.3 * boson_op::number(1) +
                  0.2 * (boson_op::create(0) * boson_op::annihilate(1) +
                         boson_op::annihilate(0) * boson_op::create(1)));
@@ -323,7 +326,7 @@ TEST_F(OperatorFusionTest, MixedDegreeCollapseOperators) {
 // Without collapse operators the state vector is evolved by -i H, whose terms
 // fuse on one side.
 TEST_F(OperatorFusionTest, StateVectorEvolution) {
-  const std::vector<int64_t> dims = {2, 2, 2, 3};
+  const std::vector<std::int64_t> dims = {2, 2, 2, 3};
   auto spinHam = spin_op::empty();
   for (std::size_t i = 0; i + 1 < 3; ++i) {
     spinHam += 1.0 * spin_op::x(i) * spin_op::x(i + 1);
@@ -340,7 +343,7 @@ TEST_F(OperatorFusionTest, StateVectorEvolution) {
 }
 
 TEST_F(OperatorFusionTest, BatchedMixedDegreeCollapseOperatorsThrow) {
-  const std::vector<int64_t> dims = {2, 2};
+  const std::vector<std::int64_t> dims = {2, 2};
   Operator ham(0.5 * spin_op::z(0));
   Operator collapseOp(boson_op::annihilate(0) + boson_op::annihilate(1));
   for (const char *maxFusedDimension : {"0", "64"}) {

@@ -26,6 +26,7 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include <cstdint>
 #include <doca_error.h>
 #include <endian.h>
 #include <iostream>
@@ -34,7 +35,8 @@
 extern "C" cudaError_t GpuRoceTransceiverQueryOccupancy(int *, int *, int *);
 extern "C" doca_error_t GpuRoceTransceiverPrepareKernel(
     cudaStream_t stream, struct doca_gpu_dev_verbs_qp *qp, size_t frame_size,
-    uint32_t cu_page_mkey, uint32_t cuda_blocks, uint32_t cuda_threads);
+    std::uint32_t cu_page_mkey, std::uint32_t cuda_blocks,
+    std::uint32_t cuda_threads);
 
 using namespace hololink::operators;
 
@@ -115,7 +117,7 @@ void gpu_roce_set_cpu_ring_buffers(gpu_roce_transceiver_t handle, int enable) {
 // QP information
 //==============================================================================
 
-uint32_t gpu_roce_get_qp_number(gpu_roce_transceiver_t handle) {
+std::uint32_t gpu_roce_get_qp_number(gpu_roce_transceiver_t handle) {
   if (handle) {
     auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_qp_number(kSensorId);
@@ -123,7 +125,7 @@ uint32_t gpu_roce_get_qp_number(gpu_roce_transceiver_t handle) {
   return 0;
 }
 
-uint32_t gpu_roce_get_rkey(gpu_roce_transceiver_t handle) {
+std::uint32_t gpu_roce_get_rkey(gpu_roce_transceiver_t handle) {
   if (handle) {
     auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_rkey(kSensorId);
@@ -131,7 +133,7 @@ uint32_t gpu_roce_get_rkey(gpu_roce_transceiver_t handle) {
   return 0;
 }
 
-uint32_t gpu_roce_get_tx_ring_lkey(gpu_roce_transceiver_t handle) {
+std::uint32_t gpu_roce_get_tx_ring_lkey(gpu_roce_transceiver_t handle) {
   if (handle) {
     auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_tx_ring_lkey(kSensorId);
@@ -139,7 +141,7 @@ uint32_t gpu_roce_get_tx_ring_lkey(gpu_roce_transceiver_t handle) {
   return 0;
 }
 
-uint64_t gpu_roce_get_buffer_addr(gpu_roce_transceiver_t handle) {
+std::uint64_t gpu_roce_get_buffer_addr(gpu_roce_transceiver_t handle) {
   if (handle) {
     auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->external_frame_memory();
@@ -167,7 +169,7 @@ void *gpu_roce_get_rx_ring_data_addr(gpu_roce_transceiver_t handle) {
   return nullptr;
 }
 
-uint64_t *gpu_roce_get_rx_ring_flag_addr(gpu_roce_transceiver_t handle) {
+std::uint64_t *gpu_roce_get_rx_ring_flag_addr(gpu_roce_transceiver_t handle) {
   if (handle) {
     auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_rx_ring_flag_addr(kSensorId);
@@ -183,7 +185,7 @@ void *gpu_roce_get_tx_ring_data_addr(gpu_roce_transceiver_t handle) {
   return nullptr;
 }
 
-uint64_t *gpu_roce_get_tx_ring_flag_addr(gpu_roce_transceiver_t handle) {
+std::uint64_t *gpu_roce_get_tx_ring_flag_addr(gpu_roce_transceiver_t handle) {
   if (handle) {
     auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_tx_ring_flag_addr(kSensorId);
@@ -230,7 +232,7 @@ int gpu_roce_prepare_receive_send(gpu_roce_transceiver_t handle,
       impl->transceiver->get_doca_gpu_dev_qp(0));
   if (!qp)
     return 0;
-  uint32_t mkey = htobe32(impl->transceiver->get_tx_ring_lkey(kSensorId));
+  std::uint32_t mkey = htobe32(impl->transceiver->get_tx_ring_lkey(kSensorId));
   doca_error_t err =
       GpuRoceTransceiverPrepareKernel(0, qp, frame_size, mkey, 1, 64);
   if (err != DOCA_SUCCESS) {
