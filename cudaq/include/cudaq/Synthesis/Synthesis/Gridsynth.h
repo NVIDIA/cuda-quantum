@@ -14,7 +14,6 @@
 #include "cudaq/Synthesis/Synthesis/GridsynthOptions.h"
 #include "cudaq/Synthesis/Synthesis/GridsynthStats.h"
 #include "llvm/Support/LogicalResult.h"
-
 #include <cmath>
 #include <cstdint>
 #include <optional>

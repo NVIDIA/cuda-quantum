@@ -7,9 +7,7 @@
  *******************************************************************************/
 
 #include "qlx/Analysis/IdealOutcomes.h"
-
 #include "llvm/Support/Error.h"
-
 #include <cstdlib>
 #include <iostream>
 #include <string>

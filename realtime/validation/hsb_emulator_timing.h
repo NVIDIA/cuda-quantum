@@ -9,7 +9,6 @@
 #pragma once
 
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-
 #include <array>
 #include <chrono>
 #include <cstddef>

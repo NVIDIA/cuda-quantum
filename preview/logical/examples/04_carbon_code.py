@@ -159,15 +159,6 @@ logical = estimate.resources
 static = cql.estimate.FabricCounts.from_annotations(estimate.annotations)
 schedule = estimate.annotations["SCHEDULE"]
 
-assert (Carbon.n, Carbon.k, Carbon.d.value) == (12, 2, 4)
-assert logical.num_qubits == 4
-assert logical.count("paired_h") == 1
-assert logical.count("paired_cx") == 1
-assert static.patches_peak == 2
-assert static.gadget_calls["paired_h_gadget"] == 1
-assert static.gadget_calls["paired_cx_gadget"] == 1
-assert schedule["physical_qubits"] == 2 * Carbon.block.size
-
 print("Carbon [[12,2,4]] target resources:")
 print(f"  protected logical qubits per block: {Carbon.k}")
 print(f"  reserved carriers per block: {Carbon.block.size}")

@@ -21,7 +21,6 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Verifier.h"
-
 #include <cmath>
 #include <cstdint>
 #include <optional>

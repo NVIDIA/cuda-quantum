@@ -32,7 +32,6 @@ target_link_libraries(qlx-opt PRIVATE
   MLIRCflowDialect
   MLIREventDialect
   MLIRQLXTransforms
-  MLIRQuakeToQLX
   MLIRQLXToLVM
   MLIRFabricDialect
   MLIRFabricTransforms
@@ -57,6 +56,7 @@ if(QLX_USE_CUDAQ_SDK)
   target_compile_definitions(qlx-opt PRIVATE QLX_HAS_CUDAQ_QUAKE=1)
   target_link_libraries(qlx-opt PRIVATE
     QLXCUDAQuantumDialects
+    MLIRQuakeToQLX
     MLIRPhysToQuake
     ${_qlx_quake_mlir_link_libraries}
   )

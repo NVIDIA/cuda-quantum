@@ -13,7 +13,6 @@
 #include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
 #include "cudaq/Synthesis/Math/Ring/Zomega.h"
 #include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
-
 #include <algorithm>
 #include <cassert>
 #include <cstdint>

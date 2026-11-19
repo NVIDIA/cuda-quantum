@@ -7,10 +7,8 @@
  *******************************************************************************/
 
 #include "AnalysisDiagnosticCapture.h"
-
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/MLIRContext.h"
-
 #include <atomic>
 #include <barrier>
 #include <cstdlib>

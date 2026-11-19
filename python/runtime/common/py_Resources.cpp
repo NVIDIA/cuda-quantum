@@ -16,7 +16,6 @@
 #include "py_Resources.h"
 
 #include "common/Resources.h"
-
 #include <map>
 #include <sstream>
 

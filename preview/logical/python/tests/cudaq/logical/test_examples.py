@@ -41,7 +41,7 @@ ALL_EXAMPLES = (*KERNEL_EXAMPLES, *STANDALONE_EXAMPLES, *GADGET_EXAMPLES)
 # timing entry in `pytest --durations`).
 EXPECTED_EXAMPLE_COUNTS = {
     "kernel": 7,
-    "standalone": 8,
+    "standalone": 9,
     "gadgets": 5,
 }
 

@@ -7,11 +7,9 @@
  *******************************************************************************/
 
 #include "qlx/Analysis/IdealOutcomes.h"
-
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
-
 #include <algorithm>
 #include <bit>
 #include <cstddef>

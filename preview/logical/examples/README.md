@@ -5,15 +5,16 @@ with the smallest useful estimate, descends through progressively more of the
 compilation stack, then applies that workflow to larger kernels and a complete
 user-authored target. Most examples author an ordinary `@cudaq.kernel`, select
 a target stack, and call `cudaq.estimate`; compilation details stay inside the
-target.
+target. The Steane workflow also demonstrates compiling a kernel for a target
+with `cudaq.compile` and importing its P0 build.
 
 1. `00_logical_resource_estimate.py` is the minimal introduction: author a
    kernel and read its portable logical resources from `estimate.resources`.
 2. `01_clifford_t_resource_estimate.py` descends one layer, changing rotation
    precision and reading the resulting Clifford+T resources.
 3. `02_surface_code_resource_estimate.py` descends through surface-code and
-   physical compilation. It varies layout parameters, then holds the layout
-   fixed to expose operating-point effects.
+   physical compilation and reports physical qubits and scheduled runtime for
+   a trivial kernel with one or more logical qubits.
 4. `03_fermi_hubbard.py` moves beyond teaching-scale kernels and estimates a
    Trotterized Fermi--Hubbard workload.
 5. `04_carbon_code.py` removes the built-in-target convenience and constructs
@@ -29,9 +30,8 @@ target.
 `steane_bell_e2e_workflow.py` follows a Bell pair, written as a CUDA-Q kernel,
 through logical compilation, placement, QEC realization, and physical
 scheduling using Steane. It then estimates the kernel through a CUDA-Q target
-built from the same device, verifies that both entry points report the same
-resources, and runs the kernel and its P3 build with `cudaq.run`. Its excerpts
-supply the
+built from the same device and runs the kernel and its P3 build with
+`cudaq.run`. Its excerpts supply the
 [logical programming stack walkthrough](../docs/source/getting-started/cudaq-logical-in-practice.md).
 
 The `standalone/` examples use `cudaq.logical` directly and expose each

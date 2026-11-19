@@ -7,12 +7,8 @@
  ******************************************************************************/
 
 #include "qlx/Conversion/QuakeToQLXPasses.h"
-
-#include "mlir/IR/BuiltinOps.h"
-
-#ifdef QLX_HAS_CUDAQ_QUAKE
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#endif
+#include "mlir/IR/BuiltinOps.h"
 
 namespace qlx {
 #define GEN_PASS_DEF_ERASEQUAKEGLOBALPHASE
@@ -27,7 +23,6 @@ class EraseQuakeGlobalPhasePass
     : public qlx::impl::EraseQuakeGlobalPhaseBase<EraseQuakeGlobalPhasePass> {
 public:
   void runOnOperation() override {
-#ifdef QLX_HAS_CUDAQ_QUAKE
     getOperation().walk([](cudaq::quake::PhaseOp phase) {
       if (!phase.getControls().empty())
         return;
@@ -37,11 +32,6 @@ public:
         wire.replaceAllUsesWith(phase.getTarget());
       phase.erase();
     });
-#else
-    getOperation().emitError(
-        "Quake phase cleanup was not enabled; enable QLX_USE_CUDAQ_SDK");
-    signalPassFailure();
-#endif
   }
 };
 

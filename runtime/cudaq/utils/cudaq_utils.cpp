@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "cudaq_utils.h"
-
 #include <cstdint>
 #include <random>
 

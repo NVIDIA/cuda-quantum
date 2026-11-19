@@ -58,11 +58,9 @@
 
 #include "AnalysisDiagnosticCapture.h"
 #include "PassDebug.h"
-
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
-
 #include <memory>
 #include <mutex>
 #include <unordered_map>

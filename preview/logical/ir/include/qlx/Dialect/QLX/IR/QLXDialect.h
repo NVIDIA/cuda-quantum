@@ -10,7 +10,6 @@
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectInterface.h"
-
 #include <optional>
 
 namespace qlx {

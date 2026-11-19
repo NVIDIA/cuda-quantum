@@ -11,7 +11,6 @@
 #include "llvm/ADT/StringRef.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Support/LogicalResult.h"
-
 #include <cstdint>
 #include <string>
 #include <utility>
