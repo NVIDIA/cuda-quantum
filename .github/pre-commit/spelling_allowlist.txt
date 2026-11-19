@@ -383,6 +383,7 @@ compat
 composability
 composable
 config
+configurability
 conftest
 constructible
 controlled
