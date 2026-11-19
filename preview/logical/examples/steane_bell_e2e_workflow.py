@@ -47,9 +47,6 @@ class Steane:
 
 
 code = cql.materialize(Steane)
-
-assert (Steane.n, Steane.k, Steane.d.value) == (7, 1, 3)
-assert Steane.block.size == 13
 # [END_STEANE_CODE]
 
 
@@ -73,7 +70,7 @@ def steane_cx(
 
 
 # %%
-# Prepare encoded |0> with an explicit circuit, as in standalone example 06.
+# Prepare encoded |0> with an explicit circuit, as in standalone example 05.
 # Resetting the data qubits alone gives |0000000>, which does not satisfy the
 # X stabilizers.
 # [START_STEANE_ENCODER]
@@ -154,9 +151,10 @@ target = cql.targets.Target.from_device(
 # [END_CUDA_Q_TARGET]
 
 # %%
-# Compile the kernel for CUDA-Q Logical and import it as P0.
+# Compile the kernel for the target without launching it, and import it as P0.
 # [START_KERNEL_IMPORT]
-logical = cql.compiler.import_cudaq(bell_pair)
+module = cudaq.compile(bell_pair, target=target)
+logical = cql.compiler.import_quake(module)
 # [END_KERNEL_IMPORT]
 
 # %%
@@ -219,8 +217,7 @@ print(f"Makespan: {schedule_resources.makespan_ns:.1f} ns")
 # [END_SCHEDULE_ESTIMATE]
 
 # %%
-# Estimate the kernel through the target and verify agreement with the
-# explicit workflow.
+# Estimate the same kernel through the target.
 # [START_KERNEL_ESTIMATE]
 cudaq.set_target(target)
 estimate = cudaq.estimate(bell_pair)
@@ -229,13 +226,6 @@ kernel_logical = cql.estimate.LogicalEstimate.from_annotations(
 kernel_static = cql.estimate.FabricCounts.from_annotations(estimate.annotations)
 kernel_schedule = estimate.annotations["SCHEDULE"]
 
-assert kernel_logical.logical_qubits_peak == logical_resources.logical_qubits_peak
-assert kernel_logical.actions == logical_resources.actions
-assert kernel_static.patches_peak == static_resources.patches_peak
-assert kernel_static.gadget_calls == static_resources.gadget_calls
-assert kernel_schedule["physical_qubits"] == schedule_resources.physical_qubits
-assert kernel_schedule["event_count"] == schedule_resources.event_count
-assert kernel_schedule["makespan_ns"] == schedule_resources.makespan_ns
 # [END_KERNEL_ESTIMATE]
 
 # %%

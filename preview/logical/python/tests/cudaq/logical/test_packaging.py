@@ -89,9 +89,10 @@ def test_version_is_static_and_matches_the_installed_package():
     assert "version" not in project.get("dynamic", [])
     declared = Version(project["version"])
     # Source-tree and staged builds have no wheel metadata and report a
-    # development version, so only installed wheels can be compared.
+    # development version, so only installed wheels can be compared. CI
+    # builds may add a local label `(+<sha>)`.
     if cudaq.logical.__version__ != "0.0.0.dev0":
-        assert declared == Version(cudaq.logical.__version__)
+        assert declared == Version(Version(cudaq.logical.__version__).public)
 
 
 def test_preview_warning_is_emitted_once_on_import(tmp_path):

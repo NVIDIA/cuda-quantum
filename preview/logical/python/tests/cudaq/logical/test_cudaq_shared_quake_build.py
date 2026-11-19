@@ -130,7 +130,7 @@ def test_typed_pass_lives_in_the_qlx_host_runtime():
     pass_blocks = tuple(
         block for block in sdk_blocks if "registerQuakeToQLXPasses" in block)
     assert len(pass_blocks) == 1
-    assert "registerPrepareQuakeForQLXPipeline" in pass_blocks[0]
+    assert "registerQuakeToQLXPipelines" in pass_blocks[0]
     assert "qlx::registerAllQLXPasses();" in capi
     assert "list(APPEND _qlx_optional_pass_libraries MLIRQuakeToQLX)" in cmake
     assert "${_qlx_optional_pass_libraries}" in cmake
