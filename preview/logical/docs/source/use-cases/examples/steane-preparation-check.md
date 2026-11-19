@@ -1,6 +1,6 @@
 # Steane Preparation Check with Noise on Stim
 
-[`standalone/05_steane_preparation_check.py`](../../../../examples/standalone/05_steane_preparation_check.py)
+[`standalone/04_steane_preparation_check.py`](../../../../examples/standalone/04_steane_preparation_check.py)
 prepares one Steane encoded zero, extracts its six stabilizers, and measures
 the seven data carriers in Z. It compares noiseless execution with
 depolarizing gate noise on Stim.
@@ -14,7 +14,7 @@ postselection is applied. For decoding, see the
 [Steane-encoded Bernstein–Vazirani](steane-bernstein-vazirani.md), uses the same
 encoder in an ideal computation.
 
-```{literalinclude} ../../../../examples/standalone/05_steane_preparation_check.py
+```{literalinclude} ../../../../examples/standalone/04_steane_preparation_check.py
 :language: python
 ```
 
