@@ -1,0 +1,43 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each --quake-to-qir-api-prep=api=full %s | FileCheck %s --check-prefix=PREP
+// RUN: cudaq-opt --verify-each --convert-to-qir-api=api=full %s | FileCheck %s --check-prefix=QIR
+
+// The first exp_pauli result stays live across the inner branch. Bypassing
+// the inner join would give that wire a use in each predecessor.
+func.func @nested_exp_pauli(%outer: i1, %inner: i1, %theta: f64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %a = quake.null_wire
+  %b = quake.null_wire
+  cf.cond_br %outer, ^apply(%a, %b : !quake.wire, !quake.wire), ^done(%a, %b : !quake.wire, !quake.wire)
+^apply(%x: !quake.wire, %y: !quake.wire):
+  %word = cc.string_literal "XY" : !cc.ptr<!cc.array<i8 x 3>>
+  %p:2 = quake.exp_pauli (%theta) %x, %y to %word : (f64, !quake.wire, !quake.wire, !cc.ptr<!cc.array<i8 x 3>>) -> (!quake.wire, !quake.wire)
+  cf.cond_br %inner, ^rotate(%p#1 : !quake.wire), ^join(%p#1 : !quake.wire)
+^rotate(%q: !quake.wire):
+  %h = quake.h %q : (!quake.wire) -> !quake.wire
+  cf.br ^join(%h : !quake.wire)
+^join(%z: !quake.wire):
+  cf.br ^done(%p#0, %z : !quake.wire, !quake.wire)
+^done(%first: !quake.wire, %second: !quake.wire):
+  quake.sink %first : !quake.wire
+  quake.sink %second : !quake.wire
+  return
+}
+
+// PREP-LABEL: func.func @nested_exp_pauli(
+// PREP: cf.cond_br
+// PREP: quake.exp_pauli {{.*}} to "XY" : (f64, !quake.wire, !quake.wire)
+// PREP: cf.cond_br
+
+// QIR-LABEL: func.func @nested_exp_pauli(
+// QIR: cf.cond_br
+// QIR: call @__quantum__qis__exp_pauli(
+// QIR: cf.cond_br
+// QIR: call @__quantum__qis__h(
+// QIR: return
