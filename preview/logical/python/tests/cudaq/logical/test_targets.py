@@ -666,7 +666,7 @@ def qec_standard_css_program() -> bool:
     (cudaq.logical.targets.surface_target, True),
     (cudaq.logical.targets.steane_target, False),
 ])
-def test_predefined_qec_targets_lower_through_their_linked_realisations(
+def test_predefined_qec_targets_lower_through_their_linked_realizations(
         factory, synthesis):
     root = factory(logical_capacity=1).runtime_endpoint
 

@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-//===- FabricInlineRealisations.cpp - normalize circuit realizations ------===//
+//===- FabricInlineRealization.cpp - normalize circuit realizations -------===//
 
 #include "qlx/Dialect/Fabric/IR/FabricOps.h"
 #include "qlx/Dialect/Fabric/Transforms/Passes.h"
@@ -19,7 +19,7 @@
 
 namespace qlx {
 namespace fabric {
-#define GEN_PASS_DEF_FABRICINLINEREALISATIONS
+#define GEN_PASS_DEF_FABRICINLINEREALIZATION
 #include "qlx/Dialect/Fabric/Transforms/Passes.h.inc"
 } // namespace fabric
 } // namespace qlx
@@ -29,9 +29,9 @@ using namespace qlx::fabric;
 
 namespace {
 
-class FabricInlineRealisationsPass
-    : public qlx::fabric::impl::FabricInlineRealisationsBase<
-          FabricInlineRealisationsPass> {
+class FabricInlineRealizationPass
+    : public qlx::fabric::impl::FabricInlineRealizationBase<
+          FabricInlineRealizationPass> {
 public:
   void runOnOperation() override {
     ModuleOp module = getOperation();
