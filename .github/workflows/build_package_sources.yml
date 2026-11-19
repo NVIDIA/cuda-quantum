@@ -17,11 +17,13 @@
 # cudaqx and cudaq-decoding lists are trimmed against cudaq before fetching so
 # shared packages are only downloaded once.
 #
+# The scheduled run builds the source image for the nightly cuda-quantum image
+# and also pushes it to NGC as nightly/cuda-quantum:cu<major>-latest-src.
+#
 # Inputs:
-#   push_to_NGC: boolean, default false
-#     Push the built source image to NGC, otherwise push to GHCR.
-#   environment: string, no default
-#     The environment to build the source image for.
+#   push_to_ngc: boolean, default false
+#     Also push the source image to NGC; it is always pushed to GHCR. The job
+#     then runs in the ghcr-deployment environment, which holds the NGC key.
 #   artifact_url: string, no default
 #     If set, diff pip packages added by the macOS wheel from this artifact URL
 #     (e.g. .../actions/runs/RUN_ID/artifacts/ARTIFACT_ID for pycudaq-3.13-darwin-arm64).
@@ -31,6 +33,11 @@
 on:
   workflow_dispatch:
     inputs:
+      push_to_ngc:
+        required: false
+        type: boolean
+        default: false
+        description: 'Also push the source image to nvcr.io/nvidia/nightly/cuda-quantum (tag cu<major>-latest-src)'
       artifact_url:
         required: false
         type: string
@@ -40,12 +47,17 @@ on:
         type: string
         default: '3.13'
         description: 'Python version for macOS diff (must match the wheel)'
+  schedule:
+    # After the day's merges have refreshed the nightly cuda-quantum image.
+    - cron: "0 18 * * *"
 
 name: Build package sources
 
 jobs:
   diff-packages-cudaq:
     name: Diff apt/pip packages ${{ matrix.release }} (CUDA ${{ matrix.cuda }})
+    # Forks have neither the NGC key nor the runners.
+    if: github.event_name != 'schedule' || github.repository == 'NVIDIA/cuda-quantum'
     runs-on: ubuntu-latest
     outputs:
       base_image: ${{ steps.images.outputs.base_image }}
@@ -252,7 +264,7 @@ jobs:
       packages: write
 
     environment:
-      name: ${{ inputs.environment || 'default' }}
+      name: ${{ (inputs.push_to_ngc || github.event_name == 'schedule') && 'ghcr-deployment' || 'default' }}
 
     steps:
       - name: Checkout repository
@@ -296,14 +308,14 @@ jobs:
           ls -la package-source-diff/
 
       - name: Download macOS pip diff
-        if: github.event.inputs.artifact_url != ''
+        if: inputs.artifact_url != ''
         uses: actions/download-artifact@v8
         with:
           name: macos-pip-diff.zip
           path: macos-pip-diff
 
       - name: Apply macOS pip diff to package list
-        if: github.event.inputs.artifact_url != ''
+        if: inputs.artifact_url != ''
         run: cp macos-pip-diff/pip_added.txt package-source-diff/pip_packages_macos.txt
 
       - name: Generate trimmed package lists (cudaqx/cudaq-decoding minus cudaq, macos minus cudaq/cudaqx)
@@ -517,6 +529,7 @@ jobs:
           docker tag package-sources:latest "$tag_amd64"
           docker push "$tag_amd64"
           echo "image_tag=$tag" | tee -a $GITHUB_OUTPUT
+          echo "tag_suffix=$tag_suffix" | tee -a $GITHUB_OUTPUT
           echo "tag_amd64=$tag_amd64" | tee -a $GITHUB_OUTPUT
           echo "tag_arm64=$tag_arm64" | tee -a $GITHUB_OUTPUT
 
@@ -544,6 +557,39 @@ jobs:
           tag_arm64="${{ steps.push.outputs.tag_arm64 }}"
           docker buildx imagetools create --tag "$tag" "$tag_amd64" "$tag_arm64"
 
+      - name: Log in to NGC
+        if: inputs.push_to_ngc || github.event_name == 'schedule'
+        uses: docker/login-action@v4
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_CREDENTIALS }}
+
+      - name: Copy the source image to NGC
+        id: ngc
+        if: inputs.push_to_ngc || github.event_name == 'schedule'
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          ngc_image="nvcr.io/nvidia/nightly/cuda-quantum:${{ steps.push.outputs.tag_suffix }}-src"
+          retry docker buildx imagetools create --tag "$ngc_image" "${{ steps.push.outputs.image_tag }}"
+          echo "ngc_image=$ngc_image" | tee -a $GITHUB_OUTPUT
+
+      - name: Install NGC CLI
+        if: steps.ngc.outputs.ngc_image != ''
+        uses: ./.github/actions/install-ngc-cli
+        with:
+          version: 3.31.0
+          checksum: b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138
+
+      - name: Sign the NGC source image
+        if: steps.ngc.outputs.ngc_image != ''
+        env:
+          NGC_IMAGE: ${{ steps.ngc.outputs.ngc_image }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
+          NGC_CLI_ORG: nvidia
+          NGC_CLI_TEAM: nightly
+        run: ngc-cli/ngc registry image publish --source "$NGC_IMAGE" "$NGC_IMAGE" --sign
+
       - name: Summary
         run: |
           base_image="${{ steps.base-image.outputs.base_image }}"
@@ -552,3 +598,7 @@ jobs:
           echo "- **Base image:** \`${base_image}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Built image ${{ steps.push.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ steps.ngc.outputs.ngc_image }}" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Pushed image ${{ steps.ngc.outputs.ngc_image }}" >> $GITHUB_STEP_SUMMARY
+          fi
