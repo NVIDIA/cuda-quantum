@@ -301,7 +301,7 @@ func.func @tocc.test() {
 // CHECK:         func.func private @__nvqpp__cudaq_em_allocate() -> i64
 
 // CHECK-LABEL:   func.func private @__nvqpp__cudaq_em_allocate_veq(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %[[VAL_1:.*]]: i64) {
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %[[VAL_1:.*]]: i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
 // CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
@@ -326,7 +326,7 @@ func.func @tocc.test() {
 // CHECK:         func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
 // CHECK-LABEL:   func.func private @__nvqpp__cudaq_em_concatSpan(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<i64>, %[[VAL_1:.*]]: !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %[[VAL_2:.*]]: i64) {
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<i64>, %[[VAL_1:.*]]: !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %[[VAL_2:.*]]: i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
 // CHECK:           %[[VAL_3:.*]] = arith.constant false
 // CHECK:           %[[VAL_4:.*]] = arith.constant 8 : i64
 // CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
@@ -342,7 +342,7 @@ func.func @tocc.test() {
 // CHECK:         func.func private @__nvqpp__cudaq_em_return(!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>)
 
 // CHECK-LABEL:   func.func private @__nvqpp__cudaq_em_writeToSpan(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %[[VAL_1:.*]]: !cc.ptr<!cc.array<i64 x ?>>, %[[VAL_2:.*]]: i64) {
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %[[VAL_1:.*]]: !cc.ptr<!cc.array<i64 x ?>>, %[[VAL_2:.*]]: i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
 // CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<!cc.ptr<!cc.array<i64 x ?>>>
 // CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>) -> !cc.ptr<i64>
@@ -605,7 +605,7 @@ func.func @tocc.test() {
 // LLVM:         }
 // LLVM:         llvm.func @__nvqpp__cudaq_em_allocate() -> i64 attributes {sym_visibility = "private"}
 
-// LLVM-LABEL:   llvm.func @__nvqpp__cudaq_em_allocate_veq(
+// LLVM-LABEL:   llvm.func linkonce_odr @__nvqpp__cudaq_em_allocate_veq(
 // LLVM-SAME:      %[[ARG0:.*]]: !llvm.ptr,
 // LLVM-SAME:      %[[ARG1:.*]]: i64) attributes {sym_visibility = "private"} {
 // LLVM:           %[[MLIR_0:.*]] = llvm.mlir.constant(1 : i64) : i64
@@ -628,7 +628,7 @@ func.func @tocc.test() {
 // LLVM:         llvm.func @__nvqpp__cudaq_em_apply(!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) attributes {sym_visibility = "private"}
 // LLVM:         llvm.func @llvm.memcpy.p0.p0.i64(!llvm.ptr, !llvm.ptr, i64, i1) attributes {sym_visibility = "private"}
 
-// LLVM-LABEL:   llvm.func @__nvqpp__cudaq_em_concatSpan(
+// LLVM-LABEL:   llvm.func linkonce_odr @__nvqpp__cudaq_em_concatSpan(
 // LLVM-SAME:      %[[ARG0:.*]]: !llvm.ptr, %[[ARG1:.*]]: !llvm.ptr, %[[ARG2:.*]]: i64)
 // LLVM:           %[[MLIR_0:.*]] = llvm.mlir.constant(false) : i1
 // LLVM:           %[[MLIR_1:.*]] = llvm.mlir.constant(8 : i64) : i64
@@ -644,7 +644,7 @@ func.func @tocc.test() {
 // LLVM:         llvm.func @__nvqpp__cudaq_em_reset(!llvm.ptr) attributes {sym_visibility = "private"}
 // LLVM:         llvm.func @__nvqpp__cudaq_em_return(!llvm.ptr) attributes {sym_visibility = "private"}
 
-// LLVM-LABEL:   llvm.func @__nvqpp__cudaq_em_writeToSpan(
+// LLVM-LABEL:   llvm.func linkonce_odr @__nvqpp__cudaq_em_writeToSpan(
 // LLVM-SAME:      %[[ARG0:.*]]: !llvm.ptr, %[[ARG1:.*]]: !llvm.ptr, %[[ARG2:.*]]: i64)
 // LLVM:           %[[BITCAST_0:.*]] = llvm.bitcast %[[ARG0]] : !llvm.ptr to !llvm.ptr
 // LLVM:           llvm.store %[[ARG1]], %[[BITCAST_0]] : !llvm.ptr, !llvm.ptr

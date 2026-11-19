@@ -165,7 +165,8 @@ public:
   /// zero.
   void set_zero();
 
-  /// Matrix exponential, uses 20 terms of Taylor Series approximation.
+  /// Matrix exponential, computed with a Pade `approximant` and scaling and
+  /// squaring.
   complex_matrix exponential();
 
   /// Matrix power.

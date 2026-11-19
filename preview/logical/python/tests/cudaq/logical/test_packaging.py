@@ -51,9 +51,27 @@ def test_base_dependencies_exclude_the_cudaq_runtime():
     project = _load_pyproject()["project"]
     dependencies = project["dependencies"]
     offenders = [
-        d for d in dependencies if d.startswith(("cudaq", "cuda-quantum"))
+        d for d in dependencies if d.startswith(("cudaq-devel", "cuda-quantum"))
     ]
     assert offenders == []
+    assert "cudaq-core" in dependencies
+
+
+def test_edem_is_a_required_build_and_runtime_dependency():
+    from packaging.requirements import Requirement
+
+    configuration = _load_pyproject()
+    runtime = {
+        requirement.name: requirement for requirement in map(
+            Requirement, configuration["project"]["dependencies"])
+    }
+    build = {
+        requirement.name: requirement for requirement in map(
+            Requirement, configuration["build-system"]["requires"])
+    }
+    assert runtime["cudaq-edem"].specifier == build["cudaq-edem"].specifier
+    assert "0.1.0" in runtime["cudaq-edem"].specifier
+    assert "0.2.0" not in runtime["cudaq-edem"].specifier
 
 
 def test_runtime_extras_map_to_the_cudaq_runtime_wheels():
@@ -62,23 +80,19 @@ def test_runtime_extras_map_to_the_cudaq_runtime_wheels():
     assert extras["cu13"] == ["cuda-quantum-cu13"]
 
 
-def test_version_is_dynamic_and_uses_logical_tags():
+def test_version_is_static_and_matches_the_installed_package():
     from packaging.version import Version
 
     import cudaq.logical
 
-    pyproject = _load_pyproject()
-    project = pyproject["project"]
-    assert "version" not in project
-    assert "version" in project["dynamic"]
-
-    provider = pyproject["tool"]["scikit-build"]["metadata"]["version"]
-    assert provider["provider"].endswith(".metadata.setuptools_scm")
-
-    scm = pyproject["tool"]["setuptools_scm"]
-    assert "cudaq-logical/v" in scm["tag_regex"]
-    assert scm["git_describe_command"][-1] == "cudaq-logical/v*"
-    assert str(Version(cudaq.logical.__version__))
+    project = _load_pyproject()["project"]
+    assert "version" not in project.get("dynamic", [])
+    declared = Version(project["version"])
+    # Source-tree and staged builds have no wheel metadata and report a
+    # development version, so only installed wheels can be compared. CI
+    # builds may add a local label `(+<sha>)`.
+    if cudaq.logical.__version__ != "0.0.0.dev0":
+        assert declared == Version(Version(cudaq.logical.__version__).public)
 
 
 def test_preview_warning_is_emitted_once_on_import(tmp_path):
@@ -107,8 +121,7 @@ importlib.util.find_spec = _without_cudaq
     assert result.returncode != 0
     assert "ImportError" in result.stderr
     assert "requires the CUDA-Q core bindings" in result.stderr
-    for hint in ("cudaq-logical[cu13]", "cudaq-logical[cu12]",
-                 "pip install cudaq"):
+    for hint in ("pip install cudaq-logical", "pip install cudaq"):
         assert hint in result.stderr
 
 
@@ -141,7 +154,8 @@ sys.meta_path.insert(0, CoreOnly())
 import cudaq.logical as logical
 from dataclasses import fields
 from typing import get_type_hints
-from cudaq.core.backends import CompileTarget, CustomTarget, EstimateResult, RuntimeEndpoint
+from cudaq.core._experimental import CompileTarget, CustomTarget, RuntimeEndpoint
+from cudaq.core.results import EstimateResult
 from cudaq.util import trace
 
 expected = {"runtime_endpoint": RuntimeEndpoint, "compile_target": CompileTarget}
@@ -170,12 +184,13 @@ assert "cudaq.kernel.kernel_decorator" not in sys.modules
     assert result.returncode == 0, result.stderr
 
 
-def test_stamp_script_pins_both_runtime_extras(tmp_path):
+def test_stamp_script_pins_core_and_both_runtime_extras(tmp_path):
     from scripts.stamp_cudaq_runtime_dependency import stamp_runtime_dependency
 
     stamped = tmp_path / "pyproject.toml"
     stamped.write_text(PYPROJECT.read_text())
-    for distribution in ("cuda-quantum-cu12", "cuda-quantum-cu13"):
+    for distribution in ("cudaq-core", "cuda-quantum-cu12",
+                         "cuda-quantum-cu13"):
         dependency = stamp_runtime_dependency(stamped,
                                               distribution=distribution,
                                               version="0.16.0")
@@ -185,9 +200,10 @@ def test_stamp_script_pins_both_runtime_extras(tmp_path):
     extras = project["optional-dependencies"]
     assert extras["cu12"] == ["cuda-quantum-cu12==0.16.0"]
     assert extras["cu13"] == ["cuda-quantum-cu13==0.16.0"]
-    # The base dependency list stays runtime-free after stamping.
+    assert "cudaq-core==0.16.0" in project["dependencies"]
+    # The base dependency list stays frontend- and SDK-free after stamping.
     assert not any(
-        d.startswith(("cudaq", "cuda-quantum"))
+        d.startswith(("cudaq-devel", "cuda-quantum"))
         for d in project["dependencies"])
 
 

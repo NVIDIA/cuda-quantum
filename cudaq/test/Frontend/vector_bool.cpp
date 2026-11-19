@@ -10,7 +10,7 @@
 
 // Simple test using a std::vector<bool> operator.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct t1 {
   bool operator()(std::vector<double> d) __qpu__ {

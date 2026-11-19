@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CliffordTAngle.h"
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
 #include "QuakeOperatorCreator.h"
@@ -52,12 +53,12 @@ namespace {
 
 struct RotationOptions {
   double epsilon;
-  int64_t maxFactoringIterations;
-  int64_t maxCandidateIterations;
-  int32_t maxFactoringRestarts;
-  int64_t maxOdgpScanSteps;
-  int32_t retryCount;
-  std::optional<uint64_t> seed;
+  std::int64_t maxFactoringIterations;
+  std::int64_t maxCandidateIterations;
+  std::int32_t maxFactoringRestarts;
+  std::int64_t maxOdgpScanSteps;
+  std::int32_t retryCount;
+  std::optional<std::uint64_t> seed;
   std::string onDynamicAngle;
   bool failOnControlledRotation;
   double skipBelow;
@@ -69,12 +70,13 @@ struct SynthState {
   // helper for the same angle have different signatures, so they must not
   // collide.
   // Note: DenseMapInfo has no hash for `bool`, hence the unsigned tag.
-  llvm::DenseMap<std::pair<uint64_t, unsigned>, mlir::FlatSymbolRefAttr> cache;
+  llvm::DenseMap<std::pair<std::uint64_t, unsigned>, mlir::FlatSymbolRefAttr>
+      cache;
   // Angles (theta bits) gridsynth already failed on, so a failure costs the
   // retry ladder once rather than once per site. Not keyed on the form: only
   // theta and epsilon reach gridsynth.
-  llvm::DenseSet<uint64_t> failedAngles;
-  uint64_t hits = 0;
+  llvm::DenseSet<std::uint64_t> failedAngles;
+  std::uint64_t hits = 0;
 };
 
 // Outcome of validateRotationOperands. The caller maps each action to a
@@ -121,7 +123,7 @@ static Value emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
   Value cur = qubit;
   // omega = e^{i*pi/4}. W is a scalar, so it commutes with every other gate
   // and its occurrences collapse into a single correction below.
-  int32_t omegaPower = 0;
+  std::int32_t omegaPower = 0;
   for (auto it = circuit.rbegin(); it != circuit.rend(); ++it) {
     switch (*it) {
     case cudaq::synth::Gate::H:
@@ -159,16 +161,16 @@ static Value emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
 
 // Compute `base << shift` as a work budget, saturating at INT64_MAX rather
 // than overflowing. Both arguments are validated non-negative by the pass, so
-// the only hazard is the retry loop scaling the budget past int64_t.
-static uint64_t saturatingShl(int64_t base, int32_t shift) {
+// the only hazard is the retry loop scaling the budget past std::int64_t.
+static std::uint64_t saturatingShl(std::int64_t base, std::int32_t shift) {
   assert(base >= 0 && shift >= 0 && "budgets and retry count must be >= 0");
-  constexpr int64_t kMax = std::numeric_limits<int64_t>::max();
+  constexpr std::int64_t kMax = std::numeric_limits<std::int64_t>::max();
   // Shifting by >= 63 always overflows a non-negative base.
   if (shift >= 63)
-    return static_cast<uint64_t>(kMax);
+    return static_cast<std::uint64_t>(kMax);
   if (base > (kMax >> shift))
-    return static_cast<uint64_t>(kMax);
-  return static_cast<uint64_t>(base << shift);
+    return static_cast<std::uint64_t>(kMax);
+  return static_cast<std::uint64_t>(base << shift);
 }
 
 // Resolve (theta, epsilon) to a private helper func that applies the
@@ -182,7 +184,7 @@ static llvm::FailureOr<mlir::FlatSymbolRefAttr>
 getOrCreateRzHelper(double theta, bool valueSemantics,
                     const RotationOptions &opts, SynthState &state,
                     PatternRewriter &rewriter) {
-  uint64_t bits = llvm::bit_cast<uint64_t>(theta);
+  std::uint64_t bits = llvm::bit_cast<std::uint64_t>(theta);
   auto key = std::make_pair(bits, valueSemantics ? 1u : 0u);
   auto it = state.cache.find(key);
   if (it != state.cache.end()) {
@@ -202,7 +204,7 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
   cudaq::synth::Real thetaReal(theta);
   cudaq::synth::Real epsilonReal(opts.epsilon);
   llvm::FailureOr<cudaq::synth::Circuit> circuit = llvm::failure();
-  for (int32_t attempt = 0; attempt <= opts.retryCount; ++attempt) {
+  for (std::int32_t attempt = 0; attempt <= opts.retryCount; ++attempt) {
     // Geometric backoff: attempt N runs at 2^N times the baseline budgets, so
     // the common case pays the cheap budget and only an angle that actually
     // failed escalates. Unlike doubling a timeout, attempt N does the same
@@ -220,7 +222,7 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
     synthOpts.maxCandidateIterations =
         saturatingShl(opts.maxCandidateIterations, attempt);
     synthOpts.maxFactoringRestarts =
-        static_cast<uint32_t>(opts.maxFactoringRestarts);
+        static_cast<std::uint32_t>(opts.maxFactoringRestarts);
     synthOpts.maxOdgpScanSteps = saturatingShl(opts.maxOdgpScanSteps, attempt);
     synthOpts.seed = opts.seed;
     circuit = cudaq::synth::gridsynth(thetaReal, epsilonReal, synthOpts);
@@ -302,8 +304,9 @@ static PreCheck validateRotationOperands(Operation *op, Value angleVal,
                      "angle (--on-dynamic-angle=skip)");
     } else {
       op->emitError("clifford-t-synthesis: rotation angle is not a "
-                    "compile-time constant. Fold the angle upstream or set "
-                    "--on-dynamic-angle=skip to leave the op alone.");
+                    "compile-time constant. Synthesis needs the value of "
+                    "every angle at compile time, so it cannot synthesize an "
+                    "angle computed at run time.");
       *hadHardError = true;
     }
     return {PreCheck::Action::LeaveInPlace, 0.0};
@@ -421,17 +424,29 @@ public:
     // count must be non-negative because the retry loop left-shifts the
     // budgets by `attempt`. Both tolerances must also be finite. An infinite
     // epsilon accepts every angle as an exact multiple of pi/4, and an
-    // infinite skip-below erases every rotation.
-    if (!(epsilon > 0.0) || !std::isfinite(epsilon) ||
-        maxFactoringIterations < 0 || maxCandidateIterations < 0 ||
-        maxFactoringRestarts < 0 || maxOdgpScanSteps < 0 || retryCount < 0 ||
-        skipBelow < 0.0 || !std::isfinite(skipBelow)) {
+    // infinite skip-below erases every rotation. These are checked before
+    // looking at the IR, so a bad option fails every kernel rather than only
+    // the first one with a rotation to synthesize.
+    if (!(epsilon > 0.0) || !std::isfinite(epsilon)) {
+      getOperation().emitError("clifford-t-synthesis: epsilon must be finite "
+                               "and greater than 0, got ")
+          << epsilon.getValue();
+      signalPassFailure();
+      return;
+    }
+    if (skipBelow < 0.0 || !std::isfinite(skipBelow)) {
+      getOperation().emitError("clifford-t-synthesis: skip-below must be "
+                               "finite and non-negative, got ")
+          << skipBelow.getValue();
+      signalPassFailure();
+      return;
+    }
+    if (maxFactoringIterations < 0 || maxCandidateIterations < 0 ||
+        maxFactoringRestarts < 0 || maxOdgpScanSteps < 0 || retryCount < 0) {
       getOperation().emitError(
-          "clifford-t-synthesis: invalid options. Require a finite epsilon > 0 "
-          "and non-negative max-factoring-iterations, "
+          "clifford-t-synthesis: max-factoring-iterations, "
           "max-candidate-iterations, max-factoring-restarts, "
-          "max-odgp-scan-steps, retry-count, and a "
-          "finite skip-below.");
+          "max-odgp-scan-steps, and retry-count must be non-negative");
       signalPassFailure();
       return;
     }
@@ -444,7 +459,7 @@ public:
             cudaq::synth::Real(epsilon.getValue())));
 
     // 0 means unseeded.
-    std::optional<uint64_t> synthSeed;
+    std::optional<std::uint64_t> synthSeed;
     if (seed != 0)
       synthSeed = seed.getValue();
 

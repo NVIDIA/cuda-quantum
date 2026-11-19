@@ -15,8 +15,9 @@ module linker alongside research-local realizations.
 from __future__ import annotations
 
 import hashlib
+from inspect import Parameter, Signature
 
-from cudaq.logical.programs.decorators import objective
+from cudaq.logical.programs.decorators import action as _action
 from cudaq.logical.ops._impl import (
     cx,
     cz,
@@ -54,21 +55,57 @@ from cudaq.logical.types.semantic import (
     zero,
 )
 from ..std import LogicalInstrumentRef
-from ..std import idle as idle_objective
-from ..std import prepare_plus as prepare_plus_objective
-from ..std import prepare_zero as prepare_zero_objective
-from ..std import x as x_objective
-from ..std import z as z_objective
+from ..std import idle as idle_action
+from ..std import prepare_plus as prepare_plus_action
+from ..std import prepare_zero as prepare_zero_action
+from ..std import x as x_action
+from ..std import z as z_action
 
 
-@objective(name="qlx_standard_measure_z")
+@_action(name="qlx_standard_measure_z")
 def _measure_z_intent(q: logical_qubit) -> bool:
     return logical_measure_z(q)
 
 
-@objective(name="qlx_standard_measure_x")
+@_action(name="qlx_standard_measure_x")
 def _measure_x_intent(q: logical_qubit) -> bool:
     return logical_measure_x(q)
+
+
+def _measurement_intent(*, basis, width, logical, preserve_block):
+    """Declare selection and ownership for every logical in a measured block."""
+
+    if width == 1 and not preserve_block:
+        return _measure_z_intent if basis == "z" else _measure_x_intent
+    pauli = Z if basis == "z" else X
+    measure = logical_measure_z if basis == "z" else logical_measure_x
+
+    def intent(*qubits):
+        qubits = list(qubits)
+        if preserve_block:
+            qubits[logical], outcome = mpp(pauli(qubits[logical]))
+            return (*qubits, outcome)
+        outcome = measure(qubits[logical])
+        for index, qubit in enumerate(qubits):
+            if index != logical:
+                discard(qubit)
+        return outcome
+
+    suffix = "_preserve_block" if preserve_block else ""
+    intent.__name__ = intent.__qualname__ = (
+        f"qlx_measure_{basis}_{width}_logical{logical}{suffix}")
+    result = bool
+    if preserve_block:
+        result = tuple[tuple([logical_qubit] * width + [bool])]
+    annotations = {f"q{index}": logical_qubit for index in range(width)}
+    annotations["return"] = result
+    intent.__annotations__ = annotations
+    parameters = tuple(
+        Parameter(f"q{index}",
+                  Parameter.POSITIONAL_OR_KEYWORD,
+                  annotation=logical_qubit) for index in range(width))
+    intent.__signature__ = Signature(parameters, return_annotation=result)
+    return _action(intent, kind="instrument")
 
 
 def _encoding(value):
@@ -94,7 +131,10 @@ def _measurement(
         raise TypeError("logical measurement port must be an int")
     if not 0 <= logical < code.k:
         raise ValueError(f"code {code.name} has no protected logical {logical}")
-    objective = _measure_z_intent if basis == "z" else _measure_x_intent
+    action = _measurement_intent(basis=basis,
+                                 width=code.k,
+                                 logical=logical,
+                                 preserve_block=preserve_block)
     pauli = Z if basis == "z" else X
 
     def realization(block):
@@ -112,7 +152,13 @@ def _measurement(
         "block": patch[encoding],
         "return": tuple[patch[encoding], bool] if preserve_block else bool,
     }
-    return gadget(realization, implements=objective, name=realization.__name__)
+    return gadget(realization,
+                  implements=action,
+                  logical_ports={
+                      name: encoding.logical_ports[index]
+                      for index, name in enumerate(action.signature.parameters)
+                  },
+                  name=realization.__name__)
 
 
 def measure_z(
@@ -122,7 +168,7 @@ def measure_z(
     preserve_block: bool = False,
     name: str | None = None,
 ):
-    """Return a destructive logical-Z measurement realization."""
+    """Measure logical Z, retaining the encoded block when requested."""
     return _measurement(
         value,
         basis="z",
@@ -139,7 +185,7 @@ def measure_x(
     preserve_block: bool = False,
     name: str | None = None,
 ):
-    """Return a destructive logical-X measurement realization."""
+    """Measure logical X, retaining the encoded block when requested."""
     return _measurement(
         value,
         basis="x",
@@ -157,7 +203,7 @@ def logical_measure(
     preserve_block: bool = False,
     name: str | None = None,
 ):
-    """Return a destructive logical measurement realization for one basis.
+    """Return a logical measurement realization for one basis.
 
     ``basis`` accepts ``"x"``/``"z"`` (or any object whose ``value``/``name``
     normalizes to one of those). This is the single-call spelling of the
@@ -213,7 +259,8 @@ def logical_pauli(
     }
     return gadget(
         realization,
-        implements=x_objective if basis == "x" else z_objective,
+        implements=x_action if basis == "x" else z_action,
+        logical_ports={"q0": encoding.logical_ports[logical]},
         name=realization.__name__,
         metadata={
             "logical": logical,
@@ -232,7 +279,7 @@ def css_memory_round(value,
     One syndrome-extraction pass over the encoded block: the gadget consumes
     and returns the same linear patch owner while its check records update the
     syndrome history. It implements the standard ``cudaq.logical.logical.idle``
-    objective, so QEC selection binds it to explicit ``cudaq.logical.idle`` memory
+    action, so QEC selection binds it to explicit ``cudaq.logical.idle`` memory
     workloads placed on the code.
     """
     encoding = _encoding(value)
@@ -252,11 +299,11 @@ def css_memory_round(value,
         "return": patch[encoding],
     }
     return gadget(realization,
-                  implements=idle_objective,
+                  implements=idle_action,
                   name=realization.__name__)
 
 
-def _preparation(value, *, state, objective, name: str | None):
+def _preparation(value, *, state, action, name: str | None):
     encoding = _encoding(value)
     code = encoding.code
 
@@ -269,7 +316,7 @@ def _preparation(value, *, state, objective, name: str | None):
         "block": patch[encoding],
         "return": patch[encoding],
     }
-    return gadget(realization, implements=objective, name=realization.__name__)
+    return gadget(realization, implements=action, name=realization.__name__)
 
 
 def prepare_zero(value, *, name: str | None = None):
@@ -278,7 +325,7 @@ def prepare_zero(value, *, name: str | None = None):
     return _preparation(
         value,
         state=zero,
-        objective=prepare_zero_objective,
+        action=prepare_zero_action,
         name=name,
     )
 
@@ -289,7 +336,7 @@ def prepare_plus(value, *, name: str | None = None):
     return _preparation(
         value,
         state=plus,
-        objective=prepare_plus_objective,
+        action=prepare_plus_action,
         name=name,
     )
 

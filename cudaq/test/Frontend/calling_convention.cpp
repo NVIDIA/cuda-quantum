@@ -10,7 +10,7 @@
 // RUN: if [ `uname -m` = "x86_64" ] ; then \
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s ; fi
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <tuple>
 #include <vector>
 

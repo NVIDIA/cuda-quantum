@@ -9,7 +9,6 @@
 #pragma once
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
-
 #include <cuda_runtime_api.h>
 
 #include <cstdint>
@@ -45,15 +44,6 @@ struct DeviceCallDispatchTable {
 
   /// Optional synchronization hook for service-owned asynchronous resources.
   DeviceCallDispatchSynchronizeFn synchronizeFn = nullptr;
-
-  /// Optional pinned, mapped host mailbox used by graph-launch host dispatch.
-  /// It is sized for the graph-launch entry count, and the service captures its
-  /// device alias when creating each graph executable. CUDA-Q writes the
-  /// current graph IO context device pointer into this host mailbox before
-  /// launch. A graph-launch handler must write its response through that
-  /// context, call `__threadfence_system()`, and publish the context's tx-flag
-  /// value as its final operation. This may be null for host-call-only tables.
-  void **mailbox = nullptr;
 };
 
 /// One active realtime device-call service instance.

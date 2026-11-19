@@ -1,18 +1,16 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
-#ifndef QLX_DIALECT_PHYS_TRANSFORMS_SCHEDULEMODEL_H
-#define QLX_DIALECT_PHYS_TRANSFORMS_SCHEDULEMODEL_H
+#pragma once
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
-
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -41,12 +39,12 @@ struct NativeScheduleRow {
   llvm::StringRef parent;
   llvm::StringRef branch;
   llvm::StringRef condition;
-  std::optional<int64_t> maxAttempts;
+  std::optional<std::int64_t> maxAttempts;
   llvm::StringRef commitPoint;
-  std::optional<int64_t> repeatCount;
+  std::optional<std::int64_t> repeatCount;
   std::optional<double> repeatPeriod;
   std::optional<double> repeatEpilogue;
-  std::optional<int64_t> maxIterations;
+  std::optional<std::int64_t> maxIterations;
   llvm::StringRef callee;
   llvm::StringRef instance;
   llvm::StringRef profile;
@@ -70,5 +68,3 @@ struct NativeScheduleView {
 };
 
 } // namespace qlx::phys
-
-#endif // QLX_DIALECT_PHYS_TRANSFORMS_SCHEDULEMODEL_H

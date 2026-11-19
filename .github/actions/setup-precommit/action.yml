@@ -36,7 +36,7 @@ runs:
   steps:
     # ========== Python & Pre-commit ==========
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: '3.11'
 
@@ -66,7 +66,7 @@ runs:
     # ========== Node.js & npm packages ==========
     - name: Set up Node.js
       if: inputs.install-node == 'true'
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v7
       with:
         node-version: '20'
 
@@ -87,7 +87,7 @@ runs:
     # ========== Go (for license-eye) ==========
     - name: Set up Go
       if: inputs.install-go == 'true'
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@v7
       with:
         go-version: '1.25.3'
         cache: false

@@ -113,6 +113,39 @@ def test_double_consumed_patch_fails_verification_with_a_clear_message():
         verify_linearity(module)
 
 
+@pytest.mark.parametrize("duplicate", [False, True])
+def test_wide_boundary_checks_each_operand_use(duplicate):
+    names = [f"%arg{i}" for i in range(128)]
+    arguments = ", ".join(f"{name}: !fabric.patch<@c>" for name in names)
+    types = ", ".join(["!fabric.patch<@c>"] * len(names))
+    returned = names[:-1] + [names[0]] if duplicate else names
+    module = parse(f"""
+  fabric.gadget @wide({arguments}) -> ({types}) {{
+    fabric.return {", ".join(returned)} : {types}
+  }}
+""")
+    report = check_linearity(module)
+    assert report.linear_values == len(names)
+    kinds = {violation.kind for violation in report.violations}
+    assert kinds == ({"double-consume", "unconsumed"} if duplicate else set())
+
+
+def test_detached_consumer_keeps_conservative_scope_fallback():
+    module = parse("""
+  fabric.gadget @g(%arg0: !fabric.patch<@c>) -> !fabric.patch<@c> {
+    %0 = fabric.h %arg0 data : !fabric.patch<@c>
+    fabric.return %0 : !fabric.patch<@c>
+  }
+""")
+    block = module.body.operations[1].regions[0].blocks[0]
+    consumer = block.operations[-1].operation
+    consumer.detach_from_parent()
+    try:
+        assert check_linearity(module).result == "pass"
+    finally:
+        block.append(consumer)
+
+
 def test_use_after_destructive_measure_fails_at_the_ir_level():
     # Complete data measurement is terminal at P2, so the dialect verifier
     # rejects this before the generic linear-use analysis needs to run.

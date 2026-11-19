@@ -212,8 +212,8 @@ Key fields:
   ``--my-backend-api-key <value>`` on the ``nvq++`` command line and as keyword
   arguments to ``cudaq.set_target("my-backend", api_key=...)`` in Python.
 
-For the full list of recognized YAML fields see the mapping traits in
-`TargetConfigYaml.cpp <https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/lib/Target/Yaml/TargetConfigYaml.cpp>`_.
+For the full list of recognized YAML fields see the versioned schemas in
+`cudaq/lib/Target/Yaml <https://github.com/NVIDIA/cuda-quantum/tree/main/cudaq/lib/Target/Yaml>`_.
 For a complete working example of a REST-style plugin, see the
 `mock_rest reference plugin <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/plugins/mock_rest>`_.
 

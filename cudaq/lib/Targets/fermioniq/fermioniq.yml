@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-version: 1
+version: 2-alpha
 name: fermioniq
 description: "CUDA-Q target for Fermioniq."
 config:
@@ -22,16 +22,21 @@ config:
   # nvq++ links it in; on the JIT/Python path nothing links it, so it must
   # be dlopen'd before `platform-qpu` can be found in the QPU registry.
   plugin-libraries: ["libcudaq-fermioniq-qpu"]
-  jit-high-level-pipeline: "expand-measurements"
-  jit-mid-level-pipeline: "fermioniq-gate-set-mapping"
-  # Tell the rest-qpu that we are generating QIR.
-  codegen-emission: qir-base
+
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-reference-semantics
+        options:
+          basis-gates: ["h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"]
+          measurement-type: single-qubit
+  codegen: qir-base
 
 target-arguments:
   - key: remote-config
     required: false
     type: string
-    platform-arg: remote_config 
+    platform-arg: remote_config
     help-string: "Specify the Fermioniq Remote Configuration."
   - key: project-id
     required: false

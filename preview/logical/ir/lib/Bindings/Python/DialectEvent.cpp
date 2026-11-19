@@ -4,14 +4,11 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "PopulateSubmodules.h"
-
 #include "qlx-c/Dialect/Event.h"
-
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
-
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 

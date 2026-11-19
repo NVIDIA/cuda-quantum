@@ -25,7 +25,6 @@
 
 #include "cudaq/realtime/cpu_transport/udp_wrapper.h"
 #include "cudaq/realtime/daemon/dispatcher/cpu_relax.h"
-
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -33,6 +32,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -177,10 +177,10 @@ public:
     if (!unified || !out_slot || fd < 0)
       return false;
 
-    // Back-pressure: a response is still in flight for this slot (a running
-    // GRAPH_LAUNCH graph), so its RX half cannot be reused yet. Checked before
-    // the recv so the datagram stays queued in the socket rather than being
-    // consumed with nowhere to put it.
+    // Back-pressure: the consumer still holds this slot (its tx flag is set),
+    // so its RX half cannot be reused yet. Checked before the recv so the
+    // datagram stays queued in the socket rather than being consumed with
+    // nowhere to put it.
     if (load_flag(&tx_flags[next_rx_slot]) != 0)
       return false;
 
@@ -217,8 +217,8 @@ public:
   // datagram. Slot-addressed rather than FIFO, so responses may be published in
   // any order -- unlike txLoop, whose cursor imposes publish order.
   //
-  // Does NOT touch tx_flags: in this shape the consumer (dispatcher and graph
-  // engine) owns them, and txLoop's clear-after-send has no counterpart here.
+  // Does NOT touch tx_flags: in this shape the consumer owns them, and
+  // txLoop's clear-after-send has no counterpart here.
   bool txPublish(std::uint32_t slot) {
     if (!unified || fd < 0 || slot >= num_pages || !have_peer)
       return false;
@@ -342,8 +342,8 @@ private:
                    reinterpret_cast<const sockaddr *>(&peer_addr),
                    sizeof(peer_addr));
       }
-      // Non-address values (in-flight/error sentinels) are recycled too;
-      // this transport has no side channel to report them.
+      // Any other non-zero value is recycled too; this transport has no side
+      // channel to report it.
       store_flag(&tx_flags[cursor], 0);
       cursor = (cursor + 1) % num_pages;
     }
@@ -393,9 +393,11 @@ cpu_udp_transceiver_t cpu_udp_create_transceiver(size_t page_size,
   return xcvr;
 }
 
-cpu_udp_transceiver_t cpu_udp_create_transceiver_ext(
-    size_t page_size, unsigned num_pages, volatile uint64_t *rx_flags,
-    volatile uint64_t *tx_flags, uint8_t *rx_data, uint8_t *tx_data) {
+cpu_udp_transceiver_t
+cpu_udp_create_transceiver_ext(size_t page_size, unsigned num_pages,
+                               volatile std::uint64_t *rx_flags,
+                               volatile std::uint64_t *tx_flags,
+                               std::uint8_t *rx_data, std::uint8_t *tx_data) {
   if (page_size == 0 || num_pages == 0 || !rx_flags || !tx_flags || !rx_data ||
       !tx_data)
     return nullptr;
@@ -413,20 +415,20 @@ void cpu_udp_destroy_transceiver(cpu_udp_transceiver_t handle) {
 }
 
 int cpu_udp_bind_to(cpu_udp_transceiver_t handle, const char *host,
-                    uint16_t port) {
+                    std::uint16_t port) {
   return handle && cast(handle)->bind(host, port) ? 1 : 0;
 }
 
-int cpu_udp_bind(cpu_udp_transceiver_t handle, uint16_t port) {
+int cpu_udp_bind(cpu_udp_transceiver_t handle, std::uint16_t port) {
   return cpu_udp_bind_to(handle, /*host=*/nullptr, port);
 }
 
 int cpu_udp_connect(cpu_udp_transceiver_t handle, const char *host,
-                    uint16_t port) {
+                    std::uint16_t port) {
   return handle && host && cast(handle)->connect(host, port) ? 1 : 0;
 }
 
-uint16_t cpu_udp_get_port(cpu_udp_transceiver_t handle) {
+std::uint16_t cpu_udp_get_port(cpu_udp_transceiver_t handle) {
   return handle ? cast(handle)->port() : 0;
 }
 
@@ -438,11 +440,11 @@ int cpu_udp_start(cpu_udp_transceiver_t handle) {
   return handle && cast(handle)->start() ? 1 : 0;
 }
 
-int cpu_udp_rx_poll(cpu_udp_transceiver_t handle, uint32_t *out_slot) {
+int cpu_udp_rx_poll(cpu_udp_transceiver_t handle, std::uint32_t *out_slot) {
   return handle && cast(handle)->rxPoll(out_slot) ? 1 : 0;
 }
 
-int cpu_udp_tx_publish(cpu_udp_transceiver_t handle, uint32_t slot) {
+int cpu_udp_tx_publish(cpu_udp_transceiver_t handle, std::uint32_t slot) {
   return handle && cast(handle)->txPublish(slot) ? 1 : 0;
 }
 
@@ -451,20 +453,20 @@ void cpu_udp_close(cpu_udp_transceiver_t handle) {
     cast(handle)->close();
 }
 
-uint64_t cpu_udp_get_rx_ring_flag_addr(cpu_udp_transceiver_t handle) {
-  return handle ? reinterpret_cast<uint64_t>(cast(handle)->rxFlags()) : 0;
+std::uint64_t cpu_udp_get_rx_ring_flag_addr(cpu_udp_transceiver_t handle) {
+  return handle ? reinterpret_cast<std::uint64_t>(cast(handle)->rxFlags()) : 0;
 }
 
-uint64_t cpu_udp_get_rx_ring_data_addr(cpu_udp_transceiver_t handle) {
-  return handle ? reinterpret_cast<uint64_t>(cast(handle)->rxData()) : 0;
+std::uint64_t cpu_udp_get_rx_ring_data_addr(cpu_udp_transceiver_t handle) {
+  return handle ? reinterpret_cast<std::uint64_t>(cast(handle)->rxData()) : 0;
 }
 
-uint64_t cpu_udp_get_tx_ring_flag_addr(cpu_udp_transceiver_t handle) {
-  return handle ? reinterpret_cast<uint64_t>(cast(handle)->txFlags()) : 0;
+std::uint64_t cpu_udp_get_tx_ring_flag_addr(cpu_udp_transceiver_t handle) {
+  return handle ? reinterpret_cast<std::uint64_t>(cast(handle)->txFlags()) : 0;
 }
 
-uint64_t cpu_udp_get_tx_ring_data_addr(cpu_udp_transceiver_t handle) {
-  return handle ? reinterpret_cast<uint64_t>(cast(handle)->txData()) : 0;
+std::uint64_t cpu_udp_get_tx_ring_data_addr(cpu_udp_transceiver_t handle) {
+  return handle ? reinterpret_cast<std::uint64_t>(cast(handle)->txData()) : 0;
 }
 
 } // extern "C"

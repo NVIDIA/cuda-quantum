@@ -1,0 +1,194 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Loops in CFG form. The header of a natural loop is entered from outside the
+// loop and from the back-edge(s). What is known when entering the loop holds in
+// the header only if nothing in the loop may change it. The header's block
+// arguments merge the initial value and the value from the previous iteration,
+// so they never take part in a fact that is carried into the header.
+
+// RUN: cudaq-opt --dead-store-removal %s | FileCheck %s
+
+func.func private @opaque()
+func.func private @use(i32)
+
+// Nothing in the loop writes the slot.
+func.func @invariant(%c: i1, %p: !cc.ptr<i32>, %q: !cc.ptr<i32>, %v: i32) {
+  %s = cc.alloca i32
+  %t = cc.alloca i32
+  cc.store %v, %s : !cc.ptr<i32>
+  cf.br ^header(%v : i32)
+^header(%x: i32):
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  cc.store %x, %t : !cc.ptr<i32>
+  cf.cond_br %c, ^header(%x : i32), ^exit
+^exit:
+  return
+}
+
+// CHECK-LABEL: func.func @invariant(
+// CHECK-SAME:      %{{.*}}: i1, %{{.*}}: !cc.ptr<i32>, %{{.*}}: !cc.ptr<i32>, %[[V:.*]]: i32) {
+// CHECK-NOT:     cc.load
+// CHECK:         call @use(%[[V]])
+
+// The loop stores to the very slot.
+func.func @killed_by_store(%c: i1, %v: i32, %w: i32) {
+  %s = cc.alloca i32
+  cc.store %v, %s : !cc.ptr<i32>
+  cf.br ^header
+^header:
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  cc.store %w, %s : !cc.ptr<i32>
+  cf.cond_br %c, ^header, ^exit
+^exit:
+  return
+}
+
+// CHECK-LABEL: func.func @killed_by_store(
+// CHECK:         %[[R:.*]] = cc.load
+// CHECK:         call @use(%[[R]])
+
+// The store is in a block of the loop that is not the header.
+func.func @killed_in_body(%c: i1, %d: i1, %v: i32, %w: i32) {
+  %s = cc.alloca i32
+  cc.store %v, %s : !cc.ptr<i32>
+  cf.br ^header
+^header:
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  cf.cond_br %d, ^body, ^latch
+^body:
+  cc.store %w, %s : !cc.ptr<i32>
+  cf.br ^latch
+^latch:
+  cf.cond_br %c, ^header, ^exit
+^exit:
+  return
+}
+
+// CHECK-LABEL: func.func @killed_in_body(
+// CHECK:         %[[R:.*]] = cc.load
+// CHECK:         call @use(%[[R]])
+
+// A store in an inner loop is a store in the outer loop.
+func.func @killed_in_nested_loop(%c: i1, %d: i1, %v: i32, %w: i32) {
+  %s = cc.alloca i32
+  cc.store %v, %s : !cc.ptr<i32>
+  cf.br ^outer
+^outer:
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  cf.br ^inner
+^inner:
+  cc.store %w, %s : !cc.ptr<i32>
+  cf.cond_br %d, ^inner, ^latch
+^latch:
+  cf.cond_br %c, ^outer, ^exit
+^exit:
+  return
+}
+
+// CHECK-LABEL: func.func @killed_in_nested_loop(
+// CHECK:         %[[R:.*]] = cc.load
+// CHECK:         call @use(%[[R]])
+
+// A call that is passed nothing cannot change a private stack slot, but can
+// change anything else.
+func.func @call_in_loop(%c: i1, %p: !cc.ptr<i32>, %v: i32) {
+  %s = cc.alloca i32
+  cc.store %v, %s : !cc.ptr<i32>
+  cc.store %v, %p : !cc.ptr<i32>
+  cf.br ^header
+^header:
+  %rs = cc.load %s : !cc.ptr<i32>
+  %rp = cc.load %p : !cc.ptr<i32>
+  func.call @use(%rs) : (i32) -> ()
+  func.call @use(%rp) : (i32) -> ()
+  func.call @opaque() : () -> ()
+  cf.cond_br %c, ^header, ^exit
+^exit:
+  return
+}
+
+// CHECK-LABEL: func.func @call_in_loop(
+// CHECK-SAME:      %{{.*}}: i1, %{{.*}}: !cc.ptr<i32>, %[[V:.*]]: i32) {
+// CHECK:         %[[RP:.*]] = cc.load
+// CHECK-NOT:     cc.load
+// CHECK:         call @use(%[[V]])
+// CHECK:         call @use(%[[RP]])
+
+// The address is computed from the header's block argument: it is a different
+// address on each iteration, so the earlier store says nothing about it.
+func.func @address_from_header_argument(%c: i1, %a: !cc.ptr<!cc.array<i32 x 4>>,
+    %v: i32) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %p0 = cc.compute_ptr %a[%c0] : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.ptr<i32>
+  cc.store %v, %p0 : !cc.ptr<i32>
+  cf.br ^header(%c0 : i64)
+^header(%i: i64):
+  %p = cc.compute_ptr %a[%i] : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.ptr<i32>
+  %r = cc.load %p : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  %next = arith.addi %i, %c1 : i64
+  cf.cond_br %c, ^header(%next : i64), ^exit
+^exit:
+  return
+}
+
+// CHECK-LABEL: func.func @address_from_header_argument(
+// CHECK:         %[[R:.*]] = cc.load
+// CHECK:         call @use(%[[R]])
+
+// A loop with two ways in is not a natural loop. Know nothing in its header.
+func.func @irreducible(%c: i1, %d: i1, %v: i32) {
+  %s = cc.alloca i32
+  cc.store %v, %s : !cc.ptr<i32>
+  cf.cond_br %c, ^a, ^b
+^a:
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  cf.cond_br %d, ^b, ^exit
+^b:
+  %q = cc.load %s : !cc.ptr<i32>
+  func.call @use(%q) : (i32) -> ()
+  cf.cond_br %d, ^a, ^exit
+^exit:
+  return
+}
+
+// CHECK-LABEL: func.func @irreducible(
+// CHECK:         cc.load
+// CHECK:         call @use
+// CHECK:         cc.load
+// CHECK:         call @use
+
+// A store before the loop is neither removed because of a store in the loop
+// body (which may not execute) nor forwarded past it.
+func.func @store_before_loop_kept(%c: i1, %v: i32, %w: i32) {
+  %s = cc.alloca i32
+  cc.store %v, %s : !cc.ptr<i32>
+  cf.br ^header
+^header:
+  cf.cond_br %c, ^body, ^exit
+^body:
+  cc.store %w, %s : !cc.ptr<i32>
+  cf.br ^header
+^exit:
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @store_before_loop_kept(
+// CHECK:         cc.store
+// CHECK:         cc.store
+// CHECK:         %[[R:.*]] = cc.load
+// CHECK:         call @use(%[[R]])

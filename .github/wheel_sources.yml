@@ -14,6 +14,7 @@ cudaq:
     - pyproject.toml
     - pyproject.toml.cu12
     - pyproject.toml.cu13
+    - pyproject.toml.core
     - pyproject.toml.devel
     - docker/release/cudaq.wheel.Dockerfile
   exclude:

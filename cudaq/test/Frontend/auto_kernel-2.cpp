@@ -10,7 +10,7 @@
 
 // Simple test using a type inferenced return value type.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct ak2 {
   auto operator()() __qpu__ {

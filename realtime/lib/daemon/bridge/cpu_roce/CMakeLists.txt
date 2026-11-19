@@ -10,7 +10,7 @@
 # transport-provider interface, including both QP-exchange methods (TCP
 # rendezvous with a CpuRoceChannel caller, and the HSB FPGA handshake).
 # Loaded at runtime via CUDAQ_REALTIME_BRIDGE_LIB / CUDAQ_PROVIDER_EXTERNAL.
-# Built only when the CPU RoCE transport itself was built (libibverbs found).
+# Built only when the CPU RoCE transport itself was built (HololinkRoce found).
 
 if (NOT TARGET cudaq-realtime-cpu-roce-transport)
   message(STATUS "  - cudaq-realtime-bridge-cpu-roce skipped (no CPU RoCE transport)")

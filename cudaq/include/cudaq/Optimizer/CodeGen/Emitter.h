@@ -20,12 +20,13 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/ValueRange.h"
 #include "mlir/Support/IndentedOstream.h"
+#include <cstdint>
 #include <stack>
 
 namespace cudaq {
 
 /// Try to convert `value`, which is used as an index, to an integer
-inline std::optional<int64_t> getIndexValueAsInt(mlir::Value value) {
+inline std::optional<std::int64_t> getIndexValueAsInt(mlir::Value value) {
   // The value might not have an defining operation, e.g., when the value is an
   // circuit argument
   if (auto constOp =
@@ -58,7 +59,7 @@ struct Emitter {
 
   /// Returns a new name by combining `prefix` and the number of values in scope
   std::string createName(mlir::StringRef prefix = "var",
-                         int64_t index_offset = 0) {
+                         std::int64_t index_offset = 0) {
     return llvm::formatv("{0}{1}", prefix,
                          valuesInScopeCount.top() + index_offset);
   }
@@ -111,7 +112,7 @@ struct Emitter {
 
   /// The number of values in the current scope. This is used to declare the
   /// variable names of values in a scope, e.g, `q0`, `q1` etc.
-  std::stack<int64_t> valuesInScopeCount;
+  std::stack<std::int64_t> valuesInScopeCount;
 };
 
 } // namespace cudaq

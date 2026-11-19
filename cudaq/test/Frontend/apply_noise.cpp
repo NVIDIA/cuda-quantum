@@ -7,9 +7,10 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck --check-prefixes=CHECK,ALIVE %s
-// RUN: cudaq-quake %s | cudaq-opt -erase-noise | FileCheck --check-prefixes=CHECK,DEAD %s
-// RUN: cudaq-quake %s | cudaq-opt | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
+// RUN: cudaq-quake %s -o %t.qke
+// RUN: cudaq-opt %t.qke | FileCheck --check-prefixes=CHECK,ALIVE %s
+// RUN: cudaq-opt %t.qke -erase-noise | FileCheck --check-prefixes=CHECK,DEAD %s
+// RUN: cudaq-opt %t.qke | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
 // clang-format on
 
 #include <cudaq.h>

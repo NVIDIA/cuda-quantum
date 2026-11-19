@@ -328,20 +328,13 @@ func.func @test_5(%sret: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct
 
 // CHECK-LABEL: define { ptr, i64 } @test_1.thunk(
 // CHECK-SAME:      ptr{{.*}}%[[VAL_0:.*]], i1 %[[VAL_1:.*]]) {
-// CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
-// CHECK:         %[[VAL_3:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
-// CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_2]])
-// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_2]], ptr %[[VAL_3]])
-// CHECK:         %[[VAL_4:.*]] = tail call ptr @__quantum__qis__mz(ptr %[[VAL_2]])
-// CHECK:         %[[VAL_5:.*]] = tail call ptr @__quantum__qis__mz(ptr %[[VAL_3]])
-// CHECK:         %[[VAL_6:.*]] = load i1, ptr %[[VAL_4]], align 1
-// CHECK:         %[[VAL_7:.*]] = load i1, ptr %[[VAL_5]], align 1
-// CHECK:         tail call void @__quantum__rt__qubit_release(ptr %[[VAL_2]])
-// CHECK:         tail call void @__quantum__rt__qubit_release(ptr %[[VAL_3]])
+// CHECK:         %[[VAL_2:.*]] = tail call { i1, i1 } @__nvqpp__mlirgen__test_1()
 // CHECK:         tail call void @__nvqpp_cleanup_arrays()
-// CHECK:         store i1 %[[VAL_6]], ptr %[[VAL_0]], align 1
-// CHECK:         %[[VAL_8:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_0]], i64 1
-// CHECK:         store i1 %[[VAL_7]], ptr %[[VAL_8]], align 1
+// CHECK:         %[[VAL_3:.*]] = extractvalue { i1, i1 } %[[VAL_2]], 0
+// CHECK:         store i1 %[[VAL_3]], ptr %[[VAL_0]], align 1
+// CHECK:         %[[VAL_4:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_0]], i64 1
+// CHECK:         %[[VAL_5:.*]] = extractvalue { i1, i1 } %[[VAL_2]], 1
+// CHECK:         store i1 %[[VAL_5]], ptr %[[VAL_4]], align 1
 // CHECK:         ret { ptr, i64 } zeroinitializer
 // CHECK:       }
 

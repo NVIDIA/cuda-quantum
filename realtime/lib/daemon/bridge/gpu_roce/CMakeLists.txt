@@ -148,26 +148,25 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     REQUIRED
   )
 
-  # The DOCA device data plane joins the unified dispatch archive rather than
-  # this shared library.  The kernel there calls these hooks as __device__
-  # functions, which CUDA resolves only within a single module, so the two
-  # must be device-linked together -- and the launcher belongs to the runtime,
-  # not to a transport library.  Making them one archive satisfies both.
-  target_sources(cudaq-realtime PRIVATE gpu_roce_unified_transport.cu)
-  set_property(GLOBAL PROPERTY CUDAQ_REALTIME_UNIFIED_TRANSPORT_TU
-    "bridge/gpu_roce/gpu_roce_unified_transport.cu")
-  target_include_directories(cudaq-realtime
-    PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}
-      "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src"
-      "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src/hololink/operators/gpu_roce_transceiver"
-      ${DOCA_INCLUDE_DIR}
-      ${DOCA_GPU_INCLUDE_DIR})
-
-  # Library implementing the gpu_roce bridge interface
+  # Library implementing the gpu_roce bridge interface.  The device hooks are
+  # its relocatable device code, which get_gpu_dataplane hands to the
+  # dispatcher for its run-time link.
   add_library(cudaq-realtime-bridge-gpu-roce SHARED
     bridge_impl.cpp
-    gpu_roce_wrapper.cpp)
+    gpu_roce_wrapper.cpp
+    gpu_roce_unified_transport.cu
+    gpu_roce_device_hooks.cu)
+
+  # LTO-IR next to the SASS, so the run-time link can inline the hooks into
+  # the kernel; per source, to stay clear of host LTO.  One entry per
+  # architecture: DOCA picks its fences by __CUDA_ARCH__, which is fixed when
+  # the IR is compiled.
+  foreach(_arch IN LISTS CUDA_TARGET_ARCHS)
+    set_property(SOURCE gpu_roce_unified_transport.cu gpu_roce_device_hooks.cu
+      APPEND PROPERTY
+      COMPILE_OPTIONS "--generate-code=arch=compute_${_arch},code=lto_${_arch}")
+  endforeach()
+  unset(_arch)
 
   set_target_properties(cudaq-realtime-bridge-gpu-roce PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
@@ -189,7 +188,6 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
       ${BASE_RECEIVER_OP_LIB}
       ${HSB_CORE_LIB}
       ${HSB_COMMON_LIB}
-      cudaq-realtime
       CUDA::cudart
       CUDA::cuda_driver
       ${CUDADEVRT_LIBRARY}

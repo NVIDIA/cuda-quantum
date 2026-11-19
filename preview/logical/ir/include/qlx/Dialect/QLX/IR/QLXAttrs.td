@@ -1,10 +1,10 @@
-/*******************************************************************************
+/***********************************************************-*- tablegen -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // This file defines the attributes for the QLX dialect: enum attributes for
 // built-in P0 actions, instruments, and Pauli bases, plus the composite

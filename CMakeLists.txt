@@ -262,6 +262,17 @@ endif()
 # =============================================================================
 set(CUDAQ_EXTERNAL_PROJECTS "" CACHE STRING
     "Semicolon-separated list of external projects to add to the CUDA-Q build.")
+
+# cudaq.logical (preview/logical) is an in-tree external project. It needs the
+# CUDA-Q Python bindings, so CUDAQ_ENABLE_PROJECTS must include 'python'
+# (the deprecated CUDAQ_ENABLE_PYTHON=ON does the same).
+option(CUDAQ_ENABLE_LOGICAL
+  "Build the cudaq.logical fault-tolerance resource-estimation toolkit." OFF)
+if(CUDAQ_ENABLE_LOGICAL AND NOT "logical" IN_LIST CUDAQ_EXTERNAL_PROJECTS)
+  list(APPEND CUDAQ_EXTERNAL_PROJECTS logical)
+  set(CUDAQ_EXTERNAL_LOGICAL_SOURCE_DIR
+      "${CMAKE_CURRENT_SOURCE_DIR}/preview/logical" CACHE PATH "" FORCE)
+endif()
 foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
   string(TOUPPER "${_cudaq_ext_proj}" _cudaq_ext_upper)
   string(REGEX REPLACE "-" "_" _cudaq_ext_upper "${_cudaq_ext_upper}")
@@ -286,7 +297,9 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
   option(GIT_SUBMODULE "Check submodules during build" ON)
   if(GIT_SUBMODULE)
     message(STATUS "Submodule update")
-    execute_process(COMMAND ${GIT_EXECUTABLE} -c submodule.tpls/llvm.update=none submodule update --init --recursive
+    # Retries and falls back to mirrors when gitlab.com is down.
+    execute_process(COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/scripts/update_submodules.sh
+                            -c submodule.tpls/llvm.update=none
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     RESULT_VARIABLE GIT_SUBMOD_RESULT)
     if(NOT GIT_SUBMOD_RESULT EQUAL "0")
@@ -312,7 +325,7 @@ option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Be
 
 # Sub-projects that can be enabled independently, in the style of
 # LLVM_ENABLE_PROJECTS. Accepts a semicolon-separated list.
-set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime")
+set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime;edem")
 set(CUDAQ_ENABLE_PROJECTS "" CACHE STRING
     "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set). Include 'realtime' to build source-tree realtime; set CUDAQ_REALTIME_DIR to use an installed realtime package.")
 
@@ -347,6 +360,15 @@ foreach(_proj IN LISTS CUDAQ_ENABLE_PROJECTS)
       "Valid: ${CUDAQ_ALL_PROJECTS}.")
   endif()
 endforeach()
+
+# Logical always consumes EDEM, including its Python value package.
+if("logical" IN_LIST CUDAQ_EXTERNAL_PROJECTS)
+  if(NOT "edem" IN_LIST CUDAQ_ENABLE_PROJECTS)
+    list(APPEND CUDAQ_ENABLE_PROJECTS edem)
+  endif()
+  set(CUDAQ_EDEM_BUILD_PYTHON ON)
+  set(CUDAQ_EDEM_PYTHON_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+endif()
 
 # python depends on the MLIR dialects in cudaq/ and on runtime symbols.
 if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
@@ -585,8 +607,8 @@ if (CUDAQ_STATIC_CXX_RUNTIME)
   # each other. If we were to link everything statically, it is probably advisable to
   # set CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN
   # to 1, to avoid some of these issues.
-  # We don't set these configurations here, since the LLVM runtime libraries that we
-  # build from source are already configured to hide symbols and include dependencies.
+  # We don't set these configurations here, since the C++ runtime must export its
+  # symbols for exceptions to work across libraries (see cmake/caches/LLVM.cmake).
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
   message(STATUS "Static C++ runtime linking enabled.")
@@ -999,6 +1021,7 @@ endif()
 # cuQuantum / cuTensor component discovery
 if (CUDA_FOUND)
   find_package(cuStateVec 1.14) # Required for custatevecEx API
+  find_package(cuStabilizer 0.5)
   find_package(cuTensor)
   find_package(cuTensorNet)
   find_package(cuDensityMat)
@@ -1065,8 +1088,13 @@ endif(CUDAQ_ENABLE_CC)
 
 add_subdirectory(cmake)
 
-if(CUDAQ_BUILD_TESTS)
+if(CUDAQ_BUILD_TESTS OR
+    ("edem" IN_LIST CUDAQ_ENABLE_PROJECTS AND CUDAQ_EDEM_BUILD_TESTS))
   enable_testing()
+endif()
+
+if("edem" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  add_subdirectory(edem)
 endif()
 
 if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)

@@ -30,4 +30,4 @@ build-deps = [
 ]
 # Note: tests will fail if cudaq-logical is not installed in the environment.
 # If using `uv run`, make sure to pass the `--active` flag to run within your activated `venv`.
-test-deps = ["pytest>=7.0", "sybil>=6"]
+test-deps = ["pytest>=7.0", "sybil>=6", "stim>=1.16,<2"]

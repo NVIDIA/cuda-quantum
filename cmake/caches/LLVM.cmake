@@ -90,8 +90,10 @@ if(DEFINED LLVM_ENABLE_RUNTIMES AND LLVM_ENABLE_RUNTIMES MATCHES "libcxx")
 
     # Build a static libc++ without any dependencies;
     # see also https://libcxx.llvm.org/BuildingLibcxx.html
-    set(LIBCXX_HERMETIC_STATIC_LIBRARY ON CACHE BOOL "")
-    set(LIBCXXABI_HERMETIC_STATIC_LIBRARY ON CACHE BOOL "")
+    # Not hermetic, so that the RTTI of standard types is exported and merged
+    # across libraries; otherwise exceptions can't be caught by type (#2321).
+    set(LIBCXX_HERMETIC_STATIC_LIBRARY OFF CACHE BOOL "")
+    set(LIBCXXABI_HERMETIC_STATIC_LIBRARY OFF CACHE BOOL "")
     set(LIBCXX_STATICALLY_LINK_ABI_IN_STATIC_LIBRARY ON CACHE BOOL "")
     set(LIBCXXABI_ENABLE_STATIC_UNWINDER ON CACHE BOOL "")
     set(LIBCXXABI_STATICALLY_LINK_UNWINDER_IN_STATIC_LIBRARY ON CACHE BOOL "")

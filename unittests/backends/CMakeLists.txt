@@ -44,6 +44,28 @@ target_include_directories(stim_tester PRIVATE
   ${CMAKE_SOURCE_DIR}/tpls/Stim/src)
 target_link_libraries(stim_tester PRIVATE libstim)
 
+if(TARGET nvqir-custabilizer)
+  add_executable(custabilizer_tester CustabilizerTester.cpp)
+  target_compile_definitions(custabilizer_tester PRIVATE
+    NVQIR_BACKEND_NAME=custabilizer)
+  target_include_directories(custabilizer_tester PRIVATE
+    ${CMAKE_SOURCE_DIR}/runtime/nvqir/custabilizer
+    ${CMAKE_SOURCE_DIR}/tpls/Stim/src)
+  target_link_libraries(custabilizer_tester PRIVATE
+    nvqir
+    nvqir-custabilizer
+    libstim
+    cuStabilizer::cuStabilizer
+    CUDA::cudart_static
+    cudaq
+    cudaq-logger
+    fmt::fmt-header-only
+    gtest_main)
+  cudaq_gtest_discover_tests(custabilizer_tester
+    DISCOVERY_TIMEOUT 120
+    PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
+endif()
+
 if(TARGET cudaq-orca-qpu)
   add_executable(orca_policy_tester OrcaPolicyTester.cpp)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
@@ -183,6 +205,7 @@ if (cuStateVec_FOUND AND MPI_CXX_FOUND)
   function(add_custatevec_mgpu_test_suite target suffix)
     set(state_test CuStateVecEx.MGPUState${suffix})
     set(transition_test CuStateVecEx.MGPUStateSmallTransition${suffix})
+    set(capacity_test CuStateVecEx.MGPUCapacity${suffix})
     set(migration_test CuStateVecEx.MGPUStateMigrationLevel${suffix})
     set(rebind_test CuStateVecEx.MGPUStateRebindConfig${suffix})
     set(ptsbe_test CuStateVecEx.MGPUPTSBE${suffix})
@@ -197,6 +220,11 @@ if (cuStateVec_FOUND AND MPI_CXX_FOUND)
       COMMAND ${MPIEXEC_EXECUTABLE} --allow-run-as-root -np 4
       $<TARGET_FILE:${target}>
       --gtest_filter=MGpuTesterMultiProcesses.GrowsSmallReplicatedStateAcrossThreshold)
+    add_custatevec_backend_mgpu_test(${capacity_test}
+      ENVIRONMENT "CUDAQ_GPU_FABRIC=NONE"
+      COMMAND ${MPIEXEC_EXECUTABLE} --allow-run-as-root -np 2
+      $<TARGET_FILE:${target}>
+      --gtest_filter=MGpuCapacityTest.*)
     add_custatevec_backend_mgpu_test(${migration_test}
       ENVIRONMENT
         "CUDAQ_MGPU_NQUBITS_THRESH=1"

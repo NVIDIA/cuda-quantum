@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 import math
 import threading
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -156,7 +157,7 @@ def test_static_estimate_expands_folded_call_multiplicity_analytically():
 
 
 def test_static_profile_counts_analysis_and_realization_separately():
-    profile = cql.gadgets.GadgetProfile(
+    profile = cql.gadgets.GadgetContract(
         memory,
         success=(cql.gadgets.SuccessPredicate(memory.record("r1.s0")),),
         name="memory_analysis",
@@ -165,6 +166,169 @@ def test_static_profile_counts_analysis_and_realization_separately():
     assert counts.success_count == 1
     assert counts.syndrome_rounds == 2
     assert counts.operation_counts["read_syndrome_ancillas"] == 2
+
+
+@cql.protocol(implements=cql.logical.idle)
+def shared_folded_h(block: cql.patch[TinyCode]) -> cql.patch[TinyCode]:
+    block = four_h(block)
+    return cql.ops.repeat(3, carries=(block,), body=lambda value: four_h(value))
+
+
+def test_static_shared_body_counts_preserve_nested_multiplicity(monkeypatch):
+    from cudaq.logical.estimate import static
+
+    walk = static._walk_executable
+    h_visits = 0
+
+    def observed_walk(*args, **kwargs):
+        nonlocal h_visits
+        for visit in walk(*args, **kwargs):
+            h_visits += visit.operation.name == "fabric.h"
+            yield visit
+
+    monkeypatch.setattr(static, "_walk_executable", observed_walk)
+    counts = cql.estimate(shared_folded_h)
+    assert counts.operation_counts["h"] == 16
+    assert counts.operation_counts["repeat"] == 5
+    assert counts.protocol_calls["four_h"] == 4
+    assert counts.gadget_calls["encoded_h"] == 16
+    assert counts.total_operations == 16
+    # Shared bodies are analyzed once, not once per invocation.
+    assert h_visits == 1
+
+
+@pytest.mark.parametrize("attach_profile", [False, True])
+def test_selected_fabric_walk_preserves_invocation_provenance(attach_profile):
+    from cudaq.logical.estimate._fabric_walk import (
+        _children,
+        _symbol,
+        _walk_executable,
+        _walk_selected_executable,
+    )
+
+    build = cql.compile(shared_folded_h)
+    module = build._fresh_module()
+    symbols = {
+        _symbol(view.operation): view.operation
+        for view in module.body.operations
+    }
+    root = symbols[build.root.symbol]
+    # A retry marker in a shared body keeps each caller's path.
+    with module.context, mlir_ir.Location.unknown(module.context):
+        with mlir_ir.InsertionPoint.at_block_terminator(
+                symbols["encoded_h"].regions[0].blocks[0]):
+            mlir_ir.Operation.create("fabric.retry")
+        if attach_profile:
+            with mlir_ir.InsertionPoint(module.body):
+                profile = mlir_ir.Operation.create(
+                    "fabric.gadget_contract",
+                    attributes={
+                        "sym_name": mlir_ir.StringAttr.get("selected_profile"),
+                        "gadget": mlir_ir.FlatSymbolRefAttr.get("encoded_h"),
+                    },
+                    regions=1)
+            profile.regions[0].blocks.append()
+            with mlir_ir.InsertionPoint(profile.regions[0].blocks[0]):
+                mlir_ir.Operation.create("fabric.success")
+            symbols["selected_profile"] = profile
+            call = next(visit.operation
+                        for visit in _walk_executable(_children(root), symbols)
+                        if visit.callee_name == "encoded_h")
+            call.attributes["profile"] = mlir_ir.FlatSymbolRefAttr.get(
+                "selected_profile")
+
+    def selected(visit):
+        return visit.operation.name in {
+            "fabric.h", "fabric.retry", "fabric.success"
+        }
+
+    expected = [
+        visit for visit in _walk_executable(
+            _children(root), symbols, call_stack=(build.root.symbol,))
+        if selected(visit)
+    ]
+    actual = list(
+        _walk_selected_executable(_children(root),
+                                  symbols,
+                                  selected,
+                                  call_stack=(build.root.symbol,)))
+    assert actual == expected
+    retries = [
+        visit for visit in actual if visit.operation.name == "fabric.retry"
+    ]
+    assert [visit.multiplier for visit in retries] == [4, 12]
+    assert retries[0].call_path != retries[1].call_path
+    assert retries[0].call_stack == retries[1].call_stack
+    assert all(
+        visit.suppress_inline_analysis == attach_profile for visit in retries)
+
+
+@pytest.mark.parametrize("callee,diagnostic", [
+    ("missing", "unresolved executable"),
+    ("four_h", "recursive executable"),
+])
+def test_summarized_fabric_walk_validates_unselected_calls(callee, diagnostic):
+    from cudaq.logical.estimate._fabric_walk import (
+        _children,
+        _symbol,
+        _walk_executable,
+        _walk_selected_executable,
+    )
+    from cudaq.logical.estimate.static import count
+
+    build = cql.compile(four_h)
+    module = build._fresh_module()
+    symbols = {
+        _symbol(view.operation): view.operation
+        for view in module.body.operations
+    }
+    root = symbols[build.root.symbol]
+    call = next(visit.operation
+                for visit in _walk_executable(_children(root), symbols)
+                if visit.callee_name is not None)
+    with module.context:
+        call.attributes["callee"] = mlir_ir.FlatSymbolRefAttr.get(callee)
+    with pytest.raises(ValueError, match=diagnostic):
+        list(
+            _walk_selected_executable(_children(root),
+                                      symbols,
+                                      lambda visit: False,
+                                      call_stack=(build.root.symbol,)))
+    # A real Build rejects this graph earlier, so call the estimator directly.
+    malformed = SimpleNamespace(profile=build.profile,
+                                root=build.root,
+                                _fresh_module=lambda: module)
+    with pytest.raises(ValueError, match=diagnostic):
+        count(malformed)
+
+
+def test_selected_wsc_output_syndromes_do_not_block_static_costing():
+    builder = cql.devices.DeviceBuilder("PinnacleStaticEstimateTest")
+    compute = builder.logical.add_compute(capacity=2)
+    builder.qec.bind(compute, architecture=pinnacle.gb30)
+    device = builder.build()
+
+    @cql.program
+    def wsc_product() -> bool:
+        data = cql.ops.allocate(2, state=cql.types.zero, name="data")
+        data[0], data[1], result = cql.ops.mpp(
+            cql.types.X(data[0]) @ cql.types.Z(data[1]))
+        cql.ops.discard(data)
+        return result
+
+    build = cql.compile(
+        wsc_product,
+        pipeline=cql.compiler.pipelines.qec(),
+        device=device,
+        policy={"rounds": 2},
+    )
+
+    assert "fabric.output_syndrome" in build.to_mlir()
+    estimate = cql.analysis.estimate(build, tier=Tier.STATIC)
+    # Contract rows are analysis declarations, not executable quantum work.
+    assert "output_syndrome" not in estimate.operation_counts
+    assert estimate.logical_qubits_peak >= 2
+    assert sum(estimate.operation_counts.values()) > 0
 
 
 def test_estimation_tiers_fail_closed_when_fidelity_inputs_are_missing():
@@ -231,6 +395,66 @@ def test_analytical_probability_aggregation_is_stable_at_small_error():
     for invalid in (math.nan, math.inf):
         with pytest.raises(ValueError, match="scaling prefactor"):
             cql.analysis.Scaling(prefactor=invalid)
+
+
+@pytest.mark.parametrize("probability", [0.0078, 0.0308, 0.5])
+def test_analytical_single_attempt_retry_executes_once(probability):
+    # The first two probabilities round the old expectation above and
+    # below one, respectively; 0.5 gives exactly one as a control.
+    from cudaq.logical.algebra import GF2Matrix
+    from cudaq.logical.gadgets import GadgetSpec, OutcomeMap, OutcomeRole, Port
+
+    Code = cql.codes.BareQubit
+
+    @cql.objective
+    def check(
+            q: cql.types.logical_qubit) -> tuple[cql.types.logical_qubit, bool]:
+        q, bit = cql.mpp(cql.types.Z(q))
+        return q, bit
+
+    spec = GadgetSpec(
+        implements=check,
+        ports=(Port.inout("block", encoding=Code),),
+        record_schema=("mpp0.outcome",),
+        outcome_map=OutcomeMap(
+            records=("mpp0.outcome",),
+            matrix=GF2Matrix([[1]]),
+            roles=((OutcomeRole.SUCCESS,),),
+        ),
+    )
+
+    @cql.gadget(spec=spec)
+    def attempt(block: cql.patch[Code]) -> tuple[cql.patch[Code], bool]:
+        block, bit = cql.mpp(cql.types.Z(block[0]))
+        return block, bit
+
+    evidence = "analysis:declared-probability-model"
+    profile = cql.gadgets.GadgetContract(
+        attempt,
+        success=(cql.gadgets.SuccessPredicate(attempt.record("mpp0.outcome")),),
+        metadata={
+            "success_probability": probability,
+            "success_probability_evidence": evidence,
+        },
+    )
+
+    @cql.protocol
+    def retry_once(block: cql.patch[Code]) -> cql.patch[Code]:
+        block, mismatch = attempt(block, analysis=profile)
+        return cql.ops.retry(block,
+                             until=cql.ops.all_false(mismatch),
+                             max_attempts=1)
+
+    build = cql.compile(retry_once)
+    estimate = cql.estimate(
+        build,
+        tier=Tier.ANALYTICAL,
+        p_phys=1e-3,
+        failure_budget=0.1,
+    )
+    demand, = estimate.retry_demands
+    assert demand.expected_attempts == 1.0
+    assert demand.exhaustion_probability == 1.0 - probability
 
 
 @cql.machine
@@ -857,3 +1081,69 @@ def test_estimation_tiers_are_reproducible_from_replayed_builds():
                 p_phys=1.0e-3,
                 failure_budget=0.1,
             )
+
+
+def test_logical_instruction_counts_cover_every_depth_contributor():
+    from cudaq.logical.estimate.logical import logical_instruction_counts
+
+    @cql.program
+    def workload() -> None:
+        qubit = cql.prepare_zero()
+        qubit = cql.h(qubit)
+        qubit = cql.ops.t(qubit)
+        event = cql.ops.request(cql.standard.T_STATE)
+        state = cql.ops.event_await(event)
+        qubit = cql.ops.consume(state, qubit, action=cql.standard.t)
+        cql.discard(qubit)
+
+    profile = cql.estimate(workload, tier=Tier.LOGICAL)
+    counts = logical_instruction_counts(profile)
+
+    # One applied T and one consumed T state are both logical T gates.
+    assert counts[("t", 0)] == 2
+    assert counts[("h", 0)] == 1
+    assert counts[("reset", 0)] == 1
+    # Discards and resource requests are not instructions.
+    assert sum(counts.values()) == profile.action_depth_upper_bound
+
+
+def test_logical_instruction_counts_normalize_controlled_actions():
+    from cudaq.logical.estimate.logical import (LogicalProfile,
+                                                logical_instruction_counts)
+
+    profile = LogicalProfile(
+        actions={
+            "qlx_standard_cx": 3,
+            "qlx_standard_cz": 1,
+            "qlx_standard_ccx": 2,
+            "qlx_standard_ccz": 4,
+            "qlx_standard_h": 5,
+            "custom_action": 6,
+        },
+        instruments={
+            "qlx_standard_measure_z": 7,
+            "qlx_standard_measure_x": 1,
+            "qlx_standard_prepare_zero": 8,
+        },
+        idle_sites=9,
+        discards=0,
+        synthesis_demand={
+            # Applications (subtracted) plus 10 resource uses of the same gate.
+            "qlx_standard_ccz": 14,
+            "qlx_standard_t": 10,
+        },
+    )
+
+    assert logical_instruction_counts(profile) == {
+        ("x", 1): 3,
+        ("z", 1): 1,
+        ("x", 2): 2,
+        ("z", 2): 14,
+        ("h", 0): 5,
+        ("custom_action", 0): 6,
+        ("mz", 0): 7,
+        ("mx", 0): 1,
+        ("reset", 0): 8,
+        ("idle", 0): 9,
+        ("t", 0): 10,
+    }

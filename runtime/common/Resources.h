@@ -76,6 +76,14 @@ public:
                          const std::vector<std::size_t> &controls,
                          const std::vector<std::size_t> &targets);
 
+  /// @brief Append `count` consecutive applications of the same instruction on
+  /// the same qubits in O(1). Equivalent to calling the single-application
+  /// overload `count` times, so depth metrics advance by `count`.
+  void appendInstruction(const std::string &name,
+                         const std::vector<std::size_t> &controls,
+                         const std::vector<std::size_t> &targets,
+                         std::size_t count);
+
   /// @brief Dump resource count to the given output stream
   void dump(std::ostream &os) const;
   void dump() const;

@@ -18,6 +18,7 @@
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
+#include <cstdint>
 
 #define DEBUG_TYPE "quake-to-llvm"
 
@@ -504,7 +505,8 @@ public:
     auto pauliWord = operands.back();
     if (isa<LLVM::LLVMPointerType>(pauliWord.getType())) {
       // With opaque pointers we get the string length from the literal
-      auto numElements = static_cast<int64_t>(instOp.getPauliLiteral()->size());
+      auto numElements =
+          static_cast<std::int64_t>(instOp.getPauliLiteral()->size());
 
       // Remove the old operand
       operands.pop_back();

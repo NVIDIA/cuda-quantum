@@ -41,6 +41,7 @@
 //     cudaq-target-resolve --list-simulators --include-unavailable
 
 #include "cudaq/Target/TargetCatalog.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
@@ -203,7 +204,7 @@ int main(int argc, char **argv) {
       const auto &cfg = *resolved.entry->config;
       const auto *backend = cfg.BackendConfig ? &*cfg.BackendConfig : nullptr;
       for (const auto &entry : cfg.ConfigMap)
-        if (entry.Default.has_value() && entry.Default.value())
+        if (entry.Default)
           backend = &entry.Config;
       if (!backend)
         continue;

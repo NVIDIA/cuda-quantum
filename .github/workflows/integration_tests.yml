@@ -388,7 +388,7 @@ jobs:
                   -X POST https://nexus.quantinuum.com/auth/login \
                   -H "Content-Type: application/json" \
                   -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}" }' \
-                  -o /dev/null
+                  -o ~/.quantinuum_login_response.json
               ) || {
                 echo "::error::Quantinuum login request failed (curl error)"
                 exit 1
@@ -401,8 +401,14 @@ jobs:
                  ! grep -q "myqos_id" ~/.quantinuum_cookies.txt; then
                 echo "::error::Quantinuum login succeeded (HTTP 200) but expected cookies (myqos_oat, myqos_id) were not set. Cookie jar contents:"
                 awk '{if(NF>=7){$7="REDACTED"} print}' ~/.quantinuum_cookies.txt
+                # Show the response with long values (tokens) redacted.
+                echo "Login response (values redacted):"
+                python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print({k: (v if isinstance(v,str) and len(v)<40 else "REDACTED") for k,v in d.items()} if isinstance(d,dict) else type(d).__name__)' \
+                  ~/.quantinuum_login_response.json 2>/dev/null || echo "(non-JSON body)"
+                rm -f ~/.quantinuum_login_response.json
                 exit 1
               fi
+              rm -f ~/.quantinuum_login_response.json
               awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' ~/.quantinuum_cookies.txt > ~/.quantinuum_config
               chmod 600 ~/.quantinuum_config
               rm ~/.quantinuum_cookies.txt
@@ -662,7 +668,8 @@ jobs:
                   if [ "$(uname)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && \
                      [ -f "${QRMI_INSTALL_PREFIX:-/usr/local/qrmi}/lib64/libqrmi.so" ]; then
                     PASQAL_MACHINE_TARGET=qrmi \
-                    SLURM_JOB_QPU_RESOURCES=EMU_FREE \
+                    QRMI_JOB_QPU_RESOURCES=EMU_FREE \
+                    QRMI_JOB_QPU_TYPES=pasqal-cloud \
                     EMU_FREE_QRMI_PASQAL_CLOUD_PROJECT_ID=$PASQAL_PROJECT_ID \
                     python3 "$filename" 1> /dev/null
                     test_status=$?

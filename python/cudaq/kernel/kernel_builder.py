@@ -37,7 +37,8 @@ from .utils import (boundaryDiagnostic, containsMeasureHandle, emitFatalError,
                     emitWarning, nvqppPrefix, getMLIRContext, recover_func_op,
                     mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
-                    globalRegisteredOperations)
+                    globalRegisteredOperations, set_optimization_level_attr,
+                    get_optimization_level_attr)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -516,38 +517,54 @@ class PyKernel(object):
                                                arg.imag)).result
 
         if cc.SequenceType.isinstance(mlirType):
-            size = self.getConstantInt(len(arg))
             eleTy = cc.SequenceType.getElementType(mlirType)
+            leafTy = eleTy
+            while cc.SequenceType.isinstance(leafTy):
+                leafTy = cc.SequenceType.getElementType(leafTy)
+            if not (IntegerType.isinstance(leafTy) or
+                    F64Type.isinstance(leafTy)):
+                emitFatalError(
+                    f"CUDA-Q kernel builder could not process runtime "
+                    f"list-like element type ({leafTy}).")
+
+            size = self.getConstantInt(len(arg))
             arrTy = cc.ArrayType.get(eleTy, context=self.ctx)
             alloca = cc.AllocaOp(cc.PointerType.get(arrTy, self.ctx),
                                  TypeAttr.get(eleTy),
                                  seqSize=size).result
 
-            def body(idx):
-                eleAddr = cc.ComputePtrOp(
-                    cc.PointerType.get(eleTy, self.ctx), alloca, [idx],
-                    DenseI32ArrayAttr.get([-2147483648],
-                                          context=self.ctx)).result
-                element = arg[body.counter]
-                elementVal = None
-                if IntegerType.isinstance(eleTy):
-                    elementVal = self.getConstantInt(element)
-                elif F64Type.isinstance(eleTy):
-                    elementVal = self.getConstantFloat(element)
-                elif cc.SequenceType.isinstance(eleTy):
+            if cc.SequenceType.isinstance(eleTy):
+                # Nested sequences require separately materialized buffers.
+                for i, element in enumerate(arg):
                     elementVal = self.__getMLIRValueFromPythonArg(
                         element, eleTy)
+                    eleAddr = cc.ComputePtrOp(
+                        cc.PointerType.get(eleTy, self.ctx), alloca, [],
+                        DenseI32ArrayAttr.get([i], context=self.ctx)).result
+                    cc.StoreOp(elementVal, eleAddr)
+            elif len(arg):
+                if IntegerType.isinstance(eleTy):
+                    values = [
+                        IntegerAttr.get(eleTy, element) for element in arg
+                    ]
                 else:
-                    emitFatalError(
-                        f"CUDA-Q kernel builder could not process runtime "
-                        f"list-like element type ({pyType}).")
+                    values = [FloatAttr.get(eleTy, element) for element in arg]
+                data = cc.ConstantArrayOp(cc.ArrayType.get(eleTy, len(arg)),
+                                          ArrayAttr.get(values)).result
 
-                cc.StoreOp(elementVal, eleAddr)
-                # Python is weird, but interesting.
-                body.counter += 1
+                def body(idx):
+                    indices = DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                                    context=self.ctx)
+                    eleAddr = cc.ComputePtrOp(
+                        cc.PointerType.get(eleTy, self.ctx), alloca, [idx],
+                        indices).result
+                    elementVal = cc.ExtractValueOp(eleTy, data, [idx],
+                                                   indices).result
+                    cc.StoreOp(elementVal, eleAddr)
 
-            body.counter = 0
-            self.createInvariantForLoop(size, body)
+                # Preserve the runtime copy loop, reading each element from
+                # constant data instead of indexing Python data while tracing.
+                self.createInvariantForLoop(size, body)
             return cc.SequenceInitOp(cc.SequenceType.get(eleTy, self.ctx),
                                      alloca,
                                      length=size).result
@@ -1752,8 +1769,7 @@ class PyKernel(object):
         Mark this kernel so that quantum optimization passes (e.g. value
         semantics lowering) are skipped during code generation.
         """
-        self.module.operation.attributes.__setitem__(
-            'quake.noOptimization', UnitAttr.get(context=self.ctx))
+        set_optimization_level_attr(self.module, self.name, level=0)
 
     def atomic_quantum_region(self):
         """
@@ -1788,7 +1804,7 @@ class PyKernel(object):
                 cudaq__unique_attr_name,
                 StringAttr.get(self.uniqName, context=ctx))
 
-    def __call__(self, *args):
+    def __call__(self, *args, optimization_level=None):
         """
         Just-In-Time (JIT) compile `self` (:class:`Kernel`), and call the kernel
         function at the provided concrete arguments.
@@ -1897,6 +1913,12 @@ class PyKernel(object):
 
         self.compile()
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
+        # An optimization level declared on the kernel (e.g. `disable_quantum_optimization`)
+        # overrides launch options.
+        if (optimization_level is not None and
+                get_optimization_level_attr(self.qkeModule, self.name) is None):
+            set_optimization_level_attr(specialized, self.name,
+                                        optimization_level)
         cudaq_runtime.marshal_and_launch_module(
             self.name,
             specialized,

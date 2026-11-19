@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // TODO: filecheck with statistics
 

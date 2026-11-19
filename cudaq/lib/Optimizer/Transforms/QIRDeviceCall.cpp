@@ -122,9 +122,10 @@ public:
       // trap implementation). If the actual implementation is provided at link
       // time, it will be used instead of the trap implementation due to the
       // weak_odr linkage.
-      rewriter.replaceOpWithNewOp<cudaq::cc::NoInlineCallOp>(
+      auto call = rewriter.replaceOpWithNewOp<func::CallOp>(
           devcall, devFunc.getFunctionType().getResults(), devFuncName,
-          devcall.getArgs(), ArrayAttr{}, ArrayAttr{});
+          devcall.getArgs());
+      call.setNoInline(true);
 
       return success();
     }

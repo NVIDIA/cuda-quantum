@@ -7,10 +7,8 @@
  ******************************************************************************/
 
 #include "cudaq_internal/device_call/DeviceCallRuntimePlugin.h"
-
 #include "common/RuntimeTarget.h"
 #include "cudaq/runtime/logger/logger.h"
-
 #include <stdexcept>
 
 namespace cudaq_internal::device_call {

@@ -257,12 +257,17 @@ class CudaqMetadataHook(MetadataHookInterface):
             version = f.read().strip()
         with (curr_dir / "_logical_version.txt").open("r") as f:
             logical_version = f.read().strip()
+        with (curr_dir / "_edem_version.txt").open("r") as f:
+            edem_version = f.read().strip()
         bdist = _infer_best_package()
         logical_extra = {
             'cuda-quantum-cu12': 'cu12',
             'cuda-quantum-cu13': 'cu13',
         }[bdist]
         metadata["dependencies"] = [
+            f"cudaq-core=={version}",
             f"{bdist}=={version}",
             f"cudaq-logical[{logical_extra}]=={logical_version}; sys_platform == 'linux'",
+            # The C API is not stable yet, so the exact version is pinned.
+            f"cudaq-edem=={edem_version}; sys_platform == 'linux'",
         ]

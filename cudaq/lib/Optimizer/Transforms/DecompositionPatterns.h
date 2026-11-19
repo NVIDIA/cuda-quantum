@@ -181,6 +181,14 @@ void selectDecompositionPatterns(mlir::RewritePatternSet &patterns,
 
 void populateWithAllDecompositionPatterns(mlir::RewritePatternSet &patterns);
 
+/// Whether the registered decomposition patterns lower \p gate to
+/// \p targetBasis without approximating it. Both use the grammar of
+/// `createBasisTarget`, such as `rz` or `x(1)`. It reads the shared pattern
+/// graph but not its pattern-selection cache, so pipeline builders on several
+/// threads may call it while passes select patterns.
+bool canDecomposeTo(llvm::StringRef gate,
+                    llvm::ArrayRef<std::string> targetBasis);
+
 /// Create a conversion target parsed from a target basis string.
 ///
 /// The `targetBasis` should be made of strings of the form:

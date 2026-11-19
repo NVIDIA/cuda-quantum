@@ -17,6 +17,7 @@
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
+#include <cstdint>
 
 #define DEBUG_TYPE "cc-to-llvm"
 
@@ -110,7 +111,7 @@ public:
     SmallVector<Value> results;
     for (std::size_t i = 0, N = callable.getResults().size(); i < N; ++i) {
       auto idx = DenseI64ArrayAttr::get(
-          ctx, ArrayRef<std::int64_t>{static_cast<int64_t>(i)});
+          ctx, ArrayRef<std::int64_t>{static_cast<std::int64_t>(i)});
       results.push_back(LLVM::ExtractValueOp::create(rewriter, loc, resTy[i],
                                                      loadOp.getResult(), idx));
     }
@@ -815,22 +816,6 @@ class VarargCallPattern
     return success();
   }
 };
-
-class NoInlineCallPattern
-    : public ConvertOpToLLVMPattern<cudaq::cc::NoInlineCallOp> {
-  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
-
-  LogicalResult
-  matchAndRewrite(cudaq::cc::NoInlineCallOp nicall, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    SmallVector<Type> types;
-    for (auto ty : nicall.getResultTypes())
-      types.push_back(getTypeConverter()->convertType(ty));
-    rewriter.replaceOpWithNewOp<func::CallOp>(nicall, types, nicall.getCallee(),
-                                              adaptor.getArgs());
-    return success();
-  }
-};
 } // namespace
 
 void cudaq::opt::populateCCToLLVMPatterns(LLVMTypeConverter &typeConverter,
@@ -841,8 +826,7 @@ void cudaq::opt::populateCCToLLVMPatterns(LLVMTypeConverter &typeConverter,
       CallIndirectCallableOpPattern, CastOpPattern, ComputePtrOpPattern,
       CreateStringLiteralOpPattern, ExtractValueOpPattern, FuncToPtrOpPattern,
       GlobalOpPattern, InsertValueOpPattern, InstantiateCallableOpPattern,
-      LoadOpPattern, NoInlineCallPattern, OffsetOfOpPattern, PoisonOpPattern,
-      SizeOfOpPattern, SequenceDataOpPattern, SequenceInitOpPattern,
-      SequenceSizeOpPattern, StoreOpPattern, UndefOpPattern, VarargCallPattern>(
-      typeConverter);
+      LoadOpPattern, OffsetOfOpPattern, PoisonOpPattern, SizeOfOpPattern,
+      SequenceDataOpPattern, SequenceInitOpPattern, SequenceSizeOpPattern,
+      StoreOpPattern, UndefOpPattern, VarargCallPattern>(typeConverter);
 }

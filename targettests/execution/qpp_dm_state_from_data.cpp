@@ -9,7 +9,6 @@
 // RUN: nvq++ %s --target density-matrix-cpu -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
-
 #include <iomanip>
 #include <iostream>
 

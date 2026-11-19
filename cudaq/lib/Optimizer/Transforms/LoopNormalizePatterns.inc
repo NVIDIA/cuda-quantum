@@ -191,7 +191,19 @@ public:
         c.stepIsAnAddOp() && c.shouldCommuteStepOp() ? 1 : 0);
     rewriter.setInsertionPoint(c.stepOp);
     auto newStep = arith::AddIOp::create(rewriter, c.stepOp->getLoc(), v2, one);
-    c.stepOp->replaceAllUsesWith(ValueRange{newStep.getResult()});
+    // Only the loop-carried counter (the terminator operand at the induction
+    // position) takes the normalized step. Other uses of the original step op
+    // (e.g. `a[i + 1]`, or `j` in `i++, j = i`) need the original value. Step
+    // 4 (body) and 4b (step region) rewrite the original step op's induction
+    // operand, so it still computes that value.
+    c.stepOp->getResult(0).replaceUsesWithIf(
+        newStep.getResult(), [&](OpOperand &opnd) {
+          Operation *user = opnd.getOwner();
+          unsigned pos = opnd.getOperandNumber();
+          if (isa<cudaq::cc::ConditionOp>(user))
+            return pos == *c.induction + 1; // operand 0 is the condition
+          return isa<cudaq::cc::ContinueOp>(user) && pos == *c.induction;
+        });
 
     // 4) Compute original induction value as a loop variant and replace the
     // uses. `lower + step * i`. Careful to not replace the new induction.
@@ -210,6 +222,22 @@ public:
         return op != newStep.getOperation() && op != mul &&
                !isa<cudaq::cc::ContinueOp>(op);
       });
+    }
+
+    // 4b) A step region that keeps using the original step op (e.g.
+    // `i++, j = j + i`) also needs the original value. Its induction operand
+    // is the step block's argument, which now carries the normalized counter.
+    Block *stepBlock = c.stepOp->getBlock();
+    if (stepBlock->getParent() == &loop.getStepRegion() &&
+        !c.stepOp->use_empty() && v2.getParentBlock() == stepBlock) {
+      rewriter.setInsertionPoint(c.stepOp);
+      auto mul = arith::MulIOp::create(rewriter, loc, v2, c.stepValue);
+      Value orig =
+          c.stepIsAnAddOp()
+              ? Value(arith::AddIOp::create(rewriter, loc, c.initialValue, mul))
+              : Value(
+                    arith::SubIOp::create(rewriter, loc, c.initialValue, mul));
+      c.stepOp->replaceUsesOfWith(v2, orig);
     }
 
     // 5) Back-convert the loop's induction-position result for external uses

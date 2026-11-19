@@ -33,6 +33,7 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_APPLYSPECIALIZATION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include <cstdint>
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "apply-op-specialization"
@@ -232,12 +233,16 @@ private:
                 builder, instan.getLoc(), sigTy,
                 SymbolRefAttr::get(ctx, specializedName),
                 instan.getClosureData());
-            // Only redirect uses that are quake.apply operands.  Other uses
-            // (e.g. func.call) keep the original callable type and must not
-            // be touched.
+            // Only redirect this apply's own use. Other uses keep the original
+            // callable: a func.call must keep its type, and any other
+            // quake.apply sharing this closure is specialized independently
+            // (possibly with different constants) when it is processed.
+            // Redirecting it here would leave that apply's callee and closure
+            // naming different clones.
+            Operation *applyOp = apply.getOperation();
             instan.getResult().replaceUsesWithIf(
-                newInstan.getResult(), [](mlir::OpOperand &use) {
-                  return isa<cudaq::quake::ApplyOp>(use.getOwner());
+                newInstan.getResult(), [&](mlir::OpOperand &use) {
+                  return use.getOwner() == applyOp;
                 });
             preservedArgs[i] = newInstan.getResult();
             inputTys[i] = newInstan.getResult().getType();
@@ -1322,7 +1327,7 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
       for (auto [memberIdx, memberTy] : llvm::enumerate(struqTy.getMembers())) {
         Value member = cudaq::quake::GetMemberOp::create(
             rewriter, loc, memberTy, info.refOrVeq,
-            static_cast<uint32_t>(memberIdx));
+            static_cast<std::uint32_t>(memberIdx));
         if (isa<cudaq::quake::RefType>(memberTy)) {
           extractedWires.push_back(
               cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, member));
@@ -1657,7 +1662,7 @@ public:
   /// Return true if \p call can be converted to a quake.apply.
   static bool convertibleCallOpInterface(CallOpInterface call) {
     return isa<func::CallOp, cudaq::quake::ApplyOp, cudaq::quake::CallByRefOp,
-               cudaq::cc::CallCallableOp, cudaq::cc::NoInlineCallOp>(call);
+               cudaq::cc::CallCallableOp>(call);
   }
 
   /// The adjoint variant of the function is the "reverse" computation. We want

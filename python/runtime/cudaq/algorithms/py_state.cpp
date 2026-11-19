@@ -16,6 +16,7 @@
 #include "cudaq/algorithms/get_state.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <cstdint>
 #include <limits>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/shared_ptr.h>
@@ -222,7 +223,8 @@ get_state_async_impl(const std::string &shortName, MlirModule module,
   std::string kernelName = shortName;
   auto &platform = get_platform();
   auto fnOp = getKernelFuncOp(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, args, fnOp);
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, args, fnOp, launchSpecializesArguments(qpu_id));
 
   nanobind::gil_scoped_release release;
   auto clonedMod = std::shared_ptr<mlir::ModuleOp>(
@@ -394,8 +396,8 @@ static cudaq::state createStateFromPyBuffer(nanobind::object data,
         "state.from_data 2D array (density matrix) input must be "
         "square matrix data.");
   const bool isDoublePrecision = (info.format == "Zd");
-  const int64_t dataSize = isDoublePrecision ? sizeof(std::complex<double>)
-                                             : sizeof(std::complex<float>);
+  const std::int64_t dataSize = isDoublePrecision ? sizeof(std::complex<double>)
+                                                  : sizeof(std::complex<float>);
   const bool rowMajor =
       info.strides[1] ==
       dataSize; // check row-major: second stride == element size
@@ -483,8 +485,8 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
             auto precision = self.get_precision();
             std::vector<size_t> shape(stateVector.extents.begin(),
                                       stateVector.extents.end());
-            std::vector<int64_t> strides;
-            const int64_t *stridesPtr = nullptr;
+            std::vector<std::int64_t> strides;
+            const std::int64_t *stridesPtr = nullptr;
             if (stateVector.order !=
                 SimulationState::Tensor::storage_order::unspecified) {
               strides.resize(shape.size(), 1);

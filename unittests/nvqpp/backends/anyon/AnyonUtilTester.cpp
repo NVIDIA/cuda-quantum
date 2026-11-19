@@ -8,7 +8,6 @@
 
 #include "AnyonHelper.h"
 #include "CUDAQTestUtils.h"
-
 #include <gtest/gtest.h>
 
 // Two registers of equal length are concatenated per shot, in the order given.

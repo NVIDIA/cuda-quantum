@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -130,11 +131,11 @@ public:
   // do not scalarize it. It must remain an array for correctness.
   static bool usedByInitState(cudaq::cc::AllocaOp allocOp) {
     SmallVector<Operation *> worklist;
-    SmallVector<Operation *> visited;
+    llvm::SmallPtrSet<Operation *, 32> visited;
     auto addToWorklist = [&](auto ops) {
       for (auto *op : ops)
-        if (std::find(worklist.begin(), worklist.end(), op) == worklist.end() &&
-            std::find(visited.begin(), visited.end(), op) == visited.end())
+        // Mark when queued so each op is visited once.
+        if (visited.insert(op).second)
           worklist.push_back(op);
     };
 
@@ -142,7 +143,6 @@ public:
     while (!worklist.empty()) {
       auto *op = worklist.back();
       worklist.pop_back();
-      visited.push_back(op);
       if (isa<cudaq::quake::InitializeStateOp>(op))
         return true;
       if (auto cast = dyn_cast<cudaq::cc::CastOp>(op)) {

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #pragma once
+#include <cstdint>
 #include <unordered_map>
 
 #include "cutensornet.h"
@@ -19,13 +20,13 @@
 namespace nvqir {
 struct MPSSettings {
   // Default max bond dim
-  int64_t maxBond = 64;
+  std::int64_t maxBond = 64;
   // Default absolute cutoff
   double absCutoff = 1e-5;
   // Default relative cutoff
   double relCutoff = 1e-5;
-  // Default SVD algorithm (QR), matching cuTensorNet.
-  cutensornetTensorSVDAlgo_t svdAlgo = CUTENSORNET_TENSOR_SVD_ALGO_GESVD;
+  // Default SVD algorithm (Jacobi)
+  cutensornetTensorSVDAlgo_t svdAlgo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ;
   // Optional gauge option
   std::optional<cutensornetStateMPSGaugeOption_t> gaugeOption;
   MPSSettings();

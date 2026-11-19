@@ -31,11 +31,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-namespace nvqir {
-// QIR helper to retrieve the output log.
-std::string_view getQirOutputLog();
-} // namespace nvqir
-
 namespace cudaq {
 void set_random_seed(std::size_t seed);
 std::size_t get_random_seed();
@@ -222,7 +217,7 @@ public:
         serverHelper->getPipelineSubstitutions(platformPath);
     auto target = CompileTarget::createFromConfig(targetConfig, backendConfig,
                                                   pipelineSubstitutions);
-    target.pipelineConfig.replaceStateWithKernel = true;
+    target.replaceStateWithKernel = true;
     target.overrideAOTCompilation = true;
     target.supportExplicitMeasurements = false;
     target.supportObservableMeasurements = false;

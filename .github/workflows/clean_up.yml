@@ -3,12 +3,12 @@ on:
     inputs:
       delete_draft_releases:
         type: boolean
-        description: Delete all draft releases on GitHub. This will interfere with any active publishing workflow.
+        description: Delete all draft releases on GitHub. This will interfere with a running Deployments release.
         required: false
         default: false
       delete_temp_branches:
         type: boolean
-        description: Delete temporary branches created for publishing. This will interfere with any active publishing workflow.
+        description: Delete temporary branches created for publishing. This will interfere with a running Deployments or Validation.
         required: false
         default: false
   schedule:

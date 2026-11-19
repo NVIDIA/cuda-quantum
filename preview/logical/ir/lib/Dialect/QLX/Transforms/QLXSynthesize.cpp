@@ -1,9 +1,9 @@
-/******************************************************************************
+/*******************************************************************************
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
- * the terms of the Apache License 2.0 which accompanies this distribution.  *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
 #include "qlx/Dialect/QLX/Transforms/QLXSynthesize.h"
@@ -15,10 +15,12 @@
 #include "cudaq/Synthesis/Circuit/Gate.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/MathExtras.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Builders.h"
-
+#include "mlir/IR/Verifier.h"
 #include <cmath>
 #include <cstdint>
 #include <optional>
@@ -274,10 +276,10 @@ static LogicalResult legalizeFiniteActions(ModuleOp module) {
 }
 
 /// Emit a positive-generator exact word for Rz(k*pi/4), with k reduced mod 8.
-static void exactQuarterWord(int64_t quarterTurns,
+static void exactQuarterWord(std::int64_t quarterTurns,
                              llvm::SmallVectorImpl<BuiltinAction> &out) {
-  int64_t reduced = ((quarterTurns % 8) + 8) % 8;
-  for (int64_t i = 0; i < reduced / 2; ++i)
+  std::int64_t reduced = ((quarterTurns % 8) + 8) % 8;
+  for (std::int64_t i = 0; i < reduced / 2; ++i)
     out.push_back(BuiltinAction::s);
   if (reduced & 1)
     out.push_back(BuiltinAction::t);
@@ -285,7 +287,7 @@ static void exactQuarterWord(int64_t quarterTurns,
 
 /// Return the exact quarter-turn count when exact rational-pi source metadata
 /// proves that the angle lies on the pi/4 Clifford+T lattice.
-static std::optional<int64_t> exactQuarterTurns(ApplyOp operation) {
+static std::optional<std::int64_t> exactQuarterTurns(ApplyOp operation) {
   auto parameters = operation.getParameters();
   if (!parameters)
     return std::nullopt;
@@ -306,7 +308,7 @@ static std::optional<int64_t> exactQuarterTurns(ApplyOp operation) {
   __int128 turns = scaled / denom;
   if (turns < INT64_MIN || turns > INT64_MAX)
     return std::nullopt;
-  return static_cast<int64_t>(turns);
+  return static_cast<std::int64_t>(turns);
 }
 
 /// For float-authored angles, using the nearest exact lattice point is valid
@@ -315,7 +317,7 @@ static std::optional<int64_t> exactQuarterTurns(ApplyOp operation) {
 static bool approximateQuarterWord(double angle, double precision,
                                    llvm::SmallVectorImpl<BuiltinAction> &out) {
   double quarter = angle / (M_PI / 4.0);
-  int64_t nearest = std::llround(quarter);
+  std::int64_t nearest = std::llround(quarter);
   double nearestAngle = static_cast<double>(nearest) * (M_PI / 4.0);
   double error = 2.0 * std::abs(std::sin((angle - nearestAngle) / 4.0));
   if (error > precision)
@@ -333,12 +335,12 @@ static FailureOr<double> constantAngle(Value angle) {
 }
 
 /// The validated +/-1 operator sign of a rotation.
-static FailureOr<int64_t> rotationSign(ApplyOp operation) {
+static FailureOr<std::int64_t> rotationSign(ApplyOp operation) {
   auto parameters = operation.getParameters();
   auto attr = parameters
                   ? dyn_cast_or_null<IntegerAttr>(parameters->get("sign"))
                   : IntegerAttr{};
-  int64_t sign = attr ? attr.getInt() : 1;
+  std::int64_t sign = attr ? attr.getInt() : 1;
   if (sign != 1 && sign != -1)
     return operation.emitOpError("pauli rotation sign must be +1 or -1");
   return sign;
@@ -358,7 +360,7 @@ static FailureOr<double> signedAngle(ApplyOp operation) {
   return static_cast<double>(*sign) * *magnitude;
 }
 
-static std::optional<int64_t> signedExactQuarterTurns(ApplyOp operation) {
+static std::optional<std::int64_t> signedExactQuarterTurns(ApplyOp operation) {
   auto turns = exactQuarterTurns(operation);
   if (!turns)
     return std::nullopt;
@@ -387,6 +389,12 @@ static LogicalResult verifyCanonicalRotation(ApplyOp operation, double angle) {
 
 static LogicalResult synthesizePauliRotations(ModuleOp module,
                                               double defaultPrecision) {
+  // The Rz core depends only on the signed angle and effective precision,
+  // not on the Pauli basis or operands. Reuse it across repeated rotations
+  // within this invocation, while keeping exact-angle metadata authoritative.
+  llvm::DenseMap<std::pair<std::uint64_t, std::uint64_t>,
+                 SmallVector<BuiltinAction>>
+      synthesizedWords;
   SmallVector<ApplyOp> rotations;
   module.walk([&](ApplyOp operation) {
     auto builtin = dyn_cast<BuiltinActionAttr>(operation.getActionAttr());
@@ -438,11 +446,11 @@ static LogicalResult synthesizePauliRotations(ModuleOp module,
     if (failed(signedTheta))
       return failure();
 
-    uint64_t xMask = static_cast<uint64_t>(xAttr.getInt());
-    uint64_t zMask = static_cast<uint64_t>(zAttr.getInt());
-    uint64_t validMask = qubits.size() == 64
-                             ? ~uint64_t{0}
-                             : ((uint64_t{1} << qubits.size()) - 1);
+    std::uint64_t xMask = static_cast<std::uint64_t>(xAttr.getInt());
+    std::uint64_t zMask = static_cast<std::uint64_t>(zAttr.getInt());
+    std::uint64_t validMask = qubits.size() == 64
+                                  ? ~std::uint64_t{0}
+                                  : ((std::uint64_t{1} << qubits.size()) - 1);
     if (((xMask | zMask) & ~validMask) != 0)
       return operation.emitOpError(
           "pauli masks reference operands outside the rotation");
@@ -450,8 +458,8 @@ static LogicalResult synthesizePauliRotations(ModuleOp module,
     SmallVector<char> bases;
     bases.reserve(qubits.size());
     for (unsigned index = 0; index < qubits.size(); ++index) {
-      bool x = xMask & (uint64_t{1} << index);
-      bool z = zMask & (uint64_t{1} << index);
+      bool x = xMask & (std::uint64_t{1} << index);
+      bool z = zMask & (std::uint64_t{1} << index);
       if (!x && !z)
         return operation.emitOpError(
             "identity factors are not legal rotation operands");
@@ -459,32 +467,40 @@ static LogicalResult synthesizePauliRotations(ModuleOp module,
     }
 
     SmallVector<BuiltinAction> core;
-    std::optional<int64_t> exactTurns = signedExactQuarterTurns(operation);
+    std::optional<std::int64_t> exactTurns = signedExactQuarterTurns(operation);
     if (exactTurns) {
       exactQuarterWord(*exactTurns, core);
     } else if (!approximateQuarterWord(*signedTheta, precision, core)) {
-      cudaq::synth::Real epsilon(precision);
-      cudaq::synth::ScopedDefaultPrecision workingPrecision(
-          cudaq::synth::details::required_precision(epsilon));
-      cudaq::synth::GridsynthOptions options;
-      // Compilation is a replayable transformation. CUDA-Q's GridSynth
-      // intentionally uses entropy by default, so pin its factoring stream
-      // at this compiler boundary to make identical inputs produce identical
-      // Clifford+T words regardless of earlier synthesis calls.
-      options.seed = 0;
-      auto circuit =
-          cudaq::synth::gridsynth(cudaq::synth::Real(*signedTheta),
-                                  cudaq::synth::Real(precision), options);
-      if (failed(circuit))
-        return operation.emitOpError(
-            "GridSynth failed to synthesize the rotation");
+      auto key = std::make_pair(llvm::bit_cast<std::uint64_t>(*signedTheta),
+                                llvm::bit_cast<std::uint64_t>(precision));
+      auto cached = synthesizedWords.find(key);
+      if (cached != synthesizedWords.end()) {
+        core = cached->second;
+      } else {
+        cudaq::synth::Real epsilon(precision);
+        cudaq::synth::ScopedDefaultPrecision workingPrecision(
+            cudaq::synth::details::required_precision(epsilon));
+        cudaq::synth::GridsynthOptions options;
+        // Compilation is a replayable transformation. CUDA-Q's GridSynth
+        // intentionally uses entropy by default, so pin its factoring stream
+        // at this compiler boundary to make identical inputs produce identical
+        // Clifford+T words regardless of earlier synthesis calls.
+        options.seed = 0;
+        auto circuit =
+            cudaq::synth::gridsynth(cudaq::synth::Real(*signedTheta),
+                                    cudaq::synth::Real(precision), options);
+        if (failed(circuit))
+          return operation.emitOpError(
+              "GridSynth failed to synthesize the rotation");
 
-      // Circuit stores the algebraic product U = g1*g2*...*gn. QLX applies
-      // gates chronologically, whose matrix is gn*...*g2*g1, so emit the
-      // stored sequence in reverse. This is observable for off-lattice words.
-      for (auto iterator = circuit->rbegin(); iterator != circuit->rend();
-           ++iterator)
-        appendGate(*iterator, core);
+        // Circuit stores the algebraic product U = g1*g2*...*gn. QLX applies
+        // gates chronologically, whose matrix is gn*...*g2*g1, so emit the
+        // stored sequence in reverse. This is observable for off-lattice words.
+        for (auto iterator = circuit->rbegin(); iterator != circuit->rend();
+             ++iterator)
+          appendGate(*iterator, core);
+        synthesizedWords.try_emplace(key, core);
+      }
     }
 
     OpBuilder builder(operation);
@@ -510,9 +526,34 @@ static LogicalResult synthesizePauliRotations(ModuleOp module,
   return success();
 }
 
+static LogicalResult verifyPositiveBasisSignature(ApplyOp operation,
+                                                  unsigned arity) {
+  if (operation.getParameters() && !operation.getParameters()->empty())
+    return operation.emitOpError(
+        "positive Clifford+T basis actions do not accept parameter bindings");
+  if (operation.getInputs().size() != arity ||
+      operation.getResults().size() != arity)
+    return operation.emitOpError()
+           << "positive Clifford+T basis actions require exactly " << arity
+           << " logical-qubit inputs and results and no classical payloads";
+  for (Value input : operation.getInputs())
+    if (!isa<LogicalQubitType>(input.getType()))
+      return operation.emitOpError()
+             << "positive Clifford+T basis actions require exactly " << arity
+             << " logical-qubit inputs and results and no classical payloads";
+  for (Value result : operation.getResults())
+    if (!isa<LogicalQubitType>(result.getType()))
+      return operation.emitOpError()
+             << "positive Clifford+T basis actions require exactly " << arity
+             << " logical-qubit inputs and results and no classical payloads";
+  return success();
+}
+
 } // namespace
 
 LogicalResult qlx::verifyCliffordT(ModuleOp module) {
+  if (failed(mlir::verify(module)))
+    return failure();
   bool failedVerification = false;
   module.walk([&](ApplyOp operation) {
     auto builtin = dyn_cast<BuiltinActionAttr>(operation.getActionAttr());
@@ -522,19 +563,25 @@ LogicalResult qlx::verifyCliffordT(ModuleOp module) {
       failedVerification = true;
       return;
     }
+    unsigned arity = 0;
     switch (builtin.getValue()) {
     case BuiltinAction::h:
     case BuiltinAction::s:
     case BuiltinAction::t:
-    case BuiltinAction::cx:
     case BuiltinAction::idle:
-      return;
+      arity = 1;
+      break;
+    case BuiltinAction::cx:
+      arity = 2;
+      break;
     default:
       operation.emitOpError(
           "remains outside the Clifford+T gate set after legalization");
       failedVerification = true;
       return;
     }
+    if (failed(verifyPositiveBasisSignature(operation, arity)))
+      failedVerification = true;
   });
   return failure(failedVerification);
 }

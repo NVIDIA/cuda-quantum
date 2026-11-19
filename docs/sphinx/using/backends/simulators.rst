@@ -80,6 +80,12 @@ technical details and code examples for using each circuit simulator.
      - CPU
      - N/A
      - Thousands +
+   * - `custabilizer`
+     - Stabilizer
+     - QEC simulation
+     - Single GPU
+     - N/A
+     - Thousands +
    * - `orca-photonics`
      - State Vector
      - Photonics

@@ -10,7 +10,7 @@
 
 // Simple tests of vector front/back on different std::vector<> types.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void testFrontFloat() {
   std::vector<float> vec_float{0.0, 1.0, 2.0, 3.0};

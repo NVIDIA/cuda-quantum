@@ -26,7 +26,7 @@ class Steane:
 
 # %%
 # Declare the ideal logical operation implemented by the gadget.
-@cql.objective
+@cql.action
 def terminal_memory(qubit: cql.types.logical_qubit) -> None:
     cql.discard(qubit)
 

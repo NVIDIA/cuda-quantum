@@ -39,7 +39,7 @@
 #
 # TODO: Unify wheel validation around this script. Currently:
 #   - ci_macos.yml uses this script (auto-detects from repo, runs everything)
-#   - publishing.yml uses this script (selective dir copy to /tmp, no targets/)
+#   - validation.yml uses this script (selective dir copy to /tmp, no targets/)
 #   - python_wheels.yml does NOT use this script; it runs pytest, snippets,
 #     and examples directly with explicit `find` exclusions in Docker containers.
 # The goal is to have all wheel validation run through this script, replacing the
@@ -51,6 +51,7 @@ __optind__=$OPTIND
 OPTIND=1
 python_version=3.11
 quick_test=false
+status_sum=0
 fresh_venv=false
 while getopts ":c:f:Fi:p:qv:" opt; do
     case $opt in
@@ -301,11 +302,13 @@ else
             eval "$line"
         fi
     done <<<"$conda_script"
-    # Mock QPU server deps for tests/backends. The script may run from a copy
-    # outside the repo (conda validation), so fall back to the CI checkout.
-    backend_requirements="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../requirements-tests-backend.txt"
-    [ ! -f "$backend_requirements" ] && backend_requirements="$GITHUB_WORKSPACE/requirements-tests-backend.txt"
-    pip install pytest pytest-xdist -r "$backend_requirements"
+    # Test runner pins and mock QPU server deps for tests/backends. The script
+    # may run from a copy outside the repo (conda validation), so fall back to
+    # the CI checkout.
+    requirements_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.."
+    [ ! -f "$requirements_dir/requirements-tests.txt" ] && requirements_dir="$GITHUB_WORKSPACE"
+    pip install -r "$requirements_dir/requirements-tests.txt" \
+        -r "$requirements_dir/requirements-tests-backend.txt"
 fi
 
 # Run OpenMPI setup (Linux only)
@@ -317,7 +320,6 @@ if ! $is_macos; then
         fi
     done <<<"$ompi_script"
 fi
-status_sum=0
 
 # Run all tests from a temp directory so the repo tree (cwd, _skbuild/,
 # etc.) cannot accidentally be found via sys.path or dyld search paths
@@ -416,6 +418,22 @@ else
     fi
 fi
 
+# Run one docs script. Its output is printed only if it fails, so parallel
+# runs do not interleave it. The Finished line identifies a script that hangs.
+run_python_script() {
+    echo "Executing $1"
+    local out rc
+    out=$(python3 "$1" 2>&1)
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        printf '%s\n' "$out" >&2
+        echo -e "\e[01;31mFailed to execute $1 (exit code $rc).\e[0m" >&2
+        return 1
+    fi
+    echo "Finished $1"
+}
+export -f run_python_script
+
 # Run snippets in docs
 snippet_list=$(mktemp)
 for ex in $(find "$root_folder/snippets" -name '*.py'); do
@@ -424,8 +442,7 @@ for ex in $(find "$root_folder/snippets" -name '*.py'); do
     fi
 done > "$snippet_list"
 if [ -s "$snippet_list" ]; then
-    xargs -0 -P "$parallel_jobs" -n 1 bash -c \
-        'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
+    xargs -0 -P "$parallel_jobs" -n 1 bash -c 'run_python_script "$1"' _ \
         < "$snippet_list"
     if [ $? -ne 0 ]; then
         status_sum=$((status_sum + 1))
@@ -455,8 +472,7 @@ for ex in $(find "$root_folder/examples" -name '*.py'); do
     fi
 done > "$example_list"
 if [ -s "$example_list" ]; then
-    xargs -0 -P "$parallel_jobs" -n 1 bash -c \
-        'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
+    xargs -0 -P "$parallel_jobs" -n 1 bash -c 'run_python_script "$1"' _ \
         < "$example_list"
     if [ $? -ne 0 ]; then
         status_sum=$((status_sum + 1))
@@ -541,8 +557,7 @@ if [ -d "$root_folder/targets" ]; then
         fi
     done > "$target_list"
     if [ -s "$target_list" ]; then
-        xargs -0 -P "$parallel_jobs" -n 1 bash -c \
-            'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
+        xargs -0 -P "$parallel_jobs" -n 1 bash -c 'run_python_script "$1"' _ \
             < "$target_list"
         if [ $? -ne 0 ]; then
             status_sum=$((status_sum + 1))
@@ -550,3 +565,8 @@ if [ -d "$root_folder/targets" ]; then
     fi
     [ -f "$target_list" ] && rm -f "$target_list"
 fi
+
+if [ ! $status_sum -eq 0 ]; then
+    echo -e "\e[01;31mValidation produced errors.\e[0m" >&2
+fi
+(return 0 2>/dev/null) && return $status_sum || exit $status_sum

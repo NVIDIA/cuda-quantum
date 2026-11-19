@@ -113,9 +113,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   PRIVATE_LINK_LIBS
     cudaqMLIR
     cudaq-mlir-runtime
-    CUDAQTargetConfig
-    CUDAQTargetConfigYaml
-    CUDAQTargetDatabase
+    CUDAQTargetCatalog
     cudaq-python-interop
     cudaq-platform-default
 )
@@ -150,6 +148,7 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     cudaq-em-default
     cudaq-em-photonics
     fmt::fmt-header-only
+    CUDAQTargetPython
 )
 
 ################################################################################
@@ -176,3 +175,8 @@ add_cudaq_python_modules(CUDAQuantumPythonModules
   COMMON_CAPI_LINK_LIBS
     cudaq::cudaqMLIRCAPI
 )
+
+# Loaded by path after the local runtime has been bound. Do not link this facade.
+if(TARGET cudaq-kernel-runtime)
+  add_dependencies(CUDAQuantumPythonModules cudaq-kernel-runtime)
+endif()

@@ -7,8 +7,9 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake -D CUDAQ_SIMULATION_SCALAR_FP64 %s | cudaq-opt | FileCheck %s
-// RUN: cudaq-quake -D CUDAQ_SIMULATION_SCALAR_FP64 %s | cudaq-opt | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
+// RUN: cudaq-quake -D CUDAQ_SIMULATION_SCALAR_FP64 %s -o %t.qke
+// RUN: cudaq-opt %t.qke | FileCheck %s
+// RUN: cudaq-opt %t.qke | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
 // clang-format on
 
 // Test various flavors of qubits declared with initial state information.

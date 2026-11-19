@@ -11,7 +11,6 @@
 #include "common/SampleResult.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
-#include "cudaq/platform.h"
 #include "cudaq/qis/measure_handle.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
@@ -21,11 +20,17 @@
 #include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <functional>
 #include <stdexcept>
 
 #define __qpu__ __attribute__((annotate("quantum")))
+// Mark the declaration of a function that takes a quantum type, but is not a
+// kernel: it is implemented outside of CUDA-Q (such as by a backend), or is a
+// primitive operation of an execution manager. Only a kernel (`__qpu__`) and
+// an intrinsic can take a quantum type.
+#define __qpu_intrinsic__ __attribute__((annotate("quantum_intrinsic")))
 #define __disable_quantum_optimization__                                       \
   __attribute__((annotate("disable_quantum_optimization")))
 #define __atomic_quantum_region__                                              \
@@ -572,7 +577,7 @@ inline SpinMeasureResult measure(const cudaq::spin_op &term) {
   return getExecutionManager()->measure(term);
 }
 
-// Cast a measure register to an int64_t.
+// Cast a measure register to an std::int64_t.
 // This function is classic control code that may run on a QPU.
 inline std::int64_t to_integer(const std::vector<measure_result> &bits) {
   std::int64_t ret = 0;

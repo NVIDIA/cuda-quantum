@@ -7,9 +7,13 @@
  ******************************************************************************/
 
 #include "CuStateVecGateEngine.h"
-
+#include "CuStateVecDevice.h"
 #include "CuStateVecError.h"
+#include <cuda_runtime_api.h>
 
+#include <complex>
+#include <cstdint>
+#include <cstring>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -17,6 +21,61 @@
 namespace {
 
 using cudaq::cusv::dataOrNull;
+
+/// Bytes of page-locked scratch reserved for staging gate matrices, enough for
+/// a dense matrix on five targets in double precision. Larger matrices are
+/// passed as they are.
+constexpr std::size_t matrixStagingBytes = 32 * 1024;
+
+/// @brief One page-locked staging buffer, owned for the lifetime of the thread
+/// that first stages a matrix on it. Here, instead of gate engine since
+/// a new engine is built on every qubit allocation.
+class MatrixStagingBuffer {
+public:
+  MatrixStagingBuffer() {
+    // Not fatal: stageMatrix falls back to the task's own storage.
+    if (cudaMallocHost(&m_buffer, matrixStagingBytes) != cudaSuccess)
+      m_buffer = nullptr;
+  }
+
+  /// Releases the buffer when the owning thread ends
+  ~MatrixStagingBuffer() {
+    if (m_buffer == nullptr)
+      return;
+    void *released = m_buffer;
+    m_buffer = nullptr;
+    // Return value deliberately ignored for silent failure to handle any
+    // teardown ordering.
+    static_cast<void>(cudaFreeHost(released));
+  }
+
+  MatrixStagingBuffer(const MatrixStagingBuffer &) = delete;
+  MatrixStagingBuffer &operator=(const MatrixStagingBuffer &) = delete;
+
+  void *get() const { return m_buffer; }
+
+private:
+  void *m_buffer = nullptr;
+};
+
+void *matrixStagingBuffer() {
+  static thread_local MatrixStagingBuffer buffer;
+  return buffer.get();
+}
+
+/// @brief Copy a gate matrix into page-locked memory so that cuStateVec's
+/// host-pointer check is answered cheaply. Returns the original pointer when
+/// there is no buffer or the matrix does not fit, which is correct in every
+/// case and merely slower.
+template <typename Scalar>
+const void *stageMatrix(const std::vector<std::complex<Scalar>> &matrix) {
+  const std::size_t bytes = matrix.size() * sizeof(std::complex<Scalar>);
+  void *staging = matrixStagingBuffer();
+  if (staging == nullptr || bytes > matrixStagingBytes)
+    return matrix.data();
+  std::memcpy(staging, matrix.data(), bytes);
+  return staging;
+}
 
 template <typename Scalar>
 void enqueueNoise(custatevecExSVUpdaterDescriptor_t updater,
@@ -40,11 +99,11 @@ void enqueueNoise(custatevecExSVUpdaterDescriptor_t updater,
         /*svUpdater=*/updater, /*unitaries=*/matrices.data(),
         /*unitariesDataType=*/cudaq::cusv::complexDataType<double>(),
         /*exMatrixTypes=*/task.matrixTypes.data(),
-        /*numUnitaries=*/static_cast<int32_t>(matrices.size()),
+        /*numUnitaries=*/static_cast<std::int32_t>(matrices.size()),
         /*layout=*/CUSTATEVEC_MATRIX_LAYOUT_ROW,
         /*probabilities=*/task.probabilities.data(),
         /*channelWires=*/dataOrNull(task.wires),
-        /*numChannelWires=*/static_cast<int32_t>(task.wires.size())));
+        /*numChannelWires=*/static_cast<std::int32_t>(task.wires.size())));
     return;
   }
 
@@ -52,10 +111,10 @@ void enqueueNoise(custatevecExSVUpdaterDescriptor_t updater,
       /*svUpdater=*/updater, /*matrices=*/matrices.data(),
       /*matrixDataType=*/cudaq::cusv::complexDataType<double>(),
       /*exMatrixTypes=*/task.matrixTypes.data(),
-      /*numMatrices=*/static_cast<int32_t>(matrices.size()),
+      /*numMatrices=*/static_cast<std::int32_t>(matrices.size()),
       /*layout=*/CUSTATEVEC_MATRIX_LAYOUT_ROW,
       /*channelWires=*/dataOrNull(task.wires),
-      /*numChannelWires=*/static_cast<int32_t>(task.wires.size())));
+      /*numChannelWires=*/static_cast<std::int32_t>(task.wires.size())));
 }
 
 template <typename Scalar>
@@ -67,15 +126,18 @@ void enqueueTask(custatevecExSVUpdaterDescriptor_t updater,
         if constexpr (std::is_same_v<Operation,
                                      cudaq::cusv::MatrixTask<Scalar>>) {
           HANDLE_CUSTATEVEC_ERROR(custatevecExSVUpdaterEnqueueMatrix(
-              /*svUpdater=*/updater, /*matrix=*/operation.matrix.data(),
+              /*svUpdater=*/updater,
+              /*matrix=*/stageMatrix(operation.matrix),
               /*matrixDataType=*/cudaq::cusv::complexDataType<Scalar>(),
               /*exMatrixType=*/operation.matrixType,
               /*layout=*/operation.layout, /*adjoint=*/operation.adjoint,
               /*targets=*/dataOrNull(operation.targets),
-              /*numTargets=*/static_cast<int32_t>(operation.targets.size()),
+              /*numTargets=*/
+              static_cast<std::int32_t>(operation.targets.size()),
               /*controls=*/dataOrNull(operation.controls),
               /*controlBitValues=*/dataOrNull(operation.controlValues),
-              /*numControls=*/static_cast<int32_t>(operation.controls.size())));
+              /*numControls=*/
+              static_cast<std::int32_t>(operation.controls.size())));
         } else if constexpr (std::is_same_v<Operation,
                                             cudaq::cusv::NoiseTask<Scalar>>) {
           enqueueNoise(updater, operation);
@@ -95,7 +157,7 @@ void enqueueTask(custatevecExSVUpdaterDescriptor_t updater,
 void applyUpdater(custatevecExSVUpdaterDescriptor_t updater,
                   custatevecExStateVectorDescriptor_t state,
                   std::span<const double> randomNumbers) {
-  int32_t required = 0;
+  std::int32_t required = 0;
   HANDLE_CUSTATEVEC_ERROR(custatevecExSVUpdaterGetMaxNumRequiredRandnums(
       /*svUpdater=*/updater, /*maxNumRequiredRandnums=*/&required));
   if (randomNumbers.size() < static_cast<std::size_t>(required))
@@ -125,19 +187,23 @@ void DirectGateEngine<Scalar>::apply(CuStateVecState<Scalar> &state,
               /*exMatrixType=*/operation.matrixType,
               /*layout=*/operation.layout, /*adjoint=*/operation.adjoint,
               /*targets=*/dataOrNull(operation.targets),
-              /*numTargets=*/static_cast<int32_t>(operation.targets.size()),
+              /*numTargets=*/
+              static_cast<std::int32_t>(operation.targets.size()),
               /*controls=*/dataOrNull(operation.controls),
               /*controlBitValues=*/dataOrNull(operation.controlValues),
-              /*numControls=*/static_cast<int32_t>(operation.controls.size())));
+              /*numControls=*/
+              static_cast<std::int32_t>(operation.controls.size())));
         } else if constexpr (std::is_same_v<Operation, PauliRotationTask>) {
           HANDLE_CUSTATEVEC_ERROR(custatevecExApplyPauliRotation(
               /*stateVector=*/state.descriptor(), /*theta=*/operation.angle,
               /*paulis=*/dataOrNull(operation.paulis),
               /*targets=*/dataOrNull(operation.targets),
-              /*numTargets=*/static_cast<int32_t>(operation.targets.size()),
+              /*numTargets=*/
+              static_cast<std::int32_t>(operation.targets.size()),
               /*controls=*/dataOrNull(operation.controls),
               /*controlBitValues=*/dataOrNull(operation.controlValues),
-              /*numControls=*/static_cast<int32_t>(operation.controls.size())));
+              /*numControls=*/
+              static_cast<std::int32_t>(operation.controls.size())));
         } else {
           // cuStateVecEx exposes noise channels only through the SV updater, so
           // noise is applied by the fused engine. The direct engine applies
@@ -158,9 +224,15 @@ FusedGateEngine<Scalar>::FusedGateEngine(const CuStateVecConfig &config) {
   std::vector<custatevecExSVUpdaterConfigItem_t> items;
   items.push_back({CUSTATEVEC_EX_SVUPDATER_CONFIG_MAX_NUM_HOST_THREADS,
                    {config.hostThreads}});
-  if (config.denseFusionQubits)
+  // An explicit size wins. Otherwise use the per-device recommendation, which
+  // is empty on devices where the cuStateVecEx default is already best.
+  auto denseFusionQubits = config.denseFusionQubits;
+  if (!denseFusionQubits)
+    denseFusionQubits =
+        recommendedDenseFusionQubits(std::is_same_v<Scalar, double>);
+  if (denseFusionQubits)
     items.push_back({CUSTATEVEC_EX_SVUPDATER_CONFIG_DENSE_FUSION_SIZE,
-                     {*config.denseFusionQubits}});
+                     {*denseFusionQubits}});
   if (config.diagonalFusionQubits >= 0)
     items.push_back({CUSTATEVEC_EX_SVUPDATER_CONFIG_DIAGONAL_FUSION_SIZE,
                      {config.diagonalFusionQubits}});
@@ -168,7 +240,7 @@ FusedGateEngine<Scalar>::FusedGateEngine(const CuStateVecConfig &config) {
   HANDLE_CUSTATEVEC_ERROR(custatevecExConfigureSVUpdater(
       /*svUpdaterConfig=*/&m_configuration,
       /*dataType=*/complexDataType<Scalar>(), /*configItems=*/items.data(),
-      /*numConfigItems=*/static_cast<int32_t>(items.size())));
+      /*numConfigItems=*/static_cast<std::int32_t>(items.size())));
   try {
     HANDLE_CUSTATEVEC_ERROR(custatevecExSVUpdaterCreate(
         /*svUpdater=*/&m_updater, /*svUpdaterConfig=*/m_configuration,

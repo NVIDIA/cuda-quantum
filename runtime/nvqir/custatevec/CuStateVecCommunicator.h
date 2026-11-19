@@ -9,7 +9,6 @@
 #pragma once
 
 #include "CuStateVecConfig.h"
-
 #include <custatevecEx.h>
 
 #include <cstddef>
@@ -38,15 +37,15 @@ public:
   CuStateVecCommunicator &operator=(const CuStateVecCommunicator &) = delete;
 
   custatevecExCommunicatorDescriptor_t descriptor() const;
-  int32_t size() const;
-  int32_t rank() const;
+  std::int32_t size() const;
+  std::int32_t rank() const;
   CommunicatorProvider provider() const { return m_providerType; }
-  void broadcast(void *buffer, int32_t count, cudaDataType_t dataType,
-                 int32_t root) const;
-  void allReduce(const void *sendBuffer, void *receiveBuffer, int32_t count,
-                 cudaDataType_t dataType) const;
-  void allGather(const void *sendBuffer, void *receiveBuffer, int32_t count,
-                 cudaDataType_t dataType) const;
+  void broadcast(void *buffer, std::int32_t count, cudaDataType_t dataType,
+                 std::int32_t root) const;
+  void allReduce(const void *sendBuffer, void *receiveBuffer,
+                 std::int32_t count, cudaDataType_t dataType) const;
+  void allGather(const void *sendBuffer, void *receiveBuffer,
+                 std::int32_t count, cudaDataType_t dataType) const;
   void setCommunicator(void *communicator, std::size_t communicatorSize);
   void reset() noexcept;
 

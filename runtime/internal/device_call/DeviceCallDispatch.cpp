@@ -11,9 +11,7 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/device_call_service.h"
-
 #include "cudaq/runtime/logger/logger.h"
-
 #include <cuda_runtime.h>
 
 #include <cerrno>
@@ -707,8 +705,8 @@ public:
           "device_call service is missing dispatch launch hook");
 
     // Translate the dispatch table into channel-create args. Host vs GPU
-    // dispatch use different combinations of mailbox/launchFn — see the
-    // ternaries below.
+    // dispatch use different deviceId/launchFn sources — see the ternaries
+    // below.
     auto session = std::make_shared<DeviceCallSession>();
     auto args = [&] {
       DeviceCallChannelCreateArgs result;
@@ -718,7 +716,6 @@ public:
           useHostDispatch ? table.deviceId : getPointerDevice(table.entries);
       result.launchFn = useHostDispatch ? nullptr : table.launchFn;
       result.synchronizeFn = table.synchronizeFn;
-      result.mailbox = useHostDispatch ? table.mailbox : nullptr;
       result.channelName =
           useHostDispatch ? HostDispatchChannelName : GpuDispatchChannelName;
       result.arguments = config.arguments;
@@ -726,9 +723,9 @@ public:
       return result;
     }();
     CUDAQ_DBG("[device-call] service channel args channel='{}' device={} "
-              "functionCount={} hasMailbox={} launchFn={} synchronizeFn={}",
+              "functionCount={} launchFn={} synchronizeFn={}",
               args.channelName, args.deviceId, args.functionCount,
-              args.mailbox != nullptr, static_cast<bool>(args.launchFn),
+              static_cast<bool>(args.launchFn),
               static_cast<bool>(args.synchronizeFn));
 
     // Build the channel, attach the service session, and start the dispatch

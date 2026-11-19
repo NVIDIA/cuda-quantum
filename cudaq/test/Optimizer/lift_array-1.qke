@@ -1,0 +1,59 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -lift-array-alloc -canonicalize %s | FileCheck %s
+// RUN: cudaq-opt -classical-optimization -canonicalize %s | FileCheck %s
+
+// Erase every load and store before its pointer, then erase the allocation.
+// Multiple loads of one element exercise several deletions per pointer.
+func.func @erase_array_and_users() -> i64 {
+  %a = cc.alloca !cc.array<i64 x 2>
+  %v0 = arith.constant 10 : i64
+  %v1 = arith.constant 12 : i64
+  %p0 = cc.cast %a : (!cc.ptr<!cc.array<i64 x 2>>) -> !cc.ptr<i64>
+  %p1 = cc.compute_ptr %a[1] : (!cc.ptr<!cc.array<i64 x 2>>) -> !cc.ptr<i64>
+  cc.store %v0, %p0 : !cc.ptr<i64>
+  cc.store %v1, %p1 : !cc.ptr<i64>
+  %x = cc.load %p0 : !cc.ptr<i64>
+  %y = cc.load %p0 : !cc.ptr<i64>
+  %z = cc.load %p1 : !cc.ptr<i64>
+  %xy = arith.addi %x, %y : i64
+  %xyz = arith.addi %xy, %z : i64
+  return %xyz : i64
+}
+// CHECK-LABEL: func.func @erase_array_and_users
+// CHECK-NEXT: %[[RESULT:.*]] = arith.constant 32 : i64
+// CHECK-NEXT: return %[[RESULT]] : i64
+
+// Retain a pointer used to initialize a state while deleting its loads and
+// stores. The other element pointer can be deleted after its stores.
+func.func @retain_state_pointer() -> f64 {
+  %a = cc.alloca !cc.array<f64 x 2>
+  %one = arith.constant 1.0 : f64
+  %zero = arith.constant 0.0 : f64
+  %p0 = cc.cast %a : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
+  %p1 = cc.compute_ptr %a[1] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
+  cc.store %one, %p0 : !cc.ptr<f64>
+  cc.store %zero, %p1 : !cc.ptr<f64>
+  %x = cc.load %p0 : !cc.ptr<f64>
+  %q = quake.alloca !quake.veq<1>
+  %s = quake.init_state %q, %p0 : (!quake.veq<1>, !cc.ptr<f64>) -> !quake.veq<1>
+  quake.dealloc %s : !quake.veq<1>
+  return %x : f64
+}
+// CHECK-LABEL: func.func @retain_state_pointer
+// CHECK: %[[ONE:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK: %[[ARRAY:.*]] = cc.const_array [1.000000e+00, 0.000000e+00]
+// CHECK: %[[ALLOC:.*]] = cc.alloca !cc.array<f64 x 2>
+// CHECK-NEXT: cc.store %[[ARRAY]], %[[ALLOC]]
+// CHECK-NEXT: %[[PTR:.*]] = cc.cast %[[ALLOC]]
+// CHECK-NOT: cc.compute_ptr
+// CHECK-NOT: cc.load
+// CHECK-NOT: cc.store
+// CHECK: quake.init_state {{.*}}, %[[PTR]]
+// CHECK: return %[[ONE]] : f64

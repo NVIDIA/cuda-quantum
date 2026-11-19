@@ -1,0 +1,90 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --split-input-file --verify-diagnostics %s
+
+// Wires and cables are linear types: every wire value must have exactly one
+// use. The verifier is attached to the operation that defines the value, so the
+// diagnostic is reported there rather than on the extra use. Control flow
+// forwards a wire to its successors only through block arguments (sigma nodes);
+// using a dominating wire directly in more than one block is not allowed.
+
+// Two operations in the same block consume one wire.
+func.func @two_consumers() {
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %0 = quake.null_wire
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.x %0 : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// -----
+
+// One operation uses the same wire twice, here as both control and target.
+func.func @one_operation_two_roles() {
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %0 = quake.null_wire
+  %1:2 = quake.x [%0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %1#0 : !quake.wire
+  quake.sink %1#1 : !quake.wire
+  return
+}
+
+// -----
+
+// The wire is consumed in one block and used again in a block that follows it.
+// The second use needs a block argument that carries the wire forward.
+func.func @reuse_in_later_block() {
+  %0 = quake.null_wire
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  cf.br ^bb1(%1 : !quake.wire)
+^bb1(%2: !quake.wire):
+  %3 = quake.x %1 : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  quake.sink %3 : !quake.wire
+  return
+}
+
+// -----
+
+// Each arm of a branch consumes the dominating wire, but neither arm receives
+// it through a block argument. Both uses are on exclusive paths, yet the wire
+// still has two uses; it must be forwarded as a sigma split.
+func.func @missing_sigma_nodes(%cond: i1) {
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %0 = quake.null_wire
+  cf.cond_br %cond, ^bb1, ^bb2
+^bb1:
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+^bb2:
+  %2 = quake.x %0 : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// -----
+
+// A wire used inside a nested region and again outside it.
+func.func @use_inside_and_outside_scope() {
+  %0 = quake.null_wire
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %2 = cc.scope -> (!quake.wire) {
+    %3 = quake.x %1 : (!quake.wire) -> !quake.wire
+    cc.continue %3 : !quake.wire
+  }
+  %4 = quake.z %1 : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  quake.sink %4 : !quake.wire
+  return
+}

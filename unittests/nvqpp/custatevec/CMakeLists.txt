@@ -110,6 +110,24 @@ set_tests_properties(CuStateVecEx.HostMigrationLarge
   PROPERTIES LABELS "gpu_required;large_memory_required")
 
 if(MPI_CXX_FOUND)
+  # Test worker cleanup at process exit. Only one GPU is needed.
+  foreach(precision IN ITEMS fp32 fp64)
+    set(backend nvidia-mgpu)
+    if(precision STREQUAL "fp32")
+      set(backend nvidia-mgpu-fp32)
+    endif()
+    string(TOUPPER ${precision} precision_definition)
+    set(target custatevec_communicator_lifetime_${precision})
+    add_custatevec_backend_test(${target}
+      CommunicatorLifetimeTester.cpp ${backend} ${precision_definition})
+    add_test(NAME CuStateVecEx.CommunicatorLifetime.${precision}
+      COMMAND ${target})
+    set_tests_properties(CuStateVecEx.CommunicatorLifetime.${precision}
+      PROPERTIES
+        ENVIRONMENT "CUDAQ_MGPU_COMM_PLUGIN_TYPE=SELF"
+        LABELS "gpu_required" RESOURCE_LOCK "gpu" TIMEOUT 60)
+  endforeach()
+
   # Skip tests when fewer than two GPUs are available.
   function(add_custatevec_mgpu_test test_name)
     cmake_parse_arguments(PARSE_ARGV 1 ARG "" "" "COMMAND;ENVIRONMENT")

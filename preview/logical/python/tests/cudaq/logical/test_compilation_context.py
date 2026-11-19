@@ -7,6 +7,8 @@
 # ============================================================================ #
 from __future__ import annotations
 
+import gc
+
 import cudaq.logical as cql
 import cudaq.mlir.ir as mlir_ir
 import pytest
@@ -21,6 +23,48 @@ def _objective(context: cql.compiler.CompilationContext, name: str = "cached"):
         results=(),
     )
     return symbol, context.find_symbol(symbol)
+
+
+def test_walk_preserves_region_and_block_order_and_observes_new_operations():
+    context = cql.compiler.CompilationContext()
+    context.context.allow_unregistered_dialects = True
+    with context.context, context.location:
+        with mlir_ir.InsertionPoint(context.module.body):
+            parent = mlir_ir.Operation.create("test.parent", regions=2)
+            tail = mlir_ir.Operation.create("test.tail")
+        expected = [context.module.operation, parent]
+        for region in parent.regions:
+            for _ in range(2):
+                block = region.blocks.append()
+                with mlir_ir.InsertionPoint(block):
+                    child = mlir_ir.Operation.create("test.child", regions=1)
+                expected.append(child)
+                with mlir_ir.InsertionPoint(child.regions[0].blocks.append()):
+                    expected.append(mlir_ir.Operation.create("test.leaf"))
+        expected.append(tail)
+
+        assert list(context.walk()) == expected
+        with mlir_ir.InsertionPoint(context.module.body):
+            added = mlir_ir.Operation.create("test.added")
+        assert list(context.walk()) == [*expected, added]
+
+        # The walk returns live operations, not clones.
+        walked_tail = list(context.walk())[-2]
+        walked_tail.attributes["marker"] = mlir_ir.UnitAttr.get()
+        assert "marker" in tail.attributes
+
+
+def test_walk_keeps_temporary_module_alive():
+
+    def snapshot():
+        context = cql.compiler.CompilationContext()
+        _objective(context)
+        return list(context.walk())
+
+    operations = snapshot()
+    gc.collect()
+    names = [operation.name for operation in operations]
+    assert names == ["builtin.module", "qlx.action"]
 
 
 def test_find_symbol_evicts_an_erased_cached_operation():

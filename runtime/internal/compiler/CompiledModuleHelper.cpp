@@ -8,12 +8,15 @@
 
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "common/CompiledModule.h"
+#include "common/KernelExecution.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Types.h"
+#include <stdexcept>
 
 using namespace mlir;
 using cudaq::CompiledModule;
@@ -72,6 +75,13 @@ CompiledModuleHelper::createResourcesArtifact(std::string name,
 }
 
 CompiledModuleHelper::NamedCompiledArtifact
+CompiledModuleHelper::createCodegenArtifact(std::string name, std::string code,
+                                            std::string outputNames) {
+  return {std::move(name), CompiledModule::CodegenArtifact{
+                               std::move(code), std::move(outputNames)}};
+}
+
+CompiledModuleHelper::NamedCompiledArtifact
 CompiledModuleHelper::createMlirArtifact(std::string name, ModuleOp module,
                                          std::shared_ptr<MLIRContext> context) {
   const void *ptr = module.getAsOpaquePointer();
@@ -106,6 +116,39 @@ CompiledModuleHelper::loadMlirArtifact(const cudaq::SourceModule &module) {
   cudaq::FatQuakeModule::MlirArtifact mlirArtifact(moduleOp,
                                                    std::move(context));
   return mlirArtifact;
+}
+
+std::vector<cudaq::KernelExecution>
+CompiledModuleHelper::toKernelExecutions(const CompiledModule &compiled,
+                                         bool requireTargetCode) {
+  std::vector<cudaq::KernelExecution> codes;
+  for (const auto &[name, mlirArtifact] : compiled.getMlirArtifacts()) {
+    std::string code;
+    nlohmann::json outputNames;
+    if (auto targetCode = compiled.getTargetCode(name)) {
+      code = targetCode->getCode();
+      outputNames = nlohmann::json::parse(targetCode->getOutputNames());
+    } else if (requireTargetCode) {
+      throw std::runtime_error(
+          "Cannot launch kernel '" + compiled.getName() +
+          "': missing target code for MLIR artifact '" + name +
+          "'. Compile the module with emitTargetCode=true and a non-empty "
+          "codegen emission format before launching it on a remote QPU.");
+    }
+
+    std::optional<cudaq::JitEngine> jit;
+    if (auto jitArtifact = compiled.getJit(name))
+      jit = jitArtifact->getEngine();
+    std::optional<cudaq::Resources> resourceCounts;
+    if (auto *resources = compiled.getResources(name))
+      resourceCounts = *resources;
+
+    codes.emplace_back(name, std::move(code), std::move(jit),
+                       std::move(resourceCounts), std::move(outputNames),
+                       compiled.getMetadata().reorderIdx,
+                       compiled.getMetadata().hasConditionalsOnMeasureResults);
+  }
+  return codes;
 }
 
 } // namespace cudaq_internal::compiler

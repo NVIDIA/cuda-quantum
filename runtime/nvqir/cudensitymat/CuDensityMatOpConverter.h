@@ -10,6 +10,7 @@
 
 #include "cudaq/operators.h"
 #include "cudaq/operators/matrix.h"
+#include <cstdint>
 #include <cudensitymat.h>
 #include <deque>
 #include <optional>
@@ -28,11 +29,11 @@ public:
   cudensitymatOperator_t convertToCudensitymatOperator(
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const std::vector<sum_op<cudaq::matrix_handler>> &ops,
-      const std::vector<int64_t> &modeExtents);
+      const std::vector<std::int64_t> &modeExtents);
   cudensitymatOperator_t convertToCudensitymatOperator(
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const sum_op<cudaq::matrix_handler> &op,
-      const std::vector<int64_t> &modeExtents) {
+      const std::vector<std::int64_t> &modeExtents) {
     return convertToCudensitymatOperator(
         parameters, std::vector<sum_op<cudaq::matrix_handler>>{op},
         modeExtents);
@@ -49,7 +50,7 @@ public:
       const std::vector<sum_op<cudaq::matrix_handler>> &hamOperators,
       const std::vector<std::vector<sum_op<cudaq::matrix_handler>>>
           &collapseOperators,
-      const std::vector<int64_t> &modeExtents,
+      const std::vector<std::int64_t> &modeExtents,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       bool isMasterEquation);
   /// @brief  Construct a Liouvillian operator from a super operator.
@@ -59,7 +60,7 @@ public:
   /// @return The constructed Liouvillian operator.
   cudensitymatOperator_t constructLiouvillian(
       const std::vector<super_op> &superOps,
-      const std::vector<int64_t> &modeExtents,
+      const std::vector<std::int64_t> &modeExtents,
       const std::unordered_map<std::string, std::complex<double>> &parameters);
 
   /// @brief Clear the current callback context
@@ -94,7 +95,7 @@ private:
   /// single dense matrix. With `bothSides`, the matrix acts on the ket and the
   /// bra modes of `degrees`, so its dimension is squared.
   bool isFusableSubspace(const std::vector<std::size_t> &degrees,
-                         const std::vector<int64_t> &modeExtents,
+                         const std::vector<std::int64_t> &modeExtents,
                          bool bothSides = false) const;
 
   /// @brief The matrix of `prodOp` on its degrees, if it is known at
@@ -103,7 +104,7 @@ private:
   std::optional<FusedTerm> computeFusableProductTerm(
       const product_op<cudaq::matrix_handler> &prodOp,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
-      const std::vector<int64_t> &modeExtents, bool bothSides = false);
+      const std::vector<std::int64_t> &modeExtents, bool bothSides = false);
 
   /// @brief Sum the fusible product terms of `op` (and `extraTerms`) acting on
   /// the same degrees into dense matrices. Terms acting on a subset of another
@@ -113,7 +114,7 @@ private:
   std::vector<FusedTerm> fuseProductTerms(
       const sum_op<cudaq::matrix_handler> &op,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
-      const std::vector<int64_t> &modeExtents,
+      const std::vector<std::int64_t> &modeExtents,
       const std::vector<FusedTerm> &extraTerms,
       std::vector<product_op<cudaq::matrix_handler>> &remaining);
 
@@ -122,7 +123,7 @@ private:
   std::optional<FusedTerm> computeFusableCollapseOperator(
       const sum_op<cudaq::matrix_handler> &collapseOp,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
-      const std::vector<int64_t> &modeExtents, bool bothSides = false);
+      const std::vector<std::int64_t> &modeExtents, bool bothSides = false);
 
   /// @brief Group `terms` into windows of overlapping degrees and append each
   /// window as a single dense elementary operator acting on the ket and the
@@ -131,11 +132,11 @@ private:
   void appendFusedSuperoperatorTerms(
       cudensitymatOperator_t cudmOperator,
       const std::vector<FusedSuperoperatorTerm> &terms,
-      const std::vector<int64_t> &modeExtents);
+      const std::vector<std::int64_t> &modeExtents);
 
-  cudensitymatElementaryOperator_t
-  createDenseElementaryOperator(const cudaq::complex_matrix &matrix,
-                                const std::vector<int64_t> &subspaceExtents);
+  cudensitymatElementaryOperator_t createDenseElementaryOperator(
+      const cudaq::complex_matrix &matrix,
+      const std::vector<std::int64_t> &subspaceExtents);
 
   /// @brief The product of `factors`, in order, as a single multi-diagonal
   /// elementary operator. cuDensityMat expands the intermediate between
@@ -146,30 +147,30 @@ private:
   cudensitymatElementaryOperator_t createFusedMultidiagonalOperator(
       const std::vector<cudaq::matrix_handler> &factors,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
-      const std::vector<int64_t> &modeExtents);
+      const std::vector<std::int64_t> &modeExtents);
 
   void appendFusedTerm(cudensitymatOperator_t cudmOperator,
                        const FusedTerm &fusedTerm,
-                       const std::vector<int64_t> &modeExtents,
-                       int32_t duality);
+                       const std::vector<std::int64_t> &modeExtents,
+                       std::int32_t duality);
 
   cudensitymatOperatorTerm_t createBatchedProductTerm(
       const std::vector<product_op<cudaq::matrix_handler>> &prodTerms,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
-      const std::vector<int64_t> &modeExtents);
+      const std::vector<std::int64_t> &modeExtents);
 
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
   convertToCudensitymat(
       const sum_op<cudaq::matrix_handler> &op,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
-      const std::vector<int64_t> &modeExtents);
+      const std::vector<std::int64_t> &modeExtents);
   cudensitymatElementaryOperator_t createElementaryOperator(
       const std::vector<cudaq::matrix_handler> &elemOps,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
-      const std::vector<int64_t> &modeExtents);
+      const std::vector<std::int64_t> &modeExtents);
   cudensitymatOperatorTerm_t createProductOperatorTerm(
       const std::vector<cudensitymatElementaryOperator_t> &elemOps,
-      const std::vector<int64_t> &modeExtents,
+      const std::vector<std::int64_t> &modeExtents,
       const std::vector<std::vector<std::size_t>> &degrees,
       const std::vector<std::vector<int>> &dualModalities);
 
@@ -177,7 +178,7 @@ private:
                         cudensitymatOperatorTerm_t>>
   computeLindbladTerms(
       const std::vector<sum_op<cudaq::matrix_handler>> &batchedCollapseOps,
-      const std::vector<int64_t> &modeExtents,
+      const std::vector<std::int64_t> &modeExtents,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       bool includeAntiCommutator = true);
 
@@ -211,7 +212,7 @@ private:
       cudensitymatOperator_t &cudmOperator,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const std::vector<sum_op<cudaq::matrix_handler>> &ops,
-      const std::vector<int64_t> &modeExtents, int32_t duality,
+      const std::vector<std::int64_t> &modeExtents, std::int32_t duality,
       const std::vector<FusedTerm> &extraFusableTerms = {});
 
   static std::vector<std::complex<double>>
@@ -239,6 +240,6 @@ private:
   // Largest dimension of a fused dense operator. An operator acting on both
   // sides of a density matrix has the squared dimension of its subspace.
   // Zero disables fusion.
-  int64_t m_maxFusedDimension = 64;
+  std::int64_t m_maxFusedDimension = 64;
 };
 } // namespace cudaq::dynamics

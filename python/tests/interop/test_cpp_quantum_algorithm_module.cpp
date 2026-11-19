@@ -21,6 +21,9 @@ NB_MODULE(cudaq_test_cpp_algo, m) {
       m, "qstd", "another", "Demonstrate we can have multiple ones.");
   cudaq::python::addDeviceKernelInterop<cudaq::qview<>, std::size_t>(
       m, "qstd", "uccsd", "");
+  cudaq::python::addDeviceKernelInterop<cudaq::qview<>, std::size_t>(
+      m, "qstd", "call_flip",
+      "Calls `flip`, which is defined in a different source file.");
 
   // Callback tests
   m.def(

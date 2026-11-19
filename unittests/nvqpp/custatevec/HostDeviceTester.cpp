@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "StateVectorMemory.h"
-
 #include <cudaq.h>
 #include <gtest/gtest.h>
 

@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include <cstdint>
 
 using namespace mlir;
 
@@ -1030,9 +1031,9 @@ static Value incrementTrailingDataPointer(Location loc, OpBuilder &builder,
 /// In the thunk, we need to unpack any `std::vector` objects encoded in the
 /// packet. Since these have dynamic size, they are encoded as trailing bytes
 /// by offset and size. The offset is implicit from the values of the
-/// arguments. All sizes are encoded as `int64_t`.
+/// arguments. All sizes are encoded as `std::int64_t`.
 ///
-/// A vector of vector of ... T is encoded as a int64_t (length). At the
+/// A vector of vector of ... T is encoded as a std::int64_t (length). At the
 /// offset of the level `i` vector will be a sequence of sizes for the level
 /// `i+1` vectors. For the leaf vector level, `n`, the blocks of data for each
 /// vector will be immediately following for each vector at level `n` for the

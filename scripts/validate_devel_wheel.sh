@@ -16,8 +16,8 @@
 #
 # Options:
 #   -i <dir>: Directory containing cudaq_devel*.whl (required)
-#   -r <dir>: Directory containing cuda-quantum-cu*.whl for co-install (optional;
-#             provides libcudaqMLIR that the extension links and loads). If
+#   -r <dir>: Directory containing frontend and core wheels for co-install (optional;
+#             core provides libcudaqMLIR that the extension links and loads). If
 #             omitted, pip will attempt to resolve the cudaq dependency from the index.
 #   -q: Skip the out-of-tree Python-extension smoke build (contents check only)
 
@@ -103,7 +103,21 @@ if [ -n "$runtime_dir" ]; then
   runtime_wheel=$(ls "$runtime_dir"/cuda_quantum_cu*.whl 2>/dev/null | head -1)
   if [ -n "$runtime_wheel" ]; then
     echo "Installing runtime wheel: $runtime_wheel"
-    pip install -q "$runtime_wheel"
+    # Prefer a top-level core when supplied. CUDA 12 builds keep their local
+    # core in candidate-core/; that core is sufficient for this SDK smoke test.
+    # Release wheel validation selects the CUDA 13-built core separately.
+    # Pip checks that its Python and platform tags match the validation environment.
+    shopt -s nullglob
+    core_wheels=("$runtime_dir"/cudaq_core-*.whl)
+    if (( ${#core_wheels[@]} == 0 )); then
+      core_wheels=("$runtime_dir"/candidate-core/cudaq_core-*.whl)
+    fi
+    shopt -u nullglob
+    if (( ${#core_wheels[@]} != 1 )); then
+      echo "Error: expected exactly one cudaq_core-*.whl in $runtime_dir or its candidate-core directory" >&2
+      exit 1
+    fi
+    pip install -q "${core_wheels[0]}" "$runtime_wheel"
   fi
 fi
 
@@ -112,7 +126,7 @@ if [ -n "$runtime_wheel" ]; then
   pip install -q --no-deps "$devel_wheel"
 else
   echo "Warning: no runtime wheel provided (-r); letting pip resolve the cudaq" >&2
-  echo "         runtime dependency (which provides libcudaqMLIR) from the index." >&2
+  echo "         dependencies (including core's libcudaqMLIR) from the index." >&2
   echo "Installing devel wheel (resolving dependencies)"
   pip install -q "$devel_wheel"
 fi

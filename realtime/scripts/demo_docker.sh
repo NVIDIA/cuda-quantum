@@ -40,6 +40,8 @@ done
 DRIVER_CUDA_VERSION_MAJOR=$(nvidia-smi | sed -nE 's/.*CUDA( [A-Z]+)? Version: *([0-9]+).*/\2/p' | head -1)
 
 # DOCA version
+# Names the nvcr.io/nvidia/doca/doca base image, which has no 3.4 release yet;
+# move to 3.4.0, the version the realtime build uses, once it is published.
 DOCA_VERSION=3.3.0
 
 # Only support CUDA 13 for now, as the DOCA version we use only supports CUDA 13.
@@ -49,7 +51,7 @@ if [ "$DRIVER_CUDA_VERSION_MAJOR" != "13" ]; then
 fi
 
 IMAGE_NAME=cudaq-realtime-demo:doca${DOCA_VERSION}-cuda${DRIVER_CUDA_VERSION_MAJOR}
-# Build the Docker image for the demo environment, to set the LD_LIBRARY_PATH and ensure the correct DOCA version is used.
+# Build the demo environment with the required DOCA version.
 docker build \
     --build-arg DOCA_VERSION=${DOCA_VERSION} \
     --build-arg CUDA_VERSION=${DRIVER_CUDA_VERSION_MAJOR} \
@@ -66,7 +68,6 @@ fi
 
 
 # Run the container with the appropriate mounts and environment variables.
-# Add $ROOT/lib to LD_LIBRARY_PATH in the container to ensure it can find the CUDA-Q realtime libraries.
 # The run command is adapted from NVIDIA's holoscan-sensor-bridge 
 # (https://github.com/nvidia-holoscan/holoscan-sensor-bridge) demo script. 
 docker run \

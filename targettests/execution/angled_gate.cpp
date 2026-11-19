@@ -35,5 +35,5 @@ int main() {
   return 0;
 }
 
-// CHECK: 00
-// CHECK: 11
+// CHECK-DAG: 00
+// CHECK-DAG: 11

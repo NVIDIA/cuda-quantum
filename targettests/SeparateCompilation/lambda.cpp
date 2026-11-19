@@ -18,7 +18,7 @@
 
 //--- anonlib.h
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void userKernel(const cudaq::qkernel<void(cudaq::qvector<> &)> &);
 

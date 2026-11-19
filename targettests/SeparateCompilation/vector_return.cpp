@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 // NB: The __qpu__ here on this declaration cannot be omitted!
 __qpu__ std::vector<int> get_a_nice_vector();

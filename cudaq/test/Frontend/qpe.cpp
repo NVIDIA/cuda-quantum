@@ -313,7 +313,8 @@ int main() {
 // CHECK:                     %[[VAL_47:.*]] = cc.load %[[VAL_36]] : !cc.ptr<i32>
 // CHECK:                     %[[VAL_48:.*]] = cc.cast signed %[[VAL_47]] : (i32) -> i64
 // CHECK:                     %[[VAL_49:.*]] = quake.extract_ref %[[VAL_16]]{{\[}}%[[VAL_48]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:                     quake.apply @__nvqpp__mlirgen__tgate [%[[VAL_49]]] (%[[VAL_26]]) : (!quake.ref, !quake.veq<?>) -> ()
+// CHECK:                     %[[VEQ_49:.*]] = quake.concat %[[VAL_49]] : (!quake.ref) -> !quake.veq<1>
+// CHECK:                     quake.apply @__nvqpp__mlirgen__tgate [%[[VEQ_49]]] (%[[VAL_26]]) : (!quake.veq<1>, !quake.veq<?>) -> ()
 // CHECK:                     cc.continue
 // CHECK:                   } step {
 // CHECK:                     %[[VAL_50:.*]] = cc.load %[[VAL_40]] : !cc.ptr<i32>

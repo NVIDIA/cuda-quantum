@@ -4,13 +4,12 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Dialect/Event/IR/EventDialect.h"
 #include "qlx/Dialect/Event/IR/EventInterfaces.h"
 #include "qlx/Dialect/Event/IR/EventOps.h"
 #include "qlx/Dialect/Event/IR/EventTypes.h"
-
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -27,7 +26,6 @@ using namespace qlx::event;
 //===----------------------------------------------------------------------===//
 
 #include "qlx/Dialect/Event/IR/EventDialect.cpp.inc"
-
 #include "qlx/Dialect/Event/IR/EventInterfaces.cpp.inc"
 
 #define GET_TYPEDEF_CLASSES
@@ -67,7 +65,7 @@ LogicalResult verifyLinearOwnership(Operation *op, HandleType eventType,
   StringRef ownership = eventType.getOwnership();
   if (ownership != "linear")
     return op->emitOpError(action)
-           << " requires a linear event owner, but got '" << ownership << "'";
+           << " requires a linear event handle, but got '" << ownership << "'";
   return success();
 }
 
@@ -121,7 +119,7 @@ LogicalResult TryTakeOp::verify() {
     Attribute key = unique.getUniqueOwnerKey();
     assert(key && "UniqueCarryOwnerInterface must not return a null key");
     if (!carriedOwnerKeys.insert(key).second)
-      return emitOpError("cannot carry more than one owner for resource ")
+      return emitOpError("cannot carry more than one live value for resource ")
              << key;
   }
   return success();

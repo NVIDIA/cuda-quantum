@@ -8,12 +8,16 @@
 
 /// @file gpu_roce_unified_transport.cu
 /// @brief GpuRoceTransceiver/DOCA implementation of the unified dispatch
-/// device data plane (dispatcher/unified_device_transport.cuh).
+/// device data plane (gpu_roce_device_transport.cuh), which the bridge's
+/// adapters in gpu_roce_device_hooks.cu hand to the unified dispatch kernel.
+/// It includes no CUDA-Q realtime header.
 ///
 /// This is the only TU in the unified path that sees DOCA.  The kernel itself
 /// lives in dispatcher/unified_dispatch_kernel.cu, compiled without any DOCA
 /// or HSB include path; it reaches the wire exclusively through the three
-/// hooks below, device-linked into this shared library by `nvcc -dlink`.
+/// hooks below.  They are built with -rdc into the bridge library, which hands
+/// them to the dispatcher through get_gpu_dataplane; the dispatcher links them
+/// with the kernel and the consumer's handlers at run time.
 ///
 /// Two TX paths selected at runtime via the use_bf flag:
 ///   dGPU: send_bf (BlueFlame, shared-memory WQE) -- lowest latency.
@@ -21,22 +25,21 @@
 ///         GPU cannot ring the NIC doorbell directly on integrated GPUs.
 ///
 
+#include "gpu_roce_device_transport.cuh"
 #include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_doca_transport_ctx.h"
-#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/realtime/daemon/dispatcher/unified_device_transport.cuh"
-
 #include <cstdint>
 #include <cuda_runtime.h>
-
 #include "gpu_roce_transceiver.cuh"
 
 //==============================================================================
 // Device-side session
 //
 // Holds what were kernel locals before the transport split: the derived DOCA
-// handles, the RX/TX cursors, and the BlueFlame work-queue entry.  Lives in
-// shared memory (see cudaq_dev_transport_attach), so it must stay trivially
-// constructible -- no member initializers, no constructors.
+// handles and the RX/TX cursors.  Built in the kernel's local session storage
+// (see gpu_roce_dev_enter_kernel), which keeps it in registers once the hooks
+// are inlined, so it must stay trivially constructible -- no member
+// initializers, no constructors.  The BlueFlame WQE is the one piece that has
+// to be in shared memory; the session only points at it.
 //==============================================================================
 
 namespace {
@@ -62,10 +65,15 @@ struct gpu_roce_session {
   doca_gpu_dev_verbs_ticket_t cq_ticket;
   std::uint64_t sq_wqe_idx;
 
-  /// Pre-built send WQE for the BlueFlame path.  `send_bf` indexes this by
-  /// threadIdx.x, which is always 0 here (the kernel is <<<1,1>>>).
-  struct doca_gpu_dev_verbs_wqe wqe_sh;
+  /// Pre-built send WQE for the BlueFlame path, in shared memory.  `send_bf`
+  /// indexes it by threadIdx.x, which is always 0 here: the hooks run on
+  /// thread 0 only (THREADING in unified_device_transport.cuh).
+  struct doca_gpu_dev_verbs_wqe *wqe_sh;
 };
+
+static_assert(sizeof(gpu_roce_session) <= GPU_ROCE_DEV_SESSION_BYTES &&
+                  alignof(gpu_roce_session) <= GPU_ROCE_DEV_SESSION_ALIGN,
+              "gpu_roce_session must fit the kernel's session storage");
 
 /// Spin-poll the CQE owner bit with periodic shutdown_flag checks.  Inlines
 /// the DOCA CQ state update (fence + consumer-index advance) to avoid the
@@ -79,7 +87,7 @@ __device__ inline std::uint32_t poll_receive(gpu_roce_session &s) {
   std::uint8_t opown;
   do {
     opown = doca_gpu_dev_verbs_load_relaxed_sys_global(
-        reinterpret_cast<uint8_t *>(&cqe64->op_own));
+        reinterpret_cast<std::uint8_t *>(&cqe64->op_own));
     if (!((opown & MLX5_CQE_OWNER_MASK) ^ !!(s.cq_ticket & cqe_num)))
       break;
     if (++spin >= 1024) {
@@ -95,10 +103,14 @@ __device__ inline std::uint32_t poll_receive(gpu_roce_session &s) {
   return doca_gpu_dev_verbs_bswap32(cqe64->imm_inval_pkey) & 0xFFF;
 }
 
-/// Hand the NIC a fresh receive WQE and step the completion cursor onto it.
+/// Hand the NIC back the receive WQE just consumed and step the completion
+/// cursor to the next one.  The doorbell goes WQE_NUM past the consumed count,
+/// so every WQE of the queue stays posted, as start() left them: one posted
+/// only a single WQE ahead leaves none between a request's arrival and its
+/// repost, and UC silently drops a request that lands then.
 __device__ inline void recycle_receive(gpu_roce_session &s) {
   s.sq_wqe_idx++;
-  repost_receive(s.qp, s.sq_wqe_idx);
+  repost_receive(s.qp, s.sq_wqe_idx + WQE_NUM - 1);
   s.cq_ticket = s.sq_wqe_idx;
 }
 
@@ -109,10 +121,14 @@ __device__ inline void recycle_receive(gpu_roce_session &s) {
 //==============================================================================
 
 extern "C" __device__ void *
-cudaq_dev_transport_attach(void *ctx, volatile int *shutdown_flag) {
+gpu_roce_dev_enter_kernel(void *storage, void *ctx,
+                          volatile int *shutdown_flag) {
   // Statically allocated per block.  Declaring it here rather than in the
   // kernel is what keeps doca_gpu_dev_verbs_wqe out of the core TU.
-  __shared__ gpu_roce_session s;
+  __shared__ alignas(16) struct doca_gpu_dev_verbs_wqe wqe_sh;
+
+  auto &s = *static_cast<gpu_roce_session *>(storage);
+  s.wqe_sh = &wqe_sh;
 
   auto *tctx = static_cast<gpu_roce_doca_transport_ctx *>(ctx);
   if (tctx == nullptr)
@@ -147,15 +163,15 @@ cudaq_dev_transport_attach(void *ctx, volatile int *shutdown_flag) {
   // send side is prepared here.  Sends read from the TX ring, so its key is
   // the one the WQE needs.
   if (s.use_bf)
-    prepare_send_shared(qp, &s.wqe_sh, s.frame_size, tctx->tx_ring_mkey);
+    prepare_send_shared(qp, s.wqe_sh, s.frame_size, tctx->tx_ring_mkey);
   else
     prepare_receive_send(qp, s.frame_size, tctx->tx_ring_mkey);
 
   return &s;
 }
 
-extern "C" __device__ cudaq_rx_dev_status_t
-cudaq_dev_rx_poll(void *session, void **out_request, void **out_response) {
+extern "C" __device__ gpu_roce_dev_rx_status_t
+gpu_roce_dev_rx_poll(void *session, void **out_request, void **out_response) {
   auto &s = *static_cast<gpu_roce_session *>(session);
 
   while (true) {
@@ -163,7 +179,7 @@ cudaq_dev_rx_poll(void *session, void **out_request, void **out_response) {
     // Only reachable once the shutdown flag is set; poll_receive spins
     // otherwise.
     if (stride == UINT32_MAX)
-      return CUDAQ_RX_DEV_SHUTDOWN;
+      return GPU_ROCE_DEV_RX_SHUTDOWN;
 
     // An out-of-range stride addresses no slot, so there is nothing to
     // dispatch: recycle the receive WQE and keep waiting rather than surface
@@ -173,15 +189,24 @@ cudaq_dev_rx_poll(void *session, void **out_request, void **out_response) {
       continue;
     }
 
-    *out_request =
+    auto *request =
         s.rx_buf + static_cast<std::uint64_t>(stride) * s.rx_stride_sz;
-    *out_response =
+    auto *response =
         s.tx_buf + static_cast<std::uint64_t>(stride) * s.tx_stride_sz;
-    return CUDAQ_RX_DEV_READY;
+    // Both rings are device global memory.  The pointers reach the kernel
+    // through the context, so without this they stay generic, and send_bf's
+    // inline copy must order each frame load after the previous shared-memory
+    // WQE store instead of issuing them together.
+    __builtin_assume(__isGlobal(request));
+    __builtin_assume(__isGlobal(response));
+    *out_request = request;
+    *out_response = response;
+    return GPU_ROCE_DEV_RX_READY;
   }
 }
 
-extern "C" __device__ void cudaq_dev_tx_publish(void *session, void *response) {
+extern "C" __device__ void gpu_roce_dev_tx_publish(void *session,
+                                                   void *response) {
   auto &s = *static_cast<gpu_roce_session *>(session);
 
   // The send descriptor wants the response's offset into the TX ring's
@@ -195,11 +220,11 @@ extern "C" __device__ void cudaq_dev_tx_publish(void *session, void *response) {
     // dGPU: send first, then repost.  Reposting before send adds ~400ns by
     // serializing a PCIe write ahead of BlueFlame.
     if (!s.use_inline) {
-      send_bf<GPU_ROCE_MAX_FRAME_SIZE_0B>(s.qp, &s.wqe_sh, s.sq_wqe_idx,
+      send_bf<GPU_ROCE_MAX_FRAME_SIZE_0B>(s.qp, s.wqe_sh, s.sq_wqe_idx,
                                           buffer_addr);
     } else {
       send_bf<GPU_ROCE_MAX_FRAME_SIZE_44B>(
-          s.qp, &s.wqe_sh, s.sq_wqe_idx,
+          s.qp, s.wqe_sh, s.sq_wqe_idx,
           reinterpret_cast<std::uint64_t>(response));
     }
     recycle_receive(s);

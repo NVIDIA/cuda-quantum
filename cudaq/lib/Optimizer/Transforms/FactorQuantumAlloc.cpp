@@ -198,29 +198,6 @@ public:
 };
 } // namespace
 
-/// Compute the index within the `concat` result at which the operand at
-/// position \p operandPos of \p concat lands. Returns `nullopt` if the index
-/// cannot be determined statically (e.g., a preceding `veq` has an unspecified
-/// size).
-static std::optional<std::size_t>
-concatResultIndex(cudaq::quake::ConcatOp concat, std::size_t operandPos) {
-  std::size_t idx = 0;
-  auto refTy = cudaq::quake::RefType::get(concat.getContext());
-  for (std::size_t i = 0; i < operandPos; ++i) {
-    auto t = concat.getTargets()[i].getType();
-    if (t == refTy) {
-      idx += 1;
-    } else if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(t)) {
-      if (!veqTy.hasSpecifiedSize())
-        return std::nullopt;
-      idx += veqTy.getSize();
-    } else {
-      return std::nullopt;
-    }
-  }
-  return idx;
-}
-
 namespace {
 /// When individual `!quake.ref` `alloca`s are aliased into a `veq` via
 /// `quake.concat` and then also used directly by gate or measurement `ops` that
@@ -262,15 +239,21 @@ public:
       return concat->isBeforeInBlock(user);
     };
 
-    for (auto [pos, operand] : llvm::enumerate(concat.getTargets())) {
-      if (operand.getType() != refTy ||
-          !operand.getDefiningOp<cudaq::quake::AllocaOp>())
+    // Accumulate offsets once instead of rescanning the prefix for each ref.
+    std::size_t nextIndex = 0;
+    for (Value operand : concat.getTargets()) {
+      if (operand.getType() != refTy) {
+        auto veqTy = dyn_cast<cudaq::quake::VeqType>(operand.getType());
+        // No subsequent offset is known past an unsupported or unsized operand.
+        if (!veqTy || !veqTy.hasSpecifiedSize())
+          break;
+        nextIndex += veqTy.getSize();
         continue;
+      }
 
-      auto maybeIdx = concatResultIndex(concat, pos);
-      if (!maybeIdx)
+      std::size_t veqIdx = nextIndex++;
+      if (!operand.getDefiningOp<cudaq::quake::AllocaOp>())
         continue;
-      std::size_t veqIdx = *maybeIdx;
 
       // Replace every direct use of this alloca that (a) is dominated by the
       // concat (same block after, or nested in an op after), and (b) is not the

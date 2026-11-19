@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "common/CompileTarget.h"
 #include "common/RuntimeTarget.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/host_config.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
@@ -75,7 +75,7 @@ protected:
   std::string cachedDefaultSimulatorEnv;
 
   /// @brief Load a library on demand if not already loaded.
-  void ensureLibLoaded(const std::filesystem::path &path);
+  void *ensureLibLoaded(const std::filesystem::path &path);
 
   /// @brief Determine the default target based on available GPUs and
   /// simulators.
@@ -87,6 +87,11 @@ public:
 
   /// @brief Whether the full target setup has completed.
   bool isTargetInitialized() const { return targetInitialized; }
+
+  using SimulatorFactory = nvqir::CircuitSimulator *(*)();
+
+  /// @brief Return the factory for the given simulator.
+  SimulatorFactory getSimulatorFactory(const std::string &name);
 
   /// @brief Return the registered simulator with the given name.
   nvqir::CircuitSimulator *getSimulator(const std::string &name);
@@ -108,9 +113,11 @@ public:
   /// @brief Return true if a target exists with the given name.
   bool hasTarget(const std::string &name, bool includeUnavailable = false);
 
-  /// @brief Set the current target.
+  /// @brief Set the current target. If @p compileTarget is provided, kernels
+  /// are compiled against it instead of the target's default compile target.
   void setTarget(const std::string &targetName,
-                 std::map<std::string, std::string> extraConfig = {});
+                 std::map<std::string, std::string> extraConfig = {},
+                 std::optional<CompileTarget> compileTarget = std::nullopt);
 
   /// @brief Set the current target using a pair of compile target and runtime
   /// endpoint.
@@ -141,6 +148,12 @@ public:
   bool registerTargetConfig(const std::filesystem::path &configPath);
 
 private:
+  /// @brief Replace every QPU of @p platform with @p endpoints, all compiled
+  /// against @p compileTarget.
+  static void setQPUs(quantum_platform &platform,
+                      const CompileTarget &compileTarget,
+                      const std::vector<RuntimeEndpoint> &endpoints);
+
   config::HostEnvironment hostEnv() const;
   void addPluginScope(const std::filesystem::path &scope);
   void reloadTargets();

@@ -26,6 +26,10 @@ add_library(cudaq-mlir-runtime
     CompiledModuleHelper.cpp
     JITTargetPipeline.cpp
     JIT.cpp
+    LoweringHandler.cpp
+    QuakeMappedHandler.cpp
+    QuakeReferenceSemanticsHandler.cpp
+    QuakeUnmappedHandler.cpp
     ResourceCount.cpp
     RuntimeMLIR.cpp
     LayoutInfo.cpp
@@ -44,7 +48,6 @@ target_link_libraries(cudaq-mlir-runtime
   PRIVATE
     cudaq-common
     cudaq-qir-verifier
-    CUDAQTargetConfig
     cudaq-logger
     fmt::fmt-header-only
     cudaqMLIR

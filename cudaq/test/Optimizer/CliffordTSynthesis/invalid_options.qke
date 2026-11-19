@@ -6,15 +6,16 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --clifford-t-synthesis='epsilon=0' -verify-diagnostics %s
-// RUN: cudaq-opt --clifford-t-synthesis='epsilon=inf' -verify-diagnostics %s
-// RUN: cudaq-opt --clifford-t-synthesis='skip-below=inf' -verify-diagnostics %s
+// RUN: not cudaq-opt --clifford-t-synthesis='epsilon=0' %s 2>&1 | FileCheck --check-prefix=EPSILON %s
+// RUN: not cudaq-opt --clifford-t-synthesis='epsilon=inf' %s 2>&1 | FileCheck --check-prefix=EPSILON %s
+// RUN: not cudaq-opt --clifford-t-synthesis='skip-below=inf' %s 2>&1 | FileCheck --check-prefix=SKIP %s
 
 // An infinite tolerance is rejected like a non-positive one. It would accept
 // every angle as an exact multiple of pi/4 (epsilon) or erase every rotation
 // (skip-below).
 
-// expected-error @+1 {{clifford-t-synthesis: invalid options. Require a finite epsilon > 0}}
+// EPSILON: error: clifford-t-synthesis: epsilon must be finite and greater than 0, got
+// SKIP: error: clifford-t-synthesis: skip-below must be finite and non-negative, got
 module {
   func.func @rotation() {
     %q = quake.alloca !quake.ref

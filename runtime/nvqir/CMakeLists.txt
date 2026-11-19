@@ -50,6 +50,10 @@ install(TARGETS ${LIBRARY_NAME}
 add_subdirectory(qpp)
 add_subdirectory(stim)
 
+if (cuStabilizer_FOUND)
+  add_subdirectory(custabilizer)
+endif()
+
 if (cuStateVec_FOUND)
   add_subdirectory(custatevec)
 endif()

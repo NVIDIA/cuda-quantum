@@ -20,6 +20,7 @@ import weakref
 import cudaq.mlir.ir as mlir_ir
 
 from cudaq.logical.programs.definition import DefinitionHandle
+from cudaq.logical._core.compat import UNSET as _ALIAS_UNSET, resolve_alias
 from cudaq.logical.experiments.definition import Experiment
 from cudaq.logical.architecture.logical import ProgramValueSchema
 from cudaq.logical.stages import (
@@ -39,6 +40,7 @@ from .build_bundle import (
     _validate_v2_bundle,
     _validate_v2_nested_metadata,
 )
+from .context import _symbol_re, _walk_operation
 
 _logger = logging.getLogger("cudaq.logical")
 
@@ -208,20 +210,6 @@ def _attr_text(attribute) -> str:
     value = getattr(attribute, "value", None)
     text = str(attribute if value is None else value)
     return text.strip('"').lstrip("@").split("::@")[-1]
-
-
-def _walk_operation(operation):
-    stack = [operation]
-    while stack:
-        current = stack.pop()
-        yield current
-        children = [
-            view.operation
-            for region in current.regions
-            for block in region.blocks
-            for view in block.operations
-        ]
-        stack.extend(reversed(children))
 
 
 def _string_array_attribute(operation, name: str) -> tuple[str, ...]:
@@ -419,7 +407,7 @@ def _validate_v2_retained_p3_links(module) -> None:
         profile = _require_unique_link(
             top_level_index,
             _attr_text(sidecar.attributes["source_profile"]),
-            frozenset({"fabric.gadget_profile"}),
+            frozenset({"fabric.gadget_contract"}),
             "sidecar source profile",
         )
         gadget = _require_unique_link(
@@ -472,8 +460,9 @@ def _validate_v2_selected_p3_links(module, root, bundle) -> None:
     require_instrument_definitions = (has_concrete_instrument_closure or
                                       has_interconnect_actions)
 
+    source_protocol = None
     if "source_protocol" in graph.attributes:
-        _require_unique_link(
+        source_protocol = _require_unique_link(
             top_level_index,
             _attr_text(graph.attributes["source_protocol"]),
             frozenset({"fabric.gadget", "fabric.protocol"}),
@@ -550,7 +539,7 @@ def _validate_v2_selected_p3_links(module, root, bundle) -> None:
                 _require_unique_link(
                     top_level_index,
                     _attr_text(operation.attributes["profile"]),
-                    frozenset({"fabric.gadget_profile"}),
+                    frozenset({"fabric.gadget_contract"}),
                     "call profile",
                 )
         elif operation.name == "phys.move":
@@ -579,7 +568,16 @@ def _validate_v2_selected_p3_links(module, root, bundle) -> None:
         operation for operation in top_level
         if (operation.name == "phys.mapping" and
             _attr_text(operation.attributes["graph"]) == graph_symbol))
-    if len(mappings) > 1 or ("source_protocol" in graph.attributes and
+    direct_network_projection = (
+        source_protocol is not None and
+        source_protocol.name == "fabric.protocol" and
+        "qlx.qec_network_request" in source_protocol.attributes and
+        "qlx.qec_network_plan" in source_protocol.attributes and
+        selection is not None and
+        selection.get("network_manifest_sha256") is not None and
+        "qlx.qec_network_plan_sha256" in graph.attributes)
+    if len(mappings) > 1 or (source_protocol is not None and
+                             not direct_network_projection and
                              len(mappings) != 1):
         raise ValueError(
             f"qlx.build/v2 selected P3 graph @{graph_symbol} must have "
@@ -1423,6 +1421,17 @@ def _verify_communication_selection(module, root, placement, qec_selection,
             if architecture_digest != request.device_architecture_sha256:
                 raise ValueError(
                     f"{prefix}: network compiler architecture differs")
+            lattice_surgery.validate_provider_plan_artifact(
+                compiler, request, plan)
+            expected_validator = lattice_surgery._replay_validator_identity(
+                compiler)
+            actual_validator = (_attr_text(metadata["network_replay_validator"])
+                                if "network_replay_validator" in metadata else
+                                None)
+            if actual_validator != expected_validator:
+                raise ValueError(
+                    f"{prefix}: network replay validator differs from the "
+                    "selected provider")
 
     calls = tuple(operation for operation in _walk_operation(selected)
                   if operation.name == "fabric.call" and
@@ -2391,7 +2400,7 @@ class Build:
             "program",
             "kernel",
             "gadget",
-            "gadget_profile",
+            "gadget_contract",
             "protocol",
             "physical_graph",
             "control_plan",
@@ -2514,6 +2523,34 @@ class Build:
     def to_mlir(self) -> str:
         return self._ensure_snapshot()
 
+    def to_quake(self) -> mlir_ir.Module:
+        """Translate this physical Build to a Quake module for CUDA-Q
+        algorithmic primitives like ``cudaq.run``.
+
+        Each call returns a new module, and the Build does not change. A
+        graph that the translation does not support raises ``RuntimeError``
+        with the translation's diagnostic.
+        """
+
+        if self.root.kind != "physical_graph":
+            raise ValueError(
+                "`to_quake()` requires a `Build` of a physical graph, "
+                f"not of a {self.root.kind}")
+        # The symbol is spliced into pass-pipeline text, where braces and
+        # quotes are syntax that quoting does not escape. Logical's symbols
+        # (`_symbol`) contain neither.
+        if not self.root.symbol or _symbol_re.search(self.root.symbol):
+            raise ValueError(
+                "`to_quake()` requires a root symbol of letters, digits, `_`, "
+                f"`.`, `$`, and `-`, not {self.root.symbol!r}")
+
+        from cudaq.mlir._mlir_libs import _qlxRuntime
+
+        module = self._fresh_module()
+        _qlxRuntime.run_pass_capsule(
+            module, "phys-to-quake{entry=" + json.dumps(self.root.symbol) + "}")
+        return module
+
     @property
     def content_sha256(self) -> str:
         """Stable authenticated commitment of this complete Build bundle."""
@@ -2604,7 +2641,7 @@ class Build:
             if "kind" in handle.op.attributes:
                 kind = _attr_text(handle.op.attributes["kind"])
                 # "composite" is a family marker, not an objective name; the
-                # composite objective is addressed by its own symbol.
+                # composite action is addressed by its own symbol.
                 if kind != "composite":
                     names.add(kind)
             declared[symbol] = frozenset(names)
@@ -2652,21 +2689,25 @@ class Build:
         self._cache["objective_index"] = index
         return index
 
-    def protocol_for(self, objective):
-        """The gadget/protocol definition that implements ``objective``.
+    def protocol_for(self, action=_ALIAS_UNSET, *, objective=_ALIAS_UNSET):
+        """The gadget/protocol definition that implements ``action``.
 
-        Accepts an objective name (``"idle"``), a logical reference with a
+        Accepts an action name (``"idle"``), a logical reference with a
         ``.name`` (``cudaq.logical.logical.idle``, an
-        ``@cudaq.logical.objective`` definition),
+        ``@cudaq.logical.action`` definition),
         or a materialized handle with a ``.symbol``.  Resolution walks
-        ``fabric.gadget_spec`` objective links, ``fabric.protocol``
-        objective attributes, and ``qlx.qec_lowering`` ``generated_by``
+        legacy ``objective`` links in ``fabric.gadget_spec`` and
+        ``fabric.protocol``, and ``qlx.qec_lowering`` ``generated_by``
         provenance.  Returns ``None`` when nothing implements the
-        objective; when several candidates match, the build root wins if it
+        action; when several candidates match, the build root wins if it
         is among them, otherwise a :class:`LookupError` reports the
         candidate set.
         """
 
+        objective = resolve_alias(action,
+                                  objective,
+                                  name="action",
+                                  legacy_name="objective")
         name = objective
         for attribute in ("name", "symbol"):
             value = getattr(objective, attribute, None)
@@ -2675,7 +2716,7 @@ class Build:
                 break
         if not isinstance(name, str):
             raise TypeError(
-                "protocol_for expects an objective name, a logical objective "
+                "protocol_for expects an action name, a logical action "
                 "reference, or a definition handle")
         name = name.lstrip("@")
         matches = tuple(handle for handle, names in self._objective_index()
@@ -2690,7 +2731,7 @@ class Build:
         candidates = ", ".join(
             f"@{handle.symbol} ({handle.kind})" for handle in matches)
         raise LookupError(
-            f"objective {name!r} is ambiguous in this build: {candidates}")
+            f"action {name!r} is ambiguous in this build: {candidates}")
 
     @property
     def status(self) -> BuildStatus:
@@ -3300,6 +3341,124 @@ class Build:
                 raise ValueError(
                     "qlx.build/v2 reconstructed experiment differs from "
                     "the authenticated experiment metadata")
+            if result.profile in {"p2n", "p3"}:
+                from ..qec import lattice_surgery
+
+                operation = result.definitions[result.root.symbol].op
+                if result.profile == "p3":
+                    if (result.qec_selection is not None and
+                            result.qec_selection.network_manifest_sha256
+                            is not None):
+                        if "source_protocol" not in operation.attributes:
+                            raise ValueError(
+                                "network P3 replay requires its retained P2 source"
+                            )
+                        source_symbol = _attr_text(
+                            operation.attributes["source_protocol"])
+                        source_definition = result.definitions.get(
+                            source_symbol)
+                        if (source_definition is None or
+                                source_definition.op.name != "fabric.protocol"):
+                            raise ValueError(
+                                "network P3 replay has no retained P2 protocol")
+                        operation = source_definition.op
+                if ("qlx.qec_network_request" in operation.attributes or
+                        "qlx.qec_network_plan" in operation.attributes):
+                    if ("qlx.qec_network_request" not in operation.attributes or
+                            "qlx.qec_network_plan" not in operation.attributes
+                            or "metadata" not in operation.attributes or
+                            "network_replay_validator"
+                            not in operation.attributes["metadata"]):
+                        raise ValueError(
+                            "device-free network P2 replay requires an "
+                            "importable provider replay validator")
+                    metadata = operation.attributes["metadata"]
+                    request_payload = lattice_surgery._network_request_payload(
+                        _attr_text(
+                            operation.attributes["qlx.qec_network_request"]))
+                    plan = lattice_surgery.QECNetworkPlan.from_json(
+                        _attr_text(
+                            operation.attributes["qlx.qec_network_plan"]))
+                    if result.profile == "p3":
+                        graph = result.definitions[result.root.symbol].op
+                        graph_commitments = {
+                            "qlx.qec_network_request_sha256":
+                                lattice_surgery._digest(request_payload),
+                            "qlx.qec_network_plan_sha256":
+                                plan.digest,
+                            "qlx.qec_network_artifact_sha256":
+                                plan.artifact.sha256,
+                            "qlx.qec_network_projector":
+                                plan.required_projector_key,
+                            "qlx.qec_network_projector_pipeline_sha256":
+                                plan.required_projector_pipeline_sha256,
+                        }
+                        if any(name not in graph.attributes or
+                               _attr_text(graph.attributes[name]) != expected
+                               for name, expected in graph_commitments.items()):
+                            raise ValueError(
+                                "network P3 replay projection commitments differ"
+                            )
+                    if result.qec_selection is None or result.placement is None:
+                        raise ValueError(
+                            "network P2 replay requires QEC selection and placement"
+                        )
+                    selected_sites = tuple(
+                        action.site
+                        for action in result.qec_selection.actions
+                        if action.manifest_sha256 ==
+                        request_payload["lowering_manifest_sha256"])
+                    runs = _qec_network_region_runs(
+                        result.module,
+                        result.qec_selection.input_p1,
+                        selected_sites,
+                    )
+                    names = tuple(name for run in runs for name in run)
+                    measurements = (
+                        lattice_surgery._replayed_network_measurements(result))
+                    if len(measurements) != len(names):
+                        raise ValueError(
+                            "network replay measurements differ from selected "
+                            "P1 actions")
+                    name_by_measurement = {
+                        measurement.name: name
+                        for name, measurement in zip(names, measurements)
+                    }
+                    try:
+                        dependencies = {
+                            name:
+                                tuple(name_by_measurement[dependency]
+                                      for dependency in measurement.after)
+                            for name, measurement in zip(names, measurements)
+                        }
+                    except KeyError as exc:
+                        raise ValueError(
+                            "network replay has an unknown P0 dependency"
+                        ) from exc
+                    lattice_surgery._validate_replayed_network_request(
+                        request_payload,
+                        result.qec_selection,
+                        result.placement,
+                        runs,
+                        dependencies,
+                        objective_family="pauli_product_measurement",
+                        measurements=measurements,
+                    )
+                    lattice_surgery._validate_replayed_network_plan(
+                        request_payload,
+                        plan,
+                        measurements,
+                    )
+                    lattice_surgery.validate_replayed_provider_plan(
+                        _attr_text(metadata["network_replay_validator"]),
+                        plan.provider_key,
+                        result.module,
+                        _attr_text(operation.attributes["sym_name"]),
+                        request_payload,
+                        plan,
+                        result.qec_selection,
+                        result.placement,
+                    )
         return result
 
     @staticmethod

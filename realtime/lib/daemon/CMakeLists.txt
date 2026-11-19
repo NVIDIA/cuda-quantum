@@ -9,8 +9,9 @@
 # ==============================================================================
 # Shared library for external consumers (libcudaq-realtime.so)
 # ==============================================================================
-# This shared library exports a C-compatible host API for wiring dispatchers
-# and includes the GPU dispatch kernel device code.
+# This shared library exports a C-compatible host API for wiring dispatchers.
+# The GPU dispatch kernels live in libcudaq-realtime-dispatch.a, which
+# consumers link themselves.
 
 if(CUDA_FOUND)
   set(CUDAQ_REALTIME_SOURCES
@@ -18,14 +19,7 @@ if(CUDA_FOUND)
     bridge/bridge_interface_api.cpp
   )
 
-  add_library(cudaq-realtime SHARED ${CUDAQ_REALTIME_SOURCES}
-    # The unified dispatch kernel belongs to the runtime: the dispatcher calls
-    # cudaq_launch_unified_dispatch_device directly, so it must resolve in
-    # every configuration.  Its transport hooks are __device__ functions, which
-    # CUDA resolves only within one module, so whichever TU defines them is
-    # compiled into this library too -- bridge/gpu_roce appends its own below,
-    # and dispatcher/unified_transport_none.cu stands in when no transport does.
-    dispatcher/unified_dispatch_kernel.cu)
+  add_library(cudaq-realtime SHARED ${CUDAQ_REALTIME_SOURCES})
   # Source-tree CUDA-Q integration uses the same cudaq:: target names
   # that installed exports provide.
   add_library(cudaq::cudaq-realtime ALIAS cudaq-realtime)
@@ -36,13 +30,13 @@ if(CUDA_FOUND)
   # otherwise defaults to libc++). The public interface is C-compatible and
   # does not expose C++ standard-library ABI types.
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} APPEND PROPERTY
-      COMPILE_OPTIONS -stdlib=libstdc++)
+    set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} dispatcher/host_dispatcher.cpp
+      APPEND PROPERTY COMPILE_OPTIONS -stdlib=libstdc++)
     target_link_options(cudaq-realtime PRIVATE
       "$<HOST_LINK:-stdlib=libstdc++>")
     if(DEFINED ENV{GCC_TOOLCHAIN} AND IS_DIRECTORY "$ENV{GCC_TOOLCHAIN}")
-      set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} APPEND PROPERTY
-        COMPILE_OPTIONS "--gcc-toolchain=$ENV{GCC_TOOLCHAIN}")
+      set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} dispatcher/host_dispatcher.cpp
+        APPEND PROPERTY COMPILE_OPTIONS "--gcc-toolchain=$ENV{GCC_TOOLCHAIN}")
       target_link_options(cudaq-realtime PRIVATE
         "$<HOST_LINK:--gcc-toolchain=$ENV{GCC_TOOLCHAIN}>")
     endif()
@@ -59,6 +53,7 @@ if(CUDA_FOUND)
       CUDA::cudart_static
     PRIVATE
       cudaq-realtime-host-dispatch
+      cudaq-realtime-device-code
   )
 
   target_compile_definitions(cudaq-realtime PUBLIC CUDAQ_REALTIME_HAVE_CUDA)
@@ -70,6 +65,10 @@ if(CUDA_FOUND)
     CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+    # The bridge API dlopens providers by soname. Resolve sibling providers
+    # from this library's directory in both build and installed trees.
+    BUILD_RPATH "$ORIGIN"
+    INSTALL_RPATH "$ORIGIN"
   )
 
   install(TARGETS cudaq-realtime
@@ -119,13 +118,14 @@ if(CUDA_FOUND)
   )
 
   # ============================================================================
-  # Host-side graph dispatcher (optional, for Grace Hopper / Grace Blackwell etc.)
+  # Host dispatch loops (CUDAQ_DISPATCH_PATH_HOST)
   # ============================================================================
-  # Compiled with nvcc so libcu++ (<cuda/std/atomic>) works without extra
-  # include paths. Host-only code; no device code in this TU.
+  # Plain C++: the loops run HOST_CALL handlers and never call the CUDA
+  # runtime, so the library links no cudart.  cudaq_realtime.h includes
+  # <cuda_runtime.h>, so consumers need the toolkit headers: CUDA::toolkit is
+  # the headers-only interface target, linked PUBLIC to say so.
   add_library(cudaq-realtime-host-dispatch STATIC
-    dispatcher/host_dispatcher.cu
-    dispatcher/graph_launch_engine.cu
+    dispatcher/host_dispatcher.cpp
   )
   # Source-tree CUDA-Q integration uses the same cudaq:: target names
   # that installed exports provide.
@@ -139,11 +139,10 @@ if(CUDA_FOUND)
 
   target_link_libraries(cudaq-realtime-host-dispatch
     PUBLIC
-      CUDA::cudart_static
+      CUDA::toolkit
   )
 
   set_target_properties(cudaq-realtime-host-dispatch PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
     ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
   )
@@ -158,14 +157,6 @@ if(CUDA_FOUND)
     add_subdirectory(bridge/gpu_roce)
   endif()
 
-  # No transport supplied the unified device hooks, so link the null data
-  # plane; see unified_transport_none.cu.
-  get_property(_cudaq_unified_transport GLOBAL
-    PROPERTY CUDAQ_REALTIME_UNIFIED_TRANSPORT_TU)
-  if (NOT _cudaq_unified_transport)
-    target_sources(cudaq-realtime PRIVATE dispatcher/unified_transport_none.cu)
-  endif()
-  unset(_cudaq_unified_transport)
   # CPU transport bridge providers (thin provider .so's over the
   # cpu_transport ring transceivers; loaded via CUDAQ_REALTIME_BRIDGE_LIB).
   add_subdirectory(bridge/udp)

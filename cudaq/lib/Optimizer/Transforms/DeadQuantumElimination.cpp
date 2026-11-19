@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -88,7 +89,7 @@ public:
 
   void runOnOperation() override {
     auto *op = getOperation();
-    if (op->hasAttr(cudaq::runtime::disableQuantumOpts))
+    if (cudaq::runtime::isQuantumOptimizationDisabled(op))
       return;
     LLVM_DEBUG(llvm::dbgs() << "Before DQE:\n" << *op << '\n');
     auto *ctx = &getContext();

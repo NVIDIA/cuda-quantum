@@ -43,7 +43,6 @@ __all__ = [
     "logical_z1_toric_3",
     "logical_x0_toric_3",
     "logical_x1_toric_3",
-    "from_metachecks",
     "css_memory_round",
     "logical_measure",
 ]

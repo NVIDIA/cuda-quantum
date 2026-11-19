@@ -1322,11 +1322,11 @@ LogicalResult cudaq::cc::InsertValueOp::verify() {
   if (!isCompatible(eleTy, resultTy))
     return emitOpError("result type does not match input");
 
-  for (std::int32_t i : getPosition()) {
+  for (std::int64_t i : getPosition()) {
     if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
       if (arrTy.isUnknownSize())
         return emitOpError("array must have constant size");
-      if (i < 0 || static_cast<std::int64_t>(i) >= arrTy.getSize())
+      if (i < 0 || i >= arrTy.getSize())
         return emitOpError("array cannot index out of bounds elements");
       eleTy = arrTy.getElementType();
     } else if (auto strTy = dyn_cast<cc::StructType>(eleTy)) {
@@ -2474,10 +2474,17 @@ void cudaq::cc::IfOp::print(OpAsmPrinter &p) {
   p.printOptionalAttrDict((*this)->getAttrs());
 }
 
+// The printer elides the trivial `cc.continue`, so a region whose body is empty
+// prints as `{ }`, which parses as a region without any block. An empty else
+// region is the same as having no else region. The then region must have a
+// block (`mustHaveBlock`), as it is always executed when the condition is true.
 static void ensureIfRegionTerminator(OpBuilder &builder, OperationState &result,
-                                     Region *ifRegion) {
-  if (ifRegion->empty())
-    return;
+                                     Region *ifRegion, bool mustHaveBlock) {
+  if (ifRegion->empty()) {
+    if (!mustHaveBlock)
+      return;
+    ifRegion->push_back(new Block());
+  }
   auto *block = &ifRegion->back();
   if (!block)
     return;
@@ -2537,13 +2544,15 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
   if (parser.parseRegion(*thenRegion, regionArgs))
     return failure();
   OpBuilder opBuilder(parser.getContext());
-  ensureIfRegionTerminator(opBuilder, result, thenRegion);
+  ensureIfRegionTerminator(opBuilder, result, thenRegion,
+                           /*mustHaveBlock=*/true);
 
   // If we find an 'else' keyword then parse the 'else' region.
   if (!parser.parseOptionalKeyword("else")) {
     if (parser.parseRegion(*elseRegion, regionArgs))
       return failure();
-    ensureIfRegionTerminator(opBuilder, result, elseRegion);
+    ensureIfRegionTerminator(opBuilder, result, elseRegion,
+                             /*mustHaveBlock=*/false);
   }
 
   // Parse the optional attribute list.
@@ -2933,46 +2942,6 @@ LogicalResult cudaq::cc::ConditionOp::verify() {
 MutableOperandRange
 cudaq::cc::ConditionOp::getMutableSuccessorOperands(RegionSuccessor point) {
   return getResultsMutable();
-}
-
-//===----------------------------------------------------------------------===//
-// NoInlineCallOp
-//===----------------------------------------------------------------------===//
-
-LogicalResult cudaq::cc::NoInlineCallOp::verifySymbolUses(
-    SymbolTableCollection &symbolTable) {
-  // Check that the callee attribute was specified.
-  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
-  if (!fnAttr)
-    return emitOpError("requires a 'callee' symbol reference attribute");
-  auto fn = symbolTable.lookupNearestSymbolFrom<func::FuncOp>(*this, fnAttr);
-  if (!fn)
-    return emitOpError() << "'" << fnAttr.getValue()
-                         << "' does not reference a valid function";
-
-  // Verify that the operand and result types match the callee.
-  auto fnType = fn.getFunctionType();
-  if (fnType.getNumInputs() != getNumOperands())
-    return emitOpError("incorrect number of operands for callee");
-
-  for (unsigned i = 0, e = fnType.getNumInputs(); i != e; ++i)
-    if (getOperand(i).getType() != fnType.getInput(i))
-      return emitOpError("operand type mismatch: expected operand type ")
-             << fnType.getInput(i) << ", but provided "
-             << getOperand(i).getType() << " for operand number " << i;
-
-  if (fnType.getNumResults() != getNumResults())
-    return emitOpError("incorrect number of results for callee");
-
-  for (unsigned i = 0, e = fnType.getNumResults(); i != e; ++i)
-    if (getResult(i).getType() != fnType.getResult(i)) {
-      auto diag = emitOpError("result type mismatch at index ") << i;
-      diag.attachNote() << "      op result types: " << getResultTypes();
-      diag.attachNote() << "function result types: " << fnType.getResults();
-      return diag;
-    }
-
-  return success();
 }
 
 //===----------------------------------------------------------------------===//

@@ -154,6 +154,21 @@ def test_translate_qir_with_args():
     assert re.search(pattern, qir, re.DOTALL), f"{qir} content mismatch"
 
 
+def test_translate_qir_bool_list_args():
+    # Translation substitutes the arguments, so a `list[bool]` must be packed
+    # for argument synthesis rather than in the run-time layout.
+
+    @cudaq.kernel
+    def flip(bits: list[bool]):
+        qubits = cudaq.qvector(len(bits))
+        for i in range(len(bits)):
+            if bits[i]:
+                x(qubits[i])
+
+    qir = cudaq.translate(flip, [True, False, True], format="qir")
+    assert re.findall(r"store i8 (\d), ptr", qir) == ["1", "0", "1"], qir
+
+
 def test_translate_qir_call():
     qir = cudaq.translate(kernel_with_call, format="qir")
     pattern = r"call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate"

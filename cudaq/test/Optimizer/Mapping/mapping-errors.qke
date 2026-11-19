@@ -9,8 +9,9 @@
 // RUN: cudaq-opt --qubit-mapping='device=path(3) raise-fatal-errors=1' %s -split-input-file -verify-diagnostics
 // RUN: cudaq-opt --qubit-mapping='device=path(3) raise-fatal-errors=1' --mlir-print-ir-after-failure %s -split-input-file -verify-diagnostics 2>&1 | FileCheck --check-prefix=UNCHANGED %s
 
+// An entry point that uses qubits must borrow them.
 // expected-error@+1 {{no borrow_wire ops found in test_00}}
-func.func @test_00() {
+func.func @test_00() attributes {"cudaq-entrypoint"} {
   %0 = quake.null_wire
   %1 = quake.null_wire
   %2 = quake.null_wire
@@ -198,8 +199,15 @@ func.func @test_02_scope_measurement() {
 
 quake.wire_set @wires_03[10]
 
-// expected-error@+1 {{no borrow_wire ops found in test_03}}
-func.func @test_03() {
+// Other functions that borrow no wires are left unmapped: an entry point that
+// uses no qubits, and a callee kernel that takes its qubits as arguments,
+// which is mapped through the entry point it is inlined into.
+func.func @test_03() attributes {"cudaq-entrypoint"} {
+  return
+}
+
+func.func @test_03_callee(%q: !quake.ref) {
+  quake.h %q : (!quake.ref) -> ()
   return
 }
 
