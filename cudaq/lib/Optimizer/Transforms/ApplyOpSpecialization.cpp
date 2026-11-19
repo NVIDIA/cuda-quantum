@@ -2076,13 +2076,17 @@ public:
       auto arrAttr = cast<DenseI32ArrayAttr>(
           op->getAttr(cudaq::runtime::operandSegmentSizes));
       // Walk over any floating-point parameters to `op` and negate them.
-      for (auto iter = op->getOperands().begin(),
-                endIter = op->getOperands().begin() + arrAttr[0];
-           iter != endIter; ++iter) {
-        Value val = *iter;
-        Value neg = arith::NegFOp::create(builder, loc, val.getType(), val);
-        mapper.map(val, neg);
-        opWasNegated = true;
+      // Negating the angle is only correct for single-parameter rotations.
+      // Multi-parameter gates (u2, u3, phased_rx) get `is_adj` toggled below.
+      if (arrAttr[0] == 1) {
+        for (auto iter = op->getOperands().begin(),
+                  endIter = op->getOperands().begin() + arrAttr[0];
+             iter != endIter; ++iter) {
+          Value val = *iter;
+          Value neg = arith::NegFOp::create(builder, loc, val.getType(), val);
+          mapper.map(val, neg);
+          opWasNegated = true;
+        }
       }
 
       // If this is a quantum op that is not self adjoint, we need to adjoint

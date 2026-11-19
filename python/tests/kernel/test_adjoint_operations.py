@@ -225,3 +225,21 @@ def test_tdg_1_state_negate():
 
     # Qubit should remain in 1-state.
     assert counts["1"] == 1000
+
+
+def test_cudaq_adjoint_u3():
+    """`cudaq.adjoint` of a u3 kernel must be the true inverse, u3(-t,-l,-p)."""
+
+    @cudaq.kernel
+    def u3_gate(q: cudaq.qubit):
+        u3(0.7, 0.4, 1.3, q)
+
+    @cudaq.kernel
+    def u3_roundtrip():
+        q = cudaq.qubit()
+        u3_gate(q)
+        cudaq.adjoint(u3_gate, q)
+        mz(q)
+
+    counts = cudaq.sample(u3_roundtrip, shots_count=1000)
+    assert counts["0"] == 1000
