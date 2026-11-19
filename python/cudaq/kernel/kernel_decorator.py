@@ -665,6 +665,10 @@ class PyKernelDecorator(object):
             _validate_kernel_callable_arg(arg, arg_type)
             return DecoratorCapture(arg)
 
+        # NumPy booleans (e.g. the result of `x > 0`) are not Python `bool`s.
+        if isinstance(arg, np.bool_):
+            arg = bool(arg)
+
         depth, eleType = _sequence_depth_and_element(arg_type)
 
         # Rebuild `list` subclasses as plain lists.

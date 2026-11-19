@@ -706,7 +706,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return F64Type.get(ctx)
     if argType == np.float32:
         return F32Type.get(ctx)
-    if argType == bool:
+    if argType in [bool, np.bool_]:
         return IntegerType.get_signless(1, ctx)
     if argType == complex:
         return ComplexType.get(mlirTypeFromPyType(float, ctx))
