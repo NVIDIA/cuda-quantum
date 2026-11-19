@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 from __future__ import annotations
+import numbers
 from typing import Any, Callable, Iterable, Iterator, Optional
 
 from ..operators import NumericType
@@ -60,7 +61,7 @@ class Schedule(Iterator):
 
         def resolve_parameter(name: str, value: Any) -> NumericType:
             if name in self._parameters:
-                if isinstance(value, (complex, float, int)):
+                if isinstance(value, numbers.Number):
                     return value
                 else:
                     raise TypeError(
