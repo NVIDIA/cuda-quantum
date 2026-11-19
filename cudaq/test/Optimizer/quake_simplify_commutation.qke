@@ -41,9 +41,36 @@ func.func @combine_r1_across_z() {
 
 // CHECK-LABEL: func.func @combine_r1_across_z() {
 // CHECK:         %[[SUM:.*]] = arith.constant 5.000000e-01 : f64
-// CHECK:         %[[Z:.*]] = quake.z
-// CHECK-NEXT:    quake.r1 (%[[SUM]]) %[[Z]]
-// CHECK-NEXT:    quake.sink
+// CHECK:         %[[R:.*]] = quake.r1 (%[[SUM]])
+// CHECK-NEXT:    %[[Z:.*]] = quake.z %[[R]]
+// CHECK-NEXT:    quake.sink %[[Z]]
+
+// An Rz chain across CX controls combines into one Rz at the first position.
+func.func @combine_rz_chain_across_controls() {
+  %a = arith.constant 1.250000e-01 : f64
+  %b = arith.constant 2.500000e-01 : f64
+  %c = arith.constant 5.000000e-01 : f64
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %r0 = quake.rz (%a) %control : (f64, !quake.wire) -> !quake.wire
+  %x0:2 = quake.x [%r0] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %r1 = quake.rz (%b) %x0#0 : (f64, !quake.wire) -> !quake.wire
+  %h = quake.h %x0#1 : (!quake.wire) -> !quake.wire
+  %x1:2 = quake.x [%r1] %h : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %r2 = quake.rz (%c) %x1#0 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r2 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @combine_rz_chain_across_controls() {
+// CHECK:         %[[SUM:.*]] = arith.constant 8.750000e-01 : f64
+// CHECK:         %[[R:.*]] = quake.rz (%[[SUM]])
+// CHECK-NEXT:    %[[X0:.*]]:2 = quake.x {{\[}}%[[R]]]
+// CHECK-NEXT:    %[[H:.*]] = quake.h %[[X0]]#1
+// CHECK-NEXT:    quake.x {{\[}}%[[X0]]#0] %[[H]]
+// CHECK-NOT:     quake.rz
+// CHECK:         return
 
 // Cancelling the controlled-X pair exposes the Rz pair to the same greedy
 // fixed point.
@@ -67,8 +94,9 @@ func.func @fold_after_cancellation() {
 // CHECK-LABEL: func.func @fold_after_cancellation() {
 // CHECK:         %[[SUM:.*]] = arith.constant 7.500000e-01 : f64
 // CHECK-NOT:     quake.x
-// CHECK:         quake.z
 // CHECK:         quake.rz (%[[SUM]])
+// CHECK-NOT:     quake.x
+// CHECK:         quake.z
 // CHECK-NOT:     quake.x
 // CHECK:         return
 
@@ -143,8 +171,8 @@ func.func @combine_controlled_ry() {
 
 // CHECK-LABEL: func.func @combine_controlled_ry() {
 // CHECK:         %[[SUM:.*]] = arith.constant 7.500000e-01 : f64
-// CHECK:         %[[Z:.*]] = quake.z
-// CHECK-NEXT:    quake.ry (%[[SUM]]) {{\[}}%[[Z]] neg [true]
+// CHECK:         %[[R:.*]]:2 = quake.ry (%[[SUM]]) {{\[}}%{{.*}} neg [true]
+// CHECK-NEXT:    quake.z %[[R]]#0
 // CHECK-NEXT:    quake.sink
 
 func.func @combine_phased_rx() {
