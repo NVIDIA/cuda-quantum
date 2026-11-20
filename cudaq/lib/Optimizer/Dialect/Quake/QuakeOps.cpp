@@ -812,6 +812,11 @@ void cudaq::quake::ExpPauliOp::getCanonicalizationPatterns(
                EraseAllFalseNegatedControlsPattern<ExpPauliOp>>(context);
 }
 
+void cudaq::quake::MppOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<BindMppPauliWord>(context);
+}
+
 LogicalResult cudaq::quake::ExpPauliOp::verify() {
   if (getPauliLiteralAttr()) {
     if (getPauli())
@@ -1136,7 +1141,7 @@ LogicalResult cudaq::quake::CallByRefOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
-// Measurements (MxOp, MyOp, MzOp)
+// Measurements (MxOp, MyOp, MzOp, MppOp)
 //===----------------------------------------------------------------------===//
 
 // Common verification for measurement operations.
@@ -1184,6 +1189,33 @@ LogicalResult cudaq::quake::MyOp::verify() {
 LogicalResult cudaq::quake::MzOp::verify() {
   return verifyMeasurements(*this, getTargets().getType(),
                             getMeasOut().getType());
+}
+
+// An mpp measures one Pauli product over all of its targets, so unlike the
+// single-axis measurements it yields exactly one measurement result no matter
+// how many qubits it acts on. The result type is already restricted to a
+// single measure or measure handle by the op definition. The Pauli word is
+// either a literal or a value, exactly as for exp_pauli.
+LogicalResult cudaq::quake::MppOp::verify() {
+  if (failed(verifyWireResultsAreLinear(getOperation())))
+    return failure();
+  if (getTargets().empty())
+    return emitOpError("must have at least one target");
+  if (getPauliLiteralAttr()) {
+    if (getPauli())
+      return emitOpError("cannot have both a literal and a value Pauli word");
+    if (!symbolizePauliWord(*getPauliLiteral()))
+      return emitOpError("literal Pauli word must contain only I, X, Y, or Z");
+    auto targetQubitCount = getStaticTargetQubitCount(getTargets());
+    if (targetQubitCount && getPauliLiteral()->size() != *targetQubitCount)
+      return emitOpError(
+          "literal Pauli word length must match target qubit count");
+  } else if (!getPauli()) {
+    return emitOpError("must have either a literal or a value Pauli word");
+  }
+  if (getRegisterName() && getRegisterName()->empty())
+    return emitOpError("quake measurement name cannot be empty.");
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -1725,6 +1757,17 @@ void cudaq::quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
   }
 
 QUANTUM_OPS(INSTANTIATE_CALLBACKS)
+
+/// An mpp reads the Pauli word, if it is given as an argument, in addition to
+/// the effects it has on its qubits, as an exp_pauli does.
+void cudaq::quake::MppOp::getEffects(
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
+        &effects) {
+  getEffectsImpl(effects);
+  if (getPauli())
+    effects.emplace_back(MemoryEffects::Read::get(), &getPauliMutable()[0],
+                         SideEffects::DefaultResource::get());
+}
 
 /// An exp_pauli reads the Pauli word, if it is given as an argument, in
 /// addition to the effects it has on its qubits. This is the case whether the

@@ -27,10 +27,10 @@ std::vector<std::string>
 cliffordTDecompositionBasis(std::span<const std::string> basis);
 
 /// Whether `clifford-t-synthesis-pipeline` approximates rotations for a target
-/// with \p basis. It does unless decomposition can lower one of the rotations
-/// it reads to the basis exactly, and an empty basis always synthesizes. A
-/// stage that approximates needs constant angles, so it needs the kernel's
-/// argument values.
+/// with \p basis. It does unless the basis contains `u3` or if an exact
+/// decomposition from rotations to the basis is known. An empty basis always
+/// synthesizes. A stage that approximates needs constant angles, so it needs
+/// the kernel's argument values.
 bool needsCliffordTSynthesis(std::span<const std::string> basis);
 
 } // namespace cudaq::opt
