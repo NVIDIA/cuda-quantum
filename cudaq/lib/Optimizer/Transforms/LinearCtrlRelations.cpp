@@ -148,8 +148,13 @@ public:
     DominanceInfo domInfo(func);
     RewritePatternSet patterns(ctx);
     patterns.insert<ThreadControl>(ctx, domInfo);
-    if (failed(
-            applyPatternsGreedily(func.getOperation(), std::move(patterns)))) {
+    // Aggressive region simplification replaces a block argument with the value
+    // that every predecessor passes, so a wire passed to both successors of a
+    // branch would gain a use in each. `canonicalize` runs at `Normal` too.
+    GreedyRewriteConfig config;
+    config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Normal);
+    if (failed(applyPatternsGreedily(func.getOperation(), std::move(patterns),
+                                     config))) {
       signalPassFailure();
     }
   }
