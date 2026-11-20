@@ -201,6 +201,17 @@ def test_broadcast_scalar_argument():
     with pytest.raises(RuntimeError, match="must be a list or ndarray"):
         cudaq.ptsbe.sample(circuit, [0.0, 0.1], math.pi)
 
+    # Too few argument sets raise a meaningful error instead of IndexError.
+    with pytest.raises(RuntimeError, match="argument sets"):
+        cudaq.sample(circuit, [0.0, 0.1], [math.pi])
+    with pytest.raises(RuntimeError, match="argument sets"):
+        cudaq.sample(circuit, [0.0, 0.1], np.array([math.pi]))
+
+    # Extra entries are ignored, matching the existing truncation of
+    # excess rows in 2D matrix arguments.
+    allCounts = cudaq.sample(circuit, [0.0], [math.pi, math.pi])
+    assert len(allCounts) == 1 and '1' in allCounts[0]
+
     # Broadcasting over all-list arguments still works.
     allCounts = cudaq.sample(circuit, [0.0, 0.1], [math.pi, math.pi])
     for c in allCounts:

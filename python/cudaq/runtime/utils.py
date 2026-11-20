@@ -131,15 +131,25 @@ def __createArgumentSet(*args):
     # Materialize array-like arguments once.
     materializedArgs = []
     arrayRanks = []
-    for arg in args:
+    for i, arg in enumerate(args):
         if hasattr(arg, "tolist"):
             arrayRank = len(arg.shape)
             arrayRanks.append(arrayRank)
+            nProvided = arg.shape[0] if arrayRank > 0 else 0
+            if nProvided < nArgSets:
+                raise RuntimeError(
+                    f"Broadcast argument {i} provides {nProvided} argument sets, but {nArgSets} are required."
+                )
             # A later matrix argument may have more rows than the first
             # argument that defines `nArgSets`. Do not materialize unused rows.
             m = arg[:nArgSets] if arrayRank == 2 else arg
             materializedArgs.append(m.tolist())
         else:
+            if (isinstance(arg, list) or isinstance(arg, List)) and \
+                    len(arg) < nArgSets:
+                raise RuntimeError(
+                    f"Broadcast argument {i} provides {len(arg)} argument sets, but {nArgSets} are required."
+                )
             arrayRanks.append(None)
             materializedArgs.append(arg)
 
