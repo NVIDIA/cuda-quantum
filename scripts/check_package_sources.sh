@@ -14,7 +14,9 @@
 #     (apt and pip; its license files are kept instead), or
 #   - its source is part of a DOCA/OFED source bundle downloaded to
 #     $SOURCES_ROOT/prereqs/doca-ofed-src* (apt only: rdma-core, ucx, xpmem, knem
-#     and the other Mellanox packages that replace Ubuntu's).
+#     and the other Mellanox packages that replace Ubuntu's), or
+#   - the DOCA <source>-dkms package of exactly that version, which holds the
+#     full source tree (mlnx-ofed-kernel), is in the same directories.
 # Also checks that every apt source package that was not omitted is on disk at
 # the exact version, so that a fetch that quietly got another version fails here.
 #
@@ -66,6 +68,8 @@ for variant in cudaq cudaqx cudaq-decoding; do
         echo "ok   $variant apt $spec: proprietary, license files only"
       elif awk -v p="${src}_$(upstream_version "$ver").orig.tar" 'index($0, p) == 1 {f = 1} END {exit !f}' <<< "$ofed_files"; then
         echo "ok   $variant apt $spec: source is in the DOCA/OFED bundle"
+      elif ls "$SOURCES_ROOT"/prereqs/doca-ofed-src*/"${src}-dkms_${ver}_all.deb" > /dev/null 2>&1; then
+        echo "ok   $variant apt $spec: source is in the DOCA ${src}-dkms package"
       else
         echo "FAIL $variant apt $spec: no source and not on the proprietary list"
         failures=$((failures + 1))

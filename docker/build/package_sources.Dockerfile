@@ -119,6 +119,11 @@ RUN for dir in "${SOURCES_ROOT}/cudaq/pip" "${SOURCES_ROOT}/cudaqx/pip" "${SOURC
       done; \
     done
 
+# Unpack the DOCA dkms packages that are the source of the kernel driver (kept next to the .deb)
+RUN for deb in "${SOURCES_ROOT}"/prereqs/doca-ofed-src*/*.deb; do \
+      [ -f "$deb" ] && dpkg-deb -x "$deb" "${deb%.deb}"; \
+    done; true
+
 # Report what has no source, then fail on anything that should have had some
 RUN for variant in cudaq cudaqx cudaq-decoding; do \
       echo "${variant} apt omitted packages:"; cat "${SOURCES_ROOT}/${variant}/apt/apt_omitted_packages.txt"; \

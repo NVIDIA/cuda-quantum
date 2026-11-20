@@ -18,7 +18,8 @@
 #     installs as binaries,
 #   - with --doca, the DOCA/OFED source bundle that matches DOCA_VERSION (rdma-core,
 #     ucx, xpmem, knem and the other Mellanox packages the images install), and
-#     with --doca-extra those of the DOCA releases of the cudaqx/cudaq-decoding images.
+#     with --doca-extra those of the DOCA releases of the cudaqx/cudaq-decoding
+#     images, plus the mlnx-ofed-kernel source of each (see doca_kernel_source).
 #
 # The versions are read from the files that build the images, so a component
 # that changes there changes here. Usage:
@@ -126,6 +127,22 @@ def doca_bundle(release: str, ofed: str, name: str) -> tuple:
     return (name, index + bundle)
 
 
+def doca_kernel_source(release: str) -> tuple:
+    """The mlnx-ofed-kernel source of a DOCA release.
+
+    The OFED bundle can be a patch release behind the apt repository, which has
+    no source packages; its -dkms package holds the full source tree of the
+    version that the repository's binaries are built from.
+    """
+    pool = f"https://linux.mellanox.com/public/repo/doca/{release}/ubuntu24.04/x86_64/pool/"
+    with urllib.request.urlopen(pool, timeout=60) as resp:
+        html = resp.read().decode()
+    debs = re.findall(r'href="(mlnx-ofed-kernel-dkms_[^"]+_all\.deb)"', html)
+    if len(debs) != 1:
+        sys.exit(f"Expected one mlnx-ofed-kernel-dkms deb at {pool}, got {debs}")
+    return (f"doca-ofed-src-{release}-kernel", pool + debs[0])
+
+
 def doca_entries(extra: list) -> list:
     """The OFED source bundles of the DOCA releases the images install.
 
@@ -141,6 +158,7 @@ def doca_entries(extra: list) -> list:
     for pair in extra:
         release, ofed = pair.split(":")
         entries.append(doca_bundle(release, ofed, f"doca-ofed-src-{release}"))
+        entries.append(doca_kernel_source(release))
     return entries
 
 
