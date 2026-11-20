@@ -171,6 +171,47 @@ def test_broadcastPy39Plus():
         assert len(c) == 2
 
 
+def test_broadcast_scalar_argument():
+    """
+    Regression test: scalar (non-list, non-array) arguments mixed into a
+    broadcast call must raise an error instead of being silently replaced
+    with 0.
+    """
+
+    @cudaq.kernel
+    def circuit(t: float, omega: float):
+        q = cudaq.qubit()
+        rx(omega, q)
+
+    with pytest.raises(RuntimeError, match="must be a list or ndarray"):
+        cudaq.sample(circuit, [0.0, 0.1], math.pi)
+
+    hamiltonian = cudaq.spin.z(0)
+    with pytest.raises(RuntimeError, match="must be a list or ndarray"):
+        cudaq.observe(circuit, hamiltonian, [0.0, 0.1], math.pi)
+
+    # Same check on the builder-kernel path (PyKernel).
+    builder, t, omega = cudaq.make_kernel(float, float)
+    q = builder.qalloc(1)
+    builder.rx(omega, q)
+    with pytest.raises(RuntimeError, match="must be a list or ndarray"):
+        cudaq.sample(builder, [0.0, 0.1], math.pi)
+
+    # And on the PTSBE sampling path.
+    with pytest.raises(RuntimeError, match="must be a list or ndarray"):
+        cudaq.ptsbe.sample(circuit, [0.0, 0.1], math.pi)
+
+    # Broadcasting over all-list arguments still works.
+    allCounts = cudaq.sample(circuit, [0.0, 0.1], [math.pi, math.pi])
+    for c in allCounts:
+        assert '1' in c and '0' not in c
+
+    results = cudaq.observe(circuit, hamiltonian, [0.0, 0.1],
+                            [math.pi, math.pi])
+    for r in results:
+        assert np.isclose(r.expectation(), -1.0)
+
+
 def test_list_pauli_word_not_broadcast():
     """
     Test that list[pauli_word] arguments are not incorrectly detected as 
