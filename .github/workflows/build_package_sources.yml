@@ -358,8 +358,11 @@ jobs:
             cp "$dir/apt_package_details.tsv" "$d/apt_package_details_${variant}.tsv"
             cp "$dir/pip_packages.txt" "$d/pip_packages_${variant}.txt"
             cp "$dir/images.txt" "$d/images_${variant}.txt"
-            cp -r "$dir/apt_licenses" "$d/apt_licenses_${variant}"
-            cp -r "$dir/pip_licenses" "$d/pip_licenses_${variant}"
+            # upload-artifact drops empty directories (e.g. an image without Python)
+            for kind in apt pip; do
+              mkdir -p "$d/${kind}_licenses_${variant}"
+              if [ -d "$dir/${kind}_licenses" ]; then cp -r "$dir/${kind}_licenses/." "$d/${kind}_licenses_${variant}/"; fi
+            done
           done
           : > $d/pip_packages_macos.txt
           mkdir -p $d/pip_licenses_macos
@@ -376,7 +379,7 @@ jobs:
         if: needs.diff-macos-package.result == 'success'
         run: |
           cp macos-pip-diff/pip_added.txt package-source-diff/pip_packages_macos.txt
-          cp -r macos-pip-diff/macos-pip-licenses/. package-source-diff/pip_licenses_macos/
+          if [ -d macos-pip-diff/macos-pip-licenses ]; then cp -r macos-pip-diff/macos-pip-licenses/. package-source-diff/pip_licenses_macos/; fi
 
       - name: Generate trimmed package lists (cudaqx/cudaq-decoding minus cudaq, macos minus cudaq/cudaqx)
         run: |
