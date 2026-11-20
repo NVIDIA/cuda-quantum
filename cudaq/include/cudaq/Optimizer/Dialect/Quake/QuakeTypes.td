@@ -9,6 +9,7 @@
 #ifndef CUDAQ_OPTIMIZER_DIALECT_QUAKE_TYPES
 #define CUDAQ_OPTIMIZER_DIALECT_QUAKE_TYPES
 
+include "cudaq/Optimizer/Dialect/LinearOwnershipInterfaces.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.td"
 include "mlir/IR/AttrTypeBase.td"
 
@@ -21,7 +22,7 @@ include "mlir/IR/AttrTypeBase.td"
 // generate incorrect code.
 //===----------------------------------------------------------------------===//
 
-def SSITypeTrait : NativeTypeTrait<"SSIType">;
+// SSITypeTrait is defined with the linear-ownership interface.
 
 //===----------------------------------------------------------------------===//
 // BaseType

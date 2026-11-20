@@ -10,7 +10,6 @@ from __future__ import annotations
 import pytest
 
 import cudaq.logical as cql
-import cudaq.logical.compiler.linearity as linearity
 import cudaq.mlir.ir as mlir_ir
 from cudaq.logical.compiler.linearity import (
     LinearityError,
@@ -73,19 +72,37 @@ def test_normal_program_and_gadget_bodies_verify_single_ownership():
     assert "fabric.gadget @idle_round" in gadget_report.checked_bodies
 
 
-def test_passing_analysis_does_not_render_diagnostic_value_names(monkeypatch):
-    module = parse("""
-  fabric.gadget @g(%arg0: !fabric.patch<@c>) -> !fabric.patch<@c> {
-    %0 = fabric.h %arg0 data : !fabric.patch<@c>
-    fabric.return %0 : !fabric.patch<@c>
+def test_python_report_and_p0_verifier_share_one_rule():
+    # The Python report and the qlx.program verifier run the same C++
+    # analysis. Build a legal program, then make it reuse a consumed qubit.
+    module = mlir_ir.Module.parse(
+        """
+module {
+  qlx.program @p : () -> i1 attributes {qlx.stage = "p0"} {
+    %q = qlx.prepare "zero" : !qlx.logical_qubit
+    %h = qlx.apply #qlx.action<h>(%q) : (!qlx.logical_qubit) -> !qlx.logical_qubit
+    %m = qlx.measure <Z> %h : !qlx.logical_qubit -> i1
+    qlx.return %m : i1
   }
-""")
-
-    def unexpected_description(*_args):
-        raise AssertionError("passing values must not render diagnostic names")
-
-    monkeypatch.setattr(linearity, "_describe_value", unexpected_description)
+}
+""",
+        mlir_ir.Context(),
+    )
     assert check_linearity(module).result == "pass"
+
+    block = module.body.operations[0].regions[0].blocks[0]
+    prepare, _, measure = (op.operation for op in list(block.operations)[:3])
+    measure.operands[0] = prepare.results[0]
+
+    report = check_linearity(module)
+    assert [v.kind for v in report.violations
+           ] == ["double-consume", "unconsumed"]
+    message = report.violations[0].message
+    assert "consumed more than once: by qlx.apply and again by qlx.measure" in (
+        message)
+    with pytest.raises(mlir_ir.MLIRError) as raised:
+        module.operation.verify()
+    assert message in str(raised.value)
 
 
 def test_double_consumed_patch_fails_verification_with_a_clear_message():
@@ -162,9 +179,12 @@ def test_use_after_destructive_measure_fails_at_the_ir_level():
   }
 """)
 
-    # The portable layer agrees: measuring a logical qubit consumes it.
-    program = mlir_ir.Module.parse(
-        """
+    # The portable layer agrees: measuring a logical qubit consumes it, and
+    # the qlx.program verifier rejects the second measurement.
+    with pytest.raises(mlir_ir.MLIRError,
+                       match="consumed more than once: by qlx.measure"):
+        mlir_ir.Module.parse(
+            """
 module {
   qlx.program @p : () -> i1 attributes {qlx.profile = "p0", qlx.stage = "p0"} {
     %q = qlx.prepare "zero" : !qlx.logical_qubit
@@ -175,10 +195,8 @@ module {
   }
 }
 """,
-        mlir_ir.Context(),
-    )
-    with pytest.raises(LinearityError, match="qlx.measure"):
-        verify_linearity(program)
+            mlir_ir.Context(),
+        )
 
 
 def test_linear_state_may_not_be_consumed_inside_an_unowned_loop_body():
@@ -289,6 +307,8 @@ def test_linear_type_recognition_covers_the_contracted_families():
     assert is_linear_type(t('!event.handle<!fabric.resource<@t>, "linear">'))
     assert is_linear_type(t("!phys.state<@q0>"))
     assert is_linear_type(t("!phys.resource_payload<@t_state>"))
+    assert is_linear_type(t('!qlx.logical_frame<"pauli">'))
+    assert is_linear_type(t("!fabric.patch<@c>"))
     assert not is_linear_type(t("i1"))
     assert not is_linear_type(t("!fabric.syndrome<@c>"))
     assert not is_linear_type(

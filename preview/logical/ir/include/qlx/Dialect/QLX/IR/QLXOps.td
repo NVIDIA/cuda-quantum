@@ -218,6 +218,7 @@ def QLX_ReturnOp : QLX_Op<"return", [Terminator]> {
 
 def QLX_ProgramOp : QLX_Op<"program", [
     IsolatedFromAbove,
+    LinearOwnershipScope,
     Symbol,
     SymbolTable,
     SingleBlockImplicitTerminator<"ReturnOp">
@@ -241,10 +242,13 @@ def QLX_ProgramOp : QLX_Op<"program", [
   let regions = (region SizedRegion<1>:$body);
   let assemblyFormat = "$sym_name `:` $function_type attr-dict-with-keyword $body";
   let hasVerifier = 1;
+  // Linear single ownership of every value in the body.
+  let hasRegionVerifier = 1;
 }
 
 def QLX_ObjectiveBodyOp : QLX_Op<"objective_body", [
     IsolatedFromAbove,
+    LinearOwnershipScope,
     Symbol,
     SymbolTable,
     SingleBlockImplicitTerminator<"ReturnOp">
@@ -264,6 +268,8 @@ def QLX_ObjectiveBodyOp : QLX_Op<"objective_body", [
   let regions = (region SizedRegion<1>:$body);
   let assemblyFormat = "$sym_name `:` $function_type attr-dict-with-keyword $body";
   let hasVerifier = 1;
+  // Linear single ownership of every value in the body.
+  let hasRegionVerifier = 1;
 }
 
 def QLX_ActionOp : QLX_Op<"action", [Symbol]> {
