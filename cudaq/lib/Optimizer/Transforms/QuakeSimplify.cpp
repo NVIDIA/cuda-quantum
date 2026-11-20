@@ -510,14 +510,19 @@ public:
     }
 
     Value laterAngle = parameters.front();
-    Operation *match = matcher.find_nearest(later, [&](Operation *candidate) {
+    auto isEndpoint = [&](Operation *candidate) {
       auto earlier = getSameActionEndpoint(later, candidate, matcher);
       if (!earlier)
         return false;
       auto earlierParameters = earlier.getParameters();
       return earlierParameters.size() == 1 &&
              earlierParameters.front().getType() == laterAngle.getType();
-    });
+    };
+    const bool unaryRz = isa<cudaq::quake::RzOp>(later.getOperation()) &&
+                         later.getControls().empty() &&
+                         later.getTargets().size() == 1;
+    Operation *match = unaryRz ? matcher.find_prior_rz(later, isEndpoint)
+                               : matcher.find_nearest(later, isEndpoint);
     if (!match)
       return failure();
 
@@ -530,34 +535,7 @@ public:
       return success();
     }
 
-    // Put a constant combined rotation at the earlier position. Its next
-    // search then starts there instead of crossing the same operations again,
-    // which made long rotation chains quadratic.
-    auto laterConstant = getSignedConstantAngle(laterAngle, later.isAdj());
-    auto earlierConstant =
-        getSignedConstantAngle(earlierAngle, earlier.isAdj());
-    if (laterConstant && earlierConstant) {
-      LLVM_DEBUG(llvm::dbgs() << "combined: " << earlier << '\n'
-                              << later << '\n');
-      Location location = later.getLoc();
-      eraseOrForward(later, rewriter);
-      OpBuilder::InsertionGuard guard(rewriter);
-      rewriter.setInsertionPoint(earlier);
-      Value combinedAngle = arith::ConstantOp::create(
-          rewriter, location,
-          rewriter.getFloatAttr(
-              laterAngle.getType(),
-              cudaq::opt::detail::addAngles(*laterConstant, *earlierConstant)));
-      auto combined = QOP::create(rewriter, location, earlier.getResultTypes(),
-                                  UnitAttr{}, ValueRange{combinedAngle},
-                                  earlier.getControls(), earlier.getTargets(),
-                                  earlier.getNegatedQubitControlsAttr());
-      rewriter.replaceOp(earlier, combined);
-      LLVM_DEBUG(llvm::dbgs() << "into: " << combined << '\n');
-      ++combineStat;
-      return success();
-    }
-
+    Operation *combinedRotation;
     {
       OpBuilder::InsertionGuard guard(rewriter);
       rewriter.setInsertionPoint(later);
@@ -567,13 +545,18 @@ public:
 
       LLVM_DEBUG(llvm::dbgs() << "combined: " << earlier << '\n'
                               << later << '\n');
-      [[maybe_unused]] auto combined = rewriter.replaceOpWithNewOp<QOP>(
+      auto combined = rewriter.replaceOpWithNewOp<QOP>(
           later, later.getResultTypes(), UnitAttr{}, ValueRange{combinedAngle},
           later.getControls(), later.getTargets(),
           later.getNegatedQubitControlsAttr());
+      combinedRotation = combined;
       LLVM_DEBUG(llvm::dbgs() << "into: " << combined << '\n');
     }
+    Operation *upperBound = earlier->getPrevNode();
+    Value input = unaryRz ? earlier.getTargets().front() : Value{};
     eraseOrForward(earlier, rewriter);
+    if (unaryRz)
+      matcher.remember_rz_frontier(combinedRotation, upperBound, input);
     ++combineStat;
     return success();
   }

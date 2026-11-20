@@ -41,18 +41,20 @@ func.func @combine_r1_across_z() {
 
 // CHECK-LABEL: func.func @combine_r1_across_z() {
 // CHECK:         %[[SUM:.*]] = arith.constant 5.000000e-01 : f64
-// CHECK:         %[[R:.*]] = quake.r1 (%[[SUM]])
-// CHECK-NEXT:    %[[Z:.*]] = quake.z %[[R]]
-// CHECK-NEXT:    quake.sink %[[Z]]
+// CHECK:         %[[Z:.*]] = quake.z
+// CHECK-NEXT:    quake.r1 (%[[SUM]]) %[[Z]]
+// CHECK-NEXT:    quake.sink
 
-// An Rz chain across CX controls combines into one Rz at the first position.
+// An Rz chain across CX controls combines into one Rz at the last position.
 func.func @combine_rz_chain_across_controls() {
   %a = arith.constant 1.250000e-01 : f64
   %b = arith.constant 2.500000e-01 : f64
   %c = arith.constant 5.000000e-01 : f64
   %control = quake.null_wire
   %target = quake.null_wire
-  %r0 = quake.rz (%a) %control : (f64, !quake.wire) -> !quake.wire
+  %before = quake.rz (%a) %control : (f64, !quake.wire) -> !quake.wire
+  %barrier = quake.h %before : (!quake.wire) -> !quake.wire
+  %r0 = quake.rz (%a) %barrier : (f64, !quake.wire) -> !quake.wire
   %x0:2 = quake.x [%r0] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %r1 = quake.rz (%b) %x0#0 : (f64, !quake.wire) -> !quake.wire
   %h = quake.h %x0#1 : (!quake.wire) -> !quake.wire
@@ -65,10 +67,12 @@ func.func @combine_rz_chain_across_controls() {
 
 // CHECK-LABEL: func.func @combine_rz_chain_across_controls() {
 // CHECK:         %[[SUM:.*]] = arith.constant 8.750000e-01 : f64
-// CHECK:         %[[R:.*]] = quake.rz (%[[SUM]])
-// CHECK-NEXT:    %[[X0:.*]]:2 = quake.x {{\[}}%[[R]]]
+// CHECK:         %[[BEFORE:.*]] = quake.rz
+// CHECK-NEXT:    %[[BARRIER:.*]] = quake.h %[[BEFORE]]
+// CHECK-NEXT:    %[[X0:.*]]:2 = quake.x {{\[}}%[[BARRIER]]]
 // CHECK-NEXT:    %[[H:.*]] = quake.h %[[X0]]#1
-// CHECK-NEXT:    quake.x {{\[}}%[[X0]]#0] %[[H]]
+// CHECK-NEXT:    %[[X1:.*]]:2 = quake.x {{\[}}%[[X0]]#0] %[[H]]
+// CHECK-NEXT:    quake.rz (%[[SUM]]) %[[X1]]#0
 // CHECK-NOT:     quake.rz
 // CHECK:         return
 
@@ -94,9 +98,8 @@ func.func @fold_after_cancellation() {
 // CHECK-LABEL: func.func @fold_after_cancellation() {
 // CHECK:         %[[SUM:.*]] = arith.constant 7.500000e-01 : f64
 // CHECK-NOT:     quake.x
-// CHECK:         quake.rz (%[[SUM]])
-// CHECK-NOT:     quake.x
 // CHECK:         quake.z
+// CHECK:         quake.rz (%[[SUM]])
 // CHECK-NOT:     quake.x
 // CHECK:         return
 
@@ -171,8 +174,8 @@ func.func @combine_controlled_ry() {
 
 // CHECK-LABEL: func.func @combine_controlled_ry() {
 // CHECK:         %[[SUM:.*]] = arith.constant 7.500000e-01 : f64
-// CHECK:         %[[R:.*]]:2 = quake.ry (%[[SUM]]) {{\[}}%{{.*}} neg [true]
-// CHECK-NEXT:    quake.z %[[R]]#0
+// CHECK:         %[[Z:.*]] = quake.z
+// CHECK-NEXT:    quake.ry (%[[SUM]]) {{\[}}%[[Z]] neg [true]
 // CHECK-NEXT:    quake.sink
 
 func.func @combine_phased_rx() {
