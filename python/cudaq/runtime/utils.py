@@ -41,6 +41,16 @@ def _kernel_has_conditionals_on_measure(kernel) -> bool:
     return False
 
 
+def __rejectScalarBroadcastArgs(*args):
+    # Same check as the 2D-array path above for broadcasts triggered by a
+    # 1D list/array argument.
+    for i, arg in enumerate(args):
+        if isinstance(arg, (int, float, bool, str, complex, np.generic)):
+            raise RuntimeError(
+                f"Argument {i} ({type(arg)}) must be a list or ndarray for sample or observe broadcasting."
+            )
+
+
 def __isBroadcast(kernel, *args):
     # kernel could be a PyKernel or kernel decorator
     if isinstance(kernel, PyKernel):
@@ -63,17 +73,17 @@ def __isBroadcast(kernel, *args):
 
         firstArg = args[0]
         firstArgTypeIsFlatSequence = cc.SequenceType.isinstance(argTypes[0])
-        if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsFlatSequence:
+        isBroadcast = isDefinitelyBroadcast or (
+            (isinstance(firstArg, list) or isinstance(firstArg, List)) and
+            not firstArgTypeIsFlatSequence) or (hasattr(firstArg, "shape") and (
+                (len(firstArg.shape) == 1 and not firstArgTypeIsFlatSequence) or
+                len(firstArg.shape) == 2))
+
+        if isBroadcast and not isDefinitelyBroadcast:
+            __rejectScalarBroadcastArgs(*args)
+
+        if isBroadcast:
             return True
-
-        if hasattr(firstArg, "shape"):
-            shape = firstArg.shape
-            if len(shape) == 1 and not firstArgTypeIsFlatSequence:
-                return True
-
-            if len(shape) == 2:
-                return True
 
         return False
 
@@ -98,17 +108,17 @@ def __isBroadcast(kernel, *args):
 
         firstArg = args[0]
         firstArgTypeIsFlatSequence = cc.SequenceType.isinstance(argTypes[0])
-        if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsFlatSequence:
+        isBroadcast = isDefinitelyBroadcast or (
+            (isinstance(firstArg, list) or isinstance(firstArg, List)) and
+            not firstArgTypeIsFlatSequence) or (hasattr(firstArg, "shape") and (
+                (len(firstArg.shape) == 1 and not firstArgTypeIsFlatSequence) or
+                len(firstArg.shape) == 2))
+
+        if isBroadcast and not isDefinitelyBroadcast:
+            __rejectScalarBroadcastArgs(*args)
+
+        if isBroadcast:
             return True
-
-        if hasattr(firstArg, "shape"):
-            shape = firstArg.shape
-            if len(shape) == 1 and not firstArgTypeIsFlatSequence:
-                return True
-
-            if len(shape) == 2:
-                return True
 
         return False
 
@@ -140,9 +150,10 @@ def __createArgumentSet(*args):
 
             if isinstance(arg, list) or isinstance(arg, List):
                 currentArgs[i] = arg[j]
-
-            if arrayRanks[i] is not None:
+            elif arrayRanks[i] is not None:
                 currentArgs[i] = materializedArgs[i][j]
+            else:
+                currentArgs[i] = arg
 
         argSet.append(tuple(currentArgs))
     return argSet
