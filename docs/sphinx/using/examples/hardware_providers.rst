@@ -133,7 +133,7 @@ composed of two delay lines in series.
    :width: 400px
    :align: center
 
-The parameters needed to define the time bin interferometer are the the input state, the loop 
+The parameters needed to define the time bin interferometer are the input state, the loop 
 lengths, beam splitter angles, and optionally the phase shifter angles, and the number of samples.
 The *input state* is the initial state of the photons in the time bin interferometer, 
 the left-most entry corresponds to the first mode entering the loop.
