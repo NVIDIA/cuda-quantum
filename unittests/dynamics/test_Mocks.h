@@ -13,6 +13,7 @@
 #include <CuDensityMatErrorHandling.h>
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <cudensitymat.h>
 #include <iostream>
 
@@ -26,9 +27,9 @@ inline cudensitymatHandle_t mock_handle() {
 // Mock Liouvillian operator creation
 inline cudensitymatOperator_t mock_liouvillian(cudensitymatHandle_t handle) {
   cudensitymatOperator_t liouvillian = nullptr;
-  std::vector<int64_t> dimensions = {2, 2};
+  std::vector<std::int64_t> dimensions = {2, 2};
   HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
-      handle, static_cast<int32_t>(dimensions.size()), dimensions.data(),
+      handle, static_cast<std::int32_t>(dimensions.size()), dimensions.data(),
       &liouvillian));
 
   if (!liouvillian)
@@ -49,8 +50,8 @@ inline std::vector<std::complex<double>> mock_initial_state_data() {
 }
 
 // Mock initial raw state data
-inline std::vector<int64_t> mock_hilbert_space_dims() {
-  std::vector<int64_t> dims = {2, 2};
+inline std::vector<std::int64_t> mock_hilbert_space_dims() {
+  std::vector<std::int64_t> dims = {2, 2};
 
   if (dims.empty())
     throw std::runtime_error("Mock Hilbert space dimensions are empty!");

@@ -1,0 +1,20 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# REQUIRES: qlx-python
+# RUN: %python %S/Inputs/to_pbc_repeat_period_boundary.py direct-boundary | FileCheck %s --check-prefix=DIRECT
+# RUN: %python %S/Inputs/to_pbc_repeat_period_boundary.py clone-boundary | FileCheck %s --check-prefix=CLONE-BOUNDARY
+# RUN: %python %S/Inputs/to_pbc_repeat_period_boundary.py many-programs | FileCheck %s --check-prefix=MANY
+# RUN: not %python %S/Inputs/to_pbc_repeat_period_boundary.py period-overflow 2>&1 | FileCheck %s --check-prefix=PERIOD
+# RUN: not %python %S/Inputs/to_pbc_repeat_period_boundary.py clone-overflow 2>&1 | FileCheck %s --check-prefix=CLONE
+
+# DIRECT: exact 64-phase direct materialization limit is accepted
+# CLONE-BOUNDARY: exact 4096-operation periodic clone budget is accepted
+# MANY: many direct-expanded programs preserve every SSA owner
+# PERIOD: qlx-to-pbc residual Clifford period exceeds the bounded search limit of 64
+# CLONE: qlx-to-pbc periodic normalization would clone 2049 body operations across 2 phases, exceeding the bounded 4096-operation budget

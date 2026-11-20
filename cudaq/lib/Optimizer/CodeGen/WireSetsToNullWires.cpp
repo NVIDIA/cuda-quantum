@@ -27,9 +27,10 @@ public:
 
   void runOnOperation() override {
     ModuleOp module = getOperation();
+    // Lower wire ops even when no wire set remains: `return_wire` does not
+    // reference its wire set, so `symbol-dce` can erase the set and leave
+    // `return_wire` ops behind.
     auto wireSets = llvm::to_vector(module.getOps<cudaq::quake::WireSetOp>());
-    if (wireSets.empty())
-      return;
     auto wireTy = cudaq::quake::WireType::get(&getContext());
     IRRewriter rewriter(&getContext());
     for (auto func : module.getOps<func::FuncOp>()) {

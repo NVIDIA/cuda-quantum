@@ -22,6 +22,7 @@ import os
 import sys
 from pygments.lexers.special import TextLexer
 import sphinx_rtd_theme
+from sphinx.util import logging
 
 sys.path.insert(0, os.path.abspath('_ext'))
 
@@ -126,7 +127,7 @@ exclude_patterns = [
     'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb',
     'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md',
     'examples/plugins/mlir_extension/README.md',
-    'community/README.md',
+    'examples/python/dynamics/benchmarks/README.md',
 ]
 
 compiler_developer_docs = (
@@ -196,9 +197,34 @@ html_static_path = ['_static']
 htmlhelp_basename = 'cudaqDoc'
 
 
+# Sphinx emits external toctree links verbatim on every page.
+# Resolve the separately built Logical docs relative to each page (#5471).
+_LOGICAL_TOCTREE_HREF = 'href="./preview/logical/index.html#http://"'
+
+
+def _fix_logical_sidebar_link(app, pagename, templatename, context, doctree):
+    toctree = context.get('toctree')
+    if toctree is None:
+        return
+    href = 'href="{}"'.format(context['pathto']('preview/logical/index.html',
+                                                1))
+
+    def fixed_toctree(*args, **kwargs):
+        tree = toctree(*args, **kwargs)
+        if pagename == app.config.root_doc and _LOGICAL_TOCTREE_HREF not in tree:
+            logging.getLogger(__name__).warning(
+                'CUDA-Q Logical toctree link does not match '
+                '_LOGICAL_TOCTREE_HREF in conf.py.',
+                location=(pagename, None))
+        return tree.replace(_LOGICAL_TOCTREE_HREF, href)
+
+    context['toctree'] = fixed_toctree
+
+
 def setup(app):
     app.add_lexer('mlir', TextLexer)
     app.add_css_file('cudaq_override.css')
+    app.connect('html-page-context', _fix_logical_sidebar_link)
 
 
 # -- Options for BREATHE -------------------------------------------------

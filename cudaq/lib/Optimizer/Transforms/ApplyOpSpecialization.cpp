@@ -33,6 +33,7 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_APPLYSPECIALIZATION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include <cstdint>
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "apply-op-specialization"
@@ -1326,7 +1327,7 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
       for (auto [memberIdx, memberTy] : llvm::enumerate(struqTy.getMembers())) {
         Value member = cudaq::quake::GetMemberOp::create(
             rewriter, loc, memberTy, info.refOrVeq,
-            static_cast<uint32_t>(memberIdx));
+            static_cast<std::uint32_t>(memberIdx));
         if (isa<cudaq::quake::RefType>(memberTy)) {
           extractedWires.push_back(
               cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, member));
@@ -2075,10 +2076,9 @@ public:
       auto arrAttr = cast<DenseI32ArrayAttr>(
           op->getAttr(cudaq::runtime::operandSegmentSizes));
       // Walk over any floating-point parameters to `op` and negate them.
-      for (auto iter = op->getOperands().begin(),
-                endIter = op->getOperands().begin() + arrAttr[0];
-           iter != endIter; ++iter) {
-        Value val = *iter;
+      // For single-parameter rotations: negate the angle.
+      if (arrAttr[0] == 1) {
+        Value val = op->getOperand(0);
         Value neg = arith::NegFOp::create(builder, loc, val.getType(), val);
         mapper.map(val, neg);
         opWasNegated = true;

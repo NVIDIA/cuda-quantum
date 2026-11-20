@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
-
 #include <type_traits>
 
 #include "Support/Stepper.h"

@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "qlx-c/Dialect/Fabric.h"
-
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
 #include "mlir/CAPI/IR.h"
@@ -17,8 +16,8 @@
 #include "qlx/Dialect/Fabric/IR/FabricAttrs.h"
 #include "qlx/Dialect/Fabric/IR/FabricDialect.h"
 #include "qlx/Dialect/Fabric/IR/FabricTypes.h"
-
 #include "mlir/IR/BuiltinAttributes.h"
+#include <cstdint>
 
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Fabric, fabric,
                                       qlx::fabric::FabricDialect)
@@ -160,11 +159,11 @@ bool fabricAttributeIsAFloorplan(MlirAttribute attr) {
 
 MlirAttribute fabricFloorplanAttrGet(MlirContext ctx, MlirStringRef layout,
                                      intptr_t numParams,
-                                     const int64_t *params) {
+                                     const std::int64_t *params) {
   auto sym = qlx::fabric::symbolizeLayout(unwrap(layout));
   if (!sym)
     return MlirAttribute{nullptr};
-  llvm::ArrayRef<int64_t> ref(params, static_cast<size_t>(numParams));
+  llvm::ArrayRef<std::int64_t> ref(params, static_cast<size_t>(numParams));
   return wrap(qlx::fabric::FloorplanAttr::get(unwrap(ctx), *sym, ref));
 }
 

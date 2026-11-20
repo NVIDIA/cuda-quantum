@@ -8,12 +8,10 @@
 
 #include "qlx-c/Target/Translations.h"
 #include "qlx/Analysis/GadgetEDEM.h"
-
 #include "mlir/CAPI/IR.h"
 #include "mlir/CAPI/Support.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
-
 #include <cstdlib>
 #include <iostream>
 #include <new>

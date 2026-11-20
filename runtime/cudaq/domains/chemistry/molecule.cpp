@@ -8,7 +8,6 @@
 #include "molecule.h"
 #include "MoleculePackageDriver.h"
 #include "cudaq/utils/cudaq_utils.h"
-
 #include <xtensor/xadapt.hpp>
 
 // Workaround for clang 17-18 template ambiguity with svector's

@@ -9,18 +9,7 @@
 # ==============================================================================
 # CPU RoCE transport test binaries + helpers (Phase 1)
 #
-# Test artifacts that consume cudaq-realtime-cpu-roce-transport:
-#   - hsb_bridge_cpu              GPU-less bridge binary; mirrors gpu_roce_bridge
-#                                 but uses CpuRoceTransceiver +
-#                                 CUDAQ_DISPATCH_HOST_CALL.
-#   - hsb_test_cpu.sh             Orchestration script (built artifact; copy at
-#                                 install time).
-#
-# The RoCE artifacts above are gated on TARGET cudaq-realtime-cpu-roce-transport
-# (skipped when HololinkRoce is not found). The UDP tests below run
-# BEFORE that gate -- they depend only on the always-built UDP target, so
-# RoCE-only setup must stay below the return() guard.
-# ==============================================================================
+# The shared validation receiver (roce_app) is built in realtime/validation.
 
 # ----------------------------------------------------------------------------
 # test_udp_transceiver: loopback tests for the UDP ring transceiver. Pure CPU
@@ -78,46 +67,3 @@ cudaq_gtest_discover_tests(test_cpu_roce_transceiver
   TEST_PREFIX "test_cpu_roce_transceiver.")
 message(STATUS
   "  - test_cpu_roce_transceiver (unified-mode hooks; service cases need RDMA)")
-
-# CUDA include path is needed because cudaq_realtime.h transitively includes
-# <cuda_runtime.h> (for cudaGraphExec_t typedef in the function-entry union).
-# We don't link CUDA runtime — only the headers.
-find_package(CUDAToolkit REQUIRED)
-
-# ----------------------------------------------------------------------------
-# hsb_bridge_cpu: GPU-less bridge binary.
-# ----------------------------------------------------------------------------
-add_executable(hsb_bridge_cpu
-  hsb_bridge_cpu.cpp
-  init_rpc_increment_function_table_host.cpp
-)
-
-target_include_directories(hsb_bridge_cpu PRIVATE
-  ${CUDAQ_REALTIME_INCLUDE_DIR}
-  ${CUDAToolkit_INCLUDE_DIRS}
-)
-
-target_link_libraries(hsb_bridge_cpu PRIVATE
-  cudaq-realtime-cpu-roce-transport     # CpuRoceTransceiver + C wrapper
-  cudaq-realtime-host-dispatch     # cudaq_host_ring_dispatch_loop /
-                                   # cudaq_host_unified_loop (plain C++, no CUDA)
-  Threads::Threads
-)
-
-set_target_properties(hsb_bridge_cpu PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/utils
-)
-
-install(TARGETS hsb_bridge_cpu
-  COMPONENT realtime-tests
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
-# ----------------------------------------------------------------------------
-# hsb_test_cpu.sh: orchestration script, copied to the same output dir as the
-# binary so the existing test-script convention (sibling of binary) works.
-# ----------------------------------------------------------------------------
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hsb_test_cpu.sh
-               ${CMAKE_BINARY_DIR}/unittests/utils/hsb_test_cpu.sh COPYONLY)
-
-message(STATUS "  - hsb_bridge_cpu (GPU-less Phase 1 bridge)")

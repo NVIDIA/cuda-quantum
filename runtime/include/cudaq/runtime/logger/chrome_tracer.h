@@ -28,7 +28,7 @@ public:
   ~ChromeTraceBackend() override;
 
   void onBegin(const TraceEvent &e) override;
-  void onEnd(const TraceEvent &e, uint64_t durUs) override;
+  void onEnd(const TraceEvent &e, std::uint64_t durUs) override;
 
   // Serialize the current event buffer as a Chrome Trace Event Format JSON
   // string. Non-destructive; safe to call mid-run.
@@ -47,9 +47,9 @@ private:
     std::string name;
     std::string category;
     std::string args;
-    uint64_t tsUs;
-    uint64_t durUs;
-    uint32_t tid;
+    std::uint64_t tsUs;
+    std::uint64_t durUs;
+    std::uint32_t tid;
   };
 
   std::string outputPath;

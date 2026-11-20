@@ -30,7 +30,6 @@
 
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
-
 #include <stdint.h>
 
 #ifdef __cplusplus

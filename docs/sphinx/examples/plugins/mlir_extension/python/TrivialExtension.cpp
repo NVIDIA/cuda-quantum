@@ -14,7 +14,6 @@
 
 #include "Trivial/TrivialDialect.h"
 #include "Trivial/TrivialPasses.h"
-
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"

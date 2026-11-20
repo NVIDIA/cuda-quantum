@@ -201,7 +201,6 @@ __all__ = [
     "JointMeasurement",
     "prepare_cultivated_t",
     "cultivate_t_d3_to_matchable_d6",
-    "adjacent_rounds",
     "css_memory_round",
     "logical_measure",
     "mpp_compiler",

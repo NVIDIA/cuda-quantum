@@ -8,26 +8,32 @@
 
 # Quake import is available only through CUDA-Q's shared compiler target. This
 # deliberately has no static source/build-tree fallback: CUDA-Q and QLX must
-# resolve Quake, CC, LLVM, and MLIR through the same library and TypeIDs.
-if(QLX_USE_CUDAQ_SDK)
-  if(NOT CUDAQ_INCLUDE_DIR OR NOT IS_DIRECTORY "${CUDAQ_INCLUDE_DIR}")
-    message(FATAL_ERROR
-      "CUDA-Q SDK mode requires CUDAQ_INCLUDE_DIR to name the installed "
-      "CUDA-Q headers")
-  endif()
-  add_library(QLXCUDAQuantumDialects INTERFACE)
-  target_link_libraries(QLXCUDAQuantumDialects INTERFACE cudaq::MLIR)
-  target_include_directories(QLXCUDAQuantumDialects INTERFACE
-    "${CUDAQ_INCLUDE_DIR}")
+# resolve Quake, CC, LLVM, and MLIR through the same library and TypeIDs. This
+# directory is added only when QLX_USE_CUDAQ_SDK is ON, the default.
+if(NOT CUDAQ_INCLUDE_DIR OR NOT IS_DIRECTORY "${CUDAQ_INCLUDE_DIR}")
+  message(FATAL_ERROR
+    "CUDA-Q SDK mode requires CUDAQ_INCLUDE_DIR to name the installed "
+    "CUDA-Q headers")
 endif()
+add_library(QLXCUDAQuantumDialects INTERFACE)
+target_link_libraries(QLXCUDAQuantumDialects INTERFACE cudaq::MLIR)
+target_include_directories(QLXCUDAQuantumDialects INTERFACE
+  "${CUDAQ_INCLUDE_DIR}")
 
 qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
+  MLIRArithDialect
+  MLIRComplexDialect
+  MLIRControlFlowInterfaces
   MLIRFuncDialect
   MLIRIR
+  MLIRLoopLikeInterface
   MLIRSupport
+  MLIRTransforms
+  MLIRUBDialect
 )
 
 add_mlir_conversion_library(MLIRQuakeToQLX
+  EraseQuakeGlobalPhase.cpp
   PruneDeadCCLoopCarries.cpp
   QuakeToQLX.cpp
   QuakeToQLXPipelineReg.cpp
@@ -43,29 +49,13 @@ add_mlir_conversion_library(MLIRQuakeToQLX
   MLIRQLXDialect
   MLIRLVMDialect
   MLIRCflowDialect
+  QLXCUDAQuantumDialects
   ${_qlx_mlir_link_libraries}
 )
 
 qlx_propagate_llvm_rtti_eh(MLIRQuakeToQLX)
 
-if(QLX_USE_CUDAQ_SDK)
-  qlx_select_mlir_link_libraries(_qlx_quake_mlir_link_libraries
-    MLIRArithDialect
-    MLIRComplexDialect
-    MLIRControlFlowInterfaces
-    MLIRLoopLikeInterface
-    MLIRTransforms
-    MLIRUBDialect
-  )
-  target_compile_definitions(obj.MLIRQuakeToQLX PRIVATE
-    QLX_HAS_CUDAQ_QUAKE=1)
-  target_link_libraries(MLIRQuakeToQLX PUBLIC
-    QLXCUDAQuantumDialects
-    ${_qlx_quake_mlir_link_libraries}
-  )
-
-  # Loadable DialectPlugin+PassPlugin so the Python path can convert Quake
-  # in-process (via _qlxRuntime.load_plugin + run_pass) instead of shelling
-  # out to the qlx-opt binary.
-  add_subdirectory(Plugin)
-endif()
+# Loadable DialectPlugin+PassPlugin so the Python path can convert Quake
+# in-process (via _qlxRuntime.load_plugin + run_pass) instead of shelling
+# out to the qlx-opt binary.
+add_subdirectory(Plugin)

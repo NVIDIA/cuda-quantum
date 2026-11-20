@@ -9,6 +9,10 @@
 // REQUIRES: qlx-opt, cudaq-quake
 // RUN: qlx-opt '--convert-quake-to-qlx=entry-point=foo..0x2' %s | FileCheck %s --check-prefix=EXACT
 // RUN: not qlx-opt '--convert-quake-to-qlx=entry-point=foo' %s 2>&1 | FileCheck %s --check-prefix=AMBIGUOUS
+// The combined pipeline forwards its entry-point option to the conversion.
+// RUN: qlx-opt '--quake-to-qlx-pipeline=entry-point=foo..0x2' %s | FileCheck %s --check-prefix=EXACT
+// RUN: qlx-opt --pass-pipeline='builtin.module(quake-to-qlx-pipeline{entry-point="foo..0x2"})' %s | FileCheck %s --check-prefix=EXACT
+// RUN: not qlx-opt '--quake-to-qlx-pipeline=entry-point=foo' %s 2>&1 | FileCheck %s --check-prefix=AMBIGUOUS
 
 module {
   func.func @__nvqpp__mlirgen__foo..0x1()

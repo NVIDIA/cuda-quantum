@@ -7,11 +7,8 @@
  ******************************************************************************/
 
 #include "PopulateSubmodules.h"
-
 #include "qlx-c/Dialect/QLX.h"
-
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
-
 #include <nanobind/stl/string.h>
 
 namespace nb = nanobind;

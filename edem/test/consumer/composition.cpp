@@ -8,6 +8,7 @@
 #include "cudaq/edem/composition.hpp"
 #include "cudaq/edem/noise.hpp"
 #include <array>
+#include <cstdint>
 #include <cstdlib>
 #include <type_traits>
 #include <utility>
@@ -37,8 +38,9 @@ void check(bool condition) {
 }
 
 struct Resource {
-  uint64_t attempts = 0, fail_at = 0, live = 0;
-  static void *allocate(void *context, uint64_t bytes, uint32_t alignment) {
+  std::uint64_t attempts = 0, fail_at = 0, live = 0;
+  static void *allocate(void *context, std::uint64_t bytes,
+                        std::uint32_t alignment) {
     auto &self = *static_cast<Resource *>(context);
     if (++self.attempts == self.fail_at)
       return nullptr;
@@ -48,8 +50,8 @@ struct Resource {
       ++self.live;
     return data;
   }
-  static void deallocate(void *context, void *data, uint64_t bytes,
-                         uint32_t alignment) {
+  static void deallocate(void *context, void *data, std::uint64_t bytes,
+                         std::uint32_t alignment) {
     auto &self = *static_cast<Resource *>(context);
     check(self.live != 0);
     --self.live;
@@ -70,7 +72,7 @@ void failure_sites(Operation operation) {
   check(!resource.live);
   const auto attempts = resource.attempts;
   check(attempts > 0);
-  for (uint64_t fail = 1; fail <= attempts; ++fail) {
+  for (std::uint64_t fail = 1; fail <= attempts; ++fail) {
     resource = {0, fail, 0};
     check(operation(&memory) == CUDAQ_EDEM_ALLOCATION_FAILED);
     check(!resource.live);
@@ -86,7 +88,7 @@ int main() {
   std::array occurrences{value.view(), copy.view()};
   check(cudaq::edem::compose_chain(occurrences.data(), occurrences.size(),
                                    composed) == CUDAQ_EDEM_OK);
-  uint32_t closed = 0;
+  std::uint32_t closed = 0;
   check(cudaq_edem_is_dem(&composed.view(), &closed) == CUDAQ_EDEM_OK &&
         closed);
   auto address = composed.view().map.data;
@@ -132,8 +134,8 @@ int main() {
   check(PackedEDEM::adopt(record, adopted) == CUDAQ_EDEM_OK && !record.data);
   check(cudaq::edem::compose_chain(nullptr, 0, adopted) ==
         CUDAQ_EDEM_INVALID_ARGUMENT);
-  uint32_t ids[] = {0, 1}, rows[] = {0, 0}, width = 1;
-  uint64_t offsets[] = {0, 1, 2};
+  std::uint32_t ids[] = {0, 1}, rows[] = {0, 0}, width = 1;
+  std::uint64_t offsets[] = {0, 1, 2};
   double probabilities[] = {.1, .2};
   cudaq_edem_fault_group group{CUDAQ_EDEM_INDEPENDENT, 2, ids, probabilities};
   cudaq_edem_fault_distribution fault{2, 1, &group};
@@ -158,7 +160,8 @@ int main() {
   auto moved_mapping = std::move(mapping);
   check(!mapping.size() && moved_mapping.data() == mapping_address);
   auto mapping_record = moved_mapping.release();
-  check(!moved_mapping.size() && mapping_record.size == 2 * sizeof(uint64_t));
+  check(!moved_mapping.size() &&
+        mapping_record.size == 2 * sizeof(std::uint64_t));
   cudaq_gf2_owned_buffer_release(&mapping_record);
   return 0;
 }

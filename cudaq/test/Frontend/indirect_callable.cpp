@@ -40,8 +40,37 @@ void meanwhile_on_safari() {
 // CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
+
+// Passing a `qkernel` by value requires `qkernel` to be copyable.
+
+__qpu__ void by_value_qernel(cudaq::qkernel<int(double)> bob, double dub) {
+  auto size = bob(dub);
+  cudaq::qvector q(size);
+  mz(q);
+}
+
+void by_value_caller() {
+  cudaq::qkernel<int(double)> tiger{rando_qernel};
+  by_value_qernel(tiger, 11.0);
+  auto copy = tiger;
+  copy = tiger;
+  by_value_qernel(copy, 3.0);
+}
+
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_by_value_qernel._Z15by_value_qernelN5cudaq7qkernelIFidEEEd(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.indirect_callable<(f64) -> i32>,
+// CHECK:           cc.call_indirect_callable
+// CHECK:           return
+// CHECK:         }
 
 // CHECK-LABEL:   func.func @_Z16superstar_qernelRKN5cudaq7qkernelIFidEEEd(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<i8>,
+// CHECK-SAME:      %[[VAL_1:.*]]: f64) attributes {no_this} {
+// CHECK:           return
+// CHECK:         }
+// CHECK-LABEL:   func.func @_Z15by_value_qernelN5cudaq7qkernelIFidEEEd(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<i8>,
 // CHECK-SAME:      %[[VAL_1:.*]]: f64) attributes {no_this} {
 // CHECK:           return

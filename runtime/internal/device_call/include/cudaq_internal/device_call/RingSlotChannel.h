@@ -32,11 +32,8 @@
 #include "cudaq_internal/device_call/DeviceCallChannel.h"
 #include "cudaq_internal/device_call/DeviceCallError.h"
 #include "cudaq_internal/device_call/RpcFrame.h"
-
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-
 #include "cudaq/runtime/logger/logger.h"
-
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -281,7 +278,7 @@ protected:
 
   // Parse a UDP/TCP port argument, rejecting non-numeric input and values
   // outside [1, 65535] with a DeviceCallError instead of letting std::stoul's
-  // raw exceptions (or a silent uint16_t truncation) escape.
+  // raw exceptions (or a silent std::uint16_t truncation) escape.
   std::uint16_t parsePort(const std::string &value, const char *key) const {
     unsigned long port = 0;
     std::size_t consumed = 0;

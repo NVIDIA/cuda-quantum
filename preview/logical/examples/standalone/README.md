@@ -6,8 +6,8 @@ the logical authoring, placement, QEC selection, physical lowering, scheduling,
 direct estimation, and `cudaq.run` APIs visible.
 
 Examples 00–03 introduce the compiler from a portable logical program to a
-complete physical schedule. Continue with encoded execution (06), or factory
-protocols and evaluation (07–08). Example 09 is an optional capstone combining
+complete physical schedule. Continue with encoded execution (04–05), or factory
+protocols and evaluation (06–07). Example 08 is an optional capstone combining
 synthesis, factories, estimation, and scheduling.
 
 1. `00_logical_program.py` authors a portable Bell program without a CUDA-Q
@@ -18,18 +18,22 @@ synthesis, factories, estimation, and scheduling.
    gadget, then inspects the gadget's static operations.
 4. `03_physical_schedule.py` compiles a logical memory experiment onto a
    surface-code device and lowers it to physical events.
-5. `06_steane_bernstein_vazirani.py` recovers a hidden bit string with Steane
+5. `04_steane_preparation_check.py` prepares a Steane encoded zero, extracts
+   its six stabilizers, and compares noiseless and noisy runs on Stim. It
+   stops at raw syndromes and points to EDEM export and CUDA-Q QEC for
+   decoding.
+6. `05_steane_bernstein_vazirani.py` recovers a hidden bit string with Steane
    encoded qubits using `cudaq.run` on Stim. Its explicit Clifford encoder
    prepares ideal encoded states; it does not perform noisy error correction
    or decoding.
-6. `07_magic_state_distillation.py` defines a 15-to-1 T-state distillation
+7. `06_magic_state_distillation.py` defines a 15-to-1 T-state distillation
    protocol with resource requests and postselection, then estimates its
    static resources.
-7. `08_t_factory_evaluation.py` evaluates T-state distillation with
+8. `07_t_factory_evaluation.py` evaluates T-state distillation with
    non-Clifford gates, measurement feedback, and raw-state noise on `BareQubit`
    patches. It supplies explicit preparation and gate teleportation, selecting
-   accepted shots in Python, rather than executing example 07 unchanged.
-8. `09_gidney_ekera_lookup_addition.py` compiles a four-bit Gidney--Ekerå
+   accepted shots in Python, rather than executing example 06 unchanged.
+9. `08_gidney_ekera_lookup_addition.py` compiles a four-bit Gidney--Ekerå
    lookup-addition circuit through synthesis, PBC normalization, placement,
    QEC selection, and physical scheduling, including factory provisioning
    and analytical estimates.

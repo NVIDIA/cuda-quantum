@@ -10,7 +10,6 @@
 
 #include "CuStateVecState.h"
 #include "common/SimulationState.h"
-
 #include <complex>
 #include <optional>
 #include <vector>

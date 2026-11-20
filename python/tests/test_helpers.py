@@ -41,14 +41,11 @@ def derive_compile_target(target_name, profile_type, **profile_options):
     from cudaq._experimental import get_compile_target
     cudaq.set_target(target_name)
     target = get_compile_target()
-    stages = target.stages
     [stage] = [
-        stage for stage in stages
+        stage for stage in target.stages
         if isinstance(stage.ir_output_profile, profile_type)
     ]
     profile = stage.ir_output_profile
     for name, value in profile_options.items():
         setattr(profile, name, value)
-    stage.ir_output_profile = profile
-    target.stages = stages
     return target

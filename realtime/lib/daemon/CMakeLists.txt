@@ -65,6 +65,10 @@ if(CUDA_FOUND)
     CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+    # The bridge API dlopens providers by soname. Resolve sibling providers
+    # from this library's directory in both build and installed trees.
+    BUILD_RPATH "$ORIGIN"
+    INSTALL_RPATH "$ORIGIN"
   )
 
   install(TARGETS cudaq-realtime

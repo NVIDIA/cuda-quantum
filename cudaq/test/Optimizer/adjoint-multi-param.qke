@@ -1,0 +1,41 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization %s | FileCheck %s
+
+// Multi-parameter gates (u2, u3, phased_rx) must not be adjointed by negating
+// every parameter. The generated adjoint toggles `is_adj`, which lowering
+// handles correctly (e.g., u3(t,p,l)^dag = u3(-t,-l,-p)). Single-parameter
+// rotations still negate their angle.
+module {
+  func.func @k(%q: !quake.ref) {
+    %a = arith.constant 0.4 : f64
+    %b = arith.constant 1.3 : f64
+    %c = arith.constant 0.7 : f64
+    quake.u3 (%c, %a, %b) %q : (f64, f64, f64, !quake.ref) -> ()
+    quake.u2 (%a, %b) %q : (f64, f64, !quake.ref) -> ()
+    quake.phased_rx (%c, %a) %q : (f64, f64, !quake.ref) -> ()
+    quake.rx (%c) %q : (f64, !quake.ref) -> ()
+    return
+  }
+  func.func @main() {
+    %q = quake.alloca !quake.ref
+    quake.apply<adj> @k (%q) : (!quake.ref) -> ()
+    return
+  }
+}
+
+// CHECK-LABEL:   func.func private @k.adj(
+// CHECK:           %[[VAL_0:.*]] = arith.constant 4.000000e-01 : f64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1.300000e+00 : f64
+// CHECK:           %[[VAL_2:.*]] = arith.constant 0.69999999999999996 : f64
+// CHECK:           %[[VAL_3:.*]] = arith.constant -0.69999999999999996 : f64
+// CHECK:           quake.rx (%[[VAL_3]]) %{{.*}} : (f64, !quake.ref) -> ()
+// CHECK:           quake.phased_rx<adj> (%[[VAL_2]], %[[VAL_0]]) %{{.*}} : (f64, f64, !quake.ref) -> ()
+// CHECK:           quake.u2<adj> (%[[VAL_0]], %[[VAL_1]]) %{{.*}} : (f64, f64, !quake.ref) -> ()
+// CHECK:           quake.u3<adj> (%[[VAL_2]], %[[VAL_0]], %[[VAL_1]]) %{{.*}} : (f64, f64, f64, !quake.ref) -> ()

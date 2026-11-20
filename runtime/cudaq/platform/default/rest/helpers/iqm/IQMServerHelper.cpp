@@ -11,7 +11,6 @@
 #include "cudaq/utils/cudaq_utils.h"
 
 #include "nlohmann/json.hpp"
-
 #include <fcntl.h>
 #include <fstream>
 #include <regex>

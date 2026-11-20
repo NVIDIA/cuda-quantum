@@ -9,10 +9,11 @@
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include "cudaq/qis/qubit_qis.h"
+#include <cstdint>
 
-__qpu__ uint64_t otherKernel(std::vector<cudaq::measure_result> &x);
+__qpu__ std::uint64_t otherKernel(std::vector<cudaq::measure_result> &x);
 
-__qpu__ uint64_t test_entry_point() {
+__qpu__ std::uint64_t test_entry_point() {
   cudaq::qvector q(5);
   auto results = cudaq::mz(q);
   return otherKernel(results);

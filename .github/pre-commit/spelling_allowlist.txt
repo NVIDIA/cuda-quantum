@@ -383,6 +383,7 @@ compat
 composability
 composable
 config
+configurability
 conftest
 constructible
 controlled
@@ -414,6 +415,7 @@ cx
 cyclotomic
 cz
 dataclass
+dataclasses
 dataflow
 datagram
 datagrams
@@ -555,6 +557,7 @@ installable
 instantiation
 instantiations
 instrs
+integrations
 integrator
 integrators
 interferometer
@@ -622,6 +625,7 @@ mps
 mul
 multibyte
 multinomial
+multiset
 multithreaded
 multiwire
 mutex
@@ -889,6 +893,7 @@ untracked
 upstream's
 upvote
 url
+validator
 variadic
 variational
 vazirani
