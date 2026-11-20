@@ -17,7 +17,7 @@
 #   apt_package_details.tsv  binary<TAB>version<TAB>source<TAB>source_version
 #   apt_packages.txt         binary package names (one per line)
 #   apt_sources.txt          source=source_version lines, one per source package
-#   apt_licenses/<binary>/   license, copyright and EULA files the package owns
+#   apt_licenses/<binary>/   (name:arch is name_arch) license, copyright and EULA files the package owns
 #   pip_packages.txt         package==version lines
 #   pip_licenses/<name>/     license files from the installed distribution
 #   images.txt               base and target image references with digests
@@ -61,8 +61,10 @@ while IFS= read -r pkg; do
   dpkg -L "$pkg" 2>/dev/null | grep -iE "(copyright|licen[cs]e|eula|copying|notice)[^/]*$" |
   while IFS= read -r f; do
     [ -f "$f" ] || continue
-    mkdir -p "$out/$pkg"
-    cp -L "$f" "$out/$pkg/$(echo "$f" | tr / _ | sed "s/^_//")" 2>/dev/null || true
+    # name:arch -> name_arch; artifact paths cannot hold a colon
+    d="$out/$(echo "$pkg" | tr : _)"
+    mkdir -p "$d"
+    cp -L "$f" "$d/$(echo "$f" | tr "/:\"<>|*?" _ | sed "s/^_//")" 2>/dev/null || true
   done
 done
 tar -C "$out" -cf - .

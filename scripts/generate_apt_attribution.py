@@ -40,8 +40,8 @@ MAX_LICENSES = 12
 
 
 def license_files(licenses: Path, binary: str) -> list[Path]:
-    # Multiarch packages are listed as name:arch; the directory has the same name.
-    d = licenses / binary
+    # Multiarch packages are listed as name:arch; the directory is name_arch.
+    d = licenses / binary.replace(":", "_")
     return sorted(p for p in d.iterdir() if p.is_file()) if d.is_dir() else []
 
 
@@ -90,7 +90,7 @@ def format_entry(source: str, version: str, binaries: list[str],
     files: list[str] = []
     for binary in binaries:
         for path in license_files(licenses_dir, binary):
-            files.append(f"{rel_dir}/{binary}/{path.name}")
+            files.append(f"{rel_dir}/{binary.replace(':', '_')}/{path.name}")
             if not re.search(r"copyright", path.name, re.I):
                 continue
             lic, cop = parse_copyright(path.read_text(errors="replace"))
