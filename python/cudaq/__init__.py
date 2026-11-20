@@ -496,7 +496,7 @@ def to_bools(handles):
     ``list[bool]``. Device-only: this Python symbol exists so kernel
     code can call ``cudaq.to_bools(...)``; the AST bridge intercepts
     the call and lowers it to a vector form ``quake.discriminate`` on
-    ``!cc.sequence<!cc.measure_handle>``. Host-side invocation raises a
+    ``!cc.sequence<!quake.measure>``. Host-side invocation raises a
     ``RuntimeError``.
     """
     raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.to_bools"))

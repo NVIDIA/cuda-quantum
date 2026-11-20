@@ -38,7 +38,7 @@ module {
   // expected-error@+1 {{failed to legalize operation 'func.func'}}
   func.func @helper(%ref: !quake.ref) attributes {"cudaq-kernel"} {
     %q = quake.unwrap %ref : (!quake.ref) -> !quake.wire
-    %m, %w = quake.mz %q : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %m, %w = quake.mz %q : (!quake.wire) -> (!quake.measure, !quake.wire)
     // expected-error@+1 {{returns a qubit that is measured or not live; P0 measurement is destructive}}
     quake.wrap %w to %ref : !quake.wire, !quake.ref
     return

@@ -27,8 +27,8 @@ struct ak1 {
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] name "vec" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
-// CHECK:           %[[VAL_7:.*]] = quake.discriminate %[[VAL_3]] : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] name "vec" : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+// CHECK:           %[[VAL_7:.*]] = quake.discriminate %[[VAL_3]] : (!cc.sequence<!quake.measure>) -> !cc.sequence<i1>
 // CHECK:           %[[VAL_4:.*]] = cc.sequence_data %[[VAL_7]] : (!cc.sequence<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i8>

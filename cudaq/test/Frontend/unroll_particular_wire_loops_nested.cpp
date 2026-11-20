@@ -69,23 +69,23 @@ __qpu__ std::vector<bool> kernel() {
 // CHECK-NOT:       quake.extract_ref
 // CHECK-NOT:       quake.subveq
 // CHECK:           %[[BITS:.*]] = cc.alloca !cc.array<i8 x 4>
-// CHECK:           %[[M0:.*]], %[[W0:.*]] = quake.mz %[[X03]]#0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[B0:.*]] = quake.discriminate %[[M0]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[M0:.*]], %[[W0:.*]] = quake.mz %[[X03]]#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[B0:.*]] = quake.discriminate %[[M0]] : (!quake.measure) -> i1
 // CHECK:           %[[BITSPTR:.*]] = cc.cast %[[BITS]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           %[[BYTE0:.*]] = cc.cast unsigned %[[B0]] : (i1) -> i8
 // CHECK:           cc.store %[[BYTE0]], %[[BITSPTR]] : !cc.ptr<i8>
-// CHECK:           %[[M1:.*]], %[[W1:.*]] = quake.mz %[[X13]]#0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[B1:.*]] = quake.discriminate %[[M1]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[M1:.*]], %[[W1:.*]] = quake.mz %[[X13]]#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[B1:.*]] = quake.discriminate %[[M1]] : (!quake.measure) -> i1
 // CHECK:           %[[PTR1:.*]] = cc.compute_ptr %[[BITS]][1] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           %[[BYTE1:.*]] = cc.cast unsigned %[[B1]] : (i1) -> i8
 // CHECK:           cc.store %[[BYTE1]], %[[PTR1]] : !cc.ptr<i8>
-// CHECK:           %[[M2:.*]], %[[W2:.*]] = quake.mz %[[X23]]#0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[B2:.*]] = quake.discriminate %[[M2]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[M2:.*]], %[[W2:.*]] = quake.mz %[[X23]]#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[B2:.*]] = quake.discriminate %[[M2]] : (!quake.measure) -> i1
 // CHECK:           %[[PTR2:.*]] = cc.compute_ptr %[[BITS]][2] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           %[[BYTE2:.*]] = cc.cast unsigned %[[B2]] : (i1) -> i8
 // CHECK:           cc.store %[[BYTE2]], %[[PTR2]] : !cc.ptr<i8>
-// CHECK:           %[[M3:.*]], %[[W3:.*]] = quake.mz %[[X23]]#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[B3:.*]] = quake.discriminate %[[M3]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[M3:.*]], %[[W3:.*]] = quake.mz %[[X23]]#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[B3:.*]] = quake.discriminate %[[M3]] : (!quake.measure) -> i1
 // CHECK:           %[[PTR3:.*]] = cc.compute_ptr %[[BITS]][3] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           %[[BYTE3:.*]] = cc.cast unsigned %[[B3]] : (i1) -> i8
 // CHECK:           cc.store %[[BYTE3]], %[[PTR3]] : !cc.ptr<i8>
@@ -140,12 +140,12 @@ __qpu__ std::vector<bool> rectangular_flattened_index() {
 // CHECK:           %[[X5:.*]] = quake.x %[[Q5]] : (!quake.wire) -> !quake.wire
 // CHECK-NOT:       cc.loop
 // CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}
-// CHECK:           %[[M0:.*]], %[[W0:.*]] = quake.mz %[[X0]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[M1:.*]], %[[W1:.*]] = quake.mz %[[X1]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[M2:.*]], %[[W2:.*]] = quake.mz %[[X2]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[M3:.*]], %[[W3:.*]] = quake.mz %[[X3]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[M4:.*]], %[[W4:.*]] = quake.mz %[[X4]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[M5:.*]], %[[W5:.*]] = quake.mz %[[X5]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[M0:.*]], %[[W0:.*]] = quake.mz %[[X0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[M1:.*]], %[[W1:.*]] = quake.mz %[[X1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[M2:.*]], %[[W2:.*]] = quake.mz %[[X2]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[M3:.*]], %[[W3:.*]] = quake.mz %[[X3]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[M4:.*]], %[[W4:.*]] = quake.mz %[[X4]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[M5:.*]], %[[W5:.*]] = quake.mz %[[X5]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK-NOT:       cc.loop
 // CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}
 // CHECK:           quake.return_wire %[[W0]] : !quake.wire
@@ -208,10 +208,10 @@ __qpu__ std::vector<bool> grandparent_bound_separator() {
 // CHECK:           } step {
 // CHECK-NOT:       cc.loop
 // CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}
-// CHECK:           %[[M0:.*]], %[[W0:.*]] = quake.mz %{{.*}} : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[M1:.*]], %[[W1:.*]] = quake.mz %{{.*}} : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[M2:.*]], %[[W2:.*]] = quake.mz %{{.*}} : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           %[[M3:.*]], %[[W3:.*]] = quake.mz %[[Q3]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[M0:.*]], %[[W0:.*]] = quake.mz %{{.*}} : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[M1:.*]], %[[W1:.*]] = quake.mz %{{.*}} : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[M2:.*]], %[[W2:.*]] = quake.mz %{{.*}} : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[M3:.*]], %[[W3:.*]] = quake.mz %[[Q3]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK-NOT:       cc.loop
 // CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}
 // CHECK:           quake.return_wire %[[W0]] : !quake.wire

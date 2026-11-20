@@ -45,11 +45,11 @@ __qpu__ bool issue_3092() {
 // CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][3] : (!quake.veq<6>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_2:.*]] = quake.subveq %[[VAL_0]], 3, 3 : (!quake.veq<6>) -> !quake.veq<1>
-// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<1>) -> !cc.sequence<!cc.measure_handle>
-// CHECK:           %[[VAL_5:.*]] = cc.sequence_data %[[VAL_3]] : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
-// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_8:.*]] = quake.discriminate %[[VAL_7]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<1>) -> !cc.sequence<!quake.measure>
+// CHECK:           %[[VAL_5:.*]] = cc.sequence_data %[[VAL_3]] : (!cc.sequence<!quake.measure>) -> !cc.ptr<!cc.array<!quake.measure x ?>>
+// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<!quake.measure x ?>>) -> !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_8:.*]] = quake.discriminate %[[VAL_7]] : (!quake.measure) -> i1
 // CHECK:           return %[[VAL_8]] : i1
 // CHECK:         }
 // clang-format on

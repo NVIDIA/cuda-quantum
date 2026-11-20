@@ -710,7 +710,7 @@ public:
 
   /// @brief `logical_observable` with an explicit `observable_index`.
   /// Takes a single `QuakeValue` handle (typically a
-  /// `!cc.sequence<!cc.measure_handle>` from `mz` on a `qvector`, but a
+  /// `!cc.sequence<!quake.measure>` from `mz` on a `qvector`, but a
   /// scalar handle is also accepted by the dialect).
   void logical_observable(QuakeValue measurements,
                           std::size_t observable_index) {

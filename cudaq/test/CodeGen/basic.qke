@@ -51,7 +51,7 @@ func.func @test_func2() {
 // CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_0]])
 // CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_0]], ptr %[[VAL_3]])
 // CHECK:         tail call void @__quantum__qis__rx(double 4.300000e-01, ptr %[[VAL_0]])
-// CHECK:         %[[VAL_5:.*]] = tail call ptr @__quantum__qis__mz(ptr %[[VAL_0]])
+// CHECK:         %[[VAL_5:.*]] = tail call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_0]], ptr {{.*}})
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_0]])
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_3]])
 // CHECK:         ret void

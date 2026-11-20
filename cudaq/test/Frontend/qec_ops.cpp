@@ -26,11 +26,11 @@ struct DetectorScalar {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__DetectorScalar()
 // CHECK:           %[[VAL_Q:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_M:.*]] = quake.mz %[[VAL_Q]] name "h" : (!quake.ref) -> !cc.measure_handle
-// CHECK:           %[[VAL_HA:.*]] = cc.alloca !cc.measure_handle
-// CHECK:           cc.store %[[VAL_M]], %[[VAL_HA]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_HL:.*]] = cc.load %[[VAL_HA]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           qec.detector %[[VAL_HL]] : !cc.measure_handle
+// CHECK:           %[[VAL_M:.*]] = quake.mz %[[VAL_Q]] name "h" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_HA:.*]] = cc.alloca !quake.measure
+// CHECK:           cc.store %[[VAL_M]], %[[VAL_HA]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_HL:.*]] = cc.load %[[VAL_HA]] : !cc.ptr<!quake.measure>
+// CHECK:           qec.detector %[[VAL_HL]] : !quake.measure
 // CHECK-NOT:       quake.discriminate
 // CHECK:           return
 // CHECK:         }
@@ -52,10 +52,10 @@ struct DetectorVariadic {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__DetectorVariadic()
-// CHECK:           %[[VAL_H0:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_H1:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_H2:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
-// CHECK:           qec.detector %[[VAL_H0]], %[[VAL_H1]], %[[VAL_H2]] : !cc.measure_handle, !cc.measure_handle, !cc.measure_handle
+// CHECK:           %[[VAL_H0:.*]] = cc.load %{{.*}} : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_H1:.*]] = cc.load %{{.*}} : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_H2:.*]] = cc.load %{{.*}} : !cc.ptr<!quake.measure>
+// CHECK:           qec.detector %[[VAL_H0]], %[[VAL_H1]], %[[VAL_H2]] : !quake.measure, !quake.measure, !quake.measure
 // CHECK-NOT:       quake.discriminate
 // CHECK:           return
 // CHECK:         }
@@ -76,11 +76,11 @@ struct DetectorVector {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__DetectorVector()
 // CHECK:           %[[VAL_QS:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_HS:.*]] = quake.mz %[[VAL_QS]] name "handles" : (!quake.veq<4>) -> !cc.sequence<!cc.measure_handle>
-// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
-// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           qec.detector %[[VAL_HSL]] : !cc.sequence<!cc.measure_handle>
+// CHECK:           %[[VAL_HS:.*]] = quake.mz %[[VAL_QS]] name "handles" : (!quake.veq<4>) -> !cc.sequence<!quake.measure>
+// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.sequence<!quake.measure>
+// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           qec.detector %[[VAL_HSL]] : !cc.sequence<!quake.measure>
 // CHECK-NOT:       quake.discriminate
 // CHECK:           return
 // CHECK:         }
@@ -102,12 +102,12 @@ struct DetectorMixed {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__DetectorMixed()
-// CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} name "h" : (!quake.ref) -> !cc.measure_handle
-// CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "hs" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
-// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
-// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           qec.detector %[[VAL_HSL]], %{{.*}} : !cc.sequence<!cc.measure_handle>, !cc.measure_handle
+// CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} name "h" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "hs" : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.sequence<!quake.measure>
+// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           qec.detector %[[VAL_HSL]], %{{.*}} : !cc.sequence<!quake.measure>, !quake.measure
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -127,9 +127,9 @@ struct ObservableVariadic {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableVariadic()
-// CHECK:           %[[VAL_H0:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_H1:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
-// CHECK:           qec.observable %[[VAL_H0]], %[[VAL_H1]] : !cc.measure_handle, !cc.measure_handle
+// CHECK:           %[[VAL_H0:.*]] = cc.load %{{.*}} : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_H1:.*]] = cc.load %{{.*}} : !cc.ptr<!quake.measure>
+// CHECK:           qec.observable %[[VAL_H0]], %[[VAL_H1]] : !quake.measure, !quake.measure
 // CHECK-NOT:       index
 // CHECK:           return
 // CHECK:         }
@@ -150,10 +150,10 @@ struct ObservableVectorDefault {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableVectorDefault()
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "handles"
-// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
-// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           qec.observable %[[VAL_HSL]] : !cc.sequence<!cc.measure_handle>
+// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.sequence<!quake.measure>
+// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           qec.observable %[[VAL_HSL]] : !cc.sequence<!quake.measure>
 // CHECK-NOT:       index
 // CHECK:           return
 // CHECK:         }
@@ -174,10 +174,10 @@ struct ObservableVectorIndexed {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableVectorIndexed()
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "handles"
-// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
-// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           qec.observable %[[VAL_HSL]] index 2 : !cc.sequence<!cc.measure_handle>
+// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.sequence<!quake.measure>
+// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           qec.observable %[[VAL_HSL]] index 2 : !cc.sequence<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -200,7 +200,7 @@ struct ObservableConstexprIndex {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableConstexprIndex()
-// CHECK:           qec.observable %{{.*}} index 5 : !cc.sequence<!cc.measure_handle>
+// CHECK:           qec.observable %{{.*}} index 5 : !cc.sequence<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -215,7 +215,7 @@ struct ObservableExpressionIndex {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableExpressionIndex()
-// CHECK:           qec.observable %{{.*}} index 3 : !cc.sequence<!cc.measure_handle>
+// CHECK:           qec.observable %{{.*}} index 3 : !cc.sequence<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -237,12 +237,12 @@ struct ObservableMixed {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableMixed()
-// CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} name "h" : (!quake.ref) -> !cc.measure_handle
-// CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "hs" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
-// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
-// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           qec.observable %[[VAL_HSL]], %{{.*}} : !cc.sequence<!cc.measure_handle>, !cc.measure_handle
+// CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} name "h" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "hs" : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.sequence<!quake.measure>
+// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           qec.observable %[[VAL_HSL]], %{{.*}} : !cc.sequence<!quake.measure>, !quake.measure
 // CHECK-NOT:       index
 // CHECK:           return
 // CHECK:         }
@@ -261,8 +261,8 @@ struct DetectorRvalueScalar {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__DetectorRvalueScalar()
-// CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
-// CHECK:           qec.detector %{{.*}} : !cc.measure_handle
+// CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+// CHECK:           qec.detector %{{.*}} : !quake.measure
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -276,7 +276,7 @@ struct ObservableRvalueVariadic {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableRvalueVariadic()
-// CHECK:           qec.observable %{{.*}}, %{{.*}} : !cc.measure_handle, !cc.measure_handle
+// CHECK:           qec.observable %{{.*}}, %{{.*}} : !quake.measure, !quake.measure
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -296,15 +296,15 @@ struct PairDetectors {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__PairDetectors()
-// CHECK:           %[[VAL_P:.*]] = quake.mz %{{.*}} name "prev" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-// CHECK:           %[[VAL_PA:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
-// CHECK:           cc.store %[[VAL_P]], %[[VAL_PA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           %[[VAL_C:.*]] = quake.mz %{{.*}} name "curr" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-// CHECK:           %[[VAL_CA:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
-// CHECK:           cc.store %[[VAL_C]], %[[VAL_CA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           %[[VAL_PL:.*]] = cc.load %[[VAL_PA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           %[[VAL_CL:.*]] = cc.load %[[VAL_CA]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           qec.pair_detectors %[[VAL_PL]], %[[VAL_CL]] : <!cc.measure_handle>, <!cc.measure_handle>
+// CHECK:           %[[VAL_P:.*]] = quake.mz %{{.*}} name "prev" : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+// CHECK:           %[[VAL_PA:.*]] = cc.alloca !cc.sequence<!quake.measure>
+// CHECK:           cc.store %[[VAL_P]], %[[VAL_PA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           %[[VAL_C:.*]] = quake.mz %{{.*}} name "curr" : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+// CHECK:           %[[VAL_CA:.*]] = cc.alloca !cc.sequence<!quake.measure>
+// CHECK:           cc.store %[[VAL_C]], %[[VAL_CA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           %[[VAL_PL:.*]] = cc.load %[[VAL_PA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           %[[VAL_CL:.*]] = cc.load %[[VAL_CA]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           qec.pair_detectors %[[VAL_PL]], %[[VAL_CL]] : <!quake.measure>, <!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -353,8 +353,8 @@ struct RepCodeD3 {
 // CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.veq<3>
 // CHECK:           %[[ALLOCA_2:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[ALLOCA_3:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[ALLOCA_4:.*]] = cc.alloca !cc.measure_handle
-// CHECK:           %[[ALLOCA_5:.*]] = cc.alloca !cc.measure_handle
+// CHECK:           %[[ALLOCA_4:.*]] = cc.alloca !quake.measure
+// CHECK:           %[[ALLOCA_5:.*]] = cc.alloca !quake.measure
 // CHECK:           cc.scope {
 // CHECK:             %[[ALLOCA_6:.*]] = cc.alloca i32
 // CHECK:             cc.store %[[CONSTANT_1]], %[[ALLOCA_6]] : !cc.ptr<i32>
@@ -373,28 +373,28 @@ struct RepCodeD3 {
 // CHECK:                 quake.x {{\[}}%[[EXTRACT_REF_2]]] %[[ALLOCA_3]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:                 %[[EXTRACT_REF_3:.*]] = quake.extract_ref %[[ALLOCA_1]][2] : (!quake.veq<3>) -> !quake.ref
 // CHECK:                 quake.x {{\[}}%[[EXTRACT_REF_3]]] %[[ALLOCA_3]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:                 %[[MZ_0:.*]] = quake.mz %[[ALLOCA_2]] name "s0" : (!quake.ref) -> !cc.measure_handle
-// CHECK:                 %[[ALLOCA_7:.*]] = cc.alloca !cc.measure_handle
-// CHECK:                 cc.store %[[MZ_0]], %[[ALLOCA_7]] : !cc.ptr<!cc.measure_handle>
-// CHECK:                 %[[MZ_1:.*]] = quake.mz %[[ALLOCA_3]] name "s1" : (!quake.ref) -> !cc.measure_handle
-// CHECK:                 %[[ALLOCA_8:.*]] = cc.alloca !cc.measure_handle
-// CHECK:                 cc.store %[[MZ_1]], %[[ALLOCA_8]] : !cc.ptr<!cc.measure_handle>
+// CHECK:                 %[[MZ_0:.*]] = quake.mz %[[ALLOCA_2]] name "s0" : (!quake.ref) -> !quake.measure
+// CHECK:                 %[[ALLOCA_7:.*]] = cc.alloca !quake.measure
+// CHECK:                 cc.store %[[MZ_0]], %[[ALLOCA_7]] : !cc.ptr<!quake.measure>
+// CHECK:                 %[[MZ_1:.*]] = quake.mz %[[ALLOCA_3]] name "s1" : (!quake.ref) -> !quake.measure
+// CHECK:                 %[[ALLOCA_8:.*]] = cc.alloca !quake.measure
+// CHECK:                 cc.store %[[MZ_1]], %[[ALLOCA_8]] : !cc.ptr<!quake.measure>
 // CHECK:                 quake.reset %[[ALLOCA_2]] : (!quake.ref) -> ()
 // CHECK:                 quake.reset %[[ALLOCA_3]] : (!quake.ref) -> ()
 // CHECK:                 %[[LOAD_2:.*]] = cc.load %[[ALLOCA_6]] : !cc.ptr<i32>
 // CHECK:                 %[[CMPI_1:.*]] = arith.cmpi sgt, %[[LOAD_2]], %[[CONSTANT_1]] : i32
 // CHECK:                 cc.if(%[[CMPI_1]]) {
-// CHECK:                   %[[LOAD_3:.*]] = cc.load %[[ALLOCA_4]] : !cc.ptr<!cc.measure_handle>
-// CHECK:                   %[[LOAD_4:.*]] = cc.load %[[ALLOCA_7]] : !cc.ptr<!cc.measure_handle>
-// CHECK:                   qec.detector %[[LOAD_3]], %[[LOAD_4]] : !cc.measure_handle, !cc.measure_handle
-// CHECK:                   %[[LOAD_5:.*]] = cc.load %[[ALLOCA_5]] : !cc.ptr<!cc.measure_handle>
-// CHECK:                   %[[LOAD_6:.*]] = cc.load %[[ALLOCA_8]] : !cc.ptr<!cc.measure_handle>
-// CHECK:                   qec.detector %[[LOAD_5]], %[[LOAD_6]] : !cc.measure_handle, !cc.measure_handle
+// CHECK:                   %[[LOAD_3:.*]] = cc.load %[[ALLOCA_4]] : !cc.ptr<!quake.measure>
+// CHECK:                   %[[LOAD_4:.*]] = cc.load %[[ALLOCA_7]] : !cc.ptr<!quake.measure>
+// CHECK:                   qec.detector %[[LOAD_3]], %[[LOAD_4]] : !quake.measure, !quake.measure
+// CHECK:                   %[[LOAD_5:.*]] = cc.load %[[ALLOCA_5]] : !cc.ptr<!quake.measure>
+// CHECK:                   %[[LOAD_6:.*]] = cc.load %[[ALLOCA_8]] : !cc.ptr<!quake.measure>
+// CHECK:                   qec.detector %[[LOAD_5]], %[[LOAD_6]] : !quake.measure, !quake.measure
 // CHECK:                 }
-// CHECK:                 %[[LOAD_7:.*]] = cc.load %[[ALLOCA_7]] : !cc.ptr<!cc.measure_handle>
-// CHECK:                 cc.store %[[LOAD_7]], %[[ALLOCA_4]] : !cc.ptr<!cc.measure_handle>
-// CHECK:                 %[[LOAD_8:.*]] = cc.load %[[ALLOCA_8]] : !cc.ptr<!cc.measure_handle>
-// CHECK:                 cc.store %[[LOAD_8]], %[[ALLOCA_5]] : !cc.ptr<!cc.measure_handle>
+// CHECK:                 %[[LOAD_7:.*]] = cc.load %[[ALLOCA_7]] : !cc.ptr<!quake.measure>
+// CHECK:                 cc.store %[[LOAD_7]], %[[ALLOCA_4]] : !cc.ptr<!quake.measure>
+// CHECK:                 %[[LOAD_8:.*]] = cc.load %[[ALLOCA_8]] : !cc.ptr<!quake.measure>
+// CHECK:                 cc.store %[[LOAD_8]], %[[ALLOCA_5]] : !cc.ptr<!quake.measure>
 // CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
@@ -403,11 +403,11 @@ struct RepCodeD3 {
 // CHECK:               cc.store %[[ADDI_0]], %[[ALLOCA_6]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
-// CHECK:           %[[MZ_2:.*]] = quake.mz %[[ALLOCA_1]] name "readout" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-// CHECK:           %[[ALLOCA_R:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
-// CHECK:           cc.store %[[MZ_2]], %[[ALLOCA_R]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           %[[LOAD_R:.*]] = cc.load %[[ALLOCA_R]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
-// CHECK:           qec.observable %[[LOAD_R]] : !cc.sequence<!cc.measure_handle>
+// CHECK:           %[[MZ_2:.*]] = quake.mz %[[ALLOCA_1]] name "readout" : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+// CHECK:           %[[ALLOCA_R:.*]] = cc.alloca !cc.sequence<!quake.measure>
+// CHECK:           cc.store %[[MZ_2]], %[[ALLOCA_R]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           %[[LOAD_R:.*]] = cc.load %[[ALLOCA_R]] : !cc.ptr<!cc.sequence<!quake.measure>>
+// CHECK:           qec.observable %[[LOAD_R]] : !cc.sequence<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on

@@ -252,7 +252,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // measurement handles. Discrimination is fused with the packing so handle
     // vectors need no temporary bool buffer.
     {cudaq::realtimePackMeasurements, {}, R"#(
-  func.func private @__nvqpp_RealtimePackMeasurements(%dst: !cc.ptr<!cc.array<i8 x ?>>, %src: !cc.ptr<!cc.array<!cc.measure_handle x ?>>, %len: i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
+  func.func private @__nvqpp_RealtimePackMeasurements(%dst: !cc.ptr<!cc.array<i8 x ?>>, %src: !cc.ptr<!cc.array<!quake.measure x ?>>, %len: i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
     %zero = arith.constant 0 : i64
     %one = arith.constant 1 : i64
     %seven = arith.constant 7 : i64
@@ -275,9 +275,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
       } do {
       ^bb0(%bit: i64, %acc: i8):
         %idx = arith.addi %byteStart, %bit : i64
-        %srcPtr = cc.compute_ptr %src[%idx] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.ptr<!cc.measure_handle>
-        %handle = cc.load %srcPtr : !cc.ptr<!cc.measure_handle>
-        %element = quake.discriminate %handle : (!cc.measure_handle) -> i1
+        %srcPtr = cc.compute_ptr %src[%idx] : (!cc.ptr<!cc.array<!quake.measure x ?>>, i64) -> !cc.ptr<!quake.measure>
+        %handle = cc.load %srcPtr : !cc.ptr<!quake.measure>
+        %element = quake.discriminate %handle : (!quake.measure) -> i1
         %bitByte = arith.extui %element : i1 to i8
         %shift = arith.trunci %bit : i64 to i8
         %shifted = arith.shli %bitByte, %shift : i8

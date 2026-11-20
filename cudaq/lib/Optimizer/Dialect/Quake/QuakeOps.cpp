@@ -1118,18 +1118,14 @@ LogicalResult verifyMeasurements(MEAS op, TypeRange targetsType,
     auto sequenceTy =
         dyn_cast<cudaq::cc::SequenceType>(op.getMeasOut().getType());
     if (!sequenceTy ||
-        !isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
-            sequenceTy.getElementType()))
+        !isa<cudaq::quake::MeasureType>(sequenceTy.getElementType()))
       return op.emitOpError(
-          "must return `!cc.sequence<!quake.measure>` or "
-          "`!cc.sequence<!cc.measure_handle>` when measuring a qvector, a "
-          "series of qubits, or both");
+          "must return `!cc.sequence<!quake.measure>` when measuring a "
+          "qvector, a series of qubits, or both");
   } else {
-    if (!isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
-            op.getMeasOut().getType()))
-      return op->emitOpError(
-          "must return `!quake.measure` or `!cc.measure_handle` when "
-          "measuring exactly one qubit");
+    if (!isa<cudaq::quake::MeasureType>(op.getMeasOut().getType()))
+      return op->emitOpError("must return `!quake.measure` when measuring "
+                             "exactly one qubit");
   }
   if (op.getRegisterName())
     if (op.getRegisterName()->empty())
@@ -1191,8 +1187,7 @@ LogicalResult cudaq::quake::DiscriminateOp::verify() {
           "must return a !cc.sequence<integral> type, when discriminating a "
           "qvector, a series of qubits, or both");
   } else {
-    if (!isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
-            getMeasurement().getType()) ||
+    if (!isa<cudaq::quake::MeasureType>(getMeasurement().getType()) ||
         !isa<IntegerType>(getResult().getType()))
       return emitOpError(
           "must return integral type when discriminating exactly one qubit");

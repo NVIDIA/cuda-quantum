@@ -88,16 +88,15 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
                 // we're assuming pointers are 64 bits.
                 return {8};
               })
-          .Case(
-              [](cudaq::cc::MeasureHandleType) -> std::optional<std::int32_t> {
-                // `!cc.measure_handle` is the IR alias of
-                // `cudaq::measure_handle`, a class with a single `std::int64_t`
-                // field. A later pass replaces it with `i64`, until then it is
-                // statically 8 bytes wide. Required so
-                // `__nvqpp_vectorCopyCtor` gets a constant element size when a
-                // pure-device kernel returns `std::vector<measure_handle>`.
-                return {8};
-              })
+          .Case([](cudaq::quake::MeasureType) -> std::optional<std::int32_t> {
+            // `!quake.measure` is the IR form of `cudaq::measure_handle`, a
+            // class with a single `std::int64_t` field. A later pass
+            // replaces it with `i64`, until then it is statically 8 bytes
+            // wide. Required so
+            // `__nvqpp_vectorCopyCtor` gets a constant element size when a
+            // pure-device kernel returns `std::vector<measure_handle>`.
+            return {8};
+          })
           .Default({});
 
   if (rawSize)
@@ -218,7 +217,7 @@ void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
 
 LogicalResult cudaq::cc::AllocaOp::verify() {
   // It is deeply incorrect to allocate storage for quake abstract types.
-  if (cudaq::quake::isQuakeType(getElementType()))
+  if (cudaq::quake::isQuantumType(getElementType()))
     return emitOpError("cannot classically allocate quake abstract type");
   return success();
 }
@@ -446,11 +445,6 @@ LogicalResult cudaq::cc::CastOp::verify() {
     } else if (isa<IntegerType>(inTy) && isa<cc::IndirectCallableType>(outTy)) {
       // ok: nop
       // the indirect callable value is an integer key on the device side.
-    } else if (isa<IntegerType>(inTy) && isa<cc::MeasureHandleType>(outTy)) {
-      // ok: nop
-      // the measure handle is an opaque i64 payload.
-    } else if (isa<cc::MeasureHandleType>(inTy) && isa<IntegerType>(outTy)) {
-      // ok: nop
     } else if (isa<IntegerType>(inTy) && isa<cc::PointerType>(outTy)) {
       // ok: inttoptr
     } else if (isa<cc::PointerType>(inTy) && isa<IntegerType>(outTy)) {
