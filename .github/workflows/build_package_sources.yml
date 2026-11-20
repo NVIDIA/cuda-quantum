@@ -8,7 +8,8 @@
 #
 # Workflow: diff apt and pip packages between a base and target image, then
 # build a source image containing source code for all added packages.
-# Optionally diff pip packages added by the macOS wheel (provide artifact_url).
+# Diffs the pip packages added by the macOS wheel: artifact_url if given, else the
+# python 3.13 wheels of the latest successful Deployments run on main.
 #
 # Three image legs are diffed, each against the image it is built FROM:
 #   cudaq          nvcr.io/nvidia/cuda runtime      -> nightly cuda-quantum
@@ -33,7 +34,7 @@
 #   push_to_ngc: boolean, default false
 #     Also push the source image to NGC; it is always pushed to GHCR. The job
 #     then runs in the ghcr-deployment environment, which holds the NGC key.
-#   artifact_url: string, no default
+#   artifact_url: string, default: the latest macOS 3.13 wheels from main
 #     If set, diff pip packages added by the macOS wheel from this artifact URL
 #     (e.g. .../actions/runs/RUN_ID/artifacts/ARTIFACT_ID for pycudaq-3.13-darwin-arm64).
 #   python_version: string, default 3.13
@@ -50,7 +51,7 @@ on:
       artifact_url:
         required: false
         type: string
-        description: 'Optional: URL of macOS wheel artifact to diff pip packages (e.g. .../runs/RUN_ID/artifacts/ARTIFACT_ID)'
+        description: 'Optional: URL of the macOS wheel artifact to diff (e.g. .../runs/RUN_ID/artifacts/ARTIFACT_ID); default: the python 3.13 wheels of the latest successful Deployments run on main'
       python_version:
         required: false
         type: string
@@ -156,11 +157,11 @@ jobs:
           path: package-source-diff/
           retention-days: 1
 
-  # The scheduled run has no artifact_url; use the macOS wheels of the latest
-  # successful Deployments run on main that still has them.
+  # Without an artifact_url (the scheduled run), use the macOS wheels of the
+  # latest successful Deployments run on main that still has them.
   find-macos-artifact:
     name: Find the latest macOS wheel artifact
-    if: github.event_name == 'schedule' && github.repository == 'NVIDIA/cuda-quantum'
+    if: (github.event_name == 'schedule' || inputs.artifact_url == '') && github.repository == 'NVIDIA/cuda-quantum'
     runs-on: ubuntu-latest
     permissions:
       contents: read
