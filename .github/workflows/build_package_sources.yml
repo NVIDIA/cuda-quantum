@@ -429,7 +429,8 @@ jobs:
           # the CMake-fetched libraries, the CMake and QRMI sources) and the
           # DOCA/OFED source bundle. NOTICE must name each at its built version.
           python3 scripts/generate_image_sources_lock.py --check-notice
-          python3 scripts/generate_image_sources_lock.py --doca | tee -a cudaq_prereqs.lock
+          # cudaqx and cudaq-decoding install DOCA 3.4 (OFED 26.04), the Dockerfiles DOCA 3.1.
+          python3 scripts/generate_image_sources_lock.py --doca --doca-extra 3.4.0:26.04 | tee -a cudaq_prereqs.lock
 
           mkdir -p prereqs
           while IFS= read -r line; do

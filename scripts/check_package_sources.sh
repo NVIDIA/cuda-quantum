@@ -12,8 +12,8 @@
 # $SOURCES_ROOT nor an accepted reason to have none:
 #   - it is proprietary and listed in docker/build/package_sources_proprietary.txt
 #     (apt and pip; its license files are kept instead), or
-#   - its source is part of the DOCA/OFED source bundle downloaded to
-#     $SOURCES_ROOT/prereqs/doca-ofed-src (apt only: rdma-core, ucx, xpmem, knem
+#   - its source is part of a DOCA/OFED source bundle downloaded to
+#     $SOURCES_ROOT/prereqs/doca-ofed-src* (apt only: rdma-core, ucx, xpmem, knem
 #     and the other Mellanox packages that replace Ubuntu's).
 # Also checks that every apt source package that was not omitted is on disk at
 # the exact version, so that a fetch that quietly got another version fails here.
@@ -41,7 +41,7 @@ is_proprietary() { # <apt|pip> <name>
 
 # Files of the DOCA/OFED source bundle, e.g. rdma-core_2507mlnx58.orig.tar.gz.
 ofed_files=""
-for bundle in "$SOURCES_ROOT"/prereqs/doca-ofed-src/MLNX_OFED_SRC-*.tgz; do
+for bundle in "$SOURCES_ROOT"/prereqs/doca-ofed-src*/MLNX_OFED_SRC-*.tgz; do
   [ -f "$bundle" ] && ofed_files+=$'\n'"$(tar -tzf "$bundle" | xargs -n1 basename)"
 done
 

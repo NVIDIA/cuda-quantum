@@ -17,7 +17,8 @@
 #   - the sources of CMake and QRMI, which install_prerequisites.sh only
 #     installs as binaries,
 #   - with --doca, the DOCA/OFED source bundle that matches DOCA_VERSION (rdma-core,
-#     ucx, xpmem, knem and the other Mellanox packages the images install).
+#     ucx, xpmem, knem and the other Mellanox packages the images install), and
+#     with --doca-extra those of the DOCA releases of the cudaqx/cudaq-decoding images.
 #
 # The versions are read from the files that build the images, so a component
 # that changes there changes here. Usage:
@@ -111,12 +112,8 @@ def prereq_source_entries() -> list:
     return entries
 
 
-def doca_entries() -> list:
-    """The OFED source bundle of the DOCA release the images install."""
-    text = (ROOT / "docker/build/devdeps.ompi.Dockerfile").read_text()
-    doca = dockerfile_vars(text)["DOCA_VERSION"]  # e.g. 3.1.0-091000-25.07
-    release = doca.split("-")[0]
-    ofed = doca.rsplit("-", 1)[1]  # 25.07
+def doca_bundle(release: str, ofed: str, name: str) -> tuple:
+    """The OFED source bundle of one DOCA release, e.g. ("3.4.0", "26.04")."""
     index = f"https://linux.mellanox.com/public/repo/doca/{release}/SOURCES/mlnx_ofed/"
     with urllib.request.urlopen(index, timeout=60) as resp:
         html = resp.read().decode()
@@ -126,7 +123,25 @@ def doca_entries() -> list:
         sys.exit(f"No MLNX_OFED_SRC-debian-{ofed} bundle found at {index}")
     bundle = sorted(bundles,
                     key=lambda b: [int(x) for x in re.findall(r"\d+", b)])[-1]
-    return [("doca-ofed-src", index + bundle)]
+    return (name, index + bundle)
+
+
+def doca_entries(extra: list) -> list:
+    """The OFED source bundles of the DOCA releases the images install.
+
+    The release of the Dockerfiles, plus the RELEASE:OFED pairs in extra for
+    images built elsewhere (cudaqx, cudaq-decoding), e.g. 3.4.0:26.04.
+    """
+    text = (ROOT / "docker/build/devdeps.ompi.Dockerfile").read_text()
+    doca = dockerfile_vars(text)["DOCA_VERSION"]  # e.g. 3.1.0-091000-25.07
+    entries = [
+        doca_bundle(doca.split("-")[0],
+                    doca.rsplit("-", 1)[1], "doca-ofed-src")
+    ]
+    for pair in extra:
+        release, ofed = pair.split(":")
+        entries.append(doca_bundle(release, ofed, f"doca-ofed-src-{release}"))
+    return entries
 
 
 # How NOTICE names the components built into the images.
@@ -167,6 +182,13 @@ def main():
         action="store_true",
         help="also resolve the DOCA/OFED source bundle (needs network)")
     parser.add_argument(
+        "--doca-extra",
+        action="append",
+        default=[],
+        metavar="RELEASE:OFED",
+        help="with --doca, also the bundle of this DOCA release, e.g. 3.4.0:26.04"
+    )
+    parser.add_argument(
         "--check-notice",
         action="store_true",
         help="fail if NOTICE lacks an entry for a component at its built version"
@@ -178,7 +200,7 @@ def main():
     if args.check_notice:
         sys.exit(1 if check_notice(entries) else 0)
     if args.doca:
-        entries += doca_entries()
+        entries += doca_entries(args.doca_extra)
     seen = {}
     for name, url in entries:
         if seen.setdefault(name, url) != url:
