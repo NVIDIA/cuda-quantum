@@ -14,6 +14,7 @@
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/IR/DataLayout.h"
+#include "mlir/AsmParser/AsmParser.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -2449,13 +2450,25 @@ LogicalResult cudaq::cc::IfOp::verify() {
   return success();
 }
 
+/// The type of a linear region argument that is written without one.
+static constexpr llvm::StringLiteral defaultLinearArgumentTypeText =
+    "!quake.wire";
+
 void cudaq::cc::IfOp::print(OpAsmPrinter &p) {
   p << '(' << getCondition() << ')';
   if (!getLinearArgs().empty()) {
     p << " ((";
     llvm::interleaveComma(
-        llvm::zip(getThenEntryArguments(), getLinearArgs()), p,
-        [&](auto it) { p << std::get<0>(it) << " = " << std::get<1>(it); });
+        llvm::zip(getThenEntryArguments(), getLinearArgs()), p, [&](auto it) {
+          p << std::get<0>(it) << " = " << std::get<1>(it);
+          // `!quake.wire` is the default and is not written, so existing IR
+          // prints as before. Any other linear type is annotated.
+          Type type = std::get<1>(it).getType();
+          std::string text;
+          llvm::raw_string_ostream(text) << type;
+          if (text != defaultLinearArgumentTypeText)
+            p << " : " << type;
+        });
     p << "))";
   }
   p.printOptionalArrowTypeList(getResultTypes());
@@ -2511,18 +2524,44 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
     return failure();
   SmallVector<OpAsmParser::Argument, 4> regionArgs;
   if (succeeded(parser.parseOptionalLParen())) {
-    // Linear type arguments.
-    SmallVector<OpAsmParser::UnresolvedOperand, 4> linearOperands;
-    if (parser.parseAssignmentList(regionArgs, linearOperands) ||
-        parser.parseRParen())
+    // Linear type arguments: `((%arg = %value [: type], ...))`. The type is
+    // optional for compatibility; when it is omitted it is `!quake.wire`.
+    // That default is looked up by name through the type parser, so CC has no
+    // link-time dependence on Quake.
+    if (parser.parseLParen())
       return failure();
-    Type wireTy = cudaq::quake::WireType::get(builder.getContext());
-    for (auto argOperand : llvm::zip(regionArgs, linearOperands)) {
-      std::get<0>(argOperand).type = wireTy;
-      if (parser.resolveOperand(std::get<1>(argOperand), wireTy,
-                                result.operands))
+    do {
+      OpAsmParser::Argument arg;
+      OpAsmParser::UnresolvedOperand operand;
+      if (parser.parseArgument(arg) || parser.parseEqual() ||
+          parser.parseOperand(operand))
         return failure();
-    }
+      Type type;
+      if (succeeded(parser.parseOptionalColon())) {
+        if (parser.parseType(type))
+          return failure();
+      } else {
+        type = mlir::parseType(defaultLinearArgumentTypeText,
+                               parser.getContext());
+        if (!type)
+          return parser.emitError(
+              parser.getNameLoc(),
+              "a linear region argument without a type defaults to "
+              "!quake.wire, which is not available here; write the type "
+              "explicitly");
+      }
+      if (!cudaq::cc::isLinearType(type))
+        return parser.emitError(parser.getNameLoc(),
+                                "linear region argument must have a linear "
+                                "(SSI) type, got ")
+               << type;
+      arg.type = type;
+      if (parser.resolveOperand(operand, type, result.operands))
+        return failure();
+      regionArgs.push_back(arg);
+    } while (succeeded(parser.parseOptionalComma()));
+    if (parser.parseRParen() || parser.parseRParen())
+      return failure();
   }
   if (parser.parseOptionalArrowTypeList(result.types))
     return failure();
@@ -2532,7 +2571,7 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
     // region arguments. (It can have more.)
     std::int64_t numRegionArgs = regionArgs.size();
     std::for_each(result.types.begin(), result.types.end(), [&](Type t) {
-      if (cudaq::quake::isLinearType(t))
+      if (cudaq::cc::isLinearType(t))
         --numRegionArgs;
     });
     if (numRegionArgs > 0)
@@ -2598,7 +2637,7 @@ void cudaq::cc::IfOp::getEntrySuccessorRegions(
 template <typename A>
 long countLinearArgs(const A &iterable) {
   return std::count_if(iterable.begin(), iterable.end(),
-                       [](Type t) { return cudaq::quake::isLinearType(t); });
+                       [](Type t) { return cudaq::cc::isLinearType(t); });
 }
 
 LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {

@@ -17,10 +17,10 @@
 //
 // The check runs before any lowering, so the diagnostic names this source file
 // and the offending line rather than a temporary Quake file.
-// MEASUREMENT-COUNT-1: atomic_quantum_region_apis_errors.cpp:{{[0-9]+}}:{{[0-9]+}}: error: 'quake.mz' op measurement operations are not supported inside an atomic quantum region; measure outside the region
+// MEASUREMENT-COUNT-1: atomic_quantum_region_apis-errors.cpp:{{[0-9]+}}:{{[0-9]+}}: error: 'quake.mz' op measurement operations are not supported inside an atomic quantum region; measure outside the region
 // MEASUREMENT-NOT: measurement operations are not supported inside an atomic quantum region
 //
-// ALLOCATION-COUNT-1: atomic_quantum_region_apis_errors.cpp:{{[0-9]+}}:{{[0-9]+}}: error: 'quake.alloca' op qubit allocations are not supported inside an atomic quantum region; allocate in the caller and pass the qubits as arguments
+// ALLOCATION-COUNT-1: atomic_quantum_region_apis-errors.cpp:{{[0-9]+}}:{{[0-9]+}}: error: 'quake.alloca' op qubit allocations are not supported inside an atomic quantum region; allocate in the caller and pass the qubits as arguments
 // ALLOCATION-NOT: qubit allocations are not supported inside an atomic quantum region
 // clang-format on
 

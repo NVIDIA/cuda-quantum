@@ -14,8 +14,10 @@ include "mlir/IR/SymbolInterfaces.td"
 include "cudaq/Optimizer/Dialect/CC/CCDialect.td"
 include "cudaq/Optimizer/Dialect/CC/CCInterfaces.td"
 include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
-include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.td"
 include "cudaq/Optimizer/Dialect/Traits.td"
+
+def AnyLinearType : Type<CPred<"$_self.hasTrait<::mlir::TypeTrait::SSIType>()">,
+                         "any linear (SSI) value type">;
 
 def AnyPointerType : Type<CPred<"isa<mlir::LLVM::LLVMPointerType,"
                           "cudaq::cc::PointerType>($_self)">,
@@ -386,7 +388,7 @@ def cc_IfOp : CCOp<"if",
 
   let arguments = (ins
     I1:$condition,
-    Variadic<AnyQLinearType>:$linearArgs
+    Variadic<AnyLinearType>:$linearArgs
   );
   let results = (outs Variadic<AnyType>:$results);
   let regions = (region
