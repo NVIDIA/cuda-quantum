@@ -243,6 +243,10 @@ target_link_libraries(test_exec_ctx_thread
   gtest_main)
 cudaq_gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
 
+add_executable(test_base64 common/Base64Tester.cpp)
+target_link_libraries(test_base64 PRIVATE cudaq gtest_main)
+cudaq_gtest_discover_tests(test_base64 DISCOVERY_TIMEOUT 120)
+
 add_executable(test_quantum_platform main.cpp common/QuantumPlatformTester.cpp
   common/RemoteExecutorTester.cpp)
 target_include_directories(test_quantum_platform PRIVATE .)
