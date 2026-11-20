@@ -334,6 +334,44 @@ def test_compile_import_rejects_a_noisy_kernel(capfd):
     assert "the target does not support noise" in capfd.readouterr().err
 
 
+@pytest.mark.parametrize("basis", ["z", "x", "Z", "X"])
+def test_generic_measure_in_a_logical_program(basis):
+    import cudaq.logical as cql
+
+    @cql.program
+    def generic() -> tuple[bool]:
+        q = cql.allocate(1, state=cql.types.zero)
+        return (cql.measure(q[0], basis=basis),)
+
+    text = cql.compile(generic).to_mlir()
+    assert text.count(f"qlx.measure <{basis.upper()}>") == 1
+    assert text.count("qlx.measure") == 1
+
+
+@pytest.mark.parametrize("options, error, match", [
+    ({
+        "destructive": False
+    }, TypeError, "only in a P3 physical trace"),
+    ({
+        "record": "m0"
+    }, TypeError, "only in a P3 physical trace"),
+    ({
+        "basis": "y"
+    }, ValueError, "basis must be 'x' or 'z'"),
+])
+def test_generic_measure_in_a_logical_program_rejects_physical_options(
+        options, error, match):
+    import cudaq.logical as cql
+
+    @cql.program
+    def generic() -> tuple[bool]:
+        q = cql.allocate(1, state=cql.types.zero)
+        return (cql.measure(q[0], **options),)
+
+    with pytest.raises(error, match=match):
+        cql.compile(generic)
+
+
 def test_cudaq_qvector_and_scalar_import_as_zero_preparation():
     import cudaq
     import cudaq.logical as cql
