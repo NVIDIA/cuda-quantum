@@ -36,7 +36,8 @@ func.func @nested_exp_pauli(%outer: i1, %inner: i1, %theta: f64) attributes {"cu
 // PREP: %[[B:[^ ]+]] = quake.null_wire
 // PREP: cf.cond_br %[[OUTER]], ^[[APPLY:bb[0-9]+]](%[[A]], %[[B]] : !quake.wire, !quake.wire), ^[[DONE:bb[0-9]+]](%[[A]], %[[B]] : !quake.wire, !quake.wire)
 // PREP: ^[[APPLY]](%[[X:[^:]+]]: !quake.wire, %[[Y:[^:]+]]: !quake.wire):
-// PREP: %[[P:[^:]+]]:2 = quake.exp_pauli (%[[THETA]]) %[[X]], %[[Y]] to "XY" : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// PREP: %[[WORD:[^ ]+]] = cc.string_literal "XY"
+// PREP: %[[P:[^:]+]]:2 = quake.exp_pauli (%[[THETA]]) %[[X]], %[[Y]] to %[[WORD]] : (f64, !quake.wire, !quake.wire, !cc.ptr<!cc.array<i8 x 3>>) -> (!quake.wire, !quake.wire)
 // PREP: cf.cond_br %[[INNER]], ^[[ROTATE:bb[0-9]+]](%[[P]]#1 : !quake.wire), ^[[JOIN:bb[0-9]+]](%[[P]]#1 : !quake.wire)
 // PREP: ^[[ROTATE]](%[[Q:[^:]+]]: !quake.wire):
 // PREP: %[[H:[^ ]+]] = quake.h %[[Q]] : (!quake.wire) -> !quake.wire
@@ -55,6 +56,7 @@ func.func @nested_exp_pauli(%outer: i1, %inner: i1, %theta: f64) attributes {"cu
 // QIR: %[[B:[^ ]+]] = call @__quantum__rt__qubit_allocate()
 // QIR: cf.cond_br %[[OUTER]], ^[[APPLY:bb[0-9]+]], ^[[DONE:bb[0-9]+]]
 // QIR: ^[[APPLY]]:
+// QIR: %[[LITERAL:[^ ]+]] = cc.string_literal "XY"
 // QIR: %[[XS:[^ ]+]] = call @__quantum__rt__array_create_1d(
 // QIR: %[[X:[^ ]+]] = call @__quantum__rt__array_get_element_ptr_1d(%[[XS]],
 // QIR: cc.store %[[A]], %[[X]] :
@@ -62,7 +64,6 @@ func.func @nested_exp_pauli(%outer: i1, %inner: i1, %theta: f64) attributes {"cu
 // QIR: %[[Y:[^ ]+]] = call @__quantum__rt__array_get_element_ptr_1d(%[[YS]],
 // QIR: cc.store %[[B]], %[[Y]] :
 // QIR: %[[TARGETS:[^ ]+]] = call @__quantum__rt__array_concatenate(%[[XS]], %[[YS]])
-// QIR: %[[LITERAL:[^ ]+]] = cc.address_of @[[GLOBAL:[^ ]+]] :
 // QIR: %[[DATA:[^ ]+]] = cc.cast %[[LITERAL]] :
 // QIR: %[[DATA_SLOT:[^ ]+]] = cc.cast %[[WORD]] :
 // QIR: cc.store %[[DATA]], %[[DATA_SLOT]] :
@@ -78,4 +79,3 @@ func.func @nested_exp_pauli(%outer: i1, %inner: i1, %theta: f64) attributes {"cu
 // QIR-DAG: call @__quantum__rt__qubit_release(%[[A]])
 // QIR-DAG: call @__quantum__rt__qubit_release(%[[B]])
 // QIR: return
-// QIR: llvm.mlir.global private constant @[[GLOBAL]]("XY\00")

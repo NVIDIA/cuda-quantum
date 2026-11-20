@@ -3097,21 +3097,6 @@ struct QuakeToQIRAPIPrepPass
     if (apiFields.size() > 1)
       qirVersion = apiFields[1];
 
-    // Bind constant Pauli words before converting their buffers to QIR.
-    // Restrict rewriting to these gates so CFG branches keep their wires.
-    SmallVector<Operation *> pauliOps;
-    module.walk([&](cudaq::quake::ExpPauliOp op) { pauliOps.push_back(op); });
-    if (!pauliOps.empty()) {
-      RewritePatternSet patterns(&getContext());
-      cudaq::quake::ExpPauliOp::getCanonicalizationPatterns(patterns,
-                                                            &getContext());
-      GreedyRewriteConfig config;
-      config.setStrictness(GreedyRewriteStrictness::ExistingAndNewOps);
-      if (failed(
-              applyOpPatternsGreedily(pauliOps, std::move(patterns), config)))
-        return signalPassFailure();
-    }
-
     {
       auto *ctx = &getContext();
       RewritePatternSet patterns(ctx);
