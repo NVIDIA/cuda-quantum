@@ -65,7 +65,7 @@ static void createPrepareForWiresetPipeline(
   funcPM.addPass(cudaq::opt::createEraseCompilerGeneratedEvince());
   funcPM.addPass(cudaq::opt::createExpandControlVeqs());
   funcPM.addPass(cudaq::opt::createCombineQuantumAllocations());
-  funcPM.addPass(createCanonicalizerPass());
+  funcPM.addPass(cudaq::opt::createCanonicalizeKernel());
   funcPM.addPass(cudaq::opt::createLoopNormalize());
   // Unroll and fold together. A loop whose trip count is a constant array
   // element indexed by an outer induction variable only becomes counted once
@@ -82,21 +82,21 @@ static void createPrepareForWiresetPipeline(
   // Classical optimization never signals failure, so run the unroller again to
   // report anything left rolled.
   postFuncPM.addPass(cudaq::opt::createLoopUnroll(loopUnrollOptions));
-  postFuncPM.addPass(createCanonicalizerPass());
+  postFuncPM.addPass(cudaq::opt::createCanonicalizeKernel());
   postFuncPM.addPass(createCSEPass());
   // Fold constant array element reads now that the loop is unrolled and the
   // indices are constants. Kernels that interpret a captured gate array reach
   // memtoreg with a dynamic `quake.extract_ref` index otherwise, and the
   // register cannot be promoted to wires.
   postFuncPM.addPass(cudaq::opt::createConstantPropagation());
-  postFuncPM.addPass(createCanonicalizerPass());
+  postFuncPM.addPass(cudaq::opt::createCanonicalizeKernel());
   // Classically scalarize and promote Pauli words for early exp_pauli
   // decomposition because quantum mem2reg cannot handle that operation. The
   // pipeline above runs these too, but too early to help: a Pauli word is only
   // promotable once the loop reading it has been unrolled.
   postFuncPM.addPass(cudaq::opt::createSROA());
   postFuncPM.addPass(cudaq::opt::createClassicalMemToReg());
-  postFuncPM.addPass(createCanonicalizerPass());
+  postFuncPM.addPass(cudaq::opt::createCanonicalizeKernel());
   cudaq::opt::addDecomposition(pm, {"ExpPauliDecomposition"});
   cudaq::opt::addConvertToLinearValues(pm);
   pm.addPass(createCanonicalizerPass());
