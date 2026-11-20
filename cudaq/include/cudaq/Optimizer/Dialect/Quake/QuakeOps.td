@@ -1280,6 +1280,78 @@ def MzOp : Measurement<"mz"> {
   let extraClassDeclaration = OpBaseDeclaration;
 }
 
+def MppOp : QuakeOp<"mpp", [AttrSizedOperandSegments, MeasurementInterface,
+    QuantumMeasure, DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
+  let summary = "Measurement of a Pauli product";
+  let description = [{
+    The `mpp` operation measures a tensor product of Pauli operators over its
+    targets and yields one classical bit, which is the eigenvalue of the
+    product (0 for +1 and 1 for -1). Unlike `mx`, `my`, and `mz`, which
+    measure each target independently and return one result per qubit, `mpp`
+    always returns a single `!quake.measure` (or `!cc.measure_handle`), no
+    matter how many qubits it acts on.
+
+    The Pauli product is a Pauli word whose characters are the Paulis `I`, `X`,
+    `Y`, and `Z`, applied to the qubits of the targets in order. The word is
+    exactly that of `exp_pauli`: either a string literal or a runtime value (a
+    pointer or a character span). The length of a literal must equal the
+    number of qubits in the targets when that count is known statically. The
+    contents of a runtime word cannot be checked by the verifier.
+
+    The optional `negated` keyword measures the negation of the Pauli product,
+    that is, the product with its eigenvalues swapped. The recorded bit is then
+    the complement of the outcome of the same measurement without `negated`.
+
+    The state of the targets is projected onto the eigenspace of the measured
+    product. A value-form `mpp` returns the targets' wires in order, as `mx`,
+    `my`, and `mz` do.
+
+    Example:
+    ```mlir
+      // Measure X (x) Z on two qubits and get one bit.
+      %m = quake.mpp %q0, %q1 to "XZ" : (!quake.ref, !quake.ref) -> !quake.measure
+      // The negated product, in value form.
+      %m, %w:2 = quake.mpp %a, %b negated to "ZZ" : (!quake.wire,
+          !quake.wire) -> (!quake.measure, !quake.wire, !quake.wire)
+      // A runtime Pauli word.
+      %s = cc.string_literal "XYZ" : !cc.ptr<!cc.array<i8 x 4>>
+      %m = quake.mpp %v to %s : (!quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) ->
+          !quake.measure
+    ```
+  }];
+
+  let arguments = (ins
+    Variadic<AnyQTargetType>:$targets,
+    Optional<AnyTypeOf<[cc_PointerType, cc_CharSpanType]>>:$pauli,
+    OptionalAttr<StrAttr>:$pauliLiteral,
+    UnitAttr:$negated,
+    OptionalAttr<StrAttr>:$registerName
+  );
+  // The result is always a single measurement, never a sequence.
+  let results = (outs
+    AnyTypeOf<[MeasureType, cc_MeasureHandleType]>:$measOut,
+    Variadic<AnyQLinearType>:$wires
+  );
+
+  let assemblyFormat = [{
+    $targets (`negated` $negated^)? `to` custom<RawString>($pauli, $pauliLiteral)
+      (`name` $registerName^)? `:` functional-type(operands, results) attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
+      mlir::MemoryEffects::Effect>> &effects) {
+      cudaq::quake::getMeasurementEffectsImpl(effects, getTargetsMutable());
+    }
+
+    /// An mpp measures all of its targets as one Pauli product.
+    bool isJointMeasurement() { return true; }
+  }];
+
+  let hasCanonicalizer = 1;
+  let hasVerifier = 1;
+}
+
 def quake_DiscriminateOp : QuakeOp<"discriminate",
     [DeclareOpInterfaceMethods<MemoryEffectsOpInterface>,
      DeclareOpInterfaceMethods<ConditionallySpeculatable>]> {

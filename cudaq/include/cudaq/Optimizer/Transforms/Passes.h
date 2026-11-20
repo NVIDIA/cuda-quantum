@@ -47,6 +47,13 @@ void registerTwoQubitGateCountOptimizationPipeline();
 /// basis allows any gate.
 bool canOptimizeTwoQubitGateCount(mlir::ArrayRef<std::string> basis);
 
+/// Whether `fuse-1q-to-u3` should run for a target with basis \p basis. Each
+/// fused sequence becomes a `u3`, so CUDA-Q has to be able to decompose `u3`s
+/// back into basis gates.
+///
+/// If `basis` is empty, it is assumed that any gate is allowed.
+bool canFuseToU3(mlir::ArrayRef<std::string> basis);
+
 /// Convert supported Quake IR to explicit linear values. This splits
 /// fixed-size allocations, expands vector controls, and threads reusable
 /// controls through their uses.
