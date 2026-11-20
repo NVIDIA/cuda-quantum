@@ -329,11 +329,135 @@ jobs:
           if-no-files-found: error
 
   # ============================================================================
+  # cudaq-devel wheel, which cudaq-logical is built against. It does not depend
+  # on the Python version, so one is enough.
+  # ============================================================================
+  devel_wheel:
+    name: Devel wheel (arm64)
+    needs: [devdeps, metadata]
+    runs-on: macos-26
+    permissions:
+      contents: read
+      packages: write
+    env:
+      CC: clang
+      CXX: clang++
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Initialize submodules (with retry and mirror fallback)
+        run: |
+          bash scripts/update_submodules.sh --depth 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Select latest stable Xcode
+        uses: ./.github/actions/setup-xcode-stable
+
+      - name: Log macOS toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          xcrun --show-sdk-path
+          xcrun --show-sdk-version
+          clang --version
+
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Restore prerequisites from GHCR
+        run: |
+          set -e  # Exit on error
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+          retry oras pull ${{ needs.devdeps.outputs.image_hash }}
+
+          tar -xzf macos-artifacts.tar.gz -C $HOME
+          rm macos-artifacts.tar.gz
+
+      # The wheel job fills this cache, so this one only reads it.
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: arm64-wheel
+          output-path: ${{ env.CCACHE_DIR }}
+          registry-token: ${{ github.token }}
+
+      - name: Install Python dependencies
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          CCACHE_DISABLE=1 retry pip install -r requirements-dev.txt
+
+      - name: Build MLIR Python bindings
+        run: |
+          source scripts/set_env_defaults.sh
+          Python3_EXECUTABLE="$(which python3)" \
+          LLVM_SOURCE="$HOME/.llvm-project" \
+          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+
+      - name: Build devel wheel
+        run: |
+          echo "Building devel wheel version: ${{ needs.metadata.outputs.cudaq_version }}"
+          source scripts/set_env_defaults.sh
+
+          export CUDA_QUANTUM_VERSION=${{ needs.metadata.outputs.cudaq_version }}
+          bash scripts/build_wheel.sh -d -v
+
+          wheel_file=$(ls dist/cudaq_devel*.whl 2>/dev/null | head -1)
+          echo "Built wheel: $wheel_file"
+
+      - name: Upload devel wheel artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cudaq-devel-darwin-arm64
+          path: dist/cudaq_devel*.whl
+          # Kept longer for release runs (Validation, draft release).
+          retention-days: ${{ inputs.cudaq_version != '' && 14 || 3 }}
+          if-no-files-found: error
+
+  # ============================================================================
+  # cudaq-edem wheels, which the cudaq metapackage depends on
+  # ============================================================================
+  edem_wheels:
+    name: Create cudaq-edem wheels (arm64)
+    needs: metadata
+    permissions:
+      contents: read
+    uses: ./.github/workflows/edem_wheels_macos.yml
+    with:
+      # Kept longer for release runs (Validation, draft release).
+      retention_days: ${{ inputs.cudaq_version != '' && 14 || 3 }}
+
+  # ============================================================================
+  # cudaq-logical wheels, built against the wheels above
+  # ============================================================================
+  logical_wheels:
+    name: Create cudaq-logical wheels (arm64, py${{ matrix.python_version }})
+    needs: [metadata, wheel, devel_wheel, edem_wheels]
+    strategy:
+      matrix:
+        python_version: ['3.11', '3.12', '3.13', '3.14']
+      fail-fast: false
+    permissions:
+      contents: read
+    uses: ./.github/workflows/cudaq_logical_build_macos.yml
+    with:
+      python_version: ${{ matrix.python_version }}
+      cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
+      retention_days: ${{ inputs.cudaq_version != '' && 14 || 3 }}
+
+  # ============================================================================
   # Validate wheels in clean environments
   # ============================================================================
   validate_wheel:
     name: Validate (arm64, py${{ matrix.python_version }})
-    needs: wheel
+    needs: [wheel, edem_wheels, logical_wheels]
     strategy:
       matrix:
         python_version: ['3.11', '3.12', '3.13', '3.14']
@@ -366,6 +490,18 @@ jobs:
         with:
           name: pycudaq-${{ matrix.python_version }}-darwin-arm64
           path: dist/
+
+      - name: Download cudaq-edem wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: cudaq-edem-${{ matrix.python_version }}-darwin-arm64
+          path: edem-wheels/
+
+      - name: Download cudaq-logical wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: cudaq-logical-${{ matrix.python_version }}-darwin-arm64
+          path: logical-wheels/
 
       - name: Validate core without the frontend
         run: |
@@ -413,10 +549,12 @@ jobs:
           fi
 
           echo "${{ needs.wheel.outputs.cudaq_version }}" > python/metapackages/_version.txt
-          # no cudaq-logical wheel on macOS
-          echo "0.0.0" > python/metapackages/_logical_version.txt
-          # no cudaq-edem wheel on macOS yet
-          echo "0.0.0" > python/metapackages/_edem_version.txt
+          # The metapackage pins the exact versions of the dependency wheels.
+          for kind in logical edem; do
+            wheel="$(basename "$(find "$kind-wheels" -name "cudaq_$kind-*.whl" -print -quit)")"
+            version="${wheel#cudaq_$kind-}"
+            echo "${version%%-cp*}" > "python/metapackages/_${kind}_version.txt"
+          done
           python3 -m pip install build
           cd python/metapackages && CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
           mkdir -p "$GITHUB_WORKSPACE/metapackage"
@@ -429,10 +567,13 @@ jobs:
           python3 -m venv metapkg-venv
           source metapkg-venv/bin/activate
           pip install "cudaq==${{ needs.wheel.outputs.cudaq_version }}" \
-            --find-links "$GITHUB_WORKSPACE/dist" --find-links "$GITHUB_WORKSPACE/metapackage"
+            --find-links "$GITHUB_WORKSPACE/dist" \
+            --find-links "$GITHUB_WORKSPACE/edem-wheels" \
+            --find-links "$GITHUB_WORKSPACE/logical-wheels" \
+            --find-links "$GITHUB_WORKSPACE/metapackage"
           python -c 'import cudaq; print(cudaq.get_target().name)'
           python -m pip check
-          python "$RUNNER_TEMP/test_installation.py" --frontend
+          python "$RUNNER_TEMP/test_installation.py" --logical --frontend --edem
 
   # ============================================================================
   # Build self-extracting installer for C++ SDK

@@ -1,0 +1,109 @@
+# Build, repair and test the cudaq-edem wheels for macOS (arm64).
+#
+# EDEM does not depend on CUDA-Q, so these jobs do not wait for any other
+# wheel. Each wheel is built with the python.org interpreter of the matrix
+# version, repaired with delocate, and then installed, relocated and exercised
+# by edem/test/check_wheel.py. The linux wheels are in edem_wheels.yml.
+#
+# The wheels are uploaded zipped as `cudaq-edem-<python>-darwin-arm64`. The
+# name is deliberately not `cudaq_edem-*`, which the Linux jobs download with
+# `merge-multiple` and would then also pick up a macOS wheel.
+
+name: Build cudaq-edem wheels (macOS)
+
+on:
+  workflow_call:
+    inputs:
+      python_versions:
+        type: string
+        default: "['3.11', '3.12', '3.13', '3.14']"
+        description: Json array of the Python versions to build wheels for.
+      retention_days:
+        type: number
+        default: 3
+        description: Days to keep the wheel artifacts.
+
+jobs:
+  wheel:
+    name: Build cudaq-edem wheel (arm64, ${{ matrix.python_version }})
+    runs-on: macos-26
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        python_version: ${{ fromJSON(inputs.python_versions) }}
+      fail-fast: false
+
+    env:
+      # Same floor as the CUDA-Q macOS wheels, so both install on the same systems.
+      MACOSX_DEPLOYMENT_TARGET: "13.0"
+      CMAKE_BUILD_PARALLEL_LEVEL: "4"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Select latest stable Xcode
+        uses: ./.github/actions/setup-xcode-stable
+
+      - name: Install build tools
+        run: python -m pip install "build[virtualenv]>=1.2,<2" "delocate>=0.13"
+
+      - name: Build the wheel
+        id: build
+        run: |
+          PY_TAG="cp${PYTHON_VERSION/./}"
+          python edem/scripts/build_wheel.py --outdir dist/raw
+
+          raw_wheel="$(find dist/raw -name "cudaq_edem-*-${PY_TAG}-*.whl" -print -quit)"
+          if [ -z "$raw_wheel" ]; then
+            echo "::error::Missing the cudaq-edem ${PY_TAG} wheel under dist/raw."
+            find dist/raw -type f
+            exit 1
+          fi
+          echo "raw_wheel=$raw_wheel" >> "$GITHUB_OUTPUT"
+        env:
+          PYTHON_VERSION: ${{ matrix.python_version }}
+
+      - name: Repair the wheel
+        id: repair
+        env:
+          RAW_WHEEL: ${{ steps.build.outputs.raw_wheel }}
+        run: |
+          echo "=== Dependencies before repair ==="
+          delocate-listdeps --all "$RAW_WHEEL"
+
+          # The extension and both libraries only depend on the base system.
+          # delocate fails if one of them is not arm64 or targets a newer macOS
+          # than the wheel tag claims.
+          delocate-wheel --require-archs arm64 -v -w dist/repaired "$RAW_WHEEL"
+
+          wheel="$(find dist/repaired -name 'cudaq_edem-*-macosx_13_0_arm64.whl' -print -quit)"
+          if [ -z "$wheel" ]; then
+            echo "::error::Repaired macosx_13_0_arm64 wheel not found under dist/repaired."
+            find dist/repaired -type f
+            exit 1
+          fi
+
+          echo "=== Dependencies after repair ==="
+          delocate-listdeps --all "$wheel"
+          echo "wheel_path=$wheel" >> "$GITHUB_OUTPUT"
+
+      - name: Test the repaired wheel
+        env:
+          WHEEL: ${{ steps.repair.outputs.wheel_path }}
+        run: python edem/test/check_wheel.py "$WHEEL"
+
+      - name: Upload cudaq-edem wheel
+        uses: actions/upload-artifact@v7
+        with:
+          name: cudaq-edem-${{ matrix.python_version }}-darwin-arm64
+          path: ${{ steps.repair.outputs.wheel_path }}
+          retention-days: ${{ inputs.retention_days }}
+          if-no-files-found: error
