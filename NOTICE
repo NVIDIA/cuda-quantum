@@ -321,3 +321,128 @@ The full license text is distributed with CUDA-Q in the file
 LICENSES/LICENSE.enchantum, located alongside this NOTICE.
 
 ----------------------------------------------------------------
+
+OpenMPI - BSD 3-Clause License
+<https://www.open-mpi.org/>
+
+Copyright (c) The Trustees of Indiana University and Indiana University
+Research and Technology Corporation, The University of Tennessee and The
+University of Tennessee Research Foundation, and the other Open MPI copyright
+holders listed in LICENSES/LICENSE.openmpi.
+Open MPI 4.1.4 is built from unmodified upstream source and included in the
+CUDA-Q container images (/usr/local/openmpi).
+Source code at <https://github.com/open-mpi/ompi/tree/v4.1.4>
+The source code is also distributed in the CUDA-Q package sources image under
+/sources/prereqs/openmpi.
+The full license text is distributed with CUDA-Q in the file
+LICENSES/LICENSE.openmpi, located alongside this NOTICE.
+
+----------------------------------------------------------------
+
+UCX (Unified Communication X) - BSD 3-Clause License
+<https://openucx.org/>
+
+Copyright (c) UT-Battelle, LLC, NVIDIA corporation & affiliates, Advanced
+Micro Devices, Inc., Arm Ltd., and the other UCX copyright holders listed in
+LICENSES/LICENSE.ucx.
+UCX 1.21.0 is built from unmodified upstream source and included in the CUDA-Q
+container images (/usr/local/ucx).
+Source code at <https://github.com/openucx/ucx/tree/v1.21.0>
+The source code is also distributed in the CUDA-Q package sources image under
+/sources/prereqs/ucx.
+The full license text is distributed with CUDA-Q in the file
+LICENSES/LICENSE.ucx, located alongside this NOTICE.
+
+----------------------------------------------------------------
+
+UCC (Unified Collective Communication) - BSD 3-Clause License
+<https://github.com/openucx/ucc>
+
+Copyright (c) 2020, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+UCC 1.8.0 is built from unmodified upstream source and included in the CUDA-Q
+container images (/usr/local/ucc).
+Source code at <https://github.com/openucx/ucc/tree/v1.8.0>
+The source code is also distributed in the CUDA-Q package sources image under
+/sources/prereqs/ucc.
+The full license text is distributed with CUDA-Q in the file
+LICENSES/LICENSE.ucc, located alongside this NOTICE.
+
+----------------------------------------------------------------
+
+PMIx (OpenPMIx) - BSD 3-Clause License
+<https://openpmix.github.io/>
+
+Copyright held by the PMIx and Open MPI contributors listed in
+LICENSES/LICENSE.pmix.
+PMIx 3.2.3 is built from unmodified upstream source and included in the CUDA-Q
+container images (/usr/local/pmix).
+Source code at <https://github.com/openpmix/openpmix/tree/v3.2.3>
+The source code is also distributed in the CUDA-Q package sources image under
+/sources/prereqs/openpmix.
+The full license text is distributed with CUDA-Q in the file
+LICENSES/LICENSE.pmix, located alongside this NOTICE.
+
+----------------------------------------------------------------
+
+Slurm PMI2 client library - Argonne National Laboratory and University of Chicago notice
+<https://github.com/SchedMD/slurm/tree/master/contribs/pmi2>
+
+Copyright (C) 2002 University of Chicago; (C) 2007 Argonne National Laboratory;
+Copyright (C) 2013 Intel, Inc.
+The PMI2 library from the contribs/pmi2 directory of Slurm 21.08.8 is built
+from unmodified upstream source and included in the CUDA-Q container images
+(/usr/local/pmi).
+Source code at <https://download.schedmd.com/slurm/>
+The source code is also distributed in the CUDA-Q package sources image under
+/sources/prereqs/slurm.
+The notice of the contribs/pmi2 directory is distributed with CUDA-Q in the file
+LICENSES/LICENSE.slurm-pmi2, located alongside this NOTICE.
+
+----------------------------------------------------------------
+
+MUNGE - GNU GPL v3 or later; libmunge: GNU LGPL v3 or later
+<https://dun.github.io/munge/>
+
+Copyright (C) 2007-2020 Lawrence Livermore National Security, LLC.
+Copyright (C) 2002-2007 The Regents of the University of California.
+MUNGE 0.5.14 is built from unmodified upstream source and included in the
+CUDA-Q container images (/usr/local/munge) as a dependency of PMIx.
+Source code at <https://github.com/dun/munge/releases/tag/munge-0.5.14>
+The source code is also distributed in the CUDA-Q package sources image under
+/sources/prereqs/munge.
+The full license texts are distributed with CUDA-Q in the files
+LICENSES/LICENSE.LGPLv3 (GNU LGPL v3) and LICENSES/LICENSE.GPLv3 (GNU GPL v3),
+located alongside this NOTICE.
+
+----------------------------------------------------------------
+
+GDRCopy - MIT License
+<https://github.com/NVIDIA/gdrcopy>
+
+Copyright (c) 2014-2021, NVIDIA CORPORATION. All rights reserved.
+GDRCopy 2.3.1 (user-space library only) is built from unmodified upstream
+source and included in the CUDA-Q container images (/usr/local/gdrcopy).
+Source code at <https://github.com/NVIDIA/gdrcopy/tree/v2.3.1>
+The source code is also distributed in the CUDA-Q package sources image under
+/sources/prereqs/gdrcopy.
+The full license text is distributed with CUDA-Q in the file
+LICENSES/LICENSE.gdrcopy, located alongside this NOTICE.
+
+----------------------------------------------------------------
+
+uv - MIT License or Apache License 2.0
+<https://github.com/astral-sh/uv>
+
+Copyright (c) 2025 Astral Software Inc.
+uv 0.13.5 is included in the CUDA-Q container images (/usr/local/bin/uv and
+uvx) as published by Astral, copied unmodified from its container image. It is
+a statically linked Rust program; the crates it incorporates are listed in the
+Cargo.lock of its source repository at the tag below.
+Source code at <https://github.com/astral-sh/uv/tree/0.13.5>
+The source code is also distributed in the CUDA-Q package sources image under
+/sources/prereqs/uv.
+The full license texts are distributed with CUDA-Q in the files
+LICENSES/LICENSE.uv-MIT and LICENSES/LICENSE.uv-Apache-2.0, located alongside
+this NOTICE.
+
+----------------------------------------------------------------
