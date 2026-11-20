@@ -1,0 +1,7 @@
+# Distributions that only ship wheels but are built from the sdist of another
+# project at the same version.
+#
+# <distribution> <project with the sdist>
+
+cupy-cuda12x cupy
+cupy-cuda13x cupy
