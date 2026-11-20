@@ -479,98 +479,96 @@ protected:
   void addTerminationPoint(Value v) { termination_points.insert(v); }
 
   void calculateSubcircuitForQubitForward(Value v) {
-    if (seen.contains(v))
-      return;
-    seen.insert(v);
-    if (!v.hasOneUse()) {
-      addTerminationPoint(v);
-      return;
-    }
-    OpOperand *use = &*v.getUses().begin();
-    Operation *op = use->getOwner();
-    if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(op)) {
-      // Ordinary single-block scopes preserve wire identity, so their yielded
-      // wire can remain in this subcircuit. Marked or CFG-bearing scopes do not
-      // have that transparent-boundary contract.
-      auto scope = dyn_cast<cudaq::cc::ScopeOp>(cont->getParentOp());
-      if (!scope || scope.getAtomicQuantumRegionAttr() ||
-          !scope.getInitRegion().hasOneBlock() ||
-          scope.getInitRegion().front().getTerminator() != op ||
-          cont.getNumOperands() != scope->getNumResults() ||
-          use->getOperandNumber() >= scope->getNumResults()) {
+    while (seen.insert(v).second) {
+      if (!v.hasOneUse()) {
         addTerminationPoint(v);
         return;
       }
-      auto nextResult = scope->getResult(use->getOperandNumber());
-      if (!isa<cudaq::quake::WireType>(nextResult.getType())) {
+      OpOperand *use = &*v.getUses().begin();
+      Operation *op = use->getOwner();
+      if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(op)) {
+        // Ordinary single-block scopes preserve wire identity, so their yielded
+        // wire can remain in this subcircuit. Marked or CFG-bearing scopes do
+        // not have that transparent-boundary contract.
+        auto scope = dyn_cast<cudaq::cc::ScopeOp>(cont->getParentOp());
+        if (!scope || scope.getAtomicQuantumRegionAttr() ||
+            !scope.getInitRegion().hasOneBlock() ||
+            scope.getInitRegion().front().getTerminator() != op ||
+            cont.getNumOperands() != scope->getNumResults() ||
+            use->getOperandNumber() >= scope->getNumResults()) {
+          addTerminationPoint(v);
+          return;
+        }
+        auto nextResult = scope->getResult(use->getOperandNumber());
+        if (!isa<cudaq::quake::WireType>(nextResult.getType())) {
+          addTerminationPoint(v);
+          return;
+        }
+        scope_result_to_continue_operand[nextResult] = use->get();
+        v = nextResult;
+        continue;
+      }
+      if (isTerminationPoint(op)) {
         addTerminationPoint(v);
         return;
       }
-      scope_result_to_continue_operand[nextResult] = use->get();
-      calculateSubcircuitForQubitForward(nextResult);
-      return;
+      ops.insert(op);
+      auto nextResult = getNextResult(v);
+      // Controlled not: add an anchor point for the other qubit
+      if (op->getResults().size() > 1) {
+        auto control = op->getResult(0);
+        auto target = op->getResult(1);
+        if (nextResult == control)
+          addAnchorPoint(target);
+        else
+          addAnchorPoint(control);
+      }
+      v = nextResult;
     }
-    if (isTerminationPoint(op)) {
-      addTerminationPoint(v);
-      return;
-    }
-    ops.insert(op);
-    auto nextResult = getNextResult(v);
-    // Controlled not: add an anchor point for the other qubit
-    if (op->getResults().size() > 1) {
-      auto control = op->getResult(0);
-      auto target = op->getResult(1);
-      if (nextResult == control)
-        addAnchorPoint(target);
-      else
-        addAnchorPoint(control);
-    }
-    calculateSubcircuitForQubitForward(nextResult);
   }
 
   void calculateSubcircuitForQubitBackward(Value v) {
-    if (seen.contains(v))
-      return;
-    seen.insert(v);
-    Operation *op = v.getDefiningOp();
-    if (auto scope = dyn_cast_or_null<cudaq::cc::ScopeOp>(op)) {
-      // The ScopeOp result hides the quantum operation that produced the
-      // yielded wire. Recover that wire so the backward walk follows the same
-      // path as the forward walk.
-      if (scope.getAtomicQuantumRegionAttr() ||
-          !scope.getRegion().hasOneBlock()) {
+    while (seen.insert(v).second) {
+      Operation *op = v.getDefiningOp();
+      if (auto scope = dyn_cast_or_null<cudaq::cc::ScopeOp>(op)) {
+        // The ScopeOp result hides the quantum operation that produced the
+        // yielded wire. Recover that wire so the backward walk follows the same
+        // path as the forward walk.
+        if (scope.getAtomicQuantumRegionAttr() ||
+            !scope.getRegion().hasOneBlock()) {
+          addTerminationPoint(v);
+          return;
+        }
+        auto resultIndex = cast<OpResult>(v).getResultNumber();
+        auto continueOp = dyn_cast_or_null<cudaq::cc::ContinueOp>(
+            scope.getInitRegion().front().getTerminator());
+        if (!continueOp || continueOp.getNumOperands() <= resultIndex) {
+          addTerminationPoint(v);
+          return;
+        }
+        Value continueWire = continueOp.getOperand(resultIndex);
+        scope_result_to_continue_operand[v] = continueWire;
+        v = continueWire;
+        continue;
+      }
+      if (isTerminationPoint(op)) {
         addTerminationPoint(v);
         return;
       }
-      auto resultIndex = cast<OpResult>(v).getResultNumber();
-      auto continueOp = dyn_cast_or_null<cudaq::cc::ContinueOp>(
-          scope.getInitRegion().front().getTerminator());
-      if (!continueOp || continueOp.getNumOperands() <= resultIndex) {
-        addTerminationPoint(v);
-        return;
+      ops.insert(op);
+      auto nextOperand = getNextOperand(v);
+      // Controlled not: add an anchor point for the other qubit
+      // Use getResults() as Rz has two operands but only one result
+      if (op->getResults().size() > 1) {
+        auto control = op->getOperand(0);
+        auto target = op->getOperand(1);
+        if (nextOperand == control)
+          addAnchorPoint(target);
+        else
+          addAnchorPoint(control);
       }
-      Value continueWire = continueOp.getOperand(resultIndex);
-      scope_result_to_continue_operand[v] = continueWire;
-      calculateSubcircuitForQubitBackward(continueWire);
-      return;
+      v = nextOperand;
     }
-    if (isTerminationPoint(op)) {
-      addTerminationPoint(v);
-      return;
-    }
-    ops.insert(op);
-    auto nextOperand = getNextOperand(v);
-    // Controlled not: add an anchor point for the other qubit
-    // Use getResults() as Rz has two operands but only one result
-    if (op->getResults().size() > 1) {
-      auto control = op->getOperand(0);
-      auto target = op->getOperand(1);
-      if (nextOperand == control)
-        addAnchorPoint(target);
-      else
-        addAnchorPoint(control);
-    }
-    calculateSubcircuitForQubitBackward(nextOperand);
   }
 
   void calculateInitialSubcircuit(Operation *op) {
