@@ -72,7 +72,6 @@ if (CUDA_FOUND)
       cudaq-logger
       CUDAQTargetCatalog
     PRIVATE
-      cudaqMLIR
       nvqir
       fmt::fmt-header-only
       CUDA::cudart_static
@@ -98,7 +97,6 @@ else()
       cudaq-logger
       CUDAQTargetCatalog
     PRIVATE
-      cudaqMLIR
       nvqir
       fmt::fmt-header-only
   )

@@ -154,13 +154,23 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   CUDAQ_INFO("Init: Library Path is {}.", cudaqLibPath.string());
 
   // Load nvqir, cudaq, and the default execution manager. The em cannot
-  // be a needed dep of libcudaq.so (circular dependency). Keep these local:
-  // promoting their dependencies would expose LLVM to unrelated extensions.
-  std::vector<std::filesystem::path> libPaths{
+  // be a needed dep of libcudaq.so (circular dependency).
+  //
+  // The libraries `libnvqir`, `libcudaq` and `libcudaq-em-default` export
+  //  C-API symbols that kernels compiled with `nvq++` call into. They must be
+  // loaded into the global scope so that C++-defined kernels can successfully
+  // be called from Python.
+  //
+  // Note: we have to be careful that these libraries don't pollute the global
+  // link table with symbols that might conflict with third-party packages (e.g.
+  // MLIR symbols). All libraries that do link in MLIR (e.g. libcudaqMLIR,
+  // cudaq-mlir-runtime, and the `CUDAQ_DYNLIBS` below) must be loaded locally.
+  std::vector<std::pair<std::filesystem::path, int>> libPaths{
       // NVQIR may already be loaded from a separate core installation.
-      fmt::format("libnvqir.{}", libSuffix),
-      cudaqLibPath / fmt::format("libcudaq.{}", libSuffix),
-      cudaqLibPath / fmt::format("libcudaq-em-default.{}", libSuffix)};
+      {fmt::format("libnvqir.{}", libSuffix), RTLD_GLOBAL},
+      {cudaqLibPath / fmt::format("libcudaq.{}", libSuffix), RTLD_GLOBAL},
+      {cudaqLibPath / fmt::format("libcudaq-em-default.{}", libSuffix),
+       RTLD_GLOBAL}};
 
   const char *dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
   if (dynlibs_var != nullptr) {
@@ -168,15 +178,15 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
     std::stringstream ss((std::string(dynlibs_var)));
     while (std::getline(ss, dynlib, ':')) {
       CUDAQ_INFO("Init: add dynamic library path {}.", dynlib);
-      libPaths.push_back(dynlib);
+      libPaths.emplace_back(dynlib, RTLD_LOCAL);
     }
   }
 
   // Load all the defaults
   {
     ScopedTraceWithContext("dlopen_core_and_dynlibs");
-    for (auto &p : libPaths) {
-      void *libHandle = dlopen(p.string().c_str(), RTLD_LOCAL | RTLD_NOW);
+    for (auto &[p, scope] : libPaths) {
+      void *libHandle = dlopen(p.string().c_str(), scope | RTLD_NOW);
       if (libHandle) {
         libHandles.emplace(p.string(), libHandle);
       } else {
