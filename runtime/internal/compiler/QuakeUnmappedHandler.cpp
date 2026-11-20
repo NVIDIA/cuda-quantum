@@ -11,73 +11,100 @@
 #include "cudaq/Optimizer/Transforms/CliffordTPipelines.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringExtras.h"
-#include <iomanip>
-#include <limits>
-#include <locale>
-#include <sstream>
-
-/// Print \p tolerance with every digit the passes need to read it back,
-/// independent of the locale. This avoids floating-point `std::to_chars`, which
-/// macOS provides only from 13.3.
-static std::string formatTolerance(double tolerance) {
-  std::ostringstream text;
-  text.imbue(std::locale::classic());
-  text << std::setprecision(std::numeric_limits<double>::max_digits10)
-       << tolerance;
-  return text.str();
-}
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/Passes.h"
 
 /// Whether a stage lowering to \p profile schedules
-/// `clifford-t-synthesis-pipeline`. The pipeline itself then decides, through
-/// `needsCliffordTSynthesis`, whether the basis needs any rotation
-/// approximated.
+/// `clifford-t-synthesis-pipeline`.
 static bool schedulesCliffordTSynthesis(
     const cudaq::config::QuakeUnmappedProfile &profile) {
-  return profile.costModel == cudaq::config::CostModel::t_count &&
-         !profile.basisGates.empty();
+  if (profile.basisGates.empty() ||
+      profile.costModel != cudaq::config::CostModel::t_count)
+    return false;
+  return cudaq::opt::needsCliffordTSynthesis(profile.basisGates);
 }
 
-/// The passes that optimize for the profile's cost model. A non-empty basis
-/// first gains the gates the optimizer works with: for `t-count`, the
+/// Add the passes that fuse each one-qubit gate sequence into a single `u3`.
+/// A sequence is replaced only when that is cheaper, or, when it contains a
+/// gate outside of the profile basis.
+static void addFusePasses(mlir::OpPassManager &pm,
+                          const cudaq::config::QuakeUnmappedProfile &profile) {
+  const bool tCount = profile.costModel == cudaq::config::CostModel::t_count;
+
+  // The cost function to minimize: either the total number of rotations or
+  // only non-Clifford rotations. The basis is the set of allowed gates: gates
+  // outside of it force fusion no matter the cost model. If rotation synthesis
+  // will run, allow rotation gates. An empty basis allows all gates.
+  cudaq::opt::Fuse1QToU3Options fuseOptions;
+  std::vector<std::string> basis = profile.basisGates;
+  if (tCount) {
+    fuseOptions.cost = "clifford-t-free";
+    fuseOptions.epsilon = profile.approximationTolerance;
+    // With a u3 synthesizer, fuse every chain that has a rotation into a u3
+    // for the synthesizer, by keeping rotations out of the basis.
+    if (schedulesCliffordTSynthesis(profile) && !profile.u3Synthesis)
+      basis = cudaq::opt::cliffordTDecompositionBasis(profile.basisGates);
+  } else {
+    fuseOptions.cost = "rotation-count";
+  }
+  fuseOptions.basis.assign(basis.begin(), basis.end());
+
+  auto &funcPM = pm.nest<mlir::func::FuncOp>();
+  funcPM.addPass(cudaq::opt::createFuse1QToU3(fuseOptions));
+  funcPM.addPass(mlir::createCanonicalizerPass());
+}
+
+/// Add the passes that optimize for the profile's cost model. A non-empty
+/// basis first gains the gates the optimizer works with: for `t-count`, the
 /// rotations it merges and snaps before synthesis; for `two-qubit-gate-count`,
 /// the controlled `x` across which `phase-folding` folds rotations. The
 /// handler's closing `basis-conversion` removes them again.
-static std::vector<std::string>
-costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
-                const cudaq::CompileOptions &options) {
+static void
+addCostModelPasses(mlir::OpPassManager &pm,
+                   const cudaq::config::QuakeUnmappedProfile &profile,
+                   unsigned level, std::uint64_t seed) {
   const bool tCount = profile.costModel == cudaq::config::CostModel::t_count;
-  const std::string tolerance = formatTolerance(profile.approximationTolerance);
-  const auto level = static_cast<unsigned>(options.optimizationLevel);
-  std::vector<std::string> passes;
+  const double tolerance = profile.approximationTolerance;
   if (!profile.basisGates.empty()) {
     auto basis =
-        tCount ? cudaq::opt::cliffordTDecompositionBasis(profile.basisGates)
-               : profile.basisGates;
+        tCount && schedulesCliffordTSynthesis(profile)
+            ? cudaq::opt::cliffordTDecompositionBasis(profile.basisGates)
+            : profile.basisGates;
     if (!tCount && !llvm::is_contained(basis, "x(1)"))
       basis.emplace_back("x(1)");
-    passes.push_back("decomposition{basis=" + llvm::join(basis, ",") + "}");
+    cudaq::opt::DecompositionOptions decompositionOptions;
+    decompositionOptions.basis.assign(basis.begin(), basis.end());
+    pm.addPass(cudaq::opt::createDecomposition(decompositionOptions));
   }
-  passes.push_back(cudaq_internal::compiler::convertToWires(profile));
+  cudaq_internal::compiler::addConvertToWires(pm, profile);
   // Handle any new phases the t-count decomposition may have introduced.
-  if (tCount)
-    passes.push_back("func.func(normalize-phase-placement,lower-phase)");
-  if (level >= 1)
-    passes.push_back(
-        std::string(tCount ? "clifford-t" : "two-qubit-gate-count") +
-        "-optimization-pipeline{level=" + std::to_string(level) +
-        (tCount ? " approximation-tolerance=" + tolerance : "") + "}");
-  // The synthesis pipeline adds no passes when the basis can express one of
-  // the rotations it synthesizes exactly.
-  if (schedulesCliffordTSynthesis(profile)) {
-    const std::string seed =
-        options.seed ? " seed=" + std::to_string(*options.seed) : "";
-    passes.push_back("clifford-t-synthesis-pipeline{basis=" +
-                     llvm::join(profile.basisGates, ",") +
-                     " level=" + std::to_string(level) +
-                     " approximation-tolerance=" + tolerance + seed + "}");
+  if (tCount) {
+    auto &funcPM = pm.nest<mlir::func::FuncOp>();
+    funcPM.addPass(cudaq::opt::createNormalizePhasePlacement());
+    funcPM.addPass(cudaq::opt::createLowerPhase());
   }
-  return passes;
+  // A u3 synthesizer needs the u3 gates that fusion creates, at every level.
+  const bool synthesizeU3 =
+      profile.u3Synthesis && schedulesCliffordTSynthesis(profile);
+  if (level >= 1) {
+    if (tCount)
+      cudaq::opt::addCliffordTOptimizationPipeline(pm, level, tolerance);
+    else
+      cudaq::opt::addTwoQubitGateCountOptimizationPipeline(pm, level);
+  }
+  if (level >= 1 || synthesizeU3)
+    addFusePasses(pm, profile);
+  // The synthesis pipeline adds no passes when the basis can express one of
+  // the rotations it synthesizes exactly. Otherwise it needs the rotations
+  // that each fused `u3` stands for, unless a u3 synthesizer takes the u3s.
+  if (schedulesCliffordTSynthesis(profile)) {
+    if (level >= 1 && !synthesizeU3)
+      cudaq::opt::addDecomposition(pm, {"U3ToRotations"});
+    cudaq::opt::addCliffordTSynthesisPipeline(
+        pm, profile.basisGates, level, tolerance, seed,
+        synthesizeU3 ? profile.u3Synthesis->fn : nullptr);
+  }
 }
 
 namespace {
@@ -93,12 +120,13 @@ public:
            std::holds_alternative<cudaq::config::QuakeUnmappedProfile>(output);
   }
 
-  std::optional<cudaq_internal::compiler::StagePasses>
-  getStagePasses(const cudaq::config::Profile &input,
+  mlir::LogicalResult
+  addStagePasses(const cudaq::config::Profile &input,
                  const cudaq::config::Profile &output,
-                 const cudaq::CompileOptions &options) const override {
+                 const cudaq::CompileOptions &options,
+                 cudaq_internal::compiler::StagePasses &passes) const override {
     if (!supports(input, output))
-      return std::nullopt;
+      return mlir::failure();
     const auto &profile = std::get<cudaq::config::QuakeUnmappedProfile>(output);
     const auto &basis = profile.basisGates;
     // The two-qubit-gate-count optimization works on controlled `x` gates, so
@@ -106,16 +134,24 @@ public:
     // can't express one.
     if (profile.costModel == cudaq::config::CostModel::two_qubit_gate_count &&
         !cudaq::opt::canOptimizeTwoQubitGateCount(basis))
-      return std::nullopt;
-    std::vector<std::string> passes;
-    if (profile.costModel)
-      passes = costModelPasses(profile, options);
-    if (!basis.empty())
-      passes.push_back("basis-conversion{basis=" + llvm::join(basis, ",") +
-                       "}");
-    cudaq_internal::compiler::StagePasses stagePasses;
-    stagePasses.postDeployPasses = llvm::join(passes, ",");
-    return stagePasses;
+      return mlir::failure();
+    // A u3 synthesizer only replaces rotation synthesis for `t-count`.
+    if (profile.u3Synthesis &&
+        profile.costModel != cudaq::config::CostModel::t_count)
+      return mlir::failure();
+    passes.postDeployPasses =
+        [profile, level = static_cast<unsigned>(options.optimizationLevel),
+         seed = options.seed.value_or(0)](mlir::OpPassManager &pm) {
+          if (profile.costModel)
+            addCostModelPasses(pm, profile, level, seed);
+          if (!profile.basisGates.empty()) {
+            cudaq::opt::BasisConversionOptions basisOptions;
+            basisOptions.basis.assign(profile.basisGates.begin(),
+                                      profile.basisGates.end());
+            pm.addPass(cudaq::opt::createBasisConversion(basisOptions));
+          }
+        };
+    return mlir::success();
   }
 
   /// Synthesis needs the value of every rotation angle, and angles often
@@ -127,8 +163,7 @@ public:
                          const cudaq::config::Profile &output) const override {
     const auto *profile =
         std::get_if<cudaq::config::QuakeUnmappedProfile>(&output);
-    return profile && schedulesCliffordTSynthesis(*profile) &&
-           cudaq::opt::needsCliffordTSynthesis(profile->basisGates);
+    return profile && schedulesCliffordTSynthesis(*profile);
   }
 };
 

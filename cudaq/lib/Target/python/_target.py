@@ -51,7 +51,7 @@ cudaq.set_target("qpp-cpu", compile_target=target)
 
 import enum
 from dataclasses import KW_ONLY, InitVar, dataclass, field
-from typing import Literal, Optional, Union, get_args
+from typing import Callable, Literal, Optional, Sequence, Union, get_args
 
 
 class NoiseSupport(enum.Enum):
@@ -119,6 +119,12 @@ class QuakeUnmappedProfile:
     cost_model: Union[CostModel, str, None] = None
     unroll_loops: Union[LoopUnrolling, str] = LoopUnrolling.all
     max_unroll_iterations: int = 1024
+    # Prototype: `u3_synthesis(theta, phi, lam, epsilon)` returns the
+    # Clifford+T word for `u3(theta, phi, lam)` within `epsilon`, up to global
+    # phase, as gate names (`h`, `s`, `sdg`, `t`, `tdg`, `x`, `y`, `z`) in the
+    # order they apply. Only valid with the `t_count` cost model.
+    u3_synthesis: Optional[Callable[[float, float, float, float],
+                                    Sequence[str]]] = None
 
     def __post_init__(self):
         self.verify()
@@ -127,6 +133,12 @@ class QuakeUnmappedProfile:
         if self.cost_model is not None:
             _verify_enum("cost_model", self.cost_model, CostModel)
         _verify_enum("unroll_loops", self.unroll_loops, LoopUnrolling)
+        if self.u3_synthesis is not None:
+            if not callable(self.u3_synthesis):
+                raise ValueError("'u3_synthesis' must be callable")
+            if self.cost_model not in (CostModel.t_count, "t_count"):
+                raise ValueError(
+                    "'u3_synthesis' requires cost_model to be 't_count'")
 
 
 @dataclass

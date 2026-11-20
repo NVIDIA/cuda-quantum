@@ -206,6 +206,58 @@ struct type_caster<cudaq::config::Codegen>
   }
 };
 
+/// `U3Synthesizer` is a Python callable `(theta, phi, lam, epsilon) -> [str]`.
+template <>
+struct type_caster<cudaq::config::U3Synthesizer> {
+  NB_TYPE_CASTER(cudaq::config::U3Synthesizer,
+                 const_name("Callable[[float, float, float, float], "
+                            "Sequence[str]]"))
+
+  /// Calls the Python callable and reports a Python exception as an error.
+  struct PyU3Synthesizer {
+    /// Copies of a `CompileTarget` share the callable without the GIL. The
+    /// platform keeps its target in a static, which outlives the interpreter:
+    /// then there is no reference count left to decrement.
+    std::shared_ptr<PyObject> callable;
+
+    explicit PyU3Synthesizer(handle src)
+        : callable(src.inc_ref().ptr(), [](PyObject *obj) {
+            if (!Py_IsInitialized())
+              return;
+            gil_scoped_acquire gil;
+            Py_DECREF(obj);
+          }) {}
+
+    cudaq::config::U3SynthesisResult
+    operator()(double theta, double phi, double lambda, double epsilon) const {
+      gil_scoped_acquire gil;
+      try {
+        return {cast<std::vector<std::string>>(
+                    handle(callable.get())(theta, phi, lambda, epsilon)),
+                std::nullopt};
+      } catch (const std::exception &e) {
+        return {{}, e.what()};
+      }
+    }
+  };
+
+  bool from_python(handle src, uint8_t, cleanup_list *) noexcept {
+    if (!PyCallable_Check(src.ptr()))
+      return false;
+    value.fn = std::make_shared<const cudaq::config::U3Synthesizer::Fn>(
+        PyU3Synthesizer(src));
+    return true;
+  }
+
+  static handle from_cpp(const cudaq::config::U3Synthesizer &value, rv_policy,
+                         cleanup_list *) noexcept {
+    if (const auto *py =
+            value.fn ? value.fn->target<PyU3Synthesizer>() : nullptr)
+      return handle(py->callable.get()).inc_ref();
+    return none().release();
+  }
+};
+
 ///-----------------------------------------------------------------------------
 /// Implement `CompileTarget` caster (declared in header file)
 ///-----------------------------------------------------------------------------

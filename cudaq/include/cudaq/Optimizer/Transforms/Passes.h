@@ -12,6 +12,7 @@
 // These transforms can generally be thought of as "optimizations" or "rewrites"
 // on the IR.
 
+#include "cudaq/Target/Profile/U3Synthesizer.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
@@ -31,21 +32,7 @@ void registerAggressiveInliningPipeline();
 
 void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
-void registerMappingPipeline();
 void registerToCFGPipeline();
-
-/// Register `clifford-t-optimization-pipeline` and
-/// `clifford-t-synthesis-pipeline`.
-void registerCliffordTPipelines();
-
-/// Register `two-qubit-gate-count-optimization-pipeline`.
-void registerTwoQubitGateCountOptimizationPipeline();
-
-/// Whether a stage with output basis \p basis can run
-/// `two-qubit-gate-count-optimization-pipeline`. The pipeline works on
-/// controlled `x` gates, so the basis has to be able to express one. An empty
-/// basis allows any gate.
-bool canOptimizeTwoQubitGateCount(mlir::ArrayRef<std::string> basis);
 
 /// Convert supported Quake IR to explicit linear values. This splits
 /// fixed-size allocations, expands vector controls, and threads reusable
@@ -77,7 +64,6 @@ void addDecomposition(mlir::OpPassManager &pm,
 void addPhaseLifecycle(mlir::OpPassManager &pm);
 
 void registerAOTPipelines();
-void registerJITPipelines();
 
 /// Add a pass pipeline to apply the requisite passes to optimize classical
 /// code. When converting to a quantum circuit, the static control program is
@@ -123,6 +109,14 @@ createArgumentSynthesisPass(mlir::ArrayRef<mlir::StringRef> funcNames,
 #define GEN_PASS_REGISTRATION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 
+/// Create `u3-synthesis`, a prototype pass that replaces each uncontrolled
+/// constant-angle `u3` by the Clifford+T word that \p fn returns for it within
+/// \p epsilon. \p fn is called once per distinct angle triple, and the global
+/// phase of the word is dropped.
+std::unique_ptr<mlir::Pass>
+createU3Synthesis(double epsilon,
+                  std::shared_ptr<const cudaq::config::U3Synthesizer::Fn> fn);
+
 /// Helper to run the memory to register pass on classical values. Does not
 /// convert the quantum code to register (wire) form.
 inline std::unique_ptr<mlir::Pass> createClassicalMemToReg() {
@@ -136,6 +130,90 @@ inline std::unique_ptr<mlir::Pass> createQuantumMemToReg() {
   MemToRegOptions m2rOpt = {/*classical=*/false, /*quantum=*/true};
   return createMemToReg(m2rOpt);
 }
+
+//======================== Standard JIT pipelines ========================
+
+/// Register `hw-jit-prep-pipeline`, `emul-jit-prep-pipeline`,
+/// `jit-deploy-pipeline`, and `jit-finalize-pipeline`.
+void registerJITPipelines();
+
+/// Options for `hw-jit-prep-pipeline` and `emul-jit-prep-pipeline`.
+struct JITPrepPipelineOptions {
+  bool eraseNoise = true;
+  bool rejectNoise = false;
+  bool eraseQEC = true;
+  bool applyConstProp = true;
+  bool allowEarlyExit = false;
+  bool disableLoopUnrolling = false;
+};
+/// Append the prep pipeline that every JIT target runs.
+void addJITPrepPipeline(mlir::OpPassManager &pm,
+                        const JITPrepPipelineOptions &options);
+
+/// Options for `jit-deploy-pipeline`.
+struct JITDeployPipelineOptions {
+  bool disableLoopUnrolling = false;
+};
+/// Append the deploy pipeline that every JIT target runs.
+void addJITDeployPipeline(mlir::OpPassManager &pm,
+                          const JITDeployPipelineOptions &options);
+
+/// Options for `jit-finalize-pipeline`.
+struct JITFinalizePipelineOptions {
+  bool lowerDeviceCalls = true;
+};
+/// Append the finalize pipeline that every JIT target runs.
+void addJITFinalizePipeline(mlir::OpPassManager &pm,
+                            const JITFinalizePipelineOptions &options);
+
+//==================== Clifford+T optimization pipelines ====================
+
+/// Register `clifford-t-optimization-pipeline` and
+/// `clifford-t-synthesis-pipeline`.
+void registerCliffordTPipelines();
+
+/// Append `clifford-t-optimization-pipeline`, which reduces the T count and
+/// the non-Clifford rotations at optimization level \p level, erasing no
+/// rotation larger than \p approximationTolerance.
+void addCliffordTOptimizationPipeline(mlir::OpPassManager &pm, unsigned level,
+                                      double approximationTolerance);
+
+/// Append `clifford-t-synthesis-pipeline`, which rewrites the constant-angle
+/// rotations that \p basis cannot express exactly as Clifford+T gates within
+/// \p approximationTolerance, using random seed \p seed. From \p level 2, it
+/// also cleans up the Clifford+T words it emits.
+void addCliffordTSynthesisPipeline(
+    mlir::OpPassManager &pm, mlir::ArrayRef<std::string> basis, unsigned level,
+    double approximationTolerance, std::uint64_t seed,
+    std::shared_ptr<const cudaq::config::U3Synthesizer::Fn> u3Synthesis =
+        nullptr);
+
+//===================== CX optimization pipelines =======================
+
+/// Register `two-qubit-gate-count-optimization-pipeline`.
+void registerTwoQubitGateCountOptimizationPipeline();
+
+/// Append `two-qubit-gate-count-optimization-pipeline`, which reduces the
+/// two-qubit gate count at optimization level \p level.
+void addTwoQubitGateCountOptimizationPipeline(mlir::OpPassManager &pm,
+                                              unsigned level);
+
+/// Whether a stage with output basis \p basis can run
+/// `two-qubit-gate-count-optimization-pipeline`. The pipeline works on
+/// controlled `x` gates, so the basis has to be able to express one. An empty
+/// basis allows any gate.
+bool canOptimizeTwoQubitGateCount(mlir::ArrayRef<std::string> basis);
+
+//====================== Mapping pipelines ===============================
+
+/// Register `qubit-mapping`.
+void registerMappingPipeline();
+
+/// Append the `qubit-mapping` pipeline: `qubit-mapping-prep` with the
+/// `device` and `nonComposable` (`raise-fatal-errors`) fields of \p options,
+/// then `qubit-mapping-func` with all of them.
+void addMappingPipeline(mlir::OpPassManager &pm,
+                        const MappingFuncOptions &options);
 
 /// Name of `quake.wire_set` generated prior to mapping
 static constexpr const char topologyAgnosticWiresetName[] = "wires";

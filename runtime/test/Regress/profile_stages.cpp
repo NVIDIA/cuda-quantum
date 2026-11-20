@@ -9,10 +9,18 @@
 // RUN: profile_stages | FileCheck %s
 
 // Test how `getPassPipeline` builds a pipeline from a compile target's
-// stages.
+// stages. Custom pipelines use upstream passes that no JIT pipeline runs as
+// markers: `strip-debuginfo`, `sccp`, and `loop-invariant-code-motion`.
 
-#include "cudaq_internal/compiler/Compiler.h"
+#include "common/CompileOptions.h"
+#include "cudaq_internal/compiler/JITTargetPipeline.h"
 #include "cudaq_internal/compiler/LoweringHandler.h"
+#include "cudaq/Optimizer/InitAllPasses.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/Support/raw_ostream.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Pass/PassRegistry.h"
+#include "mlir/Transforms/Passes.h"
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -22,8 +30,8 @@
 
 using namespace cudaq_internal::compiler;
 
-/// Handler whose returned passes name the profiles it was asked to lower
-/// between.
+/// Handler whose pass names the profiles it was asked to lower between, as
+/// a `decomposition` pattern that is only printed, never run.
 class TestHandler : public LoweringHandler {
   const bool supported;
   const bool forceSupports;
@@ -34,22 +42,26 @@ public:
   TestHandler(bool supported_ = true, bool forceSupports_ = false)
       : supported(supported_), forceSupports(forceSupports_) {}
 
-  /// `forceSupports` claims the lowering even when `getStagePasses` will fail.
+  /// `forceSupports` claims the lowering even when `addStagePasses` will fail.
   bool supports(const cudaq::config::Profile &,
                 const cudaq::config::Profile &) const override {
     ++calls;
     return forceSupports || supported;
   }
 
-  std::optional<StagePasses>
-  getStagePasses(const cudaq::config::Profile &input,
-                 const cudaq::config::Profile &output,
-                 const cudaq::CompileOptions &options) const override {
+  mlir::LogicalResult addStagePasses(const cudaq::config::Profile &input,
+                                     const cudaq::config::Profile &output,
+                                     const cudaq::CompileOptions &options,
+                                     StagePasses &passes) const override {
     ++calls;
     if (!supported)
-      return std::nullopt;
-    return StagePasses{.postDeployPasses = "handler(" + profileKind(input) +
-                                           "->" + profileKind(output) + ")"};
+      return mlir::failure();
+    passes.postDeployPasses =
+        [pattern = "handler_" + profileKind(input) + "_to_" +
+                   profileKind(output)](mlir::OpPassManager &pm) {
+          cudaq::opt::addDecomposition(pm, {pattern});
+        };
+    return mlir::success();
   }
 
   static std::string profileKind(const cudaq::config::Profile &profile) {
@@ -85,11 +97,23 @@ overrideStage(const std::string &pipeline) {
           .lowering = std::move(lowering)};
 }
 
+/// The textual form of \p pm without its `builtin.module(...)` anchor.
+static std::string pipelineText(const mlir::OpPassManager &pm) {
+  std::string text;
+  llvm::raw_string_ostream os(text);
+  pm.printAsTextualPipeline(os);
+  const std::string anchor = "builtin.module(";
+  if (text.starts_with(anchor) && text.ends_with(")"))
+    text = text.substr(anchor.size(), text.size() - anchor.size() - 1);
+  return text;
+}
+
 static std::string planPipeline(const cudaq::CompileTarget &target,
-                                const HandlerVector &handlers) {
+                                const HandlerVector &handlers,
+                                const cudaq::CompileOptions &options = {}) {
   std::string diagnostic;
-  auto pipeline = getPassPipeline(target, {}, handlers, diagnostic);
-  return pipeline ? *pipeline : "FAILED: " + diagnostic;
+  auto pipeline = getPassPipeline(target, options, handlers, diagnostic);
+  return pipeline ? pipelineText(pipeline->passes) : "FAILED: " + diagnostic;
 }
 
 // The stages' passes join in stage order around one deploy and one finalize,
@@ -98,19 +122,78 @@ static std::string planPipeline(const cudaq::CompileTarget &target,
 // finalize.
 void test_multiple_stages() {
   cudaq::CompileTarget target;
-  auto custom = customStage("high-one", "mid-one", "");
+  auto custom = customStage("strip-debuginfo", "sccp", "");
   custom.irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{};
   target.stages.push_back(std::move(custom));
   target.stages.push_back(
       inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
-  target.stages.push_back(customStage("", "", "low-three"));
+  target.stages.push_back(customStage("", "", "loop-invariant-code-motion"));
   HandlerVector handlers;
   handlers.push_back(std::make_unique<TestHandler>());
   std::cout << planPipeline(target, handlers) << "\n";
 }
 // clang-format off
-// CHECK: canonicalize,hw-jit-prep-pipeline{allow-early-exit=false},high-one,jit-deploy-pipeline,mid-one,handler(quake-reference-semantics->quake-reference-semantics),jit-finalize-pipeline{lower-device-calls=true},low-three{{$}}
+// CHECK: {{^}}canonicalize{{.*}}strip-debuginfo,{{.*}}sccp,decomposition{{.*}}enable-patterns={handler_quake-reference-semantics_to_quake-reference-semantics}{{.*}}symbol-dce,loop-invariant-code-motion{{$}}
 // clang-format on
+
+// `getPipelineLayout` reports each custom pipeline at its place and the
+// options of prep, deploy, and finalize, and `getPassPipeline` runs
+// `canonicalize`, prep, the passes before deploy, deploy, the passes after
+// deploy, finalize, and the passes after finalize.
+void test_layout_assembly() {
+  cudaq::CompileTarget target;
+  target.preserveLoops = true;
+  target.stages.push_back(
+      customStage("strip-debuginfo", "sccp", "loop-invariant-code-motion"));
+  cudaq::CompileOptions options;
+  options.emulate = true;
+  std::string diagnostic;
+  auto layout = getPipelineLayout(target, options, {}, diagnostic);
+  auto pipeline = getPassPipeline(target, options, {}, diagnostic);
+  if (!layout || !pipeline) {
+    std::cout << "FAILED: " << diagnostic << "\n";
+    return;
+  }
+  const auto slotText = [&](AddPassesFn StagePasses::*place) {
+    mlir::OpPassManager pm("builtin.module");
+    layout->addStagePasses(pm, place);
+    return pipelineText(pm);
+  };
+  mlir::OpPassManager expected("builtin.module");
+  expected.addPass(mlir::createCanonicalizerPass());
+  cudaq::opt::addJITPrepPipeline(expected, layout->prep);
+  expected.addPass(mlir::createStripDebugInfoPass());
+  cudaq::opt::addJITDeployPipeline(expected, layout->deploy);
+  expected.addPass(mlir::createSCCPPass());
+  cudaq::opt::addJITFinalizePipeline(expected, layout->finalize);
+  expected.addPass(mlir::createLoopInvariantCodeMotionPass());
+  std::cout << "layout: pre=" << slotText(&StagePasses::preDeployPasses)
+            << " post=" << slotText(&StagePasses::postDeployPasses)
+            << " final=" << slotText(&StagePasses::postFinalizePasses)
+            << " no-loop-unroll=" << layout->prep.disableLoopUnrolling
+            << layout->deploy.disableLoopUnrolling << "\n";
+  std::cout << "assembled as layout: "
+            << (pipelineText(expected) == pipelineText(pipeline->passes))
+            << "\n";
+}
+// clang-format off
+// CHECK: layout: pre=strip-debuginfo post=sccp final=loop-invariant-code-motion no-loop-unroll=11
+// CHECK: assembled as layout: 1
+// clang-format on
+
+// A target without stages or with an override pipeline has no layout.
+void test_no_layout() {
+  for (auto stages : {std::vector<cudaq::config::CompilationStage>{},
+                      std::vector{overrideStage("sccp")}}) {
+    cudaq::CompileTarget target;
+    target.stages = std::move(stages);
+    std::string diagnostic;
+    if (!getPipelineLayout(target, {}, {}, diagnostic))
+      std::cout << "no layout: " << diagnostic << "\n";
+  }
+}
+// CHECK: no layout: the target has no stages
+// CHECK: no layout: an override pipeline replaces the whole pipeline
 
 // Only the first stage may add passes before deploy and only the last may add
 // passes after finalize. An override pipeline replaces the whole pipeline, so
@@ -119,13 +202,13 @@ void test_multiple_stages_rejected() {
   HandlerVector handlers;
   handlers.push_back(std::make_unique<TestHandler>());
   for (auto stages : {
-           std::vector{customStage("", "", "low-one"),
-                       customStage("", "mid-two", "")},
-           std::vector{customStage("", "mid-one", ""),
-                       customStage("high-two", "", "")},
+           std::vector{customStage("", "", "loop-invariant-code-motion"),
+                       customStage("", "sccp", "")},
+           std::vector{customStage("", "sccp", ""),
+                       customStage("strip-debuginfo", "", "")},
            std::vector{
                inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}),
-               overrideStage("override-two")},
+               overrideStage("sccp")},
        }) {
     cudaq::CompileTarget target;
     target.stages = std::move(stages);
@@ -157,10 +240,10 @@ void test_first_supporting_handler_wins() {
   std::cout << "second handler calls: " << second->calls << "\n";
   std::cout << "last handler calls: " << last->calls << "\n";
 }
-// CHECK: handler(unchecked->quake-reference-semantics)
+// CHECK: enable-patterns={handler_unchecked_to_quake-reference-semantics}
 // first handler probed once; unsupported and returns no pipeline
 // CHECK: first handler calls: 1{{$}}
-// second handler probed once to check support, then again to construct
+// second handler probed to check support and called once to construct
 // CHECK: second handler calls: 2{{$}}
 // never consulted since the second handler supports the lowering
 // CHECK: last handler calls: 0{{$}}
@@ -193,7 +276,8 @@ void test_selected_failure_diagnostic() {
 // CHECK-SAME: to construct a pipeline from unchecked to quake-reference-semantics
 // clang-format on
 
-// `disable_qubit_mapping` sets `device=bypass` on every `qubit-mapping`,
+// `disable_qubit_mapping` sets `device=bypass` on every `qubit-mapping`
+// (which expands to `qubit-mapping-prep` and `qubit-mapping-func`),
 // including one in an override pipeline. It replaces the whole device value
 // even when it contains a comma, parentheses, an apostrophe, or a quoted path
 // with a space, and keeps the pass's other options.
@@ -211,8 +295,8 @@ void test_disable_qubit_mapping() {
   std::cout << "override: " << planPipeline(target, {}) << "\n";
 }
 // clang-format off
-// CHECK: custom: {{.*}},qubit-mapping{device=bypass},jit-deploy-pipeline,qubit-mapping{device=bypass extended-layer-size=4},jit-finalize-pipeline
-// CHECK: override: qubit-mapping{device=bypass placement=greedy}{{$}}
+// CHECK: custom: {{.*}}qubit-mapping-prep{device=bypass {{.*}}device=bypass extended-layer-size=20 {{.*}}qubit-mapping-prep{device=bypass {{.*}}device=bypass extended-layer-size=4 {{.*}}
+// CHECK: override: qubit-mapping-prep{device=bypass {{.*}}device=bypass {{.*}}placement=greedy {{.*}}
 // clang-format on
 
 // A target with zero stages results in an empty pipeline.
@@ -223,7 +307,8 @@ void test_zero_stages() {
   std::string diagnostic;
   const auto pipeline = getPassPipeline(target, {}, handlers, diagnostic);
   if (pipeline)
-    std::cout << "zero stages: pipeline=\"" << *pipeline << "\"\n";
+    std::cout << "zero stages: pipeline=\"" << pipelineText(pipeline->passes)
+              << "\"\n";
   else
     std::cout << "got unexpected diagnostic: " << diagnostic << "\n";
   std::cout << "zero stages handler calls: "
@@ -233,13 +318,69 @@ void test_zero_stages() {
 // CHECK: zero stages: pipeline=""
 // CHECK: zero stages handler calls: 0
 
+// Custom pipeline text is parsed when the pipeline is built, and a stage whose
+// text does not parse fails with its stage number.
+void test_invalid_custom_pipeline() {
+  cudaq::CompileTarget target;
+  target.stages.push_back(
+      inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
+  target.stages.push_back(customStage("", "no-such-pass", ""));
+  HandlerVector handlers;
+  handlers.push_back(std::make_unique<TestHandler>());
+  std::cout << planPipeline(target, handlers) << "\n";
+}
+// CHECK: FAILED: compile target stage 2: invalid custom pipeline 'no-such-pass'
+
+// Custom text that requests `combine-measurements` runs it in the pipeline,
+// unless the compile emulates or measures an observable: then the pipeline
+// leaves it out and defers it until after the JIT code is built. The
+// top-level `*-gate-set-mapping` passes are kept for observe.
+void test_custom_pipeline_records() {
+  cudaq::CompileTarget target;
+  target.stages.push_back(customStage(
+      "", "iqm-gate-set-mapping,func.func(cse,combine-measurements)", ""));
+  cudaq::CompileOptions hardware;
+  cudaq::CompileOptions observe;
+  observe.measureObservable = cudaq::spin_op::z(0);
+  cudaq::CompileOptions emulated;
+  emulated.emulate = true;
+  for (const auto &[label, options] : {std::pair{"hardware", &hardware},
+                                       {"observe", &observe},
+                                       {"emulated", &emulated}}) {
+    std::string diagnostic;
+    auto pipeline = getPassPipeline(target, *options, {}, diagnostic);
+    if (!pipeline) {
+      std::cout << "FAILED: " << diagnostic << "\n";
+      continue;
+    }
+    std::cout << label << ": defer=" << pipeline->deferCombineMeasurements
+              << " gate-set-mapping="
+              << pipelineText(pipeline->gateSetMappingPasses)
+              << " pipeline=" << pipelineText(pipeline->passes) << "\n";
+  }
+}
+// clang-format off
+// CHECK: hardware: defer=0 gate-set-mapping=basis-conversion{basis={phased_rx,z(1)} } pipeline={{.*}}func.func(cse,combine-measurements)
+// CHECK: observe: defer=1 gate-set-mapping=basis-conversion{basis={phased_rx,z(1)} } pipeline=
+// CHECK-NOT: combine-measurements
+// CHECK-SAME: func.func(cse)
+// CHECK: emulated: defer=1 gate-set-mapping=basis-conversion{basis={phased_rx,z(1)} } pipeline=
+// CHECK-NOT: combine-measurements
+// CHECK-SAME: func.func(cse)
+// clang-format on
+
 int main() {
+  cudaq::registerAllPasses();
   test_multiple_stages();
+  test_layout_assembly();
+  test_no_layout();
   test_multiple_stages_rejected();
   test_first_supporting_handler_wins();
   test_no_match_diagnostic();
   test_selected_failure_diagnostic();
   test_disable_qubit_mapping();
   test_zero_stages();
+  test_invalid_custom_pipeline();
+  test_custom_pipeline_records();
   return 0;
 }

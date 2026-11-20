@@ -70,8 +70,9 @@ struct cudaq::config::v2::ProfileYaml<cudaq::config::QuakeUnmappedProfile> {
     rfl::DefaultVal<Options> options;
   };
   // Checks that the options and the profile have the same number of fields,
-  // so that a profile field without a YAML option fails the build.
-  static_assert(rfl::named_tuple_t<Yaml::Options>::size() ==
+  // so that a profile field without a YAML option fails the build. The `+ 1`
+  // is `u3Synthesis`, which is set from Python only.
+  static_assert(rfl::named_tuple_t<Yaml::Options>::size() + 1 ==
                 rfl::named_tuple_t<QuakeUnmappedProfile>::size());
 
   static QuakeUnmappedProfile to(const Yaml &yaml);

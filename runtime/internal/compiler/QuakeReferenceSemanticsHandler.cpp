@@ -7,6 +7,9 @@
  ******************************************************************************/
 
 #include "cudaq_internal/compiler/LoweringHandler.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Pass/PassManager.h"
 
 namespace {
 
@@ -43,40 +46,41 @@ public:
     return true;
   }
 
-  std::optional<cudaq_internal::compiler::StagePasses>
-  getStagePasses(const cudaq::config::Profile &input,
+  mlir::LogicalResult
+  addStagePasses(const cudaq::config::Profile &input,
                  const cudaq::config::Profile &output,
-                 const cudaq::CompileOptions &options) const override {
+                 const cudaq::CompileOptions &options,
+                 cudaq_internal::compiler::StagePasses &passes) const override {
     if (!supports(input, output))
-      return std::nullopt;
+      return mlir::failure();
     const auto &referenceProfile =
         std::get<cudaq::config::QuakeReferenceSemanticsProfile>(output);
 
-    cudaq_internal::compiler::StagePasses passes;
     // Single-qubit measurements and `reset-after-measure` both need
     // `expand-measurements`.
     if (referenceProfile.measurementType ==
             cudaq::config::MeasurementForm::single_qubit ||
         referenceProfile.resetAfterMeasure)
-      passes.preDeployPasses = "expand-measurements";
+      passes.preDeployPasses = [](mlir::OpPassManager &pm) {
+        pm.addPass(cudaq::opt::createExpandMeasurementsPass());
+      };
 
-    if (!referenceProfile.basisGates.empty()) {
-      passes.postDeployPasses = "basis-conversion{basis=";
-      bool first = true;
-      for (const auto &gate : referenceProfile.basisGates) {
-        if (!first)
-          passes.postDeployPasses += ",";
-        first = false;
-        passes.postDeployPasses += gate;
-      }
-      passes.postDeployPasses += "}";
-    }
+    if (!referenceProfile.basisGates.empty())
+      passes.postDeployPasses =
+          [basis = referenceProfile.basisGates](mlir::OpPassManager &pm) {
+            cudaq::opt::BasisConversionOptions basisOptions;
+            basisOptions.basis.assign(basis.begin(), basis.end());
+            pm.addPass(cudaq::opt::createBasisConversion(basisOptions));
+          };
 
     if (referenceProfile.resetAfterMeasure)
-      passes.postFinalizePasses =
-          "func.func(combine-quantum-alloc,qubit-reset-before-reuse)";
+      passes.postFinalizePasses = [](mlir::OpPassManager &pm) {
+        auto &funcPM = pm.nest<mlir::func::FuncOp>();
+        funcPM.addPass(cudaq::opt::createCombineQuantumAllocations());
+        funcPM.addPass(cudaq::opt::createQubitResetBeforeReuse());
+      };
 
-    return passes;
+    return mlir::success();
   }
 };
 

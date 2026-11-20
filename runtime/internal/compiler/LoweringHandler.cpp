@@ -7,6 +7,9 @@
  ******************************************************************************/
 
 #include "cudaq_internal/compiler/LoweringHandler.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/Pass/PassManager.h"
 
 const cudaq_internal::compiler::LoweringHandler *
 cudaq_internal::compiler::selectLoweringHandler(
@@ -25,4 +28,14 @@ cudaq_internal::compiler::makeBuiltinLoweringHandlers() {
   handlers.push_back(makeQuakeUnmappedHandler());
   handlers.push_back(makeQuakeMappedHandler());
   return handlers;
+}
+
+void cudaq_internal::compiler::addConvertToWires(
+    mlir::OpPassManager &pm, const cudaq::config::QuakeUnmappedProfile &profile,
+    bool addWireSet) {
+  cudaq::opt::LoopUnrollOptions unrollOptions;
+  unrollOptions.threshold = profile.maxUnrollIterations;
+  unrollOptions.unrollOnlyIndexUseLoops =
+      profile.unrollLoops == cudaq::config::LoopUnrolling::index_use;
+  cudaq::opt::addPrepareForWiresetPipeline(pm, unrollOptions, addWireSet);
 }

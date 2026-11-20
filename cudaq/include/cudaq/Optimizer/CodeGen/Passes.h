@@ -86,6 +86,14 @@ void registerCodegenForQIRPipeline();
 /// conversion.
 void registerPrepareForWiresetPipeline();
 
+struct LoopUnrollOptions;
+/// Append the `prepare-for-wireset` pipeline: unroll loops as
+/// \p loopUnrollOptions allows and convert to linear values. With
+/// \p addWireset, also borrow every qubit from a new wire set.
+void addPrepareForWiresetPipeline(mlir::OpPassManager &pm,
+                                  const LoopUnrollOptions &loopUnrollOptions,
+                                  bool addWireset);
+
 void registerWireSetToProfileQIRPipeline();
 void populateCCTypeConversions(mlir::LLVMTypeConverter *converter);
 void addLowerToCCPipeline(mlir::OpPassManager &pm);

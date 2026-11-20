@@ -16,6 +16,7 @@
 #include "common/Timing.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/JIT.h"
+#include "cudaq_internal/compiler/JITTargetPipeline.h"
 #include "cudaq_internal/compiler/ResourceCount.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "nlohmann/json.hpp"
@@ -43,7 +44,6 @@
 #include <memory>
 #include <mlir/IR/OwningOpRef.h>
 #include <optional>
-#include <regex>
 
 using namespace mlir;
 
@@ -158,16 +158,16 @@ cudaq_internal::compiler::Compiler::~Compiler() = default;
 // =============================================================================
 
 void cudaq_internal::compiler::Compiler::applyPipeline(
-    const std::string &pipeline, mlir::ModuleOp moduleOp,
+    const mlir::OpPassManager &pipeline, mlir::ModuleOp moduleOp,
     const std::string &kernelName) {
-  auto *contextPtr = moduleOp.getContext();
-  mlir::PassManager pm(contextPtr);
-  std::string errMsg;
-  llvm::raw_string_ostream os(errMsg);
-  CUDAQ_INFO("Pass pipeline for {} = {}", kernelName, pipeline);
-  if (failed(parsePassPipeline(pipeline, pm, os)))
-    throw std::runtime_error("Failed to add passes to the pipeline (" + errMsg +
-                             ").");
+  mlir::PassManager pm(moduleOp.getContext(), pipeline.getOpAnchorName());
+  static_cast<mlir::OpPassManager &>(pm) = pipeline;
+  if (cudaq::detail::should_log(cudaq::detail::LogLevel::info)) {
+    std::string text;
+    llvm::raw_string_ostream os(text);
+    pipeline.printAsTextualPipeline(os);
+    CUDAQ_INFO("Pass pipeline for {} = {}", kernelName, text);
+  }
   if (failed(cudaq_internal::compiler::runPassManager(pm,
                                                       moduleOp.getOperation())))
     throw std::runtime_error("Quake lowering failed.");
@@ -299,32 +299,26 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
   return {moduleOp, epFunc, isFullySpecialized};
 }
 
-std::pair<bool, std::string>
+cudaq_internal::compiler::JITPassPipeline
 cudaq_internal::compiler::Compiler::executeMainPipeline(
     mlir::ModuleOp moduleOp, const std::string &kernelName,
     const cudaq::CompileOptions &resolvedOptions) {
-  if (resolvedOptions.skipTargetLoweringPipeline || !target.hasPassPipeline()) {
-    return {false, ""};
-  }
+  if (resolvedOptions.skipTargetLoweringPipeline || !target.hasPassPipeline())
+    return {};
   std::string diagnostic;
-  auto stagedPipeline =
+  auto pipeline =
       getPassPipeline(target, resolvedOptions, handlers, diagnostic);
-  if (!stagedPipeline)
+  if (!pipeline)
     throw std::runtime_error(diagnostic);
-  auto passPipelineConfig = std::move(*stagedPipeline);
-  auto combineMeasurements =
-      passPipelineConfig.find("combine-measurements") != std::string::npos;
-  if (emulate && combineMeasurements) {
-    std::regex combine("(.*),([ ]*)combine-measurements(.*)");
-    std::string replacement("$1$3");
-    passPipelineConfig =
-        std::regex_replace(passPipelineConfig, combine, replacement);
-    CUDAQ_INFO("Delaying combine-measurements pass due to emulation. "
-               "Updating pipeline to {}",
-               passPipelineConfig);
-  }
-  applyPipeline(passPipelineConfig, moduleOp, kernelName);
-  return {combineMeasurements, passPipelineConfig};
+  applyPipeline(pipeline->passes, moduleOp, kernelName);
+  return std::move(*pipeline);
+}
+
+/// A pass manager that runs `combine-measurements` on every function.
+static mlir::OpPassManager combineMeasurementsPipeline() {
+  mlir::OpPassManager pm(mlir::ModuleOp::getOperationName());
+  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createCombineMeasurements());
+  return pm;
 }
 
 cudaq::CompiledModule
@@ -374,7 +368,7 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
 
   if (runCombineMeasurements)
     for (auto &[name, module] : modules)
-      applyPipeline("func.func(combine-measurements)", module, kernelName);
+      applyPipeline(combineMeasurementsPipeline(), module, kernelName);
 
   const bool emitCode =
       options.emitTargetCode && !target.codegen.emissionFormat.empty();
@@ -488,12 +482,15 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
       (!target.supportSampleWithoutMeasurements || mayMoveQubits(target))) {
     // No need to add measurements only to remove them eventually
     if (target.codegen.postCodegenPasses.find("remove-measurements") ==
-        std::string::npos)
-      applyPipeline("func.func(add-measurements{use-evince=1})", moduleOp,
-                    kernelName);
+        std::string::npos) {
+      mlir::OpPassManager addMeasurements(mlir::ModuleOp::getOperationName());
+      addMeasurements.addNestedPass<mlir::func::FuncOp>(
+          cudaq::opt::createAddMeasurements({.useEvince = true}));
+      applyPipeline(addMeasurements, moduleOp, kernelName);
+    }
   }
 
-  auto [combineMeasurements, passPipeline] =
+  const auto mainPipeline =
       executeMainPipeline(moduleOp, kernelName, resolvedOptions);
 
   // We need to run resource counting preprocessing after the pass pipeline as
@@ -542,7 +539,10 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
   // Apply observations if necessary
   std::vector<std::pair<std::string, mlir::ModuleOp>> modules;
   if (!target.supportObservableMeasurements && options.measureObservable) {
-    applyPipeline("canonicalize,cse", moduleOp, kernelName);
+    mlir::OpPassManager cleanup(mlir::ModuleOp::getOperationName());
+    cleanup.addPass(mlir::createCanonicalizerPass());
+    cleanup.addPass(mlir::createCSEPass());
+    applyPipeline(cleanup, moduleOp, kernelName);
     for (const auto &term : *options.measureObservable) {
       if (term.is_identity())
         continue;
@@ -566,15 +566,10 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
               pm, tmpModuleOp.getOperation())))
         throw std::runtime_error("Could not apply measurements to ansatz.");
       // The full pass pipeline was run above, but the ansatz pass can
-      // introduce gates that aren't supported by the backend, so we need to
-      // re-run the gate set mapping if that existed in the original pass
-      // pipeline.
-      auto csvSplit = cudaq::split(passPipeline, ',');
-      for (auto &pass : csvSplit)
-        if (pass.ends_with("-gate-set-mapping"))
-          applyPipeline(pass, tmpModuleOp, kernelName);
-      if (!emulate && combineMeasurements)
-        applyPipeline("func.func(combine-measurements)", tmpModuleOp,
+      // introduce gates that aren't supported by the backend, so re-run the
+      // gate set mapping of the original pass pipeline.
+      if (mainPipeline.gateSetMappingPasses.size() > 0)
+        applyPipeline(mainPipeline.gateSetMappingPasses, tmpModuleOp,
                       kernelName);
       modules.emplace_back(term.get_term_id(), tmpModuleOp);
     }
@@ -585,7 +580,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
   bool needJit = emulate || emitResourceCounts || options.emitJit;
   return assembleCompiledModule(
       kernelName, modules, needJit, isFullySpecialized, isEntryPoint,
-      emulate && combineMeasurements, std::move(resourceCounts),
+      mainPipeline.deferCombineMeasurements, std::move(resourceCounts),
       {.reorderIdx = mapping_reorder_idx,
        .hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes,
        .optimizationLevel = resolvedOptions.optimizationLevel},

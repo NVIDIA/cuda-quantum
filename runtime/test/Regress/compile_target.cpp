@@ -17,11 +17,13 @@
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/OptimizationLevel.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Pass/PassManager.h"
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -274,14 +276,17 @@ public:
         cudaq::config::QuakeReferenceSemanticsProfile>(output);
   }
 
-  std::optional<StagePasses>
-  getStagePasses(const cudaq::config::Profile &,
-                 const cudaq::config::Profile &output,
-                 const cudaq::CompileOptions &options) const override {
+  mlir::LogicalResult addStagePasses(const cudaq::config::Profile &,
+                                     const cudaq::config::Profile &output,
+                                     const cudaq::CompileOptions &options,
+                                     StagePasses &passes) const override {
     if (!std::holds_alternative<cudaq::config::QuakeReferenceSemanticsProfile>(
             output))
-      return std::nullopt;
-    return StagePasses{.preDeployPasses = "func.func(add-measurements)"};
+      return mlir::failure();
+    passes.preDeployPasses = [](mlir::OpPassManager &pm) {
+      pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createAddMeasurements());
+    };
+    return mlir::success();
   }
 };
 
@@ -350,8 +355,8 @@ void test_staged_skip(mlir::MLIRContext *ctx) {
 // CHECK: quake.r1
 // CHECK-NOT: quake.mz
 
-/// Four one-qubit rotations that `fuse-1q-chains-for-clifford-t` rewrites as
-/// three.
+/// Four one-qubit rotations that `fuse-1q-to-u3` fuses into one `u3`,
+/// which decomposes into three rotations.
 static const char *fusableRotationsKernel = R"#(
 func.func @__nvqpp__mlirgen__fusable() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
   %a = arith.constant 3.000000e-01 : f64
@@ -401,10 +406,11 @@ func.func @__nvqpp__mlirgen__longLoop() attributes {"cudaq-entrypoint", "cudaq-k
 }
 )#";
 
-/// A `quake-unmapped` stage fuses the rotations only from level 2, and a loop
-/// it cannot unroll stays rolled and is still counted. Without a rotation in
-/// the basis, every level synthesizes, and the strict basis conversion rejects
-/// any rotation left over.
+/// A `quake-unmapped` stage fuses the rotations only from level 1, and a
+/// loop it cannot unroll stays rolled and is still counted. Without a rotation
+/// in the basis, every level synthesizes, and the strict basis conversion
+/// rejects any rotation left over. With `u3` but no rotation in the basis,
+/// every rotation is fused into a `u3`, which stays.
 void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
   using cudaq::OptimizationLevel;
   const auto count = [&](const std::string &heading, const char *kernelName,
@@ -444,12 +450,17 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
         OptimizationLevel::O2);
   count("Clifford+T exact angle", "expPauli", expPauliKernel, cliffordT,
         OptimizationLevel::O0);
+  const std::vector<std::string> u3 = {"u3", "h", "x(1)"};
+  count("U3 level 1", "fusable", fusableRotationsKernel, u3,
+        OptimizationLevel::O1);
+  count("U3 level 2", "fusable", fusableRotationsKernel, u3,
+        OptimizationLevel::O2);
 }
 
 // CHECK-LABEL: Rotations level 0 resource counts:
 // CHECK: total: 4{{$}}
 // CHECK-LABEL: Rotations level 1 resource counts:
-// CHECK: total: 4{{$}}
+// CHECK: total: 3{{$}}
 // CHECK-LABEL: Rotations level 2 resource counts:
 // CHECK: total: 3{{$}}
 // CHECK-LABEL: Long loop resource counts:
@@ -461,6 +472,12 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
 // CHECK: rz: 0{{$}}
 // CHECK: r1: 0{{$}}
 // CHECK-LABEL: Clifford+T exact angle resource counts:
+// CHECK: total: 1{{$}}
+// CHECK-LABEL: U3 level 1 resource counts:
+// CHECK: rz: 0{{$}}
+// CHECK: total: 1{{$}}
+// CHECK-LABEL: U3 level 2 resource counts:
+// CHECK: rz: 0{{$}}
 // CHECK: total: 1{{$}}
 
 /// A rotation whose angle is the kernel's argument.
