@@ -427,7 +427,7 @@ distillation example straight from its authoring definition:</p>
 % invisible-code-block: python
 %
 % distill_15to1 = load_ql_example(
-% "preview/logical/examples/standalone/07_magic_state_distillation.py",
+% "preview/logical/examples/standalone/06_magic_state_distillation.py",
 % "distill_15to1")
 -->
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">counts</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">distill_15to1</span><span class="p">,</span> <span class="n">tier</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">Tier</span><span class="o">.</span><span class="n">STATIC</span><span class="p">)</span>
@@ -449,7 +449,7 @@ cycle time. A device operating point can supply these values, and callers can
 override them for sensitivity studies. The result keeps its assumptions and
 reports whether the selected distance meets the requested budget.</p>
 <p><code class="docutils literal notranslate"><span class="pre">examples/02_surface_code_resource_estimate.py</span></code> uses this tier through a CUDA-Q
-target, while <code class="docutils literal notranslate"><span class="pre">examples/standalone/09_gidney_ekera_lookup_addition.py</span></code> invokes
+target, while <code class="docutils literal notranslate"><span class="pre">examples/standalone/08_gidney_ekera_lookup_addition.py</span></code> invokes
 it directly on a P2 build.</p>
 </section>
 <section id="tier-schedule-cost-the-physical-event-graph">

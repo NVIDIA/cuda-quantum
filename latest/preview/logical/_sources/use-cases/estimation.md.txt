@@ -88,7 +88,7 @@ distillation example straight from its authoring definition:
 % invisible-code-block: python
 %
 % distill_15to1 = load_ql_example(
-% "preview/logical/examples/standalone/07_magic_state_distillation.py",
+% "preview/logical/examples/standalone/06_magic_state_distillation.py",
 % "distill_15to1")
 -->
 
@@ -113,7 +113,7 @@ override them for sensitivity studies. The result keeps its assumptions and
 reports whether the selected distance meets the requested budget.
 
 `examples/02_surface_code_resource_estimate.py` uses this tier through a CUDA-Q
-target, while `examples/standalone/09_gidney_ekera_lookup_addition.py` invokes
+target, while `examples/standalone/08_gidney_ekera_lookup_addition.py` invokes
 it directly on a P2 build.
 
 ## `Tier.SCHEDULE` — cost the physical event graph

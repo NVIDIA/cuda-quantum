@@ -1164,6 +1164,32 @@ and is also available as a Docker image. More information about installing the n
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest">Documentation</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples">Examples</a></p></li>
 </ul>
+<p><strong>0.17.0</strong></p>
+<p>This release comes with a range of exciting new features.</p>
+<p>We now distribute a new <a class="reference external" href="https://pypi.org/project/cudaq-edem/">EDEM package</a> to facilitate
+building DEMs dynamically for QEC at scale.
+We have also created a separate <a class="reference external" href="https://pypi.org/project/cudaq-core/">cudaq-core PyPI package</a>
+that contains the runtime dependencies for the
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/tag/0.17.0">cudaq-devel package</a>
+that can be found as artifact in the GitHub release. These two packages
+contain the necessary build and runtime dependencies respectively to build and distribute
+CUDA-Q compiler extensions and integrations.</p>
+<p>We have completely overhauled our compiler configurability, improved performance across the
+board, and include a new <code class="code docutils literal notranslate"><span class="pre">custabilizer</span></code> backend for faster stabilizer simulation. Take a look
+at the features and enhancements listed in the
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.17.0">0.17.0 GitHub release</a>.</p>
+<p>Last but not least, the transport and dispatch APIs for CUDA-Q Realtime received a major update
+to make integration easier and more consistent. To facilitate exploring highly customized scenarios,
+we now provide the means to plug in a custom dispatcher tailored to specific applications.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/cudaq/0.17.0">Python wheel</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.17.0">C++ installer</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.17.0">CUDA-Q Realtime installer</a></p></li>
+<li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.17.0">Documentation</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.17.0/docs/sphinx/examples">Examples</a></p></li>
+</ul>
+<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.17.0">here</a>.</p>
 <p><strong>0.16.0</strong></p>
 <p>This release integrates CUDA-Q Logical version 0.1.1. CUDA-Q Logical expands CUDA-Q with an open, extensible
 logical layer for fault-tolerant quantum computing. It provides additional language tools to express and compose

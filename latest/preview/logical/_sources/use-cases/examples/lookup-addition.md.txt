@@ -1,11 +1,11 @@
 # Gidney–Ekerå Lookup Addition
 
-[`standalone/09_gidney_ekera_lookup_addition.py`](../../../../examples/standalone/09_gidney_ekera_lookup_addition.py)
+[`standalone/08_gidney_ekera_lookup_addition.py`](../../../../examples/standalone/08_gidney_ekera_lookup_addition.py)
 compiles a complete four-bit lookup-addition circuit through P3 on a
 distance-three surface-code device, including its T-state factory, analytical
 estimate, and physical schedule.
 
-```{literalinclude} ../../../../examples/standalone/09_gidney_ekera_lookup_addition.py
+```{literalinclude} ../../../../examples/standalone/08_gidney_ekera_lookup_addition.py
 :language: python
 ```
 
