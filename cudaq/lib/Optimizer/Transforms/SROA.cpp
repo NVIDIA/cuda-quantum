@@ -227,6 +227,11 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto *op = getOperation();
+    if (!cudaq::opt::containsAnyOperationOfType<cudaq::cc::AllocaOp,
+                                                cudaq::cc::StoreOp>(op)) {
+      markAllAnalysesPreserved();
+      return;
+    }
     LLVM_DEBUG(llvm::dbgs() << "Before SROA:\n" << *op << '\n');
     RewritePatternSet patterns(ctx);
     patterns.insert<AllocaAggregate, StoreAggregate>(ctx);

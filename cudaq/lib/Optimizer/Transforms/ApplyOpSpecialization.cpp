@@ -1423,6 +1423,11 @@ public:
 
   void runOnOperation() override {
     ModuleOp module = getOperation();
+    if (!cudaq::opt::containsAnyOperationOfType<cudaq::quake::ApplyOp>(
+            module)) {
+      markAllAnalysesPreserved();
+      return;
+    }
     auto *ctx = module.getContext();
 
     RewritePatternSet patterns(ctx);
