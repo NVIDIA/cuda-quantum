@@ -31,5 +31,3 @@ One optional field is also supported:
 - `:install:` the arguments to `pip install` that the example needs before it
   runs, for example `:install: cudaq-mock-project==1.2`. Only package specifiers
   and pip options are supported, not arbitrary shell commands.
-
-See [`mock_project/`](mock_project) for a complete, fictional example.
