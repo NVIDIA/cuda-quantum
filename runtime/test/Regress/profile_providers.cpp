@@ -84,7 +84,6 @@
 // CHECK-LABEL: qpp-cpu level 1:
 // CHECK:       prepare-for-wireset{maximum-iterations=50 decompose-exp-pauli=false erase-implicit-output=false}
 // CHECK-NEXT:  func.func(quake-simplify{threshold=0},dqe)
-// CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=gate-count basis=},canonicalize)
 // CHECK-NEXT:  jit-finalize-pipeline{lower-device-calls=true normalize=false}
 
 // `nvidia` declares its simulators in a configuration matrix, and every entry

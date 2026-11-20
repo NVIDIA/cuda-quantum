@@ -114,20 +114,20 @@ costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
   // Handle any new phases the t-count decomposition may have introduced.
   if (tCount)
     passes.push_back("func.func(normalize-phase-placement,lower-phase)");
+  std::optional<std::string> fusion;
   if (level >= 1 && gateCount) {
     // Like `two-qubit-gate-count`, `gate-count` only removes a rotation that is
     // exactly the identity. `quake-simplify` adds two constant angles exactly,
     // so a merged pair that cancels already gives 0, and a nonzero threshold
-    // would only erase small rotations the kernel asked for.
+    // would only erase small rotations the kernel asked for. A simulator
+    // applies noise by gate name, so `gate-count` does not fuse gates into
+    // `u3`.
     passes.push_back("func.func(quake-simplify{threshold=0},dqe)");
   } else if (level >= 1) {
     passes.push_back(
         std::string(tCount ? "clifford-t" : "two-qubit-gate-count") +
         "-optimization-pipeline{level=" + std::to_string(level) +
         (tCount ? " approximation-tolerance=" + tolerance : "") + "}");
-  }
-  std::optional<std::string> fusion;
-  if (level >= 1) {
     fusion = fusePasses(profile);
     if (fusion)
       passes.push_back(*fusion);
