@@ -7,13 +7,12 @@
  ******************************************************************************/
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel.cuh"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
-#include <cuda_runtime.h>
-#include <cuda_device_runtime_api.h>
 #include <cstdint>
-
+#include <cuda_device_runtime_api.h>
+#include <cuda_runtime.h>
 
 namespace cudaq::realtime {
 
@@ -33,13 +32,14 @@ __constant__ std::uint32_t g_dispatch_shared_ring_mode = 0;
 /// (dispatch_kernel_with_graph).  A tail self-relaunch is a fresh kernel
 /// invocation, so a local current_slot would reset to 0 every relaunch (i.e.
 /// every decode/shot) and rescan the ring from the start -- which, against an
-/// open-loop producer like the GpuRoceTransceiver RX kernel that fills slots strictly in
-/// order (window N -> slot N % num_slots), lets the scan grab a slot out of
-/// send order and races the flag-clear against slot reuse (observed as a rare
-/// duplicate-enqueue + dropped-get_corrections).  Holding the cursor here lets
-/// the relaunched kernel resume at the next slot, preserving strict-FIFO
-/// consumption across relaunches.  Reset to 0 by cudaq_create_dispatch_graph_*
-/// at setup; only thread 0 of the single block reads/writes it.
+/// open-loop producer like the GpuRoceTransceiver RX kernel that fills slots
+/// strictly in order (window N -> slot N % num_slots), lets the scan grab a
+/// slot out of send order and races the flag-clear against slot reuse (observed
+/// as a rare duplicate-enqueue + dropped-get_corrections).  Holding the cursor
+/// here lets the relaunched kernel resume at the next slot, preserving
+/// strict-FIFO consumption across relaunches.  Reset to 0 by
+/// cudaq_create_dispatch_graph_* at setup; only thread 0 of the single block
+/// reads/writes it.
 __device__ std::size_t g_graph_dispatch_cursor = 0;
 
 // Trigger-path debug state (see cudaq_dispatch_get_trigger_debug):
@@ -55,10 +55,10 @@ __device__ unsigned long long g_dispatch_trigger_fires = 0;
 __device__ unsigned long long g_dispatch_tail_relaunches = 0;
 
 /// @brief Lookup function entry in table by function_id.
-__device__ inline const cudaq_function_entry_t* dispatch_lookup_entry(
-    std::uint32_t function_id,
-    cudaq_function_entry_t* entries,
-    std::size_t entry_count) {
+__device__ inline const cudaq_function_entry_t *
+dispatch_lookup_entry(std::uint32_t function_id,
+                      cudaq_function_entry_t *entries,
+                      std::size_t entry_count) {
   for (std::size_t i = 0; i < entry_count; ++i) {
     if (entries[i].function_id == function_id) {
       return &entries[i];
@@ -75,8 +75,8 @@ __device__ inline const cudaq_function_entry_t* dispatch_lookup_entry(
 /// handler to run.
 struct DispatchWork {
   DeviceRPCFunction func;
-  void* rx_slot;
-  std::uint8_t* tx_slot;
+  void *rx_slot;
+  std::uint8_t *tx_slot;
   // Captured before the handler runs: on an in-place ring tx_slot aliases
   // rx_slot, so the request header may be gone by the time the response
   // header is written.
@@ -89,7 +89,8 @@ struct DispatchWork {
 /// compatibility issues on systems where cudaGraphLaunch is not supported.
 ///
 /// Supports symmetric RX/TX data buffers for GpuRoceTransceiver compatibility:
-/// - RX data address comes from rx_flags[slot] (set by GpuRoceTransceiver RX kernel)
+/// - RX data address comes from rx_flags[slot] (set by GpuRoceTransceiver RX
+/// kernel)
 /// - TX response is written to tx_data + slot * tx_stride_sz
 /// - tx_flags[slot] is set to the TX slot address
 ///
@@ -101,15 +102,10 @@ struct DispatchWork {
 /// (dispatch_kernel_launch.h).  Extra blocks exit at entry:
 /// cudaq_dispatcher_start requires num_blocks == 1.
 __global__ void dispatch_kernel_device_call_only(
-    volatile std::uint64_t* rx_flags,
-    volatile std::uint64_t* tx_flags,
-    std::uint8_t* tx_data,
-    std::size_t tx_stride_sz,
-    cudaq_function_entry_t* function_table,
-    std::size_t func_count,
-    volatile int* shutdown_flag,
-    std::uint64_t* stats,
-    std::size_t num_slots) {
+    volatile std::uint64_t *rx_flags, volatile std::uint64_t *tx_flags,
+    std::uint8_t *tx_data, std::size_t tx_stride_sz,
+    cudaq_function_entry_t *function_table, std::size_t func_count,
+    volatile int *shutdown_flag, std::uint64_t *stats, std::size_t num_slots) {
   if (blockIdx.x != 0)
     return;
   __shared__ DispatchWork s_work;
@@ -167,10 +163,10 @@ __global__ void dispatch_kernel_device_call_only(
         if (rx_value == 0)
           continue;
 
-        // RX data address comes from rx_flags (set by GpuRoceTransceiver RX kernel
-        // or host test harness to the address of the RX data slot)
-        void* rx_slot = reinterpret_cast<void*>(rx_value);
-        RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
+        // RX data address comes from rx_flags (set by GpuRoceTransceiver RX
+        // kernel or host test harness to the address of the RX data slot)
+        void *rx_slot = reinterpret_cast<void *>(rx_value);
+        RPCHeader *header = static_cast<RPCHeader *>(rx_slot);
         if (header->magic != RPC_MAGIC_REQUEST) {
           // Bad magic -- always drop and advance.
           rx_flags[current_slot] = 0;
@@ -178,11 +174,12 @@ __global__ void dispatch_kernel_device_call_only(
           continue;
         }
 
-        const cudaq_function_entry_t* entry = dispatch_lookup_entry(
+        const cudaq_function_entry_t *entry = dispatch_lookup_entry(
             header->function_id, function_table, func_count);
         if (entry != nullptr &&
             entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
-          func = reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
+          func =
+              reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
           s_work.rx_slot = rx_slot;
           s_work.tx_slot = tx_data + current_slot * tx_stride_sz;
           s_work.request_id = header->request_id;
@@ -202,10 +199,10 @@ __global__ void dispatch_kernel_device_call_only(
       s_work.func = func;
     }
 
-    __syncthreads();  // (1) the descriptor is published to the block
+    __syncthreads(); // (1) the descriptor is published to the block
     const DispatchWork work = s_work;
     if (work.func == nullptr)
-      break;  // uniform: every thread read the same descriptor
+      break; // uniform: every thread read the same descriptor
 
     // Same two-pointer call as the host path (host_dispatcher.cpp): the
     // handler reads the request from rx_slot, writes its result after the
@@ -215,10 +212,10 @@ __global__ void dispatch_kernel_device_call_only(
     // value is the one recorded.
     const int status = work.func(work.rx_slot, work.tx_slot, tx_stride_sz);
 
-    __syncthreads();  // (2) every thread's handler writes are done
+    __syncthreads(); // (2) every thread's handler writes are done
 
     if (threadIdx.x == 0) {
-      RPCResponse* response = reinterpret_cast<RPCResponse*>(work.tx_slot);
+      RPCResponse *response = reinterpret_cast<RPCResponse *>(work.tx_slot);
       response->magic = RPC_MAGIC_RESPONSE;
       response->status = status;
       // result_len was set by the handler; force it to 0 on failure.
@@ -240,13 +237,15 @@ __global__ void dispatch_kernel_device_call_only(
   }
 
   if (threadIdx.x == 0) {
-    atomicAdd(reinterpret_cast<unsigned long long*>(stats), local_packet_count);
+    atomicAdd(reinterpret_cast<unsigned long long *>(stats),
+              local_packet_count);
   }
 }
 
 /// @brief Dispatch kernel supporting both DEVICE_CALL and GRAPH_LAUNCH modes.
-/// This kernel includes device-side graph launch code and requires compute capability >= 9.0.
-/// NOTE: Graph launch code is conditionally compiled based on __CUDA_ARCH__.
+/// This kernel includes device-side graph launch code and requires compute
+/// capability >= 9.0. NOTE: Graph launch code is conditionally compiled based
+/// on __CUDA_ARCH__.
 ///
 /// Supports symmetric RX/TX data buffers for GpuRoceTransceiver compatibility.
 ///
@@ -255,16 +254,11 @@ __global__ void dispatch_kernel_device_call_only(
 /// __syncthreads().  GRAPH_LAUNCH entries, the triggered-graph fire and the
 /// tail self-relaunch stay on thread 0.
 __global__ void dispatch_kernel_with_graph(
-    volatile std::uint64_t* rx_flags,
-    volatile std::uint64_t* tx_flags,
-    std::uint8_t* tx_data,
-    std::size_t tx_stride_sz,
-    cudaq_function_entry_t* function_table,
-    std::size_t func_count,
-    GraphIOContext* graph_io_ctx,
-    volatile int* shutdown_flag,
-    std::uint64_t* stats,
-    std::size_t num_slots,
+    volatile std::uint64_t *rx_flags, volatile std::uint64_t *tx_flags,
+    std::uint8_t *tx_data, std::size_t tx_stride_sz,
+    cudaq_function_entry_t *function_table, std::size_t func_count,
+    GraphIOContext *graph_io_ctx, volatile int *shutdown_flag,
+    std::uint64_t *stats, std::size_t num_slots,
     cudaGraphExec_t triggered_graph_exec) {
   if (blockIdx.x != 0)
     return;
@@ -316,8 +310,8 @@ __global__ void dispatch_kernel_with_graph(
         if (rx_value == 0)
           continue;
 
-        void* rx_slot = reinterpret_cast<void*>(rx_value);
-        RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
+        void *rx_slot = reinterpret_cast<void *>(rx_value);
+        RPCHeader *header = static_cast<RPCHeader *>(rx_slot);
         if (header->magic != RPC_MAGIC_REQUEST) {
           // Bad magic -- always drop and advance.
           rx_flags[current_slot] = 0;
@@ -325,14 +319,15 @@ __global__ void dispatch_kernel_with_graph(
           continue;
         }
 
-        const cudaq_function_entry_t* entry = dispatch_lookup_entry(
+        const cudaq_function_entry_t *entry = dispatch_lookup_entry(
             header->function_id, function_table, func_count);
         // Compute TX slot address from symmetric TX data buffer
-        std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
+        std::uint8_t *tx_slot = tx_data + current_slot * tx_stride_sz;
 
         if (entry != nullptr &&
             entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
-          func = reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
+          func =
+              reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
           s_work.rx_slot = rx_slot;
           s_work.tx_slot = tx_slot;
           s_work.request_id = header->request_id;
@@ -374,10 +369,10 @@ __global__ void dispatch_kernel_with_graph(
       s_work.func = func;
     }
 
-    __syncthreads();  // (1) the descriptor is published to the block
+    __syncthreads(); // (1) the descriptor is published to the block
     const DispatchWork work = s_work;
     if (work.func == nullptr)
-      break;  // uniform: every thread read the same descriptor
+      break; // uniform: every thread read the same descriptor
 
     // Same two-pointer call as the host path (host_dispatcher.cpp): the
     // handler reads the request from rx_slot, writes its result after the
@@ -387,10 +382,10 @@ __global__ void dispatch_kernel_with_graph(
     // value is the one recorded.
     int status = work.func(work.rx_slot, work.tx_slot, tx_stride_sz);
 
-    __syncthreads();  // (2) every thread's handler writes are done
+    __syncthreads(); // (2) every thread's handler writes are done
 
     if (threadIdx.x == 0) {
-      RPCResponse* response = reinterpret_cast<RPCResponse*>(work.tx_slot);
+      RPCResponse *response = reinterpret_cast<RPCResponse *>(work.tx_slot);
 
 #if __CUDA_ARCH__ >= 900
       // A handler may request that the configured follow-up graph be
@@ -410,8 +405,7 @@ __global__ void dispatch_kernel_with_graph(
           // hung triggered graph.
           cudaError_t trigger_rc = cudaGraphLaunch(
               triggered_graph_exec, cudaStreamGraphFireAndForget);
-          cudaq::realtime::g_dispatch_trigger_rc =
-              static_cast<int>(trigger_rc);
+          cudaq::realtime::g_dispatch_trigger_rc = static_cast<int>(trigger_rc);
           ++cudaq::realtime::g_dispatch_trigger_fires;
           __threadfence_system();
           relaunch = true;
@@ -460,7 +454,8 @@ __global__ void dispatch_kernel_with_graph(
 #endif
 
   if (threadIdx.x == 0) {
-    atomicAdd(reinterpret_cast<unsigned long long*>(stats), local_packet_count);
+    atomicAdd(reinterpret_cast<unsigned long long *>(stats),
+              local_packet_count);
   }
 }
 
@@ -472,14 +467,17 @@ __global__ void dispatch_kernel_with_graph(
 
 // Force eager CUDA module loading for the dispatch kernel.
 // Call before launching persistent kernels to avoid lazy-loading deadlocks.
-extern "C" cudaError_t cudaq_dispatch_kernel_query_occupancy(
-    int* out_blocks, std::uint32_t threads_per_block) {
+extern "C" cudaError_t
+cudaq_dispatch_kernel_query_occupancy(int *out_blocks,
+                                      std::uint32_t threads_per_block) {
   int num_blocks = 0;
   cudaError_t err = cudaOccupancyMaxActiveBlocksPerMultiprocessor(
       &num_blocks, cudaq::realtime::dispatch_kernel_device_call_only,
       threads_per_block, 0);
-  if (err != cudaSuccess) return err;
-  if (out_blocks) *out_blocks = num_blocks;
+  if (err != cudaSuccess)
+    return err;
+  if (out_blocks)
+    *out_blocks = num_blocks;
   return cudaSuccess;
 }
 
@@ -493,31 +491,23 @@ cudaq_dispatch_kernel_set_shared_ring_mode(std::uint32_t enabled) {
 // One block is the contract: every DEVICE_CALL handler runs on all of its
 // threads (see DeviceRPCFunction).  The kernel ignores blocks other than 0;
 // cudaq_dispatcher_start validates num_blocks == 1.
-extern "C" CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular(
-    volatile std::uint64_t* rx_flags,
-    volatile std::uint64_t* tx_flags,
-    std::uint8_t* rx_data,
-    std::uint8_t* tx_data,
-    std::size_t rx_stride_sz,
-    std::size_t tx_stride_sz,
-    cudaq_function_entry_t* function_table,
-    std::size_t func_count,
-    volatile int* shutdown_flag,
-    std::uint64_t* stats,
-    std::size_t num_slots,
-    std::uint32_t num_blocks,
-    std::uint32_t threads_per_block,
-    cudaStream_t stream) {
+extern "C" CUDAQ_REALTIME_DISPATCH_API void
+cudaq_launch_dispatch_kernel_regular(
+    volatile std::uint64_t *rx_flags, volatile std::uint64_t *tx_flags,
+    std::uint8_t *rx_data, std::uint8_t *tx_data, std::size_t rx_stride_sz,
+    std::size_t tx_stride_sz, cudaq_function_entry_t *function_table,
+    std::size_t func_count, volatile int *shutdown_flag, std::uint64_t *stats,
+    std::size_t num_slots, std::uint32_t num_blocks,
+    std::uint32_t threads_per_block, cudaStream_t stream) {
   // Use device-call-only kernel (no graph launch support)
   // Note: rx_data/rx_stride_sz are available in the ringbuffer struct but
   // not passed to the kernel since it reads RX addresses from rx_flags.
   (void)rx_data;
   (void)rx_stride_sz;
-  cudaq::realtime::dispatch_kernel_device_call_only
-      <<<num_blocks, threads_per_block, 0, stream>>>(
-          rx_flags, tx_flags, tx_data, tx_stride_sz,
-          function_table, func_count,
-          shutdown_flag, stats, num_slots);
+  cudaq::realtime::dispatch_kernel_device_call_only<<<
+      num_blocks, threads_per_block, 0, stream>>>(
+      rx_flags, tx_flags, tx_data, tx_stride_sz, function_table, func_count,
+      shutdown_flag, stats, num_slots);
 }
 
 //==============================================================================
@@ -526,8 +516,9 @@ extern "C" CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular
 //
 // To use device-side cudaGraphLaunch(), the dispatch kernel itself must be
 // running inside a graph execution context. These functions create a graph
-// containing the dispatch kernel, instantiate it with cudaGraphInstantiateFlagDeviceLaunch,
-// and provide proper launch/cleanup functions.
+// containing the dispatch kernel, instantiate it with
+// cudaGraphInstantiateFlagDeviceLaunch, and provide proper launch/cleanup
+// functions.
 
 // Internal storage for graph-based dispatch context
 // Parameters must be stored persistently since the graph may execute after
@@ -537,40 +528,30 @@ struct cudaq_dispatch_graph_context {
   cudaGraphExec_t graph_exec;
   cudaGraphNode_t kernel_node;
   bool is_valid;
-  
+
   // Persistent storage for kernel parameters (must outlive graph execution)
-  volatile std::uint64_t* rx_flags;
-  volatile std::uint64_t* tx_flags;
-  std::uint8_t* tx_data;
+  volatile std::uint64_t *rx_flags;
+  volatile std::uint64_t *tx_flags;
+  std::uint8_t *tx_data;
   std::size_t tx_stride_sz;
-  cudaq_function_entry_t* function_table;
+  cudaq_function_entry_t *function_table;
   std::size_t func_count;
-  cudaq::realtime::GraphIOContext* graph_io_ctx;
-  volatile int* shutdown_flag;
-  std::uint64_t* stats;
+  cudaq::realtime::GraphIOContext *graph_io_ctx;
+  volatile int *shutdown_flag;
+  std::uint64_t *stats;
   std::size_t num_slots;
   cudaGraphExec_t triggered_graph_exec;
 };
 
 extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
-    volatile std::uint64_t* rx_flags,
-    volatile std::uint64_t* tx_flags,
-    std::uint8_t* rx_data,
-    std::uint8_t* tx_data,
-    std::size_t rx_stride_sz,
-    std::size_t tx_stride_sz,
-    cudaq_function_entry_t* function_table,
-    std::size_t func_count,
-    void* graph_io_ctx_raw,
-    volatile int* shutdown_flag,
-    std::uint64_t* stats,
-    std::size_t num_slots,
-    std::uint32_t num_blocks,
-    std::uint32_t threads_per_block,
-    cudaGraphExec_t triggered_graph_exec,
-    cudaStream_t stream,
-    cudaq_dispatch_graph_context** out_context) {
-  
+    volatile std::uint64_t *rx_flags, volatile std::uint64_t *tx_flags,
+    std::uint8_t *rx_data, std::uint8_t *tx_data, std::size_t rx_stride_sz,
+    std::size_t tx_stride_sz, cudaq_function_entry_t *function_table,
+    std::size_t func_count, void *graph_io_ctx_raw, volatile int *shutdown_flag,
+    std::uint64_t *stats, std::size_t num_slots, std::uint32_t num_blocks,
+    std::uint32_t threads_per_block, cudaGraphExec_t triggered_graph_exec,
+    cudaStream_t stream, cudaq_dispatch_graph_context **out_context) {
+
   (void)rx_data;
   (void)rx_stride_sz;
 
@@ -589,11 +570,11 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
   }
 
   cudaError_t err;
-  
+
   // Allocate context with persistent parameter storage
-  cudaq_dispatch_graph_context* ctx = new cudaq_dispatch_graph_context();
+  cudaq_dispatch_graph_context *ctx = new cudaq_dispatch_graph_context();
   ctx->is_valid = false;
-  
+
   // Store parameters persistently in the context
   ctx->rx_flags = rx_flags;
   ctx->tx_flags = tx_flags;
@@ -602,60 +583,59 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
   ctx->function_table = function_table;
   ctx->func_count = func_count;
   ctx->graph_io_ctx =
-      static_cast<cudaq::realtime::GraphIOContext*>(graph_io_ctx_raw);
+      static_cast<cudaq::realtime::GraphIOContext *>(graph_io_ctx_raw);
   ctx->shutdown_flag = shutdown_flag;
   ctx->stats = stats;
   ctx->num_slots = num_slots;
   ctx->triggered_graph_exec = triggered_graph_exec;
-  
+
   // Create graph
   err = cudaGraphCreate(&ctx->graph, 0);
   if (err != cudaSuccess) {
     delete ctx;
     return err;
   }
-  
+
   // Set up kernel parameters - point to persistent storage in context
   cudaKernelNodeParams kernel_params = {};
-  void* kernel_args[] = {
-      &ctx->rx_flags,
-      &ctx->tx_flags,
-      &ctx->tx_data,
-      &ctx->tx_stride_sz,
-      &ctx->function_table,
-      &ctx->func_count,
-      &ctx->graph_io_ctx,
-      &ctx->shutdown_flag,
-      &ctx->stats,
-      &ctx->num_slots,
-      &ctx->triggered_graph_exec
-  };
-  
+  void *kernel_args[] = {&ctx->rx_flags,
+                         &ctx->tx_flags,
+                         &ctx->tx_data,
+                         &ctx->tx_stride_sz,
+                         &ctx->function_table,
+                         &ctx->func_count,
+                         &ctx->graph_io_ctx,
+                         &ctx->shutdown_flag,
+                         &ctx->stats,
+                         &ctx->num_slots,
+                         &ctx->triggered_graph_exec};
+
   kernel_params.func =
-      reinterpret_cast<void*>(cudaq::realtime::dispatch_kernel_with_graph);
+      reinterpret_cast<void *>(cudaq::realtime::dispatch_kernel_with_graph);
   kernel_params.gridDim = dim3(num_blocks, 1, 1);
   kernel_params.blockDim = dim3(threads_per_block, 1, 1);
   kernel_params.sharedMemBytes = 0;
   kernel_params.kernelParams = kernel_args;
   kernel_params.extra = nullptr;
-  
+
   // Add kernel node to graph
-  err = cudaGraphAddKernelNode(&ctx->kernel_node, ctx->graph, nullptr, 0, &kernel_params);
+  err = cudaGraphAddKernelNode(&ctx->kernel_node, ctx->graph, nullptr, 0,
+                               &kernel_params);
   if (err != cudaSuccess) {
     cudaGraphDestroy(ctx->graph);
     delete ctx;
     return err;
   }
-  
+
   // Instantiate with device launch flag - THIS IS THE KEY!
-  err = cudaGraphInstantiate(&ctx->graph_exec, ctx->graph, 
-                              cudaGraphInstantiateFlagDeviceLaunch);
+  err = cudaGraphInstantiate(&ctx->graph_exec, ctx->graph,
+                             cudaGraphInstantiateFlagDeviceLaunch);
   if (err != cudaSuccess) {
     cudaGraphDestroy(ctx->graph);
     delete ctx;
     return err;
   }
-  
+
   // Upload graph to device (required before device-side launch)
   err = cudaGraphUpload(ctx->graph_exec, stream);
   if (err != cudaSuccess) {
@@ -664,7 +644,7 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
     delete ctx;
     return err;
   }
-  
+
   // Synchronize to ensure upload completes
   err = cudaStreamSynchronize(stream);
   if (err != cudaSuccess) {
@@ -693,32 +673,34 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
   return cudaSuccess;
 }
 
-extern "C" cudaError_t cudaq_launch_dispatch_graph(
-    cudaq_dispatch_graph_context* context,
-    cudaStream_t stream) {
+extern "C" cudaError_t
+cudaq_launch_dispatch_graph(cudaq_dispatch_graph_context *context,
+                            cudaStream_t stream) {
   if (context == nullptr || !context->is_valid) {
     return cudaErrorInvalidValue;
   }
-  
+
   // Launch the graph - now device-side cudaGraphLaunch will work!
   return cudaGraphLaunch(context->graph_exec, stream);
 }
 
-extern "C" cudaError_t cudaq_destroy_dispatch_graph(
-    cudaq_dispatch_graph_context* context) {
+extern "C" cudaError_t
+cudaq_destroy_dispatch_graph(cudaq_dispatch_graph_context *context) {
   if (context == nullptr) {
     return cudaErrorInvalidValue;
   }
-  
+
   cudaError_t err = cudaSuccess;
-  
+
   if (context->is_valid) {
     cudaError_t err1 = cudaGraphExecDestroy(context->graph_exec);
     cudaError_t err2 = cudaGraphDestroy(context->graph);
-    if (err1 != cudaSuccess) err = err1;
-    else if (err2 != cudaSuccess) err = err2;
+    if (err1 != cudaSuccess)
+      err = err1;
+    else if (err2 != cudaSuccess)
+      err = err2;
   }
-  
+
   delete context;
   return err;
 }
@@ -742,15 +724,13 @@ cudaq_dispatch_get_trigger_debug(int *trigger_rc,
   if (err != cudaSuccess)
     return err;
   if (err == cudaSuccess && trigger_rc)
-    err = cudaMemcpyFromSymbolAsync(trigger_rc,
-                                    cudaq::realtime::g_dispatch_trigger_rc,
-                                    sizeof(*trigger_rc), 0,
-                                    cudaMemcpyDeviceToHost, stream);
+    err = cudaMemcpyFromSymbolAsync(
+        trigger_rc, cudaq::realtime::g_dispatch_trigger_rc, sizeof(*trigger_rc),
+        0, cudaMemcpyDeviceToHost, stream);
   if (err == cudaSuccess && trigger_fires)
-    err = cudaMemcpyFromSymbolAsync(trigger_fires,
-                                    cudaq::realtime::g_dispatch_trigger_fires,
-                                    sizeof(*trigger_fires), 0,
-                                    cudaMemcpyDeviceToHost, stream);
+    err = cudaMemcpyFromSymbolAsync(
+        trigger_fires, cudaq::realtime::g_dispatch_trigger_fires,
+        sizeof(*trigger_fires), 0, cudaMemcpyDeviceToHost, stream);
   if (err == cudaSuccess && tail_relaunches)
     err = cudaMemcpyFromSymbolAsync(
         tail_relaunches, cudaq::realtime::g_dispatch_tail_relaunches,

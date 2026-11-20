@@ -6,18 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.
  ******************************************************************************/
 
-#include <gtest/gtest.h>
-#include <cuda_runtime.h>
-#include <atomic>
-#include <cstdint>
-#include <cstring>
-#include <thread>
-#include <unistd.h>
-#include <vector>
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/host_dispatch_loop.h"
+#include <atomic>
+#include <cstdint>
+#include <cstring>
+#include <cuda_runtime.h>
+#include <gtest/gtest.h>
+#include <thread>
+#include <unistd.h>
+#include <vector>
 
 #define CUDA_CHECK(call)                                                       \
   do {                                                                         \
@@ -35,33 +35,32 @@ using cudaq::realtime::RPCResponse;
 //==============================================================================
 
 bool allocate_ring_buffer(std::size_t num_slots, std::size_t slot_size,
-                          volatile std::uint64_t** host_flags_out,
-                          volatile std::uint64_t** device_flags_out,
-                          std::uint8_t** host_data_out,
-                          std::uint8_t** device_data_out) {
-  void* host_flags_ptr = nullptr;
-  cudaError_t err = cudaHostAlloc(&host_flags_ptr,
-                                  num_slots * sizeof(std::uint64_t),
-                                  cudaHostAllocMapped);
+                          volatile std::uint64_t **host_flags_out,
+                          volatile std::uint64_t **device_flags_out,
+                          std::uint8_t **host_data_out,
+                          std::uint8_t **device_data_out) {
+  void *host_flags_ptr = nullptr;
+  cudaError_t err = cudaHostAlloc(
+      &host_flags_ptr, num_slots * sizeof(std::uint64_t), cudaHostAllocMapped);
   if (err != cudaSuccess)
     return false;
 
-  void* device_flags_ptr = nullptr;
+  void *device_flags_ptr = nullptr;
   err = cudaHostGetDevicePointer(&device_flags_ptr, host_flags_ptr, 0);
   if (err != cudaSuccess) {
     cudaFreeHost(host_flags_ptr);
     return false;
   }
 
-  void* host_data_ptr = nullptr;
-  err = cudaHostAlloc(&host_data_ptr, num_slots * slot_size,
-                      cudaHostAllocMapped);
+  void *host_data_ptr = nullptr;
+  err =
+      cudaHostAlloc(&host_data_ptr, num_slots * slot_size, cudaHostAllocMapped);
   if (err != cudaSuccess) {
     cudaFreeHost(host_flags_ptr);
     return false;
   }
 
-  void* device_data_ptr = nullptr;
+  void *device_data_ptr = nullptr;
   err = cudaHostGetDevicePointer(&device_data_ptr, host_data_ptr, 0);
   if (err != cudaSuccess) {
     cudaFreeHost(host_flags_ptr);
@@ -71,16 +70,17 @@ bool allocate_ring_buffer(std::size_t num_slots, std::size_t slot_size,
 
   std::memset(host_flags_ptr, 0, num_slots * sizeof(std::uint64_t));
 
-  *host_flags_out = static_cast<volatile std::uint64_t*>(host_flags_ptr);
-  *device_flags_out = static_cast<volatile std::uint64_t*>(device_flags_ptr);
-  *host_data_out = static_cast<std::uint8_t*>(host_data_ptr);
-  *device_data_out = static_cast<std::uint8_t*>(device_data_ptr);
+  *host_flags_out = static_cast<volatile std::uint64_t *>(host_flags_ptr);
+  *device_flags_out = static_cast<volatile std::uint64_t *>(device_flags_ptr);
+  *host_data_out = static_cast<std::uint8_t *>(host_data_ptr);
+  *device_data_out = static_cast<std::uint8_t *>(device_data_ptr);
   return true;
 }
 
-void free_ring_buffer(volatile std::uint64_t* host_flags, std::uint8_t* host_data) {
+void free_ring_buffer(volatile std::uint64_t *host_flags,
+                      std::uint8_t *host_data) {
   if (host_flags)
-    cudaFreeHost(const_cast<std::uint64_t*>(host_flags));
+    cudaFreeHost(const_cast<std::uint64_t *>(host_flags));
   if (host_data)
     cudaFreeHost(host_data);
 }
@@ -90,10 +90,10 @@ void free_ring_buffer(volatile std::uint64_t* host_flags, std::uint8_t* host_dat
 // to be CUDA-mapped only when a GPU consumer touches it
 // (SharedRingDispatcherTest below).  Zero-initialized.
 bool allocate_host_ring_buffer(std::size_t num_slots, std::size_t slot_size,
-                               volatile std::uint64_t** flags_out,
-                               std::uint8_t** data_out) {
-  auto* flags = new (std::nothrow) std::uint64_t[num_slots]();
-  auto* data = new (std::nothrow) std::uint8_t[num_slots * slot_size]();
+                               volatile std::uint64_t **flags_out,
+                               std::uint8_t **data_out) {
+  auto *flags = new (std::nothrow) std::uint64_t[num_slots]();
+  auto *data = new (std::nothrow) std::uint8_t[num_slots * slot_size]();
   if (!flags || !data) {
     delete[] flags;
     delete[] data;
@@ -104,8 +104,8 @@ bool allocate_host_ring_buffer(std::size_t num_slots, std::size_t slot_size,
   return true;
 }
 
-void free_host_ring_buffer(volatile std::uint64_t* flags, std::uint8_t* data) {
-  delete[] const_cast<std::uint64_t*>(flags);
+void free_host_ring_buffer(volatile std::uint64_t *flags, std::uint8_t *data) {
+  delete[] const_cast<std::uint64_t *>(flags);
   delete[] data;
 }
 
@@ -113,8 +113,8 @@ void free_host_ring_buffer(volatile std::uint64_t* flags, std::uint8_t* data) {
 // HOST_CALL handler (two-pointer ABI): increments the rx payload into tx.
 //==============================================================================
 
-void host_increment(const void* rx_slot, void* tx_slot, std::size_t slot_size) {
-  const auto* h = static_cast<const RPCHeader*>(rx_slot);
+void host_increment(const void *rx_slot, void *tx_slot, std::size_t slot_size) {
+  const auto *h = static_cast<const RPCHeader *>(rx_slot);
   if (h->magic != cudaq::realtime::RPC_MAGIC_REQUEST)
     return;
   const std::uint32_t arg_len = h->arg_len;
@@ -122,15 +122,15 @@ void host_increment(const void* rx_slot, void* tx_slot, std::size_t slot_size) {
   const std::uint64_t ptp = h->ptp_timestamp;
   if (slot_size < sizeof(RPCResponse) + arg_len)
     return;
-  const auto* in =
-      static_cast<const std::uint8_t*>(rx_slot) + sizeof(RPCHeader);
-  auto* resp = static_cast<RPCResponse*>(tx_slot);
+  const auto *in =
+      static_cast<const std::uint8_t *>(rx_slot) + sizeof(RPCHeader);
+  auto *resp = static_cast<RPCResponse *>(tx_slot);
   resp->magic = cudaq::realtime::RPC_MAGIC_RESPONSE;
   resp->status = 0;
   resp->result_len = arg_len;
   resp->request_id = request_id;
   resp->ptp_timestamp = ptp;
-  auto* out = static_cast<std::uint8_t*>(tx_slot) + sizeof(RPCResponse);
+  auto *out = static_cast<std::uint8_t *>(tx_slot) + sizeof(RPCResponse);
   for (std::uint32_t i = 0; i < arg_len; ++i)
     out[i] = in[i] + 1;
 }
@@ -208,7 +208,7 @@ protected:
   }
 
   void WriteRpcRequest(std::size_t slot, std::uint32_t function_id,
-                       const std::uint8_t* payload, std::size_t len) {
+                       const std::uint8_t *payload, std::size_t len) {
     ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
                   &ringbuffer_, static_cast<std::uint32_t>(slot), function_id,
                   payload, static_cast<std::uint32_t>(len), 0, 0),
@@ -216,7 +216,8 @@ protected:
   }
 
   void SignalSlot(std::size_t slot) {
-    cudaq_host_ringbuffer_signal_slot(&ringbuffer_, static_cast<std::uint32_t>(slot));
+    cudaq_host_ringbuffer_signal_slot(&ringbuffer_,
+                                      static_cast<std::uint32_t>(slot));
   }
 
   bool PollTxFlag(std::size_t slot, int timeout_ms = 2000) {
@@ -227,9 +228,9 @@ protected:
         return true;
       usleep(200);
     }
-    return cudaq_host_ringbuffer_poll_tx_flag(
-               &ringbuffer_, static_cast<std::uint32_t>(slot), nullptr) !=
-           CUDAQ_TX_EMPTY;
+    return cudaq_host_ringbuffer_poll_tx_flag(&ringbuffer_,
+                                              static_cast<std::uint32_t>(slot),
+                                              nullptr) != CUDAQ_TX_EMPTY;
   }
 
   void StopLoop() {
@@ -241,45 +242,44 @@ protected:
   }
 
   void ClearSlot(std::size_t slot) {
-    cudaq_host_ringbuffer_clear_slot(&ringbuffer_, static_cast<std::uint32_t>(slot));
+    cudaq_host_ringbuffer_clear_slot(&ringbuffer_,
+                                     static_cast<std::uint32_t>(slot));
     std::memset(tx_data_host_ + slot * slot_size_, 0, slot_size_);
   }
 
-  void VerifyResponse(std::size_t slot, const std::uint8_t* expected,
+  void VerifyResponse(std::size_t slot, const std::uint8_t *expected,
                       std::size_t len) {
     cudaq_tx_status_t st = cudaq_host_ringbuffer_poll_tx_flag(
         &ringbuffer_, static_cast<std::uint32_t>(slot), nullptr);
     ASSERT_EQ(st, CUDAQ_TX_READY)
         << "slot " << slot << ": tx_flag unexpected (status=" << st << ")";
 
-    std::uint8_t* slot_data = tx_data_host_ + slot * slot_size_;
-    auto* resp =
-        reinterpret_cast<cudaq::realtime::RPCResponse*>(slot_data);
+    std::uint8_t *slot_data = tx_data_host_ + slot * slot_size_;
+    auto *resp = reinterpret_cast<cudaq::realtime::RPCResponse *>(slot_data);
     ASSERT_EQ(resp->magic, CUDAQ_RPC_MAGIC_RESPONSE)
         << "slot " << slot << ": expected response magic";
     ASSERT_EQ(resp->status, 0) << "slot " << slot << ": non-zero status";
     ASSERT_EQ(resp->result_len, static_cast<std::uint32_t>(len))
         << "slot " << slot << ": wrong result_len";
-    std::uint8_t* result = slot_data + sizeof(cudaq::realtime::RPCResponse);
+    std::uint8_t *result = slot_data + sizeof(cudaq::realtime::RPCResponse);
     for (std::size_t i = 0; i < len; ++i) {
-      EXPECT_EQ(result[i], expected[i])
-          << "slot " << slot << " byte " << i;
+      EXPECT_EQ(result[i], expected[i]) << "slot " << slot << " byte " << i;
     }
   }
 
   std::size_t num_slots_ = 4;
   std::size_t slot_size_ = 256;
 
-  volatile std::uint64_t* rx_flags_host_ = nullptr;
-  volatile std::uint64_t* tx_flags_host_ = nullptr;
-  std::uint8_t* rx_data_host_ = nullptr;
-  std::uint8_t* tx_data_host_ = nullptr;
+  volatile std::uint64_t *rx_flags_host_ = nullptr;
+  volatile std::uint64_t *tx_flags_host_ = nullptr;
+  std::uint8_t *rx_data_host_ = nullptr;
+  std::uint8_t *tx_data_host_ = nullptr;
 
   volatile int shutdown_flag_ = 0;
   std::uint64_t stats_counter_ = 0;
   bool loop_stopped_ = false;
 
-  cudaq_function_entry_t* function_table_ = nullptr;
+  cudaq_function_entry_t *function_table_ = nullptr;
   std::size_t function_table_count_ = 0;
 
   cudaq_ringbuffer_t ringbuffer_{};
@@ -366,16 +366,16 @@ protected:
   static constexpr std::size_t num_slots_ = 2;
   std::size_t slot_size_ = 256;
 
-  volatile std::uint64_t* rx_flags_host_ = nullptr;
-  volatile std::uint64_t* tx_flags_host_ = nullptr;
-  std::uint8_t* rx_data_host_ = nullptr;
-  std::uint8_t* tx_data_host_ = nullptr;
+  volatile std::uint64_t *rx_flags_host_ = nullptr;
+  volatile std::uint64_t *tx_flags_host_ = nullptr;
+  std::uint8_t *rx_data_host_ = nullptr;
+  std::uint8_t *tx_data_host_ = nullptr;
 
-  cudaq_function_entry_t* host_table_ = nullptr;
+  cudaq_function_entry_t *host_table_ = nullptr;
 
   cudaq_ringbuffer_t ringbuffer_{};
-  cudaq_dispatch_manager_t* manager_ = nullptr;
-  cudaq_dispatcher_t* dispatcher_ = nullptr;
+  cudaq_dispatch_manager_t *manager_ = nullptr;
+  cudaq_dispatcher_t *dispatcher_ = nullptr;
 };
 
 TEST_F(HostDispatcherSmokeTest, DropsSlotWithUnknownFunctionId) {
@@ -461,14 +461,14 @@ protected:
 
   static constexpr std::size_t num_slots_ = 2;
   std::size_t slot_size_ = 256;
-  volatile std::uint64_t* rx_flags_host_ = nullptr;
-  volatile std::uint64_t* tx_flags_host_ = nullptr;
-  std::uint8_t* rx_data_host_ = nullptr;
-  std::uint8_t* tx_data_host_ = nullptr;
+  volatile std::uint64_t *rx_flags_host_ = nullptr;
+  volatile std::uint64_t *tx_flags_host_ = nullptr;
+  std::uint8_t *rx_data_host_ = nullptr;
+  std::uint8_t *tx_data_host_ = nullptr;
   cudaq_function_entry_t entries_[2];
   cudaq_ringbuffer_t ringbuffer_{};
-  cudaq_dispatch_manager_t* manager_ = nullptr;
-  cudaq_dispatcher_t* dispatcher_ = nullptr;
+  cudaq_dispatch_manager_t *manager_ = nullptr;
+  cudaq_dispatcher_t *dispatcher_ = nullptr;
 };
 
 TEST_F(HostDispatcherTableTest, RefusesGraphLaunchEntry) {
@@ -504,20 +504,19 @@ TEST_F(HostDispatcherLoopTest, StatsCounterAccuracy) {
     if (i >= static_cast<int>(num_slots_))
       ClearSlot(slot);
 
-    std::uint8_t payload[] = {
-        static_cast<std::uint8_t>(i * 10),
-        static_cast<std::uint8_t>(i * 10 + 1),
-        static_cast<std::uint8_t>(i * 10 + 2),
-        static_cast<std::uint8_t>(i * 10 + 3)};
+    std::uint8_t payload[] = {static_cast<std::uint8_t>(i * 10),
+                              static_cast<std::uint8_t>(i * 10 + 1),
+                              static_cast<std::uint8_t>(i * 10 + 2),
+                              static_cast<std::uint8_t>(i * 10 + 3)};
     WriteRpcRequest(slot, HOST_INCREMENT_FUNCTION_ID, payload, 4);
     SignalSlot(slot);
-    ASSERT_TRUE(PollTxFlag(slot)) << "Timeout on RPC " << i << " (slot " << slot << ")";
+    ASSERT_TRUE(PollTxFlag(slot))
+        << "Timeout on RPC " << i << " (slot " << slot << ")";
 
-    std::uint8_t expected[] = {
-        static_cast<std::uint8_t>(i * 10 + 1),
-        static_cast<std::uint8_t>(i * 10 + 2),
-        static_cast<std::uint8_t>(i * 10 + 3),
-        static_cast<std::uint8_t>(i * 10 + 4)};
+    std::uint8_t expected[] = {static_cast<std::uint8_t>(i * 10 + 1),
+                               static_cast<std::uint8_t>(i * 10 + 2),
+                               static_cast<std::uint8_t>(i * 10 + 3),
+                               static_cast<std::uint8_t>(i * 10 + 4)};
     VerifyResponse(slot, expected, 4);
   }
 
@@ -539,11 +538,10 @@ TEST_F(HostDispatcherLoopTest, MultiSlotRoundRobin) {
   StartLoop();
 
   for (int i = 0; i < kNumSlots; ++i) {
-    std::uint8_t payload[] = {
-        static_cast<std::uint8_t>(i * 4 + 1),
-        static_cast<std::uint8_t>(i * 4 + 2),
-        static_cast<std::uint8_t>(i * 4 + 3),
-        static_cast<std::uint8_t>(i * 4 + 4)};
+    std::uint8_t payload[] = {static_cast<std::uint8_t>(i * 4 + 1),
+                              static_cast<std::uint8_t>(i * 4 + 2),
+                              static_cast<std::uint8_t>(i * 4 + 3),
+                              static_cast<std::uint8_t>(i * 4 + 4)};
     WriteRpcRequest(static_cast<std::size_t>(i), HOST_INCREMENT_FUNCTION_ID,
                     payload, 4);
   }
@@ -557,11 +555,10 @@ TEST_F(HostDispatcherLoopTest, MultiSlotRoundRobin) {
   }
 
   for (int i = 0; i < kNumSlots; ++i) {
-    std::uint8_t expected[] = {
-        static_cast<std::uint8_t>(i * 4 + 2),
-        static_cast<std::uint8_t>(i * 4 + 3),
-        static_cast<std::uint8_t>(i * 4 + 4),
-        static_cast<std::uint8_t>(i * 4 + 5)};
+    std::uint8_t expected[] = {static_cast<std::uint8_t>(i * 4 + 2),
+                               static_cast<std::uint8_t>(i * 4 + 3),
+                               static_cast<std::uint8_t>(i * 4 + 4),
+                               static_cast<std::uint8_t>(i * 4 + 5)};
     VerifyResponse(static_cast<std::size_t>(i), expected, 4);
   }
 
@@ -588,17 +585,17 @@ constexpr std::uint32_t DEVICE_CALL_FN_ID =
 
 // DEVICE_CALL handler (same two-pointer form as host_increment above, plus a
 // returned status): doubles the rx payload into tx and sets result_len.
-__device__ int device_double_handler(const void* rx_slot, void* tx_slot,
+__device__ int device_double_handler(const void *rx_slot, void *tx_slot,
                                      std::size_t slot_size) {
   // The dispatcher calls this on every thread of its block: each thread
   // doubles its own bytes.  That is safe on the in-place ring of
   // SharedRingDispatcherTest (tx_slot aliases rx_slot) because no byte is
   // touched by more than one thread.
-  const auto* h = static_cast<const RPCHeader*>(rx_slot);
-  const auto* in =
-      static_cast<const std::uint8_t*>(rx_slot) + sizeof(RPCHeader);
-  auto* resp = static_cast<RPCResponse*>(tx_slot);
-  auto* out = static_cast<std::uint8_t*>(tx_slot) + sizeof(RPCResponse);
+  const auto *h = static_cast<const RPCHeader *>(rx_slot);
+  const auto *in =
+      static_cast<const std::uint8_t *>(rx_slot) + sizeof(RPCHeader);
+  auto *resp = static_cast<RPCResponse *>(tx_slot);
+  auto *out = static_cast<std::uint8_t *>(tx_slot) + sizeof(RPCResponse);
   const std::uint32_t max_result_len = slot_size - sizeof(RPCResponse);
   std::uint32_t n = h->arg_len;
   if (n > max_result_len)
@@ -615,10 +612,10 @@ __device__ int device_double_handler(const void* rx_slot, void* tx_slot,
 
 // The DEVICE_CALL entry needs the device function's address, which only device
 // code can take; the HOST_CALL entry is written from the host.
-__global__ void init_shared_function_table(cudaq_function_entry_t* entries) {
+__global__ void init_shared_function_table(cudaq_function_entry_t *entries) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
     entries[1].handler.device_fn_ptr =
-        reinterpret_cast<void*>(&device_double_handler);
+        reinterpret_cast<void *>(&device_double_handler);
     entries[1].function_id = DEVICE_CALL_FN_ID;
     entries[1].dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
     entries[1].reserved[0] = 0;
@@ -633,17 +630,17 @@ protected:
     ASSERT_TRUE(allocate_ring_buffer(kSharedRingNumSlots, kSharedRingSlotSize,
                                      &rx_flags_host_, &rx_flags_dev_,
                                      &rx_data_host_, &rx_data_dev_));
-    void* tx_flags_host_ptr = nullptr;
+    void *tx_flags_host_ptr = nullptr;
     CUDA_CHECK(cudaHostAlloc(&tx_flags_host_ptr,
                              kSharedRingNumSlots * sizeof(std::uint64_t),
                              cudaHostAllocMapped));
     std::memset(tx_flags_host_ptr, 0,
                 kSharedRingNumSlots * sizeof(std::uint64_t));
-    tx_flags_host_ = static_cast<volatile std::uint64_t*>(tx_flags_host_ptr);
-    void* tx_flags_dev_ptr = nullptr;
-    CUDA_CHECK(cudaHostGetDevicePointer(&tx_flags_dev_ptr, tx_flags_host_ptr,
-                                        0));
-    tx_flags_dev_ = static_cast<volatile std::uint64_t*>(tx_flags_dev_ptr);
+    tx_flags_host_ = static_cast<volatile std::uint64_t *>(tx_flags_host_ptr);
+    void *tx_flags_dev_ptr = nullptr;
+    CUDA_CHECK(
+        cudaHostGetDevicePointer(&tx_flags_dev_ptr, tx_flags_host_ptr, 0));
+    tx_flags_dev_ = static_cast<volatile std::uint64_t *>(tx_flags_dev_ptr);
     // RX and TX data buffers intentionally point to the same backing memory.
     tx_data_host_ = rx_data_host_;
     tx_data_dev_ = rx_data_dev_;
@@ -651,24 +648,23 @@ protected:
 
     // The host loop below runs directly on a thread, not through a
     // dispatcher, so it takes this flag; the device dispatcher owns its own.
-    void* tmp = nullptr;
+    void *tmp = nullptr;
     CUDA_CHECK(cudaHostAlloc(&tmp, sizeof(int), cudaHostAllocMapped));
-    shutdown_flag_host_ = static_cast<volatile int*>(tmp);
+    shutdown_flag_host_ = static_cast<volatile int *>(tmp);
     *shutdown_flag_host_ = 0;
 
-    void* fn_table_host_ptr = nullptr;
+    void *fn_table_host_ptr = nullptr;
     CUDA_CHECK(cudaHostAlloc(&fn_table_host_ptr,
                              2 * sizeof(cudaq_function_entry_t),
                              cudaHostAllocMapped));
     function_table_host_ =
-        static_cast<cudaq_function_entry_t*>(fn_table_host_ptr);
-    void* fn_table_dev_ptr = nullptr;
-    CUDA_CHECK(cudaHostGetDevicePointer(&fn_table_dev_ptr, fn_table_host_ptr,
-                                        0));
+        static_cast<cudaq_function_entry_t *>(fn_table_host_ptr);
+    void *fn_table_dev_ptr = nullptr;
+    CUDA_CHECK(
+        cudaHostGetDevicePointer(&fn_table_dev_ptr, fn_table_host_ptr, 0));
     function_table_dev_ =
-        static_cast<cudaq_function_entry_t*>(fn_table_dev_ptr);
-    std::memset(function_table_host_, 0,
-                2 * sizeof(cudaq_function_entry_t));
+        static_cast<cudaq_function_entry_t *>(fn_table_dev_ptr);
+    std::memset(function_table_host_, 0, 2 * sizeof(cudaq_function_entry_t));
 
     function_table_host_[0].handler.host_fn = &host_increment;
     function_table_host_[0].function_id = HOST_CALL_FN_ID;
@@ -709,9 +705,9 @@ protected:
     cudaq_function_table_t shared_table{};
     shared_table.entries = function_table_dev_;
     shared_table.count = 2;
-    ASSERT_EQ(cudaq_dispatcher_set_function_table(device_dispatcher_,
-                                                  &shared_table),
-              CUDAQ_OK);
+    ASSERT_EQ(
+        cudaq_dispatcher_set_function_table(device_dispatcher_, &shared_table),
+        CUDAQ_OK);
 
     ASSERT_EQ(cudaq_dispatcher_set_launch_fn(
                   device_dispatcher_, &cudaq_launch_dispatch_kernel_regular),
@@ -770,37 +766,37 @@ protected:
 
     free_ring_buffer(rx_flags_host_, rx_data_host_);
     if (tx_flags_host_)
-      cudaFreeHost(const_cast<std::uint64_t*>(tx_flags_host_));
+      cudaFreeHost(const_cast<std::uint64_t *>(tx_flags_host_));
     if (tx_data_is_owned_ && tx_data_host_)
       cudaFreeHost(tx_data_host_);
 
     if (shutdown_flag_host_)
-      cudaFreeHost(const_cast<int*>(shutdown_flag_host_));
+      cudaFreeHost(const_cast<int *>(shutdown_flag_host_));
   }
 
   void WriteAndSignal(std::size_t slot, std::uint32_t function_id,
                       std::uint32_t request_id,
-                      const std::vector<std::uint8_t>& payload) {
+                      const std::vector<std::uint8_t> &payload) {
     ASSERT_LT(slot, kSharedRingNumSlots);
     ASSERT_LE(payload.size(),
               kSharedRingSlotSize - sizeof(cudaq::realtime::RPCHeader));
-    std::uint8_t* slot_host = rx_data_host_ + slot * kSharedRingSlotSize;
-    auto* header = reinterpret_cast<cudaq::realtime::RPCHeader*>(slot_host);
+    std::uint8_t *slot_host = rx_data_host_ + slot * kSharedRingSlotSize;
+    auto *header = reinterpret_cast<cudaq::realtime::RPCHeader *>(slot_host);
     header->magic = cudaq::realtime::RPC_MAGIC_REQUEST;
     header->function_id = function_id;
     header->arg_len = static_cast<std::uint32_t>(payload.size());
     header->request_id = request_id;
     header->ptp_timestamp = 0;
-    std::memcpy(slot_host + sizeof(cudaq::realtime::RPCHeader),
-                payload.data(), payload.size());
+    std::memcpy(slot_host + sizeof(cudaq::realtime::RPCHeader), payload.data(),
+                payload.size());
     __sync_synchronize();
     rx_flags_host_[slot] = reinterpret_cast<std::uint64_t>(
         rx_data_dev_ + slot * kSharedRingSlotSize);
   }
 
   bool WaitForResponseInSlot(std::size_t slot, int timeout_ms = 5000) {
-    std::uint8_t* slot_host = rx_data_host_ + slot * kSharedRingSlotSize;
-    auto* resp = reinterpret_cast<cudaq::realtime::RPCResponse*>(slot_host);
+    std::uint8_t *slot_host = rx_data_host_ + slot * kSharedRingSlotSize;
+    auto *resp = reinterpret_cast<cudaq::realtime::RPCResponse *>(slot_host);
     for (int waited = 0; waited < timeout_ms; ++waited) {
       __sync_synchronize();
       if (resp->magic == cudaq::realtime::RPC_MAGIC_RESPONSE)
@@ -811,31 +807,30 @@ protected:
   }
 
   std::vector<std::uint8_t> ReadResponse(std::size_t slot) {
-    std::uint8_t* slot_host = rx_data_host_ + slot * kSharedRingSlotSize;
-    auto* resp = reinterpret_cast<cudaq::realtime::RPCResponse*>(slot_host);
+    std::uint8_t *slot_host = rx_data_host_ + slot * kSharedRingSlotSize;
+    auto *resp = reinterpret_cast<cudaq::realtime::RPCResponse *>(slot_host);
     std::vector<std::uint8_t> out(resp->result_len);
-    std::memcpy(out.data(),
-                slot_host + sizeof(cudaq::realtime::RPCResponse),
+    std::memcpy(out.data(), slot_host + sizeof(cudaq::realtime::RPCResponse),
                 resp->result_len);
     return out;
   }
 
-  volatile std::uint64_t* rx_flags_host_ = nullptr;
-  volatile std::uint64_t* tx_flags_host_ = nullptr;
-  volatile std::uint64_t* rx_flags_dev_ = nullptr;
-  volatile std::uint64_t* tx_flags_dev_ = nullptr;
-  std::uint8_t* rx_data_host_ = nullptr;
-  std::uint8_t* tx_data_host_ = nullptr;
-  std::uint8_t* rx_data_dev_ = nullptr;
-  std::uint8_t* tx_data_dev_ = nullptr;
+  volatile std::uint64_t *rx_flags_host_ = nullptr;
+  volatile std::uint64_t *tx_flags_host_ = nullptr;
+  volatile std::uint64_t *rx_flags_dev_ = nullptr;
+  volatile std::uint64_t *tx_flags_dev_ = nullptr;
+  std::uint8_t *rx_data_host_ = nullptr;
+  std::uint8_t *tx_data_host_ = nullptr;
+  std::uint8_t *rx_data_dev_ = nullptr;
+  std::uint8_t *tx_data_dev_ = nullptr;
   bool tx_data_is_owned_ = true;
 
-  volatile int* shutdown_flag_host_ = nullptr;
-  cudaq_function_entry_t* function_table_host_ = nullptr;
-  cudaq_function_entry_t* function_table_dev_ = nullptr;
+  volatile int *shutdown_flag_host_ = nullptr;
+  cudaq_function_entry_t *function_table_host_ = nullptr;
+  cudaq_function_entry_t *function_table_dev_ = nullptr;
 
-  cudaq_dispatch_manager_t* device_manager_ = nullptr;
-  cudaq_dispatcher_t* device_dispatcher_ = nullptr;
+  cudaq_dispatch_manager_t *device_manager_ = nullptr;
+  cudaq_dispatcher_t *device_dispatcher_ = nullptr;
 
   cudaq_ringbuffer_t host_ringbuffer_{};
   cudaq_function_table_t host_table_{};
@@ -898,7 +893,7 @@ public:
     // std::atomic<int> is neither copyable nor movable, so size the vector via
     // default-insertion (not assign) and zero each element explicitly.
     published_ = std::vector<std::atomic<int>>(num_slots);
-    for (auto& p : published_)
+    for (auto &p : published_)
       p.store(0, std::memory_order_relaxed);
     // Host views only; the device views stay null (no GPU consumer).
     rb_.rx_stride_sz = slot_size_;
@@ -914,9 +909,9 @@ public:
   }
 
   bool ok() const { return ok_; }
-  const cudaq_ringbuffer_t& ring() const { return rb_; }
-  std::uint8_t* tx_host(std::size_t slot) {
-    return reinterpret_cast<std::uint8_t*>(rb_.tx_data_host) +
+  const cudaq_ringbuffer_t &ring() const { return rb_; }
+  std::uint8_t *tx_host(std::size_t slot) {
+    return reinterpret_cast<std::uint8_t *>(rb_.tx_data_host) +
            slot * slot_size_;
   }
 
@@ -942,8 +937,8 @@ public:
   }
 
 private:
-  static cudaq_rx_status_t rx_poll(void* ctx, std::uint32_t* out_slot) {
-    auto* f = static_cast<FakeRing*>(ctx);
+  static cudaq_rx_status_t rx_poll(void *ctx, std::uint32_t *out_slot) {
+    auto *f = static_cast<FakeRing *>(ctx);
     std::uint32_t h = f->head_.load(std::memory_order_acquire);
     if (h == f->tail_.load(std::memory_order_acquire))
       return CUDAQ_RX_EMPTY;
@@ -951,8 +946,8 @@ private:
     f->head_.store(h + 1, std::memory_order_release);
     return CUDAQ_RX_READY;
   }
-  static cudaq_status_t tx_publish(void* ctx, std::uint32_t slot) {
-    auto* f = static_cast<FakeRing*>(ctx);
+  static cudaq_status_t tx_publish(void *ctx, std::uint32_t slot) {
+    auto *f = static_cast<FakeRing *>(ctx);
     f->published_[slot].store(1, std::memory_order_release);
     return CUDAQ_OK;
   }
@@ -962,10 +957,10 @@ private:
   std::size_t slot_size_;
   bool ok_ = false;
   cudaq_ringbuffer_t rb_{};
-  volatile std::uint64_t* rx_flags_host_ = nullptr;
-  volatile std::uint64_t* tx_flags_host_ = nullptr;
-  std::uint8_t* rx_data_host_ = nullptr;
-  std::uint8_t* tx_data_host_ = nullptr;
+  volatile std::uint64_t *rx_flags_host_ = nullptr;
+  volatile std::uint64_t *tx_flags_host_ = nullptr;
+  std::uint8_t *rx_data_host_ = nullptr;
+  std::uint8_t *tx_data_host_ = nullptr;
   std::atomic<std::uint32_t> head_{0};
   std::atomic<std::uint32_t> tail_{0};
   std::uint32_t pending_[kCap]{};
@@ -987,14 +982,12 @@ TEST(UnifiedLoopTest, HostCallOverRingDataplane) {
   volatile int shutdown_flag = 0;
   std::uint64_t stats = 0;
   cudaq_function_table_t table{&entry, 1};
-  std::thread loop([&] {
-    cudaq_host_unified_loop(&dp, &table, &shutdown_flag, &stats);
-  });
+  std::thread loop(
+      [&] { cudaq_host_unified_loop(&dp, &table, &shutdown_flag, &stats); });
 
   const std::uint8_t payload[] = {10, 20, 30, 40};
   ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
-                &fake.ring(), 1, HOST_INCREMENT_FUNCTION_ID, payload, 4, 7,
-                0),
+                &fake.ring(), 1, HOST_INCREMENT_FUNCTION_ID, payload, 4, 7, 0),
             CUDAQ_OK);
   fake.enqueue(1);
 
@@ -1002,11 +995,11 @@ TEST(UnifiedLoopTest, HostCallOverRingDataplane) {
     usleep(200);
   ASSERT_TRUE(fake.published(1)) << "HOST_CALL response not published";
 
-  auto* resp = reinterpret_cast<RPCResponse*>(fake.tx_host(1));
+  auto *resp = reinterpret_cast<RPCResponse *>(fake.tx_host(1));
   EXPECT_EQ(resp->magic, CUDAQ_RPC_MAGIC_RESPONSE);
   EXPECT_EQ(resp->result_len, 4u);
   EXPECT_EQ(resp->request_id, 7u);
-  std::uint8_t* result = fake.tx_host(1) + sizeof(RPCResponse);
+  std::uint8_t *result = fake.tx_host(1) + sizeof(RPCResponse);
   EXPECT_EQ(result[0], 11);
   EXPECT_EQ(result[1], 21);
   EXPECT_EQ(result[2], 31);
@@ -1036,19 +1029,17 @@ TEST(UnifiedLoopTest, DropsBadMagicOverRingDataplane) {
   volatile int shutdown_flag = 0;
   std::uint64_t stats = 0;
   cudaq_function_table_t table{&entry, 1};
-  std::thread loop([&] {
-    cudaq_host_unified_loop(&dp, &table, &shutdown_flag, &stats);
-  });
+  std::thread loop(
+      [&] { cudaq_host_unified_loop(&dp, &table, &shutdown_flag, &stats); });
 
   const std::uint8_t payload[] = {10, 20, 30, 40};
 
   // Slot 1: a well-formed request whose magic we then corrupt.
   ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
-                &fake.ring(), 1, HOST_INCREMENT_FUNCTION_ID, payload, 4, 7,
-                0),
+                &fake.ring(), 1, HOST_INCREMENT_FUNCTION_ID, payload, 4, 7, 0),
             CUDAQ_OK);
-  auto* bad = reinterpret_cast<RPCHeader*>(
-      reinterpret_cast<std::uint8_t*>(fake.ring().rx_data_host) +
+  auto *bad = reinterpret_cast<RPCHeader *>(
+      reinterpret_cast<std::uint8_t *>(fake.ring().rx_data_host) +
       1 * slot_size);
   bad->magic = 0; // bust the RPC_MAGIC_REQUEST framing
   fake.enqueue(1);
@@ -1057,8 +1048,7 @@ TEST(UnifiedLoopTest, DropsBadMagicOverRingDataplane) {
   // single-threaded, so once slot 2 is published slot 1 has already been
   // processed (and, correctly, dropped).
   ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
-                &fake.ring(), 2, HOST_INCREMENT_FUNCTION_ID, payload, 4, 8,
-                0),
+                &fake.ring(), 2, HOST_INCREMENT_FUNCTION_ID, payload, 4, 8, 0),
             CUDAQ_OK);
   fake.enqueue(2);
 

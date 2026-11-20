@@ -12,8 +12,8 @@
 /// binary's own module, which the dispatcher must refuse.
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/realtime/device_code/device_code.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/device_code/device_code.h"
 #include <cstddef>
 #include <cstdint>
 
@@ -27,9 +27,9 @@ __device__ int gpu_dataplane_test_handler(const void *rx_slot, void *tx_slot,
   auto *response = static_cast<cudaq::realtime::RPCResponse *>(tx_slot);
   auto *out = reinterpret_cast<std::uint8_t *>(response + 1);
   const std::size_t capacity = slot_size - sizeof(cudaq::realtime::RPCResponse);
-  const std::uint32_t len =
-      header->arg_len < capacity ? header->arg_len
-                                 : static_cast<std::uint32_t>(capacity);
+  const std::uint32_t len = header->arg_len < capacity
+                                ? header->arg_len
+                                : static_cast<std::uint32_t>(capacity);
   // Every thread of the dispatch block runs this; each increments its own
   // bytes.
   for (std::uint32_t i = threadIdx.x; i < len; i += blockDim.x)

@@ -35,8 +35,8 @@
 /// realtime headers only.
 
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
-#include "cudaq/realtime/device_code/device_code_reader.h"
 #include "cudaq/realtime/daemon/dispatcher/unified_device_transport.cuh"
+#include "cudaq/realtime/device_code/device_code_reader.h"
 #include <cstdint>
 #include <cstring>
 #include <cuda_runtime.h>
@@ -119,8 +119,8 @@ void release(LoopbackBridge *b) {
 // Device hooks
 //==============================================================================
 
-extern "C" __device__ void *cudaq_dev_enter_kernel(void *storage, void *ctx,
-                                                   volatile int *shutdown_flag) {
+extern "C" __device__ void *
+cudaq_dev_enter_kernel(void *storage, void *ctx, volatile int *shutdown_flag) {
   auto *s = static_cast<loopback_session *>(storage);
   s->ctx = static_cast<const loopback_ctx *>(ctx);
   s->shutdown_flag = shutdown_flag;
@@ -270,7 +270,8 @@ loopback_get_endpoint_info(cudaq_realtime_bridge_handle_t handle, char *buf,
 
 static cudaq_status_t
 loopback_get_ring_geometry(cudaq_realtime_bridge_handle_t handle,
-                           std::uint32_t *out_num_slots, std::uint32_t *out_slot_size) {
+                           std::uint32_t *out_num_slots,
+                           std::uint32_t *out_slot_size) {
   if (!handle || !out_num_slots || !out_slot_size)
     return CUDAQ_ERR_INVALID_ARG;
   *out_num_slots = kNumSlots;
