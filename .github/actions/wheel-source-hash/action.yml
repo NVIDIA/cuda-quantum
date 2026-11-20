@@ -12,7 +12,7 @@ inputs:
     required: false
     default: ''
   cuda_version:
-    description: CUDA version (e.g. 13.0).
+    description: CUDA version (e.g. 13.4).
     required: false
     default: ''
   project:

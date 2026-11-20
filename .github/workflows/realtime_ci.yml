@@ -72,7 +72,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        cuda_version: ['12.6', '13.0']
+        cuda_version: ['12.6', '13.4']
       fail-fast: false
     uses: ./.github/workflows/realtime_prebuilt_binaries.yml
     secrets:
@@ -94,7 +94,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        cuda_version: ['12.6', '13.0']
+        cuda_version: ['12.6', '13.4']
         distro: ['ubuntu24.04', 'ubi9']
       fail-fast: false
     runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
@@ -218,7 +218,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        cuda_version: ['12.6', '13.0']
+        cuda_version: ['12.6', '13.4']
       fail-fast: false
     runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
@@ -296,7 +296,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        cuda_version: ['12.6', '13.0']
+        cuda_version: ['12.6', '13.4']
       fail-fast: false
     runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
     permissions:
@@ -341,7 +341,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        cuda_version: ['12.6', '13.0']
+        cuda_version: ['12.6', '13.4']
       fail-fast: false
     runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
@@ -397,7 +397,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        cuda_version: ['12.6', '13.0']
+        cuda_version: ['12.6', '13.4']
       fail-fast: false
     runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
     permissions:

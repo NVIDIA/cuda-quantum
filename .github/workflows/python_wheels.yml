@@ -300,7 +300,7 @@ jobs:
           # recorded in the wheel index instead of using this build pattern.
           python_version=${{ inputs.python_version }}
           platform=${{ inputs.platform }}
-          echo "core_artifact_pattern=pycudaq-${python_version//./-}-*-${platform#linux/}-cu13-0-*" >> "$GITHUB_OUTPUT"
+          echo "core_artifact_pattern=pycudaq-${python_version//./-}-*-${platform#linux/}-cu13-4-*" >> "$GITHUB_OUTPUT"
           # For validate_prebuilt_wheel: the runtime wheel another job in this
           # run built for the same platform, Python and CUDA version.
           cuda_version=${{ inputs.cuda_version }}
@@ -512,7 +512,7 @@ jobs:
             # eval below would hit bash "bad substitution" on un-substituted
             # README placeholders.
             cuda_version_conda="${{ inputs.cuda_version }}.0"
-            cuda_version_conda="${cuda_version_conda/13.0.0/13.0.2}"
+            cuda_version_conda="${cuda_version_conda/13.4.0/13.3.1}"
             sub_placeholders() {
               sed -E -e "s/\\\$\\{\\{[[:space:]]*cuda_version_conda[[:space:]]*\\}\\}/${cuda_version_conda}/g" \
                      -e "s/\\\$\\{\\{[[:space:]]*package_name[[:space:]]*\\}\\}/cuda-quantum-cu${cuda_major}/g"
@@ -764,7 +764,7 @@ jobs:
     # Validate newly built SDKs, or the shared SDK once per architecture.
     if: >-
       ${{ !cancelled() && inputs.run_validation
-          && (inputs.build_devel_wheel || (inputs.devel_artifact_name != '' && inputs.python_version == '3.11' && inputs.cuda_version == '13.0'))
+          && (inputs.build_devel_wheel || (inputs.devel_artifact_name != '' && inputs.python_version == '3.11' && inputs.cuda_version == '13.4'))
           && (needs.build_wheel.result == 'success' || inputs.runtime_artifact_name != '')
           && (needs.build_devel_wheel.result == 'success' || inputs.devel_artifact_name != '') }}
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}

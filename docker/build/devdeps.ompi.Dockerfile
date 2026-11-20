@@ -16,7 +16,9 @@
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ompi -f docker/build/devdeps.ompi.Dockerfile .
 
 ARG cuda_version=12.6
-FROM nvidia/cuda:${cuda_version}.0-devel-ubuntu24.04
+# nvidia/cuda has no 13.4.0 image, so the patch release is selectable.
+ARG cuda_patch=0
+FROM nvidia/cuda:${cuda_version}.${cuda_patch}-devel-ubuntu24.04
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 ARG cuda_version
