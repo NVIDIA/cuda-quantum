@@ -158,3 +158,38 @@ func.func @merge_and_consume(%cond: i1) {
   quake.sink %2 : !quake.wire
   return
 }
+
+// -----
+
+// Two exclusive paths deliver one wire to a loop header. Neither delivering
+// block is reachable from the header, so each path consumes the wire once.
+// No diagnostic is expected.
+func.func @diamond_into_loop_header(%c: i1, %d: i1) {
+  %0 = quake.null_wire
+  cf.cond_br %c, ^b1, ^b2
+^b1:
+  cf.br ^h(%0 : !quake.wire)
+^b2:
+  cf.br ^h(%0 : !quake.wire)
+^h(%a: !quake.wire):
+  %1 = quake.h %a : (!quake.wire) -> !quake.wire
+  cf.cond_br %d, ^h(%1 : !quake.wire), ^exit(%1 : !quake.wire)
+^exit(%2: !quake.wire):
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// -----
+
+// A loop that threads its wire through the header argument, with a different
+// value on the back edge. No diagnostic is expected.
+func.func @well_formed_loop(%c: i1) {
+  %0 = quake.null_wire
+  cf.br ^h(%0 : !quake.wire)
+^h(%a: !quake.wire):
+  %1 = quake.h %a : (!quake.wire) -> !quake.wire
+  cf.cond_br %c, ^h(%1 : !quake.wire), ^exit(%1 : !quake.wire)
+^exit(%2: !quake.wire):
+  quake.sink %2 : !quake.wire
+  return
+}

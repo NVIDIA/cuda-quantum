@@ -42,6 +42,13 @@ using namespace mlir;
 // the wire is still consumed exactly once, by the block argument. Block
 // argument positions must agree, otherwise the block would receive the wire
 // more than once.
+//
+// This is a local check on the uses of one value; it deliberately does not look
+// at the control-flow graph, because the verifier runs on every operation of a
+// potentially very large function. In particular it does not detect
+// hand-written IR where a back edge delivers a value defined outside a loop to
+// the loop header again. The passes do not produce that shape: loop-carried
+// wires travel through `cc.loop` iteration arguments before CFG lowering.
 static bool allUsesMergeIntoOneBlockArgument(Value v) {
   BlockArgument merged;
   for (OpOperand &use : v.getUses()) {
