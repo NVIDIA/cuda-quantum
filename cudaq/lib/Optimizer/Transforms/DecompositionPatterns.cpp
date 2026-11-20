@@ -665,7 +665,7 @@ struct R1ToU3
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToU3, {"r1(n)", "u3(n)"});
+REGISTER_DECOMPOSITION_PATTERN(R1ToU3, {"r1", "u3"}, {"r1(n)", "u3(n)"});
 
 // quake.r1<adj> (θ) target
 // ─────────────────────────────────
@@ -2081,6 +2081,124 @@ struct RzAdjToRz
   }
 };
 REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, {"rz<adj>", "rz"});
+
+//===----------------------------------------------------------------------===//
+// Rotations to U3
+//===----------------------------------------------------------------------===//
+
+/// Replace \p op with `u3(*parameters)` + phase, preserving the control qubits.
+template <typename Op>
+static void replaceOpWithU3(Op op, std::array<Value, 3> parameters, Value phase,
+                            PatternRewriter &rewriter) {
+  Location loc = op.getLoc();
+  SmallVector<Value> controls(op.getControls());
+  SmallVector<Value> targets(op.getTargets());
+  auto negatedControls = op.getNegatedQubitControlsAttr();
+  cudaq::quake::createAndThreadGate<cudaq::quake::U3Op>(
+      rewriter, loc, UnitAttr{}, parameters, controls, targets,
+      negatedControls);
+  if (phase) {
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, phase, controls, negatedControls, targets.back());
+    controls = std::move(correction.controls);
+    targets.back() = correction.anchor;
+  }
+  rewriter.replaceOp(op, cudaq::quake::getWireValues(controls, targets));
+}
+
+/// The rotation angle of \p op, negated if \p op is an adjoint.
+template <typename Op>
+static Value getSignedAngle(Op op, PatternRewriter &rewriter) {
+  Value angle = op.getParameter();
+  if (op.isAdj())
+    angle = arith::NegFOp::create(rewriter, op.getLoc(), angle);
+  return angle;
+}
+
+// quake.rx(θ) [controls] target
+// ──────────────────────────────────
+// quake.u3(θ, -π/2, π/2) [controls] target
+struct RxToU3Type; // forward declare the pattern type, defined in the macro
+                   // below
+struct RxToU3
+    : public cudaq::DecompositionPattern<RxToU3Type, cudaq::quake::RxOp> {
+  using cudaq::DecompositionPattern<RxToU3Type,
+                                    cudaq::quake::RxOp>::DecompositionPattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::RxOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!isEnabled(cudaq::getKnownNumControls(op)))
+      return failure();
+
+    Location loc = op.getLoc();
+    Type angleType = op.getParameter().getType();
+    Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
+    Value negPi_2 = createConstant(loc, -M_PI_2, angleType, rewriter);
+    replaceOpWithU3(op, {getSignedAngle(op, rewriter), negPi_2, pi_2},
+                    /*phase=*/Value{}, rewriter);
+    return success();
+  }
+};
+REGISTER_DECOMPOSITION_PATTERN(RxToU3, {"rx", "u3"}, {"rx(n)", "u3(n)"});
+
+// quake.ry(θ) [controls] target
+// ──────────────────────────────────
+// quake.u3(θ, 0, 0) [controls] target
+struct RyToU3Type; // forward declare the pattern type, defined in the macro
+                   // below
+struct RyToU3
+    : public cudaq::DecompositionPattern<RyToU3Type, cudaq::quake::RyOp> {
+  using cudaq::DecompositionPattern<RyToU3Type,
+                                    cudaq::quake::RyOp>::DecompositionPattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::RyOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!isEnabled(cudaq::getKnownNumControls(op)))
+      return failure();
+
+    Location loc = op.getLoc();
+    Value zero =
+        createConstant(loc, 0.0, op.getParameter().getType(), rewriter);
+    replaceOpWithU3(op, {getSignedAngle(op, rewriter), zero, zero},
+                    /*phase=*/Value{}, rewriter);
+    return success();
+  }
+};
+REGISTER_DECOMPOSITION_PATTERN(RyToU3, {"ry", "u3"}, {"ry(n)", "u3(n)"});
+
+// quake.rz(θ) [controls] target
+// ──────────────────────────────────
+// quake.u3(0, 0, θ) [controls] target
+// quake.phase(-θ/2) [controls] target
+struct RzToU3Type; // forward declare the pattern type, defined in the macro
+                   // below
+struct RzToU3
+    : public cudaq::DecompositionPattern<RzToU3Type, cudaq::quake::RzOp> {
+  using cudaq::DecompositionPattern<RzToU3Type,
+                                    cudaq::quake::RzOp>::DecompositionPattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::RzOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!isEnabled(cudaq::getKnownNumControls(op)))
+      return failure();
+    if (failed(requireScalarPhaseAnchor(op, op.getTarget(), rewriter)))
+      return failure();
+
+    Location loc = op.getLoc();
+    Value zero =
+        createConstant(loc, 0.0, op.getParameter().getType(), rewriter);
+
+    // Preserve a literal zero so emitPhaseCorrection can omit the correction.
+    Value phase = op.getParameter();
+    if (!matchPattern(phase, m_AnyZeroFloat()))
+      phase = createDivF(loc, phase, op.isAdj() ? 2.0 : -2.0, rewriter);
+
+    replaceOpWithU3(op, {zero, zero, getSignedAngle(op, rewriter)}, phase,
+                    rewriter);
+    return success();
+  }
+};
+REGISTER_DECOMPOSITION_PATTERN(RzToU3, {"rz", "u3"}, {"rz(n)", "u3(n)"});
 
 //===----------------------------------------------------------------------===//
 // U3Op decompositions
