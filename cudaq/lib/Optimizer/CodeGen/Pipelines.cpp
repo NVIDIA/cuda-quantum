@@ -110,6 +110,14 @@ static void createPrepareForWiresetPipeline(
   postFuncPM.addPass(cudaq::opt::createSROA());
   postFuncPM.addPass(cudaq::opt::createClassicalMemToReg());
   postFuncPM.addPass(createCanonicalizerPass());
+  // When a stage normalizes the kernel, prep specializes before any loop is
+  // unrolled, so it can't build the adjoint of a kernel in which a loop feeds a
+  // later gate, such as a counter carried out of the loop. Specialize again now
+  // that the loops are unrolled, inline the adjoint and controlled calls this
+  // creates, and clean up the inlined code.
+  pm.addPass(cudaq::opt::createApplySpecialization());
+  cudaq::opt::addAggressiveInlining(pm);
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   if (decomposeExpPauli)
     cudaq::opt::addDecomposition(pm, {"ExpPauliDecomposition"});
   cudaq::opt::addConvertToLinearValues(pm);

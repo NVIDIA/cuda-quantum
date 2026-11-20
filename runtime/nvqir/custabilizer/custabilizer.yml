@@ -6,9 +6,22 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+version: 2-alpha
 name: custabilizer
 description: "cuStabilizer-accelerated backend target"
 gpu-requirements: true
 config:
   nvqir-simulation-backend: custabilizer
   preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+
+# Simulators compile through one `quake-unmapped` stage that accepts any gate
+# and, from level 1, cancels and merges gates. It unrolls loops of up to 50
+# iterations, the same limit `cc-loop-unroll` uses by default, because longer
+# loops have not been measured yet.
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-unmapped
+        options:
+          cost-model: gate-count
+          max-unroll-iterations: 50

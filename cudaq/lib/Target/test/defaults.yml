@@ -8,9 +8,7 @@
 
 # RUN: %target-catalog-driver parse %s | FileCheck %s
 
-# Minimal target: no `version` field (unversioned files are accepted). A
-# simulator without pipelines compiles through an inferred `quake-unmapped`
-# stage.
+# Minimal target: no `version` field (unversioned files are accepted).
 
 name: lit-defaults
 description: "Minimal target with defaults only"
@@ -24,11 +22,4 @@ config:
 # CHECK:   gen-target-backend: false
 # CHECK:   library-mode: false
 # CHECK:   support-resource-counts: true
-# CHECK-NEXT:   stage: ir-output-profile=quake-unmapped lowering=inferred
-# CHECK-NEXT:     options:
-# CHECK-NEXT:       basis-gates: []
-# CHECK-NEXT:       approximation-tolerance: 0
-# CHECK-NEXT:       cost-model: gate-count
-# CHECK-NEXT:       unroll-loops: all
-# CHECK-NEXT:       max-unroll-iterations: 50
 # CHECK:   nvqir-simulation-backend: ["qpp"]

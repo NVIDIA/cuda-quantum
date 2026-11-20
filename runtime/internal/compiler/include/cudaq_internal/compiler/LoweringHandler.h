@@ -104,13 +104,10 @@ public:
 };
 
 /// Whether a stage into \p profile compiles for a simulator. `gate-count` is
-/// the cost model for simulators. A simulator applies `exp_pauli` directly,
-/// and `get_state` returns every qubit the kernel allocates, so such a stage
-/// keeps both.
-// TODO: Neither choice belongs to the cost model. Once the profile owns the
-// conversion to wires, decompose `exp_pauli` when the profile's basis does
-// not accept it. Erase the implicit output per launch instead, for the
-// launches that do not read idle qubits.
+/// the cost model for simulators. `get_state` returns every qubit the kernel
+/// allocates, so such a stage keeps the implicit output that holds them.
+// TODO: This choice does not belong to the cost model. Erase the implicit
+// output per launch instead, for the launches that do not read idle qubits.
 inline bool
 compilesForSimulator(const cudaq::config::QuakeUnmappedProfile &profile) {
   return profile.costModel == cudaq::config::CostModel::gate_count;
@@ -122,22 +119,22 @@ compilesForSimulator(const cudaq::config::QuakeUnmappedProfile &profile) {
 /// reference. Stages run it at every optimization level, since the level only
 /// changes how much we optimize, not the representation. With \p addWireSet,
 /// it also borrows every qubit from a new wire set, which `qubit-mapping`
-/// needs. When \p profile compiles for a simulator, `exp_pauli` and its qubits
-/// stay on references, and the kernel keeps the implicit output that holds
-/// every qubit, so that `dqe` removes no idle qubit.
+/// needs. With \p decomposeExpPauli, it decomposes each `exp_pauli` whose
+/// Pauli word is known. Otherwise `exp_pauli` and its qubits stay on
+/// references. When \p profile compiles for a simulator, the kernel keeps the
+/// implicit output that holds every qubit, so that `dqe` removes no idle
+/// qubit.
 inline std::string
 convertToWires(const cudaq::config::QuakeUnmappedProfile &profile,
-               bool addWireSet) {
-  const bool forSimulator = compilesForSimulator(profile);
+               bool addWireSet, bool decomposeExpPauli) {
   return std::string("prepare-for-wireset{") +
          (addWireSet ? "add-wireset=true " : "") +
          "maximum-iterations=" + std::to_string(profile.maxUnrollIterations) +
          (profile.unrollLoops == cudaq::config::LoopUnrolling::index_use
               ? " unroll-only-index-use-loops=true"
               : "") +
-         (forSimulator
-              ? " decompose-exp-pauli=false erase-implicit-output=false"
-              : "") +
+         (decomposeExpPauli ? "" : " decompose-exp-pauli=false") +
+         (compilesForSimulator(profile) ? " erase-implicit-output=false" : "") +
          "}";
 }
 

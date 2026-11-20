@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-version: 1
+version: 2-alpha
 name: tensornet-mps
 description: "cutensornet simulator backend target based on matrix product state representation"
 gpu-requirements: true
@@ -31,3 +31,15 @@ configuration-matrix:
       gen-target-backend: true
       nvqir-simulation-backend: tensornet-mps-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
+
+# Simulators compile through one `quake-unmapped` stage that accepts any gate
+# and, from level 1, cancels and merges gates. It unrolls loops of up to 50
+# iterations, the same limit `cc-loop-unroll` uses by default, because longer
+# loops have not been measured yet.
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-unmapped
+        options:
+          cost-model: gate-count
+          max-unroll-iterations: 50

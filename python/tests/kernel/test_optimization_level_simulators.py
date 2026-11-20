@@ -97,3 +97,24 @@ def test_resource_counts_follow_level():
                                     optimization_level=0).count("x") == 2
     assert cudaq.estimate_resources(kernel,
                                     optimization_level=1).count("x") == 0
+
+
+@pytest.mark.parametrize("level", LEVELS)
+def test_adjoint_after_loop_unrolling(level):
+    # The adjoint can only reverse `flips` once its loop is unrolled, because
+    # the loop carries `n` out to a later gate.
+    @cudaq.kernel
+    def flips(q: cudaq.qview):
+        n = 0
+        for i in range(2):
+            x(q[i])
+            n += 1
+        x(q[n - 1])
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        cudaq.adjoint(flips, q)
+
+    counts = cudaq.sample(kernel, shots_count=100, optimization_level=level)
+    assert dict(counts.items()) == {"10": 100}

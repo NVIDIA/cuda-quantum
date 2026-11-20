@@ -12,10 +12,40 @@
 
 #include "TargetConfigHelper.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <optional>
 #include <sstream>
-#include <stdexcept>
+#include <unordered_map>
+#include <vector>
+
+// CLI spellings of the `option-flags` feature bits. Keep in sync with the
+// legacy YAML traits table in Yaml/TargetConfigYaml.cpp.
+static std::unordered_map<std::string, cudaq::config::TargetFeatureFlag>
+    stringToFeatureFlag{
+        {"fp32", cudaq::config::TargetFeatureFlag::fp32},
+        {"fp64", cudaq::config::TargetFeatureFlag::fp64},
+        {"mgpu", cudaq::config::TargetFeatureFlag::mgpu},
+        {"mqpu", cudaq::config::TargetFeatureFlag::mqpu},
+        {"dep-analysis", cudaq::config::TargetFeatureFlag::dep_analysis},
+        {"qpp", cudaq::config::TargetFeatureFlag::qpp}};
+
+/// Split `value` on commas, discarding empty segments.
+static std::vector<std::string> splitFeatureFlags(const std::string &value) {
+  std::vector<std::string> flags;
+  std::size_t pos = 0;
+  while (pos <= value.size()) {
+    const auto comma = value.find(',', pos);
+    const auto end = comma == std::string::npos ? value.size() : comma;
+    if (end > pos)
+      flags.emplace_back(value.substr(pos, end - pos));
+    if (comma == std::string::npos)
+      break;
+    pos = comma + 1;
+  }
+  return flags;
+}
 
 /// Convert the backend config entry into nvq++ compatible script.
 /// `pipelineName` is the name the lowering's override pass pipeline (if any)
@@ -120,57 +150,128 @@ static std::string processSimBackendConfig(
   return output.str();
 }
 
-/// Returns the platform extra arguments that \p args give: the value of each
-/// argument that forwards to a platform key.
-static std::string
-platformExtraArgs(const cudaq::config::TargetConfig &config,
-                  const std::map<std::string, std::string> &args) {
-  std::string extraArgs;
+namespace {
+struct ParsedTargetArgs {
+  std::string platformExtraArgs;
+  const cudaq::config::BackendFeatureMap *featureConfig = nullptr;
+  const cudaq::config::BackendEndConfigEntry *backend = nullptr;
+};
+} // namespace
+
+static ParsedTargetArgs
+parseTargetArgs(const cudaq::config::TargetConfig &config,
+                const std::map<std::string, std::string> &args) {
+  unsigned featureFlag = 0;
+  ParsedTargetArgs parsed;
   for (const auto &[argKey, argVal] : args) {
-    const auto *argument = config.findArgument(argKey);
-    if (argument &&
-        argument->Type != cudaq::config::ArgumentType::option_flags &&
-        !argument->PlatformArgKey.empty())
-      extraArgs += ";" + argument->PlatformArgKey + ";" + argVal;
+    const auto iter = std::find_if(
+        config.TargetArguments.begin(), config.TargetArguments.end(),
+        [&](const cudaq::config::TargetArgument &argConfig) {
+          // Here, we handle both cases: the config key as is (python kwargs)
+          // or prefixed with the target name or "target".
+          const std::string nvqppArgKey =
+              "--" + config.Name + "-" + argConfig.KeyName;
+          const std::string targetPrefixArgKey =
+              "--target-" + argConfig.KeyName;
+          return argKey == nvqppArgKey || argKey == targetPrefixArgKey ||
+                 argKey == argConfig.KeyName;
+        });
+    if (iter != config.TargetArguments.end()) {
+      if (iter->Type != cudaq::config::ArgumentType::option_flags) {
+        // If this is a platform option (platform argument key is provide),
+        // forward the value to the platform extra arguments.
+        if (!iter->PlatformArgKey.empty())
+          parsed.platformExtraArgs += ";" + iter->PlatformArgKey + ";" + argVal;
+      } else {
+        // This is an option flag, construct the value for mapping selection.
+        for (const auto &flag : splitFeatureFlags(argVal)) {
+          const auto iter = stringToFeatureFlag.find(flag);
+          if (iter == stringToFeatureFlag.end()) {
+            std::cerr << "Unknown feature flag '" << flag << "'\n";
+            std::abort();
+          }
+          featureFlag |= static_cast<unsigned>(iter->second);
+        }
+      }
+    }
   }
-  return extraArgs;
+
+  if (!config.ConfigMap.empty()) {
+    const auto defaultFeatureIter =
+        std::find_if(config.ConfigMap.begin(), config.ConfigMap.end(),
+                     [&](const cudaq::config::BackendFeatureMap &entry) {
+                       return entry.Default;
+                     });
+
+    const unsigned defaultFlag =
+        (defaultFeatureIter != config.ConfigMap.end())
+            ? static_cast<unsigned>(defaultFeatureIter->Flags)
+            : 0;
+
+    const auto iter = [&]() {
+      // If the command line set the feature flag, find it in the config map.
+      // Otherwise, find the default.
+      return featureFlag > 0
+                 ? std::find_if(
+                       config.ConfigMap.begin(), config.ConfigMap.end(),
+                       [&](const cudaq::config::BackendFeatureMap &entry) {
+                         // Mapping selection: exact match + implicit default
+                         // match. e.g., if the default is fp32, `option=mqpu`
+                         // is the same as `option=fp32,mqpu`. The config map
+                         // entry associated with 'mqpu,fp32' will be activated.
+                         return featureFlag ==
+                                    static_cast<unsigned>(entry.Flags) ||
+                                (featureFlag | defaultFlag) ==
+                                    static_cast<unsigned>(entry.Flags);
+                       })
+                 : std::find_if(
+                       config.ConfigMap.begin(), config.ConfigMap.end(),
+                       [&](const cudaq::config::BackendFeatureMap &entry) {
+                         // No option flag was provided, find the default
+                         // config.
+                         return entry.Default;
+                       });
+    }();
+    if (iter != config.ConfigMap.end()) {
+      parsed.featureConfig = &*iter;
+      parsed.backend = &iter->Config;
+    }
+  } else if (config.BackendConfig.has_value()) {
+    parsed.backend = &*config.BackendConfig;
+  }
+
+  return parsed;
+}
+
+const cudaq::config::BackendEndConfigEntry *
+cudaq::config::selectBackend(const cudaq::config::TargetConfig &config,
+                             const std::map<std::string, std::string> &args) {
+  return parseTargetArgs(config, args).backend;
 }
 
 std::string cudaq::config::processRuntimeArgs(
     const cudaq::config::TargetConfig &config,
     const std::map<std::string, std::string> &args) {
   std::stringstream output;
-  // This function writes the script that the `nvq++` driver sources, and its
-  // callers do not handle exceptions, so a selection error ends the process
-  // as it always has.
-  const cudaq::config::BackendFeatureMap *featureConfig = nullptr;
-  try {
-    featureConfig = config.selectFeatureConfig(args);
-  } catch (const std::runtime_error &error) {
-    std::cerr << error.what() << "\n";
-    std::abort();
-  }
-  const cudaq::config::BackendEndConfigEntry *backend = nullptr;
-  if (featureConfig)
-    backend = &featureConfig->Config;
-  else if (config.ConfigMap.empty() && config.BackendConfig)
-    backend = &*config.BackendConfig;
+  const auto parsed = parseTargetArgs(config, args);
 
-  if (backend) {
+  if (parsed.backend) {
     std::string pipelineName = "target-pass-pipeline-" + config.Name;
-    if (featureConfig)
-      pipelineName += "." + featureConfig->Name;
-    output << processSimBackendConfig(config.Name, pipelineName, *backend);
+    if (parsed.featureConfig)
+      pipelineName += "." + parsed.featureConfig->Name;
+    output << processSimBackendConfig(config.Name, pipelineName,
+                                      *parsed.backend);
   } else if (!config.ConfigMap.empty()) {
-    std::cerr << "Target '" << config.Name
-              << "' has no configuration for the requested options.\n";
+    std::cerr << "Unable to find a config entry for the requested feature "
+                 "flags.\n";
+    std::cerr << "This indicates the requested combination of features "
+                 "is not supported.\n";
     std::abort();
   }
 
-  const auto extraArgs = platformExtraArgs(config, args);
-  if (!extraArgs.empty())
-    output << "PLATFORM_EXTRA_ARGS=\"${PLATFORM_EXTRA_ARGS}" << extraArgs
-           << "\"\n";
+  if (!parsed.platformExtraArgs.empty())
+    output << "PLATFORM_EXTRA_ARGS=\"${PLATFORM_EXTRA_ARGS}"
+           << parsed.platformExtraArgs << "\"\n";
 
   return output.str();
 }

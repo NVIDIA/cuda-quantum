@@ -9,6 +9,7 @@
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq/Target/CompilationStage.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <algorithm>
 #include <regex>
 #include <variant>
 
@@ -80,8 +81,9 @@ struct TargetPasses {
   std::string postFinalizePasses{};
   /// Whether any stage has `StagePasses::needsGateLowering` set.
   bool anyStageNeedsGateLowering = false;
-  /// Whether every stage has `StagePasses::normalizesKernel` set.
-  bool everyStageNormalizesKernel = true;
+  /// Whether the target has stages and every one of them has
+  /// `StagePasses::normalizesKernel` set.
+  bool everyStageNormalizesKernel = false;
 };
 } // namespace
 
@@ -105,12 +107,24 @@ static std::string buildPassPipeline(const TargetPasses &targetPasses,
   const bool unrollLoops =
       !target.preserveLoops && target.codegen.emissionFormat != "nop";
   const std::string noLoopUnroll = unrollLoops ? "" : " no-loop-unroll=true";
-  const bool eraseNoise = target.noiseSupport == cudaq::NoiseSupport::erase;
+  // A simulator applies noise and QEC operations itself, so when every stage
+  // compiles for a simulator, prep keeps them.
+  const bool forSimulator = std::all_of(
+      target.stages.begin(), target.stages.end(),
+      [](const cudaq::config::CompilationStage &s) {
+        const auto *profile = std::get_if<cudaq::config::QuakeUnmappedProfile>(
+            &s.irOutputProfile);
+        return profile &&
+               cudaq_internal::compiler::compilesForSimulator(*profile);
+      });
+  const auto noiseSupport =
+      forSimulator ? cudaq::NoiseSupport::supported : target.noiseSupport;
+  const bool eraseNoise = noiseSupport == cudaq::NoiseSupport::erase;
   const std::string rejectNoise =
-      target.noiseSupport == cudaq::NoiseSupport::unsupported
-          ? " reject-noise=true"
-          : "";
-  const std::string eraseQEC = target.eraseQEC ? "" : " erase-qec=false";
+      noiseSupport == cudaq::NoiseSupport::unsupported ? " reject-noise=true"
+                                                       : "";
+  const std::string eraseQEC =
+      target.eraseQEC && !forSimulator ? "" : " erase-qec=false";
   // When no stage needs gates lowered, the target applies custom unitaries
   // and state initialization directly, so prep does not rewrite them as gates.
   const std::string lowerGates =
@@ -221,7 +235,9 @@ cudaq_internal::compiler::getPassPipeline(
     appendPipelineStage(targetPasses.postFinalizePasses,
                         stagePasses->postFinalizePasses);
     targetPasses.anyStageNeedsGateLowering |= stagePasses->needsGateLowering;
-    targetPasses.everyStageNormalizesKernel &= stagePasses->normalizesKernel;
+    targetPasses.everyStageNormalizesKernel =
+        stagePasses->normalizesKernel &&
+        (i == 0 || targetPasses.everyStageNormalizesKernel);
     inputProfile = stage.irOutputProfile;
   }
 

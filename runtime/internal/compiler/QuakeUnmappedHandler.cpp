@@ -86,8 +86,7 @@ fusePasses(const cudaq::config::QuakeUnmappedProfile &profile) {
 /// folds rotations across it. The handler's closing `basis-conversion` removes
 /// the extra gates again.
 ///
-/// `gate-count` adds no gates. From level 1 it cancels and merges gates, and
-/// it never changes which kinds of gate the kernel uses.
+/// `gate-count` adds no gates. From level 1 it cancels and merges gates.
 static std::vector<std::string>
 costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
                 const cudaq::CompileOptions &options) {
@@ -106,15 +105,20 @@ costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
       basis.emplace_back("x(1)");
     passes.push_back("decomposition{basis=" + llvm::join(basis, ",") + "}");
   }
-  passes.push_back(
-      cudaq_internal::compiler::convertToWires(profile, /*addWireSet=*/false));
+  // A profile without a basis accepts any gate, so it keeps `exp_pauli`.
+  const bool acceptsExpPauli =
+      profile.basisGates.empty() ||
+      llvm::is_contained(profile.basisGates, "exp_pauli");
+  passes.push_back(cudaq_internal::compiler::convertToWires(
+      profile, /*addWireSet=*/false, /*decomposeExpPauli=*/!acceptsExpPauli));
   // Handle any new phases the t-count decomposition may have introduced.
   if (tCount)
     passes.push_back("func.func(normalize-phase-placement,lower-phase)");
   if (level >= 1 && gateCount) {
-    // With `threshold=0`, `quake-simplify` only removes a rotation that is
-    // exactly the identity. Its default threshold would also remove small
-    // nonzero rotations, and no cost model's pipeline does that.
+    // Like `two-qubit-gate-count`, `gate-count` only removes a rotation that is
+    // exactly the identity. `quake-simplify` adds two constant angles exactly,
+    // so a merged pair that cancels already gives 0, and a nonzero threshold
+    // would only erase small rotations the kernel asked for.
     passes.push_back("func.func(quake-simplify{threshold=0},dqe)");
   } else if (level >= 1) {
     passes.push_back(

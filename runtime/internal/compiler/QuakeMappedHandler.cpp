@@ -32,10 +32,10 @@ public:
     const auto &profile = std::get<cudaq::config::QuakeMappedProfile>(output);
     const auto level = static_cast<unsigned>(options.optimizationLevel);
     // Accepts the references or wires that `quake-unmapped` allows. The
-    // mapper routes only gates, so the conversion decomposes `exp_pauli`, as it
-    // does for a profile without a cost model.
+    // mapper routes only gates, so the conversion decomposes `exp_pauli`.
     std::vector<std::string> passes = {cudaq_internal::compiler::convertToWires(
-        cudaq::config::QuakeUnmappedProfile{}, /*addWireSet=*/true)};
+        cudaq::config::QuakeUnmappedProfile{}, /*addWireSet=*/true,
+        /*decomposeExpPauli=*/true)};
     cudaq_internal::compiler::StagePasses stagePasses;
     stagePasses.normalizesKernel = true;
     // `raise-fatal-errors` makes a kernel that cannot be routed a compile

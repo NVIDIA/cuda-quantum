@@ -11,7 +11,6 @@
 #include "cudaq/Target/TargetConfig.h"
 #include <algorithm>
 #include <cctype>
-#include <stdexcept>
 
 const std::string *cudaq::CompileTarget::getOverridePassPipeline() const {
   if (stages.size() != 1)
@@ -76,21 +75,8 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
     std::map<std::string, std::string> pipelineSubstitutions) {
   const config::BackendEndConfigEntry defaultConfig;
 
-  // A target with a configuration matrix compiles as the entry that
-  // `runtimeConfig` selects, or as its default entry. Only Python passes the
-  // option that selects an entry. An `nvq++` program does not carry it in its
-  // backend string, so it always compiles as the default entry, which is
-  // correct only while every entry of a matrix compiles the same way.
-  // TODO: Select the entry once, where the catalog resolves the target, and
-  // build the compile target from that entry, so that no reader of the target
-  // configuration can pick a different one. That needs `nvq++` to forward the
-  // option to the program.
-  const auto *selected = targetConfig.selectBackend(runtimeConfig);
-  if (!selected && !targetConfig.ConfigMap.empty())
-    throw std::runtime_error("Target '" + targetConfig.Name +
-                             "' has no configuration for the requested "
-                             "options.");
-  const auto &backendConfig = selected ? *selected : defaultConfig;
+  const auto &backendConfig =
+      targetConfig.BackendConfig.value_or(defaultConfig);
   cudaq::CompileTarget target = backendConfig.CompileTarget;
   auto prepPipeline = [&](const std::string &stage) {
     std::string pipeline = stage;

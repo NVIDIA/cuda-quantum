@@ -68,12 +68,12 @@
 // CHECK-NEXT: symbol-dce
 // CHECK-EMPTY:
 
-// A simulator compiles through the stage that the version 1 converter infers.
-// Prep keeps noise and QEC operations and leaves the gates that hardware lacks
-// to the simulator, deploy does not run, and prep and finalize skip what the
-// stage repeats. The `gate-count` stage converts to wires at level 0, with
-// `exp_pauli` left on references and the implicit output kept for `get_state`,
-// and from level 1 runs `quake-simplify` and `dqe`.
+// A simulator's YAML declares a `gate-count` stage. Prep keeps noise and QEC
+// operations and leaves the gates that hardware lacks to the simulator, deploy
+// does not run, and prep and finalize skip what the stage repeats. The stage
+// converts to wires at level 0, with `exp_pauli` left on references because the
+// stage has no basis, and the implicit output kept for `get_state`. From level
+// 1 it runs `quake-simplify` and `dqe`.
 // CHECK-LABEL: qpp-cpu level 0:
 // CHECK-NEXT: canonicalize
 // CHECK-NEXT: hw-jit-prep-pipeline{allow-early-exit=false erase-noise=false erase-qec=false lower-gates=false normalize=false}
@@ -87,15 +87,10 @@
 // CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=gate-count basis=},canonicalize)
 // CHECK-NEXT:  jit-finalize-pipeline{lower-device-calls=true normalize=false}
 
-// `nvidia` declares its simulators in a configuration matrix. It compiles as
-// its default entry, so it gets the same stage. Options that match no entry
-// and an unknown option are errors.
+// `nvidia` declares its simulators in a configuration matrix, and every entry
+// shares the target's stage.
 // CHECK-LABEL: nvidia level 1:
 // CHECK:       func.func(quake-simplify{threshold=0},dqe)
-// CHECK-LABEL: nvidia with mgpu,mqpu:
-// CHECK-NEXT:  Target 'nvidia' has no configuration for the requested options.
-// CHECK-LABEL: nvidia with bogus:
-// CHECK-NEXT:  Unknown feature flag 'bogus'
 
 // The Clifford+T target lists one `quake-unmapped` stage with the `t-count`
 // cost model, whose passes run between deploy and finalize. Its basis has no
@@ -207,7 +202,6 @@
 #include "cudaq/Target/TargetCatalog.h"
 #include <filesystem>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 
 /// Plan the JIT pipeline of \p target through the built-in lowering handlers,
@@ -278,16 +272,6 @@ int main(int argc, char **argv) {
   level1.optimizationLevel = cudaq::OptimizationLevel::O1;
   printPipeline(catalog, "qpp-cpu", level1, " level 1");
   printPipeline(catalog, "nvidia", level1, " level 1");
-  if (const auto *nvidia = catalog.lookup("nvidia"))
-    for (const std::string option : {"mgpu,mqpu", "bogus"}) {
-      std::cout << "nvidia with " << option << ":\n";
-      try {
-        cudaq::CompileTarget::createFromConfig(*nvidia->config,
-                                               {{"option", option}});
-      } catch (const std::runtime_error &error) {
-        std::cout << error.what() << "\n\n";
-      }
-    }
 
   cudaq::CompileOptions level2;
   level2.optimizationLevel = cudaq::OptimizationLevel::O2;
