@@ -80,7 +80,7 @@ application cannot control import order, run CUDA-Q in a separate process.
 
 CUDA-Q keeps its LLVM-dependent compiler and backend libraries local. Importing
 ``cudaq`` exposes only the LLVM-free core runtime (``libnvqir``, ``libcudaq``,
-``libcudaq-em-default``, and their dependencies) globally. This allows shared
+and their dependencies) globally. This allows shared
 libraries containing ``nvq++``-compiled kernels to be loaded with ``dlopen`` or
 ``ctypes.CDLL`` after importing CUDA-Q, even when compiled with
 ``nvq++ -c -fPIC`` and linked without explicit CUDA-Q dependencies. Kernel

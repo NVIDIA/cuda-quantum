@@ -156,10 +156,9 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   // Load nvqir, cudaq, and the default execution manager. The em cannot
   // be a needed dep of libcudaq.so (circular dependency).
   //
-  // The libraries `libnvqir`, `libcudaq` and `libcudaq-em-default` export
-  //  C-API symbols that kernels compiled with `nvq++` call into. They must be
-  // loaded into the global scope so that C++-defined kernels can successfully
-  // be called from Python.
+  // The libraries `libnvqir` and `libcudaq` export C-API symbols that kernels
+  // compiled with `nvq++` call into. They must be loaded into the global scope
+  // so that C++-defined kernels can successfully be called from Python.
   //
   // Note: we have to be careful that these libraries don't pollute the global
   // link table with symbols that might conflict with third-party packages (e.g.
@@ -170,7 +169,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
       {fmt::format("libnvqir.{}", libSuffix), RTLD_GLOBAL},
       {cudaqLibPath / fmt::format("libcudaq.{}", libSuffix), RTLD_GLOBAL},
       {cudaqLibPath / fmt::format("libcudaq-em-default.{}", libSuffix),
-       RTLD_GLOBAL}};
+       RTLD_LOCAL}};
 
   const char *dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
   if (dynlibs_var != nullptr) {
