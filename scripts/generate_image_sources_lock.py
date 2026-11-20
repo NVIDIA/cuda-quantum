@@ -139,7 +139,8 @@ def doca_kernel_source(release: str) -> tuple:
         html = resp.read().decode()
     debs = re.findall(r'href="(mlnx-ofed-kernel-dkms_[^"]+_all\.deb)"', html)
     if len(debs) != 1:
-        sys.exit(f"Expected one mlnx-ofed-kernel-dkms deb at {pool}, got {debs}")
+        sys.exit(
+            f"Expected one mlnx-ofed-kernel-dkms deb at {pool}, got {debs}")
     return (f"doca-ofed-src-{release}-kernel", pool + debs[0])
 
 
@@ -152,8 +153,9 @@ def doca_entries(extra: list) -> list:
     text = (ROOT / "docker/build/devdeps.ompi.Dockerfile").read_text()
     doca = dockerfile_vars(text)["DOCA_VERSION"]  # e.g. 3.1.0-091000-25.07
     entries = [
-        doca_bundle(doca.split("-")[0],
-                    doca.rsplit("-", 1)[1], "doca-ofed-src")
+        doca_bundle(
+            doca.split("-")[0],
+            doca.rsplit("-", 1)[1], "doca-ofed-src")
     ]
     for pair in extra:
         release, ofed = pair.split(":")
@@ -204,8 +206,8 @@ def main():
         action="append",
         default=[],
         metavar="RELEASE:OFED",
-        help="with --doca, also the bundle of this DOCA release, e.g. 3.4.0:26.04"
-    )
+        help=
+        "with --doca, also the bundle of this DOCA release, e.g. 3.4.0:26.04")
     parser.add_argument(
         "--check-notice",
         action="store_true",
