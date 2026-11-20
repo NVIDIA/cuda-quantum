@@ -1,0 +1,23 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A joint measurement of several qubits, such as an mpp, couples them just as a
+// multi-qubit gate does, but the mapper only routes two-qubit interactions.
+// RUN: cudaq-opt '--qubit-mapping=device=ring(3)' %s -verify-diagnostics
+
+quake.wire_set @wires[2147483647]
+
+func.func @mpp_two_qubits() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  // expected-error @+1 {{qubit mapping is defined over a two-qubit coupling graph; decompose joint measurements before mapping}}
+  %m, %w0, %w1 = quake.mpp %q0, %q1 to "XZ" : (!quake.wire, !quake.wire) -> (!quake.measure, !quake.wire, !quake.wire)
+  quake.return_wire %w0 : !quake.wire
+  quake.return_wire %w1 : !quake.wire
+  return
+}
