@@ -2458,17 +2458,18 @@ void cudaq::cc::IfOp::print(OpAsmPrinter &p) {
   p << '(' << getCondition() << ')';
   if (!getLinearArgs().empty()) {
     p << " ((";
-    llvm::interleaveComma(
-        llvm::zip(getThenEntryArguments(), getLinearArgs()), p, [&](auto it) {
-          p << std::get<0>(it) << " = " << std::get<1>(it);
-          // `!quake.wire` is the default and is not written, so existing IR
-          // prints as before. Any other linear type is annotated.
-          Type type = std::get<1>(it).getType();
-          std::string text;
-          llvm::raw_string_ostream(text) << type;
-          if (text != defaultLinearArgumentTypeText)
-            p << " : " << type;
-        });
+    llvm::interleaveComma(llvm::zip(getThenEntryArguments(), getLinearArgs()),
+                          p, [&](auto it) {
+                            p << std::get<0>(it) << " = " << std::get<1>(it);
+                            // `!quake.wire` is the default and is not written,
+                            // so existing IR prints as before. Any other linear
+                            // type is annotated.
+                            Type type = std::get<1>(it).getType();
+                            std::string text;
+                            llvm::raw_string_ostream(text) << type;
+                            if (text != defaultLinearArgumentTypeText)
+                              p << " : " << type;
+                          });
     p << "))";
   }
   p.printOptionalArrowTypeList(getResultTypes());
@@ -2541,8 +2542,8 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
         if (parser.parseType(type))
           return failure();
       } else {
-        type = mlir::parseType(defaultLinearArgumentTypeText,
-                               parser.getContext());
+        type =
+            mlir::parseType(defaultLinearArgumentTypeText, parser.getContext());
         if (!type)
           return parser.emitError(
               parser.getNameLoc(),
