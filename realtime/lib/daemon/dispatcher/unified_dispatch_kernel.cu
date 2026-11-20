@@ -19,9 +19,10 @@
 /// Compiled on its own to relocatable LTO-IR and embedded in
 /// libcudaq-realtime.so (unified_dispatch_kernel_image.cpp).  The dispatcher
 /// links it at run time with the bridge's hooks and the application's
-/// DEVICE_CALL handlers (cudaq_dispatcher_get_device_handler), so the kernel, the
-/// hooks and the handlers the function table points at share one CUDA module.
-/// The kernel is `extern "C"` so that it can be found in that module by name.
+/// DEVICE_CALL handlers (cudaq_dispatcher_get_device_handler), so the kernel,
+/// the hooks and the handlers the function table points at share one CUDA
+/// module. The kernel is `extern "C"` so that it can be found in that module by
+/// name.
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
