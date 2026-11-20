@@ -45,6 +45,11 @@ struct UnitaryOpGroup {
   /// Possibly empty measurement/reset run following the unitary run in the
   /// selected virtual order. These delimiter operations are full group members.
   mlir::SmallVector<mlir::Operation *, 2> trailingDelimiterOps;
+
+  /// Non-owning hard boundary that ended this group's segment. It belongs to
+  /// the same block and is excluded from all groups. Null when the segment
+  /// reaches block end without a hard boundary.
+  mlir::Operation *hardBoundaryOp = nullptr;
 };
 
 using UnitaryOpGroups = mlir::SmallVector<UnitaryOpGroup>;
@@ -118,6 +123,7 @@ private:
   void performAnalysis(mlir::Operation *op);
   void analyzeBlock(mlir::Block &block);
   void formUnitaryGroups(mlir::Block *containingBlock,
-                         llvm::ArrayRef<mlir::Operation *> opsInCanonicalOrder);
+                         llvm::ArrayRef<mlir::Operation *> opsInCanonicalOrder,
+                         mlir::Operation *hardBoundaryOp);
 };
 } // namespace cudaq::quake::detail
