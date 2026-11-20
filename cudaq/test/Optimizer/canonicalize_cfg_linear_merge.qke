@@ -1,0 +1,63 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize %s | FileCheck %s
+
+// Threading the empty else block of the inner branch lets the canonicalizer
+// forward the first swap result on both the cond_br edge and the then-block's
+// br. The two branches deliver the wire to the same argument of the same block,
+// so the IR still verifies.
+
+func.func @swap_in_nested_if(%arg0: i1, %arg1: i1) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.null_wire
+  %3 = quake.h %0 : (!quake.wire) -> !quake.wire
+  cf.cond_br %arg0, ^bb1(%3, %1, %2 : !quake.wire, !quake.wire, !quake.wire), ^bb6(%3, %1, %2 : !quake.wire, !quake.wire, !quake.wire)
+^bb1(%4: !quake.wire, %5: !quake.wire, %6: !quake.wire):  // pred: ^bb0
+  %7:2 = quake.x [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %8:2 = quake.swap %7#1, %6 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  cf.cond_br %arg1, ^bb2(%7#0, %8#1 : !quake.wire, !quake.wire), ^bb3(%7#0, %8#1 : !quake.wire, !quake.wire)
+^bb2(%9: !quake.wire, %10: !quake.wire):  // pred: ^bb1
+  %11 = quake.h %9 : (!quake.wire) -> !quake.wire
+  %12 = quake.h %10 : (!quake.wire) -> !quake.wire
+  cf.br ^bb4(%11, %12 : !quake.wire, !quake.wire)
+^bb3(%13: !quake.wire, %14: !quake.wire):  // pred: ^bb1
+  cf.br ^bb4(%13, %14 : !quake.wire, !quake.wire)
+^bb4(%15: !quake.wire, %16: !quake.wire):  // 2 preds: ^bb2, ^bb3
+  cf.br ^bb5
+^bb5:  // pred: ^bb4
+  cf.br ^bb11(%15, %8#0, %16 : !quake.wire, !quake.wire, !quake.wire)
+^bb6(%17: !quake.wire, %18: !quake.wire, %19: !quake.wire):  // pred: ^bb0
+  %20:2 = quake.swap %17, %19 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  cf.cond_br %arg1, ^bb7(%20#1 : !quake.wire), ^bb8(%20#1 : !quake.wire)
+^bb7(%21: !quake.wire):  // pred: ^bb6
+  %22 = quake.h %21 : (!quake.wire) -> !quake.wire
+  cf.br ^bb9(%22 : !quake.wire)
+^bb8(%23: !quake.wire):  // pred: ^bb6
+  cf.br ^bb9(%23 : !quake.wire)
+^bb9(%24: !quake.wire):  // 2 preds: ^bb7, ^bb8
+  cf.br ^bb10
+^bb10:  // pred: ^bb9
+  cf.br ^bb11(%20#0, %18, %24 : !quake.wire, !quake.wire, !quake.wire)
+^bb11(%25: !quake.wire, %26: !quake.wire, %27: !quake.wire):  // 2 preds: ^bb5, ^bb10
+  cf.br ^bb12
+^bb12:  // pred: ^bb11
+  %measOut, %wires = quake.mz %25 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %measOut_0, %wires_1 = quake.mz %26 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %measOut_2, %wires_3 = quake.mz %27 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %wires : !quake.wire
+  quake.sink %wires_1 : !quake.wire
+  quake.sink %wires_3 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @swap_in_nested_if(
+// CHECK:           %[[SWAP:.*]]:2 = quake.swap
+// CHECK:           cf.cond_br %arg1, ^bb{{[0-9]+}}(%{{.*}}, %[[SWAP]]#1 : !quake.wire, !quake.wire), ^[[MERGE:bb[0-9]+]](%{{.*}}, %[[SWAP]]#0, %[[SWAP]]#1 : !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           cf.br ^[[MERGE]](%{{.*}}, %[[SWAP]]#0, %{{.*}} : !quake.wire, !quake.wire, !quake.wire)

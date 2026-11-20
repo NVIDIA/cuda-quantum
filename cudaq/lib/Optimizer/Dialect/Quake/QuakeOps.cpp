@@ -24,15 +24,43 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <unordered_set>
 
 using namespace mlir;
 
 #include "CanonicalPatterns.inc"
+
+// A linear value may be forwarded by several branches (CFG terminators) as long
+// as every one of those branches delivers it to the same block argument of the
+// same successor block. That is a phi node that merges one value: on each path
+// the wire is still consumed exactly once, by the block argument. Block
+// argument positions must agree, otherwise the block would receive the wire
+// more than once.
+static bool allUsesMergeIntoOneBlockArgument(Value v) {
+  BlockArgument merged;
+  for (OpOperand &use : v.getUses()) {
+    auto branch = dyn_cast<BranchOpInterface>(use.getOwner());
+    if (!branch)
+      return false;
+    // The block argument that receives this operand. There is none when the
+    // operand is not forwarded to a successor, e.g., a branch condition.
+    std::optional<BlockArgument> arg =
+        branch.getSuccessorBlockArgument(use.getOperandNumber());
+    if (!arg)
+      return false;
+    if (!merged)
+      merged = *arg;
+    else if (merged != *arg)
+      return false;
+  }
+  return static_cast<bool>(merged);
+}
 
 static LogicalResult verifyWireResultsAreLinear(Operation *op) {
   for (Value v : op->getOpResults())
@@ -47,6 +75,10 @@ static LogicalResult verifyWireResultsAreLinear(Operation *op) {
         uniqs.insert(u);
       if (uniqs.size() == 1 &&
           (*uniqs.begin())->hasTrait<OpTrait::IsTerminator>())
+        continue;
+      // Allow several branches to forward the value to the same block
+      // argument (a phi node merging one value).
+      if (allUsesMergeIntoOneBlockArgument(v))
         continue;
       return op->emitOpError(
           "wires are a linear type and must have exactly one use");
