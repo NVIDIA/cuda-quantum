@@ -39,12 +39,13 @@ add_cudaq_library(OptTransforms
   EraseNopCalls.cpp
   EraseQEC.cpp
   EraseVectorCopyCtor.cpp
+  EulerDecomposition.cpp
   ExpandControlNegations.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
   ExpandVeqUses.cpp
   FactorQuantumAlloc.cpp
-  FuseSingleQubitChainsForCliffordT.cpp
+  Fuse1QToU3.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp

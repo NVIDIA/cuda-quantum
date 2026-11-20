@@ -224,24 +224,28 @@ static void addSharedCleanup(OpPassManager &funcPM,
 }
 
 /// Reduce the T count and non-Clifford rotations before Clifford+T synthesis.
-/// Level 1 only cleans up. Level 2 also fuses one-qubit chains, folds phases,
-/// and snaps angles within `approximation-tolerance` of a Clifford+T value. No
-/// pass erases a rotation larger than that tolerance.
+/// Level 1 only cleans up. Level 2 also fuses one-qubit chains, folds
+/// phases, and snaps angles within `approximation-tolerance` of a Clifford+T
+/// value. No pass erases a rotation larger than that tolerance.
 static void
 addCliffordTOptimization(OpPassManager &pm,
                          const CliffordTOptimizationPipelineOptions &options) {
   if (options.level == 0)
     return;
-  auto &funcPM = pm.nest<func::FuncOp>();
-  addSharedCleanup(funcPM, options.approximationTolerance);
+  auto &cleanupPM = pm.nest<func::FuncOp>();
+  addSharedCleanup(cleanupPM, options.approximationTolerance);
   if (options.level == 1)
     return;
 
-  cudaq::opt::FuseSingleQubitChainsForCliffordTOptions chainOpts;
-  chainOpts.epsilon = options.approximationTolerance;
-  funcPM.addPass(
-      cudaq::opt::createFuseSingleQubitChainsForCliffordT(chainOpts));
-  // Merge the constants that fusion creates.
+  cudaq::opt::Fuse1QToU3Options fuseOpts;
+  fuseOpts.cost = "clifford-t-free";
+  fuseOpts.epsilon = options.approximationTolerance;
+  cleanupPM.addPass(cudaq::opt::createFuse1QToU3(fuseOpts));
+  // Expand each fused u3 into the form the fusion chose, so that phase
+  // folding and snapping see rotations.
+  cudaq::opt::addDecomposition(pm, {"U3ToRotations"});
+  auto &funcPM = pm.nest<func::FuncOp>();
+  // Merge the constants that the fusion creates.
   funcPM.addPass(createCanonicalizerPass());
   // Fold phases before snapping to expose shared rotations, and again at the
   // end to capture the exact phase terms that Clifford+T normalization exposes.
@@ -286,6 +290,10 @@ bool cudaq::opt::canOptimizeTwoQubitGateCount(ArrayRef<std::string> basis) {
   return basis.empty() || cudaq::canDecomposeTo("x(1)", basis);
 }
 
+bool cudaq::opt::canFuseToU3(ArrayRef<std::string> basis) {
+  return basis.empty() || cudaq::canDecomposeTo("u3", basis);
+}
+
 /// Simplify and normalize the Clifford+T words that synthesis emits.
 /// Clifford+T normalization emits a global phase, so lower it again.
 static void addCliffordTCleanup(OpPassManager &funcPM,
@@ -317,6 +325,8 @@ cudaq::opt::cliffordTDecompositionBasis(std::span<const std::string> basis) {
 }
 
 bool cudaq::opt::needsCliffordTSynthesis(std::span<const std::string> basis) {
+  if (llvm::is_contained(basis, "u3") || llvm::is_contained(basis, "u3(n)"))
+    return false;
   return basis.empty() ||
          llvm::none_of(cliffordTRotations, [&](StringRef rotation) {
            return cudaq::canDecomposeTo(rotation, {basis.data(), basis.size()});

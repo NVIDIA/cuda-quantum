@@ -1,0 +1,120 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// The basis has `u3` but no rotation, so every chain with a rotation becomes a u3
+// RUN: cudaq-opt --convert-to-linear-values --fuse-1q-to-u3=basis=u3,h --canonicalize %s -o %t.u3
+// RUN: FileCheck %s --check-prefix=U3 --input-file=%t.u3
+// RUN: CircuitCheck --input=%t.u3 %s
+
+// The basis has the rotations that Clifford+T synthesis handles afterwards, as
+// in a `t-count` stage. A chain becomes a u3 only when its expansion has fewer
+// approximate rotations; otherwise the rotations stay for synthesis.
+// RUN: cudaq-opt --convert-to-linear-values \
+// RUN:   '--fuse-1q-to-u3=cost=clifford-t-free basis=h,s,t,rx,ry,rz' \
+// RUN:   --canonicalize %s -o %t.synthesis
+// RUN: FileCheck %s --check-prefix=SYNTHESIS --input-file=%t.synthesis
+// RUN: CircuitCheck --input=%t.synthesis %s
+
+// The NISQ basis keeps `h`, `x`, and the rotations. Every gate in it costs
+// one, so a chain of basis gates is fused only into fewer gates.
+// RUN: cudaq-opt --convert-to-linear-values \
+// RUN:   '--fuse-1q-to-u3=basis=h,rx,ry,rz,x,z(1)' --canonicalize %s \
+// RUN:   -o %t.nisq
+// RUN: FileCheck %s --check-prefix=NISQ --input-file=%t.nisq
+// RUN: CircuitCheck --input=%t.nisq %s
+
+// Three rotations about alternating axes are as short as any Euler form, so u3 fusion does
+// not happen if the basis gates include rotations.
+
+// U3-LABEL:        func.func @not_cheaper(
+// U3:                quake.unwrap
+// U3-NEXT:           quake.u3
+// U3-NEXT:           quake.phase
+// U3-NEXT:           quake.wrap
+// SYNTHESIS-LABEL: func.func @not_cheaper(
+// SYNTHESIS:         quake.unwrap
+// SYNTHESIS-NEXT:    quake.rz
+// SYNTHESIS-NEXT:    quake.rx
+// SYNTHESIS-NEXT:    quake.rz
+// SYNTHESIS-NEXT:    quake.wrap
+func.func @not_cheaper(%q: !quake.ref) {
+  %a = arith.constant 0.3 : f64
+  %b = arith.constant 0.4 : f64
+  %c = arith.constant 0.5 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  quake.rx (%b) %q : (f64, !quake.ref) -> ()
+  quake.rz (%c) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// The two last X rotations can be merged, so fusion to u3 always happens. XZX is the
+// preferred decomposition, as two non-Clifford rotations suffice.
+
+// U3-LABEL:        func.func @cheaper(
+// U3:                quake.unwrap
+// U3-NEXT:           quake.u3 {{.*}} -> !quake.wire{{$}}
+// U3-NEXT:           quake.phase
+// U3-NEXT:           quake.wrap
+// SYNTHESIS-LABEL: func.func @cheaper(
+// SYNTHESIS:         quake.unwrap
+// SYNTHESIS-NEXT:    quake.u3 {{.*}} {euler = "xzx"}
+// SYNTHESIS-NEXT:    quake.phase
+// SYNTHESIS-NEXT:    quake.wrap
+func.func @cheaper(%q: !quake.ref) {
+  %a = arith.constant 0.3 : f64
+  %quarter = arith.constant 1.5707963267948966 : f64
+  %b = arith.constant 0.4 : f64
+  %c = arith.constant 0.5 : f64
+  quake.rx (%a) %q : (f64, !quake.ref) -> ()
+  quake.rz (%quarter) %q : (f64, !quake.ref) -> ()
+  quake.rx (%b) %q : (f64, !quake.ref) -> ()
+  quake.rx (%c) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// A chain of gates in the basis that fusing does not make cheaper stays.
+
+// U3-LABEL:        func.func @in_basis(
+// U3:                quake.unwrap
+// U3-NEXT:           quake.h
+// U3-NEXT:           quake.wrap
+// SYNTHESIS-LABEL: func.func @in_basis(
+// SYNTHESIS:         quake.unwrap
+// SYNTHESIS-NEXT:    quake.h
+// SYNTHESIS-NEXT:    quake.wrap
+func.func @in_basis(%q: !quake.ref) {
+  quake.h %q : (!quake.ref) -> ()
+  return
+}
+
+// With the function-level opt-out, fuse-1q-to-u3 is a no-op
+
+// U3-LABEL:        func.func @no_optimization(
+// U3:                quake.unwrap
+// U3-NEXT:           quake.rz
+// U3-NEXT:           quake.wrap
+func.func @no_optimization(%q: !quake.ref)
+    attributes {quake.optimizationLevel = 0 : i32} {
+  %a = arith.constant 0.3 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// Two gates in the basis stay, since any fusion expands to at least two
+// rotations.
+
+// NISQ-LABEL:       func.func @x_h(
+// NISQ:               quake.unwrap
+// NISQ-NEXT:          quake.x
+// NISQ-NEXT:          quake.h
+// NISQ-NEXT:          quake.wrap
+func.func @x_h(%q: !quake.ref) {
+  quake.x %q : (!quake.ref) -> ()
+  quake.h %q : (!quake.ref) -> ()
+  return
+}

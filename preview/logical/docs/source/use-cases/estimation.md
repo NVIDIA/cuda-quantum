@@ -88,7 +88,7 @@ distillation example straight from its authoring definition:
 % invisible-code-block: python
 %
 % distill_15to1 = load_ql_example(
-% "preview/logical/examples/standalone/07_magic_state_distillation.py",
+% "preview/logical/examples/standalone/06_magic_state_distillation.py",
 % "distill_15to1")
 -->
 
@@ -113,7 +113,7 @@ override them for sensitivity studies. The result keeps its assumptions and
 reports whether the selected distance meets the requested budget.
 
 `examples/02_surface_code_resource_estimate.py` uses this tier through a CUDA-Q
-target, while `examples/standalone/09_gidney_ekera_lookup_addition.py` invokes
+target, while `examples/standalone/08_gidney_ekera_lookup_addition.py` invokes
 it directly on a P2 build.
 
 ## `Tier.SCHEDULE` — cost the physical event graph
@@ -225,19 +225,19 @@ two views of the estimate:
 % invisible-code-block: python
 %
 % import cudaq
-% kernel, target, kernel_args = load_ql_example(
+% kernel, target, logical_qubits = load_ql_example(
 % "preview/logical/examples/02_surface_code_resource_estimate.py",
-% "logical_zero_memory", "baseline_target", "baseline_qubits")
+% "logical_zero_memory", "target", "logical_qubits")
 % cudaq.set_target(target)
 -->
 
 ```python
 from cudaq.logical.estimate import FabricCounts, LogicalEstimate
 
-estimates = cudaq.estimate(kernel, kernel_args)
+estimates = cudaq.estimate(kernel, logical_qubits)
 static = FabricCounts.from_annotations(estimates.annotations)
 logical = LogicalEstimate.from_annotations(estimates.annotations)
-assert static.patches_peak == 1
-assert logical.logical_qubits_peak == 1
+assert static.patches_peak == logical_qubits
+assert logical.logical_qubits_peak == logical_qubits
 assert estimates.resources.num_qubits == logical.logical_qubits_peak
 ```

@@ -49,15 +49,15 @@ qubit. You can then lower any `cudaq.kernel` to a fault-tolerant program.
 ```{eval-rst}
 .. literalinclude:: ../../examples/02_surface_code_resource_estimate.py
    :language: python
+   :start-at: import cudaq
    :caption: An ordinary CUDA-Q kernel lowered through a surface-code encoding (examples/02_surface_code_resource_estimate.py).
 ```
 
 When you call `cudaq.estimate`, CUDA-Q Logical takes the kernel's logical
 intent through placement, QEC realization, physical lowering, and scheduling.
-This example compares physical-qubit, event-count, and makespan estimates across
-two surface-code layouts, then changes the operating assumptions while holding
-the layout fixed. The logical and static annotations still expose the protected
-logical qubits, encoded patches, and selected gadget calls. The
+This example reports the physical qubits and scheduled runtime needed to
+prepare and measure a logical zero. For result layers and model assumptions,
+see [Resource estimation](use-cases/estimation.md). The
 [examples](use-cases/examples/index.md) page shows more of what CUDA-Q Logical
 can do.
 

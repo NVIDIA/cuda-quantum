@@ -26,9 +26,9 @@ gidney-ekera
 ## Standalone compiler examples
 
 Examples 00–03 introduce authoring, placement, code and gadget definitions,
-and physical scheduling. Continue with encoded execution (06), or factory
-protocols and evaluation (07–08).
-Example 09 combines synthesis, factory provisioning, estimation, and scheduling
+and physical scheduling. Continue with encoded execution (04–05), or factory
+protocols and evaluation (06–07).
+Example 08 combines synthesis, factory provisioning, estimation, and scheduling
 in a lookup-addition capstone.
 
 ```{toctree}
@@ -38,6 +38,7 @@ p0-bell
 p1-placement
 code-and-gadget
 physical-schedule
+steane-preparation-check
 steane-bernstein-vazirani
 distillation
 t-factory-evaluation
