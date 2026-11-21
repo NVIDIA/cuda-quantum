@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-version: 1
+version: 2-alpha
 name: nvidia-mqpu-mps
 description: "The NVIDIA MQPU Target provides a simulated QPU for every available CUDA GPU on the underlying system. Each QPU is simulated via cuTensorNet MPS. This target enables asynchronous parallel execution of quantum kernel tasks."
 gpu-requirements: true
@@ -17,3 +17,10 @@ config:
   preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
   platform-library: mqpu
 
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-unmapped
+        options:
+          cost-model: gate-count
+          max-unroll-iterations: 50 # The current `cc-loop-unroll` default.

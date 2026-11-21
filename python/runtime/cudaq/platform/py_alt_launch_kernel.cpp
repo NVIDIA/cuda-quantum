@@ -1368,7 +1368,8 @@ static ModuleOp cleanLowerToCodegenKernel(ModuleOp mod,
     cudaq::addPythonSignalInstrumentation(pm);
     pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
     std::string transport = getTransportLayer();
-    cudaq::opt::addAOTPipelineConvertToQIR(pm, transport);
+    cudaq::opt::addAOTPipelineConvertToQIR(
+        pm, transport, cudaq::opt::CodegenMode::normalize_and_optimize);
     executeMLIRPassManager(mod, pm);
     return mod;
   }
