@@ -1,0 +1,32 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --split-input-file --verify-diagnostics %s
+
+// A cc.if linear argument must have a linear type.
+
+func.func @not_linear(%c: i1, %x: i32) {
+  // expected-error@+1 {{linear region argument must have a linear (SSI) type, got 'i32'}}
+  %r = cc.if(%c) ((%a = %x : i32)) -> (i32) {
+    cc.continue %a : i32
+  } else {
+    cc.continue %a : i32
+  }
+  return
+}
+
+// -----
+
+// The results must include a linear type for each linear argument.
+func.func @too_few_results(%c: i1, %x: !quake.cable<2>) {
+  // expected-error@+1 {{the result types must include at least one linear type for each linear region argument}}
+  cc.if(%c) ((%a = %x : !quake.cable<2>)) {
+    cc.continue
+  }
+  return
+}

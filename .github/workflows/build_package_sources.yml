@@ -8,21 +8,33 @@
 #
 # Workflow: diff apt and pip packages between a base and target image, then
 # build a source image containing source code for all added packages.
-# Optionally diff pip packages added by the macOS wheel (provide artifact_url).
+# Diffs the pip packages added by the macOS wheel: artifact_url if given, else the
+# python 3.13 wheels of the latest successful Deployments run on main.
 #
 # Three image legs are diffed, each against the image it is built FROM:
 #   cudaq          nvcr.io/nvidia/cuda runtime      -> nightly cuda-quantum
 #   cudaqx         nightly cuda-quantum             -> ghcr.io/nvidia/cudaqx
 #   cudaq-decoding nvcr.io/nvidia/cuda base         -> ghcr.io/nvidia/private/cudaq-decoding
-# cudaqx and cudaq-decoding lists are trimmed against cudaq before fetching so
+# A package is added when the target has it at a version the base does not:
+# new packages, their auto-installed dependencies and packages the build
+# upgraded. The cudaqx and cudaq-decoding lists are trimmed against cudaq
+# (by source package and version, and by pip name==version) before fetching so
 # shared packages are only downloaded once.
 #
+# Besides apt, pip and the tpls submodules, the image gets the sources of the
+# software the CUDA-Q images build from source or copy in (see
+# scripts/generate_image_sources_lock.py) and the DOCA/OFED source bundle.
+# The build fails when a package has no source and is not on
+# docker/build/package_sources_proprietary.txt.
+#
+# The scheduled run builds the source image for the nightly cuda-quantum image
+# and also pushes it to NGC as nightly/cuda-quantum:cu<major>-latest-src.
+#
 # Inputs:
-#   push_to_NGC: boolean, default false
-#     Push the built source image to NGC, otherwise push to GHCR.
-#   environment: string, no default
-#     The environment to build the source image for.
-#   artifact_url: string, no default
+#   push_to_ngc: boolean, default false
+#     Also push the source image to NGC; it is always pushed to GHCR. The job
+#     then runs in the ghcr-deployment environment, which holds the NGC key.
+#   artifact_url: string, default: the latest macOS 3.13 wheels from main
 #     If set, diff pip packages added by the macOS wheel from this artifact URL
 #     (e.g. .../actions/runs/RUN_ID/artifacts/ARTIFACT_ID for pycudaq-3.13-darwin-arm64).
 #   python_version: string, default 3.13
@@ -31,21 +43,31 @@
 on:
   workflow_dispatch:
     inputs:
+      push_to_ngc:
+        required: false
+        type: boolean
+        default: false
+        description: 'Also push the source image to nvcr.io/nvidia/nightly/cuda-quantum (tag cu<major>-latest-src)'
       artifact_url:
         required: false
         type: string
-        description: 'Optional: URL of macOS wheel artifact to diff pip packages (e.g. .../runs/RUN_ID/artifacts/ARTIFACT_ID)'
+        description: 'Optional: URL of the macOS wheel artifact to diff (e.g. .../runs/RUN_ID/artifacts/ARTIFACT_ID); default: the python 3.13 wheels of the latest successful Deployments run on main'
       python_version:
         required: false
         type: string
         default: '3.13'
         description: 'Python version for macOS diff (must match the wheel)'
+  schedule:
+    # After the day's merges have refreshed the nightly cuda-quantum image.
+    - cron: "0 18 * * *"
 
 name: Build package sources
 
 jobs:
   diff-packages-cudaq:
     name: Diff apt/pip packages ${{ matrix.release }} (CUDA ${{ matrix.cuda }})
+    # Forks have neither the NGC key nor the runners.
+    if: github.event_name != 'schedule' || github.repository == 'NVIDIA/cuda-quantum'
     runs-on: ubuntu-latest
     outputs:
       base_image: ${{ steps.images.outputs.base_image }}
@@ -135,9 +157,41 @@ jobs:
           path: package-source-diff/
           retention-days: 1
 
+  # Without an artifact_url (the scheduled run), use the macOS wheels of the
+  # latest successful Deployments run on main that still has them.
+  find-macos-artifact:
+    name: Find the latest macOS wheel artifact
+    if: (github.event_name == 'schedule' || inputs.artifact_url == '') && github.repository == 'NVIDIA/cuda-quantum'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      artifact_url: ${{ steps.find.outputs.artifact_url }}
+
+    steps:
+      - name: Find the artifact
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          runs=$(retry gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/deployments.yml/runs?branch=main&event=workflow_dispatch&status=success&per_page=30" --jq '.workflow_runs[].id')
+          for run_id in $runs; do
+            artifact_id=$(retry gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts?name=pycudaq-3.13-darwin-arm64" \
+              --jq '[.artifacts[] | select(.expired == false)][0].id // empty')
+            if [ -n "$artifact_id" ]; then
+              echo "artifact_url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts/${artifact_id}" | tee -a $GITHUB_OUTPUT
+              exit 0
+            fi
+          done
+          echo "::error::No successful Deployments run on main has an unexpired macOS wheel artifact."
+          exit 1
+
   diff-macos-package:
     name: Diff pip packages (macOS arm64)
-    if: inputs.artifact_url != ''
+    needs: find-macos-artifact
+    if: always() && (inputs.artifact_url != '' || needs.find-macos-artifact.outputs.artifact_url != '')
     runs-on: macos-26
     timeout-minutes: 20
     permissions:
@@ -151,7 +205,7 @@ jobs:
       - name: Parse artifact URL
         id: parse
         run: |
-          url="${{ inputs.artifact_url }}"
+          url="${{ inputs.artifact_url || needs.find-macos-artifact.outputs.artifact_url }}"
           run_id=$(echo "$url" | sed -n 's|.*/runs/\([0-9]*\)/.*|\1|p')
           artifact_id=$(echo "$url" | sed -n 's|.*/artifacts/\([0-9]*\)$|\1|p')
           if [ -z "$run_id" ] || [ -z "$artifact_id" ]; then
@@ -164,7 +218,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ inputs.python_version }}
+          python-version: ${{ inputs.python_version || '3.13' }}
 
       - name: Capture pip packages (before)
         run: |
@@ -208,13 +262,14 @@ jobs:
       - name: Diff added pip packages
         id: diff
         run: |
-          awk -F'==' '{print $1}' pip_before.txt | sort -u > pip_before_names.txt
+          # Added = name==version that was not installed before, so upgraded
+          # packages count too. Our own wheels are not third-party.
           while IFS= read -r line; do
             pkg="${line%%==*}"
             if grep -qxF "$pkg" installed_wheel_packages.txt; then
               continue
             fi
-            if ! grep -qxF "$pkg" pip_before_names.txt 2>/dev/null; then
+            if ! grep -qxF "$line" pip_before.txt; then
               echo "$line"
             fi
           done < pip_after.txt > pip_added.txt || true
@@ -228,6 +283,11 @@ jobs:
           cat pip_added.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
+      - name: Collect license files of the added packages
+        run: |
+          mkdir -p macos-pip-licenses
+          python3 scripts/collect_pip_licenses.py < pip_added.txt | tar -C macos-pip-licenses -xf -
+
       - name: Upload macOS pip diff artifact
         uses: actions/upload-artifact@v7
         with:
@@ -236,12 +296,16 @@ jobs:
             pip_added.txt
             pip_before.txt
             pip_after.txt
+            macos-pip-licenses/
           retention-days: 7
 
   build-source-image:
     name: Build source image CUDA ${{ matrix.cuda }}
-    needs: [diff-packages-cudaq, diff-macos-package]
-    if: always() && needs.diff-packages-cudaq.result == 'success' && (needs.diff-macos-package.result == 'success' || needs.diff-macos-package.result == 'skipped')
+    needs: [diff-packages-cudaq, find-macos-artifact, diff-macos-package]
+    if: >-
+      always() && needs.diff-packages-cudaq.result == 'success'
+      && (needs.find-macos-artifact.result == 'success' || needs.find-macos-artifact.result == 'skipped')
+      && (needs.diff-macos-package.result == 'success' || needs.diff-macos-package.result == 'skipped')
     runs-on: linux-amd64-cpu32
     strategy:
       fail-fast: false
@@ -252,7 +316,7 @@ jobs:
       packages: write
 
     environment:
-      name: ${{ inputs.environment || 'default' }}
+      name: ${{ (inputs.push_to_ngc || github.event_name == 'schedule') && 'ghcr-deployment' || 'default' }}
 
     steps:
       - name: Checkout repository
@@ -262,7 +326,9 @@ jobs:
 
       - name: Set base image
         id: base-image
-        run: echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" >> $GITHUB_OUTPUT
+        run: |
+          echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" >> $GITHUB_OUTPUT
+          echo "cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)" >> $GITHUB_OUTPUT
 
       - name: Download package lists (cudaq)
         uses: actions/download-artifact@v8
@@ -284,105 +350,55 @@ jobs:
 
       - name: Restore package-source-diff directory layout
         run: |
-          mkdir -p package-source-diff
+          d=package-source-diff
+          mkdir -p $d
           for variant in cudaq cudaqx cudaq-decoding; do
             dir="package-source-diff-${variant}"
-            apt_src="$dir/apt_packages.txt"; [ -f "$dir/package-source-diff/apt_packages.txt" ] && apt_src="$dir/package-source-diff/apt_packages.txt"
-            pip_src="$dir/pip_packages.txt"; [ -f "$dir/package-source-diff/pip_packages.txt" ] && pip_src="$dir/package-source-diff/pip_packages.txt"
-            [ -f "$apt_src" ] && cp "$apt_src" "package-source-diff/apt_packages_${variant}.txt" || touch "package-source-diff/apt_packages_${variant}.txt"
-            [ -f "$pip_src" ] && cp "$pip_src" "package-source-diff/pip_packages_${variant}.txt" || touch "package-source-diff/pip_packages_${variant}.txt"
+            [ -d "$dir/package-source-diff" ] && dir="$dir/package-source-diff"
+            cp "$dir/apt_sources.txt" "$d/apt_sources_${variant}.txt"
+            cp "$dir/apt_package_details.tsv" "$d/apt_package_details_${variant}.tsv"
+            cp "$dir/pip_packages.txt" "$d/pip_packages_${variant}.txt"
+            cp "$dir/images.txt" "$d/images_${variant}.txt"
+            # upload-artifact drops empty directories (e.g. an image without Python)
+            for kind in apt pip; do
+              mkdir -p "$d/${kind}_licenses_${variant}"
+              if [ -d "$dir/${kind}_licenses" ]; then cp -r "$dir/${kind}_licenses/." "$d/${kind}_licenses_${variant}/"; fi
+            done
           done
-          touch package-source-diff/pip_packages_macos.txt
-          ls -la package-source-diff/
+          : > $d/pip_packages_macos.txt
+          mkdir -p $d/pip_licenses_macos
+          ls -la $d/
 
       - name: Download macOS pip diff
-        if: github.event.inputs.artifact_url != ''
+        if: needs.diff-macos-package.result == 'success'
         uses: actions/download-artifact@v8
         with:
           name: macos-pip-diff.zip
           path: macos-pip-diff
 
       - name: Apply macOS pip diff to package list
-        if: github.event.inputs.artifact_url != ''
-        run: cp macos-pip-diff/pip_added.txt package-source-diff/pip_packages_macos.txt
+        if: needs.diff-macos-package.result == 'success'
+        run: |
+          cp macos-pip-diff/pip_added.txt package-source-diff/pip_packages_macos.txt
+          if [ -d macos-pip-diff/macos-pip-licenses ]; then cp -r macos-pip-diff/macos-pip-licenses/. package-source-diff/pip_licenses_macos/; fi
 
       - name: Generate trimmed package lists (cudaqx/cudaq-decoding minus cudaq, macos minus cudaq/cudaqx)
         run: |
           d=package-source-diff
-          awk -F'==' '{print $1}' "$d/pip_packages_cudaq.txt" 2>/dev/null | sort -u > /tmp/pip_cudaq_names.txt || true
+          cp $d/apt_sources_cudaq.txt $d/apt_sources_cudaq_trimmed.txt
+          cp $d/apt_package_details_cudaq.tsv $d/apt_package_details_cudaq_trimmed.tsv
+          cp $d/pip_packages_cudaq.txt $d/pip_packages_cudaq_trimmed.txt
           for variant in cudaqx cudaq-decoding; do
-            # apt: trimmed = packages in variant not in cudaq
-            if [ -f "$d/apt_packages_${variant}.txt" ]; then
-              if [ -f "$d/apt_packages_cudaq.txt" ]; then
-                comm -23 <(sort -u "$d/apt_packages_${variant}.txt") <(sort -u "$d/apt_packages_cudaq.txt") | grep -v '^$' > "$d/apt_packages_${variant}_trimmed.txt" || true
-              else
-                cp "$d/apt_packages_${variant}.txt" "$d/apt_packages_${variant}_trimmed.txt"
-              fi
-            else
-              : > "$d/apt_packages_${variant}_trimmed.txt"
-            fi
-            # pip: trimmed = packages in variant (by name) not in cudaq
-            : > "$d/pip_packages_${variant}_trimmed.txt"
-            if [ -f "$d/pip_packages_${variant}.txt" ]; then
-              while IFS= read -r line; do
-                [ -z "$line" ] && continue
-                pkg="${line%%==*}"
-                grep -qxF "$pkg" /tmp/pip_cudaq_names.txt 2>/dev/null || echo "$line" >> "$d/pip_packages_${variant}_trimmed.txt"
-              done < "$d/pip_packages_${variant}.txt"
-            fi
+            # apt: source=version pairs that cudaq does not carry already
+            comm -23 <(sort -u "$d/apt_sources_${variant}.txt") <(sort -u "$d/apt_sources_cudaq.txt") > "$d/apt_sources_${variant}_trimmed.txt"
+            awk -F'\t' 'NR==FNR {keep[$0]=1; next} (($3 "=" $4) in keep)' \
+              "$d/apt_sources_${variant}_trimmed.txt" "$d/apt_package_details_${variant}.tsv" > "$d/apt_package_details_${variant}_trimmed.tsv"
+            # pip: name==version lines that cudaq does not carry already
+            { grep -vxFf "$d/pip_packages_cudaq.txt" "$d/pip_packages_${variant}.txt" || true; } > "$d/pip_packages_${variant}_trimmed.txt"
           done
-          # macOS pip: trimmed = packages in macos not in cudaq and not in cudaqx
-          { awk -F'==' '{print $1}' "$d/pip_packages_cudaq.txt" 2>/dev/null; awk -F'==' '{print $1}' "$d/pip_packages_cudaqx.txt" 2>/dev/null; } | sort -u > /tmp/pip_union_names.txt
-          : > "$d/pip_packages_macos_trimmed.txt"
-          if [ -f "$d/pip_packages_macos.txt" ] && [ -s "$d/pip_packages_macos.txt" ]; then
-            while IFS= read -r line; do
-              [ -z "$line" ] && continue
-              pkg="${line%%==*}"
-              grep -qxF "$pkg" /tmp/pip_union_names.txt 2>/dev/null || echo "$line" >> "$d/pip_packages_macos_trimmed.txt"
-            done < "$d/pip_packages_macos.txt"
-          fi
-          ls -la "$d"/*trimmed* 2>/dev/null || true
-
-      - name: Generate pip attribution (NOTICE_PIP per variant + CUDA version)
-        run: |
-          cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)
-          suffix="_cu${cuda_major}"
-          python3 scripts/generate_pip_attribution.py \
-            package-source-diff/pip_packages_cudaq.txt \
-            -o "NOTICE_PIP_cudaq${suffix}"
-
-          python3 scripts/generate_pip_attribution.py \
-            package-source-diff/pip_packages_cudaqx.txt \
-            -o "NOTICE_PIP_cudaqx${suffix}"
-
-          # The decoding-server image ships no Python; this list is normally empty.
-          python3 scripts/generate_pip_attribution.py \
-            package-source-diff/pip_packages_cudaq-decoding.txt \
-            -o "NOTICE_PIP_cudaq-decoding${suffix}"
-
-          python3 scripts/generate_pip_attribution.py \
-            package-source-diff/pip_packages_macos.txt \
-            -o "NOTICE_PIP_macos${suffix}"
-          ls -la NOTICE_PIP_*
-          head -50 "NOTICE_PIP_cudaq${suffix}"
-
-      - name: Generate apt attribution (NOTICE_APT per variant + CUDA version)
-        run: |
-          cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)
-          suffix="_cu${cuda_major}"
-          python3 scripts/generate_apt_attribution.py \
-            package-source-diff/apt_packages_cudaq.txt \
-            -o "NOTICE_APT_cudaq${suffix}"
-
-          python3 scripts/generate_apt_attribution.py \
-            package-source-diff/apt_packages_cudaqx.txt \
-            -o "NOTICE_APT_cudaqx${suffix}"
-
-          python3 scripts/generate_apt_attribution.py \
-            package-source-diff/apt_packages_cudaq-decoding.txt \
-            -o "NOTICE_APT_cudaq-decoding${suffix}"
-          ls -la NOTICE_APT_*
-          head -50 "NOTICE_APT_cudaq${suffix}"
+          # macOS pip: name==version not in cudaq or cudaqx; a different version of the same name needs its own source
+          { grep -vxFf <(cat "$d/pip_packages_cudaq.txt" "$d/pip_packages_cudaqx.txt") "$d/pip_packages_macos.txt" || true; } > "$d/pip_packages_macos_trimmed.txt"
+          wc -l "$d"/*_trimmed.*
 
       - name: Generate tpls lock file
         run: |
@@ -409,6 +425,13 @@ jobs:
           # Generate cudaq_prereqs.lock for the current configuration
           bash scripts/install_prerequisites.sh -l
           cat cudaq_prereqs.lock
+
+          # Software the images build from source or copy in (the MPI stack, uv,
+          # the CMake-fetched libraries, the CMake and QRMI sources) and the
+          # DOCA/OFED source bundle. NOTICE must name each at its built version.
+          python3 scripts/generate_image_sources_lock.py --check-notice
+          # cudaqx and cudaq-decoding install DOCA 3.4 (OFED 26.04), the Dockerfiles DOCA 3.1.
+          python3 scripts/generate_image_sources_lock.py --doca --doca-extra 3.4.0:26.04 | tee -a cudaq_prereqs.lock
 
           mkdir -p prereqs
           while IFS= read -r line; do
@@ -491,6 +514,7 @@ jobs:
           file: docker/build/package_sources.Dockerfile
           build-args: |
             base_image=${{ steps.base-image.outputs.base_image }}
+            cuda_major=${{ steps.base-image.outputs.cuda_major }}
           load: true
           tags: package-sources:latest
           outputs: type=docker,dest=/tmp/package-sources.tar
@@ -517,6 +541,7 @@ jobs:
           docker tag package-sources:latest "$tag_amd64"
           docker push "$tag_amd64"
           echo "image_tag=$tag" | tee -a $GITHUB_OUTPUT
+          echo "tag_suffix=$tag_suffix" | tee -a $GITHUB_OUTPUT
           echo "tag_amd64=$tag_amd64" | tee -a $GITHUB_OUTPUT
           echo "tag_arm64=$tag_arm64" | tee -a $GITHUB_OUTPUT
 
@@ -544,6 +569,39 @@ jobs:
           tag_arm64="${{ steps.push.outputs.tag_arm64 }}"
           docker buildx imagetools create --tag "$tag" "$tag_amd64" "$tag_arm64"
 
+      - name: Log in to NGC
+        if: inputs.push_to_ngc || github.event_name == 'schedule'
+        uses: docker/login-action@v4
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_CREDENTIALS }}
+
+      - name: Copy the source image to NGC
+        id: ngc
+        if: inputs.push_to_ngc || github.event_name == 'schedule'
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          ngc_image="nvcr.io/nvidia/nightly/cuda-quantum:${{ steps.push.outputs.tag_suffix }}-src"
+          retry docker buildx imagetools create --tag "$ngc_image" "${{ steps.push.outputs.image_tag }}"
+          echo "ngc_image=$ngc_image" | tee -a $GITHUB_OUTPUT
+
+      - name: Install NGC CLI
+        if: steps.ngc.outputs.ngc_image != ''
+        uses: ./.github/actions/install-ngc-cli
+        with:
+          version: 3.31.0
+          checksum: b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138
+
+      - name: Sign the NGC source image
+        if: steps.ngc.outputs.ngc_image != ''
+        env:
+          NGC_IMAGE: ${{ steps.ngc.outputs.ngc_image }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
+          NGC_CLI_ORG: nvidia
+          NGC_CLI_TEAM: nightly
+        run: ngc-cli/ngc registry image publish --source "$NGC_IMAGE" "$NGC_IMAGE" --sign
+
       - name: Summary
         run: |
           base_image="${{ steps.base-image.outputs.base_image }}"
@@ -552,3 +610,7 @@ jobs:
           echo "- **Base image:** \`${base_image}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Built image ${{ steps.push.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ steps.ngc.outputs.ngc_image }}" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Pushed image ${{ steps.ngc.outputs.ngc_image }}" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -70,7 +70,7 @@ def steane_cx(
 
 
 # %%
-# Prepare encoded |0> with an explicit circuit, as in standalone example 06.
+# Prepare encoded |0> with an explicit circuit, as in standalone example 05.
 # Resetting the data qubits alone gives |0000000>, which does not satisfy the
 # X stabilizers.
 # [START_STEANE_ENCODER]

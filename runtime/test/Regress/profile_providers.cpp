@@ -71,13 +71,16 @@
 // The Clifford+T target lists one `quake-unmapped` stage with the `t-count`
 // cost model, whose passes run between deploy and finalize. Its basis has no
 // rotation gate, so the stage synthesizes. The stage lowers the `quake.phase`
-// that decomposition leaves before the optimizer runs.
+// that decomposition leaves before the optimizer runs. Synthesis handles the
+// rotations, so the fusion allows them as basis gates.
 // CHECK-LABEL: compiler-bench-ftqc-clifford-t:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
 // CHECK-NEXT:  func.func(normalize-phase-placement,lower-phase)
 // CHECK-NEXT:  clifford-t-optimization-pipeline{level=2 approximation-tolerance=1e-10}
+// CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=clifford-t-free epsilon=1e-10 basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz},canonicalize)
+// CHECK-NEXT:  decomposition{enable-patterns=U3ToRotations}
 // CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1) level=2 approximation-tolerance=1e-10}
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
@@ -93,11 +96,22 @@
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
 
-// Without a cost model, a `quake-unmapped` stage runs no optimization.
-// CHECK-LABEL: no cost model:
-// CHECK:       jit-deploy-pipeline
-// CHECK-NEXT:  basis-conversion{basis=h,x(1)}
+// A `t-count` stage whose basis has `u3` needs no synthesis, so it does not
+// expand the `u3` again. The basis has no rotation, so the fusion turns every
+// chain with a rotation into a `u3`, which the basis keeps.
+// CHECK-LABEL: t-count to u3 level 2:
+// CHECK:       clifford-t-optimization-pipeline{level=2 approximation-tolerance=1e-10}
+// CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=clifford-t-free epsilon=1e-10 basis=u3,h,x(1)},canonicalize)
+// CHECK-NEXT:  basis-conversion{basis=u3,h,x(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
+
+// CHECK-LABEL: t-count to u3 level 1:
+// CHECK:       clifford-t-optimization-pipeline{level=1 approximation-tolerance=1e-10}
+// CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=clifford-t-free epsilon=1e-10 basis=u3,h,x(1)},canonicalize)
+
+// CHECK-LABEL: t-count to u3 level 0:
+// CHECK-NOT:   fuse-1q-to-u3
+// CHECK:       jit-finalize-pipeline
 
 // A `two-qubit-gate-count` stage whose basis can't express a controlled `x`
 // fails when its handler builds the pipeline.
@@ -105,10 +119,18 @@
 // CHECK-NEXT:  FAILED: compile target stage 1: the selected lowering handler
 // CHECK-SAME:  failed to construct a pipeline from unchecked to quake-unmapped
 
+// A stage whose basis can't express a `u3` plans no single-qubit fusion, and
+// warns instead.
+// CHECK:       Single-qubit gate fusion skipped: no known decomposition lowers u3 to the basis gates [h, s, t, x, x(1)].
+// CHECK-LABEL: no u3 decomposition level 1:
+// CHECK:       two-qubit-gate-count-optimization-pipeline{level=1}
+// CHECK-NEXT:  basis-conversion{basis=h,s,t,x,x(1)}
+
 // The NISQ target decomposes and optimizes in its `quake-unmapped` stage,
 // keeping controlled `x` for phase folding until its basis conversion, and
 // maps in its `quake-mapped` stage. Both stages convert to wires at every
-// level, and level 1 adds only the two optimization pipelines.
+// level, and level 1 adds only the two optimization pipelines and the fusion
+// of one-qubit chains.
 // CHECK-LABEL: compiler-bench-nisq on path(4) level 0:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  decomposition{basis=h,rx,ry,rz,x,z(1),x(1)}
@@ -124,6 +146,7 @@
 // CHECK-NEXT:  decomposition{basis=h,rx,ry,rz,x,z(1),x(1)}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
 // CHECK-NEXT:  two-qubit-gate-count-optimization-pipeline{level=1}
+// CHECK-NEXT:  func.func(fuse-1q-to-u3{cost=gate-count basis=h,rx,ry,rz,x,z(1)},canonicalize)
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
 // CHECK-NEXT:  prepare-for-wireset{add-wireset=true maximum-iterations=1024}
 // CHECK-NEXT:  qubit-mapping{device=path(4) raise-fatal-errors=true}
@@ -215,12 +238,19 @@ int main(int argc, char **argv) {
   cudaq::CompileOptions level0;
   level0.optimizationLevel = cudaq::OptimizationLevel::O0;
   printPipeline(catalog, "compiler-bench-ftqc-clifford-t", level0, " level 0");
-  cudaq::CompileTarget noCostModel;
-  noCostModel.stages.push_back(
+  cudaq::CompileTarget tCountToU3;
+  tCountToU3.stages.push_back(
       {.irOutputProfile =
-           cudaq::config::QuakeUnmappedProfile{.basisGates = {"h", "x(1)"}},
+           cudaq::config::QuakeUnmappedProfile{
+               .basisGates = {"u3", "h", "x(1)"},
+               .approximationTolerance = 1e-10,
+               .costModel = cudaq::config::CostModel::t_count},
        .lowering = cudaq::config::InferredLowering{}});
-  printPipeline("no cost model", noCostModel, level2);
+  printPipeline("t-count to u3 level 2", tCountToU3, level2);
+  cudaq::CompileOptions level1;
+  level1.optimizationLevel = cudaq::OptimizationLevel::O1;
+  printPipeline("t-count to u3 level 1", tCountToU3, level1);
+  printPipeline("t-count to u3 level 0", tCountToU3, level0);
   cudaq::CompileTarget noTwoQubitGate;
   noTwoQubitGate.stages.push_back(
       {.irOutputProfile =
@@ -229,6 +259,14 @@ int main(int argc, char **argv) {
                .costModel = cudaq::config::CostModel::two_qubit_gate_count},
        .lowering = cudaq::config::InferredLowering{}});
   printPipeline("no two-qubit gate", noTwoQubitGate, {});
+  cudaq::CompileTarget noU3Decomposition;
+  noU3Decomposition.stages.push_back(
+      {.irOutputProfile =
+           cudaq::config::QuakeUnmappedProfile{
+               .basisGates = {"h", "s", "t", "x", "x(1)"},
+               .costModel = cudaq::config::CostModel::two_qubit_gate_count},
+       .lowering = cudaq::config::InferredLowering{}});
+  printPipeline("no u3 decomposition level 1", noU3Decomposition, level1);
 
   if (const auto *nisq = catalog.lookup("compiler-bench-nisq")) {
     auto onPath = cudaq::CompileTarget::createFromConfig(*nisq->config, {});
@@ -236,8 +274,6 @@ int main(int argc, char **argv) {
         onPath.stages.back().irOutputProfile)
         .device = "path(4)";
     printPipeline("compiler-bench-nisq on path(4) level 0", onPath, level0);
-    cudaq::CompileOptions level1;
-    level1.optimizationLevel = cudaq::OptimizationLevel::O1;
     printPipeline("compiler-bench-nisq on path(4) level 1", onPath, level1);
   }
 
