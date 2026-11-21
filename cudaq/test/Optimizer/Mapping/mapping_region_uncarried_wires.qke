@@ -44,17 +44,20 @@ func.func @test_loop_routes_through_uncarried() attributes {"cudaq-kernel"} {
 }
 
 // CHECK-LABEL: func.func @test_loop_routes_through_uncarried()
-// CHECK:         %[[Q0:.*]] = quake.borrow_wire @wires[0]
-// CHECK:         %[[Q1:.*]] = quake.borrow_wire @wires[1]
-// CHECK:         %[[Q2:.*]] = quake.borrow_wire @wires[2]
-// CHECK:         %[[Q3:.*]] = quake.borrow_wire @wires[3]
+// CHECK:         %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0]
+// CHECK:         %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1]
+// CHECK:         %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[2]
+// CHECK:         %[[Q3:.*]] = quake.borrow_wire @mapped_wireset[3]
 // CHECK:         %[[LOOP:.*]]:4 = cc.loop while (
 // CHECK-SAME:      (%[[W0:.*]] = %[[Q0]], %[[W3:.*]] = %[[Q3]],
 // CHECK-SAME:       %[[W1:.*]] = %[[Q1]], %[[W2:.*]] = %[[Q2]])
-// CHECK:           cc.condition %{{.*}} (%[[W0]], %[[W3]], %[[W1]], %[[W2]]
+// CHECK:           cc.condition %{{[a-z0-9_]+}}(%[[W0]], %[[W3]], %[[W1]],
+// CHECK-SAME:        %[[W2]]
 // CHECK:         } do {
-// CHECK-NEXT:    ^bb0(%[[BW0:.*]]: !quake.wire, %[[BW3:.*]]: !quake.wire,
-// CHECK-SAME:         %[[BW1:.*]]: !quake.wire, %[[BW2:.*]]: !quake.wire):
+// CHECK-NEXT:    ^bb0(%[[BW0:[a-z0-9_]+]]: !quake.wire,
+// CHECK-SAME:         %[[BW3:[a-z0-9_]+]]: !quake.wire,
+// CHECK-SAME:         %[[BW1:[a-z0-9_]+]]: !quake.wire,
+// CHECK-SAME:         %[[BW2:[a-z0-9_]+]]: !quake.wire):
 // CHECK:           %[[S0:.*]]:2 = quake.swap %[[BW0]], %[[BW1]]
 // CHECK:           %[[S1:.*]]:2 = quake.swap %[[S0]]#1, %[[BW2]]
 // CHECK:           %[[G:.*]]:2 = quake.x [%[[S1]]#1] %[[BW3]]
@@ -102,8 +105,10 @@ func.func @test_loop_with_step_routes_through_uncarried()
 // CHECK:         } do {
 // CHECK:           quake.swap
 // CHECK:         } step {
-// CHECK-NEXT:    ^bb0(%[[SW0:.*]]: !quake.wire, %[[SW3:.*]]: !quake.wire,
-// CHECK-SAME:         %[[SW1:.*]]: !quake.wire, %[[SW2:.*]]: !quake.wire):
+// CHECK-NEXT:    ^bb0(%[[SW0:[a-z0-9_]+]]: !quake.wire,
+// CHECK-SAME:         %[[SW3:[a-z0-9_]+]]: !quake.wire,
+// CHECK-SAME:         %[[SW1:[a-z0-9_]+]]: !quake.wire,
+// CHECK-SAME:         %[[SW2:[a-z0-9_]+]]: !quake.wire):
 // CHECK:           cc.continue %[[SW0]], %[[SW3]], %[[SW1]], %[[SW2]]
 // CHECK:         }
 // CHECK:         %[[M0:.*]], %[[R0:.*]] = quake.mz %[[LOOP]]#0
@@ -139,14 +144,22 @@ func.func @test_if_routes_through_uncarried() attributes {"cudaq-kernel"} {
 }
 
 // CHECK-LABEL: func.func @test_if_routes_through_uncarried()
-// CHECK:         %[[IF:.*]]:4 = cc.if (%{{.*}}) (
-// CHECK:           %[[S0:.*]]:2 = quake.swap
-// CHECK:           %[[S1:.*]]:2 = quake.swap
-// CHECK:           %[[G:.*]]:2 = quake.x
-// CHECK:           quake.swap
-// CHECK:           quake.swap
-// CHECK:           cc.continue {{.*}} : !quake.wire, !quake.wire,
-// CHECK-SAME:        !quake.wire, !quake.wire
+// CHECK:         %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0]
+// CHECK:         %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1]
+// CHECK:         %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[2]
+// CHECK:         %[[Q3:.*]] = quake.borrow_wire @mapped_wireset[3]
+// CHECK:         %[[IF:.*]]:4 = cc.if(%{{[a-z0-9_]+}})
+// CHECK-SAME:      ((%[[A0:[a-z0-9_]+]] = %[[Q0]],
+// CHECK-SAME:        %[[A3:[a-z0-9_]+]] = %[[Q3]],
+// CHECK-SAME:        %[[A1:[a-z0-9_]+]] = %[[Q1]],
+// CHECK-SAME:        %[[A2:[a-z0-9_]+]] = %[[Q2]]))
+// CHECK-SAME:      -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire) {
+// CHECK:           %[[S0:.*]]:2 = quake.swap %[[A0]], %[[A1]]
+// CHECK:           %[[S1:.*]]:2 = quake.swap %[[S0]]#1, %[[A2]]
+// CHECK:           %[[G:.*]]:2 = quake.x [%[[S1]]#1] %[[A3]]
+// CHECK:           %[[C0:.*]]:2 = quake.swap %[[S1]]#0, %[[G]]#0
+// CHECK:           %[[C1:.*]]:2 = quake.swap %[[S0]]#0, %[[C0]]#0
+// CHECK:           cc.continue %[[C1]]#0, %[[G]]#1, %[[C1]]#1, %[[C0]]#1
 // CHECK:         } else {
 // CHECK-NOT:       quake.swap
 // CHECK:           cc.continue {{.*}} : !quake.wire, !quake.wire,
@@ -193,7 +206,7 @@ func.func @test_nested_if_in_loop_routes_through_uncarried()
 // CHECK-LABEL: func.func @test_nested_if_in_loop_routes_through_uncarried()
 // CHECK:         %[[LOOP:.*]]:4 = cc.loop while (
 // CHECK:         } do {
-// CHECK:           %[[IF:.*]]:4 = cc.if (
+// CHECK:           %[[IF:.*]]:4 = cc.if(
 // CHECK:             quake.swap
 // CHECK:             quake.swap
 // CHECK:             quake.x
@@ -245,19 +258,22 @@ func.func @test_uncarried_wire_swapped_across_two_ifs()
 }
 
 // CHECK-LABEL: func.func @test_uncarried_wire_swapped_across_two_ifs()
-// CHECK:         %[[Q0:.*]] = quake.borrow_wire @wires[0]
-// CHECK:         %[[Q1:.*]] = quake.borrow_wire @wires[1]
-// CHECK:         %[[Q2:.*]] = quake.borrow_wire @wires[2]
-// CHECK:         %[[IF1:.*]]:3 = cc.if (%{{.*}})
-// CHECK-SAME:      ((%{{.*}} = %[[Q0]], %{{.*}} = %[[Q2]], %{{.*}} = %[[Q1]]))
+// CHECK:         %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0]
+// CHECK:         %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1]
+// CHECK:         %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[2]
+// CHECK:         %[[IF1:.*]]:3 = cc.if(%{{[a-z0-9_]+}})
+// CHECK-SAME:      ((%{{[a-z0-9_]+}} = %[[Q0]],
+// CHECK-SAME:        %{{[a-z0-9_]+}} = %[[Q2]],
+// CHECK-SAME:        %{{[a-z0-9_]+}} = %[[Q1]]))
 // CHECK:           quake.swap
 // CHECK:           quake.x
 // CHECK:           quake.swap
 // CHECK:           cc.continue {{.*}} : !quake.wire, !quake.wire, !quake.wire
 // CHECK:         }
-// CHECK:         %[[IF2:.*]]:3 = cc.if (%{{.*}})
-// CHECK-SAME:      ((%{{.*}} = %[[IF1]]#0, %{{.*}} = %[[IF1]]#1,
-// CHECK-SAME:        %{{.*}} = %[[IF1]]#2))
+// CHECK:         %[[IF2:.*]]:3 = cc.if(%{{[a-z0-9_]+}})
+// CHECK-SAME:      ((%{{[a-z0-9_]+}} = %[[IF1]]#0,
+// CHECK-SAME:        %{{[a-z0-9_]+}} = %[[IF1]]#1,
+// CHECK-SAME:        %{{[a-z0-9_]+}} = %[[IF1]]#2))
 // CHECK:           quake.swap
 // CHECK:           quake.x
 // CHECK:           quake.swap
@@ -307,21 +323,25 @@ func.func @test_uncarried_swapped_twice_in_branch()
 }
 
 // CHECK-LABEL: func.func @test_uncarried_swapped_twice_in_branch()
-// CHECK:         %[[IF:.*]]:4 = cc.if (%{{.*}})
-// CHECK-SAME:      ((%{{.*}} = %{{.*}}, %{{.*}} = %{{.*}},
-// CHECK-SAME:        %{{.*}} = %{{.*}}, %{{.*}} = %{{.*}}))
-// CHECK-SAME:      -> (!quake.wire, !quake.wire,
-// CHECK-SAME:          !quake.wire, !quake.wire) {
-// CHECK:           %[[S0:.*]]:2 = quake.swap
-// CHECK:           %[[S1:.*]]:2 = quake.swap
-// CHECK:           %[[G1:.*]]:2 = quake.x
-// CHECK:           %[[C0:.*]]:2 = quake.swap
-// CHECK:           %[[C1:.*]]:2 = quake.swap
-// CHECK:           %[[D0:.*]]:2 = quake.swap
-// CHECK:           %[[G2:.*]]:2 = quake.x
-// CHECK:           %[[E0:.*]]:2 = quake.swap
-// CHECK:           cc.continue
+// CHECK:         %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0]
+// CHECK:         %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1]
+// CHECK:         %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[2]
+// CHECK:         %[[Q3:.*]] = quake.borrow_wire @mapped_wireset[3]
+// CHECK:         %[[IF:.*]]:4 = cc.if(%{{[a-z0-9_]+}})
+// CHECK-SAME:      ((%[[A0:[a-z0-9_]+]] = %[[Q0]],
+// CHECK-SAME:        %[[A2:[a-z0-9_]+]] = %[[Q2]],
+// CHECK-SAME:        %[[A3:[a-z0-9_]+]] = %[[Q3]],
+// CHECK-SAME:        %[[A1:[a-z0-9_]+]] = %[[Q1]]))
+// CHECK-SAME:      -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire) {
+// CHECK:           %[[S0:.*]]:2 = quake.swap %[[A0]], %[[A1]]
+// CHECK:           %[[S1:.*]]:2 = quake.swap %[[S0]]#1, %[[A2]]
+// CHECK:           %[[G1:.*]]:2 = quake.x [%[[S1]]#1] %[[A3]]
+// CHECK:           %[[G2:.*]]:2 = quake.x [%[[G1]]#0] %[[S1]]#0
+// CHECK:           %[[R0:.*]]:2 = quake.swap %[[G2]]#1, %[[G2]]#0
+// CHECK:           %[[R1:.*]]:2 = quake.swap %[[S0]]#0, %[[R0]]#0
+// CHECK:           cc.continue %[[R1]]#0, %[[R0]]#1, %[[G1]]#1, %[[R1]]#1
 // CHECK:         } else {
+// CHECK-NOT:       quake.swap
 // CHECK:           cc.continue
 // CHECK:         }
 // CHECK:         quake.mz %[[IF]]#0
@@ -362,7 +382,7 @@ func.func @test_scope_routes_through_uncarried() attributes {"cudaq-kernel"} {
 // CHECK:         }
 // CHECK:         %[[M0:.*]], %[[R0:.*]] = quake.mz %[[SCOPE]]#0
 // CHECK:         %[[M3:.*]], %[[R3:.*]] = quake.mz %[[SCOPE]]#1
-// CHECK:         quake.return_wire %[[R0]] : !quake.wire
 // CHECK:         quake.return_wire %[[SCOPE]]#2 : !quake.wire
 // CHECK:         quake.return_wire %[[SCOPE]]#3 : !quake.wire
+// CHECK:         quake.return_wire %[[R0]] : !quake.wire
 // CHECK:         quake.return_wire %[[R3]] : !quake.wire
