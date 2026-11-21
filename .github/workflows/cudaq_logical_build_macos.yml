@@ -34,6 +34,8 @@ jobs:
     runs-on: macos-26
     permissions:
       contents: read
+    outputs:
+      wheel_uploaded: ${{ steps.upload.outcome == 'success' }}
     env:
       CUDAQ_VERSION: ${{ inputs.cudaq_version }}
       PYTHON_VERSION: ${{ inputs.python_version }}
@@ -200,6 +202,7 @@ jobs:
           echo "wheel_path=$wheel" >> "$GITHUB_OUTPUT"
 
       - name: Upload cudaq-logical wheel
+        id: upload
         uses: actions/upload-artifact@v7
         with:
           name: cudaq-logical-${{ inputs.python_version }}-darwin-arm64
@@ -223,6 +226,9 @@ jobs:
   test:
     name: Test cudaq.logical (arm64, py${{ inputs.python_version }})
     needs: build
+    # A failure of the FileCheck tests in the build job must not hide the
+    # results of the installed-wheel tests, so run whenever the wheel exists.
+    if: ${{ !cancelled() && needs.build.outputs.wheel_uploaded == 'true' }}
     runs-on: macos-26
     permissions:
       contents: read
