@@ -7,177 +7,160 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 #
-# Reads apt package lists (one package name per line), optionally fetches
-# Debian source metadata for each package, and writes a NOTICE-style attribution
-# file with references to license and copyright (in-image path and upstream).
+# Writes a NOTICE-style attribution file for the apt packages that an image
+# ships on top of its base image. The input is apt_package_details.tsv from
+# diff_image_packages.sh and the license files collected from the image itself
+# (apt_licenses/<binary>/*), so the notice describes the versions that are
+# installed and needs no network access. Binary packages are grouped by the
+# source package they are built from.
 
 import argparse
-import json
 import re
 import sys
-import urllib.parse
-import urllib.request
 from collections import OrderedDict
-
-DEBIAN_SRC_API = "https://sources.debian.org/api/src/{name}/"
-DEBIAN_LICENSE_PAGE = "https://sources.debian.org/copyright/license/{name}/{version}/"
-# First 4-digit year or year range in copyright context (e.g. 1994, 1996-2022)
-COPYRIGHT_YEAR_RE = re.compile(r"\b(19|20)\d{2}(?:-(19|20)\d{2})?\b")
+from pathlib import Path
 
 HEADER = """Apt packages - third-party attribution
-This file lists license and copyright information for apt packages included
-in the CUDA-Q package sources image. Full text is in /usr/share/doc/<pkg>/copyright
-in the image; links below point to Debian or Ubuntu package pages.
+This file lists license and copyright information for the apt packages that the
+image ships on top of its base image, at the installed versions. The license
+and copyright files of every package are kept next to the sources, under
+{licenses_dir}/<binary package>/; the line "Files:" names the ones of each entry.
 
 """
 
-
-def fetch_copyright_year(name: str, version: str) -> str | None:
-    """Fetch Debian license page and return first copyright year or year range, or None."""
-    url = DEBIAN_LICENSE_PAGE.format(
-        name=urllib.parse.quote(name, safe=""),
-        version=urllib.parse.quote(version, safe=""),
-    )
-    try:
-        req = urllib.request.Request(
-            url,
-            headers={"Accept": "text/html,application/xhtml+xml"},
-        )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            body = resp.read().decode("utf-8", errors="replace")
-    except Exception:
-        return None
-    # Restrict to content before "Licenses" section to avoid matching license text
-    if "## Licenses" in body:
-        body = body.split("## Licenses")[0]
-    m = COPYRIGHT_YEAR_RE.search(body)
-    if m:
-        return m.group(0)
-    return None
+SEPARATOR = "----------------------------------------------------------------\n"
+KEYWORDS = [("LGPL", "LGPL"), ("GPL", "GPL"), ("Apache", "Apache-2.0"),
+            ("BSD", "BSD"), ("MIT", "MIT"), ("Expat", "Expat"), ("MPL", "MPL"),
+            ("zlib", "zlib"), ("ISC", "ISC"),
+            ("Public domain", "public domain"),
+            ("End User License", "proprietary EULA"),
+            ("NVIDIA", "NVIDIA license")]
+MAX_COPYRIGHTS = 4
+MAX_LICENSES = 12
 
 
-def fetch_debian_versions(name: str) -> str | None:
-    """Fetch Debian source package versions. Returns one version string or None."""
-    url = DEBIAN_SRC_API.format(name=urllib.parse.quote(name, safe=""))
-    try:
-        req = urllib.request.Request(url,
-                                     headers={"Accept": "application/json"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.load(resp)
-    except Exception:
-        return None
-    versions = data.get("versions") or []
-    # Prefer a stable suite (bookworm, trixie) then take first
-    for v in versions:
-        if v.get("suites") and any(s in ("bookworm", "trixie", "sid")
-                                   for s in v.get("suites", [])):
-            return v.get("version")
-    return versions[0].get("version") if versions else None
+def license_files(licenses: Path, binary: str) -> list[Path]:
+    # Multiarch packages are listed as name:arch; the directory is name_arch.
+    d = licenses / binary.replace(":", "_")
+    return sorted(p for p in d.iterdir() if p.is_file()) if d.is_dir() else []
 
 
-def format_entry(
-    name: str,
-    version: str | None,
-    copyright_year: str | None = None,
-) -> str:
-    """Format a single NOTICE-style entry for one package."""
-    doc_path = f"/usr/share/doc/{name}/copyright"
-    lines = [
-        f"{name} - See {doc_path} in the image.",
-        "",
-    ]
-    if version:
-        license_url = (
-            f"https://sources.debian.org/copyright/license/{name}/{version}/")
-        lines.append(f"<{license_url}>")
+def parse_copyright(text: str) -> tuple[list[str], list[str]]:
+    """(licenses, copyright lines) of a Debian copyright file.
+
+    Machine-readable (DEP-5) files give License: and Copyright: fields; older
+    free-form files are scanned for copyright lines and known license names.
+    """
+    licenses: list[str] = []
+    copyrights: list[str] = []
+
+    def add(items: list[str], value: str):
+        value = " ".join(value.split())
+        if value and value not in items:
+            items.append(value)
+
+    if re.match(r"\s*Format:", text):
+        field = None
+        for line in text.splitlines():
+            if line.startswith((" ", "\t")):
+                if field == "copyright" and line.strip():
+                    add(copyrights, line)
+                continue
+            m = re.match(r"([A-Za-z-]+):\s*(.*)", line)
+            field = m.group(1).lower() if m else None
+            if field == "license" and m.group(2):
+                for name in re.split(r"\s+(?:or|and|with)\s+|,\s*", m.group(2)):
+                    add(licenses, name)
+            elif field == "copyright" and m.group(2):
+                add(copyrights, m.group(2))
     else:
-        lines.append("<https://packages.ubuntu.com/>")
-    lines.append("")
-    if copyright_year:
-        lines.append(f"Copyright (c) {copyright_year}.")
+        for line in text.splitlines():
+            if re.match(r"\s*(?:Copyright\b|\(c\)|©)", line, re.I):
+                add(copyrights, line)
+        for word, name in KEYWORDS:
+            if re.search(word, text):
+                add(licenses, name)
+    return licenses, copyrights
+
+
+def format_entry(source: str, version: str, binaries: list[str],
+                 licenses_dir: Path, rel_dir: str) -> str:
+    licenses: list[str] = []
+    copyrights: list[str] = []
+    files: list[str] = []
+    for binary in binaries:
+        for path in license_files(licenses_dir, binary):
+            files.append(f"{rel_dir}/{binary.replace(':', '_')}/{path.name}")
+            if not re.search(r"copyright", path.name, re.I):
+                continue
+            lic, cop = parse_copyright(path.read_text(errors="replace"))
+            for item in lic:
+                if item not in licenses:
+                    licenses.append(item)
+            for item in cop:
+                if item not in copyrights:
+                    copyrights.append(item)
+    shown = ", ".join(licenses[:MAX_LICENSES]) or "see the license files"
+    if len(licenses) > MAX_LICENSES:
+        shown += ", ..."
+    lines = [
+        f"{source} {version} - {shown}", "",
+        f"Binary packages: {', '.join(binaries)}", ""
+    ]
+    for item in copyrights[:MAX_COPYRIGHTS]:
+        lines.append(item if item.lower().startswith((
+            "copyright", "(c)", "©")) else f"Copyright: {item}")
+    if len(copyrights) > MAX_COPYRIGHTS:
+        lines.append(
+            f"... and {len(copyrights) - MAX_COPYRIGHTS} more in the copyright file."
+        )
+    if copyrights:
         lines.append("")
-    lines.append(
-        "----------------------------------------------------------------")
+    lines.append("Files: " +
+                 (", ".join(files) if files else "none found in the image"))
     lines.append("")
+    lines.append(SEPARATOR)
     return "\n".join(lines)
-
-
-def load_package_names(paths: list[str]) -> OrderedDict[str, None]:
-    """Load unique package names from one or more apt list files (one name per line)."""
-    seen: OrderedDict[str, None] = OrderedDict()
-    for path in paths:
-        try:
-            with open(path) as f:
-                for line in f:
-                    name = line.strip()
-                    if not name or name.startswith("#"):
-                        continue
-                    seen[name] = None
-        except FileNotFoundError:
-            continue
-    return seen
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate NOTICE-style attribution file for apt packages.")
+        description="Generate NOTICE-style attribution for apt packages.")
     parser.add_argument(
-        "list_files",
-        nargs="+",
-        metavar="apt_list.txt",
-        help="One or more files with one package name per line",
+        "details",
+        help="apt_package_details.tsv (binary, version, source, source version)"
     )
+    parser.add_argument("--licenses-dir",
+                        required=True,
+                        help="directory with <binary>/ license files")
     parser.add_argument(
-        "-o",
-        "--output",
-        default="NOTICE_APT",
-        help="Output file path (default: NOTICE_APT)",
+        "--licenses-rel",
+        help=
+        "where the license files are in the source image (default: the directory name)"
     )
-    parser.add_argument(
-        "--no-header",
-        action="store_true",
-        help="Omit the header comment",
-    )
-    parser.add_argument(
-        "--no-fetch",
-        action="store_true",
-        help="Do not fetch Debian API; use Ubuntu link only",
-    )
-    parser.add_argument(
-        "--no-copyright-year",
-        action="store_true",
-        help="Do not fetch copyright year from Debian license page",
-    )
+    parser.add_argument("-o", "--output", default="NOTICE_APT")
     args = parser.parse_args()
 
-    packages = load_package_names(args.list_files)
-    if not packages:
-        # An empty list is a valid result (e.g. an image that ships no Python);
-        # still write the header-only notice so downstream COPY globs match.
-        sys.stderr.write(
-            "No packages found in list files; writing empty notice.\n")
-        with open(args.output, "w") as f:
-            f.write("" if args.no_header else HEADER)
-        return
+    groups: OrderedDict[tuple[str, str], list[str]] = OrderedDict()
+    try:
+        rows = [
+            l.rstrip("\n").split("\t") for l in open(args.details) if l.strip()
+        ]
+    except FileNotFoundError:
+        rows = []
+    for binary, _version, source, source_version in sorted(rows,
+                                                           key=lambda r:
+                                                           (r[2], r[0])):
+        groups.setdefault((source, source_version), []).append(binary)
 
-    out_lines = [] if args.no_header else [HEADER]
-
-    for name in packages:
-        version = None
-        copyright_year = None
-        if not args.no_fetch:
-            version = fetch_debian_versions(name)
-            if version and not args.no_copyright_year:
-                copyright_year = fetch_copyright_year(name, version)
-        out_lines.append(format_entry(name, version, copyright_year))
-
-    with open(args.output, "w") as f:
-        f.write("".join(out_lines))
-
-    print(
-        f"Wrote {args.output} with {len(packages)} packages.",
-        file=sys.stderr,
-    )
+    licenses_dir = Path(args.licenses_dir)
+    rel = args.licenses_rel or str(licenses_dir)
+    out = [HEADER.format(licenses_dir=rel)]
+    for (source, version), binaries in groups.items():
+        out.append(format_entry(source, version, binaries, licenses_dir, rel))
+    Path(args.output).write_text("".join(out))
+    print(f"Wrote {args.output} with {len(groups)} source packages.",
+          file=sys.stderr)
 
 
 if __name__ == "__main__":
