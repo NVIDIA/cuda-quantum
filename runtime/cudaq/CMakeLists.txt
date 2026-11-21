@@ -21,6 +21,7 @@ add_library(${LIBRARY_NAME}
     algorithms/encoding.cpp
     algorithms/policy_compile_options.cpp
     algorithms/run.cpp
+    algorithms/outcomes.cpp
     algorithms/schedule.cpp
     analysis/Dem.cpp
     platform/common/QuantumExecutionQueue.cpp

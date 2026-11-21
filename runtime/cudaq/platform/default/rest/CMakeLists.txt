@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 message(STATUS "Building REST QPU.")
-add_library(cudaq-rest-qpu SHARED RemoteRESTQPU.cpp)
+add_library(cudaq-rest-qpu SHARED RemoteRESTQPU.cpp ServerHelperOutcomeProgram.cpp)
 
 add_subdirectory(helpers)
 

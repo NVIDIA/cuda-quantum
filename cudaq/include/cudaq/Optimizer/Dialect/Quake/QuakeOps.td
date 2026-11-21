@@ -2057,6 +2057,27 @@ def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
 }
 
 //===----------------------------------------------------------------------===//
+// Frequencies and explicit prototype output
+//===----------------------------------------------------------------------===//
+
+def quake_FrequenciesOp : QuakeOp<"frequencies"> {
+  let summary = "Histogram of final register readouts of a preparation";
+  let arguments = (ins FlatSymbolRefAttr:$preparation, I64:$shots,
+                        Variadic<AnyType>:$args);
+  let results = (outs cc_PointerType:$histogram);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $preparation `(` $args `)` `shots` $shots attr-dict `:` functional-type(operands, results)
+  }];
+}
+
+def quake_EmitOp : QuakeOp<"emit"> {
+  let summary = "Append one classical record to the explicit outcome stream";
+  let arguments = (ins AnyType:$value);
+  let assemblyFormat = [{ $value attr-dict `:` type($value) }];
+}
+
+//===----------------------------------------------------------------------===//
 // EvinceOp
 //===----------------------------------------------------------------------===//
 

@@ -1042,6 +1042,10 @@ if ${ENABLE_APPLY_SPECIALIZATION}; then
 	fi
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(memtoreg{quantum=0}),canonicalize,apply-op-specialization${APPLY_OPTIONS}")
 fi
+# Expand prototype evaluation operations before serializing device modules so
+# their preparation calls and runtime dependencies travel with the program.
+RUN_OPT=true
+OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "lower-frequencies")
 if ${ENABLE_KERNEL_EXECUTION}; then
 	RUN_OPT=true
 	KERNEL_EXECUTION_OPTIONS=
