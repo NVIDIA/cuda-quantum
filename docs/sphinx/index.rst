@@ -47,6 +47,7 @@ quick example, build instructions, and the current scope and limitations.
       Installation <using/install/install.rst>
       Integration <using/integration/integration.rst>
       Extending <using/extending/extending.rst>
+      Community <community/index.rst>
       Specifications <specification/index.rst>
       API Reference <api/api.rst>
       Other Versions <versions.rst>
