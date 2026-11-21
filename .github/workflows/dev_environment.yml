@@ -389,6 +389,40 @@ jobs:
             ${{ steps.cache.outputs.local_buildcache_key }}
             ${{ steps.cache.outputs.base_buildcache_key }}
 
+      # The builds of LLVM keep their ccache in the registry (see llvm_ccache.sh), so that a
+      # layer that misses recompiles only what changed. Deployments write one tag per branch
+      # and read only those, as their objects end up in what is released. All other builds
+      # write a shared tag in the -ci package, which they read together with main's.
+      - name: Configure the LLVM ccache
+        id: llvm_ccache
+        if: inputs.dockerfile == 'build/devdeps.Dockerfile' || inputs.dockerfile == 'build/devdeps.manylinux.Dockerfile' || inputs.dockerfile == 'build/assets.Dockerfile'
+        env:
+          REGISTRY_TOKEN: ${{ github.token }}
+          REGISTRY_USER: ${{ github.actor }}
+          REF_NAME: ${{ github.ref_name }}
+          CACHE_BASE: ${{ steps.cache.outputs.registry_cache_base }}
+        run: |
+          root=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}cuda-quantum-llvm-ccache
+          base=$(printf %s "$CACHE_BASE" | tr -c 'A-Za-z0-9_.-' -)
+          branch=$(printf %s "$REF_NAME" | tr -c 'A-Za-z0-9_.-' -)
+          if ${{ inputs.environment == 'ghcr-deployment' }}; then
+            push="$root:$branch"
+            pull="$root:$branch $root:main"
+          else
+            push="$root-ci:ci"
+            pull="$root-ci:ci $root:$base $root:main"
+          fi
+          pull=$(echo $pull | tr ' ' '\n' | awk '!seen[$0]++' | tr '\n' ' ')
+          file="$RUNNER_TEMP/llvm_ccache"
+          (umask 077 && {
+            echo "user=$REGISTRY_USER"
+            echo "token=$REGISTRY_TOKEN"
+            echo "pull=$pull"
+            echo "push=$push"
+          } > "$file")
+          echo "LLVM ccache: read $pull, write $push"
+          echo "secret_files=llvm_ccache=$file" >> $GITHUB_OUTPUT
+
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: docker_build
         uses: docker/build-push-action@v7
@@ -408,6 +442,7 @@ jobs:
             ${{ steps.cache.outputs.cache_from_gh }}
             ${{ steps.cache.outputs.cache_from_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
+          secret-files: ${{ steps.llvm_ccache.outputs.secret_files }}
           push: ${{ steps.cache.outputs.push_to_registry == 'true' }}
           outputs: ${{ steps.cache.outputs.docker_output }}
 

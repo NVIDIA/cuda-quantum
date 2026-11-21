@@ -104,10 +104,17 @@ RUN if [ "$(uname -m)" == "x86_64" ]; then \
     fi
 
 ## [Source Dependencies]
+# The LLVM build restores its ccache from the registry and saves it back (see
+# llvm_ccache.sh), so that it recompiles only what changed when the layer misses.
+# The cache mount keeps it out of the image.
+ADD scripts/llvm_ccache.sh /cuda-quantum/scripts/llvm_ccache.sh
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 ADD scripts/prereqs_common.sh /cuda-quantum/scripts/prereqs_common.sh
 ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
-RUN if [ "$toolchain" = "llvm" ]; then \
+RUN --mount=type=cache,target=/root/.ccache,id=llvm-ccache \
+    --mount=type=secret,id=llvm_ccache,required=false \
+    source /cuda-quantum/scripts/llvm_ccache.sh && llvm_ccache_begin devdeps-${toolchain} && \
+    if [ "$toolchain" = "llvm" ]; then \
     export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \
     apt-get update && apt-get install -y --no-install-recommends clang lld && \
     CC=clang CXX=clang++ bash /cuda-quantum/scripts/install_prerequisites.sh -b && \
