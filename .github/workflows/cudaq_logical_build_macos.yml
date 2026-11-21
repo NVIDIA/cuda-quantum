@@ -99,9 +99,9 @@ jobs:
           python -m venv "$RUNNER_TEMP/build-venv"
           echo "$RUNNER_TEMP/build-venv/bin" >> "$GITHUB_PATH"
           echo "VIRTUAL_ENV=$RUNNER_TEMP/build-venv" >> "$GITHUB_ENV"
+          pip="$RUNNER_TEMP/build-venv/bin/pip"
 
-          source "$RUNNER_TEMP/build-venv/bin/activate"
-          retry pip install \
+          retry "$pip" install \
             "build>=1.2,<2" \
             "nanobind>=2.4,<3" \
             "scikit-build-core==0.12.2" \
@@ -121,8 +121,8 @@ jobs:
           fi
 
           # Install the local wheels without resolving the `cudaq` metapackage.
-          retry pip install --find-links dist "$runtime_wheel"
-          pip install --no-deps "$devel_wheel" "$edem_wheel"
+          retry "$pip" install --find-links dist "$runtime_wheel"
+          "$pip" install --no-deps "$devel_wheel" "$edem_wheel"
 
       - name: Build cudaq.logical
         id: build
@@ -150,7 +150,7 @@ jobs:
           # preview/logical/cmake/SetupCUDAQ.cmake).
           CMAKE_ARGS="${CMAKE_ARGS-} -DQLX_VERIFY_TOOLCHAIN=ON -DCMAKE_PREFIX_PATH=${GMP_PREFIX};${MPFR_PREFIX}" \
             SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" \
-            python -m build --wheel --no-isolation --outdir .wheel-raw python
+            python -m build --wheel --no-isolation --skip-dependency-check --outdir .wheel-raw python
 
           raw_wheel="$(find .wheel-raw -name "cudaq_logical-*-cp${PYTHON_VERSION/./}-*.whl" -print -quit)"
           test -n "$raw_wheel"
@@ -226,8 +226,6 @@ jobs:
     runs-on: macos-26
     permissions:
       contents: read
-    env:
-      CUDAQ_VERSION: ${{ inputs.cudaq_version }}
     defaults:
       run:
         shell: bash -euo pipefail {0}
@@ -267,17 +265,13 @@ jobs:
           echo "$RUNNER_TEMP/test-venv/bin" >> "$GITHUB_PATH"
           echo "VIRTUAL_ENV=$RUNNER_TEMP/test-venv" >> "$GITHUB_ENV"
 
-          logical_wheel="$(basename "$(find dist -name 'cudaq_logical-*.whl' -print -quit)")"
-          logical_version="${logical_wheel#cudaq_logical-}"
-          echo "CUDAQ_LOGICAL_VERSION=${logical_version%%-cp*}" >> "$GITHUB_ENV"
-
       - name: Validate core and logical without the frontend
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           cp docker/test/wheels/integration/test_installation.py "$RUNNER_TEMP/test_installation.py"
-          retry pip install --find-links dist "cudaq-core==$CUDAQ_VERSION"
+          retry pip install dist/cudaq_core-*.whl
           python "$RUNNER_TEMP/test_installation.py"
-          retry pip install --find-links dist "cudaq-logical==$CUDAQ_LOGICAL_VERSION"
+          retry pip install --find-links dist dist/cudaq_logical-*.whl
           python "$RUNNER_TEMP/test_installation.py" --logical --edem
           printf 'module {}\n' | qlx-opt
           pip check
