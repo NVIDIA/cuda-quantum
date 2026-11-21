@@ -201,6 +201,8 @@ Angle 1.4: 5/10 ones measured
 # [Begin Observe]
 from cudaq import spin
 
+qubit_count = 2
+
 # Define a Hamiltonian in terms of Pauli Spin operators.
 hamiltonian = spin.z(0) + spin.y(1) + spin.x(0) * spin.z(0)
 
@@ -260,8 +262,12 @@ Bell state vector:
 [0.70710678+0.j 0.        +0.j 0.        +0.j 0.70710678+0.j]
  [End `GetStateAsyncOutput`] '''
 
-
 # [Begin `ObserveAsync`]
+from cudaq import spin
+
+qubit_count = 2
+
+
 # Define a quantum kernel function.
 @cudaq.kernel
 def kernel1(qubit_count: int):
