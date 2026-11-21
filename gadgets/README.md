@@ -1,0 +1,61 @@
+# cudaq-gadgets
+
+## Layout
+
+Each component depends only on those above it.
+
+| Component | Headers | Sources | Contents |
+| --- | --- | --- | --- |
+| core | [core.h](include/cudaq/gadgets/core.h) | [core.cpp](lib/core.cpp) | C ABI version |
+| circuit | [circuit/](include/cudaq/gadgets/circuit/) `circuit.h` `pauli.h` `standard.h` | [circuit/](lib/circuit/) | Paulis, standard operations, nodes, circuits, instruction sets |
+| gadget | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) | — | Codes, gadgets, profiles, gadget circuits |
+| noise | [noise/noise.h](include/cudaq/gadgets/noise/noise.h) | [noise/](lib/noise/) | Pauli noise and noise models over circuits |
+| analysis | [analysis/analysis.h](include/cudaq/gadgets/analysis/analysis.h) | [analysis/](lib/analysis/) | Verification and EDEM generation |
+
+Everything builds into one library, `cudaq-gadgets`. Tests are in [test/](test/).
+
+## Where things are defineds
+
+| Structure | Definition |
+| --- | --- |
+| `Pauli`, `PauliString` | [circuit/pauli.h](include/cudaq/gadgets/circuit/pauli.h) |
+| `Opcode`, `OpcodeContract`, `PortFlags`, `contract`, `find_opcode` | [circuit/standard.h](include/cudaq/gadgets/circuit/standard.h); table in [standard.cpp](lib/circuit/standard.cpp) |
+| `Node` and subclasses (`InstructionNode`, `ConditionalPauliNode`, `OpcodeNode`, `IdleNode`, `RandomBitNode`, `PauliUnitaryNode`, `UnitaryNode`, `JointMeasurementNode`) | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
+| `BasicCircuit`, `Circuit` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
+| `PhysicalInstructionDefinition` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h); signature tracing in [circuit.cpp](lib/circuit/circuit.cpp) |
+| `InstructionSet`, `PhysicalInstructionSet`, `standard_instruction_set` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
+| `SubsystemCode`, `GadgetProfile`, `BlockBinding`, `OutcomeMap` | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) |
+| `Gadget`, `GadgetSet`, `GadgetCircuit`, `GadgetCallNode` | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) |
+| `PauliNoise`, `CircuitNoise`, `NoiseModel`, `InstructionSetNoiseModel` | [noise/noise.h](include/cudaq/gadgets/noise/noise.h) |
+| `EDEM`, `VerificationReport`, `verify`, `get_edem` | [analysis/analysis.h](include/cudaq/gadgets/analysis/analysis.h) |
+
+## Differences from the spec
+
+- Wires are single-assignment: each wire ID is defined once and names one
+  segment.
+- There are no subroutine or repeat nodes, and no variable-width operations.
+- Calls name their callee; the circuit's instruction set resolves the name.
+- A circuit over an instruction set contains only calls to it. A circuit
+  without one contains only standard operations.
+- Noise is separate from gadgets and instruction sets. A `NoiseModel` maps a
+  circuit to per-wire Pauli noise. A standard definition for uniform noise over
+  instruction sets is provided. Otherwise a custom noise model can specify noise
+  per wire based on the entirety of the circuit however it wants.
+
+## TODO
+
+Construction and validation are TODOs throughout: structures can be built,
+but almost nothing checks them, and the spec's algorithms (verification, EDEM
+generation, composition) are stubs or missing. `TODO` comments in the headers
+mark what each structure still needs.
+
+## Build and test
+
+In-tree, the library builds with CUDA-Q:
+
+```bash
+bash scripts/build_cudaq.sh -c Debug -i
+build/gadgets/test/gadgets_core_test
+build/gadgets/test/gadgets_circuit_test
+build/gadgets/test/gadgets_gadget_test
+```
