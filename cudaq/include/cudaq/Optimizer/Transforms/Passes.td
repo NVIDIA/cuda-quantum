@@ -251,6 +251,10 @@ def CheckKernelCalls : Pass<"check-kernel-calls", "mlir::func::FuncOp"> {
   }];
 }
 
+def CanonicalizeKernel : Pass<"canonicalize-kernel", "mlir::func::FuncOp"> {
+  let summary = "Canonicalize quantum kernels with region cleanup for structured IR.";
+}
+
 def ClassicalOptimization : Pass<"classical-optimization"> {
   let summary = "Perform classical optimizations until a fix point is reached.";
   let description = [{
@@ -276,6 +280,8 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
     "mlir::cf::ControlFlowDialect"];
 
   let options = [
+    Option<"cseAndRepeat", "cse-and-repeat", "bool", /*default=*/"false",
+      "Run CSE after optimization and repeat optimization if either changed IR.">,
     Option<"threshold", "maximum-iterations", "unsigned", /*default=*/"50",
       "Maximum iterations to unroll.">,
     Option<"allowClosedInterval", "allow-closed-interval", "bool",

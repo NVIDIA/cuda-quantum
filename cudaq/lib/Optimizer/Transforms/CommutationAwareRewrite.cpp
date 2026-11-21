@@ -14,6 +14,7 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include <cassert>
 #include <utility>
 
@@ -178,6 +179,11 @@ static void stepFrontierBackward(llvm::SmallVectorImpl<WireCursor> &frontier,
 
 class cudaq::opt::CommutationAwareRewriteMatcher::Impl {
 public:
+  // At most one continuation survives between consecutive greedy rewrites.
+  Operation *rzAnchor = nullptr;
+  Operation *rzUpperBound = nullptr;
+  Value rzInput;
+
   // Build block analysis lazily. Reconstructing previously discarded state is
   // also accounted as a fallback rebuild.
   cudaq::quake::detail::CommutationAnalysis &getAnalysis(Block *block) {
@@ -224,6 +230,8 @@ public:
                                OpBuilder::InsertPoint previous) override {
     RewriterBase::ForwardingListener::notifyOperationInserted(operation,
                                                               previous);
+    if (previous.getBlock() || !isa<arith::ConstantOp>(operation))
+      matcher.impl->rzAnchor = nullptr;
     // A previous insertion point identifies a move. Invalidate cached state
     // for both the source and destination blocks.
     if (Block *previousBlock = previous.getBlock()) {
@@ -245,16 +253,19 @@ public:
                            Region::iterator previousIt) override {
     RewriterBase::ForwardingListener::notifyBlockInserted(block, previous,
                                                           previousIt);
+    matcher.impl->rzAnchor = nullptr;
     discardBlock(block);
   }
 
   void notifyBlockErased(Block *block) override {
     RewriterBase::ForwardingListener::notifyBlockErased(block);
+    matcher.impl->rzAnchor = nullptr;
     matcher.impl->forgetBlock(block);
   }
 
   void notifyOperationModified(Operation *operation) override {
     RewriterBase::ForwardingListener::notifyOperationModified(operation);
+    matcher.impl->rzAnchor = nullptr;
     // updateReplacement already validated quantum identities and cleared
     // relation caches in affected analyzed blocks. Consume each expected
     // callback without further invalidation so it is not mistaken for an
@@ -276,6 +287,7 @@ public:
                                Operation *replacement) override {
     RewriterBase::ForwardingListener::notifyOperationReplaced(operation,
                                                               replacement);
+    matcher.impl->rzAnchor = nullptr;
     updateReplacement(operation, replacement->getResults(), replacement);
   }
 
@@ -283,6 +295,7 @@ public:
                                ValueRange replacement) override {
     RewriterBase::ForwardingListener::notifyOperationReplaced(operation,
                                                               replacement);
+    matcher.impl->rzAnchor = nullptr;
     Operation *replacementOp = nullptr;
     if (!replacement.empty()) {
       Operation *definition = replacement.front().getDefiningOp();
@@ -294,6 +307,11 @@ public:
 
   void notifyOperationErased(Operation *operation) override {
     RewriterBase::ForwardingListener::notifyOperationErased(operation);
+    if (matcher.impl->rzAnchor && isa<arith::ConstantOp>(operation)) {
+      if (matcher.impl->rzUpperBound == operation)
+        matcher.impl->rzUpperBound = operation->getPrevNode();
+    } else
+      matcher.impl->rzAnchor = nullptr;
     pendingIdentityPreservingUsers.erase(operation);
     auto analysis = matcher.impl->analyses.find(operation->getBlock());
     if (analysis == matcher.impl->analyses.end())
@@ -418,6 +436,28 @@ cudaq::opt::CommutationAwareRewriteMatcher::~CommutationAwareRewriteMatcher() =
 
 Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
     Operation *anchor, llvm::function_ref<bool(Operation *)> isEndpoint) {
+  return findNearestImpl(
+      anchor, isEndpoint,
+      anchor && anchor->getBlock() ? anchor->getPrevNode() : nullptr, {});
+}
+
+void cudaq::opt::CommutationAwareRewriteMatcher::remember_rz_frontier(
+    Operation *anchor, Operation *upperBound, Value input) {
+  impl->rzAnchor = anchor;
+  impl->rzUpperBound = upperBound;
+  impl->rzInput = input;
+}
+
+Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_prior_rz(
+    Operation *anchor, llvm::function_ref<bool(Operation *)> isEndpoint) {
+  if (impl->rzAnchor != anchor)
+    return find_nearest(anchor, isEndpoint);
+  return findNearestImpl(anchor, isEndpoint, impl->rzUpperBound, impl->rzInput);
+}
+
+Operation *cudaq::opt::CommutationAwareRewriteMatcher::findNearestImpl(
+    Operation *anchor, llvm::function_ref<bool(Operation *)> isEndpoint,
+    Operation *upperBound, Value input) {
   if (!anchor || !anchor->getBlock())
     return nullptr;
   auto anchorInterface = dyn_cast<cudaq::quake::OperatorInterface>(anchor);
@@ -427,6 +467,12 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
 
   Block *block = anchor->getBlock();
   auto frontier = openFrontier(anchor, *anchorFlow);
+  if (input) {
+    if (!input.hasOneUse())
+      return nullptr;
+    frontier.front() = {input, input.getDefiningOp(),
+                        *input.getUsers().begin()};
+  }
 
   cudaq::quake::detail::CommutationAnalysis *analysis = nullptr;
   auto requireAnalysis = [&]() -> cudaq::quake::detail::CommutationAnalysis & {
@@ -511,7 +557,7 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
   // index. Once analysis is needed, indexed traversal skips operations on
   // unrelated known qubits when it is available.
   bool useBlockOrderScan = false;
-  for (Operation *candidate = anchor->getPrevNode(); candidate;) {
+  for (Operation *candidate = upperBound; candidate;) {
     if (!processCandidate(candidate))
       return match;
 

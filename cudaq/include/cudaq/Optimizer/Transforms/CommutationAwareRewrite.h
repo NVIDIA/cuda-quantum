@@ -88,6 +88,14 @@ public:
   find_nearest(mlir::Operation *anchor,
                llvm::function_ref<bool(mlir::Operation *)> isEndpoint);
 
+  /// Continue a unary Rz combination before the previously removed rotation.
+  /// Its angle and adjoint do not affect the crossed gates' commutation rules.
+  mlir::Operation *
+  find_prior_rz(mlir::Operation *anchor,
+                llvm::function_ref<bool(mlir::Operation *)> isEndpoint);
+  void remember_rz_frontier(mlir::Operation *anchor,
+                            mlir::Operation *upperBound, mlir::Value input);
+
   /// Return whether a supported wire operator uses a distinct logical
   /// qubit in every control and target role. Unary operators establish this
   /// structurally. Multi-wire operators require a known identity for every
@@ -102,6 +110,10 @@ public:
                                           mlir::Operation *rhs);
 
 private:
+  mlir::Operation *
+  findNearestImpl(mlir::Operation *anchor,
+                  llvm::function_ref<bool(mlir::Operation *)> isEndpoint,
+                  mlir::Operation *upperBound, mlir::Value input);
   class Impl;
   explicit CommutationAwareRewriteMatcher(std::unique_ptr<Impl> impl);
 

@@ -1,0 +1,31 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: split-file %s %t
+// RUN: %python %t/generate.py | cudaq-opt --phase-folding | FileCheck %s
+
+// The CNOT seeds both walks. Each chain of S gates folds to the identity.
+// CHECK-LABEL: func.func @deep_wire
+// CHECK-NOT: quake.s
+// CHECK: quake.x
+// CHECK-NOT: quake.s
+// CHECK: return
+
+//--- generate.py
+print("func.func @deep_wire(%a: !quake.wire, %b: !quake.wire) -> (!quake.wire, !quake.wire) {")
+wire = "%a"
+for side in ["before", "after"]:
+    for i in range(131072):
+        result = f"%{side}{i}"
+        print(f"  {result} = quake.s {wire} : (!quake.wire) -> !quake.wire")
+        wire = result
+    if side == "before":
+        print(f"  %cx:2 = quake.x [{wire}] %b : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)")
+        wire = "%cx#0"
+print(f"  return {wire}, %cx#1 : !quake.wire, !quake.wire")
+print("}")

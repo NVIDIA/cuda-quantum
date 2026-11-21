@@ -138,10 +138,10 @@ void cudaq::opt::addConvertToLinearValues(OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createFactorQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());
   pm.addNestedPass<func::FuncOp>(createCableRoughIn());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(createMemToReg());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
   pm.addNestedPass<func::FuncOp>(createLinearCtrlRelations());
 }
 
@@ -168,18 +168,18 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
   pm.addPass(cudaq::opt::createQuakePropagateMetadata());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   cudaq::opt::createClassicalOptimizationPipeline(
       pm, std::nullopt, {options.allowEarlyExit}, std::nullopt,
       {options.disableLoopUnrolling});
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
   // Synthesis creates ApplyOps, which activate only when every control is |1>.
   // Expand negated controls into X conjugation before creating those calls.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
   pm.addPass(cudaq::opt::createApplySpecialization(
       {.constantPropagation = options.applyConstProp}));
@@ -218,7 +218,7 @@ static void addSharedCleanup(OpPassManager &funcPM,
                              double approximationTolerance) {
   cudaq::opt::QuakeSimplifyOptions cleanupOpts;
   cleanupOpts.threshold = approximationTolerance;
-  funcPM.addPass(createCanonicalizerPass());
+  funcPM.addPass(cudaq::opt::createCanonicalizeKernel());
   funcPM.addPass(cudaq::opt::createQuakeSimplify(cleanupOpts));
   funcPM.addPass(cudaq::opt::createDeadQuantumElimination());
 }
@@ -246,11 +246,11 @@ addCliffordTOptimization(OpPassManager &pm,
   cudaq::opt::addDecomposition(pm, {"U3ToRotations"});
   auto &funcPM = pm.nest<func::FuncOp>();
   // Merge the constants that the fusion creates.
-  funcPM.addPass(createCanonicalizerPass());
+  funcPM.addPass(cudaq::opt::createCanonicalizeKernel());
   // Fold phases before snapping to expose shared rotations, and again at the
   // end to capture the exact phase terms that Clifford+T normalization exposes.
   funcPM.addPass(cudaq::opt::createPhaseFolding());
-  funcPM.addPass(createCanonicalizerPass());
+  funcPM.addPass(cudaq::opt::createCanonicalizeKernel());
   cudaq::opt::QuakeSimplifyOptions snapOpts;
   snapOpts.threshold = options.approximationTolerance;
   snapOpts.rotationsToCliffordT = true;
@@ -259,7 +259,7 @@ addCliffordTOptimization(OpPassManager &pm,
   funcPM.addPass(cudaq::opt::createNormalizePhasePlacement());
   funcPM.addPass(cudaq::opt::createLowerPhase());
   funcPM.addPass(cudaq::opt::createNormalizeSingleQubitCliffordT());
-  funcPM.addPass(createCanonicalizerPass());
+  funcPM.addPass(cudaq::opt::createCanonicalizeKernel());
   funcPM.addPass(cudaq::opt::createDeadQuantumElimination());
   funcPM.addPass(cudaq::opt::createPhaseFolding());
 }
@@ -305,7 +305,7 @@ static void addCliffordTCleanup(OpPassManager &funcPM,
   funcPM.addPass(cudaq::opt::createPhaseFolding());
   funcPM.addPass(cudaq::opt::createNormalizePhasePlacement());
   funcPM.addPass(cudaq::opt::createLowerPhase());
-  funcPM.addPass(createCanonicalizerPass());
+  funcPM.addPass(cudaq::opt::createCanonicalizeKernel());
   funcPM.addPass(cudaq::opt::createDeadQuantumElimination());
 }
 
@@ -362,7 +362,7 @@ addCliffordTSynthesis(OpPassManager &pm,
   pm.addPass(createInlinerPass());
   // Erase the uncontrolled omega phase of each Clifford+T word.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
   if (options.level >= 2)
     addCliffordTCleanup(pm.nest<func::FuncOp>(),
                         options.approximationTolerance);
@@ -383,7 +383,7 @@ void cudaq::opt::addPhaseLifecycle(OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(mlir::createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createNormalizePhasePlacement());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
-  pm.addNestedPass<func::FuncOp>(mlir::createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
 }
 
 static void
@@ -393,7 +393,7 @@ createTargetDeployPipeline(OpPassManager &pm,
       pm, std::nullopt, std::nullopt, std::nullopt,
       {options.disableLoopUnrolling});
   cudaq::opt::addDecomposition(pm, {std::string("U3ToRotations")});
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecomposition());
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
@@ -411,7 +411,7 @@ static void registerTargetDeployPipeline() {
 }
 
 void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addPass(createSymbolDCEPass());
 }
@@ -453,12 +453,12 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createVariableCoalesce());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createShrinkWrap());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createInjectImplicitOutput());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
   pm.addPass(cudaq::opt::createLambdaLifting());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
   pm.addPass(cudaq::opt::createApplySpecialization());
@@ -480,7 +480,7 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   // cc.if folded away) and immediately before the canonicalize below, which
   // performs the actual veq_size folds this pass exposes.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createPyFrontendCleanup());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
   pm.addPass(cudaq::opt::createGetConcreteMatrix());
 }
 

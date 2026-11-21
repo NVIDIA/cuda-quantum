@@ -1382,6 +1382,17 @@ public:
       return;
     }
 
+    // Classical promotion has no work in a flat function without classical
+    // stack slots. Avoid building the reference and data-flow analyses for
+    // gate lists, which recur throughout both the AOT and JIT pipelines.
+    if (!quantumValues && func.getBody().hasOneBlock() &&
+        llvm::none_of(func.front(), [](Operation &op) {
+          return op.getNumRegions() || isa<cudaq::cc::AllocaOp>(op);
+        })) {
+      markAllAnalysesPreserved();
+      return;
+    }
+
     // 0) Check that the IR doesn't have high-level control flow present.
     if (failed(preconditionChecks()))
       return;

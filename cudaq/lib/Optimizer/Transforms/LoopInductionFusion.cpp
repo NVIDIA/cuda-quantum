@@ -316,6 +316,10 @@ struct LoopInductionFusionPass
 
   void runOnOperation() override {
     auto *op = getOperation();
+    if (!cudaq::opt::containsAnyOperationOfType<cudaq::cc::LoopOp>(op)) {
+      markAllAnalysesPreserved();
+      return;
+    }
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<FuseSecondaryInductions>(ctx);
