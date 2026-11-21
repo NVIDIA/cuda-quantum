@@ -64,6 +64,11 @@ on:
         required: false
         type: string
         description: The name of the GitHub environment within which to execute the workflow. A protected non-default environment should be specified when the workflow pushes images to the registry.
+      runner_cpus:
+        required: false
+        type: string
+        description: The number of CPU cores of the runner. Builds of LLVM take roughly proportionally less time on a larger runner.
+        default: '8'
     outputs:
       image_hash:
         description: "The name and digest of the docker image that was deployed to the registry, which can be used to retrieve it independently of any tag updates."
@@ -125,17 +130,18 @@ jobs:
           # Unique per call, so builds that don't write a cache never share a group.
           echo "concurrency_id=$(cat /proc/sys/kernel/random/uuid)" >> $GITHUB_OUTPUT
 
+          cpus=${{ inputs.runner_cpus }}
           if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
             # multi-platform builds get no platform tag
-            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu$cpus" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
             echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
-            echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
+            echo "runner=linux-arm64-cpu$cpus" >> $GITHUB_OUTPUT
           else
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
             echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
-            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu$cpus" >> $GITHUB_OUTPUT
           fi
 
           repo_owner=${{ github.repository_owner }}
