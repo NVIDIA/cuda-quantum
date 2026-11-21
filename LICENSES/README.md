@@ -16,6 +16,20 @@ for the corresponding copyright notices and source-code locations.
 | `LICENSE.yaml-cpp`    | MIT License                             | yaml-cpp, statically linked into `libCUDAQTargetCatalog`                                                       |
 | `LICENSE.ctre`        | Apache License 2.0 with LLVM Exceptions | `CTRE`, header-only library bundled by reflect-cpp                                                             |
 | `LICENSE.enchantum`   | MIT License                             | `enchantum`, header-only library bundled by reflect-cpp                                                        |
+| `LICENSE.openmpi`     | BSD 3-Clause License                    | OpenMPI (container images only)                                                                                |
+| `LICENSE.ucx`         | BSD 3-Clause License                    | UCX (container images only)                                                                                    |
+| `LICENSE.ucc`         | BSD 3-Clause License                    | UCC (container images only)                                                                                    |
+| `LICENSE.pmix`        | BSD 3-Clause License                    | PMIx (container images only)                                                                                   |
+| `LICENSE.slurm-pmi2`  | Argonne National Laboratory notice      | Slurm PMI2 client library (container images only)                                                              |
+| `LICENSE.gdrcopy`     | MIT License                             | GDRCopy user-space library (container images only)                                                             |
+| `LICENSE.uv-MIT`      | MIT License                             | uv (container images only), dual licensed with `LICENSE.uv-Apache-2.0`                                         |
+| `LICENSE.uv-Apache-2.0` | Apache License 2.0                    | uv (container images only)                                                                                     |
+
+The container images also ship MPI-related software that is built from
+unmodified upstream source (OpenMPI, UCX, UCC, PMIx, the Slurm PMI2 library,
+MUNGE and GDRCopy) and the `uv` tool. MUNGE is covered by `LICENSE.GPLv3` and
+`LICENSE.LGPLv3`. The CUDA-Q package sources image (`cuda-quantum-src`)
+contains the source of all of them.
 
 GMP and MPFR are unmodified, dynamically linked shared libraries used by the
 Clifford+T rotation synthesis library (`cudaq-synth`). They can be replaced with

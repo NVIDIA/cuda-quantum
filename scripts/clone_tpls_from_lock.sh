@@ -8,7 +8,8 @@
 #
 # Clones each tpl submodule at the commit given in the lock file into
 # SOURCES_ROOT/tpls/<lib>. Uses git clone --no-checkout --filter=tree:0
-# then fetch + checkout for minimal history.
+# then fetch + checkout for minimal history, and initializes nested submodules
+# (e.g. nanobind's robin_map). Exits non-zero if any library could not be cloned.
 #
 # Usage: SOURCES_ROOT=/sources .gitmodules=/path/.gitmodules lock_file=/path/tpls_lock.txt \
 #        ./scripts/clone_tpls_from_lock.sh
@@ -23,6 +24,7 @@ set -euo pipefail
 
 mkdir -p "${SOURCES_ROOT}/tpls"
 cd "${SOURCES_ROOT}/tpls"
+failures=0
 
 while IFS= read -r line || [ -n "$line" ]; do
   [ -z "$line" ] && continue
@@ -31,7 +33,8 @@ while IFS= read -r line || [ -n "$line" ]; do
   [ -z "$commit" ] || [ -z "$path" ] && continue
 
   repo="$(git config --file "$GITMODULES" --get "submodule.${path}.url")" || {
-    echo "WARN: no url for $path" >&2
+    echo "ERROR: no url for $path" >&2
+    failures=$((failures + 1))
     continue
   }
   lib="$(basename "$path")"
@@ -41,5 +44,8 @@ while IFS= read -r line || [ -n "$line" ]; do
   git clone --no-checkout --filter=tree:0 "$repo" "$dest" \
     && git -C "$dest" fetch --depth 1 origin "$commit" \
     && git -C "$dest" checkout --detach FETCH_HEAD \
-    || { echo "Failed to clone $lib" >&2; rm -rf "$dest" 2>/dev/null; true; }
+    && git -C "$dest" submodule update --init --recursive --depth 1 \
+    || { echo "Failed to clone $lib" >&2; rm -rf "$dest" 2>/dev/null; failures=$((failures + 1)); }
 done < "$lock_file"
+
+[ "$failures" -eq 0 ] || { echo "ERROR: $failures tpls could not be cloned" >&2; exit 1; }
