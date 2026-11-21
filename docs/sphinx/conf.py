@@ -125,6 +125,7 @@ exclude_patterns = [
     'examples/python/building_kernels.ipynb',
     'examples/python/measuring_kernels.ipynb',
     'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb',
+    'community/README.md',
     'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md',
     'examples/plugins/mlir_extension/README.md',
     'examples/python/dynamics/benchmarks/README.md',
