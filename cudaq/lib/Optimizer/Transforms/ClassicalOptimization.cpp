@@ -54,6 +54,8 @@ static bool isFlatKernel(func::FuncOp func) {
 // Only CanonicalizeKernel publishes this analysis, after the greedy driver
 // converges on a gate list. A pass that changes the IR invalidates it.
 struct CanonicalGateList {
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(CanonicalGateList)
+
   explicit CanonicalGateList(Operation *) {}
 };
 
