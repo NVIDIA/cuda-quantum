@@ -279,6 +279,7 @@ jobs:
         run: |
           build_config_id=${{ inputs.build_config_id }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}buildcache-cuda-quantum
+          registry_cache_root=$registry_cache
           if ${{ needs.metadata.outputs.pr_number != '' }}; then
             registry_cache=${registry_cache}-ci
           elif ${{ github.event_name == 'merge_group' }}; then
@@ -313,11 +314,13 @@ jobs:
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
           elif ${{ needs.metadata.outputs.pr_number != '' }}; then
             # for PRs, also push buildkit cache to the registry to speed up subsequent builds
-            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }},compression=zstd"
+            # mode=max keeps the layers of the build stages; without them any change to the
+            # final stage reruns the LLVM build, although its own cache key still matches.
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }},mode=max,ignore-error=true,compression=zstd"
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           elif ${{ github.event_name == 'merge_group' }}; then
             # for merge queues, also push buildkit cache to the registry to speed up subsequent builds
-            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base,compression=zstd"
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base,mode=max,ignore-error=true,compression=zstd"
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
           else 
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
@@ -334,19 +337,24 @@ jobs:
           } >> $GITHUB_OUTPUT
           {
             echo 'cache_from_registry<<multiline'
+            # A base branch without a cache of its own (e.g. releases/*) still matches main's layers.
+            bases="$registry_cache_base"
+            if [ "$registry_cache_base" != main ]; then bases="$bases main"; fi
             for platform_id in $platform_ids; do
               if ${{ needs.metadata.outputs.pr_number != '' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
               elif ${{ github.event_name == 'merge_group' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
               fi
-              echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
-              # Merge runs refresh the -ci caches; deployments would otherwise miss them.
-              if ${{ needs.metadata.outputs.pr_number == '' && github.event_name != 'merge_group' }}; then
-                echo "type=registry,ref=${registry_cache}-ci-${cache_id}-${platform_id}:${registry_cache_base}"
-              fi
-              echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
-            done
+              for base in $bases; do
+                echo "type=registry,ref=${registry_cache_root}-${cache_id}-${platform_id}:${base}"
+                # Merge runs refresh the -ci caches and the merge queue builds the merged tree before
+                # they do; each of PRs, the queue and deployments would otherwise miss the others.
+                echo "type=registry,ref=${registry_cache_root}-ci-${cache_id}-${platform_id}:${base}"
+                echo "type=registry,ref=${registry_cache_root}-merge-group-${cache_id}-${platform_id}:merge-group-${base}"
+                echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${base}"
+              done
+            done | awk '!seen[$0]++'
             echo multiline
           } >> $GITHUB_OUTPUT
 
