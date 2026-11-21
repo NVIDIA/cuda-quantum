@@ -75,6 +75,9 @@ matrix:
   - pyspelling.filters.context:
       context_visible_first: true
       delimiters:
+      # Community install metadata contains pip arguments, not prose.
+      - open: '^:install:\s+'
+        close: '$'
       # Ignore multiline content fenced by .. spellcheck-disable and .. spellcheck-enable
       - open: '(?s):spellcheck-disable:'
         close: ':spellcheck-enable:'

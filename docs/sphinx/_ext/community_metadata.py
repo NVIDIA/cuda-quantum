@@ -12,7 +12,7 @@ metadata is the field list at the top of that page, followed by the page title.
 This module has no Sphinx dependency so that it can be shared by the docs build
 (`community_projects.py`) and CI, which uses the command line interface:
 
-    python3 community_metadata.py <community_dir> [--json]
+    `python3 community_metadata.py <community_dir> [--json]`
 """
 
 import argparse

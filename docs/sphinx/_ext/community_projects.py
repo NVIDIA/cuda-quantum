@@ -19,7 +19,7 @@ metadata lives in the field list at the top of that page, e.g.::
     Project Title
     =============
 
-The `community-projects` directive builds the listing and the toctree from
+The `community-projects` directive builds the listing and the `toctree` from
 those pages, so adding a project never requires editing an existing file.
 """
 

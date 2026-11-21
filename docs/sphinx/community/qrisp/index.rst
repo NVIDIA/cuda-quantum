@@ -20,7 +20,7 @@ blocks of Hamiltonian simulation and other algorithms based on quantum signal
 processing.
 
 The ``@cudaq_kernel`` decorator from the
-`qrisp-cudaq <https://github.com/eclipse-qrisp/qrisp-cudaq>`__ backend compiles
+``qrisp-cudaq`` `backend <https://github.com/eclipse-qrisp/qrisp-cudaq>`__ compiles
 a Qrisp function to the Quake MLIR dialect and returns a native CUDA-Q kernel.
 The kernel is passed to ``cudaq.run`` like a kernel defined with
 ``@cudaq.kernel`` and runs on CUDA-Q's simulators, including the
@@ -30,17 +30,17 @@ results inside the kernel can be compiled with
 
 The `Qrisp CUDA-Q tutorial <https://qrisp.eu/general/tutorial/CUDAQ.html>`__
 and API reference are part of the Qrisp documentation at
-`qrisp.eu <https://www.qrisp.eu>`__.
+the `project website <https://www.qrisp.eu>`__.
 
 Installation
 ------------
 
 .. code-block:: bash
 
-   pip install "qrisp[cudaq]"
+    pip install "qrisp[cudaq]"
 
-This installs Qrisp together with qrisp-cudaq and CUDA-Q. It requires Python
-3.11 to 3.13 on Linux (x86_64 and aarch64) or on macOS with Apple silicon.
+This installs Qrisp together with ``qrisp-cudaq`` and CUDA-Q. It requires Python
+3.11 to 3.13 on Linux (``x86_64`` and ``aarch64``) or on macOS with Apple silicon.
 
 Example
 -------
