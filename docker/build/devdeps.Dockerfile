@@ -63,7 +63,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev python3-pip && \
     python3 -m pip install --no-cache-dir numpy --break-system-packages && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
+# configure_build.sh is deliberately not added: it only installs CUDA libraries,
+# and a new cuQuantum version must not rebuild LLVM.
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
