@@ -1990,6 +1990,34 @@ bool QuakeBridgeVisitor::lowerCall(clang::CallExpr *x, OperandStack &stack) {
   auto calleeOp = stack.pop();
 
   if (isInNamespace(func, "cudaq")) {
+    if (funcName == "frequencies") {
+      auto *decl = classDeclFromTemplateArgument(*func, 0, *astContext);
+      auto *call = decl ? findCallOperator(decl) : nullptr;
+      if (!call || !decl->isEmpty()) {
+        reportClangError(
+            x, mangler,
+            "prototype frequencies requires a stateless preparation functor");
+        return false;
+      }
+      auto name = generateCudaqKernelName(call);
+      auto type = convertType(call->getType());
+      if (!type)
+        return false;
+      getOrAddFunc(loc, name, cast<FunctionType>(*type));
+      SmallVector<Value> classical(args.begin() + 2, args.end());
+      auto ptr = cc::PointerType::get(builder.getI8Type());
+      return stack.push(cudaq::quake::FrequenciesOp::create(
+          builder, loc, ptr, FlatSymbolRefAttr::get(builder.getContext(), name),
+          args[1], classical));
+    }
+    if (funcName == "emit") {
+      Value value = args[0];
+      if (func->getParamDecl(0)->getType()->isIntegerType() &&
+          isa<cc::PointerType>(value.getType()))
+        value = cc::LoadOp::create(builder, loc, value);
+      cudaq::quake::EmitOp::create(builder, loc, value);
+      return true;
+    }
     // Check and see if this quantum operation is adjoint
     bool isAdjoint = false;
     bool isControl = false;

@@ -17,6 +17,8 @@ namespace cudaq {
 /// execution of CUDA-Q kernels on remotely hosted quantum computing
 /// services via a REST Client / Server interaction.
 class RemoteRESTQPU : public BaseRemoteRESTQPU {
+  void executeOutcomeProgram(const CompiledModule &program);
+
 public:
   // Overrides the `sample`/`observe` `launchKernel` overloads but inherits
   // others (eg `launchKernel(dem_policy)`) from `BaseRemoteRESTQPU`.

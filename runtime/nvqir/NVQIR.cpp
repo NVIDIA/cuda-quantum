@@ -8,6 +8,7 @@
 
 #include "CircuitSimulator.h"
 #include "NVQIRUtil.h"
+#include "NativeFrequencies.h"
 #include "QIRTypes.h"
 #include "common/AnalysisScope.h"
 #include "common/PluginUtils.h"
@@ -333,6 +334,26 @@ void quantumRTGenericRecordOutput(const char *type, VAL val,
 }
 
 extern "C" {
+
+// Prototype dispatch runs before preparation. Unsupported simulators and any
+// effective noise retain the compiler-generated independent-shot computation.
+bool __nvqir__frequencies_available(std::int64_t shots) {
+  auto *sim = nvqir::getCircuitSimulatorInternal();
+  auto *native = dynamic_cast<nvqir::NativeFrequencies *>(sim);
+  return shots > 0 && shots <= std::numeric_limits<int>::max() && native &&
+         native->supportsNativeFrequencies() &&
+         (!sim->getNoiseModel() || sim->getNoiseModel()->empty());
+}
+
+// The result is transferred to the outcome runtime, which takes ownership.
+void *__nvqir__frequencies_sample(Array *q, std::int64_t shots) {
+  if (!__nvqir__frequencies_available(shots))
+    throw std::runtime_error("native frequencies is unavailable");
+  auto *native = dynamic_cast<nvqir::NativeFrequencies *>(
+      nvqir::getCircuitSimulatorInternal());
+  return new cudaq::ExecutionResult{
+      native->frequencies(arrayToVectorSizeT(q), static_cast<int>(shots))};
+}
 
 void print_i64(const char *msg, std::size_t i) { printf(msg, i); }
 void print_f64(const char *msg, double f) { printf(msg, f); }

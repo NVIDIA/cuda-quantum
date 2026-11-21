@@ -776,7 +776,18 @@ cudaq::CompiledModule cudaq_internal::compiler::compileModule(
   assert(mlirArt.has_value() &&
          "Compiler::compileModule requires an MLIR artifact");
 
-  Compiler compiler(std::move(target), std::move(options));
+  Compiler compiler(target, options);
+  if (target.overrideAOTCompilation && !options.emulate &&
+      !options.emitResourceCounts && !options.skipTargetLoweringPipeline) {
+    auto module = CompiledModuleHelper::getMlirModuleOp(*mlirArt);
+    auto entry = module.lookupSymbol<func::FuncOp>(
+        cudaq::runtime::cudaqGenPrefixName + kernelName);
+    if (entry && entry->hasAttr("cudaq.frequencies.entry"))
+      if (auto source =
+              module->getAttrOfType<StringAttr>("cudaq.frequencies.source"))
+        return compiler.compileOutcomeProgram(
+            kernelName, source.getValue().str(), args, mlirArt->getContext());
+  }
   auto compiled = compiler.compile(kernelName, mlirArt->getOpaqueModulePtr(),
                                    args, isEntryPoint, mlirArt->getContext());
 

@@ -111,6 +111,14 @@ class Compiler {
                                                      bool disableQuantumOpts);
 
 public:
+  // Prototype: specialize the original explicit-outcome program without
+  // lowering it to local simulator calls. A REST adapter consumes this
+  // artifact.
+  cudaq::CompiledModule
+  compileOutcomeProgram(const std::string &kernelName,
+                        const std::string &source, cudaq::KernelArgs args,
+                        std::shared_ptr<mlir::MLIRContext> context);
+
   const cudaq::CompileTarget &getTarget() const { return target; }
   const cudaq::CompileOptions &getOptions() const { return options; }
 
@@ -141,6 +149,16 @@ public:
           cudaq::KernelArgs args, bool isEntryPoint,
           std::shared_ptr<mlir::MLIRContext> context = nullptr);
 };
+
+/// Native lowering performed by the ServerHelper adapter for one fixed-form
+/// frequencies -> emit program. The shot count comes from the program.
+struct ServerHelperFrequencies {
+  cudaq::CompiledModule circuit;
+  std::size_t shots;
+};
+ServerHelperFrequencies
+compileServerHelperFrequencies(const cudaq::CompiledModule &program,
+                               const cudaq::CompileTarget &target);
 
 /// Build the JIT pass pipeline for \p target. On failure, set \p diagnostic to
 /// say which stage failed and why, and return `nullopt`.

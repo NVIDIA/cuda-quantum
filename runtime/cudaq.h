@@ -190,6 +190,7 @@ int num_available_gpus();
 #include "cudaq/algorithms/sample.h"
 // Users should get run by default
 #include "cudaq/algorithms/run.h"
+#include "cudaq/algorithms/sample_vnext.h"
 // Users should get observe by default
 #include "cudaq/algorithms/observe.h"
 // Users should get get_state by default
