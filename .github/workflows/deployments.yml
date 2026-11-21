@@ -1237,7 +1237,7 @@ jobs:
   # macOS is slowest, so its assets are attached whenever it finishes.
   release_macos:
     name: Attach macOS assets to draft release
-    needs: [release_draft, macos_ci]
+    needs: [metadata, release_draft, macos_ci]
     if: >-
       ${{ !cancelled() && needs.release_draft.result == 'success'
       && needs.macos_ci.result == 'success' }}
@@ -1253,6 +1253,20 @@ jobs:
           path: wheelhouse
           merge-multiple: true
 
+      - name: Download macOS cudaq-edem wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cudaq-edem-*-darwin-arm64
+          path: wheelhouse
+          merge-multiple: true
+
+      - name: Download macOS cudaq-logical wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cudaq-logical-*-darwin-arm64
+          path: wheelhouse
+          merge-multiple: true
+
       - name: Download macOS installer
         uses: actions/download-artifact@v8
         with:
@@ -1264,8 +1278,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
           RELEASE_TAG: ${{ needs.release_draft.outputs.release_tag }}
+          PYTHON_VERSIONS: ${{ needs.metadata.outputs.python_versions }}
         run: |
           gh release upload "$RELEASE_TAG" -R ${{ github.repository }} installer/install_cuda_quantum* --clobber
+
+          # One cudaq-edem and cudaq-logical wheel for each supported Python version.
+          for version in $(jq -r '.[]' <<< "$PYTHON_VERSIONS"); do
+            for kind in edem logical; do
+              if ! compgen -G "wheelhouse/cudaq_${kind}-*-cp${version/./}-*.whl" > /dev/null; then
+                echo "::error::No macOS cudaq-${kind} wheel found for Python ${version}."
+                exit 1
+              fi
+            done
+          done
 
           mkdir wheelhouse-darwin
           mv -vf wheelhouse/* wheelhouse-darwin/
