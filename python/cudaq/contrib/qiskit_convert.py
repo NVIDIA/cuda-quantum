@@ -15,8 +15,10 @@ Note:
     This module requires ``qiskit`` to be installed.
 """
 
+import struct
 import warnings
 from dataclasses import dataclass
+from functools import lru_cache
 
 import numpy as np
 
@@ -405,7 +407,7 @@ def _emit_direct_operation(kernel, qubits, operation, op_name, q_indices,
         return False
 
     _validate_direct_operation(operation, op_name, q_indices, c_indices, spec)
-    params = _params(operation, op_name)
+    params = [qubits.angle(value) for value in _params(operation, op_name)]
     spec.emitter(kernel, qubits, q_indices, params)
     return True
 
@@ -482,6 +484,31 @@ def from_qiskit(qiskit_circuit):
     return _build_kernel(qiskit_circuit)
 
 
+class _CircuitOperands(dict):
+    """Reuse qubit references and constant angles in a straight-line circuit."""
+
+    def __init__(self, kernel, register):
+        super().__init__()
+        self.register = register
+
+        # Bound the number of Python handles on circuits with unique angles.
+        @lru_cache(maxsize=256)
+        def constant(bits):
+            with kernel.ctx, kernel.insertPoint, kernel.loc:
+                return kernel.getConstantFloat(struct.unpack("d", bits)[0])
+
+        self._constant = constant
+
+    def angle(self, value):
+        # MLIR distinguishes signed zeros and NaN payloads.
+        return self._constant(struct.pack("d", value))
+
+    def __missing__(self, index):
+        qubit = self.register[index]
+        self[index] = qubit
+        return qubit
+
+
 def _build_kernel(qiskit_circuit):
     """Convert a Qiskit `QuantumCircuit` into a CUDA-Q kernel.
 
@@ -493,7 +520,7 @@ def _build_kernel(qiskit_circuit):
 
     kernel = make_kernel()
     num_qubits = qiskit_circuit.num_qubits
-    qubits = kernel.qalloc(num_qubits)
+    qubits = _CircuitOperands(kernel, kernel.qalloc(num_qubits))
 
     for instruction in qiskit_circuit.data:
         _emit_instruction(kernel, qubits, instruction, qiskit_circuit, None, 0)
