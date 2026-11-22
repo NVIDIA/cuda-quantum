@@ -89,7 +89,7 @@ RUN --mount=type=cache,target=/root/.ccache,id=llvm-prereqs-ccache \
     cd /cuda-quantum && source scripts/llvm_ccache.sh && llvm_ccache_begin assets && \
     source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
-    bash scripts/install_prerequisites.sh -t llvm -e qrmi
+    bash scripts/install_prerequisites.sh -t llvm -e qrmi && true
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
@@ -126,7 +126,7 @@ RUN --mount=type=cache,target=/root/.ccache,id=llvm-prereqs-ccache \
     # the ones in the install_prerequisites.sh invocation in the prereqs stage
     # and in the python_build stage!
     LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;openmp;runtimes' \
-    bash scripts/install_prerequisites.sh -t llvm -e qrmi
+    bash scripts/install_prerequisites.sh -t llvm -e qrmi && true
 
 ## [C++ support]
 FROM prereqs AS cpp_build

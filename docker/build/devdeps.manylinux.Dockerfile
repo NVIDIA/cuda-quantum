@@ -97,7 +97,8 @@ RUN --mount=type=cache,target=/root/.ccache,id=llvm-ccache \
     LLVM_PROJECTS='clang;lld;mlir' LLVM_SOURCE=/llvm-project \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     LLVM_CMAKE_PATCHES=/tpls/customizations/llvm \
-    bash /scripts/build_llvm.sh -c Release -v
+    bash /scripts/build_llvm.sh -c Release -v && true
+    # The `&& true` keeps bash 4 from skipping the ccache save (see llvm_ccache.sh).
     # The build directory at /llvm-project/build is intentionally retained:
     # build_mlir_python_bindings.sh reuses it in the wheel container to add
     # the python-binding targets per Python version without recompiling

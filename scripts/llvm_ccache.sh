@@ -24,6 +24,8 @@
 # llvm_ccache_begin sets an EXIT trap that calls llvm_ccache_end, so that a
 # failed build also saves what it compiled. The exit status of the build is
 # never changed, and a problem with the registry never fails the build.
+# bash 4 (AlmaLinux 8) replaces itself with the last command of a `-c` string
+# and never runs the trap, so end the RUN with `&& true`.
 #
 # The configuration is a file of key=value lines:
 #   user=<registry user>             token=<registry token>
