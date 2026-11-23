@@ -19,8 +19,7 @@ include "cudaq/Optimizer/Dialect/Traits.td"
 def AnyLinearType : Type<CPred<"$_self.hasTrait<::mlir::TypeTrait::SSIType>()">,
                          "any linear (SSI) value type">;
 
-def AnyPointerType : Type<CPred<"isa<mlir::LLVM::LLVMPointerType,"
-                          "cudaq::cc::PointerType>($_self)">,
+def AnyPointerType : Type<CPred<"isa<cudaq::cc::PointerType>($_self)">,
                           "any pointer type">;
 
 def AnyCallableType : Type<CPred<"isa<cudaq::cc::CallableType, "

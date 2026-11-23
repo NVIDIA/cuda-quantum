@@ -94,8 +94,8 @@ __qpu__ std::vector<bool> branch_vec_test() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__K9.run.entry(
-// CHECK:           %[[VAL_23:.*]] = llvm.mlir.addressof @K9.run.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_2:.*]] = constant @K9.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_23:.*]] = cc.address_of @K9.run.kernelName : !cc.ptr<!llvm.array<7 x i8>>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_truth._Z15kernel_of_truthv.run()
 // CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__function_kernel_of_truth._Z15kernel_of_truthv() : () -> i1
@@ -106,8 +106,8 @@ __qpu__ std::vector<bool> branch_vec_test() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_truth._Z15kernel_of_truthv.run.entry()
-// CHECK:           %[[VAL_22:.*]] = llvm.mlir.addressof @function_kernel_of_truth._Z15kernel_of_truthv.run.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_1:.*]] = constant @function_kernel_of_truth._Z15kernel_of_truthv.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_22:.*]] = cc.address_of @function_kernel_of_truth._Z15kernel_of_truthv.run.kernelName : !cc.ptr<!llvm.array<50 x i8>>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_corn._Z14kernel_of_cornv.run()
 // CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__function_kernel_of_corn._Z14kernel_of_cornv() : () -> i32
@@ -119,8 +119,8 @@ __qpu__ std::vector<bool> branch_vec_test() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_corn._Z14kernel_of_cornv.run.entry()
-// CHECK:           %[[VAL_22:.*]] = llvm.mlir.addressof @function_kernel_of_corn._Z14kernel_of_cornv.run.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_1:.*]] = constant @function_kernel_of_corn._Z14kernel_of_cornv.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_22:.*]] = cc.address_of @function_kernel_of_corn._Z14kernel_of_cornv.run.kernelName : !cc.ptr<!llvm.array<48 x i8>>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffDiver.run()
 // CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__CliffDiver() : () -> f64
@@ -131,8 +131,8 @@ __qpu__ std::vector<bool> branch_vec_test() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffDiver.run.entry(
-// CHECK:           %[[VAL_23:.*]] = llvm.mlir.addressof @CliffDiver.run.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_2:.*]] = constant @CliffDiver.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_23:.*]] = cc.address_of @CliffDiver.run.kernelName : !cc.ptr<!llvm.array<15 x i8>>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_wheat._Z15kernel_of_wheatv.run()
 // CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__function_kernel_of_wheat._Z15kernel_of_wheatv() : () -> f32
@@ -144,8 +144,8 @@ __qpu__ std::vector<bool> branch_vec_test() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_wheat._Z15kernel_of_wheatv.run.entry()
-// CHECK:           %[[VAL_22:.*]] = llvm.mlir.addressof @function_kernel_of_wheat._Z15kernel_of_wheatv.run.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_1:.*]] = constant @function_kernel_of_wheat._Z15kernel_of_wheatv.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_22:.*]] = cc.address_of @function_kernel_of_wheat._Z15kernel_of_wheatv.run.kernelName : !cc.ptr<!llvm.array<50 x i8>>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffClimber.run()
 // CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__CliffClimber() : () -> i8
@@ -157,8 +157,8 @@ __qpu__ std::vector<bool> branch_vec_test() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffClimber.run.entry(
-// CHECK:           %[[VAL_23:.*]] = llvm.mlir.addressof @CliffClimber.run.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_2:.*]] = constant @CliffClimber.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_23:.*]] = cc.address_of @CliffClimber.run.kernelName : !cc.ptr<!llvm.array<17 x i8>>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_this_is_not_a_drill._Z19this_is_not_a_drillv.run()
 // CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__function_this_is_not_a_drill._Z19this_is_not_a_drillv() : () -> i64
@@ -169,8 +169,8 @@ __qpu__ std::vector<bool> branch_vec_test() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_this_is_not_a_drill._Z19this_is_not_a_drillv.run.entry()
-// CHECK:           %[[VAL_22:.*]] = llvm.mlir.addressof @function_this_is_not_a_drill._Z19this_is_not_a_drillv.run.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_1:.*]] = constant @function_this_is_not_a_drill._Z19this_is_not_a_drillv.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_22:.*]] = cc.address_of @function_this_is_not_a_drill._Z19this_is_not_a_drillv.run.kernelName : !cc.ptr<!llvm.array<58 x i8>>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_this_is_a_hammer._Z16this_is_a_hammerv.run()
 // CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__function_this_is_a_hammer._Z16this_is_a_hammerv() : () -> i16
@@ -182,8 +182,8 @@ __qpu__ std::vector<bool> branch_vec_test() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_this_is_a_hammer._Z16this_is_a_hammerv.run.entry()
-// CHECK:           %[[VAL_22:.*]] = llvm.mlir.addressof @function_this_is_a_hammer._Z16this_is_a_hammerv.run.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_1:.*]] = constant @function_this_is_a_hammer._Z16this_is_a_hammerv.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_22:.*]] = cc.address_of @function_this_is_a_hammer._Z16this_is_a_hammerv.run.kernelName : !cc.ptr<!llvm.array<52 x i8>>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffHanger.run()
 // CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
@@ -204,8 +204,8 @@ __qpu__ std::vector<bool> branch_vec_test() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffHanger.run.entry(
-// CHECK:           %[[VAL_23:.*]] = llvm.mlir.addressof @CliffHanger.run.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_2:.*]] = constant @CliffHanger.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_23:.*]] = cc.address_of @CliffHanger.run.kernelName : !cc.ptr<!llvm.array<16 x i8>>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_unary_test_list._Z15unary_test_listi.run(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32)
@@ -218,8 +218,8 @@ __qpu__ std::vector<bool> branch_vec_test() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_unary_test_list._Z15unary_test_listi.run.entry(
-// CHECK:           %[[VAL_28:.*]] = llvm.mlir.addressof @function_unary_test_list._Z15unary_test_listi.run.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_3:.*]] = constant @function_unary_test_list._Z15unary_test_listi.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_28:.*]] = cc.address_of @function_unary_test_list._Z15unary_test_listi.run.kernelName : !cc.ptr<!llvm.array<50 x i8>>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_unary_test_list2._Z16unary_test_list2i.run(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32)
@@ -231,8 +231,8 @@ __qpu__ std::vector<bool> branch_vec_test() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_unary_test_list2._Z16unary_test_list2i.run.entry(
-// CHECK:           %[[VAL_28:.*]] = llvm.mlir.addressof @function_unary_test_list2._Z16unary_test_list2i.run.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_3:.*]] = constant @function_unary_test_list2._Z16unary_test_list2i.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_28:.*]] = cc.address_of @function_unary_test_list2._Z16unary_test_list2i.run.kernelName : !cc.ptr<!llvm.array<52 x i8>>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_dyn_vec_test._Z12dyn_vec_testi.run(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32)
@@ -244,8 +244,8 @@ __qpu__ std::vector<bool> branch_vec_test() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_dyn_vec_test._Z12dyn_vec_testi.run.entry(
-// CHECK:           %[[VAL_23:.*]] = llvm.mlir.addressof @function_dyn_vec_test._Z12dyn_vec_testi.run.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_3:.*]] = constant @function_dyn_vec_test._Z12dyn_vec_testi.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_23:.*]] = cc.address_of @function_dyn_vec_test._Z12dyn_vec_testi.run.kernelName : !cc.ptr<!llvm.array<44 x i8>>
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_branch_vec_test._Z15branch_vec_testv.run()
 // CHECK:           %[[V0:.*]] = call @__nvqpp__mlirgen__function_branch_vec_test._Z15branch_vec_testv() : () -> !cc.sequence<i1>

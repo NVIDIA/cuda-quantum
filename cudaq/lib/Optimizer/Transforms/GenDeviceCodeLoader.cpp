@@ -212,15 +212,16 @@ public:
       auto insPt = builder.saveInsertionPoint();
       auto *initFunEntry = initFun.addEntryBlock(builder);
       builder.setInsertionPointToStart(initFunEntry);
-      auto devRef = LLVM::AddressOfOp::create(
-          builder, loc, cudaq::opt::factory::getPointerType(devName.getType()),
+      auto devRef = cudaq::cc::AddressOfOp::create(
+          builder, loc, cudaq::cc::PointerType::get(devName.getType()),
           devName.getSymName());
-      auto codeRef = LLVM::AddressOfOp::create(
-          builder, loc, cudaq::opt::factory::getPointerType(devCode.getType()),
+      auto codeRef = cudaq::cc::AddressOfOp::create(
+          builder, loc, cudaq::cc::PointerType::get(devCode.getType()),
           devCode.getSymName());
-      auto castDevRef = LLVM::BitcastOp::create(
+      // The callee is an `llvm.func`, so its operands are `!llvm.ptr`.
+      auto castDevRef = cudaq::cc::CastOp::create(
           builder, loc, cudaq::opt::factory::getPointerType(ctx), devRef);
-      auto castCodeRef = LLVM::BitcastOp::create(
+      auto castCodeRef = cudaq::cc::CastOp::create(
           builder, loc, cudaq::opt::factory::getPointerType(ctx), codeRef);
       LLVM::CallOp::create(builder, loc, TypeRange{},
                            cudaq::runtime::deviceCodeHolderAdd,
@@ -260,8 +261,8 @@ public:
           auto nameTy =
               cudaq::opt::factory::getStringType(ctx, kernName.size() + 1);
           // The original kernel's name was already created.
-          auto devRef = LLVM::AddressOfOp::create(
-              builder, loc, cudaq::opt::factory::getPointerType(nameTy),
+          auto devRef = cudaq::cc::AddressOfOp::create(
+              builder, loc, cudaq::cc::PointerType::get(nameTy),
               kernName + "CodeHolder.extract_device_name");
           auto ccPtr = cudaq::cc::CastOp::create(builder, loc, ptrTy, devRef);
           func::CallOp::create(builder, loc, TypeRange{},

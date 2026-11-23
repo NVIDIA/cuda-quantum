@@ -175,7 +175,7 @@ struct GeneralRewrite : OpConversionPattern<OP> {
         } else {
           // Controlled parameterized QIS functions need the generalized
           // invocation ABI so that their rotation parameters are forwarded.
-          auto ptrTy = cudaq::opt::factory::getPointerType(ctx);
+          auto ptrTy = cudaq::cc::PointerType::get(mlir::NoneType::get(ctx));
           Value fPtrVal =
               cudaq::cc::FuncToPtrOp::create(rewriter, loc, ptrTy, fVal);
           SmallVector<Value> callParamVals{

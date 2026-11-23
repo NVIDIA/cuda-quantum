@@ -134,10 +134,10 @@ func.func @custom_register(%closed: !quake.ref, %open: !quake.veq<?>,
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
 // CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
 // CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) attributes {"qir-api"} {
-// CHECK-NEXT:           %[[MLIR_0:.*]] = llvm.mlir.addressof @phase_matrix : !llvm.ptr
 // CHECK-NEXT:           %[[MLIR_1:.*]] = llvm.mlir.constant(1 : i64) : i64
 // CHECK-NEXT:           %[[MLIR_2:.*]] = llvm.mlir.addressof @__nvqir__qis__custom_unitary__ctl_values : !llvm.ptr
 // CHECK-NEXT:           %[[MLIR_3:.*]] = llvm.mlir.addressof @cstr.00 : !llvm.ptr
+// CHECK-NEXT:           %[[MLIR_0:.*]] = llvm.mlir.addressof @phase_matrix : !llvm.ptr
 // CHECK-NEXT:           %[[CALL_0:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[ARG1]]) : (!llvm.ptr) -> i64
 // CHECK-NEXT:           llvm.call @invokeCustomUnitaryWithControlValues(%[[MLIR_1]], %[[MLIR_1]], %[[MLIR_0]], %[[ARG2]], %[[MLIR_3]], %[[MLIR_2]], %[[MLIR_1]], %[[CALL_0]], %[[ARG1]], %[[ARG0]]) vararg(!llvm.func<void (i64, i64, ptr, ptr, ptr, ptr, ...)>) : (i64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr, i64, i64, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK-NEXT:           llvm.return
