@@ -88,15 +88,21 @@ def measure(value, *, basis="z", destructive=True, record=None):
     if isinstance(trace, UnplacedBuilder):
         # A logical program measures destructively in Z or X, as measure_z and
         # measure_x do.
-        if not destructive or record is not None:
+        passed = [
+            option for option, is_set in (
+                ("destructive=False", not destructive),
+                (f"record={record!r}", record is not None),
+            ) if is_set
+        ]
+        if passed:
             raise TypeError(
-                "cudaq.logical.measure(destructive=False) and record= are "
-                "available only in a P3 physical trace")
-        basis = str(basis).lower()
-        if basis not in ("x", "z"):
+                f"cudaq.logical.measure({', '.join(passed)}) is available "
+                "only in a P3 physical trace")
+        name = str(basis).lower()
+        if name not in ("x", "z"):
             raise ValueError(
                 f"logical measurement basis must be 'x' or 'z', got {basis!r}")
-        return trace.measure(basis, value)
+        return trace.measure(name, value)
     return trace.measure(value,
                          basis=basis,
                          destructive=destructive,

@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import re
 from hashlib import sha256
 from importlib import import_module
 import runpy
@@ -348,19 +349,26 @@ def test_generic_measure_in_a_logical_program(basis):
     assert text.count("qlx.measure") == 1
 
 
-@pytest.mark.parametrize("options, error, match", [
+@pytest.mark.parametrize("options, error, message", [
     ({
         "destructive": False
-    }, TypeError, "only in a P3 physical trace"),
+    }, TypeError, "cudaq.logical.measure(destructive=False) is available "
+     "only in a P3 physical trace"),
     ({
         "record": "m0"
-    }, TypeError, "only in a P3 physical trace"),
+    }, TypeError, "cudaq.logical.measure(record='m0') is available "
+     "only in a P3 physical trace"),
     ({
-        "basis": "y"
-    }, ValueError, "basis must be 'x' or 'z'"),
+        "destructive": False,
+        "record": "m0"
+    }, TypeError, "cudaq.logical.measure(destructive=False, record='m0') is "
+     "available only in a P3 physical trace"),
+    ({
+        "basis": "Y"
+    }, ValueError, "basis must be 'x' or 'z', got 'Y'"),
 ])
 def test_generic_measure_in_a_logical_program_rejects_physical_options(
-        options, error, match):
+        options, error, message):
     import cudaq.logical as cql
 
     @cql.program
@@ -368,7 +376,7 @@ def test_generic_measure_in_a_logical_program_rejects_physical_options(
         q = cql.allocate(1, state=cql.types.zero)
         return (cql.measure(q[0], **options),)
 
-    with pytest.raises(error, match=match):
+    with pytest.raises(error, match=re.escape(message)):
         cql.compile(generic)
 
 
