@@ -510,54 +510,59 @@ public:
     }
 
     Value laterAngle = parameters.front();
-    auto isEndpoint = [&](Operation *candidate) {
-      auto earlier = getSameActionEndpoint(later, candidate, matcher);
-      if (!earlier)
-        return false;
-      auto earlierParameters = earlier.getParameters();
-      return earlierParameters.size() == 1 &&
-             earlierParameters.front().getType() == laterAngle.getType();
-    };
-    const bool unaryRz = isa<cudaq::quake::RzOp>(later.getOperation()) &&
-                         later.getControls().empty() &&
-                         later.getTargets().size() == 1;
-    Operation *match = unaryRz ? matcher.find_prior_rz(later, isEndpoint)
-                               : matcher.find_nearest(later, isEndpoint);
-    if (!match)
+    // Collect the whole chain of combinable rotations before rewriting. Each
+    // link commutes back to the previous one, and commutation does not depend
+    // on the angle, so every link may move forward to `later`. Folding the
+    // chain in one rewrite searches each stretch of the block only once.
+    SmallVector<QOP> chain;
+    for (QOP anchor = later;;) {
+      Operation *match =
+          matcher.find_nearest(anchor, [&](Operation *candidate) {
+            auto earlier = getSameActionEndpoint(anchor, candidate, matcher);
+            if (!earlier)
+              return false;
+            auto earlierParameters = earlier.getParameters();
+            return earlierParameters.size() == 1 &&
+                   earlierParameters.front().getType() == laterAngle.getType();
+          });
+      if (!match)
+        break;
+      anchor = cast<QOP>(match);
+      // An exact inverse of `later` cancels without creating a new angle.
+      if (chain.empty() && later.isAdj() != anchor.isAdj() &&
+          haveExactValue(laterAngle, anchor.getParameters().front())) {
+        cancelPair(anchor, later, rewriter);
+        ++combineStat;
+        return success();
+      }
+      chain.push_back(anchor);
+    }
+    if (chain.empty())
       return failure();
 
-    auto earlier = cast<QOP>(match);
-    Value earlierAngle = earlier.getParameters().front();
-    if (later.isAdj() != earlier.isAdj() &&
-        haveExactValue(laterAngle, earlierAngle)) {
-      cancelPair(earlier, later, rewriter);
-      ++combineStat;
-      return success();
-    }
-
-    Operation *combinedRotation;
     {
       OpBuilder::InsertionGuard guard(rewriter);
       rewriter.setInsertionPoint(later);
-      Value combinedAngle = createCombinedRotationAngle(
-          rewriter, later.getLoc(), laterAngle, later.isAdj(), earlierAngle,
-          earlier.isAdj());
+      Value combinedAngle = laterAngle;
+      bool combinedIsAdjoint = later.isAdj();
+      for (QOP earlier : chain) {
+        LLVM_DEBUG(llvm::dbgs() << "combined: " << earlier << '\n');
+        combinedAngle = createCombinedRotationAngle(
+            rewriter, later.getLoc(), combinedAngle, combinedIsAdjoint,
+            earlier.getParameters().front(), earlier.isAdj());
+        combinedIsAdjoint = false;
+      }
 
-      LLVM_DEBUG(llvm::dbgs() << "combined: " << earlier << '\n'
-                              << later << '\n');
-      auto combined = rewriter.replaceOpWithNewOp<QOP>(
+      LLVM_DEBUG(llvm::dbgs() << "with: " << later << '\n');
+      [[maybe_unused]] auto combined = rewriter.replaceOpWithNewOp<QOP>(
           later, later.getResultTypes(), UnitAttr{}, ValueRange{combinedAngle},
           later.getControls(), later.getTargets(),
           later.getNegatedQubitControlsAttr());
-      combinedRotation = combined;
       LLVM_DEBUG(llvm::dbgs() << "into: " << combined << '\n');
     }
-    Operation *upperBound = earlier->getPrevNode();
-    Value input = unaryRz ? earlier.getTargets().front() : Value{};
-    eraseOrForward(earlier, rewriter);
-    if (unaryRz)
-      matcher.remember_rz_frontier(combinedRotation, upperBound, input);
-    ++combineStat;
+    for (QOP earlier : chain)
+      eraseOrForward(earlier, rewriter);
+    combineStat += chain.size();
     return success();
   }
 

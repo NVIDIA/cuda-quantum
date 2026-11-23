@@ -7,9 +7,12 @@
 // ========================================================================== //
 
 // RUN: split-file %s %t
-// RUN: %python %t/generate.py | cudaq-opt --phase-folding | FileCheck %s
+// RUN: %python %t/generate.py > %t/deep.qke
+// RUN: sh -c "ulimit -s 256 && cudaq-opt --phase-folding %t/deep.qke" | FileCheck %s
 
-// The CNOT seeds both walks. Each chain of S gates folds to the identity.
+// Deep wires must not recurse: the 256 KB stack limit overflows a recursive
+// walk at this depth. The CNOT seeds both walks. Each chain of S gates folds
+// to the identity.
 // CHECK-LABEL: func.func @deep_wire
 // CHECK-NOT: quake.s
 // CHECK: quake.x
@@ -20,7 +23,7 @@
 print("func.func @deep_wire(%a: !quake.wire, %b: !quake.wire) -> (!quake.wire, !quake.wire) {")
 wire = "%a"
 for side in ["before", "after"]:
-    for i in range(131072):
+    for i in range(8000):
         result = f"%{side}{i}"
         print(f"  {result} = quake.s {wire} : (!quake.wire) -> !quake.wire")
         wire = result

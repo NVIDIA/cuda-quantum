@@ -252,7 +252,25 @@ def CheckKernelCalls : Pass<"check-kernel-calls", "mlir::func::FuncOp"> {
 }
 
 def CanonicalizeKernel : Pass<"canonicalize-kernel", "mlir::func::FuncOp"> {
-  let summary = "Canonicalize quantum kernels with region cleanup for structured IR.";
+  let summary = "Canonicalize a kernel, skipping region cleanup when it is flat.";
+  let description = [{
+    A drop-in replacement for MLIR's `canonicalize` pass in the CUDA-Q
+    pipelines. It applies the same registered canonicalization patterns and
+    folders with the same greedy driver, so it accepts any IR `canonicalize`
+    accepts and is expected to produce the same output.
+
+    The only difference is cost. When the function is a single block whose
+    operations have no regions (the common shape of a large quantum kernel
+    after inlining and unrolling), there are no unreachable blocks, block
+    arguments, or cyclic dead uses to clean up, so the driver's region
+    simplification is disabled. Dead operations are still erased by the
+    worklist. Any other function, including one in which a rewrite introduces
+    control flow, is processed with region simplification exactly as
+    `canonicalize` does.
+
+    The pass has no options. Use `canonicalize` when its pattern filters or
+    iteration limits are needed.
+  }];
 }
 
 def ClassicalOptimization : Pass<"classical-optimization"> {

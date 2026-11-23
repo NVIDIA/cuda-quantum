@@ -51,23 +51,18 @@ static bool isFlatKernel(func::FuncOp func) {
                        [](Operation &op) { return op.getNumRegions() != 0; });
 }
 
-// Only CanonicalizeKernel publishes this analysis, after the greedy driver
-// converges on a gate list. A pass that changes the IR invalidates it.
-struct CanonicalGateList {
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(CanonicalGateList)
-
-  explicit CanonicalGateList(Operation *) {}
-};
-
+// A flat kernel holding only quantum operations, their qubit plumbing, and
+// constants has no classical control flow or memory left to optimize.
 static bool isGateList(func::FuncOp func) {
-  return llvm::all_of(func.front(), [](Operation &op) {
+  return isFlatKernel(func) && llvm::all_of(func.front(), [](Operation &op) {
 #define QUAKE_OP(name) cudaq::quake::name
-    return isa<QUANTUM_OPS(QUAKE_OP), cudaq::quake::AllocaOp,
-               cudaq::quake::DeallocOp, cudaq::quake::ExtractRefOp,
-               cudaq::quake::EvinceOp, cudaq::quake::NullWireOp,
-               cudaq::quake::SinkOp, arith::ConstantOp, func::ReturnOp>(op);
+           return isa<QUANTUM_OPS(QUAKE_OP), cudaq::quake::AllocaOp,
+                      cudaq::quake::DeallocOp, cudaq::quake::ExtractRefOp,
+                      cudaq::quake::EvinceOp, cudaq::quake::NullWireOp,
+                      cudaq::quake::SinkOp, arith::ConstantOp, func::ReturnOp>(
+               op);
 #undef QUAKE_OP
-  });
+         });
 }
 
 class CanonicalizeKernelPass
@@ -78,10 +73,6 @@ class CanonicalizeKernelPass
   }
 
   void runOnOperation() override {
-    if (getCachedAnalysis<CanonicalGateList>()) {
-      markAllAnalysesPreserved();
-      return;
-    }
     auto func = getOperation();
     GreedyRewriteConfig config;
     config.setUseTopDownTraversal(true);
@@ -90,14 +81,11 @@ class CanonicalizeKernelPass
         flat ? GreedySimplifyRegionLevel::Disabled
              : GreedySimplifyRegionLevel::Normal);
     bool changed = false;
-    auto converged = applyPatternsGreedily(func, patterns, config, &changed);
+    (void)applyPatternsGreedily(func, patterns, config, &changed);
     // A rewrite can introduce control flow into an initially flat kernel.
     if (changed && flat && !isFlatKernel(func)) {
       config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Normal);
       (void)applyPatternsGreedily(func, patterns, config);
-    } else if (flat && succeeded(converged) && isGateList(func)) {
-      (void)getAnalysis<CanonicalGateList>();
-      markAnalysesPreserved<CanonicalGateList>();
     }
     if (!changed)
       markAllAnalysesPreserved();
@@ -122,9 +110,12 @@ public:
       signalPassFailure();
       return;
     }
-    // The additional patterns only match classical control flow or memory.
-    // CSE still runs when requested and may expose new canonicalizations.
-    bool changed = !getCachedAnalysis<CanonicalGateList>() && optimize(op);
+    // The additional patterns only match classical control flow or memory, so
+    // a gate list needs nothing beyond the canonicalization that precedes this
+    // pass in every pipeline. CSE still runs when requested and may expose new
+    // canonicalizations.
+    auto kernel = dyn_cast<func::FuncOp>(op);
+    bool changed = !(kernel && isGateList(kernel)) && optimize(op);
     if (cseAndRepeat) {
       DominanceInfo dominance(op);
       IRRewriter rewriter(&getContext());
