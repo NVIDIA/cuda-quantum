@@ -72,6 +72,10 @@ repos:
       - id: check-toml
       - id: check-json
         exclude: '\.devcontainer/devcontainer\.json$'  # Uses JSONC format with comments
+      - id: trailing-whitespace
+        files: '\.td$'
+      - id: end-of-file-fixer
+        files: '\.td$'
       # TODO: Enable in a separate PR to fix all files
       # - id: end-of-file-fixer
       #   exclude: '^(cudaq/test|targettests|tpls)/'
@@ -98,6 +102,12 @@ repos:
         files: '^\.github/pre-commit/spelling_allowlist.*\.txt$'
         pass_filenames: false
         stages: [pre-commit, pre-push]
+
+      - id: passes-sorted
+        name: Check passes are in alphabetical order
+        entry: bash scripts/pre-commit/check_passes_sorted.sh
+        language: system
+        files: '^cudaq/include/cudaq/Optimizer/(CodeGen|Transforms)/Passes\.td$'
 
       # Spell checking (runs on push)
       - id: spellcheck
