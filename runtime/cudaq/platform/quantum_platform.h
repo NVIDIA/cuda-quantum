@@ -18,7 +18,6 @@
 #include "common/RuntimeTarget.h"
 #include "common/SampleResult.h"
 #include "common/ThunkInterface.h"
-#include "nvqpp_interface.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
@@ -328,7 +327,6 @@ public:
 /// Entry point for the auto-generated kernel execution path. TODO: Needs to be
 /// tied to the quantum platform instance somehow. Note that the compiler cannot
 /// provide that information.
-extern "C" {
 // Client-server (legacy) interface.
 [[nodiscard]] KernelThunkResultType
 altLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
@@ -340,6 +338,13 @@ altLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
 streamlinedLaunchKernel(const char *kernelName,
                         const std::vector<void *> &rawArgs);
 
+// Launch a kernel from an already compiled module. In some environments (e.g.,
+// Python), the ModuleOp of the source can be provided immediately to be
+// launched, unlike with statically compiled systems (C++).
+[[nodiscard]] KernelThunkResultType
+streamlinedLaunchModule(const CompiledModule &compiled,
+                        const std::vector<void *> &rawArgs);
+
 // Hybrid of the client-server and streamlined approaches. Letting JIT
 // compilation happen either early or late and can handle return values from
 // each kernel launch.
@@ -347,7 +352,6 @@ streamlinedLaunchKernel(const char *kernelName,
 hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
                    std::uint64_t argsSize, std::uint64_t resultOffset,
                    const std::vector<void *> &rawArgs);
-} // extern "C"
 } // namespace cudaq
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)

@@ -25,6 +25,7 @@ add_dependencies(nvq++
   cudaq-translate
   cudaq-target-resolve
   fixup-linkage
+  cudaq-nvqpp-capi-static
 )
 configure_file("nvq++.in"
                "${CUDAQ_BINARY_DIR}/bin/nvq++" 

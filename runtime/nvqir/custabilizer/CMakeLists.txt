@@ -21,15 +21,10 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 add_library(${LIBRARY_NAME} SHARED CustabilizerCircuitSimulator.cpp)
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/nvqir-custabilizer.map "
-{
-  global:
-    getCircuitSimulator;
-    getCircuitSimulator_custabilizer;
-  local:
-    *;
-};
-")
+# Only export the simulator entry points (using shared CMake utility)
+cudaq_export_only_symbols(${LIBRARY_NAME}
+  getCircuitSimulator
+  getCircuitSimulator_custabilizer)
 
 target_include_directories(${LIBRARY_NAME}
   PUBLIC
@@ -47,10 +42,6 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-logger
     cuStabilizer::cuStabilizer
     CUDA::cudart_static)
-
-target_link_options(${LIBRARY_NAME}
-  PRIVATE
-    "-Wl,--version-script,${CMAKE_CURRENT_BINARY_DIR}/nvqir-custabilizer.map")
 
 set_target_properties(${LIBRARY_NAME}
   PROPERTIES

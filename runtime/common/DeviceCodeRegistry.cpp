@@ -32,8 +32,7 @@ static std::shared_mutex globalRegistryMutex;
 
 static std::vector<std::pair<std::string, std::string>> quakeRegistry;
 
-void cudaq::registry::__cudaq_deviceCodeHolderAdd(const char *key,
-                                                  const char *code) {
+void cudaq::registry::deviceCodeHolderAdd(const char *key, const char *code) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   auto it = std::find_if(quakeRegistry.begin(), quakeRegistry.end(),
                          [&](const auto &pair) { return pair.first == key; });
@@ -59,22 +58,21 @@ static std::map<std::string, std::string> lambdaNames;
 static std::map<void *, std::pair<const char *, void *>> linkableKernelRegistry;
 static std::map<std::string, void *> runnableKernelRegistry;
 
-void cudaq::registry::cudaqRegisterKernelName(const char *kernelName) {
+void cudaq::registry::registerKernelName(const char *kernelName) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   kernelRegistry.emplace_back(kernelName);
 }
 
 static std::map<std::string, std::pair<void *, void *>> callbackRegistry;
 
-void cudaq::registry::cudaqRegisterCallbackName(const char *name,
-                                                void *unmarshalFunc,
-                                                void *devFunc) {
+void cudaq::registry::registerCallbackName(const char *name,
+                                           void *unmarshalFunc, void *devFunc) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   callbackRegistry[name] = {unmarshalFunc, devFunc};
 }
 
-void cudaq::registry::__cudaq_registerRunnableKernel(const char *kernelName,
-                                                     void *runnableEntry) {
+void cudaq::registry::registerRunnableKernel(const char *kernelName,
+                                             void *runnableEntry) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   runnableKernelRegistry.insert({std::string{kernelName}, runnableEntry});
 }
@@ -94,9 +92,9 @@ cudaq::registry::__cudaq_getRunnableKernel(const std::string &kernelName) {
   return result;
 }
 
-void cudaq::registry::__cudaq_registerLinkableKernel(void *hostSideFunc,
-                                                     const char *kernelName,
-                                                     void *deviceSideFunc) {
+void cudaq::registry::registerLinkableKernel(void *hostSideFunc,
+                                             const char *kernelName,
+                                             void *deviceSideFunc) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   linkableKernelRegistry.insert(
       {hostSideFunc, std::pair{kernelName, deviceSideFunc}});
@@ -114,15 +112,7 @@ const char *cudaq::registry::getLinkableKernelNameOrNull(std::intptr_t key) {
   return (iter != linkableKernelRegistry.end()) ? iter->second.first : nullptr;
 }
 
-const char *cudaq::registry::__cudaq_getLinkableKernelName(std::intptr_t key) {
-  auto *result = getLinkableKernelNameOrNull(key);
-  if (!result)
-    throw std::runtime_error("kernel key is not present: kernel name unknown");
-  return result;
-}
-
-void *
-cudaq::registry::__cudaq_getLinkableKernelDeviceFunction(std::intptr_t key) {
+void *cudaq::registry::getLinkableKernelDeviceFunction(std::intptr_t key) {
   if (key & 1) {
     // This is a python kernel decorator. The key is the function address | 1.
     // Python kernel decorators are never initialized via .init sections and are
@@ -135,15 +125,13 @@ cudaq::registry::__cudaq_getLinkableKernelDeviceFunction(std::intptr_t key) {
   throw std::runtime_error("kernel key is not present: kernel unknown");
 }
 
-void cudaq::registry::cudaqRegisterArgsCreator(const char *name,
-                                               char *rawFunctor) {
+void cudaq::registry::registerArgsCreator(const char *name, char *rawFunctor) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   argsCreators.insert(
       {std::string(name), reinterpret_cast<KernelArgsCreator>(rawFunctor)});
 }
 
-void cudaq::registry::cudaqRegisterLambdaName(const char *name,
-                                              const char *value) {
+void cudaq::registry::registerLambdaName(const char *name, const char *value) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   lambdaNames.insert({std::string(name), std::string(value)});
 }

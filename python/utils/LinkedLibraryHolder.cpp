@@ -165,89 +165,92 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
       // NVQIR may already be loaded from a separate core installation.
       {fmt::format("libnvqir.{}", libSuffix), RTLD_GLOBAL},
       {cudaqLibPath / fmt::format("libcudaq.{}", libSuffix), RTLD_GLOBAL}};
+  {
+    cudaqLibPath / fmt::format("libcudaq-nvqpp-capi.{}", libSuffix), RTLD_GLOBAL
+  }
+};
 
-  const char *dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
-  if (dynlibs_var != nullptr) {
-    std::string dynlib;
-    std::stringstream ss((std::string(dynlibs_var)));
-    while (std::getline(ss, dynlib, ':')) {
-      CUDAQ_INFO("Init: add dynamic library path {}.", dynlib);
-      libPaths.emplace_back(dynlib, RTLD_LOCAL);
+const char *dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
+if (dynlibs_var != nullptr) {
+  std::string dynlib;
+  std::stringstream ss((std::string(dynlibs_var)));
+  while (std::getline(ss, dynlib, ':')) {
+    CUDAQ_INFO("Init: add dynamic library path {}.", dynlib);
+    libPaths.emplace_back(dynlib, RTLD_LOCAL);
+  }
+}
+
+// Load all the defaults
+{
+  ScopedTraceWithContext("dlopen_core_and_dynlibs");
+  for (auto &[p, scope] : libPaths) {
+    void *libHandle = dlopen(p.string().c_str(), scope | RTLD_NOW);
+    if (libHandle) {
+      libHandles.emplace(p.string(), libHandle);
+    } else {
+      char *error_msg = dlerror();
+      CUDAQ_INFO("Failed to load '{}': ERROR '{}'", p.string(),
+                 (error_msg ? std::string(error_msg) : "unknown."));
     }
   }
+} // end dlopen_core_and_dynlibs
 
-  // Load all the defaults
-  {
-    ScopedTraceWithContext("dlopen_core_and_dynlibs");
-    for (auto &[p, scope] : libPaths) {
-      void *libHandle = dlopen(p.string().c_str(), scope | RTLD_NOW);
-      if (libHandle) {
-        libHandles.emplace(p.string(), libHandle);
-      } else {
-        char *error_msg = dlerror();
-        CUDAQ_INFO("Failed to load '{}': ERROR '{}'", p.string(),
-                   (error_msg ? std::string(error_msg) : "unknown."));
-      }
+// directory_iterator ordering is unspecified, so sort it to make it
+// repeatable and consistent.
+std::vector<std::filesystem::directory_entry> entries;
+for (const auto &entry : std::filesystem::directory_iterator{cudaqLibPath})
+  entries.push_back(entry);
+std::sort(entries.begin(), entries.end(),
+          [](const std::filesystem::directory_entry &a,
+             const std::filesystem::directory_entry &b) {
+            return a.path().filename() < b.path().filename();
+          });
+
+{
+  ScopedTraceWithContext("scan_simulator_filenames");
+  // Discover available simulators and platforms by scanning filenames.
+  // Libraries are loaded on demand in getSimulator()/getPlatform() rather
+  // than eagerly here, to avoid the cost of dlopen'ing all .so files at
+  // import time.
+  for (const auto &library : entries) {
+    auto path = library.path();
+    auto fileName = path.filename().string();
+    if (fileName.find("nvqir-") != std::string::npos) {
+      auto simName = std::regex_replace(fileName, std::regex("libnvqir-"), "");
+      simName = std::regex_replace(simName, std::regex("-"), "_");
+      auto idx = simName.find_last_of(".");
+      simName = simName.substr(0, idx);
+      simulatorLibPaths.emplace(simName, path);
+      availableSimulators.push_back(simName);
+      CUDAQ_INFO("Found simulator plugin {}.", simName);
+    } else if (fileName.find("cudaq-platform-") != std::string::npos) {
+      auto platformName =
+          std::regex_replace(fileName, std::regex("libcudaq-platform-"), "");
+      platformName = std::regex_replace(platformName, std::regex("-"), "_");
+      auto idx = platformName.find_last_of(".");
+      platformName = platformName.substr(0, idx);
+      platformLibPaths.emplace(platformName, path);
+      availablePlatforms.push_back(platformName);
+      CUDAQ_INFO("Found platform plugin {}.", platformName);
     }
-  } // end dlopen_core_and_dynlibs
+  }
+} // end scan_simulator_filenames
 
-  // directory_iterator ordering is unspecified, so sort it to make it
-  // repeatable and consistent.
-  std::vector<std::filesystem::directory_entry> entries;
-  for (const auto &entry : std::filesystem::directory_iterator{cudaqLibPath})
-    entries.push_back(entry);
-  std::sort(entries.begin(), entries.end(),
-            [](const std::filesystem::directory_entry &a,
-               const std::filesystem::directory_entry &b) {
-              return a.path().filename() < b.path().filename();
-            });
+// Capture CUDAQ_DEFAULT_SIMULATOR now so it is visible when
+// resolveDefaultTarget() runs later during deferred initialization.
+// This must happen at import time because the env var may be set
+// programmatically before import (e.g., in test files).
+auto envSim = std::getenv("CUDAQ_DEFAULT_SIMULATOR");
+if (envSim)
+  cachedDefaultSimulatorEnv = envSim;
 
-  {
-    ScopedTraceWithContext("scan_simulator_filenames");
-    // Discover available simulators and platforms by scanning filenames.
-    // Libraries are loaded on demand in getSimulator()/getPlatform() rather
-    // than eagerly here, to avoid the cost of dlopen'ing all .so files at
-    // import time.
-    for (const auto &library : entries) {
-      auto path = library.path();
-      auto fileName = path.filename().string();
-      if (fileName.find("nvqir-") != std::string::npos) {
-        auto simName =
-            std::regex_replace(fileName, std::regex("libnvqir-"), "");
-        simName = std::regex_replace(simName, std::regex("-"), "_");
-        auto idx = simName.find_last_of(".");
-        simName = simName.substr(0, idx);
-        simulatorLibPaths.emplace(simName, path);
-        availableSimulators.push_back(simName);
-        CUDAQ_INFO("Found simulator plugin {}.", simName);
-      } else if (fileName.find("cudaq-platform-") != std::string::npos) {
-        auto platformName =
-            std::regex_replace(fileName, std::regex("libcudaq-platform-"), "");
-        platformName = std::regex_replace(platformName, std::regex("-"), "_");
-        auto idx = platformName.find_last_of(".");
-        platformName = platformName.substr(0, idx);
-        platformLibPaths.emplace(platformName, path);
-        availablePlatforms.push_back(platformName);
-        CUDAQ_INFO("Found platform plugin {}.", platformName);
-      }
-    }
-  } // end scan_simulator_filenames
-
-  // Capture CUDAQ_DEFAULT_SIMULATOR now so it is visible when
-  // resolveDefaultTarget() runs later during deferred initialization.
-  // This must happen at import time because the env var may be set
-  // programmatically before import (e.g., in test files).
-  auto envSim = std::getenv("CUDAQ_DEFAULT_SIMULATOR");
-  if (envSim)
-    cachedDefaultSimulatorEnv = envSim;
-
-  // Default to qpp-cpu. The full target resolution (GPU detection, simulator
-  // loading) is deferred to first use via the NVQIR callback or getTarget().
-  defaultTarget = "qpp-cpu";
-  currentTarget = defaultTarget;
-  activeHolder = this;
-  __nvqir__setSimulatorInitCallback(lazyInitSimulator);
-  setQuantumPlatformInitCallback(lazyInitSimulator);
+// Default to qpp-cpu. The full target resolution (GPU detection, simulator
+// loading) is deferred to first use via the NVQIR callback or getTarget().
+defaultTarget = "qpp-cpu";
+currentTarget = defaultTarget;
+activeHolder = this;
+__nvqir__setSimulatorInitCallback(lazyInitSimulator);
+setQuantumPlatformInitCallback(lazyInitSimulator);
 }
 
 LinkedLibraryHolder::~LinkedLibraryHolder() {
