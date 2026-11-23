@@ -30,9 +30,9 @@ dependencies = [
   'nvidia-cublas ~= 13.0; sys_platform != "darwin"',
   'nvidia-curand ~= 10.4; sys_platform != "darwin"',
   'nvidia-cusparse ~= 12.6; sys_platform != "darwin"',
-  'nvidia-cuda-runtime ~= 13.0; sys_platform != "darwin"',
+  'nvidia-cuda-runtime ~= 13.4; sys_platform != "darwin"',
   'nvidia-cusolver ~= 12.0; sys_platform != "darwin"',
-  'nvidia-cuda-nvrtc ~= 13.0; sys_platform != "darwin"',
+  'nvidia-cuda-nvrtc ~= 13.4; sys_platform != "darwin"',
   'cupy-cuda13x ~= 13.6.0; sys_platform != "darwin" and python_version < "3.14"',
   'cupy-cuda13x >= 14.0.0; sys_platform != "darwin" and python_version >= "3.14"',
 ]

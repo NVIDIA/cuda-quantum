@@ -23,10 +23,10 @@ on:
       cuda_version:
         type: choice
         description: CUDA version
-        default: '13.0'
+        default: '13.4'
         options:
           - '12.6'
-          - '13.0'
+          - '13.4'
       cache_base:
         type: string
         description: Branch to seed the dev-environment registry cache from
@@ -64,7 +64,7 @@ on:
       cuda_version:
         type: string
         description: CUDA version
-        default: '13.0'
+        default: '13.4'
       cache_base:
         type: string
         description: Branch to seed the dev-environment registry cache from
@@ -204,7 +204,7 @@ jobs:
         with:
           platform: ${{ inputs.platform }}
           python_version: ${{ inputs.python_version }}
-          cuda_version: '13.0'
+          cuda_version: '13.4'
 
       # CUDA 12 requests only: find the CUDA 13 runtime build whose core is
       # published with the CUDA 12 frontend. CUDA 13 requests already get
@@ -380,10 +380,10 @@ jobs:
     with:
       platforms: ${{ inputs.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      build_config_id: cu13.0-gcc12
+      build_config_id: cu13.4-gcc12
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ contains(inputs.platform, 'arm') && '_aarch64' || '_x86_64' }}:latest
-        cuda_version=13.0
+        cuda_version=13.4
         toolchain=gcc12
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
@@ -407,7 +407,7 @@ jobs:
     with:
       platform: ${{ inputs.platform }}
       python_version: ${{ inputs.python_version }}
-      cuda_version: '13.0'
+      cuda_version: '13.4'
       devdeps_image: ${{ needs.core_wheeldeps.outputs.image_hash }}
       devdeps_cache: ${{ needs.core_wheeldeps.outputs.cache_key }}
       devdeps_archive: ${{ needs.core_wheeldeps.outputs.tar_archive }}

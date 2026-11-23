@@ -75,7 +75,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cuda: ['12.6', '13.0']
+        cuda: ['12.6', '13.4']
         release: ['cudaq', 'cudaqx', 'cudaq-decoding']
     permissions:
       contents: read
@@ -310,7 +310,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cuda: ['12.6', '13.0']
+        cuda: ['12.6', '13.4']
     permissions:
       contents: read
       packages: write

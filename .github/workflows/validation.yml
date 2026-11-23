@@ -387,7 +387,7 @@ jobs:
     with:
       cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
       python_versions: "['3.11', '3.12', '3.13', '3.14']"
-      cuda_versions: "['', '12.6', '13.0']"
+      cuda_versions: "['', '12.6', '13.4']"
       wheel_artifacts: 'pycudaq-*-manylinux-*'
       logical_wheel_artifacts: 'cudaq_logical-*'
       edem_wheel_artifacts: 'cudaq_edem-*'
@@ -481,7 +481,7 @@ jobs:
     strategy:
       matrix:
         os_image: ['redhat/ubi8:8.10', 'ubuntu:24.04']
-        cuda_version: ['12.6', '13.0']
+        cuda_version: ['12.6', '13.4']
         # The per-backend examples take ~90 min in one job; each shard runs a subset.
         # Few shards, since every one needs a GPU runner and those are scarce.
         shard: [core, tensornet]
@@ -794,9 +794,9 @@ jobs:
 
     strategy:
       matrix:
-        # Version of the conda 'nvidia/label/cuda' channel (13.0.0 lacks proper
-        # CUDA 13 packages, so use later channels).
-        cuda_version_conda: ['12.6.0', '13.0.2']
+        # Version of the conda 'nvidia/label/cuda' channel. The channel has no
+        # 13.4 label, so use the latest 13.3 one.
+        cuda_version_conda: ['12.6.0', '13.3.1']
       fail-fast: false
 
     # Environment is required to access environment secrets.
