@@ -1,0 +1,72 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --split-input-file %s | FileCheck %s
+
+// The linear arguments of cc.if may have any linear (SSI) type, not only
+// !quake.wire. An argument written without a type is a !quake.wire, so the
+// existing form is unchanged; any other type is annotated.
+
+// A wire argument prints without a type, as it always has.
+func.func @wire(%c: i1, %w: !quake.wire) -> !quake.wire {
+  %r = cc.if(%c) ((%a = %w)) -> (!quake.wire) {
+    %h = quake.h %a : (!quake.wire) -> !quake.wire
+    cc.continue %h : !quake.wire
+  } else {
+    cc.continue %a : !quake.wire
+  }
+  return %r : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @wire(
+// CHECK:           cc.if(%{{.*}}) ((%{{.*}} = %{{.*}})) -> !quake.wire {
+
+// -----
+
+// A cable argument is annotated.
+func.func @cable(%c: i1, %x: !quake.cable<2>) -> !quake.cable<2> {
+  %r = cc.if(%c) ((%a = %x : !quake.cable<2>)) -> (!quake.cable<2>) {
+    cc.continue %a : !quake.cable<2>
+  } else {
+    cc.continue %a : !quake.cable<2>
+  }
+  return %r : !quake.cable<2>
+}
+
+// CHECK-LABEL:   func.func @cable(
+// CHECK:           cc.if(%{{.*}}) ((%{{.*}} = %{{.*}} : !quake.cable<2>)) -> !quake.cable<2> {
+
+// -----
+
+// Writing the default type explicitly is accepted and printed without it.
+func.func @explicit_wire(%c: i1, %w: !quake.wire) -> !quake.wire {
+  %r = cc.if(%c) ((%a = %w : !quake.wire)) -> (!quake.wire) {
+    cc.continue %a : !quake.wire
+  } else {
+    cc.continue %a : !quake.wire
+  }
+  return %r : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @explicit_wire(
+// CHECK:           cc.if(%{{.*}}) ((%{{.*}} = %{{.*}})) -> !quake.wire {
+
+// -----
+
+// Arguments of different linear types in one list.
+func.func @mixed(%c: i1, %w: !quake.wire, %x: !quake.cable<3>) -> (!quake.wire, !quake.cable<3>) {
+  %r:2 = cc.if(%c) ((%a = %w, %b = %x : !quake.cable<3>)) -> (!quake.wire, !quake.cable<3>) {
+    cc.continue %a, %b : !quake.wire, !quake.cable<3>
+  } else {
+    cc.continue %a, %b : !quake.wire, !quake.cable<3>
+  }
+  return %r#0, %r#1 : !quake.wire, !quake.cable<3>
+}
+
+// CHECK-LABEL:   func.func @mixed(
+// CHECK:           cc.if(%{{.*}}) ((%{{.*}} = %{{.*}}, %{{.*}} = %{{.*}} : !quake.cable<3>)) -> (!quake.wire, !quake.cable<3>) {

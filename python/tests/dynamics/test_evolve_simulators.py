@@ -731,6 +731,30 @@ def test_evolve_preserves_order_for_asymmetric_two_qubit_hamiltonian(target):
     assert np.isclose(result.expectation_values()[0][0].expectation(), -1.0)
 
 
+@pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])
+@pytest.mark.parametrize(
+    "steps", [np.arange(3), np.arange(3, dtype=np.float32)])
+def test_evolve_numpy_scalar_steps(target, steps):
+    """Schedule steps from NumPy integer or `float32` arrays are numeric."""
+
+    cudaq.reset_target()
+    cudaq.set_target(target)
+
+    psi0 = np.array([1.0, 0.0], dtype=np.complex128)
+    if target == "density-matrix-cpu":
+        psi0 = np.outer(psi0, np.conj(psi0))
+
+    save = cudaq.IntermediateResultSave.EXPECTATION_VALUE
+    result = cudaq.evolve(0.5 * spin.x(0), {0: 2},
+                          Schedule(steps, ["time"]),
+                          cudaq.State.from_data(psi0),
+                          observables=[spin.z(0)],
+                          store_intermediate_results=save)
+
+    z = [exp_vals[0].expectation() for exp_vals in result.expectation_values()]
+    np.testing.assert_allclose(z, np.cos(np.arange(3)), atol=1e-12)
+
+
 def test_evolve_canonicalizes_local_collapse_operator():
     """Local collapse operators should act on the requested full-system qubit."""
 

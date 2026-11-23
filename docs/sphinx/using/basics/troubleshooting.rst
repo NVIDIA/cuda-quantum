@@ -78,17 +78,16 @@ process during JIT compilation or report duplicate LLVM command-line options.
 For affected releases, import Numba or Triton before importing CUDA-Q. If the
 application cannot control import order, run CUDA-Q in a separate process.
 
-CUDA-Q keeps its LLVM-dependent runtime and backend libraries local. Importing
-``cudaq`` exposes only the LLVM-free kernel runtime (``libnvqir``,
-``libcudaq-common``, ``libcudaq-kernel-runtime``, and their dependencies) globally.
-This allows shared libraries containing ``nvq++``-compiled kernels to be loaded
-with ``dlopen`` or ``ctypes.CDLL`` after importing CUDA-Q, even when compiled with
-``nvq++ -c -fPIC`` and linked without explicit CUDA-Q dependencies. Kernel launches
-use the active CUDA-Q target without exposing the compiler's LLVM symbols
-globally.
+CUDA-Q keeps its LLVM-dependent compiler and backend libraries local. Importing
+``cudaq`` exposes only the LLVM-free core runtime (``libnvqir``, ``libcudaq``,
+``libcudaq-em-default``, and their dependencies) globally. This allows shared
+libraries containing ``nvq++``-compiled kernels to be loaded with ``dlopen`` or
+``ctypes.CDLL`` after importing CUDA-Q, even when compiled with
+``nvq++ -c -fPIC`` and linked without explicit CUDA-Q dependencies. Kernel
+launches use the active CUDA-Q target without exposing the compiler's LLVM
+symbols globally.
 
-External native extensions using C++ runtime APIs must still link to the CUDA-Q
-libraries they use, including ``cudaq::cudaq-em-default`` when using the default
-execution manager. Compiler plugins should link to ``cudaq::MLIR``. They must not
-rely on ``import cudaq`` placing those dependencies in the process-wide symbol
-scope.
+External native extensions using other CUDA-Q libraries must still link to the
+libraries they use. Compiler plugins should link to ``cudaq::MLIR``. They must
+not rely on ``import cudaq`` placing those dependencies in the process-wide
+symbol scope.
