@@ -365,7 +365,7 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
     tar -xzf "perl-${PERL_VERSION}.tar.gz" && cd "perl-${PERL_VERSION}"
     ./Configure -des -Dcc="$CC" -Dprefix="$PREREQS_BUILD_DIR/perl5"
     find . -name "*.PL" -exec touch {} + # normalize WSL clock skew
-    make CC="$CC" && make install
+    make -j$(getconf _NPROCESSORS_ONLN) CC="$CC" && make install
     cd ..
     # Additional perl modules can be installed with cpan, e.g.
     # PERL_MM_USE_DEFAULT=1 $PREREQS_BUILD_DIR/perl5/bin/cpan App::cpanminus
@@ -384,7 +384,8 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
       --prefix="$OPENSSL_INSTALL_PREFIX" zlib \
       --with-zlib-include="$ZLIB_INSTALL_PREFIX/include" \
       --with-zlib-lib="$ZLIB_INSTALL_PREFIX/lib"
-    make CC="$CC" CXX="$CXX" && make install
+    # The documentation takes minutes to install and is not used.
+    make -j$(getconf _NPROCESSORS_ONLN) CC="$CC" CXX="$CXX" && make install_sw install_ssldirs
 
     popd
     remove_temp_installs
@@ -488,7 +489,8 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
 
     aws_service_components='braket s3-crt sts'
     git clone --filter=tree:0 "${AWS_SDK_CPP_URL}" aws-sdk-cpp
-    cd aws-sdk-cpp && git checkout "${AWS_SDK_CPP_REF}" && git submodule update --init --recursive
+    cd aws-sdk-cpp && git checkout "${AWS_SDK_CPP_REF}" && \
+      git submodule update --init --recursive --jobs 8
 
     # FIXME: CUDAQ VERSION?
     mkdir build && cd build
