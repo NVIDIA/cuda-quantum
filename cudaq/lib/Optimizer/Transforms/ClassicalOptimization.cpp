@@ -16,7 +16,6 @@
 #include "mlir/Transforms/RegionUtils.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_CANONICALIZEKERNEL
 #define GEN_PASS_DEF_CLASSICALOPTIMIZATION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
@@ -42,8 +41,7 @@ static RewritePatternSet canonicalizationPatterns(MLIRContext *ctx) {
   return patterns;
 }
 
-// A straight-line SSA block has no unreachable blocks, removable block
-// arguments, or cyclic dead uses. The greedy worklist removes dead leaf ops.
+// A single block whose operations have no nested regions.
 static bool isFlatKernel(func::FuncOp func) {
   return func.getBody().hasOneBlock() &&
          isa<func::ReturnOp>(func.front().getTerminator()) &&
@@ -64,35 +62,6 @@ static bool isGateList(func::FuncOp func) {
 #undef QUAKE_OP
          });
 }
-
-class CanonicalizeKernelPass
-    : public cudaq::opt::impl::CanonicalizeKernelBase<CanonicalizeKernelPass> {
-  LogicalResult initialize(MLIRContext *ctx) override {
-    patterns = FrozenRewritePatternSet(canonicalizationPatterns(ctx));
-    return success();
-  }
-
-  void runOnOperation() override {
-    auto func = getOperation();
-    GreedyRewriteConfig config;
-    config.setUseTopDownTraversal(true);
-    bool flat = isFlatKernel(func);
-    config.setRegionSimplificationLevel(
-        flat ? GreedySimplifyRegionLevel::Disabled
-             : GreedySimplifyRegionLevel::Normal);
-    bool changed = false;
-    (void)applyPatternsGreedily(func, patterns, config, &changed);
-    // A rewrite can introduce control flow into an initially flat kernel.
-    if (changed && flat && !isFlatKernel(func)) {
-      config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Normal);
-      (void)applyPatternsGreedily(func, patterns, config);
-    }
-    if (!changed)
-      markAllAnalysesPreserved();
-  }
-
-  FrozenRewritePatternSet patterns;
-};
 
 /// The classical optimization pass performs a number of classical
 /// optimizations greedily until changes no more changes can be done.
@@ -224,7 +193,7 @@ struct ClassicalOptimizationPipelineOptions
 
 static void createClassicalOptPipeline(
     OpPassManager &pm, const ClassicalOptimizationPipelineOptions &options) {
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCanonicalizeKernel());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createSROA());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());

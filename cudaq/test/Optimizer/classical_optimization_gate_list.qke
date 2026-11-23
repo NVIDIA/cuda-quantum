@@ -1,0 +1,26 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --pass-pipeline='builtin.module(inline,classical-optimization-pipeline)' %s | FileCheck %s
+
+// Inlining can duplicate measurement register names in a canonical gate list.
+func.func private @measure(%q: !quake.ref) {
+  %m = quake.mz %q name "out" : (!quake.ref) -> !quake.measure
+  return
+}
+
+func.func @measure_twice(%q: !quake.ref) {
+  func.call @measure(%q) : (!quake.ref) -> ()
+  quake.h %q : (!quake.ref) -> ()
+  func.call @measure(%q) : (!quake.ref) -> ()
+  return
+}
+// CHECK-LABEL: func.func @measure_twice
+// CHECK: quake.mz {{.*}} name "out%0"
+// CHECK: quake.h
+// CHECK: quake.mz {{.*}} name "out%1"
