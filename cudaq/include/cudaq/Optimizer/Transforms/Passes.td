@@ -27,13 +27,13 @@ def AddDeallocs : Pass<"add-dealloc", "mlir::func::FuncOp"> {
 def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
   let summary = "Add measurement operations.";
   let description = [{
-    This pass adds measurement operations to the kernels that have no 
+    This pass adds measurement operations to the kernels that have no
     measurements.
 
-    This pass should be run in the sampling context, so as to comply with the 
-    spec - If no measurements appear in the kernel, then the `__global__` 
-    register is formed with implicit measurements being added for all the 
-    qubits defined in the kernel, and the measurements all occur at the end of 
+    This pass should be run in the sampling context, so as to comply with the
+    spec - If no measurements appear in the kernel, then the `__global__`
+    register is formed with implicit measurements being added for all the
+    qubits defined in the kernel, and the measurements all occur at the end of
     the kernel.
 
   }];
@@ -639,7 +639,7 @@ def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {
     When `basis` is specified, the pass automatically selects the set of rewrite
     patterns, ensuring every gate is decomposed to the specified basis in a
     unique way.
-    
+
     #### Pattern selection
 
     Pattern selection can be controlled with the following optional settings:
@@ -818,9 +818,9 @@ def ExpandControlNegations :
     "Replace all `Ops` with negated controls with normal controls and `XOp`s.";
 
   let description = [{
-    For every quantum operation with a negated control, replace that operation 
+    For every quantum operation with a negated control, replace that operation
     with an X operation on the control qubit, the controlled operation with
-    positive polarity, and a final X operation on the control qubit. 
+    positive polarity, and a final X operation on the control qubit.
   }];
 }
 
@@ -930,7 +930,7 @@ def Fuse1QToU3 : Pass<"fuse-1q-to-u3", "mlir::func::FuncOp"> {
        to the Euler decomposition that minimizes cost: either `ZXZ` or `XZX`.
        Which decomposition was used is recorded in the `euler` attribute of the
        `u3` gate.
-    
+
     A sequence that contains a gate outside `basis` is always replaced by a u3
     op. Any other sequence is replaced only when the decomposition of the u3
     is strictly cheaper than the sequence, based on the chosen cost function:
@@ -944,7 +944,7 @@ def Fuse1QToU3 : Pass<"fuse-1q-to-u3", "mlir::func::FuncOp"> {
     `basis` entries use the `basis-conversion` syntax: `u3` and `u3(n)` both
     cover an uncontrolled `u3`, but `x(1)` does not cover an uncontrolled `x`.
     An empty `basis` covers every gate.
-    
+
     The pass does not try forms with `ry` on the outside, such as
     `ry`-`rx`-`ry`. They sometimes save one rotation in the sequence, but
     `ry` commutes with neither the control nor the target of a controlled
@@ -1064,11 +1064,11 @@ def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::ModuleOp"> {
   let summary =
     "Replace the unitary matrix generator function with a constant matrix.";
   let description = [{
-    Given a custom operation whose generator attribute is another function 
+    Given a custom operation whose generator attribute is another function
     within the module, such that if `LiftArrayAlloc` pass has run, there will
-    be a global constant within the module which holds the constant matrix 
+    be a global constant within the module which holds the constant matrix
     representation for the custom operation. This pass will find that global
-    variable and update the custom operation to directly point to it. 
+    variable and update the custom operation to directly point to it.
 
     Example:
     ```mlir
@@ -1977,7 +1977,7 @@ def QubitResetBeforeReuse :
    result is 1 to initialize the reference back into the just measured state
    afterward. This is only activated when the measured reference is to be
    reused.
-   
+
    Note: if the measurement is already accompanied by a reset, this pass does
    not add any additional operations.
   }];
@@ -2305,7 +2305,7 @@ def StatePreparation : Pass<"state-prep", "mlir::func::FuncOp"> {
 // UnitarySynthesis is a module pass because it may modify the `ModuleOp` by
 // adding new `FuncOp`(s).
 def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::ModuleOp"> {
-  let summary = 
+  let summary =
     "Convert a custom quantum operation into sequence of native quantum gates.";
   let description = [{
     Given a custom quantum operation specified in the form of its concrete
@@ -2325,7 +2325,7 @@ def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::ModuleOp"> {
     ```mlir
     func.func private @__nvqpp__mlirgen__custom_x_generator_1.kernel(%arg0:
       !quake.ref) {
-        %cst = arith.constant 1.5707963267948966 : f64        
+        %cst = arith.constant 1.5707963267948966 : f64
         quake.ry (%cst) %arg0 : (f64, !quake.ref) -> ()
         ...
         return
