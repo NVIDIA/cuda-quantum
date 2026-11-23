@@ -39,7 +39,7 @@ module attributes {cc.python_uniqued = "bell..0xabc"} {
     return
   }
   func.func private @malloc(i64) -> !cc.ptr<i8>
-  llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
+  llvm.func @__cudaq_registerLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 }
 """
 

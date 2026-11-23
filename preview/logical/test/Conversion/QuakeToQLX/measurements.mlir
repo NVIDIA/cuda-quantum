@@ -80,11 +80,11 @@ module {
     quake.sink %wires : !quake.wire
     return %2 : i1
   }
-  func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
-  func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
+  func.func private @__cudaq_registerArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
+  func.func private @__cudaq_registerKernelName(!cc.ptr<i8>)
   func.func private @malloc(i64) -> !cc.ptr<i8>
-  func.func private @__nvqpp_vector_bool_free_temporary_initlists(!cc.ptr<i8>)
-  func.func private @__nvqpp_cleanup_arrays()
+  func.func private @__cudaq_vectorBoolFreeTemporaryInitLists(!cc.ptr<i8>)
+  func.func private @__nvqir_cleanupArrays()
   llvm.mlir.global external constant @flip..0x1.kernelName("flip..0x1\00") {addr_space = 0 : i32}
   func.func @flip..0x1.returnOffset() -> i64 {
     %c0_i64 = arith.constant 0 : i64
@@ -93,7 +93,7 @@ module {
   func.func @flip..0x1.thunk(%arg0: !cc.ptr<i8>, %arg1: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
     %c0_i64 = arith.constant 0 : i64
     %0 = call @__nvqpp__mlirgen__flip..0x1() {no_inline} : () -> i1
-    call @__nvqpp_cleanup_arrays() : () -> ()
+    call @__nvqir_cleanupArrays() : () -> ()
     %1 = cc.cast %arg0 : (!cc.ptr<i8>) -> !cc.ptr<i1>
     cc.store %0, %1 : !cc.ptr<i1>
     %2 = cc.cast %c0_i64 : (i64) -> !cc.ptr<i8>
@@ -110,7 +110,7 @@ module {
     %3 = cc.cast %0 : (!cc.ptr<i8>) -> i64
     %4 = arith.cmpi ne, %3, %c0_i64 : i64
     cc.if(%4) {
-      func.call @__nvqpp_vector_bool_free_temporary_initlists(%0) : (!cc.ptr<i8>) -> ()
+      func.call @__cudaq_vectorBoolFreeTemporaryInitLists(%0) : (!cc.ptr<i8>) -> ()
     }
     cc.store %2, %arg1 : !cc.ptr<!cc.ptr<i8>>
     return %1 : i64
@@ -119,9 +119,9 @@ module {
     %f = func.constant @flip..0x1.argsCreator : (!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64
     %0 = llvm.mlir.addressof @flip..0x1.kernelName : !llvm.ptr
     %1 = cc.cast %0 : (!llvm.ptr) -> !cc.ptr<i8>
-    func.call @cudaqRegisterKernelName(%1) : (!cc.ptr<i8>) -> ()
+    func.call @__cudaq_registerKernelName(%1) : (!cc.ptr<i8>) -> ()
     %2 = cc.func_ptr %f : ((!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64) -> !cc.ptr<i8>
-    func.call @cudaqRegisterArgsCreator(%1, %2) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+    func.call @__cudaq_registerArgsCreator(%1, %2) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
     llvm.return
   }
   llvm.mlir.global_ctors ctors = [@flip..0x1.kernelRegFunc], priorities = [17 : i32], data = [#llvm.zero]
