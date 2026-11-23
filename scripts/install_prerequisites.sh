@@ -80,7 +80,9 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
   elif [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
     echo "Installing toolchain ${toolchain}..."
     if [ "$toolchain" = "llvm" ] && [ ! -d "$LLVM_STAGE1_BUILD" ]; then
-      llvm_stage1_tmpdir="$(mktemp -d)"
+      # A fixed path: ccache keys on the include paths of this compiler's libc++.
+      llvm_stage1_tmpdir="$HOME/.llvm-stage1"
+      rm -rf "$llvm_stage1_tmpdir" && mkdir -p "$llvm_stage1_tmpdir"
       LLVM_STAGE1_BUILD="$llvm_stage1_tmpdir/llvm"
       echo "Installing LLVM stage-1 build in $LLVM_STAGE1_BUILD."
     fi
