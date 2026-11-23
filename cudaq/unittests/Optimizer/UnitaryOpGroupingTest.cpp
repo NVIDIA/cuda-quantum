@@ -103,7 +103,7 @@ static MeasurementOp createWireMeasurement(OpBuilder &builder, Location loc,
 template <typename MeasurementOp>
 static MeasurementOp createRefMeasurement(OpBuilder &builder, Location loc,
                                           Value target) {
-  auto measureTy = cudaq::cc::MeasureHandleType::get(builder.getContext());
+  auto measureTy = cudaq::quake::MeasureType::get(builder.getContext());
   return MeasurementOp::create(builder, loc, TypeRange{measureTy},
                                ValueRange{target}, StringAttr{});
 }
@@ -160,7 +160,7 @@ protected:
 //   {"cudaq-kernel"} {
 //     quake.h %q0 : (!quake.ref) -> ()
 //     quake.x %q1 : (!quake.ref) -> ()
-//     %m = quake.mz %q0 : (!quake.ref) -> !cc.measure_handle
+//     %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
 //     quake.z %q0 : (!quake.ref) -> ()
 //     %c0 = arith.constant 0 : i64
 //     quake.rx (%theta) %q1 : (f64, !quake.ref) -> ()
@@ -185,7 +185,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsSimpleFunction) {
 
   auto *h = cudaq::quake::HOp::create(builder, loc, q0).getOperation();
   auto *x = cudaq::quake::XOp::create(builder, loc, q1).getOperation();
-  auto measureTy = cudaq::cc::MeasureHandleType::get(&context);
+  auto measureTy = cudaq::quake::MeasureType::get(&context);
   auto *mz = cudaq::quake::MzOp::create(builder, loc, TypeRange{measureTy},
                                         ValueRange{q0}, StringAttr{})
                  .getOperation();
@@ -234,7 +234,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, GroupsSimpleFunction) {
 //     cc.if(%flag) {
 //       quake.h %q0 : (!quake.ref) -> ()
 //       quake.x %q1 : (!quake.ref) -> ()
-//       %m = quake.mz %q0 : (!quake.ref) -> !cc.measure_handle
+//       %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
 //       cc.continue
 //     } else {
 //       quake.z %q0 : (!quake.ref) -> ()
@@ -1055,7 +1055,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
   Value vec = func.getArgument(0);
   Value q = func.getArgument(1);
   Type measureVecTy =
-      cudaq::cc::SequenceType::get(cudaq::cc::MeasureHandleType::get(&context));
+      cudaq::cc::SequenceType::get(cudaq::quake::MeasureType::get(&context));
   auto *h = cudaq::quake::HOp::create(builder, loc, q).getOperation();
   auto *mz = cudaq::quake::MzOp::create(builder, loc, TypeRange{measureVecTy},
                                         ValueRange{vec}, StringAttr{})
@@ -1092,7 +1092,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, MxAndMyAreTrailingDelimiters) {
   builder.setInsertionPointToEnd(&func.front());
 
   Value q = func.getArgument(0);
-  auto measureTy = cudaq::cc::MeasureHandleType::get(&context);
+  auto measureTy = cudaq::quake::MeasureType::get(&context);
   auto *h = cudaq::quake::HOp::create(builder, loc, q).getOperation();
   auto *mx = cudaq::quake::MxOp::create(builder, loc, TypeRange{measureTy},
                                         ValueRange{q}, StringAttr{})

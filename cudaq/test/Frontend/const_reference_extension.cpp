@@ -31,7 +31,7 @@ __qpu__ std::uint64_t foo() {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qubit_values_to_integer.
-// CHECK-SAME:      (%[[VAL_0:.*]]: !cc.sequence<!cc.measure_handle>) -> i64 attributes {"cudaq-kernel", no_this}
+// CHECK-SAME:      (%[[VAL_0:.*]]: !cc.sequence<!quake.measure>) -> i64 attributes {"cudaq-kernel", no_this}
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = cc.alloca i64
@@ -41,15 +41,15 @@ __qpu__ std::uint64_t foo() {
 // CHECK:             cc.store %[[VAL_2]], %[[VAL_4]] : !cc.ptr<i64>
 // CHECK:             cc.loop while {
 // CHECK:               %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
-// CHECK:               %[[VAL_6:.*]] = cc.sequence_size %[[VAL_0]] : (!cc.sequence<!cc.measure_handle>) -> i64
+// CHECK:               %[[VAL_6:.*]] = cc.sequence_size %[[VAL_0]] : (!cc.sequence<!quake.measure>) -> i64
 // CHECK:               %[[VAL_7:.*]] = arith.cmpi ult, %[[VAL_5]], %[[VAL_6]] : i64
 // CHECK:               cc.condition %[[VAL_7]]
 // CHECK:             } do {
 // CHECK:               %[[VAL_8:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
-// CHECK:               %[[VAL_9:.*]] = cc.sequence_data %[[VAL_0]] : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
-// CHECK:               %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_9]]{{\[}}%[[VAL_8]]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.ptr<!cc.measure_handle>
-// CHECK:               %[[VAL_11:.*]] = cc.load %[[VAL_10]] : !cc.ptr<!cc.measure_handle>
-// CHECK:               %[[VAL_12:.*]] = quake.discriminate %[[VAL_11]] : (!cc.measure_handle) -> i1
+// CHECK:               %[[VAL_9:.*]] = cc.sequence_data %[[VAL_0]] : (!cc.sequence<!quake.measure>) -> !cc.ptr<!cc.array<!quake.measure x ?>>
+// CHECK:               %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_9]]{{\[}}%[[VAL_8]]] : (!cc.ptr<!cc.array<!quake.measure x ?>>, i64) -> !cc.ptr<!quake.measure>
+// CHECK:               %[[VAL_11:.*]] = cc.load %[[VAL_10]] : !cc.ptr<!quake.measure>
+// CHECK:               %[[VAL_12:.*]] = quake.discriminate %[[VAL_11]] : (!quake.measure) -> i1
 // CHECK-DAG:           %[[VAL_13:.*]] = cc.cast unsigned %[[VAL_12]] : (i1) -> i64
 // CHECK-DAG:           %[[VAL_14:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
 // CHECK:               %[[VAL_15:.*]] = arith.shli %[[VAL_13]], %[[VAL_14]] : i64
@@ -85,7 +85,7 @@ __qpu__ std::uint64_t foo() {
 // CHECK:             %[[VAL_10:.*]] = arith.addi %[[VAL_9]], %[[VAL_1]] : i64
 // CHECK:             cc.continue %[[VAL_10]] : i64
 // CHECK:           } {invariant}
-// CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_3]] name "results" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_3]] name "results" : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
 // CHECK:           %[[VAL_12:.*]] = call @__nvqpp__mlirgen__function_qubit_values_to_integer.
 // CHECK:           return %[[VAL_12]] : i64
 // CHECK:         }

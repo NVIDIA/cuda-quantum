@@ -9,9 +9,9 @@
 // RUN: cudaq-opt %s -split-input-file -verify-diagnostics
 
 func.func @bad_detectors_elem(%bad : !cc.sequence<i32>,
-                              %good : !cc.sequence<!cc.measure_handle>) {
+                              %good : !cc.sequence<!quake.measure>) {
   // expected-error @+1 {{must be sequence of}}
-  qec.pair_detectors %bad, %good : !cc.sequence<i32>, !cc.sequence<!cc.measure_handle>
+  qec.pair_detectors %bad, %good : !cc.sequence<i32>, !cc.sequence<!quake.measure>
   return
 }
 

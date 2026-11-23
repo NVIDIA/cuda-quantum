@@ -24,7 +24,7 @@ module {
     %p = quake.phase (%a) %q : (f64, !quake.wire) -> !quake.wire
     %h = quake.h %p : (!quake.wire) -> !quake.wire
     %adj = quake.phase<adj> (%a) %h : (f64, !quake.wire) -> !quake.wire
-    %m, %w = quake.mz %adj : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %m, %w = quake.mz %adj : (!quake.wire) -> (!quake.measure, !quake.wire)
     %post = quake.phase (%a) %w : (f64, !quake.wire) -> !quake.wire
     quake.sink %post : !quake.wire
     return

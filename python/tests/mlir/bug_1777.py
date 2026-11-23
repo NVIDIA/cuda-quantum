@@ -36,37 +36,37 @@ def test_bug_1777():
 # CHECK-DAG:       %[[CONSTANT_3:.*]] = arith.constant true
 # CHECK-DAG:       %[[CONSTANT_4:.*]] = arith.constant 2 : i64
 # CHECK-DAG:       %[[CONSTANT_2:.*]] = arith.constant 0 : i64
-# CHECK:           %[[EMPTY_0:.*]] = cc.cast %[[CONSTANT_2]] : (i64) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
-# CHECK:           %[[UNDEF_0:.*]] = cc.sequence_init %[[EMPTY_0]], %[[CONSTANT_2]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           %[[EMPTY_1:.*]] = cc.cast %[[CONSTANT_2]] : (i64) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
-# CHECK:           %[[UNDEF_1:.*]] = cc.sequence_init %[[EMPTY_1]], %[[CONSTANT_2]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[EMPTY_0:.*]] = cc.cast %[[CONSTANT_2]] : (i64) -> !cc.ptr<!cc.array<!quake.measure x ?>>
+# CHECK:           %[[UNDEF_0:.*]] = cc.sequence_init %[[EMPTY_0]], %[[CONSTANT_2]] : (!cc.ptr<!cc.array<!quake.measure x ?>>, i64) -> !cc.sequence<!quake.measure>
+# CHECK:           %[[EMPTY_1:.*]] = cc.cast %[[CONSTANT_2]] : (i64) -> !cc.ptr<!cc.array<!quake.measure x ?>>
+# CHECK:           %[[UNDEF_1:.*]] = cc.sequence_init %[[EMPTY_1]], %[[CONSTANT_2]] : (!cc.ptr<!cc.array<!quake.measure x ?>>, i64) -> !cc.sequence<!quake.measure>
 # CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
-# CHECK:           %[[LOOP_0:.*]]:3 = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_2]], %[[VAL_2:.*]] = %[[CONSTANT_3]], %[[VAL_1:.*]] = %[[UNDEF_1]]) -> (i64, i1, !cc.sequence<!cc.measure_handle>)) {
+# CHECK:           %[[LOOP_0:.*]]:3 = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_2]], %[[VAL_2:.*]] = %[[CONSTANT_3]], %[[VAL_1:.*]] = %[[UNDEF_1]]) -> (i64, i1, !cc.sequence<!quake.measure>)) {
 # CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[CONSTANT_4]] : i64
-# CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]], %[[VAL_2]], %[[VAL_1]] : i64, i1, !cc.sequence<!cc.measure_handle>)
+# CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]], %[[VAL_2]], %[[VAL_1]] : i64, i1, !cc.sequence<!quake.measure>)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_3:.*]]: i64, %[[VAL_5:.*]]: i1, %[[VAL_4:.*]]: !cc.sequence<!cc.measure_handle>):
+# CHECK:           ^bb0(%[[VAL_3:.*]]: i64, %[[VAL_5:.*]]: i1, %[[VAL_4:.*]]: !cc.sequence<!quake.measure>):
 # CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]]{{\[}}%[[VAL_3]]] : (!quake.veq<2>, i64) -> !quake.ref
-# CHECK:             %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] name "res" : (!quake.ref) -> !cc.measure_handle
-# CHECK:             %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!cc.measure_handle) -> i1
+# CHECK:             %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] name "res" : (!quake.ref) -> !quake.measure
+# CHECK:             %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!quake.measure) -> i1
 # CHECK:             %[[CMPI_1:.*]] = arith.cmpi eq, %[[DISCRIMINATE_0]], %[[CONSTANT_0]] : i1
-# CHECK:             %[[IF_0:.*]] = cc.if(%[[CMPI_1]]) -> !cc.sequence<!cc.measure_handle> {
-# CHECK:               %[[MZ_1:.*]] = quake.mz %[[ALLOCA_0]] name "inner_mz" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:               cc.continue %[[MZ_1]] : !cc.sequence<!cc.measure_handle>
+# CHECK:             %[[IF_0:.*]] = cc.if(%[[CMPI_1]]) -> !cc.sequence<!quake.measure> {
+# CHECK:               %[[MZ_1:.*]] = quake.mz %[[ALLOCA_0]] name "inner_mz" : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+# CHECK:               cc.continue %[[MZ_1]] : !cc.sequence<!quake.measure>
 # CHECK:             } else {
-# CHECK:               cc.continue %[[VAL_4]] : !cc.sequence<!cc.measure_handle>
+# CHECK:               cc.continue %[[VAL_4]] : !cc.sequence<!quake.measure>
 # CHECK:             }
-# CHECK:             cc.continue %[[VAL_3]], %[[DISCRIMINATE_0]], %[[IF_0]] : i64, i1, !cc.sequence<!cc.measure_handle>
+# CHECK:             cc.continue %[[VAL_3]], %[[DISCRIMINATE_0]], %[[IF_0]] : i64, i1, !cc.sequence<!quake.measure>
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_6:.*]]: i64, %[[VAL_8:.*]]: i1, %[[VAL_7:.*]]: !cc.sequence<!cc.measure_handle>):
+# CHECK:           ^bb0(%[[VAL_6:.*]]: i64, %[[VAL_8:.*]]: i1, %[[VAL_7:.*]]: !cc.sequence<!quake.measure>):
 # CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_6]], %[[CONSTANT_1]] : i64
-# CHECK:             cc.continue %[[ADDI_0]], %[[VAL_8]], %[[VAL_7]] : i64, i1, !cc.sequence<!cc.measure_handle>
+# CHECK:             cc.continue %[[ADDI_0]], %[[VAL_8]], %[[VAL_7]] : i64, i1, !cc.sequence<!quake.measure>
 # CHECK:           }
-# CHECK:           %[[IF_1:.*]] = cc.if(%[[LOOP_0]]#1) -> !cc.sequence<!cc.measure_handle> {
-# CHECK:             %[[MZ_2:.*]] = quake.mz %[[ALLOCA_0]] name "outer_mz" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:             cc.continue %[[MZ_2]] : !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[IF_1:.*]] = cc.if(%[[LOOP_0]]#1) -> !cc.sequence<!quake.measure> {
+# CHECK:             %[[MZ_2:.*]] = quake.mz %[[ALLOCA_0]] name "outer_mz" : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+# CHECK:             cc.continue %[[MZ_2]] : !cc.sequence<!quake.measure>
 # CHECK:           } else {
-# CHECK:             cc.continue %[[UNDEF_0]] : !cc.sequence<!cc.measure_handle>
+# CHECK:             cc.continue %[[UNDEF_0]] : !cc.sequence<!quake.measure>
 # CHECK:           }
 # CHECK:           quake.evince %[[ALLOCA_0]] : (!quake.veq<2>) -> ()
 # CHECK:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<2>

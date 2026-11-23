@@ -127,8 +127,8 @@ if __name__ == "__main__":
 # CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (i64) {
 # CHECK:             %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<5>
 # CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][4] : (!quake.veq<5>) -> !quake.ref
-# CHECK:             %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] name "index" : (!quake.ref) -> !cc.measure_handle
-# CHECK:             %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!cc.measure_handle) -> i1
+# CHECK:             %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] name "index" : (!quake.ref) -> !quake.measure
+# CHECK:             %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!quake.measure) -> i1
 # CHECK:             %[[CAST_0:.*]] = cc.cast unsigned %[[DISCRIMINATE_0]] : (i1) -> i64
 # CHECK:             %[[SUBI_0:.*]] = arith.subi %[[CAST_0]], %[[CONSTANT_1]] : i64
 # CHECK:             %[[CMPI_0:.*]] = arith.cmpi sge, %[[SUBI_0]], %[[CONSTANT_0]] : i64
@@ -165,8 +165,8 @@ if __name__ == "__main__":
 # CHECK:               cc.continue %[[ADDI_0]] : i64
 # CHECK:             } {invariant}
 # CHECK:             %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][4] : (!quake.veq<5>) -> !quake.ref
-# CHECK:             %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_1]] name "index" : (!quake.ref) -> !cc.measure_handle
-# CHECK:             %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!cc.measure_handle) -> i1
+# CHECK:             %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_1]] name "index" : (!quake.ref) -> !quake.measure
+# CHECK:             %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!quake.measure) -> i1
 # CHECK:             %[[CAST_0:.*]] = cc.cast unsigned %[[DISCRIMINATE_0]] : (i1) -> i64
 # CHECK:             %[[SUBI_0:.*]] = arith.subi %[[CAST_0]], %[[CONSTANT_1]] : i64
 # CHECK:             %[[CMPI_1:.*]] = arith.cmpi sge, %[[SUBI_0]], %[[CONSTANT_0]] : i64

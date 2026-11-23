@@ -32,8 +32,8 @@ module attributes {cc.python_uniqued = "bell..0xabc"} {
     %2 = quake.h %0 : (!quake.wire) -> !quake.wire
     %3:2 = quake.x [%2] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
     %4 = quake.t %3#0 : (!quake.wire) -> !quake.wire
-    %m0, %w0 = quake.mz %4 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %m1, %w1 = quake.mz %3#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %m0, %w0 = quake.mz %4 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %m1, %w1 = quake.mz %3#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
     quake.sink %w0 : !quake.wire
     quake.sink %w1 : !quake.wire
     return
@@ -438,8 +438,8 @@ module {
   func.func @__nvqpp__mlirgen__nested_adaptive() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.null_wire
     %1 = quake.null_wire
-    %m, %w = quake.mz %0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %c = quake.discriminate %m : (!cc.measure_handle) -> i1
+    %m, %w = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %c = quake.discriminate %m : (!quake.measure) -> i1
     %r = cc.if (%c) ((%a = %1)) -> (!quake.wire) {
       %inner = cc.if (%c) ((%b = %a)) -> (!quake.wire) {
         %x = quake.x %b : (!quake.wire) -> !quake.wire
@@ -631,8 +631,8 @@ module {
   func.func @__nvqpp__mlirgen__cond() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.null_wire
     %1 = quake.null_wire
-    %m, %w = quake.mz %0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %c = quake.discriminate %m : (!cc.measure_handle) -> i1
+    %m, %w = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %c = quake.discriminate %m : (!quake.measure) -> i1
     %r = cc.if (%c) ((%a = %1)) -> (!quake.wire) {
       %x = quake.x %a : (!quake.wire) -> !quake.wire
       cc.continue %x : !quake.wire

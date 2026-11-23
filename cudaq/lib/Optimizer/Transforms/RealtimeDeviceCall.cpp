@@ -60,7 +60,7 @@ static std::optional<Type> getSupportedRealtimeSequenceElement(Type ty) {
   if (!sequenceTy)
     return std::nullopt;
   Type elemTy = sequenceTy.getElementType();
-  if (isa<cudaq::cc::MeasureHandleType>(elemTy))
+  if (isa<cudaq::quake::MeasureType>(elemTy))
     return IntegerType::get(elemTy.getContext(), 1);
   return getSupportedRealtimePrimitiveArrayElement(elemTy);
 }
@@ -70,7 +70,7 @@ static std::optional<Type> getSupportedRealtimeSequenceResultElement(Type ty) {
   if (!sequenceTy)
     return std::nullopt;
   Type elemTy = sequenceTy.getElementType();
-  if (isa<cudaq::cc::MeasureHandleType>(elemTy))
+  if (isa<cudaq::quake::MeasureType>(elemTy))
     return std::nullopt;
   return getSupportedRealtimePrimitiveArrayElement(elemTy);
 }
@@ -313,7 +313,7 @@ static Value marshalArrayArgument(OpBuilder &builder, Location loc,
         computeArrayPayloadSize(builder, loc, arrayLength, payloadElementTy);
     Value dstPtr = typedPtrAt(builder, loc, requestBuffer, cursor,
                               cudaq::cc::ArrayType::get(i8Ty));
-    StringRef packFunc = isa<cudaq::cc::MeasureHandleType>(sourceElementTy)
+    StringRef packFunc = isa<cudaq::quake::MeasureType>(sourceElementTy)
                              ? cudaq::realtimePackMeasurements
                              : cudaq::realtimePackBits;
     func::CallOp::create(builder, loc, TypeRange{}, packFunc,

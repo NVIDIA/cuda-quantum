@@ -12,6 +12,7 @@
 #include "cudaq/Frontend/nvqpp/QuakeTypeVisitor.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Todo.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/GlobalDecl.h"
@@ -53,15 +54,15 @@ void reportClangError(T *astNode, clang::ItaniumMangleContext *mangler,
   reportClangError(astNode, mangler->getASTContext().getDiagnostics(), msg);
 }
 
-/// `measure_handle` arrives at the bridge as either an SSA `!cc.measure_handle`
-/// or as the pointer form `!cc.ptr<!cc.measure_handle>` left by lvalue access
+/// `measure_handle` arrives at the bridge as either an SSA `!quake.measure`
+/// or as the pointer form `!cc.ptr<!quake.measure>` left by lvalue access
 /// (named variable read, `operator=` LHS, struct-member-of-handle, ...). Most
 /// consumers want the value form, so funnel that normalization through one
 /// helper rather than open-coding the `dyn_cast` chain at every call site.
 inline mlir::Value loadHandleIfPointer(mlir::OpBuilder &builder,
                                        mlir::Location loc, mlir::Value v) {
   if (auto ptrTy = mlir::dyn_cast<cudaq::cc::PointerType>(v.getType()))
-    if (mlir::isa<cudaq::cc::MeasureHandleType>(ptrTy.getElementType()))
+    if (mlir::isa<cudaq::quake::MeasureType>(ptrTy.getElementType()))
       return cudaq::cc::LoadOp::create(builder, loc, v);
   return v;
 }
@@ -76,7 +77,7 @@ inline mlir::Value loadHandleVectorIfPointer(mlir::OpBuilder &builder,
   if (auto ptrTy = mlir::dyn_cast<cudaq::cc::PointerType>(v.getType()))
     if (auto sv =
             mlir::dyn_cast<cudaq::cc::SequenceType>(ptrTy.getElementType());
-        sv && mlir::isa<cudaq::cc::MeasureHandleType>(sv.getElementType()))
+        sv && mlir::isa<cudaq::quake::MeasureType>(sv.getElementType()))
       return cudaq::cc::LoadOp::create(builder, loc, v);
   return v;
 }

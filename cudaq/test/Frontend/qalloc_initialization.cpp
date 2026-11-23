@@ -367,11 +367,11 @@ __qpu__ auto Strawberry() {
 // CHECK:           %[[VAL_9:.*]] = quake.init_state %[[VAL_8]], %[[VAL_7]] : (!quake.ref, !cc.ptr<!quake.state>) -> !quake.veq<1>
 // CHECK:           quake.delete_state %[[VAL_7]] : !cc.ptr<!quake.state>
 // CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_9]][0] : (!quake.veq<1>) -> !quake.ref
-// CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_10]] : (!quake.ref) -> !cc.measure_handle
-// CHECK:           %[[HA:.*]] = cc.alloca !cc.measure_handle
-// CHECK:           cc.store %[[VAL_11]], %[[HA]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[HL:.*]] = cc.load %[[HA]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[HL]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_10]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[HA:.*]] = cc.alloca !quake.measure
+// CHECK:           cc.store %[[VAL_11]], %[[HA]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[HL:.*]] = cc.load %[[HA]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[HL]] : (!quake.measure) -> i1
 // CHECK:           return %[[VAL_12]] : i1
 // CHECK:         }
 // clang-format on
@@ -404,11 +404,11 @@ __qpu__ bool Peppermint() {
 // CHECK:           %[[VAL_8:.*]] = quake.init_state %[[VAL_7]], %[[VAL_6]] : (!quake.ref, !cc.ptr<!quake.state>) -> !quake.veq<1>
 // CHECK:           quake.delete_state %[[VAL_6]] : !cc.ptr<!quake.state>
 // CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<1>) -> !quake.ref
-// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_9]] : (!quake.ref) -> !cc.measure_handle
-// CHECK:           %[[HA:.*]] = cc.alloca !cc.measure_handle
-// CHECK:           cc.store %[[VAL_10]], %[[HA]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[HL:.*]] = cc.load %[[HA]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_11:.*]] = quake.discriminate %[[HL]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_9]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[HA:.*]] = cc.alloca !quake.measure
+// CHECK:           cc.store %[[VAL_10]], %[[HA]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[HL:.*]] = cc.load %[[HA]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[VAL_11:.*]] = quake.discriminate %[[HL]] : (!quake.measure) -> i1
 // CHECK:           return %[[VAL_11]] : i1
 // CHECK:         }
 // clang-format on

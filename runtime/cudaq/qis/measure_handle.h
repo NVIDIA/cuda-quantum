@@ -22,7 +22,7 @@ namespace cudaq::detail {
 /// so `measure_handle{42}` cannot be compiled in user code. The tag surface is
 /// reserved for internal runtime use. Inside `__qpu__` regions the
 /// bridge never calls this constructor because `mz`/`mx`/`my` produce
-/// `!cc.measure_handle` SSA values directly.
+/// `!quake.measure` SSA values directly.
 struct handle_index_t {};
 inline constexpr handle_index_t handle_index{};
 } // namespace cudaq::detail
@@ -32,7 +32,7 @@ namespace cudaq {
 /// @brief Handle for a measurement event with deferred discrimination.
 ///
 /// `measure_handle` is the return type of `mz`, `my`, and `mx`.
-/// `measure_handle` lowers to the IR alias `!cc.measure_handle` during AST
+/// `measure_handle` lowers to the IR alias `!quake.measure` during AST
 /// -> Quake conversion and is converted to the bare `i64` payload by the
 /// QIR API conversion's type converter.
 ///
@@ -59,7 +59,7 @@ public:
   }
 
 private:
-  // `index` is the measurement-event identity consumed by `!cc.measure_handle`
+  // `index` is the measurement-event identity consumed by `!quake.measure`
   // lowering; the encoding is implementation-defined. The bridge produces the
   // SSA value directly and never reads this field from C++.
 #if defined(__clang__)

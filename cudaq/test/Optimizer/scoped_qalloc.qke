@@ -15,8 +15,8 @@ module {
       %6 = quake.extract_ref %5[0] : (!quake.veq<10>) -> !quake.ref
       quake.h %6 : (!quake.ref) -> ()
       %7 = quake.extract_ref %5[0] : (!quake.veq<10>) -> !quake.ref
-      %measOut = quake.mz %7 : (!quake.ref) -> !cc.measure_handle
-      %8 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+      %measOut = quake.mz %7 : (!quake.ref) -> !quake.measure
+      %8 = quake.discriminate %measOut : (!quake.measure) -> i1
       %9 = cc.cast unsigned %8 : (i1) -> i64
       quake.dealloc %5 : !quake.veq<10>
       cc.continue %9 : i64
@@ -26,8 +26,8 @@ module {
       %6 = quake.extract_ref %5[0] : (!quake.veq<10>) -> !quake.ref
       quake.h %6 : (!quake.ref) -> ()
       %7 = quake.extract_ref %5[0] : (!quake.veq<10>) -> !quake.ref
-      %measOut = quake.mz %7 : (!quake.ref) -> !cc.measure_handle
-      %8 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+      %measOut = quake.mz %7 : (!quake.ref) -> !quake.measure
+      %8 = quake.discriminate %measOut : (!quake.measure) -> i1
       %9 = cc.cast unsigned %8 : (i1) -> i64
       quake.dealloc %5 : !quake.veq<10>
       cc.continue %9 : i64
@@ -37,8 +37,8 @@ module {
       %6 = quake.extract_ref %5[0] : (!quake.veq<10>) -> !quake.ref
       quake.h %6 : (!quake.ref) -> ()
       %7 = quake.extract_ref %5[0] : (!quake.veq<10>) -> !quake.ref
-      %measOut = quake.mz %7 : (!quake.ref) -> !cc.measure_handle
-      %8 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+      %measOut = quake.mz %7 : (!quake.ref) -> !quake.measure
+      %8 = quake.discriminate %measOut : (!quake.measure) -> i1
       %9 = cc.cast unsigned %8 : (i1) -> i64
       quake.dealloc %5 : !quake.veq<10>
       cc.continue %9 : i64

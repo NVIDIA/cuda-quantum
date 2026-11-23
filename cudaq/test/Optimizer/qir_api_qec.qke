@@ -15,8 +15,8 @@
 
 func.func @detector_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %q = quake.alloca !quake.ref
-  %m = quake.mz %q name "h" : (!quake.ref) -> !cc.measure_handle
-  qec.detector %m : !cc.measure_handle
+  %m = quake.mz %q name "h" : (!quake.ref) -> !quake.measure
+  qec.detector %m : !quake.measure
   return
 }
 
@@ -38,10 +38,10 @@ func.func @detector_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // -----
 // Multi-handle variadic: alloca Result*[N] with static count, store each.
 
-func.func @detector_multi(%h0: !cc.measure_handle,
-                          %h1: !cc.measure_handle,
-                          %h2: !cc.measure_handle) attributes {"cudaq-kernel"} {
-  qec.detector %h0, %h1, %h2 : !cc.measure_handle, !cc.measure_handle, !cc.measure_handle
+func.func @detector_multi(%h0: !quake.measure,
+                          %h1: !quake.measure,
+                          %h2: !quake.measure) attributes {"cudaq-kernel"} {
+  qec.detector %h0, %h1, %h2 : !quake.measure, !quake.measure, !quake.measure
   return
 }
 
@@ -68,8 +68,8 @@ func.func @detector_multi(%h0: !cc.measure_handle,
 // -----
 // Single sequence: pass-through via `cc.sequence_data` + `cc.sequence_size`.
 
-func.func @detector_sequence(%v: !cc.sequence<!cc.measure_handle>) attributes {"cudaq-kernel"} {
-  qec.detector %v : !cc.sequence<!cc.measure_handle>
+func.func @detector_sequence(%v: !cc.sequence<!quake.measure>) attributes {"cudaq-kernel"} {
+  qec.detector %v : !cc.sequence<!quake.measure>
   return
 }
 
@@ -86,9 +86,9 @@ func.func @detector_sequence(%v: !cc.sequence<!cc.measure_handle>) attributes {"
 // Mixed scalar + sequence: dynamic total size, scalar stored at running
 // offset, sequence contents copied via an invariant `cc.loop`.
 
-func.func @detector_mixed(%h: !cc.measure_handle,
-                          %v: !cc.sequence<!cc.measure_handle>) attributes {"cudaq-kernel"} {
-  qec.detector %h, %v : !cc.measure_handle, !cc.sequence<!cc.measure_handle>
+func.func @detector_mixed(%h: !quake.measure,
+                          %v: !cc.sequence<!quake.measure>) attributes {"cudaq-kernel"} {
+  qec.detector %h, %v : !quake.measure, !cc.sequence<!quake.measure>
   return
 }
 
@@ -132,9 +132,9 @@ func.func @detector_mixed(%h: !cc.measure_handle,
 // fast path requires exactly one operand. Each sequence is copied via
 // its own `cc.loop`; the size is the runtime sum.
 
-func.func @detector_two_sequence(%a: !cc.sequence<!cc.measure_handle>,
-                               %b: !cc.sequence<!cc.measure_handle>) attributes {"cudaq-kernel"} {
-  qec.detector %a, %b : !cc.sequence<!cc.measure_handle>, !cc.sequence<!cc.measure_handle>
+func.func @detector_two_sequence(%a: !cc.sequence<!quake.measure>,
+                               %b: !cc.sequence<!quake.measure>) attributes {"cudaq-kernel"} {
+  qec.detector %a, %b : !cc.sequence<!quake.measure>, !cc.sequence<!quake.measure>
   return
 }
 
@@ -192,8 +192,8 @@ func.func @detector_two_sequence(%a: !cc.sequence<!cc.measure_handle>,
 // -----
 // Observable, scalar handle, default `index 0`.
 
-func.func @observable_scalar_default(%h: !cc.measure_handle) attributes {"cudaq-kernel"} {
-  qec.observable %h : !cc.measure_handle
+func.func @observable_scalar_default(%h: !quake.measure) attributes {"cudaq-kernel"} {
+  qec.observable %h : !quake.measure
   return
 }
 
@@ -213,9 +213,9 @@ func.func @observable_scalar_default(%h: !cc.measure_handle) attributes {"cudaq-
 // -----
 // Observable, multi-handle, explicit `index 1`.
 
-func.func @observable_multi_indexed(%h0: !cc.measure_handle,
-                                    %h1: !cc.measure_handle) attributes {"cudaq-kernel"} {
-  qec.observable %h0, %h1 index 1 : !cc.measure_handle, !cc.measure_handle
+func.func @observable_multi_indexed(%h0: !quake.measure,
+                                    %h1: !quake.measure) attributes {"cudaq-kernel"} {
+  qec.observable %h0, %h1 index 1 : !quake.measure, !quake.measure
   return
 }
 
@@ -239,8 +239,8 @@ func.func @observable_multi_indexed(%h0: !cc.measure_handle,
 // -----
 // Observable, single sequence, explicit `index 2`.
 
-func.func @observable_sequence_indexed(%v: !cc.sequence<!cc.measure_handle>) attributes {"cudaq-kernel"} {
-  qec.observable %v index 2 : !cc.sequence<!cc.measure_handle>
+func.func @observable_sequence_indexed(%v: !cc.sequence<!quake.measure>) attributes {"cudaq-kernel"} {
+  qec.observable %v index 2 : !cc.sequence<!quake.measure>
   return
 }
 
@@ -259,9 +259,9 @@ func.func @observable_sequence_indexed(%v: !cc.sequence<!cc.measure_handle>) att
 // general path produces a single buffer + size, then the call appends
 // the observable index.
 
-func.func @observable_mixed_indexed(%h: !cc.measure_handle,
-                                    %v: !cc.sequence<!cc.measure_handle>) attributes {"cudaq-kernel"} {
-  qec.observable %h, %v index 3 : !cc.measure_handle, !cc.sequence<!cc.measure_handle>
+func.func @observable_mixed_indexed(%h: !quake.measure,
+                                    %v: !cc.sequence<!quake.measure>) attributes {"cudaq-kernel"} {
+  qec.observable %h, %v index 3 : !quake.measure, !cc.sequence<!quake.measure>
   return
 }
 
@@ -304,10 +304,10 @@ func.func @observable_mixed_indexed(%h: !cc.measure_handle,
 // -----
 // `pair_detectors`: two sequences as `(data, size)` pairs.
 
-func.func @pair_detectors(%prev: !cc.sequence<!cc.measure_handle>,
-                          %curr: !cc.sequence<!cc.measure_handle>) attributes {"cudaq-kernel"} {
+func.func @pair_detectors(%prev: !cc.sequence<!quake.measure>,
+                          %curr: !cc.sequence<!quake.measure>) attributes {"cudaq-kernel"} {
   qec.pair_detectors %prev, %curr
-    : !cc.sequence<!cc.measure_handle>, !cc.sequence<!cc.measure_handle>
+    : !cc.sequence<!quake.measure>, !cc.sequence<!quake.measure>
   return
 }
 

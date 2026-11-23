@@ -240,8 +240,8 @@ module {
     %0 = quake.null_wire
     %1 = quake.null_wire
     %m, %w = quake.mz %0
-        : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %condition = quake.discriminate %m : (!cc.measure_handle) -> i1
+        : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %condition = quake.discriminate %m : (!quake.measure) -> i1
     %result = cc.if (%condition) ((%arg = %1)) -> (!quake.wire) {
       // expected-error@+1 {{nested adaptive control is outside the Quake-to-P0 contract; flatten or outline the nested region}}
       %inner = cc.if (%condition) ((%nested = %arg)) -> (!quake.wire) {
@@ -294,8 +294,8 @@ module {
   func.func @__nvqpp__mlirgen__array_member() -> i1
       attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.null_wire
-    %m, %w = quake.mz %0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %bit = quake.discriminate %m : (!cc.measure_handle) -> i1
+    %m, %w = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %bit = quake.discriminate %m : (!quake.measure) -> i1
     %1 = cc.undef !cc.array<i1 x 1>
     // expected-error@+1 {{Quake-to-P0 supports cc.insert_value only into a struct built from cc.undef}}
     %2 = cc.insert_value %1[0], %bit : (!cc.array<i1 x 1>, i1) -> !cc.array<i1 x 1>
@@ -311,8 +311,8 @@ module {
   func.func @__nvqpp__mlirgen__nested_member() -> i1
       attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.null_wire
-    %m, %w = quake.mz %0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %bit = quake.discriminate %m : (!cc.measure_handle) -> i1
+    %m, %w = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %bit = quake.discriminate %m : (!quake.measure) -> i1
     %1 = cc.undef !cc.struct<{!cc.struct<{i1}>}>
     // expected-error@+1 {{Quake-to-P0 supports cc.insert_value only at a top-level struct member}}
     %2 = cc.insert_value %1[0, 0], %bit : (!cc.struct<{!cc.struct<{i1}>}>, i1) -> !cc.struct<{!cc.struct<{i1}>}>
@@ -328,8 +328,8 @@ module {
   func.func @__nvqpp__mlirgen__partial_tuple() -> !cc.struct<"tuple" {i1, i1}>
       attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.null_wire
-    %m, %w = quake.mz %0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %bit = quake.discriminate %m : (!cc.measure_handle) -> i1
+    %m, %w = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %bit = quake.discriminate %m : (!quake.measure) -> i1
     %1 = cc.undef !cc.struct<"tuple" {i1, i1}>
     %2 = cc.insert_value %1[0], %bit : (!cc.struct<"tuple" {i1, i1}>, i1) -> !cc.struct<"tuple" {i1, i1}>
     quake.sink %w : !quake.wire

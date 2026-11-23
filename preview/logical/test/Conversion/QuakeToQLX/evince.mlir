@@ -42,14 +42,14 @@ module {
     %a = quake.null_wire
     %b = quake.null_wire
     %c = quake.null_wire
-    %ma, %wa = quake.mz %a : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %mc, %wc = quake.mz %c : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %ma, %wa = quake.mz %a : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %mc, %wc = quake.mz %c : (!quake.wire) -> (!quake.measure, !quake.wire)
     %logged:3 = quake.evince %wa, %b, %wc
         : (!quake.wire, !quake.wire, !quake.wire)
        -> (!quake.wire, !quake.wire, !quake.wire) {compilerGenerated}
     %again = quake.evince %logged#0
         : (!quake.wire) -> !quake.wire {compilerGenerated}
-    %bit = quake.discriminate %ma : (!cc.measure_handle) -> i1
+    %bit = quake.discriminate %ma : (!quake.measure) -> i1
     quake.sink %again : !quake.wire
     quake.sink %logged#1 : !quake.wire
     quake.sink %logged#2 : !quake.wire
