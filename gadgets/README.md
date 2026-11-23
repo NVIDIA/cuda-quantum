@@ -14,7 +14,7 @@ Each component depends only on those above it.
 
 Everything builds into one library, `cudaq-gadgets`. Tests are in [test/](test/).
 
-## Where things are defineds
+## Where things are defined
 
 | Structure | Definition |
 | --- | --- |
