@@ -1,0 +1,4 @@
+# Read only by cudaq.logical and cudaq-edem, which have their own workflows.
+# Wheel and installer jobs still run on merge_group.
+preview/
+edem/

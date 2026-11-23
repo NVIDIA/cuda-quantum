@@ -35,22 +35,52 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+    # Gates for PR pushes only. See .github/ci-paths/README.md.
     outputs:
       stable: ${{ steps.filter.outputs.matched }}
+      build_test: ${{ github.event_name != 'push' || steps.build_test.outputs.matched == 'true' }}
+      docs: ${{ github.event_name != 'push' || steps.docs.outputs.matched == 'true' }}
     steps:
       - name: Checkout changed-path action
         uses: actions/checkout@v6
         with:
           sparse-checkout: |
             .github/actions/check-changed-paths
+            .github/ci-paths
             .github/research-preview-paths.txt
           sparse-checkout-cone-mode: false
 
+      # Any change except previews and metadata.
       - name: Check changed paths
         id: filter
         uses: ./.github/actions/check-changed-paths
         with:
-          paths-ignore-file: .github/research-preview-paths.txt
+          paths-ignore-file: |
+            .github/research-preview-paths.txt
+            .github/ci-paths/inert.txt
+
+      # Inputs of the build and test jobs.
+      - name: Check build and test inputs
+        id: build_test
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths-ignore-file: |
+            .github/research-preview-paths.txt
+            .github/ci-paths/inert.txt
+            .github/ci-paths/docs-prose.txt
+            .github/ci-paths/logical-only.txt
+            .github/ci-paths/not-linux-ci.txt
+
+      # Inputs of the docs build, including prose.
+      - name: Check documentation inputs
+        id: docs
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths-ignore-file: |
+            .github/research-preview-paths.txt
+            .github/ci-paths/inert.txt
+            .github/ci-paths/logical-only.txt
+            .github/ci-paths/not-linux-ci.txt
 
   metadata:
     name: Retrieve PR info
@@ -71,6 +101,9 @@ jobs:
       build_test_matrix: ${{ steps.config.outputs.build_test_matrix }}
       devdeps_matrix: ${{ steps.config.outputs.devdeps_matrix }}
       merge_queue_fast: ${{ steps.config.outputs.merge_queue_fast }}
+      # Re-exported from `changes` for jobs that need only `metadata`.
+      build_test_changed: ${{ needs.changes.outputs.build_test }}
+      docs_changed: ${{ needs.changes.outputs.docs }}
 
     steps:
       - name: Checkout repository
@@ -182,6 +215,8 @@ jobs:
   devdeps:
     name: Load dependencies
     needs: metadata
+    # Only the build, test and docs jobs use it on PRs.
+    if: needs.metadata.outputs.build_test_changed == 'true' || needs.metadata.outputs.docs_changed == 'true'
     strategy:
       matrix: ${{ fromJson(needs.metadata.outputs.devdeps_matrix) }}
       fail-fast: ${{ github.event_name == 'merge_group' }}
@@ -318,6 +353,7 @@ jobs:
   build_and_test:
     name: Build and test
     needs: [metadata, config_devdeps]
+    if: needs.metadata.outputs.build_test_changed == 'true'
     strategy:
       matrix: ${{ fromJson(needs.metadata.outputs.build_test_matrix) }}
       fail-fast: ${{ github.event_name == 'merge_group' }}
@@ -353,7 +389,7 @@ jobs:
   documentation:
     name: Documentation
     needs: [metadata, config_devdeps]
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && needs.metadata.outputs.docs_changed == 'true'
     uses: ./.github/workflows/build_docs.yml
     with:
       platform: linux/amd64
@@ -616,6 +652,9 @@ jobs:
       # The fast merge queue runs a reduced matrix, so it has its own list.
       MANIFEST_KEY: ${{ (needs.metadata.outputs.merge_queue_fast == 'true' && 'merge_group_fast') || github.event_name }}
       PR_NUMBER: ${{ needs.metadata.outputs.pull_request_number }}
+      # Gated-off jobs are not required.
+      BUILD_TEST_CHANGED: ${{ needs.metadata.outputs.build_test_changed }}
+      DOCS_CHANGED: ${{ needs.metadata.outputs.docs_changed }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       REPO: ${{ github.repository }}
       RUN_ID: ${{ github.run_id }}
@@ -803,6 +842,23 @@ jobs:
 
           # Extract the section for this event as JSON, defaulting to [].
           mapfile -t expected < <(yq -o=json "$manifest" | jq -r --arg e "$MANIFEST_KEY" '.[$e] // [] | .[]')
+
+          # Skip checks of jobs gated off in `changes`. Match their `if:`.
+          skip_prefixes=()
+          [ "$BUILD_TEST_CHANGED" = true ] || skip_prefixes+=("Build and test (")
+          [ "$DOCS_CHANGED" = true ] || skip_prefixes+=("Documentation / ")
+          if [ ${#skip_prefixes[@]} -gt 0 ]; then
+            kept=()
+            for e in "${expected[@]}"; do
+              keep=true
+              for p in "${skip_prefixes[@]}"; do
+                [[ "$e" == "$p"* ]] && keep=false
+              done
+              $keep && kept+=("$e")
+            done
+            expected=("${kept[@]}")
+            echo "Gated off by changed paths: ${skip_prefixes[*]}"
+          fi
           n_expected=${#expected[@]}
 
           if [ "$n_expected" -eq 0 ]; then

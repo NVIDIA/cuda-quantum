@@ -1,0 +1,4 @@
+# Docs prose needs the docs build, not the build and test jobs.
+# Code under docs/ is omitted because docs/CMakeLists.txt tests it.
+*.md
+*.rst
