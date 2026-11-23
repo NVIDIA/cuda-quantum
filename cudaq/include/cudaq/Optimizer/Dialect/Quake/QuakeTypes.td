@@ -163,7 +163,7 @@ def RefType : QuakeType<"Ref", "ref"> {
     memory side-effects through the same reference, `%q1`. Because these
     operations use the same reference, they cannot be reordered relative to one
     another.
-    
+
     Furthermore, `gate1` implies \em{only} a quantum memory read side-effect on
     the reference value `%q0`. This is because `%q0` appears in a control
     position in `gate1`, as indicated by the square brackets.
