@@ -1173,7 +1173,7 @@ class PyKernel(object):
         op of class `opClass` against `target`, optionally tagging the result
         with `regName`, and returns the result as a :class:`QuakeValue`."""
         with self.ctx, self.insertPoint, self.loc:
-            measTy = cc.MeasureHandleType.get()
+            measTy = quake.MeasureType.get()
             if quake.VeqType.isinstance(target.mlirValue.type):
                 measTy = cc.SequenceType.get(measTy)
             if regName is not None:
@@ -1284,18 +1284,17 @@ class PyKernel(object):
 
     def __qecOperandValue(self, qv, opName):
         """Normalize a builder-side QEC operand: must be a
-        ``QuakeValue`` whose MLIR type is ``!cc.measure_handle`` or
-        ``!cc.sequence<!cc.measure_handle>`` (the value forms produced by
+        ``QuakeValue`` whose MLIR type is ``!quake.measure`` or
+        ``!cc.sequence<!quake.measure>`` (the value forms produced by
         ``mz`` / ``mx`` / ``my`` for scalar and ``qvector`` targets)."""
         if not isinstance(qv, QuakeValue):
             emitFatalError(
                 f"kernel.{opName} arguments must be QuakeValue "
                 f"measurement handles (returned by kernel.mz / mx / my)")
         ty = qv.mlirValue.type
-        ok = (cc.MeasureHandleType.isinstance(ty) or
-              (cc.SequenceType.isinstance(ty) and
-               cc.MeasureHandleType.isinstance(
-                   cc.SequenceType.getElementType(ty))))
+        ok = (quake.MeasureType.isinstance(ty) or
+              (cc.SequenceType.isinstance(ty) and quake.MeasureType.isinstance(
+                  cc.SequenceType.getElementType(ty))))
         if not ok:
             emitFatalError(
                 f"kernel.{opName} arguments must each be a "
@@ -1858,6 +1857,10 @@ class PyKernel(object):
                 emitErrorIfInvalidPauli(arg)
                 processedArgs.append(cudaq_runtime.pauli_word(arg))
                 continue
+
+            # NumPy booleans (e.g. the result of `x > 0`) are not Python `bool`s.
+            if isinstance(arg, np.bool_):
+                arg = bool(arg)
 
             argType = type(arg)
             listType = None

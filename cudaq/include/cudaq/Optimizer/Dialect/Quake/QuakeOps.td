@@ -1209,16 +1209,12 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
     OptionalAttr<StrAttr>:$registerName
   );
   // The classical result of a measurement is one of:
-  //   - !quake.measure                   (the legacy SSA result),
-  //   - !cc.measure_handle               (the cudaq::measure_handle alias),
-  //   - !cc.sequence<!quake.measure>       (vector of legacy results),
-  //   - !cc.sequence<!cc.measure_handle>   (vector of handles).
-  // The handle forms are emitted by the bridge for `cudaq::measure_handle`
-  // callers (overloads of `mz`/`mx`/`my`) and are lowered to `i64` by
-  // `--convert-to-qir-api`'s `TypeConverter`.
+  //   - !quake.measure                 (a single measurement),
+  //   - !cc.sequence<!quake.measure>   (a vector of measurements).
+  // `!quake.measure` is the IR form of `cudaq::measure_handle`, and is lowered
+  // to `i64` by `--convert-to-qir-api`'s `TypeConverter`.
   let results = (outs
-    AnyTypeOf<[MeasureType, cc_MeasureHandleType,
-               SequenceOf<[MeasureType, cc_MeasureHandleType]>]>:$measOut,
+    AnyTypeOf<[MeasureType, SequenceOf<[MeasureType]>]>:$measOut,
     Variadic<AnyQLinearType>:$wires
   );
 
@@ -1288,8 +1284,8 @@ def MppOp : QuakeOp<"mpp", [AttrSizedOperandSegments, MeasurementInterface,
     targets and yields one classical bit, which is the eigenvalue of the
     product (0 for +1 and 1 for -1). Unlike `mx`, `my`, and `mz`, which
     measure each target independently and return one result per qubit, `mpp`
-    always returns a single `!quake.measure` (or `!cc.measure_handle`), no
-    matter how many qubits it acts on.
+    always returns a single `!quake.measure`, no matter how many qubits it
+    acts on.
 
     The Pauli product is a Pauli word whose characters are the Paulis `I`, `X`,
     `Y`, and `Z`, applied to the qubits of the targets in order. The word is
@@ -1329,7 +1325,7 @@ def MppOp : QuakeOp<"mpp", [AttrSizedOperandSegments, MeasurementInterface,
   );
   // The result is always a single measurement, never a sequence.
   let results = (outs
-    AnyTypeOf<[MeasureType, cc_MeasureHandleType]>:$measOut,
+    MeasureType:$measOut,
     Variadic<AnyQLinearType>:$wires
   );
 
@@ -1357,9 +1353,9 @@ def quake_DiscriminateOp : QuakeOp<"discriminate",
      DeclareOpInterfaceMethods<ConditionallySpeculatable>]> {
   let summary = "Converts a measurement to a classical integral value.";
   let description = [{
-    Quake's measurement operators return a value of type `!quake.measure` or,
-    for `cudaq::measure_handle` callers, `!cc.measure_handle`. The
-    discriminate operation converts either form to a classical integral value.
+    Quake's measurement operators return a value of type `!quake.measure`,
+    which is also the IR form of `cudaq::measure_handle`. The discriminate
+    operation converts it to a classical integral value.
     The result is typically an `i1`, but might be `i2` for qutrits, or `i8`
     for general qudits.
 
@@ -1368,9 +1364,9 @@ def quake_DiscriminateOp : QuakeOp<"discriminate",
     Multiple applications of discriminate on the same scalar measurement
     handle yield the same result, so the scalar form is treated as pure.
 
-    The vector form (`!cc.sequence<!cc.measure_handle>` or
-    `!cc.sequence<!quake.measure>`) operates on a `(data_ptr, size)`
-    descriptor that aliases mutable backing storage; storing a new handle
+    The vector form (`!cc.sequence<!quake.measure>`) operates on a
+    `(data_ptr, size)` descriptor that aliases mutable backing storage;
+    storing a new measurement
     into a slot through that storage changes the result of a subsequent
     discriminate of the same descriptor. The vector form therefore
     declares a `MemoryEffects::Read` effect and is not speculatable, so
@@ -1379,8 +1375,7 @@ def quake_DiscriminateOp : QuakeOp<"discriminate",
   }];
 
   let arguments = (ins
-    AnyTypeOf<[MeasureType, cc_MeasureHandleType,
-               SequenceOf<[MeasureType, cc_MeasureHandleType]>]>:$measurement
+    AnyTypeOf<[MeasureType, SequenceOf<[MeasureType]>]>:$measurement
   );
   let results = (outs
     AnyTypeOf<[AnySignlessInteger, SequenceOf<[AnySignlessInteger]>]>

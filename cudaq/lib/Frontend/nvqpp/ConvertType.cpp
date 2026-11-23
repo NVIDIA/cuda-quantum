@@ -115,7 +115,7 @@ static bool isFunctionCallable(Type t) {
 /// also allowed in pure-device kernels.
 static bool isKernelResultType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
-         cudaq::cc::containsMeasureHandle(t);
+         cudaq::cc::containsMeasureType(t);
 }
 
 /// Return true if and only if \p t is a (simple) arithmetic type, an possibly
@@ -128,7 +128,7 @@ static bool isKernelArgumentType(Type t) {
          cudaq::quake::isQuantumReferenceType(t) || isKernelCallable(t) ||
          isFunctionCallable(t) ||
          // TODO: move from pointers to a builtin string type.
-         cudaq::isCharPointerType(t) || cudaq::cc::containsMeasureHandle(t);
+         cudaq::isCharPointerType(t) || cudaq::cc::containsMeasureType(t);
 }
 
 static bool isKernelSignatureType(FunctionType t) {
@@ -332,7 +332,7 @@ QuakeTypeVisitor::convertProductType(clang::RecordDecl *x,
   // - Is this a struct does it have quantum types? Not allowed.
   if (!isa<cudaq::quake::StruqType>(ty))
     for (auto fieldTy : fieldTys)
-      if (cudaq::quake::isQuakeType(fieldTy))
+      if (cudaq::quake::isQuantumType(fieldTy))
         reportClangError(
             x, mangler,
             "hybrid quantum-classical struct types are not allowed.");
@@ -596,7 +596,7 @@ QuakeTypeVisitor::interceptRecordDecl(clang::RecordDecl *x, bool &intercepted) {
     if (name == "pauli_word")
       return cc::CharspanType::get(ctx);
     if (name == "measure_handle")
-      return cc::MeasureHandleType::get(ctx);
+      return quake::MeasureType::get(ctx);
     if (name == "qkernel") {
       // Template argument 0 is the function's signature.
       auto fnTy = argType(0);

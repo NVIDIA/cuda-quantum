@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import re
 from hashlib import sha256
 from importlib import import_module
 import runpy
@@ -332,6 +333,51 @@ def test_compile_import_rejects_a_noisy_kernel(capfd):
     with pytest.raises(RuntimeError, match="Quake lowering failed"):
         _import_kernel(noisy)
     assert "the target does not support noise" in capfd.readouterr().err
+
+
+@pytest.mark.parametrize("basis", ["z", "x", "Z", "X"])
+def test_generic_measure_in_a_logical_program(basis):
+    import cudaq.logical as cql
+
+    @cql.program
+    def generic() -> tuple[bool]:
+        q = cql.allocate(1, state=cql.types.zero)
+        return (cql.measure(q[0], basis=basis),)
+
+    text = cql.compile(generic).to_mlir()
+    assert text.count(f"qlx.measure <{basis.upper()}>") == 1
+    assert text.count("qlx.measure") == 1
+
+
+@pytest.mark.parametrize("options, error, message", [
+    ({
+        "destructive": False
+    }, TypeError, "cudaq.logical.measure(destructive=False) is available "
+     "only in a P3 physical trace"),
+    ({
+        "record": "m0"
+    }, TypeError, "cudaq.logical.measure(record='m0') is available "
+     "only in a P3 physical trace"),
+    ({
+        "destructive": False,
+        "record": "m0"
+    }, TypeError, "cudaq.logical.measure(destructive=False, record='m0') is "
+     "available only in a P3 physical trace"),
+    ({
+        "basis": "Y"
+    }, ValueError, "basis must be 'x' or 'z', got 'Y'"),
+])
+def test_generic_measure_in_a_logical_program_rejects_physical_options(
+        options, error, message):
+    import cudaq.logical as cql
+
+    @cql.program
+    def generic() -> tuple[bool]:
+        q = cql.allocate(1, state=cql.types.zero)
+        return (cql.measure(q[0], **options),)
+
+    with pytest.raises(error, match=re.escape(message)):
+        cql.compile(generic)
 
 
 def test_cudaq_qvector_and_scalar_import_as_zero_preparation():

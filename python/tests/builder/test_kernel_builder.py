@@ -1587,6 +1587,16 @@ def test_list_subscript():
     cudaq.sample(kernelAndArgs[0], False, [], [], [])
 
 
+def test_numpy_bool():
+    kernel, flag = cudaq.make_kernel(bool)
+    qubit = kernel.qalloc()
+    kernel.x(qubit)
+
+    counts = cudaq.sample(kernel, np.bool_(True))
+    assert len(counts) == 1
+    assert '1' in counts
+
+
 def test_u3_op():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(1)

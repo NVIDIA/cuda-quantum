@@ -43,7 +43,7 @@ void cudaq::opt::populateCCTypeConversions(LLVMTypeConverter *converter) {
   converter->addConversion([](cc::IndirectCallableType type) {
     return IntegerType::get(type.getContext(), 64);
   });
-  converter->addConversion([](cc::MeasureHandleType type) {
+  converter->addConversion([](quake::MeasureType type) {
     return IntegerType::get(type.getContext(), 64);
   });
   converter->addConversion([](cc::CallableType type) {

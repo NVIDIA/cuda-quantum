@@ -113,7 +113,7 @@ func.func @init_state(%ar0: !cc.ptr<!quake.state>) {
     } do {
     ^bb0(%arg0: i64):
       %7 = quake.extract_ref %0[%arg0] : (!quake.veq<5>, i64) -> !quake.ref
-      %measOut = quake.mz %7 : (!quake.ref) -> !cc.measure_handle
+      %measOut = quake.mz %7 : (!quake.ref) -> !quake.measure
       %8 = arith.addi %arg0, %c0_i64_1 : i64
       cc.continue %arg0 : i64
     } step {
@@ -153,7 +153,7 @@ func.func @init_state(%ar0: !cc.ptr<!quake.state>) {
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_6]]: i64):
 // CHECK:             %[[VAL_7]] = quake.extract_ref %[[VAL_4]][%[[VAL_6]]] : (!quake.veq<5>, i64) -> !quake.ref
-// CHECK:             %[[VAL_10:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:             %[[VAL_10:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> !quake.measure
 // CHECK:             cc.continue %[[VAL_6]] : i64
 // CHECK:           } step {
 // CHECK:           ^bb0(%[[VAL_6]]: i64):

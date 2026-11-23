@@ -348,8 +348,8 @@ func.func @bug_5286() {
   } do {
   ^bb0(%arg0: i64):
     quake.x %0 : (!quake.ref) -> ()
-    %measOut = quake.mz %0 : (!quake.ref) -> !cc.measure_handle
-    %2 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+    %measOut = quake.mz %0 : (!quake.ref) -> !quake.measure
+    %2 = quake.discriminate %measOut : (!quake.measure) -> i1
     cf.cond_br %2, ^bb1, ^bb2
   ^bb1:
     cc.break %arg0 : i64
@@ -377,8 +377,8 @@ func.func @bug_5286() {
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_2:.*]]: i64, %[[VAL_3:.*]]: !quake.wire):
 // CHECK:             %[[X_0:.*]] = quake.x %[[VAL_3]] : (!quake.wire) -> !quake.wire
-// CHECK:             %[[MZ_0:.*]], %[[MZ_1:.*]] = quake.mz %[[X_0]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:             %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!cc.measure_handle) -> i1
+// CHECK:             %[[MZ_0:.*]], %[[MZ_1:.*]] = quake.mz %[[X_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:             %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!quake.measure) -> i1
 // CHECK:             cf.cond_br %[[DISCRIMINATE_0]], ^bb1(%[[MZ_1]] : !quake.wire), ^bb2(%[[MZ_1]] : !quake.wire)
 // CHECK:           ^bb1(%[[VAL_4:.*]]: !quake.wire):
 // CHECK:             cc.break %[[VAL_2]], %[[VAL_4]] : i64, !quake.wire

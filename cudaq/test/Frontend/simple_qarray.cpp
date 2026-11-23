@@ -77,7 +77,7 @@ int main() {
 // CHECK:               cc.store %[[VAL_16]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
-// CHECK:           %[[VAL_17:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<5>) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           %[[VAL_17:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<5>) -> !cc.sequence<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on

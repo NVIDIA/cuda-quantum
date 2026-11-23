@@ -146,8 +146,8 @@ static bool isBoundHandle(Value v, llvm::SmallPtrSetImpl<Value> &visited) {
   if (!alloca)
     return true;
   auto eleTy = alloca.getElementType();
-  bool isScalarHandleAlloca = isa<cudaq::cc::MeasureHandleType>(eleTy);
-  if (!isScalarHandleAlloca && !cudaq::cc::containsMeasureHandle(eleTy))
+  bool isScalarHandleAlloca = isa<cudaq::quake::MeasureType>(eleTy);
+  if (!isScalarHandleAlloca && !cudaq::cc::containsMeasureType(eleTy))
     return true;
   // Bound iff at least one store reaches this alloca with a value that is
   // itself bound.
@@ -964,7 +964,7 @@ QuakeBridgeVisitor::Result QuakeBridgeVisitor::lowerCast(clang::CastExpr *x,
     if (auto intTy = dyn_cast<IntegerType>(castToTy);
         intTy && intTy.getWidth() == 1) {
       Value handleVal = loadHandleIfPointer(builder, loc, sub);
-      if (isa<cc::MeasureHandleType>(handleVal.getType())) {
+      if (isa<quake::MeasureType>(handleVal.getType())) {
         llvm::SmallPtrSet<Value, 4> visited;
         if (!isBoundHandle(handleVal, visited)) {
           reportClangError(x, mangler,
@@ -1667,10 +1667,9 @@ bool QuakeBridgeVisitor::lowerCall(clang::CallExpr *x, OperandStack &stack) {
       // lvalue `measure_handle`, so the type structure here is fixed by the
       // earlier visit; the assertion is a sanity check, not a diagnostic.
       auto thisPtrTy = dyn_cast<cc::PointerType>(thisVal.getType());
-      assert(thisPtrTy &&
-             isa<cc::MeasureHandleType>(thisPtrTy.getElementType()) &&
+      assert(thisPtrTy && isa<quake::MeasureType>(thisPtrTy.getElementType()) &&
              "`measure_handle::operator=` always has a "
-             "`!cc.ptr<!cc.measure_handle>` lhs by construction");
+             "`!cc.ptr<!quake.measure>` lhs by construction");
       cc::StoreOp::create(builder, loc, rhs, thisVal);
       return stack.push(thisVal);
     }
@@ -1724,7 +1723,7 @@ bool QuakeBridgeVisitor::lowerCall(clang::CallExpr *x, OperandStack &stack) {
           thisPtrTy ? dyn_cast<cc::SequenceType>(thisPtrTy.getElementType())
                     : cc::SequenceType();
       if (lhsSequenceTy &&
-          isa<cc::MeasureHandleType>(lhsSequenceTy.getElementType())) {
+          isa<quake::MeasureType>(lhsSequenceTy.getElementType())) {
         Value rhs = stack.pop();
         Value thisVal = stack.pop();
         [[maybe_unused]] auto calleeOp = stack.pop();
@@ -2114,15 +2113,15 @@ bool QuakeBridgeVisitor::lowerCall(clang::CallExpr *x, OperandStack &stack) {
     }
 
     if (funcName == "mx" || funcName == "my" || funcName == "mz") {
-      // Measurements emit `quake.{mz,mx,my}` producing `!cc.measure_handle`
-      // (scalar) or `!cc.sequence<!cc.measure_handle>` (multi-qubit). The
+      // Measurements emit `quake.{mz,mx,my}` producing `!quake.measure`
+      // (scalar) or `!cc.sequence<!quake.measure>` (multi-qubit). The
       // bridge does not inline `quake.discriminate` at the call site;
       // discrimination happens later, only when a downstream coercion site
       // demands it.
       bool useSequence =
           (args.size() > 1) ||
           (args.size() == 1 && isa<cudaq::quake::VeqType>(args[0].getType()));
-      Type measTy = cc::MeasureHandleType::get(builder.getContext());
+      Type measTy = quake::MeasureType::get(builder.getContext());
       if (useSequence)
         measTy = cc::SequenceType::get(measTy);
       if (funcName == "mx")
@@ -2144,8 +2143,8 @@ bool QuakeBridgeVisitor::lowerCall(clang::CallExpr *x, OperandStack &stack) {
       // dyn_cast is a sanity check, not a user-facing path.
       Value handleArg = loadHandleVectorIfPointer(builder, loc, args[0]);
       auto sv = dyn_cast<cc::SequenceType>(handleArg.getType());
-      assert(sv && isa<cc::MeasureHandleType>(sv.getElementType()) &&
-             "`cudaq::to_bools` always sees `!cc.sequence<!cc.measure_handle>` "
+      assert(sv && isa<quake::MeasureType>(sv.getElementType()) &&
+             "`cudaq::to_bools` always sees `!cc.sequence<!quake.measure>` "
              "after C++ overload resolution");
       auto resTy = cc::SequenceType::get(builder.getI1Type());
       return stack.push(
@@ -2626,8 +2625,7 @@ bool QuakeBridgeVisitor::lowerCall(clang::CallExpr *x, OperandStack &stack) {
       args[0] = loadHandleVectorIfPointer(builder, loc, args[0]);
       // The bridge does not silently insert a discriminate.
       if (auto sequenceTy = dyn_cast<cc::SequenceType>(args[0].getType());
-          sequenceTy &&
-          isa<cc::MeasureHandleType>(sequenceTy.getElementType())) {
+          sequenceTy && isa<quake::MeasureType>(sequenceTy.getElementType())) {
         reportClangError(
             x, mangler,
             "`cudaq::to_integer` accepts `std::vector<bool>`; "
@@ -3843,7 +3841,7 @@ bool QuakeBridgeVisitor::lowerConstruct(clang::CXXConstructExpr *x,
       assert(isa<cc::StructType>(ctorTy) && "POD must be a struct type");
       return stack.push(cc::LoadOp::create(builder, loc, fromStruct));
     }
-    if (isa<cc::MeasureHandleType>(ctorTy))
+    if (isa<quake::MeasureType>(ctorTy))
       return stack.push(loadHandleIfPointer(builder, loc, stack.pop()));
     if (ctor->isMoveConstructor() && isa<cc::StructType>(ctorTy) &&
         cc::isDynamicType(ctorTy)) {
@@ -3864,7 +3862,7 @@ bool QuakeBridgeVisitor::lowerConstruct(clang::CXXConstructExpr *x,
   // the call. `VisitVarDecl` recognises the `cc::AllocaOp` result and binds it
   // directly, leaving the slot uninitialised so the unbound-handle check in
   // `VisitCXXConversionDecl(operator bool)` fires when reached.
-  if (ctor->isDefaultConstructor() && isa<cc::MeasureHandleType>(ctorTy))
+  if (ctor->isDefaultConstructor() && isa<quake::MeasureType>(ctorTy))
     return stack.push(cc::AllocaOp::create(builder, loc, ctorTy));
 
   if (ctor->isCopyConstructor() && ctor->isTrivial() &&

@@ -52,7 +52,7 @@ def PhysToQuake : Pass<"phys-to-quake", "mlir::ModuleOp"> {
       - Actions and instruments resolve in the graph's machine first, then
         in the module. The Phys graph verifier resolves actions the same way.
       - `phys.condition`, `phys.xor`, and `phys.all_false` become `i1` logic.
-        A measurement stays a `!cc.measure_handle` until a Boolean is needed.
+        A measurement stays a `!quake.measure` until a Boolean is needed.
       - `phys.delay`, `phys.barrier`, `phys.move`, and `event.fence` emit
         nothing and forward their states.
       - `arith` operations are cloned. A record operand becomes its `i1`, so

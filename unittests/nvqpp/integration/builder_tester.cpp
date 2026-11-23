@@ -1077,7 +1077,7 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
 
 CUDAQ_TEST(BuilderTester, checkMeasureHandleEmission) {
   {
-    // Scalar `mz` on a single qubit produces `!cc.measure_handle` and
+    // Scalar `mz` on a single qubit produces `!quake.measure` and
     // carries the register name on `quake.mz` itself, with no
     // `quake.discriminate` inlined.
     auto kernel = cudaq::make_kernel();
@@ -1085,24 +1085,22 @@ CUDAQ_TEST(BuilderTester, checkMeasureHandleEmission) {
     kernel.h(q);
     kernel.mz(q, "scalarHandle");
     auto ir = kernel.to_quake();
-    EXPECT_NE(ir.find("!cc.measure_handle"), std::string::npos);
+    EXPECT_NE(ir.find("!quake.measure"), std::string::npos);
     EXPECT_NE(ir.find("\"scalarHandle\""), std::string::npos);
     EXPECT_EQ(ir.find("quake.discriminate"), std::string::npos);
-    EXPECT_EQ(ir.find("!quake.measure"), std::string::npos);
   }
 
   {
-    // Vector `mz` on a register produces `!cc.sequence<!cc.measure_handle>`
+    // Vector `mz` on a register produces `!cc.sequence<!quake.measure>`
     // before `expand-measurements`.
     auto kernel = cudaq::make_kernel();
     auto q = kernel.qalloc(3);
     kernel.h(q);
     kernel.mz(q, "vectorHandle");
     auto ir = kernel.to_quake();
-    EXPECT_NE(ir.find("!cc.sequence<!cc.measure_handle>"), std::string::npos);
+    EXPECT_NE(ir.find("!cc.sequence<!quake.measure>"), std::string::npos);
     EXPECT_NE(ir.find("\"vectorHandle\""), std::string::npos);
     EXPECT_EQ(ir.find("quake.discriminate"), std::string::npos);
-    EXPECT_EQ(ir.find("!quake.measure"), std::string::npos);
   }
 
   {
@@ -1116,7 +1114,7 @@ CUDAQ_TEST(BuilderTester, checkMeasureHandleEmission) {
     auto ir = kernel.to_quake();
     EXPECT_NE(ir.find("quake.mx"), std::string::npos);
     EXPECT_NE(ir.find("quake.my"), std::string::npos);
-    EXPECT_NE(ir.find("!cc.measure_handle"), std::string::npos);
+    EXPECT_NE(ir.find("!quake.measure"), std::string::npos);
     EXPECT_EQ(ir.find("quake.discriminate"), std::string::npos);
   }
 }

@@ -24,8 +24,8 @@ module attributes {llvm.data_layout = "e-p:64:64"} {
 
 func.func @scalar_handle() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %0 = quake.alloca !quake.ref
-  %m = quake.mz %0 name "h" : (!quake.ref) -> !cc.measure_handle
-  %b = quake.discriminate %m : (!cc.measure_handle) -> i1
+  %m = quake.mz %0 name "h" : (!quake.ref) -> !quake.measure
+  %b = quake.discriminate %m : (!quake.measure) -> i1
   return %b : i1
 }
 
@@ -55,8 +55,8 @@ func.func @scalar_handle() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 
 func.func @scalar_handle_run() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", quake.cudaq_run = [i1]} {
   %0 = quake.alloca !quake.ref
-  %m = quake.mz %0 name "h" : (!quake.ref) -> !cc.measure_handle
-  %b = quake.discriminate %m : (!cc.measure_handle) -> i1
+  %m = quake.mz %0 name "h" : (!quake.ref) -> !quake.measure
+  %b = quake.discriminate %m : (!quake.measure) -> i1
   return %b : i1
 }
 
@@ -68,24 +68,11 @@ func.func @scalar_handle_run() -> i1 attributes {"cudaq-entrypoint", "cudaq-kern
 // WIRE-NOT:          llvm.call @__quantum__rt__result_record_output
 // WIRE:              llvm.return
 
-func.func @scalar_measure_run() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", quake.cudaq_run = [i1]} {
-  %0 = quake.alloca !quake.ref
-  %m = quake.mz %0 name "h" : (!quake.ref) -> !quake.measure
-  %b = quake.discriminate %m : (!quake.measure) -> i1
-  return %b : i1
-}
-
-// WIRE-LABEL:      llvm.func @scalar_measure_run() -> i1
-// WIRE:              llvm.call @__quantum__qis__mz__body
-// WIRE-NOT:          llvm.call @__quantum__rt__result_record_output
-// WIRE-ADAPT:        llvm.call @__quantum__qis__read_result__body
-// WIRE:              llvm.return
-
 // -----
 // Function signatures with handle parameter and return.
 
-func.func @handle_signature(%arg0: !cc.measure_handle) -> !cc.measure_handle attributes {"cudaq-kernel"} {
-  return %arg0 : !cc.measure_handle
+func.func @handle_signature(%arg0: !quake.measure) -> !quake.measure attributes {"cudaq-kernel"} {
+  return %arg0 : !quake.measure
 }
 
 // CHECK-LABEL:   func.func @handle_signature(
@@ -95,8 +82,8 @@ func.func @handle_signature(%arg0: !cc.measure_handle) -> !cc.measure_handle att
 // -----
 // A handle received directly as a block argument and discriminated.
 
-func.func @handle_block_arg(%h: !cc.measure_handle) -> i1 attributes {"cudaq-kernel"} {
-  %0 = quake.discriminate %h : (!cc.measure_handle) -> i1
+func.func @handle_block_arg(%h: !quake.measure) -> i1 attributes {"cudaq-kernel"} {
+  %0 = quake.discriminate %h : (!quake.measure) -> i1
   return %0 : i1
 }
 
@@ -110,7 +97,7 @@ func.func @handle_block_arg(%h: !cc.measure_handle) -> i1 attributes {"cudaq-ker
 // `cc.alloca` of a scalar handle.
 
 func.func @handle_alloca() attributes {"cudaq-kernel"} {
-  %0 = cc.alloca !cc.measure_handle
+  %0 = cc.alloca !quake.measure
   return
 }
 
@@ -121,7 +108,7 @@ func.func @handle_alloca() attributes {"cudaq-kernel"} {
 // Static-size array of handles.
 
 func.func @handle_static_array() attributes {"cudaq-kernel"} {
-  %0 = cc.alloca !cc.array<!cc.measure_handle x 5>
+  %0 = cc.alloca !cc.array<!quake.measure x 5>
   return
 }
 
@@ -132,7 +119,7 @@ func.func @handle_static_array() attributes {"cudaq-kernel"} {
 // Dynamic-size array of handles.
 
 func.func @handle_dynamic_array(%n: i64) attributes {"cudaq-kernel"} {
-  %0 = cc.alloca !cc.measure_handle[%n : i64]
+  %0 = cc.alloca !quake.measure[%n : i64]
   return
 }
 
@@ -143,8 +130,8 @@ func.func @handle_dynamic_array(%n: i64) attributes {"cudaq-kernel"} {
 // -----
 // Function returning `cc.sequence<measure_handle>` (recursive container rule).
 
-func.func @sequence_handle(%arg: !cc.sequence<!cc.measure_handle>) -> !cc.sequence<!cc.measure_handle> attributes {"cudaq-kernel"} {
-  return %arg : !cc.sequence<!cc.measure_handle>
+func.func @sequence_handle(%arg: !cc.sequence<!quake.measure>) -> !cc.sequence<!quake.measure> attributes {"cudaq-kernel"} {
+  return %arg : !cc.sequence<!quake.measure>
 }
 
 // CHECK-LABEL:   func.func @sequence_handle(
@@ -165,10 +152,10 @@ func.func @no_handle() attributes {"cudaq-kernel"} {
 // -----
 // `cc.indirect_callable` carrying a handle return type.
 
-func.func @indirect_handle(%c: !cc.indirect_callable<() -> !cc.measure_handle>) -> !cc.measure_handle attributes {"cudaq-kernel"} {
+func.func @indirect_handle(%c: !cc.indirect_callable<() -> !quake.measure>) -> !quake.measure attributes {"cudaq-kernel"} {
   %0 = cc.call_indirect_callable %c
-    : (!cc.indirect_callable<() -> !cc.measure_handle>) -> !cc.measure_handle
-  return %0 : !cc.measure_handle
+    : (!cc.indirect_callable<() -> !quake.measure>) -> !quake.measure
+  return %0 : !quake.measure
 }
 
 // CHECK-LABEL:   func.func @indirect_handle(
@@ -187,13 +174,13 @@ func.func @indirect_handle(%c: !cc.indirect_callable<() -> !cc.measure_handle>) 
 // inconsistency that the type-conversion / lowering pipeline tolerated by
 // accident.
 
-func.func @handle_array_rw(%h: !cc.measure_handle, %i: i64) -> i1 attributes {"cudaq-kernel"} {
-  %0 = cc.alloca !cc.array<!cc.measure_handle x 4>
-  %1 = cc.compute_ptr %0[%i] : (!cc.ptr<!cc.array<!cc.measure_handle x 4>>, i64) -> !cc.ptr<!cc.measure_handle>
-  cc.store %h, %1 : !cc.ptr<!cc.measure_handle>
-  %2 = cc.cast %0 : (!cc.ptr<!cc.array<!cc.measure_handle x 4>>) -> !cc.ptr<!cc.measure_handle>
-  %3 = cc.load %2 : !cc.ptr<!cc.measure_handle>
-  %4 = quake.discriminate %3 : (!cc.measure_handle) -> i1
+func.func @handle_array_rw(%h: !quake.measure, %i: i64) -> i1 attributes {"cudaq-kernel"} {
+  %0 = cc.alloca !cc.array<!quake.measure x 4>
+  %1 = cc.compute_ptr %0[%i] : (!cc.ptr<!cc.array<!quake.measure x 4>>, i64) -> !cc.ptr<!quake.measure>
+  cc.store %h, %1 : !cc.ptr<!quake.measure>
+  %2 = cc.cast %0 : (!cc.ptr<!cc.array<!quake.measure x 4>>) -> !cc.ptr<!quake.measure>
+  %3 = cc.load %2 : !cc.ptr<!quake.measure>
+  %4 = quake.discriminate %3 : (!quake.measure) -> i1
   return %4 : i1
 }
 
@@ -214,10 +201,10 @@ func.func @handle_array_rw(%h: !cc.measure_handle, %i: i64) -> i1 attributes {"c
 // -----
 // `cc.sequence_init` + `cc.sequence_data` + `cc.sequence_size` over a handle buffer.
 
-func.func @handle_sequence_init(%n: i64) -> !cc.sequence<!cc.measure_handle> attributes {"cudaq-kernel"} {
-  %0 = cc.alloca !cc.measure_handle[%n : i64]
-  %1 = cc.sequence_init %0, %n : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
-  return %1 : !cc.sequence<!cc.measure_handle>
+func.func @handle_sequence_init(%n: i64) -> !cc.sequence<!quake.measure> attributes {"cudaq-kernel"} {
+  %0 = cc.alloca !quake.measure[%n : i64]
+  %1 = cc.sequence_init %0, %n : (!cc.ptr<!cc.array<!quake.measure x ?>>, i64) -> !cc.sequence<!quake.measure>
+  return %1 : !cc.sequence<!quake.measure>
 }
 
 // CHECK-LABEL:   func.func @handle_sequence_init(
@@ -226,11 +213,11 @@ func.func @handle_sequence_init(%n: i64) -> !cc.sequence<!cc.measure_handle> att
 // CHECK:           %[[VAL_VEC:.*]] = cc.sequence_init %[[VAL_BUF]], %[[VAL_N]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.sequence<i64>
 // CHECK:           return %[[VAL_VEC]] : !cc.sequence<i64>
 
-func.func @handle_sequence_consume(%v: !cc.sequence<!cc.measure_handle>) -> i1 attributes {"cudaq-kernel"} {
-  %0 = cc.sequence_data %v : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
-  %1 = cc.cast %0 : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
-  %2 = cc.load %1 : !cc.ptr<!cc.measure_handle>
-  %3 = quake.discriminate %2 : (!cc.measure_handle) -> i1
+func.func @handle_sequence_consume(%v: !cc.sequence<!quake.measure>) -> i1 attributes {"cudaq-kernel"} {
+  %0 = cc.sequence_data %v : (!cc.sequence<!quake.measure>) -> !cc.ptr<!cc.array<!quake.measure x ?>>
+  %1 = cc.cast %0 : (!cc.ptr<!cc.array<!quake.measure x ?>>) -> !cc.ptr<!quake.measure>
+  %2 = cc.load %1 : !cc.ptr<!quake.measure>
+  %3 = quake.discriminate %2 : (!quake.measure) -> i1
   return %3 : i1
 }
 
@@ -245,8 +232,8 @@ func.func @handle_sequence_consume(%v: !cc.sequence<!cc.measure_handle>) -> i1 a
 // must preserve the handle-form lowering.
 func.func @scalar_handle_e2e() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %0 = quake.alloca !quake.ref
-  %m = quake.mz %0 name "h" : (!quake.ref) -> !cc.measure_handle
-  %b = quake.discriminate %m : (!cc.measure_handle) -> i1
+  %m = quake.mz %0 name "h" : (!quake.ref) -> !quake.measure
+  %b = quake.discriminate %m : (!quake.measure) -> i1
   return %b : i1
 }
 
