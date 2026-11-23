@@ -139,12 +139,16 @@ function retry {
 
 function download_first {
   local filename="$1"; shift
-  for url in "$@"; do
-    echo "Downloading ${url}..."
-    if retry wget --tries=1 --connect-timeout=30 -O "${filename}" "${url}"; then
-      return 0
-    fi
-    echo "Failed to download from ${url}; trying next mirror..." >&2
+  local round url
+  for round in 1 2 3; do
+    for url in "$@"; do
+      echo "Downloading ${url}..."
+      if wget --tries=1 --connect-timeout=30 -O "${filename}" "${url}"; then
+        return 0
+      fi
+      echo "Failed to download from ${url}; trying next mirror..." >&2
+    done
+    if [ "$round" -lt 3 ]; then sleep 15; fi
   done
   rm -f "${filename}"
   echo "Failed to download from all mirrors: $*" >&2
