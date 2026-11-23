@@ -2175,11 +2175,11 @@ command-line options. For affected releases, import Numba or Triton
 before importing CUDA-Q. If the application cannot control import order,
 run CUDA-Q in a separate process.
 
-CUDA-Q keeps its LLVM-dependent runtime and backend libraries local.
+CUDA-Q keeps its LLVM-dependent compiler and backend libraries local.
 Importing [`cudaq`{.docutils .literal .notranslate}]{.pre} exposes only
-the LLVM-free kernel runtime ([`libnvqir`{.docutils .literal
-.notranslate}]{.pre}, [`libcudaq-common`{.docutils .literal
-.notranslate}]{.pre}, [`libcudaq-kernel-runtime`{.docutils .literal
+the LLVM-free core runtime ([`libnvqir`{.docutils .literal
+.notranslate}]{.pre}, [`libcudaq`{.docutils .literal
+.notranslate}]{.pre}, [`libcudaq-em-default`{.docutils .literal
 .notranslate}]{.pre}, and their dependencies) globally. This allows
 shared libraries containing [`nvq++`{.docutils .literal
 .notranslate}]{.pre}-compiled kernels to be loaded with
@@ -2192,10 +2192,8 @@ CUDA-Q, even when compiled with [`nvq++`{.docutils .literal
 without explicit CUDA-Q dependencies. Kernel launches use the active
 CUDA-Q target without exposing the compiler's LLVM symbols globally.
 
-External native extensions using C++ runtime APIs must still link to the
-CUDA-Q libraries they use, including
-[`cudaq::cudaq-em-default`{.docutils .literal .notranslate}]{.pre} when
-using the default execution manager. Compiler plugins should link to
+External native extensions using other CUDA-Q libraries must still link
+to the libraries they use. Compiler plugins should link to
 [`cudaq::MLIR`{.docutils .literal .notranslate}]{.pre}. They must not
 rely on [`import`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 .literal .notranslate}[`cudaq`{.docutils .literal .notranslate}]{.pre}
