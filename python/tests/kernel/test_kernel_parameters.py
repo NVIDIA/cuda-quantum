@@ -43,6 +43,23 @@ def test_list_bool():
     assert '1010' in counts
 
 
+def test_numpy_bool():
+
+    @cudaq.kernel
+    def kernel(flip: bool, myList: list[bool]):
+        q = cudaq.qvector(len(myList) + 1)
+        if flip:
+            x(q[0])
+        for i, b in enumerate(myList):
+            if b:
+                x(q[i + 1])
+
+    counts = cudaq.sample(kernel, np.bool_(True),
+                          np.array([1.0, -1.0, 2.0]) > 0)
+    assert len(counts) == 1
+    assert '1101' in counts
+
+
 def test_list_pauli():
 
     @cudaq.kernel

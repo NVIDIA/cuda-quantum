@@ -1859,6 +1859,10 @@ class PyKernel(object):
                 processedArgs.append(cudaq_runtime.pauli_word(arg))
                 continue
 
+            # NumPy booleans (e.g. the result of `x > 0`) are not Python `bool`s.
+            if isinstance(arg, np.bool_):
+                arg = bool(arg)
+
             argType = type(arg)
             listType = None
             if argType == list:
