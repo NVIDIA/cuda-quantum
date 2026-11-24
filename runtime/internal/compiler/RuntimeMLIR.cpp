@@ -454,7 +454,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
                               llvm::raw_string_ostream &output,
                               const std::string &additionalPasses, bool printIR,
                               bool printIntermediateMLIR, bool printStats,
-                              bool disableQuantumOpts = false) {
+                              cudaq::opt::CodegenMode codegenMode) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "qirProfileTranslationFunction");
 
   auto config = cudaq::parseCodeGenTranslation(qirProfile);
@@ -482,8 +482,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
     cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileName);
   } else {
     profileName = qirProfile;
-    cudaq::opt::addAOTPipelineConvertToQIR(
-        pm, profileName, /*useValueSemantics=*/!disableQuantumOpts);
+    cudaq::opt::addAOTPipelineConvertToQIR(pm, profileName, codegenMode);
   }
 
   if (!additionalPasses.empty() &&
@@ -663,10 +662,10 @@ static void registerToQIRTranslation() {
          llvm::raw_string_ostream &output,                                     \
          const std::string &additionalPasses, bool printIR,                    \
          bool printIntermediateMLIR, bool printStats,                          \
-         bool disableQuantumOpts) {                                            \
+         cudaq::opt::CodegenMode codegenMode) {                                \
         return qirProfileTranslationFunction(                                  \
             transportTriple, op, output, additionalPasses, printIR,            \
-            printIntermediateMLIR, printStats, disableQuantumOpts);            \
+            printIntermediateMLIR, printStats, codegenMode);                   \
       })
 
   CREATE_QIR_REGISTRATION(regBase, "qir-base");

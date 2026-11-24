@@ -41,12 +41,15 @@ std::vector<CompiledModuleHelper::NamedCompiledArtifact>
 CompiledModuleHelper::createJitArtifacts(const std::string &kernelName,
                                          cudaq::JitEngine engine,
                                          const cudaq::ResultInfo &resultInfo,
+                                         bool needsHostFunctions,
                                          bool isFullySpecialized) {
   bool hasResult = resultInfo.hasResult();
+  assert((needsHostFunctions || (!hasResult && isFullySpecialized)) &&
+         "a kernel with a result or an unspecialized argument is launched "
+         "through its host functions");
   std::string fullName =
       std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName;
-  std::string entryName =
-      (hasResult || !isFullySpecialized) ? kernelName + ".thunk" : fullName;
+  std::string entryName = needsHostFunctions ? kernelName + ".thunk" : fullName;
   void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
 
   std::vector<NamedCompiledArtifact> artifacts;
