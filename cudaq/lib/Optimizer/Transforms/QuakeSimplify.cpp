@@ -517,18 +517,18 @@ public:
     SmallVector<QOP> chain;
     // Links removed as exact inverse pairs. They contribute no angle.
     SmallVector<QOP> cancelled;
-    for (QOP anchor = later;;) {
-      Operation *match =
-          matcher.find_nearest(anchor, [&](Operation *candidate) {
-            auto earlier = getSameActionEndpoint(anchor, candidate, matcher);
-            if (!earlier)
-              return false;
-            auto earlierParameters = earlier.getParameters();
-            return earlierParameters.size() == 1 &&
-                   earlierParameters.front().getType() == laterAngle.getType();
-          });
-      if (!match)
-        break;
+    auto findEarlierLink = [&](QOP anchor) {
+      return matcher.find_nearest(anchor, [&](Operation *candidate) {
+        auto earlier = getSameActionEndpoint(anchor, candidate, matcher);
+        if (!earlier)
+          return false;
+        auto earlierParameters = earlier.getParameters();
+        return earlierParameters.size() == 1 &&
+               earlierParameters.front().getType() == laterAngle.getType();
+      });
+    };
+    QOP anchor = later;
+    while (Operation *match = findEarlierLink(anchor)) {
       anchor = cast<QOP>(match);
       // An exact inverse of the nearest surviving link cancels without
       // creating a new angle. Summing the pair instead would leave `x + -x`
