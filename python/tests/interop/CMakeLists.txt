@@ -41,3 +41,28 @@ target_include_directories(cudaq_test_cpp_algo
 
 add_dependencies(cudaq_test_cpp_algo nvq++)
 
+nanobind_add_module(cudaq_test_cpp_dem
+  test_cpp_dem_module.cpp
+)
+
+target_link_libraries(cudaq_test_cpp_dem
+  PRIVATE
+    cudaq
+    quantum_lib
+    cudaq-python-interop
+    cudaq-logger
+    cudaq-mlir-runtime
+    cudaq-em-default
+)
+
+if(APPLE)
+  target_link_options(cudaq_test_cpp_dem PRIVATE -Wl,-undefined,dynamic_lookup)
+endif()
+
+target_include_directories(cudaq_test_cpp_dem
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/python
+)
+
+add_dependencies(cudaq_test_cpp_dem nvq++)
+
