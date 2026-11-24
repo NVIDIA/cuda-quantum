@@ -21,6 +21,10 @@
 #       source scripts/llvm_ccache.sh && llvm_ccache_begin <flavor> [<compiler check>] && \
 #       <build LLVM>
 #
+# The registry credentials are kept in a file of the temporary directory, never
+# in ~/.docker, which would end up in the layer. The file is removed as soon as
+# the restore is done, and again when the build ends.
+#
 # llvm_ccache_begin sets an EXIT trap that calls llvm_ccache_end, so that a
 # failed build also saves what it compiled. The exit status of the build is
 # never changed, and a problem with the registry never fails the build.
@@ -96,6 +100,11 @@ _llvm_ccache_install_oras() {
   export PATH="$LLVM_CCACHE_TMP/bin:$PATH"
 }
 
+# ORAS options naming the credentials file, set once the temporary directory exists.
+_llvm_ccache_auth() {
+  echo "--registry-config $LLVM_CCACHE_TMP/auth.json"
+}
+
 _llvm_ccache_misses() {
   local n
   n=$(ccache --print-stats 2> /dev/null | awk '$1 == "cache_miss" {print $2; exit}')
@@ -114,20 +123,21 @@ _llvm_ccache_restore() {
     return 0
   fi
   _llvm_ccache_install_oras || { echo "llvm-ccache: could not install oras; building without a restored ccache."; return 1; }
-  [ -n "$_lc_token" ] && { echo "$_lc_token" | oras login "${_lc_host}" -u "$_lc_user" --password-stdin $_lc_http > /dev/null 2>&1 || echo "llvm-ccache: login to $_lc_host failed."; }
+  [ -n "$_lc_token" ] && { echo "$_lc_token" | oras login "${_lc_host}" -u "$_lc_user" --password-stdin $(_llvm_ccache_auth) $_lc_http > /dev/null 2>&1 || echo "llvm-ccache: login to $_lc_host failed."; }
   for ref in $_lc_pull; do
     tag="${ref%:*}:${_lc_flavor}-${_lc_arch}-${ref##*:}"
     rm -rf "$LLVM_CCACHE_TMP/pull"
-    if oras pull "$tag" -o "$LLVM_CCACHE_TMP/pull" $_lc_http > /dev/null 2>&1 \
+    if oras pull "$tag" -o "$LLVM_CCACHE_TMP/pull" $(_llvm_ccache_auth) $_lc_http > /dev/null 2>&1 \
       && tar -xf "$LLVM_CCACHE_TMP/pull/ccache-data.tar" -C "$CCACHE_DIR"; then
       echo "llvm-ccache: restored $tag ($(du -sh "$CCACHE_DIR" | cut -f1), $(find "$CCACHE_DIR" -type f | wc -l) files)."
       _lc_restored=$tag
-      rm -rf "$LLVM_CCACHE_TMP/pull"
+      rm -rf "$LLVM_CCACHE_TMP/pull" "$LLVM_CCACHE_TMP/auth.json"
       return 0
     fi
     echo "llvm-ccache: nothing usable at $tag."
     find "$CCACHE_DIR" -mindepth 1 -delete 2> /dev/null
   done
+  rm -f "$LLVM_CCACHE_TMP/auth.json"
   return 0
 }
 
@@ -188,12 +198,12 @@ llvm_ccache_end() { # <exit status of the build>
     echo "llvm-ccache: saving $misses new results to $tag."
     {
       _llvm_ccache_install_oras \
-        && { [ -z "$_lc_token" ] || echo "$_lc_token" | oras login "$_lc_host" -u "$_lc_user" --password-stdin $_lc_http > /dev/null 2>&1; } \
+        && { [ -z "$_lc_token" ] || echo "$_lc_token" | oras login "$_lc_host" -u "$_lc_user" --password-stdin $(_llvm_ccache_auth) $_lc_http > /dev/null 2>&1; } \
         && ccache --cleanup > /dev/null 2>&1 \
         && tar -cf "$LLVM_CCACHE_TMP/ccache-data.tar" -C "$CCACHE_DIR" . \
         && { [ "$(stat -c %s "$LLVM_CCACHE_TMP/ccache-data.tar")" -le "$LLVM_CCACHE_MAX_BYTES" ] \
           || { echo "llvm-ccache: the archive is larger than $LLVM_CCACHE_MAX_BYTES bytes; raise CCACHE_MAXSIZE or LLVM_CCACHE_MAX_BYTES."; false; }; } \
-        && (cd "$LLVM_CCACHE_TMP" && oras push "$tag" ccache-data.tar:application/x-tar $_lc_http > /dev/null) \
+        && (cd "$LLVM_CCACHE_TMP" && oras push "$tag" ccache-data.tar:application/x-tar $(_llvm_ccache_auth) $_lc_http > /dev/null) \
         && echo "llvm-ccache: saved $tag ($(du -h "$LLVM_CCACHE_TMP/ccache-data.tar" | cut -f1))."
     } || echo "llvm-ccache: saving $tag failed; the build is not affected."
   fi
