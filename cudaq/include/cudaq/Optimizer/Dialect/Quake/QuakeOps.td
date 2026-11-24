@@ -125,7 +125,7 @@ def quake_InitializeStateOp : QuakeOp<"init_state",
     AnyStateInitType:$state
   );
   let results = (outs VeqType);
-  
+
   let assemblyFormat = [{
     $targets `,` $state `:` functional-type(operands, results) attr-dict
   }];
@@ -339,7 +339,7 @@ def quake_SubVeqOp : QuakeOp<"subveq", [AttrSizedOperandSegments, Pure]> {
       return build($_builder, $_state, veqTy, input, {}, {}, lower, upper);
     }]>
   ];
-  
+
   let extraClassDeclaration = [{
     static constexpr std::size_t kDynamicIndex =
       std::numeric_limits<std::size_t>::max();
@@ -363,7 +363,7 @@ def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
       %0 = quake.alloca !quake.veq<4>
       // %1 will be 4 with canonicalization.
       %1 = quake.veq_size %0 : (!quake.veq<4>) -> i64
-      
+
       %2 = ... : !quake.veq<?>
       // %3 may not be computed until runtime.
       %3 = quake.veq_size %2 : (!quake.veq<?>) -> i64
@@ -848,7 +848,7 @@ def quake_NullCableOp : QuakeOp<"null_cable"> {
     identical semantics to a series of `quake.null_wire` operations.
   }];
 
-  let results = (outs 
+  let results = (outs
     Arg<CableType, "cable created", [MemRead, MemWrite]>:$cableType
   );
 
@@ -888,7 +888,7 @@ def quake_SplitCableOp : QuakeOp<"split_cable", [Pure]> {
     the wires in a cable as individual wire values. All resulting wires have
     linear types and must be used exactly one time after this operation.
   }];
-  
+
   let arguments = (ins CableType:$cable);
   let results = (outs Variadic<WireType>);
 
@@ -1046,7 +1046,7 @@ def quake_BorrowWireOp : QuakeOp<"borrow_wire"> {
   let results = (outs
     Arg<WireType, "wire borrowed", [MemRead, MemWrite]>
   );
-  
+
   let hasVerifier = 1;
   let assemblyFormat = [{
     $set_name `[` $identity `]` `:` type(results) attr-dict
@@ -1543,12 +1543,12 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
 def quake_ExpPauliOp : QuakeOperator<"exp_pauli"> {
   let summary = "General Pauli tensor product rotation";
   let description = [{
-    This operation affects a general Pauli tensor product rotation on 
-    the input qubits. The number of Pauli characters in the input Pauli word 
+    This operation affects a general Pauli tensor product rotation on
+    the input qubits. The number of Pauli characters in the input Pauli word
     string must equal the number of qubits in the veq. Mathematically, this
-    operation applies exp(i theta P) where P is a general Pauli tensor product. 
+    operation applies exp(i theta P) where P is a general Pauli tensor product.
   }];
-  
+
   let arguments = !con(commonArguments, (ins
     Optional<AnyTypeOf<[cc_PointerType, cc_CharSpanType]>>:$pauli,
     OptionalAttr<StrAttr>:$pauliLiteral
