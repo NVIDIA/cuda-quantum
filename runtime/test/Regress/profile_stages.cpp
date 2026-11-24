@@ -58,6 +58,20 @@ public:
   }
 };
 
+/// Handler whose stages need no gate lowering and normalize the kernel.
+class AnyGateHandler : public TestHandler {
+public:
+  std::optional<StagePasses>
+  getStagePasses(const cudaq::config::Profile &input,
+                 const cudaq::config::Profile &output,
+                 const cudaq::CompileOptions &options) const override {
+    auto passes = TestHandler::getStagePasses(input, output, options);
+    passes->needsGateLowering = false;
+    passes->normalizesKernel = true;
+    return passes;
+  }
+};
+
 using HandlerVector = std::vector<std::unique_ptr<LoweringHandler>>;
 
 static cudaq::config::CompilationStage customStage(const std::string &high,
@@ -89,7 +103,7 @@ static std::string planPipeline(const cudaq::CompileTarget &target,
                                 const HandlerVector &handlers) {
   std::string diagnostic;
   auto pipeline = getPassPipeline(target, {}, handlers, diagnostic);
-  return pipeline ? *pipeline : "FAILED: " + diagnostic;
+  return pipeline ? pipeline->text : "FAILED: " + diagnostic;
 }
 
 // The stages' passes join in stage order around one deploy and one finalize,
@@ -215,6 +229,30 @@ void test_disable_qubit_mapping() {
 // CHECK: override: qubit-mapping{device=bypass placement=greedy}{{$}}
 // clang-format on
 
+// A custom stage keeps the conservative defaults, so a target that adds one
+// after a stage that normalizes and needs no gate lowering still gets the full
+// prep, deploy, and finalize. `profile_providers.cpp` checks the skipping case
+// with the real handler.
+void test_stage_facts() {
+  HandlerVector handlers;
+  handlers.push_back(std::make_unique<AnyGateHandler>());
+  cudaq::CompileTarget target;
+  target.stages = {
+      inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{})};
+  const auto print = [&](const char *label) {
+    std::string diagnostic;
+    auto pipeline = getPassPipeline(target, {}, handlers, diagnostic);
+    std::cout << label << ": " << pipeline->text << " every stage normalizes: "
+              << pipeline->everyStageNormalizesKernel << "\n";
+  };
+  target.stages.push_back(customStage("", "custom", ""));
+  print("then custom");
+}
+
+// clang-format off
+// CHECK: then custom: canonicalize,hw-jit-prep-pipeline{allow-early-exit=false},jit-deploy-pipeline,handler(unchecked->quake-reference-semantics),custom,jit-finalize-pipeline{lower-device-calls=true} every stage normalizes: 0{{$}}
+// clang-format on
+
 // A target with zero stages results in an empty pipeline.
 void test_zero_stages() {
   cudaq::CompileTarget target;
@@ -223,7 +261,7 @@ void test_zero_stages() {
   std::string diagnostic;
   const auto pipeline = getPassPipeline(target, {}, handlers, diagnostic);
   if (pipeline)
-    std::cout << "zero stages: pipeline=\"" << *pipeline << "\"\n";
+    std::cout << "zero stages: pipeline=\"" << pipeline->text << "\"\n";
   else
     std::cout << "got unexpected diagnostic: " << diagnostic << "\n";
   std::cout << "zero stages handler calls: "
@@ -240,6 +278,7 @@ int main() {
   test_no_match_diagnostic();
   test_selected_failure_diagnostic();
   test_disable_qubit_mapping();
+  test_stage_facts();
   test_zero_stages();
   return 0;
 }

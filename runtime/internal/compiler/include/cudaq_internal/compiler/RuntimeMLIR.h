@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/Optimizer/CodeGen/CodegenMode.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
@@ -38,7 +39,7 @@ using TranslateFromMLIRFunction = std::function<mlir::LogicalResult(
     bool, bool)>;
 using TranslateFromMLIRFunctionExtended = std::function<mlir::LogicalResult(
     mlir::Operation *, const std::string &, llvm::raw_string_ostream &,
-    const std::string &, bool, bool, bool, bool)>;
+    const std::string &, bool, bool, bool, cudaq::opt::CodegenMode)>;
 
 /// @brief Initialize MLIR with CUDA-Q dialects and create an internal MLIR
 /// context
@@ -83,11 +84,10 @@ public:
                                  const std::string &additionalPasses,
                                  bool printIR, bool printIntermediateMLIR,
                                  bool printStats,
-                                 bool disableQuantumOpts = false) const {
+                                 cudaq::opt::CodegenMode codegenMode) const {
     if (ext_function.has_value())
       return (*ext_function)(op, transport, output, additionalPasses, printIR,
-                             printIntermediateMLIR, printStats,
-                             disableQuantumOpts);
+                             printIntermediateMLIR, printStats, codegenMode);
     return mlir::failure();
   }
 

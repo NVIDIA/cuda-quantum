@@ -184,7 +184,7 @@ def cc_CallableType : CCType<"Callable", "callable"> {
     resolved instance of the callable will be lowered in the specialized
     template function.
   }];
-  
+
   let parameters = (ins "mlir::FunctionType":$signature);
 
   let assemblyFormat = "`<` $signature `>`";

@@ -41,26 +41,19 @@ public:
       return failure();
 
     LLVM_DEBUG(llvm::dbgs() << "allocation: " << allocOp << '\n');
-    // If all the uses are cc.compute_ptr, then we can do a scalar replacement.
+    // Split only if every use loads the whole aggregate or points at one
+    // element and stays inside it.
     for (auto *user : allocOp->getUsers()) {
       if (!user)
         continue;
       if (auto ptrOp = dyn_cast<cudaq::cc::ComputePtrOp>(user))
-        if (ptrOp.getNumIndices() == 1 && ptrOp.getConstantIndex(0))
+        if (ptrOp.getNumIndices() == 1 && ptrOp.getConstantIndex(0) &&
+            staysInElement(ptrOp))
           continue;
       if (auto cast = dyn_cast<cudaq::cc::CastOp>(user))
-        if (castMatches(allocOp.getElementType(), cast.getResult().getType())) {
-          for (auto *cast_user : cast->getUsers()) {
-            if (!cast_user)
-              continue;
-            if (auto load = dyn_cast<cudaq::cc::LoadOp>(cast_user))
-              continue;
-            if (auto store = dyn_cast<cudaq::cc::StoreOp>(cast_user))
-              continue;
-            return failure();
-          }
+        if (castMatches(allocOp.getElementType(), cast.getType()) &&
+            staysInElement(cast))
           continue;
-        }
       if (auto load = dyn_cast<cudaq::cc::LoadOp>(user))
         continue;
       return failure();
@@ -156,6 +149,28 @@ public:
       }
     }
     return false;
+  }
+
+  // After the split each element has its own allocation, so an element pointer
+  // may only be loaded, stored to, indexed into, or cast to a scalar pointer
+  // used the same way. A list slice `a[1:3]` breaks this by casting `&a[1]` to
+  // `!cc.ptr<!cc.array<T x ?>>` to reach `a[2]`.
+  static bool staysInElement(Value elePtr) {
+    for (auto *user : elePtr.getUsers()) {
+      if (isa<cudaq::cc::LoadOp, cudaq::cc::ComputePtrOp>(user))
+        continue;
+      if (auto store = dyn_cast<cudaq::cc::StoreOp>(user))
+        if (store.getPtrvalue() == elePtr)
+          continue;
+      if (auto cast = dyn_cast<cudaq::cc::CastOp>(user))
+        if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(cast.getType()))
+          if (!isa<cudaq::cc::ArrayType, cudaq::cc::StructType>(
+                  ptrTy.getElementType()) &&
+              staysInElement(cast))
+            continue;
+      return false;
+    }
+    return true;
   }
 
   static bool castMatches(Type aggrTy, Type ty) {
