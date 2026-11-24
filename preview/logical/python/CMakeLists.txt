@@ -271,6 +271,12 @@ target_link_libraries(QLXPythonCAPI PRIVATE
   cudaq::cudaqMLIRCAPI
   cudaq::MLIRPythonSupport)
 
+# Pass options built in this DSO must register with libcudaqMLIR's command-line
+# parser, not with a private copy of LLVMSupport (see the helper's docs).
+if(APPLE)
+  qlx_drop_static_llvm_support(QLXPythonCAPI)
+endif()
+
 # CUDA-Q's aggregate helper exports the standard MLIR/CUDA-Q C APIs. Extend
 # that export set with every retained CUDA-Q Logical P0-P3 C API so the Python
 # extensions and the Quake plugin share one symbol/type universe.

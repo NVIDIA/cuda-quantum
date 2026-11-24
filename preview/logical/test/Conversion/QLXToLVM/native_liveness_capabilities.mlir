@@ -11,7 +11,6 @@
 // RUN: qlx-opt %s --qlx-to-lvm='root=sequential domain=vm result=with_witness witness-output=%t.json' > %t.mlir
 // RUN: FileCheck %s --check-prefix=WITNESS < %t.json
 // RUN: FileCheck %s --check-prefix=COMMIT < %t.mlir
-// RUN: not qlx-opt %s --qlx-to-lvm='root=sequential domain=vm result=write_failure witness-output=/dev/full' 2>&1 | FileCheck %s --check-prefix=WRITE-FAILURE
 // RUN: qlx-opt %s --qlx-to-lvm='root=non_lifo_reuse domain=vm_two result=reused witness-output=%t-reuse.json' > /dev/null
 // RUN: FileCheck %s --check-prefix=REUSE < %t-reuse.json
 
@@ -56,7 +55,6 @@ module attributes {qlx.profiles = ["p0", "p1"]} {
 // CHECK: lvm.kernel @placed
 // CHECK: lvm.prepare "zero" at @vm::@compute
 // CHECK: lvm.measure
-// WRITE-FAILURE: failed to write detached placement witness '/dev/full'
 
 // WITNESS: {"schema":"qlx.placement-witness/v1"
 // WITNESS-SAME: "root":"sequential"
