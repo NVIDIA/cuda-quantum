@@ -40,6 +40,52 @@ function(qlx_select_mlir_link_libraries output)
   set(${output} cudaq::MLIR PARENT_SCOPE)
 endfunction()
 
+function(_qlx_collect_directory_targets directory output)
+  get_property(_targets DIRECTORY "${directory}" PROPERTY BUILDSYSTEM_TARGETS)
+  get_property(_subdirs DIRECTORY "${directory}" PROPERTY SUBDIRECTORIES)
+  foreach(_subdir IN LISTS _subdirs)
+    _qlx_collect_directory_targets("${_subdir}" _sub_targets)
+    list(APPEND _targets ${_sub_targets})
+  endforeach()
+  set(${output} ${_targets} PARENT_SCOPE)
+endfunction()
+
+#[=======================================================================[.rst:
+``qlx_drop_static_llvm_support(<aggregate-target>)``
+  Removes ``LLVMSupport`` and ``LLVMDemangle`` from the link interface of
+  ``<aggregate-target>`` and of every static library in this project.
+
+  ``add_mlir_library`` links each MLIR library, including the aggregate
+  itself, against the static ``LLVMSupport``. The aggregate
+  (``QLXPythonCAPI``) then embeds a private copy of LLVM's command-line
+  parser next to the one in ``libcudaqMLIR``. On macOS each image binds to
+  its own copy, so pass options constructed in ``QLXPythonCAPI`` register
+  with the private parser and ``PassOptions::parseFromString`` in
+  ``libcudaqMLIR`` fails with ``no such option``. Link order does not help:
+  ld64 prefers the archive definition over the dylib for these references.
+  ``cudaq::MLIR`` already provides every LLVM symbol the project needs.
+#]=======================================================================]
+function(qlx_drop_static_llvm_support aggregate)
+  _qlx_collect_directory_targets("${PROJECT_SOURCE_DIR}" _qlx_targets)
+  foreach(_target IN LISTS _qlx_targets)
+    get_target_property(_type ${_target} TYPE)
+    if(NOT _type STREQUAL "STATIC_LIBRARY" AND NOT _target STREQUAL aggregate)
+      continue()
+    endif()
+    foreach(_property LINK_LIBRARIES INTERFACE_LINK_LIBRARIES)
+      get_target_property(_libs ${_target} ${_property})
+      if(NOT _libs)
+        continue()
+      endif()
+      set(_filtered ${_libs})
+      list(FILTER _filtered EXCLUDE REGEX "^(LLVMSupport|LLVMDemangle)$")
+      if(NOT _filtered STREQUAL _libs)
+        set_property(TARGET ${_target} PROPERTY ${_property} "${_filtered}")
+      endif()
+    endforeach()
+  endforeach()
+endfunction()
+
 function(qlx_propagate_llvm_rtti_eh target)
   if(NOT LLVM_ENABLE_RTTI)
     target_compile_options(${target} PRIVATE -fno-rtti)

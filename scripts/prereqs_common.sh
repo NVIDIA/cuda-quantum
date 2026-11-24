@@ -33,10 +33,14 @@ BLAS_TARBALL_URL="https://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
 # are built as shared libraries only and linked dynamically.
 GMP_VERSION=6.3.0
 GMP_TARBALL_URLS="https://ftp.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.xz \
+https://ftpmirror.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.xz \
+https://mirrors.kernel.org/gnu/gmp/gmp-${GMP_VERSION}.tar.xz \
 https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz"
 
 MPFR_VERSION=4.2.2
 MPFR_TARBALL_URLS="https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFR_VERSION}.tar.xz \
+https://ftpmirror.gnu.org/gnu/mpfr/mpfr-${MPFR_VERSION}.tar.xz \
+https://mirrors.kernel.org/gnu/mpfr/mpfr-${MPFR_VERSION}.tar.xz \
 https://www.mpfr.org/mpfr-${MPFR_VERSION}/mpfr-${MPFR_VERSION}.tar.xz"
 
 PERL_VERSION=5.38.2
@@ -135,12 +139,16 @@ function retry {
 
 function download_first {
   local filename="$1"; shift
-  for url in "$@"; do
-    echo "Downloading ${url}..."
-    if retry wget --tries=1 -O "${filename}" "${url}"; then
-      return 0
-    fi
-    echo "Failed to download from ${url}; trying next mirror..." >&2
+  local round url
+  for round in 1 2 3; do
+    for url in "$@"; do
+      echo "Downloading ${url}..."
+      if wget --tries=1 --connect-timeout=30 -O "${filename}" "${url}"; then
+        return 0
+      fi
+      echo "Failed to download from ${url}; trying next mirror..." >&2
+    done
+    if [ "$round" -lt 3 ]; then sleep 15; fi
   done
   rm -f "${filename}"
   echo "Failed to download from all mirrors: $*" >&2

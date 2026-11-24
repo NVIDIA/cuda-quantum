@@ -32,6 +32,12 @@ config.test_source_root = os.path.dirname(__file__)
 # Retained CLI workflow tests consume the checked-in top-level examples.
 config.substitutions.append(("%qlx_src_dir", config.qlx_src_dir))
 
+# Host OS features for REQUIRES and UNSUPPORTED lines: `system-linux`,
+# `system-darwin`.
+import platform
+
+config.available_features.add("system-" + platform.system().lower())
+
 # Features for REQUIRES lines. Each entry advertises a feature when the
 # corresponding tool exists in ${QLX_TOOLS_DIR}.
 for _tool in ("qlx-opt", "qlx-translate"):

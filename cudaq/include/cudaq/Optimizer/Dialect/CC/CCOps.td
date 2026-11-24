@@ -1939,6 +1939,11 @@ def cc_VarargCallOp : CCOp<"call_vararg",
 
     The use of LLVMIR dialect for varargs functions is required as MLIR's Func
     dialect does not support varargs calls.
+
+    A call through this op to a callee that is not variadic is permitted as
+    long as it passes exactly the callee's parameters; passing extra arguments
+    to a `func.func` is rejected by the verifier. Such a call to a `func.func`
+    is canonicalized to a `func.call`.
   }];
 
   let arguments = (ins
@@ -1992,6 +1997,8 @@ def cc_VarargCallOp : CCOp<"call_vararg",
 
     mlir::LogicalResult verifySymbolUses(mlir::SymbolTableCollection &);
   }];
+
+  let hasCanonicalizer = 1;
 }
 
 

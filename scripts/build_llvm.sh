@@ -214,7 +214,8 @@ if "${CXX:-c++}" --version 2>&1 | grep -q "Free Software Foundation"; then
 fi
 
 # Speeds up repeated/incremental builds (e.g. local iteration) for
-# free when ccache is available; no effect on build output.
+# free when ccache is available; no effect on build output. The CI images keep
+# the cache in the registry (see llvm_ccache.sh).
 CCACHE_FLAGS=""
 if [ -x "$(command -v ccache)" ]; then
   CCACHE_FLAGS="-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
