@@ -30,7 +30,8 @@ class state;
 
 /// Exactly the functions declared with `CUDAQ_NVQPP_API` below are exported.
 ///
-/// This is also used to extract the list of exported symbols (see TODO).
+/// This is also used by the `cudaq_extract_exported_symbols` CMake function as
+/// a marker to extract the list of exported symbols.
 #define CUDAQ_NVQPP_API __attribute__((visibility("default")))
 
 extern "C" {

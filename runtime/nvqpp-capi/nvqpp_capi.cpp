@@ -85,7 +85,7 @@ void __cudaq_registerRunnableKernel(const char *kernelName,
 }
 
 std::intptr_t __cudaq_getLinkableKernelKey(void *p) {
-  return cudaq::registry::__cudaq_getLinkableKernelKey(p);
+  return cudaq::registry::getLinkableKernelKey(p);
 }
 
 void *__cudaq_getLinkableKernelDeviceFunction(std::intptr_t key) {

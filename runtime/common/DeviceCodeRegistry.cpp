@@ -100,7 +100,7 @@ void cudaq::registry::registerLinkableKernel(void *hostSideFunc,
       {hostSideFunc, std::pair{kernelName, deviceSideFunc}});
 }
 
-std::intptr_t cudaq::registry::__cudaq_getLinkableKernelKey(void *p) {
+std::intptr_t cudaq::registry::getLinkableKernelKey(void *p) {
   if (!p)
     throw std::runtime_error("cannot get kernel key, nullptr");
   const auto &qk = *reinterpret_cast<const cudaq::qkernel<void()> *>(p);

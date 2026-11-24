@@ -30,7 +30,7 @@ void registerRunnableKernel(const char *name, void *runnableEntry);
 
 /// Return the kernel key from a `qkernel` object. If \p p is a `nullptr` this
 /// will throw a runtime error.
-std::intptr_t __cudaq_getLinkableKernelKey(void *p);
+std::intptr_t getLinkableKernelKey(void *p);
 
 /// Given a kernel key value, return the corresponding device-side kernel
 /// function. If the kernel is not registered, throws a runtime error.
