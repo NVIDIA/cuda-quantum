@@ -64,6 +64,11 @@ on:
         required: false
         type: string
         description: The name of the GitHub environment within which to execute the workflow. A protected non-default environment should be specified when the workflow pushes images to the registry.
+      runner_cpus:
+        required: false
+        type: string
+        description: The number of CPU cores of the runner. Builds of LLVM take roughly proportionally less time on a larger runner.
+        default: '8'
     outputs:
       image_hash:
         description: "The name and digest of the docker image that was deployed to the registry, which can be used to retrieve it independently of any tag updates."
@@ -125,17 +130,18 @@ jobs:
           # Unique per call, so builds that don't write a cache never share a group.
           echo "concurrency_id=$(cat /proc/sys/kernel/random/uuid)" >> $GITHUB_OUTPUT
 
+          cpus=${{ inputs.runner_cpus }}
           if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
             # multi-platform builds get no platform tag
-            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu$cpus" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
             echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
-            echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
+            echo "runner=linux-arm64-cpu$cpus" >> $GITHUB_OUTPUT
           else
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
             echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
-            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu$cpus" >> $GITHUB_OUTPUT
           fi
 
           repo_owner=${{ github.repository_owner }}
@@ -279,6 +285,7 @@ jobs:
         run: |
           build_config_id=${{ inputs.build_config_id }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}buildcache-cuda-quantum
+          registry_cache_root=$registry_cache
           if ${{ needs.metadata.outputs.pr_number != '' }}; then
             registry_cache=${registry_cache}-ci
           elif ${{ github.event_name == 'merge_group' }}; then
@@ -313,11 +320,13 @@ jobs:
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
           elif ${{ needs.metadata.outputs.pr_number != '' }}; then
             # for PRs, also push buildkit cache to the registry to speed up subsequent builds
-            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }},compression=zstd"
+            # mode=max keeps the layers of the build stages; without them any change to the
+            # final stage reruns the LLVM build, although its own cache key still matches.
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }},mode=max,ignore-error=true,compression=zstd"
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           elif ${{ github.event_name == 'merge_group' }}; then
             # for merge queues, also push buildkit cache to the registry to speed up subsequent builds
-            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base,compression=zstd"
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base,mode=max,ignore-error=true,compression=zstd"
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
           else 
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
@@ -334,19 +343,24 @@ jobs:
           } >> $GITHUB_OUTPUT
           {
             echo 'cache_from_registry<<multiline'
+            # A base branch without a cache of its own (e.g. releases/*) still matches main's layers.
+            bases="$registry_cache_base"
+            if [ "$registry_cache_base" != main ]; then bases="$bases main"; fi
             for platform_id in $platform_ids; do
               if ${{ needs.metadata.outputs.pr_number != '' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
               elif ${{ github.event_name == 'merge_group' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
               fi
-              echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
-              # Merge runs refresh the -ci caches; deployments would otherwise miss them.
-              if ${{ needs.metadata.outputs.pr_number == '' && github.event_name != 'merge_group' }}; then
-                echo "type=registry,ref=${registry_cache}-ci-${cache_id}-${platform_id}:${registry_cache_base}"
-              fi
-              echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
-            done
+              for base in $bases; do
+                echo "type=registry,ref=${registry_cache_root}-${cache_id}-${platform_id}:${base}"
+                # Merge runs refresh the -ci caches and the merge queue builds the merged tree before
+                # they do; each of PRs, the queue and deployments would otherwise miss the others.
+                echo "type=registry,ref=${registry_cache_root}-ci-${cache_id}-${platform_id}:${base}"
+                echo "type=registry,ref=${registry_cache_root}-merge-group-${cache_id}-${platform_id}:merge-group-${base}"
+                echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${base}"
+              done
+            done | awk '!seen[$0]++'
             echo multiline
           } >> $GITHUB_OUTPUT
 
@@ -375,6 +389,40 @@ jobs:
             ${{ steps.cache.outputs.local_buildcache_key }}
             ${{ steps.cache.outputs.base_buildcache_key }}
 
+      # The builds of LLVM keep their ccache in the registry (see llvm_ccache.sh), so that a
+      # layer that misses recompiles only what changed. Deployments write one tag per branch
+      # and read only those, as their objects end up in what is released. All other builds
+      # write a shared tag in the -ci package, which they read together with main's.
+      - name: Configure the LLVM ccache
+        id: llvm_ccache
+        if: inputs.dockerfile == 'build/devdeps.Dockerfile' || inputs.dockerfile == 'build/devdeps.manylinux.Dockerfile' || inputs.dockerfile == 'build/assets.Dockerfile'
+        env:
+          REGISTRY_TOKEN: ${{ github.token }}
+          REGISTRY_USER: ${{ github.actor }}
+          REF_NAME: ${{ github.ref_name }}
+          CACHE_BASE: ${{ steps.cache.outputs.registry_cache_base }}
+        run: |
+          root=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}cuda-quantum-llvm-ccache
+          base=$(printf %s "$CACHE_BASE" | tr -c 'A-Za-z0-9_.-' -)
+          branch=$(printf %s "$REF_NAME" | tr -c 'A-Za-z0-9_.-' -)
+          if ${{ inputs.environment == 'ghcr-deployment' }}; then
+            push="$root:$branch"
+            pull="$root:$branch $root:main"
+          else
+            push="$root-ci:ci"
+            pull="$root-ci:ci $root:$base $root:main"
+          fi
+          pull=$(echo $pull | tr ' ' '\n' | awk '!seen[$0]++' | tr '\n' ' ')
+          file="$RUNNER_TEMP/llvm_ccache"
+          (umask 077 && {
+            echo "user=$REGISTRY_USER"
+            echo "token=$REGISTRY_TOKEN"
+            echo "pull=$pull"
+            echo "push=$push"
+          } > "$file")
+          echo "LLVM ccache: read $pull, write $push"
+          echo "secret_files=llvm_ccache=$file" >> $GITHUB_OUTPUT
+
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: docker_build
         uses: docker/build-push-action@v7
@@ -394,6 +442,7 @@ jobs:
             ${{ steps.cache.outputs.cache_from_gh }}
             ${{ steps.cache.outputs.cache_from_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
+          secret-files: ${{ steps.llvm_ccache.outputs.secret_files }}
           push: ${{ steps.cache.outputs.push_to_registry == 'true' }}
           outputs: ${{ steps.cache.outputs.docker_output }}
 
