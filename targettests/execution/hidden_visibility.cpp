@@ -19,7 +19,7 @@ __qpu__ bool entry() {
   return mz(q);
 }
 
-int main() {
+__attribute__((visibility("default"))) int main() {
   std::cout << "result: " << entry() << '\n';
   return 0;
 }
