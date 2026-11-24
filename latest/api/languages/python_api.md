@@ -3540,9 +3540,8 @@ discriminated bits into an integer.)
     kernel code can call [`cudaq.to_bools(...)`{.docutils .literal
     .notranslate}]{.pre}; the AST bridge intercepts the call and lowers
     it to a vector form [`quake.discriminate`{.docutils .literal
-    .notranslate}]{.pre} on
-    [`!cc.sequence<!cc.measure_handle>`{.docutils .literal
-    .notranslate}]{.pre}. Host-side invocation raises a
+    .notranslate}]{.pre} on [`!cc.sequence<!quake.measure>`{.docutils
+    .literal .notranslate}]{.pre}. Host-side invocation raises a
     [`RuntimeError`{.docutils .literal .notranslate}]{.pre}.
 :::
 

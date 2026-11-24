@@ -9994,13 +9994,10 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     .literal .notranslate}]{.pre}. [[[`measure_handle`{.docutils
     .literal .notranslate}]{.pre}]{.std
     .std-ref}](#classcudaq_1_1measure__handle){.reference .internal}
-    lowers to the IR alias [`!cc.`{.docutils .literal
-    .notranslate}]{.pre}[[[`measure_handle`{.docutils .literal
-    .notranslate}]{.pre}]{.std
-    .std-ref}](#classcudaq_1_1measure__handle){.reference .internal}
-    during AST -\> Quake conversion and is converted to the bare
-    [`i64`{.docutils .literal .notranslate}]{.pre} payload by the QIR
-    API conversion's type converter.
+    lowers to the IR alias [`!quake.measure`{.docutils .literal
+    .notranslate}]{.pre} during AST -\> Quake conversion and is
+    converted to the bare [`i64`{.docutils .literal .notranslate}]{.pre}
+    payload by the QIR API conversion's type converter.
 
     A default-constructed [[[`measure_handle`{.docutils .literal
     .notranslate}]{.pre}]{.std
@@ -11707,14 +11704,11 @@ to refer to the element type in generic code. [`fp32`{.docutils .literal
         .notranslate}]{.pre}. Takes a single [[[`QuakeValue`{.docutils
         .literal .notranslate}]{.pre}]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal}
-        handle (typically a [`!cc.sequence<!cc.`{.docutils .literal
-        .notranslate}]{.pre}[[[`measure_handle`{.docutils .literal
-        .notranslate}]{.pre}]{.std
-        .std-ref}](#classcudaq_1_1measure__handle){.reference
-        .internal}[`>`{.docutils .literal .notranslate}]{.pre} from
-        [`mz`{.docutils .literal .notranslate}]{.pre} on a
-        [`qvector`{.docutils .literal .notranslate}]{.pre}, but a scalar
-        handle is also accepted by the dialect).
+        handle (typically a [`!cc.sequence<!quake.measure>`{.docutils
+        .literal .notranslate}]{.pre} from [`mz`{.docutils .literal
+        .notranslate}]{.pre} on a [`qvector`{.docutils .literal
+        .notranslate}]{.pre}, but a scalar handle is also accepted by
+        the dialect).
 
     ```{=html}
     <!-- -->

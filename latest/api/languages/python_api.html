@@ -2090,7 +2090,7 @@ an explicit <code class="docutils literal notranslate"><span class="pre">observa
 <code class="docutils literal notranslate"><span class="pre">list[bool]</span></code>. Device-only: this Python symbol exists so kernel
 code can call <code class="docutils literal notranslate"><span class="pre">cudaq.to_bools(...)</span></code>; the AST bridge intercepts
 the call and lowers it to a vector form <code class="docutils literal notranslate"><span class="pre">quake.discriminate</span></code> on
-<code class="docutils literal notranslate"><span class="pre">!cc.sequence&lt;!cc.measure_handle&gt;</span></code>. Host-side invocation raises a
+<code class="docutils literal notranslate"><span class="pre">!cc.sequence&lt;!quake.measure&gt;</span></code>. Host-side invocation raises a
 <code class="docutils literal notranslate"><span class="pre">RuntimeError</span></code>.</p>
 </dd></dl>
 
