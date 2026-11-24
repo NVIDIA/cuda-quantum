@@ -96,7 +96,10 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
       export CXX=clang++
       echo "Using Apple Clang: $(clang --version | head -1)"
     else
+      # No zlib: a later rebuild (python_build) finds the one built below, which
+      # would change the binary of this compiler, and with it all ccache keys.
       LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" LLVM_BUILD_FOLDER="stage1_build" \
+      LLVM_ENABLE_ZLIB=OFF \
       source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
     fi
   fi
