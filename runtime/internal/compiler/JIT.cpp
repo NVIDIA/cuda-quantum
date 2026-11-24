@@ -224,7 +224,7 @@ insertResultMapCleanupOperations(Operation *module,
 
 cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
     ModuleOp &moduleOp, llvm::StringRef convertTo, bool isEntryPoint,
-    bool disableQuantumOpts) {
+    cudaq::opt::CodegenMode codegenMode) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here.
   ScopedTraceWithContext(cudaq::TIMING_JIT, "createJITEngine");
@@ -236,7 +236,7 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
   opts.transformer = std::move(transformerTemp);
   opts.jitCodeGenOptLevel = llvm::CodeGenOptLevel::None;
   auto llvmModuleBuilderTemp =
-      [convertTo = convertTo.str(), isEntryPoint, disableQuantumOpts](
+      [convertTo = convertTo.str(), isEntryPoint, codegenMode](
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
@@ -264,9 +264,7 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
       profileName = convertTo;
       cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileName);
     } else {
-      cudaq::opt::addAOTPipelineConvertToQIR(pm, {},
-                                             /*useValueSemantics=*/
-                                             !disableQuantumOpts);
+      cudaq::opt::addAOTPipelineConvertToQIR(pm, {}, codegenMode);
     }
 
     std::string error_msg;

@@ -27,6 +27,8 @@ struct rfl::Reflector<cudaq::config::CostModel> {
       return "t-count";
     case cudaq::config::CostModel::two_qubit_gate_count:
       return "two-qubit-gate-count";
+    case cudaq::config::CostModel::gate_count:
+      return "gate-count";
     }
     cudaq::config::detail::unknownEnumerator();
   }

@@ -75,6 +75,16 @@ public:
           if (!useuser)
             continue;
           if (auto load = dyn_cast<cudaq::cc::LoadOp>(useuser)) {
+            // This load reads the array through a cast to another element
+            // type. Python does that for a `list[bool]`, which it stores as
+            // `i8` and reads as `i1`. Replacing the load with an element of
+            // the constant array would hand its users an `i8` where they
+            // expect an `i1`, which fails verification. Leave the load alone
+            // and keep the array in memory for it to read.
+            if (load.getType() != eleTy) {
+              cannotEraseAlloc = isLive = true;
+              continue;
+            }
             rewriter.setInsertionPointAfter(useuser);
             LLVM_DEBUG(llvm::dbgs() << "replaced load\n");
             // rewriter.replaceOpWithNewOp<cudaq::cc::ExtractValueOp>(

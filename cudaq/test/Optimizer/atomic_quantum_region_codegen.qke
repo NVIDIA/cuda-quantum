@@ -7,23 +7,26 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --verify-each \
-// RUN:   "--codegen-for-qir=convert-to=qir value-semantics=true" %s \
+// RUN:   "--codegen-for-qir=convert-to=qir mode=normalize-and-optimize" %s \
 // RUN:   | FileCheck --check-prefix=FULL %s
 // RUN: cudaq-opt --verify-each \
-// RUN:   "--codegen-for-qir=convert-to=qir-base value-semantics=true" %s \
+// RUN:   "--codegen-for-qir=convert-to=qir-base mode=normalize-and-optimize" %s \
 // RUN:   | FileCheck --check-prefix=PROFILE %s
 // RUN: cudaq-opt --verify-each \
-// RUN:   "--codegen-for-qir=convert-to=qir-base value-semantics=false" %s \
+// RUN:   "--codegen-for-qir=convert-to=qir-base mode=normalize" %s \
 // RUN:   | FileCheck --check-prefix=NO_OPT %s
 // RUN: cudaq-opt --verify-each \
-// RUN:   "--codegen-for-qir=convert-to=qir-adaptive value-semantics=true" %s \
+// RUN:   "--codegen-for-qir=convert-to=qir-adaptive mode=normalize-and-optimize" %s \
 // RUN:   | FileCheck --check-prefix=PROFILE %s
 // RUN: cudaq-opt --dump-pass-pipeline \
-// RUN:   "--codegen-for-qir=convert-to=qir-base value-semantics=true" %s \
+// RUN:   "--codegen-for-qir=convert-to=qir-base mode=normalize-and-optimize" %s \
 // RUN:   -o /dev/null 2>&1 | FileCheck --check-prefix=PIPELINE %s
 // RUN: cudaq-opt --dump-pass-pipeline \
-// RUN:   "--codegen-for-qir=convert-to=qir-base value-semantics=true" %s \
+// RUN:   "--codegen-for-qir=convert-to=qir-base mode=normalize-and-optimize" %s \
 // RUN:   -o /dev/null 2>&1 | FileCheck --check-prefix=ALLOC %s
+// RUN: cudaq-opt --dump-pass-pipeline \
+// RUN:   "--codegen-for-qir=convert-to=qir-base mode=emit-only" %s \
+// RUN:   -o /dev/null 2>&1 | FileCheck --check-prefix=EMIT %s
 
 // Models a marked kernel invocation followed by its adjoint. Specialization
 // and inlining materialize protected scopes for the marked pair, which must
@@ -152,6 +155,15 @@ func.func @run_dynamic_result(%size: i64) attributes {"cudaq-entrypoint", "cudaq
 // NO_OPT-NOT:   llvm.stacksave
 // NO_OPT-NOT:   llvm.stackrestore
 // NO_OPT:       llvm.return
+
+// With `mode=emit-only` the kernel is already normalized, so the pipeline
+// preallocates the stack frame, and it neither groups allocations nor
+// optimizes.
+// EMIT: Pass Manager
+// EMIT: stack-frame-prealloc
+// EMIT-NOT: combine-quantum-alloc
+// EMIT-NOT: quake-simplify
+// EMIT: cc-to-llvm
 
 // PIPELINE: Pass Manager
 // PIPELINE-NOT: convert-to-cfg

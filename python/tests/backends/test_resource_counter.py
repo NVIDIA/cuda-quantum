@@ -25,9 +25,10 @@ def test_basic():
     def mykernel():
         q = cudaq.qubit()
 
-        rx(.0, q)
-        ry(.0, q)
-        rz(.0, q)
+        # Use nonzero angles, because level 1 erases rotations by 0.
+        rx(.1, q)
+        ry(.1, q)
+        rz(.1, q)
         h(q)
         x(q)
         y(q)
