@@ -53,11 +53,12 @@ public:
   /// engine.
   ///
   /// Uses the kernel's name and result metadata to determine the correct
-  /// mangled symbol names.
+  /// mangled symbol names. With \p needsHostFunctions, the kernel is entered
+  /// through the host functions that `codegen` generated for it.
   static std::vector<NamedCompiledArtifact>
   createJitArtifacts(const std::string &kernelName, cudaq::JitEngine engine,
                      const cudaq::ResultInfo &resultInfo,
-                     bool isFullySpecialized);
+                     bool needsHostFunctions, bool isFullySpecialized);
 
   // --- ResourcesArtifact construction ---
 

@@ -308,6 +308,7 @@ jobs:
     with:
       platforms: ${{ inputs.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
+      runner_cpus: '32'
       build_config_id: cu${{ inputs.cuda_version }}-gcc12
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ contains(inputs.platform, 'arm') && '_aarch64' || '_x86_64' }}:latest
@@ -380,6 +381,7 @@ jobs:
     with:
       platforms: ${{ inputs.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
+      runner_cpus: '32'
       build_config_id: cu13.0-gcc12
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ contains(inputs.platform, 'arm') && '_aarch64' || '_x86_64' }}:latest

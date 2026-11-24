@@ -25,7 +25,7 @@ def test_translate_builder_qir():
     kernel = make_bell_builder()
     kernel.disable_quantum_optimization()
     qir = cudaq.translate(kernel, format="qir")
-    assert "@__quantum__rt__qubit_allocate_array(i64 2)" in qir
+    assert qir.count("call ptr @__quantum__rt__qubit_allocate()") == 2
     assert "__quantum__qis__h" in qir
     assert "__quantum__qis__x__ctl" in qir
 
@@ -57,7 +57,7 @@ def test_translate_builder_with_params_qir():
     q = kernel.qalloc(n)
     kernel.h(q[0])
     qir = cudaq.translate(kernel, 3, format="qir")
-    assert "@__quantum__rt__qubit_allocate_array(i64 3)" in qir
+    assert qir.count("call ptr @__quantum__rt__qubit_allocate()") == 3
     assert "__quantum__qis__h" in qir
 
 

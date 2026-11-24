@@ -63,7 +63,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev python3-pip && \
     python3 -m pip install --no-cache-dir numpy --break-system-packages && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
+# configure_build.sh is deliberately not added: it only installs CUDA libraries,
+# and a new cuQuantum version must not rebuild LLVM.
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
@@ -97,16 +98,23 @@ RUN if [ "$(uname -m)" == "x86_64" ]; then \
     # Fixed commit corresponding to release 1.9.7
     wget https://github.com/doxygen/doxygen/archive/6a2ce4d18b5af1ca501bcf585e4c8e2b2b353b0f.zip -q -O repo.zip && \
     unzip repo.zip && mv doxygen* repo && rm repo.zip && \
-    cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release && \
+    cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release --parallel $(nproc) && \
     rm -rf repo && apt-get remove -y make cmake flex bison g++ && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
 
 ## [Source Dependencies]
+# The LLVM build restores its ccache from the registry and saves it back (see
+# llvm_ccache.sh), so that it recompiles only what changed when the layer misses.
+# The cache mount keeps it out of the image.
+ADD scripts/llvm_ccache.sh /cuda-quantum/scripts/llvm_ccache.sh
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 ADD scripts/prereqs_common.sh /cuda-quantum/scripts/prereqs_common.sh
 ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
-RUN if [ "$toolchain" = "llvm" ]; then \
+RUN --mount=type=cache,target=/root/.ccache,id=llvm-ccache \
+    --mount=type=secret,id=llvm_ccache,required=false \
+    source /cuda-quantum/scripts/llvm_ccache.sh && llvm_ccache_begin devdeps-${toolchain} && \
+    if [ "$toolchain" = "llvm" ]; then \
     export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \
     apt-get update && apt-get install -y --no-install-recommends clang lld && \
     CC=clang CXX=clang++ bash /cuda-quantum/scripts/install_prerequisites.sh -b && \

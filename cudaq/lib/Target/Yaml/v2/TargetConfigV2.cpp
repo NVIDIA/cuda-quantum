@@ -66,12 +66,10 @@ toCanonicalEntry(const cudaq::config::v2::BackendEndConfigEntryV2 &cfg,
 
 cudaq::config::TargetConfig
 cudaq::config::v2::toCanonical(const TargetConfigV2 &cfg) {
-  if (cfg.compileTarget && !cfg.configurationMatrix.value().empty())
-    throw std::runtime_error(
-        "'compile-target' cannot be combined with 'configuration-matrix'.");
-  if (cfg.compileTarget && !cfg.config)
-    throw std::runtime_error(
-        "'compile-target' requires a 'config' section to attach to.");
+  if (cfg.compileTarget && !cfg.config &&
+      cfg.configurationMatrix.value().empty())
+    throw std::runtime_error("'compile-target' requires a 'config' section or "
+                             "a 'configuration-matrix' to attach to.");
 
   TargetConfig out;
   out.Name = cfg.name;
@@ -80,13 +78,22 @@ cudaq::config::v2::toCanonical(const TargetConfigV2 &cfg) {
   out.WarningMsg = cfg.warning.value();
   out.GpuRequired = cfg.gpuRequirements.value();
   detail::appendCanonicalArguments(cfg.targetArguments.value(), out);
+  // A version 2 target has one compile target. Matrix entries only pick the
+  // simulator, platform, and other run-time settings, so we attach the same
+  // compile target to `config` and to each entry. A target with only a matrix
+  // still gets a `config` to hold it, because that is where the JIT and codegen
+  // read the compile target from. Readers that pick an entry prefer the matrix.
+  const auto *compileTarget = cfg.compileTarget ? &*cfg.compileTarget : nullptr;
   if (cfg.config)
-    out.BackendConfig = toCanonicalEntry(
-        *cfg.config, cfg.compileTarget ? &*cfg.compileTarget : nullptr);
-  detail::appendCanonicalConfigMap(cfg.configurationMatrix.value(), out,
-                                   [](const BackendEndConfigEntryV2 &entry) {
-                                     return toCanonicalEntry(entry, nullptr);
-                                   });
+    out.BackendConfig = toCanonicalEntry(*cfg.config, compileTarget);
+  else if (compileTarget)
+    out.BackendConfig =
+        toCanonicalEntry(BackendEndConfigEntryV2{}, compileTarget);
+  detail::appendCanonicalConfigMap(
+      cfg.configurationMatrix.value(), out,
+      [compileTarget](const BackendEndConfigEntryV2 &entry) {
+        return toCanonicalEntry(entry, compileTarget);
+      });
   detail::flattenPluginLibraries(out);
   return out;
 }

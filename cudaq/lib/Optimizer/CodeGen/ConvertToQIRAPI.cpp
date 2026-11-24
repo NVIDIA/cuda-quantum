@@ -1691,16 +1691,16 @@ struct MeasurementOpPattern : public OpConversionPattern<cudaq::quake::MzOp> {
       auto call =
           func::CallOp::create(rewriter, loc, TypeRange{}, functionName, args);
       call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
-      // Materialize the back-cast `Result* -> i64`
-      // here so it dominates downstream uses. The `!discriminateToClassical`
-      // branch below moves the insertion point to the block terminator for
-      // the record-output call, after which a cast would not dominate.
+      // Materialize the back-cast `Result* -> i64` here so it dominates
+      // downstream uses. The `recordOutputMustBeAtEnd` branch below moves the
+      // insertion point to the block terminator for the record-output call,
+      // after which a cast would not dominate.
 
       auto i64Ty = rewriter.getI64Type();
       Value handleRes = cudaq::cc::CastOp::create(rewriter, loc, i64Ty, res);
       auto cstringGlobal =
           createGlobalCString(mz, loc, rewriter, regNameAttr.getValue());
-      if constexpr (!M::discriminateToClassical) {
+      if constexpr (M::recordOutputMustBeAtEnd) {
         // These QIR profile variants force all record output calls to appear
         // at the end. In these variants, control-flow isn't allowed in the
         // final LLVM. Therefore, a single basic block is assumed but unchecked
@@ -2801,7 +2801,9 @@ struct BaseProfileQIR : public AnyProfileQIR<opaquePtr> {
             typeConverter, patterns.getContext());
   }
 
-  static constexpr bool discriminateToClassical = false;
+  // The base profile requires every `result_record_output` call to come last,
+  // after all measurements, in a single basic block.
+  static constexpr bool recordOutputMustBeAtEnd = true;
   static constexpr QirVersion qirVersion = version;
 };
 
@@ -2819,7 +2821,9 @@ struct AdaptiveProfileQIR : public AnyProfileQIR<opaquePtr> {
             typeConverter, patterns.getContext());
   }
 
-  static constexpr bool discriminateToClassical = true;
+  // The adaptive profile allows control flow, so the record output call stays
+  // next to its measurement.
+  static constexpr bool recordOutputMustBeAtEnd = false;
   static constexpr QirVersion qirVersion = version;
 };
 

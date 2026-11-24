@@ -24,6 +24,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Interfaces/FunctionInterfaces.h"
 
 using namespace mlir;
 
@@ -3400,38 +3401,80 @@ cudaq::cc::VarargCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
   if (!fnAttr)
     return emitOpError("requires a 'callee' symbol reference attribute");
-  LLVM::LLVMFuncOp fn =
-      symbolTable.lookupNearestSymbolFrom<LLVM::LLVMFuncOp>(*this, fnAttr);
+  // The callee is found through `FunctionOpInterface` rather than by naming
+  // `llvm.func`, so this op carries no link-time dependence on the LLVM
+  // dialect. `llvm.func` implements the interface; its argument types exclude
+  // the variadic tail and its result types are empty for a `void` return.
+  auto fn =
+      symbolTable.lookupNearestSymbolFrom<FunctionOpInterface>(*this, fnAttr);
   if (!fn)
     return emitOpError() << "'" << fnAttr.getValue()
-                         << "' does not reference a valid LLVM function";
+                         << "' does not reference a valid function";
 
   // Verify that the operand and result types match the callee.
-  auto fnType = fn.getFunctionType();
-  if (fnType.getNumParams() > getNumOperands())
+  auto paramTypes = fn.getArgumentTypes();
+  if (paramTypes.size() > getNumOperands())
     return emitOpError("incorrect number of operands for callee");
 
-  for (unsigned i = 0, e = fnType.getNumParams(); i != e; ++i)
-    if (getOperand(i).getType() != fnType.getParams()[i]) {
+  // A `func.func` can never be variadic, so extra arguments would be passed to
+  // a function that does not accept them. Other callee kinds (`llvm.func`) are
+  // opaque here; whether they are variadic is not visible through the
+  // interface.
+  if (isa<FunctionType>(fn.getFunctionType()) &&
+      paramTypes.size() != getNumOperands())
+    return emitOpError("variadic arguments passed to a non-variadic callee");
+
+  for (unsigned i = 0, e = paramTypes.size(); i != e; ++i)
+    if (getOperand(i).getType() != paramTypes[i]) {
       return emitOpError("operand type mismatch: expected operand type ")
-             << fnType.getParams()[i] << ", but provided "
-             << getOperand(i).getType() << " for operand number " << i;
+             << paramTypes[i] << ", but provided " << getOperand(i).getType()
+             << " for operand number " << i;
     }
 
-  if (fnType.getReturnType() == LLVM::LLVMVoidType::get(getContext()) &&
-      getNumResults() == 0)
+  auto resultTypes = fn.getResultTypes();
+  if (resultTypes.empty() && getNumResults() == 0)
     return success();
 
   if (getNumResults() > 1)
     return emitOpError("wrong number of result types: ") << getNumResults();
 
-  if (getResult(0).getType() != fnType.getReturnType()) {
+  if (resultTypes.size() != getNumResults() ||
+      getResult(0).getType() != resultTypes[0]) {
     auto diag = emitOpError("result type mismatch ");
     diag.attachNote() << "      op result types: " << getResultTypes();
-    diag.attachNote() << "function result types: " << fnType.getReturnType();
+    diag.attachNote() << "function result types: " << resultTypes;
     return diag;
   }
   return success();
+}
+
+namespace {
+/// A vararg call to a `func.func` has no variadic tail (the verifier ensures
+/// the operand count matches), so it is an ordinary call.
+struct VarargCallToFuncCall : public OpRewritePattern<cudaq::cc::VarargCallOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::VarargCallOp call,
+                                PatternRewriter &rewriter) const override {
+    auto callee = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
+        call, call.getCalleeAttr());
+    if (!callee ||
+        callee.getFunctionType().getNumInputs() != call.getNumOperands())
+      return failure();
+    auto newCall = rewriter.replaceOpWithNewOp<func::CallOp>(
+        call, call.getCalleeAttr(), call.getResultTypes(), call.getArgs());
+    if (auto argAttrs = call.getArgAttrsAttr())
+      newCall.setArgAttrsAttr(argAttrs);
+    if (auto resAttrs = call.getResAttrsAttr())
+      newCall.setResAttrsAttr(resAttrs);
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::VarargCallOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<VarargCallToFuncCall>(context);
 }
 
 //===----------------------------------------------------------------------===//

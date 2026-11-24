@@ -31,9 +31,13 @@ public:
       return std::nullopt;
     const auto &profile = std::get<cudaq::config::QuakeMappedProfile>(output);
     const auto level = static_cast<unsigned>(options.optimizationLevel);
-    // Accepts the references or wires that `quake-unmapped` allows.
+    // Accepts the references or wires that `quake-unmapped` allows. The
+    // mapper routes only gates, so the conversion decomposes `exp_pauli`.
     std::vector<std::string> passes = {cudaq_internal::compiler::convertToWires(
-        cudaq::config::QuakeUnmappedProfile{}, /*addWireSet=*/true)};
+        cudaq::config::QuakeUnmappedProfile{}, /*addWireSet=*/true,
+        /*decomposeExpPauli=*/true)};
+    cudaq_internal::compiler::StagePasses stagePasses;
+    stagePasses.normalizesKernel = true;
     // `raise-fatal-errors` makes a kernel that cannot be routed a compile
     // error instead of leaving it unrouted.
     // TODO: Search for a better layout with `placement=auto search=sabre` once
@@ -50,7 +54,6 @@ public:
     if (!profile.basisGates.empty())
       passes.push_back("basis-conversion{basis=" +
                        llvm::join(profile.basisGates, ",") + "}");
-    cudaq_internal::compiler::StagePasses stagePasses;
     stagePasses.postDeployPasses = llvm::join(passes, ",");
     return stagePasses;
   }

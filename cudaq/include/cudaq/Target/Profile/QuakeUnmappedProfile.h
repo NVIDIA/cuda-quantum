@@ -23,6 +23,9 @@ enum class CostModel {
   /// Minimize two-qubit gates, which dominate the error and routing cost on
   /// noisy hardware.
   two_qubit_gate_count,
+  /// Minimize the total number of gates, since a simulator's run time grows
+  /// with the number of gates it applies.
+  gate_count,
 };
 
 /// Which loops a `quake-unmapped` stage unrolls when it converts to wires.
