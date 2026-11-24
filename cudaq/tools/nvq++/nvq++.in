@@ -1224,7 +1224,7 @@ for i in ${SRCS}; do
 
 		# Rewrite internal linkages so we can override the function.
 		run mv ${LL_FILE} ${PRE_LL_FILE}
-		run ${install_dir}/bin/fixup-linkage ${QKE_FILE} ${QUAKELL_FILE} ${PRE_LL_FILE} ${LL_FILE}
+		run ${install_dir}/bin/fixup-linkage ${QUAKELL_FILE} ${PRE_LL_FILE} ${LL_FILE}
 
 		# Lower our LLVM to object files
 		run ${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${QUAKELL_FILE} -o ${QKE_OBJ}

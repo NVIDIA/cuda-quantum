@@ -71,7 +71,7 @@ def testSynthTwoArgs():
 
 
 def test_cpp_kernel_from_python_0():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     from cudaq_test_cpp_algo import qstd
 
@@ -111,7 +111,7 @@ def test_cpp_kernel_from_python_0():
 
 
 def test_cpp_kernel_from_python_1():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import cudaq_test_cpp_algo
 
@@ -151,7 +151,7 @@ def test_cpp_kernel_from_python_1():
 
 
 def test_cpp_kernel_from_python_2():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import cudaq_test_cpp_algo
 
@@ -183,7 +183,7 @@ def test_cpp_kernel_from_python_2():
 
 
 def test_cpp_kernel_from_python_3():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import cudaq_test_cpp_algo
 
@@ -202,7 +202,7 @@ def test_cpp_kernel_from_python_3():
 
 def test_cpp_kernel_from_python_4():
     """Regression test for issue #2348."""
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import qlib
 
@@ -227,7 +227,7 @@ def test_cpp_kernel_from_python_4():
 def test_cpp_kernel_calling_cpp_kernel_from_another_file():
     """The captured C++ kernel only declares its callee, whose definition the
     compiler must fetch from the registry."""
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     from cudaq_test_cpp_algo import qstd
 
@@ -247,7 +247,7 @@ def test_cpp_kernel_calling_cpp_kernel_from_another_file_in_both_fingerprint_mod
         structural):
     """The fingerprint mode is read once per process, so re-run the test above
     in a fresh process for each mode."""
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     env = dict(os.environ)
     if structural:
@@ -274,7 +274,7 @@ def test_cpp_kernel_calling_cpp_kernel_from_another_file_in_both_fingerprint_mod
 
 
 def test_callbacks():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import cudaq_test_cpp_algo
 
@@ -289,7 +289,7 @@ def test_callbacks():
 
 @pytest.mark.skip(reason="temporarily disabled")
 def test_callbacks_b():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import cudaq_test_cpp_algo
 
@@ -303,7 +303,7 @@ def test_callbacks_b():
 
 
 def test_callback_with_capture():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import cudaq_test_cpp_algo
 
@@ -324,7 +324,7 @@ def test_callback_with_capture():
 
 
 def test_callback_with_capture_quantum():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import cudaq_test_cpp_algo
 
@@ -338,7 +338,7 @@ def test_callback_with_capture_quantum():
 
 
 def test_callback_with_capture_quantum_and_classical():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import cudaq_test_cpp_algo
 
@@ -353,7 +353,7 @@ def test_callback_with_capture_quantum_and_classical():
 
 
 def test_callback_with_return():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import cudaq_test_cpp_algo
 
@@ -369,7 +369,7 @@ def test_callback_with_return():
 
 
 def test_callback_with_callable():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import cudaq_test_cpp_algo
 
@@ -389,7 +389,7 @@ def test_callback_with_callable():
 
 
 def test_py_kernel_from_cpp_with_returns():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import cudaq_test_cpp_algo
 
@@ -411,23 +411,23 @@ def test_py_kernel_from_cpp_with_returns():
 
 
 def test_measure_handles_survive_python_callback():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_dem', exc_type=ModuleNotFoundError)
 
-    import cudaq_test_cpp_algo
+    import cudaq_test_cpp_dem
 
     @cudaq.kernel
     def measure(qs: cudaq.qview) -> list[cudaq.measure_handle]:
         return mz(qs)
 
     dem, m2d_rows, num_measurements = \
-        cudaq_test_cpp_algo.run_measure_handle_callback(measure)
+        cudaq_test_cpp_dem.run_measure_handle_callback(measure)
     assert dem.strip() == 'detector D0'
     assert m2d_rows == [[0]]
     assert num_measurements == 2
 
 
 def test_measure_handle_created_before_python_callback_survives():
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     import cudaq_test_cpp_algo
 
@@ -440,7 +440,7 @@ def test_measure_handle_created_before_python_callback_survives():
 
 def test_cpp_kernel_from_builder_apply_call():
     """Test that a kernel builder can call a decorator that itself calls C++ kernels."""
-    pytest.importorskip('cudaq_test_cpp_algo')
+    pytest.importorskip('cudaq_test_cpp_algo', exc_type=ModuleNotFoundError)
 
     from cudaq_test_cpp_algo import qstd
 

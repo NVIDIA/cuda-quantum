@@ -133,6 +133,10 @@ public:
     // Build the symbol table once, before the registration stubs are added.
     SymbolTable dependencySymbols(module);
 
+    // Func ops with no body. A dummy body is added to them at the end, after
+    // all funcs have been processed.
+    llvm::SetVector<func::FuncOp> emptyFuncOps;
+
     for (auto &op : *module.getBody()) {
       auto funcOp = dyn_cast<func::FuncOp>(op);
       if (!funcOp)
@@ -241,11 +245,16 @@ public:
           }
           auto hostFuncOp = module.lookupSymbol<func::FuncOp>(hostFuncName);
           if (!hostFuncOp) {
-            // Using a fake type. We just want the symbol of an artifact defined
-            // in host code. We're not calling this function.
+            // Using a fake type. We just want a symbol whose address is the
+            // kernel's registration key. We're not calling this function.
             hostFuncOp = cudaq::opt::factory::createFunction(hostFuncName, {},
                                                              {}, module);
             hostFuncOp.setPrivate();
+          }
+          if (hostFuncOp.empty()) {
+            assert(!funcOp->hasAttr(cudaq::entryPointAttrName) &&
+                   "declaration-only kernel cannot be marked as entry point");
+            emptyFuncOps.insert(hostFuncOp);
           }
           auto entryRef = func::ConstantOp::create(builder, loc,
                                                    hostFuncOp.getFunctionType(),
@@ -284,6 +293,16 @@ public:
       builder.restoreInsertionPoint(insPt);
       cudaq::opt::factory::createGlobalCtorCall(
           module, mlir::FlatSymbolRefAttr::get(ctx, initFun.getName()));
+    }
+
+    // Give forward declared `func`s a body that shadows the host definition
+    // of the same name (see fixup-linkage). These are never called as they are
+    // not valid entrypoints.
+    for (auto stub : emptyFuncOps) {
+      stub.setPublic();
+      auto stubBuilder = OpBuilder::atBlockEnd(stub.addEntryBlock());
+      LLVM::Trap::create(stubBuilder, stub.getLoc());
+      LLVM::UnreachableOp::create(stubBuilder, stub.getLoc());
     }
     out.keep();
   }
