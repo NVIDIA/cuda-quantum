@@ -1253,17 +1253,21 @@ REGISTER_DECOMPOSITION_PATTERN(CYToCX, {"y(1)", "s", "x(1)"});
 // ZOp decompositions
 //===----------------------------------------------------------------------===//
 
-//                                                                  ┌───┐
-//  ───●────  ──────────────●───────────────────●──────●─────────●──┤ T ├
-//     │                    │                   │      │         │  └───┘
-//     │                    │                   │    ┌─┴─┐┌───┐┌─┴─┐┌───┐
-//  ───●─── = ────●─────────┼─────────●─────────┼────┤ X ├┤ ┴ ├┤ X ├┤ T ├
-//     │          │         │         │         │    └───┘└───┘└───┘└───┘
-//   ┌─┴─┐      ┌─┴─┐┌───┐┌─┴─┐┌───┐┌─┴─┐┌───┐┌─┴─┐                 ┌───┐
-//  ─┤ z ├─   ──┤ X ├┤ ┴ ├┤ X ├┤ T ├┤ X ├┤ ┴ ├┤ X ├─────────────────┤ T ├
-//   └───┘      └───┘└───┘└───┘└───┘└───┘└───┘└───┘                 └───┘
+//                                               ┌───┐
+//  ───●────  ────────────●───────────────────●──┤ T ├──●─────────●──
+//     │                  │                   │  └───┘  │         │
+//     │                  │                   │  ┌───┐┌─┴─┐┌───┐┌─┴─┐
+//  ───●─── = ──●─────────┼─────────●─────────┼──┤ T ├┤ X ├┤ ┴ ├┤ X ├
+//     │        │         │         │         │  └───┘└───┘└───┘└───┘
+//   ┌─┴─┐    ┌─┴─┐┌───┐┌─┴─┐┌───┐┌─┴─┐┌───┐┌─┴─┐┌───┐
+//  ─┤ z ├─   ┤ X ├┤ ┴ ├┤ X ├┤ T ├┤ X ├┤ ┴ ├┤ X ├┤ T ├───────────────
+//   └───┘    └───┘└───┘└───┘└───┘└───┘└───┘└───┘└───┘
 //
 // NOTE: `┴` denotes the adjoint of `T`.
+// The T gates on the control qubits commute with the entire diagonal
+// CX-Tdg-CX block.
+// Place them before that block so the decomposition ends with a CX, allowing
+// a subsequent optimization to cancel it with an identical following CX.
 struct CCZToCXType; // forward declare the pattern type, defined in the macro
                     // below
 struct CCZToCX
@@ -1313,12 +1317,13 @@ struct CCZToCX
     qRewriter.create<cudaq::quake::XOp>(loc, controls[0], target);
     qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/negC0 && !negC1, target);
 
+    // The control phases commute with the diagonal CX-Tdg-CX block. Leave
+    // its final CX exposed so it can cancel with an identical following CX.
+    qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/negC0, controls[1]);
+    qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/negC1, controls[0]);
     qRewriter.create<cudaq::quake::XOp>(loc, controls[0], controls[1]);
     qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/true, controls[1]);
     qRewriter.create<cudaq::quake::XOp>(loc, controls[0], controls[1]);
-    qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/negC0, controls[1]);
-
-    qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/negC1, controls[0]);
 
     qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
