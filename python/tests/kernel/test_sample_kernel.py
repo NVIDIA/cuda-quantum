@@ -171,6 +171,88 @@ def test_broadcastPy39Plus():
         assert len(c) == 2
 
 
+@pytest.fixture
+def broadcast_rotation_kernel():
+
+    @cudaq.kernel
+    def circuit(t: float, omega: float):
+        q = cudaq.qubit()
+        rx(omega, q)
+
+    return circuit
+
+
+@pytest.mark.parametrize("first_arg",
+                         [[0.0, 0.1], np.array([0.0, 0.1])],
+                         ids=["list", "ndarray"])
+def test_broadcast_scalar_argument(broadcast_rotation_kernel, first_arg):
+    """Reject a scalar mixed into a broadcast instead of replacing it with 0."""
+    circuit = broadcast_rotation_kernel
+    with pytest.raises(RuntimeError, match="must be a list or ndarray"):
+        cudaq.sample(circuit, first_arg, math.pi)
+
+    hamiltonian = cudaq.spin.z(0)
+    with pytest.raises(RuntimeError, match="must be a list or ndarray"):
+        cudaq.observe(circuit, hamiltonian, first_arg, math.pi)
+
+    builder, _, omega = cudaq.make_kernel(float, float)
+    q = builder.qalloc(1)
+    builder.rx(omega, q)
+    with pytest.raises(RuntimeError, match="must be a list or ndarray"):
+        cudaq.sample(builder, first_arg, math.pi)
+
+    with pytest.raises(RuntimeError, match="must be a list or ndarray"):
+        cudaq.ptsbe.sample(circuit, first_arg, math.pi)
+
+
+def test_broadcast_2d_array_with_scalar_argument():
+
+    @cudaq.kernel
+    def circuit(theta: float, angles: list[float]):
+        q = cudaq.qubit()
+        rx(theta, q)
+        ry(angles[0], q)
+
+    builder, theta, angles = cudaq.make_kernel(float, list[float])
+    q = builder.qalloc(1)
+    builder.rx(theta, q)
+    builder.ry(angles[0], q)
+
+    # A 2D array triggers broadcasting even when it is not the first argument.
+    angle_sets = np.array([[0.0], [0.1]])
+    for kernel, operation in [(circuit, "observe"),
+                              (builder, "sample or observe")]:
+        message = (rf"2D array argument provided for an {operation} broadcast, "
+                   r"but argument 0 .* must be a list\.$")
+        with pytest.raises(RuntimeError, match=message):
+            cudaq.sample(kernel, math.pi, angle_sets)
+
+
+def test_broadcast_argument_sets(broadcast_rotation_kernel):
+    circuit = broadcast_rotation_kernel
+
+    # Too few argument sets raise a meaningful error instead of IndexError.
+    message = r"Broadcast argument 1 provides 1 argument sets, but 2 are required\."
+    for short_arg in ([math.pi], np.array([math.pi])):
+        with pytest.raises(RuntimeError, match=message):
+            cudaq.sample(circuit, [0.0, 0.1], short_arg)
+
+    # Extra entries are ignored, matching the existing truncation of
+    # excess rows in 2D matrix arguments.
+    allCounts = cudaq.sample(circuit, [0.0], [math.pi, math.pi])
+    assert len(allCounts) == 1 and '1' in allCounts[0]
+
+    # Broadcasting over all-list arguments still works.
+    allCounts = cudaq.sample(circuit, [0.0, 0.1], [0.0, math.pi])
+    assert len(allCounts) == 2
+    assert '0' in allCounts[0] and '1' not in allCounts[0]
+    assert '1' in allCounts[1] and '0' not in allCounts[1]
+
+    results = cudaq.observe(circuit, cudaq.spin.z(0), [0.0, 0.1],
+                            [0.0, math.pi])
+    assert [r.expectation() for r in results] == pytest.approx([1.0, -1.0])
+
+
 def test_list_pauli_word_not_broadcast():
     """
     Test that list[pauli_word] arguments are not incorrectly detected as 

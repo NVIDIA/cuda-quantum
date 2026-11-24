@@ -242,3 +242,29 @@ func.func @f4() {
 // CFG:           return
 // CFG:         }
 
+
+// An unrolled loop whose body allocates a local list leaves a `cc.scope` that
+// returns a wire. `regtomem` rewrites the scope without the wire result.
+func.func @f5() -> i32 {
+  %0 = quake.null_wire
+  %1:2 = cc.scope -> (!quake.wire, i32) {
+    %2 = cc.alloca i32
+    %3 = quake.h %0 : (!quake.wire) -> !quake.wire
+    %4 = cc.load %2 : !cc.ptr<i32>
+    cc.continue %3, %4 : !quake.wire, i32
+  }
+  %5 = quake.x %1#0 : (!quake.wire) -> !quake.wire
+  quake.sink %5 : !quake.wire
+  return %1#1 : i32
+}
+
+// CHECK-LABEL:   func.func @f5() -> i32 {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = cc.scope -> (i32) {
+// CHECK:             quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %{{.*}} : i32
+// CHECK:           }
+// CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           return %[[VAL_1]] : i32
+// CHECK:         }

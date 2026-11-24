@@ -224,12 +224,17 @@ private:
           for (auto iter : llvm::enumerate(cont.getOperands()))
             if (cudaq::quake::isLinearType(iter.value().getType()))
               insertToEqClass(ccif.getResult(iter.index()), iter.value());
-        } else if (isa<cudaq::cc::ScopeOp>(parent)) {
-          if (llvm::any_of(cont.getOperands(), [](Value v) {
-                return cudaq::quake::isQuantumValueType(v.getType());
-              })) {
-            analysisFailed = true;
-            return;
+        } else if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(parent)) {
+          // A wire that a scope returns is the same qubit as the wire its
+          // `cc.continue` passes out, as for `cc.if` above.
+          for (auto iter : llvm::enumerate(cont.getOperands())) {
+            Type ty = iter.value().getType();
+            if (cudaq::quake::isLinearType(ty)) {
+              insertToEqClass(scope.getResult(iter.index()), iter.value());
+            } else if (cudaq::quake::isQuantumValueType(ty)) {
+              analysisFailed = true;
+              return;
+            }
           }
         } else {
           // TODO: handle cc::LoopOp.
@@ -418,6 +423,80 @@ struct EraseWiresCondBranch : public OpRewritePattern<cf::CondBranchOp> {
   BlockSet &blocks;
 };
 
+/// Rebuild every `cc.continue` in \p region without its wire operands. Once a
+/// region's qubits are back on references, it no longer passes wires out.
+static void dropWireOperandsOfContinues(Region &region,
+                                        PatternRewriter &rewriter) {
+  for (auto &block : region)
+    for (auto &op : block)
+      if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(op)) {
+        SmallVector<Value> operands;
+        for (auto v : cont.getOperands())
+          if (!cudaq::quake::isLinearType(v.getType()))
+            operands.push_back(v);
+        OpBuilder builder(cont);
+        cudaq::cc::ContinueOp::create(builder, cont.getLoc(), operands);
+        rewriter.eraseOp(cont);
+      }
+}
+
+/// The values that replace the results of \p op, which \p newOp rebuilds
+/// without wire results. A wire result becomes a `quake.unwrap` of its qubit's
+/// allocation, and any other result becomes the next result of \p newOp.
+static SmallVector<Value> replaceWireResults(Operation *op, Operation *newOp,
+                                             RegToMemAnalysis &analysis,
+                                             ArrayRef<Value> allocas,
+                                             PatternRewriter &rewriter) {
+  auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
+  SmallVector<Value> replacements;
+  unsigned i = 0;
+  for (auto v : op->getResults()) {
+    if (cudaq::quake::isLinearType(v.getType())) {
+      auto id = analysis.idFromValue(v);
+      assert(id);
+      replacements.push_back(cudaq::quake::UnwrapOp::create(
+          rewriter, op->getLoc(), wireTy, allocas[*id]));
+    } else {
+      replacements.push_back(newOp->getResult(i++));
+    }
+  }
+  return replacements;
+}
+
+/// Rewrite a `cc.scope` that returns wires as one that does not, as
+/// `EraseWiresIf` does for `cc.if`. A scope returns wires when a loop body
+/// allocates a local value: each unrolled iteration keeps its scope for that
+/// allocation, and the qubits the body uses pass out through the scope's
+/// results.
+struct EraseWiresScope : public OpRewritePattern<cudaq::cc::ScopeOp> {
+  explicit EraseWiresScope(MLIRContext *ctx, RegToMemAnalysis &analysis,
+                           ArrayRef<Value> allocas)
+      : OpRewritePattern(ctx), analysis(analysis), allocas(allocas) {}
+
+  LogicalResult matchAndRewrite(cudaq::cc::ScopeOp scope,
+                                PatternRewriter &rewriter) const override {
+    // The builder for `cc.scope` adds an entry block, which would stay empty
+    // in front of the blocks moved in below, so build the operation directly.
+    OperationState state(scope.getLoc(),
+                         cudaq::cc::ScopeOp::getOperationName());
+    for (auto ty : scope.getResultTypes())
+      if (!cudaq::quake::isLinearType(ty))
+        state.addTypes(ty);
+    state.addAttributes(scope->getAttrs());
+    state.addRegion();
+    auto newScope = cast<cudaq::cc::ScopeOp>(rewriter.create(state));
+    rewriter.inlineRegionBefore(scope.getRegion(), newScope.getRegion(),
+                                newScope.getRegion().end());
+    dropWireOperandsOfContinues(newScope.getRegion(), rewriter);
+    rewriter.replaceOp(scope, replaceWireResults(scope, newScope, analysis,
+                                                 allocas, rewriter));
+    return success();
+  }
+
+  RegToMemAnalysis &analysis;
+  ArrayRef<Value> allocas;
+};
+
 struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
   explicit EraseWiresIf(MLIRContext *ctx, RegToMemAnalysis &analysis,
                         ArrayRef<Value> allocas)
@@ -469,37 +548,15 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
         }
       }
       entry.eraseArguments(0, count);
-      for (auto &block : region)
-        for (auto &op : block)
-          if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(op)) {
-            SmallVector<Value> newOpnds;
-            OpBuilder builder(cont);
-            for (auto v : cont.getOperands())
-              if (!cudaq::quake::isLinearType(v.getType()))
-                newOpnds.push_back(v);
-            cudaq::cc::ContinueOp::create(builder, cont.getLoc(), newOpnds);
-            rewriter.eraseOp(cont);
-          }
+      dropWireOperandsOfContinues(region, rewriter);
     };
     replaceArgsContinues(newIf.getThenRegion(), origThenArgs);
     replaceArgsContinues(newIf.getElseRegion(), origElseArgs);
 
     // Replace any original uses with uses of a mix of the new if op's values
     // (if not type wire) or quake.unwrap operations (only if type wire).
-    SmallVector<Value> unwraps;
-    unsigned i = 0;
-    for (auto v : ifOp.getResults()) {
-      if (cudaq::quake::isLinearType(v.getType())) {
-        auto id = analysis.idFromValue(v);
-        assert(id);
-        auto unwrap = cudaq::quake::UnwrapOp::create(rewriter, ifOp.getLoc(),
-                                                     wireTy, allocas[*id]);
-        unwraps.push_back(unwrap);
-      } else {
-        unwraps.push_back(newIf.getResult(i++));
-      }
-    }
-    rewriter.replaceOp(ifOp, unwraps);
+    rewriter.replaceOp(
+        ifOp, replaceWireResults(ifOp, newIf, analysis, allocas, rewriter));
     return success();
   }
 
@@ -612,13 +669,20 @@ public:
     patterns.insert<NOWRAP_QUANTUM_OPS, CollapseWrappers<cudaq::quake::ResetOp>,
                     CollapseWrappers<cudaq::quake::ReturnWireOp>,
                     CollapseWrappers<cudaq::quake::SinkOp>, EraseWiresIf,
-                    CollapseEvinceWires>(ctx, analysis, allocas);
+                    EraseWiresScope, CollapseEvinceWires>(ctx, analysis,
+                                                          allocas);
     patterns.insert<EraseWiresBranch, EraseWiresCondBranch>(ctx, fixupBlocks);
     ConversionTarget target(*ctx);
     target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
                                  cf::BranchOp, cf::CondBranchOp,
                                  cudaq::cc::IfOp, cudaq::quake::EvinceOp>(
         [&](Operation *op) { return hasNoWires(op); });
+    target.addDynamicallyLegalOp<cudaq::cc::ScopeOp>(
+        [](cudaq::cc::ScopeOp scope) {
+          return llvm::none_of(scope.getResultTypes(), [](Type ty) {
+            return cudaq::quake::isLinearType(ty);
+          });
+        });
     target.addIllegalOp<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>();
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::DeallocOp>();
     target.addLegalDialect<cudaq::cc::CCDialect>();

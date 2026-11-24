@@ -1,0 +1,358 @@
+# Build, test and upload the cudaq-logical wheel for macOS (arm64).
+#
+# This is the macOS counterpart of cudaq_logical_build.yml. It builds against
+# the wheels that ci_macos.yml uploaded earlier in the same run:
+#  - pycudaq-<python>-darwin-arm64 (cudaq-core and the CUDA-Q frontend),
+#  - cudaq-devel-darwin-arm64,
+#  - cudaq-edem-<python>-darwin-arm64.
+#
+# The wheel is uploaded zipped as `cudaq-logical-<python>-darwin-arm64`. The
+# name is deliberately not `cudaq_logical-*`, which the Linux jobs download with
+# `merge-multiple` and would then also pick up a macOS wheel.
+
+name: Build and test cudaq.logical (macOS)
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        type: string
+        required: true
+        description: Python version of the wheel to build, for example 3.12.
+      cudaq_version:
+        type: string
+        required: true
+        description: CUDA-Q version of the provided wheels.
+      retention_days:
+        type: number
+        default: 3
+        description: Days to keep the wheel artifact.
+
+jobs:
+  build:
+    name: Build cudaq.logical (arm64, py${{ inputs.python_version }})
+    runs-on: macos-26
+    permissions:
+      contents: read
+    outputs:
+      wheel_uploaded: ${{ steps.upload.outcome == 'success' }}
+    env:
+      CUDAQ_VERSION: ${{ inputs.cudaq_version }}
+      PYTHON_VERSION: ${{ inputs.python_version }}
+      # Same floor as the CUDA-Q macOS wheels, so both install on the same systems.
+      MACOSX_DEPLOYMENT_TARGET: "13.0"
+      CC: clang
+      CXX: clang++
+    defaults:
+      run:
+        shell: bash -euo pipefail {0}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      # The compiler must match the one that built cudaq-devel.
+      - name: Select latest stable Xcode
+        uses: ./.github/actions/setup-xcode-stable
+
+      - name: Log macOS toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          clang --version
+
+      - name: Download CUDA-Q wheels
+        uses: actions/download-artifact@v8
+        with:
+          name: pycudaq-${{ inputs.python_version }}-darwin-arm64
+          path: dist
+
+      - name: Download cudaq-devel wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: cudaq-devel-darwin-arm64
+          path: dist
+
+      - name: Download cudaq-edem wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: cudaq-edem-${{ inputs.python_version }}-darwin-arm64
+          path: dist
+
+      # Logical only compiles against the GMP and MPFR headers. The libraries
+      # themselves ship in the core wheel.
+      - name: Install GMP and MPFR headers
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry brew install gmp mpfr
+          echo "GMP_PREFIX=$(brew --prefix gmp)" >> "$GITHUB_ENV"
+          echo "MPFR_PREFIX=$(brew --prefix mpfr)" >> "$GITHUB_ENV"
+
+      - name: Create the build environment
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          python -m venv "$RUNNER_TEMP/build-venv"
+          echo "$RUNNER_TEMP/build-venv/bin" >> "$GITHUB_PATH"
+          echo "VIRTUAL_ENV=$RUNNER_TEMP/build-venv" >> "$GITHUB_ENV"
+          pip="$RUNNER_TEMP/build-venv/bin/pip"
+
+          retry "$pip" install \
+            "build>=1.2,<2" \
+            "nanobind>=2.4,<3" \
+            "scikit-build-core==0.12.2" \
+            "delocate>=0.13" \
+            "cmake>=3.30" \
+            ninja \
+            "lit<23"
+
+          echo "Contents of dist:"
+          find dist -type f
+          runtime_wheel="$(find dist -name 'cuda_quantum*.whl' -print -quit)"
+          devel_wheel="$(find dist -name 'cudaq_devel*.whl' -print -quit)"
+          edem_wheel="$(find dist -name 'cudaq_edem-*.whl' -print -quit)"
+          if [ -z "$runtime_wheel" ] || [ -z "$devel_wheel" ] || [ -z "$edem_wheel" ]; then
+            echo "::error::Missing downloaded wheels under dist/ (runtime='$runtime_wheel', devel='$devel_wheel', edem='$edem_wheel')."
+            exit 1
+          fi
+
+          # Install the local wheels without resolving the `cudaq` metapackage.
+          retry "$pip" install --find-links dist "$runtime_wheel"
+          "$pip" install --no-deps "$devel_wheel" "$edem_wheel"
+
+      - name: Build cudaq.logical
+        id: build
+        working-directory: preview/logical
+        run: |
+          python scripts/stamp_cudaq_runtime_dependency.py python/pyproject.toml \
+            --distribution cudaq-core \
+            --distribution cuda-quantum-cu12 \
+            --distribution cuda-quantum-cu13 \
+            --version "$CUDAQ_VERSION"
+
+          # Add the CUDA-Q local label (+<sha>) so pip does not pick the
+          # PyPI release of the same version instead of this wheel.
+          if [[ "$CUDAQ_VERSION" == *+* ]]; then
+            local_label="${CUDAQ_VERSION#*+}"
+            sed -i '' -E "s/^version = \"([0-9]+\.[0-9]+\.[0-9]+)\"$/version = \"\1+${local_label}\"/" python/pyproject.toml
+            if ! grep -qE "^version = \"[0-9]+\.[0-9]+\.[0-9]+\+${local_label}\"$" python/pyproject.toml; then
+              echo "::error::Could not add the local version label to preview/logical/python/pyproject.toml."
+              exit 1
+            fi
+          fi
+
+          mkdir -p .wheel-raw
+          # Audit the toolchain against the one CUDA-Q was built with (see
+          # preview/logical/cmake/SetupCUDAQ.cmake).
+          CMAKE_ARGS="${CMAKE_ARGS-} -DQLX_VERIFY_TOOLCHAIN=ON -DCMAKE_PREFIX_PATH=${GMP_PREFIX};${MPFR_PREFIX}" \
+            SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" \
+            python -m build --wheel --no-isolation --skip-dependency-check --outdir .wheel-raw python
+
+          raw_wheel="$(find .wheel-raw -name "cudaq_logical-*-cp${PYTHON_VERSION/./}-*.whl" -print -quit)"
+          test -n "$raw_wheel"
+          echo "raw_wheel=$PWD/$raw_wheel" >> "$GITHUB_OUTPUT"
+
+      - name: Repair the wheel
+        id: repair
+        env:
+          RAW_WHEEL: ${{ steps.build.outputs.raw_wheel }}
+        run: |
+          site_packages="$(python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')"
+
+          # CUDA-Q MLIR, OpenMP, and GMP/MPFR ship in core and EDEM in
+          # cudaq-edem, so none of them is vendored into cudaq-logical.
+          excludes=(-e libgmp -e libmpfr)
+          for library in cudaqMLIR cudaqMLIRCAPI cudaq-common cudaq-operator cudaq-logger \
+                         nvqir MLIRPythonSupport-cudaq nanobind-cudaq omp \
+                         cudaq-edem cudaq-gf2; do
+            excludes+=(-e "lib${library}.")
+          done
+
+          # delocate resolves the @rpath references of the extensions before
+          # it applies the exclusions, so show it where the installed wheels
+          # keep their libraries.
+          dyld_path=""
+          while IFS= read -r directory; do
+            dyld_path="${dyld_path:+$dyld_path:}$directory"
+          done < <(find "$site_packages/cudaq_core" "$site_packages/cudaq_core.dylibs" \
+                        "$site_packages/cudaq_edem" -name '*.dylib' -exec dirname {} \; 2>/dev/null | sort -u)
+          export DYLD_LIBRARY_PATH="$dyld_path${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+          echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
+
+          echo "=== Dependencies before repair ==="
+          delocate-listdeps --all "$RAW_WHEEL"
+
+          delocate-wheel --require-archs arm64 -v "${excludes[@]}" -w dist/delocated "$RAW_WHEEL"
+
+          # The exclusions leave the build machine's GMP and MPFR paths in
+          # the binaries, and those do not exist on a user's Mac. Load the
+          # copies that core ships through @rpath instead.
+          delocated="$(find dist/delocated -name "cudaq_logical-*.whl" -print -quit)"
+          python preview/logical/scripts/relocate_macos_wheel_deps.py rewrite "$delocated" \
+            --out-dir dist/repaired --library libgmp.10.dylib --library libmpfr.6.dylib
+
+          wheel="$(find dist/repaired -name "cudaq_logical-*-cp${PYTHON_VERSION/./}-*-macosx_*_arm64.whl" -print -quit)"
+          if [ -z "$wheel" ]; then
+            echo "::error::Repaired macOS arm64 wheel not found under dist/repaired."
+            find dist/repaired -type f
+            exit 1
+          fi
+
+          echo "=== Dependencies after repair ==="
+          delocate-listdeps --all "$wheel"
+          # Fail on any dependency that is neither @-relative nor a system library.
+          python preview/logical/scripts/relocate_macos_wheel_deps.py check "$wheel"
+          echo "wheel_path=$wheel" >> "$GITHUB_OUTPUT"
+
+      - name: Upload cudaq-logical wheel
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: cudaq-logical-${{ inputs.python_version }}-darwin-arm64
+          path: ${{ steps.repair.outputs.wheel_path }}
+          retention-days: ${{ inputs.retention_days }}
+          if-no-files-found: error
+
+      - name: Run cudaq.logical FileCheck tests
+        timeout-minutes: 30
+        run: |
+          build_dir="preview/logical/build"
+          # only run FileCheck tests (other require qlx-opt and qlx-translate)
+          ctest_listing="$(ctest --test-dir "$build_dir" -N -R '^qlx-filecheck-tests$')"
+          if ! grep -q 'qlx-filecheck-tests' <<< "$ctest_listing"; then
+            echo "::error::qlx-filecheck-tests is not registered: lit and/or FileCheck were missing when CMake configured $build_dir."
+            exit 1
+          fi
+
+          ctest --test-dir "$build_dir" --output-on-failure -R '^qlx-filecheck-tests$'
+
+  test:
+    name: Test cudaq.logical (arm64, py${{ inputs.python_version }})
+    needs: build
+    # A failure of the FileCheck tests in the build job must not hide the
+    # results of the installed-wheel tests, so run whenever the wheel exists.
+    if: ${{ !cancelled() && needs.build.outputs.wheel_uploaded == 'true' }}
+    runs-on: macos-26
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash -euo pipefail {0}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Download CUDA-Q wheels
+        uses: actions/download-artifact@v8
+        with:
+          name: pycudaq-${{ inputs.python_version }}-darwin-arm64
+          path: dist
+
+      - name: Download cudaq-edem wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: cudaq-edem-${{ inputs.python_version }}-darwin-arm64
+          path: dist
+
+      - name: Download cudaq-logical wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: cudaq-logical-${{ inputs.python_version }}-darwin-arm64
+          path: dist
+
+      # The wheels must load the GMP and MPFR that cudaq-core ships. The
+      # runner's Homebrew copies would hide a reference to them.
+      - name: Remove Homebrew GMP and MPFR
+        run: |
+          brew uninstall --ignore-dependencies --force gmp mpfr
+          test ! -e /opt/homebrew/opt/gmp
+          test ! -e /opt/homebrew/opt/mpfr
+
+      - name: Create the test environment
+        run: |
+          python -m venv "$RUNNER_TEMP/test-venv"
+          echo "$RUNNER_TEMP/test-venv/bin" >> "$GITHUB_PATH"
+          echo "VIRTUAL_ENV=$RUNNER_TEMP/test-venv" >> "$GITHUB_ENV"
+
+      - name: Validate core and logical without the frontend
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          cp docker/test/wheels/integration/test_installation.py "$RUNNER_TEMP/test_installation.py"
+          retry pip install dist/cudaq_core-*.whl
+          python "$RUNNER_TEMP/test_installation.py"
+          retry pip install --find-links dist dist/cudaq_logical-*.whl
+          python "$RUNNER_TEMP/test_installation.py" --logical --edem
+          printf 'module {}\n' | qlx-opt
+          pip check
+
+      - name: Install the frontend
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          runtime_wheel="$(find dist -name 'cuda_quantum*.whl' -print -quit)"
+          retry pip install --find-links dist "$runtime_wheel"
+          retry pip install "stim>=1.16,<2"
+
+      - name: Validate installed cudaq.logical tools
+        run: |
+          printf 'module {}\n' | qlx-opt
+          # Capture before grepping: `grep -q` exits on the first match and
+          # the closed pipe would kill qlx-translate with SIGPIPE (141) under
+          # pipefail.
+          stim_out="$(qlx-translate \
+            preview/logical/examples/mlir/stim_memory.mlir --fabric-to-stim)"
+          grep -q '^M ' <<< "$stim_out"
+
+      - name: Validate the cudaq.logical re-export
+        run: |
+          # Every import spelling must resolve to the installed cudaq.logical
+          # package (not a second copy under a legacy top-level name).
+          python -c "import cudaq.logical; print(cudaq.logical.__version__)"
+          python -c "import cudaq; print(cudaq.logical.__version__)"
+          python -c "from cudaq import logical; print(logical.std.idle)"
+          python -c "from cudaq.logical import program; print(program)"
+          python "$RUNNER_TEMP/test_installation.py" --logical --frontend --edem
+
+      - name: Run cudaq.logical Python tests
+        timeout-minutes: 30
+        env:
+          # Lets a failing factory-characterization check keep its schedule.
+          QLX_SCHEDULE_DUMP_DIR: ${{ runner.temp }}/qlx-schedule-dumps
+        run: |
+          pip install -r preview/logical/requirements-test.txt
+
+          # Run from the workspace root: `python -m pytest` puts the working
+          # directory on sys.path, and preview/logical/python holds a source-only
+          # copy of the package that would shadow the installed wheel (with its
+          # compiled extensions) if it were importable.
+          logical_path="$(python -c 'import cudaq.logical; print(cudaq.logical.__file__)')"
+          echo "Testing installed cudaq.logical: $logical_path"
+          case "$logical_path" in
+            *"$GITHUB_WORKSPACE/preview/logical"*)
+              echo "::error::cudaq.logical resolved to the source tree, not the installed wheel."
+              exit 1
+              ;;
+          esac
+
+          python -m pytest preview/logical/python/tests/cudaq/logical -v
+
+      - name: Upload schedule dumps from failed tests
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: qlx-schedule-dumps-darwin-arm64-${{ inputs.python_version }}
+          path: ${{ runner.temp }}/qlx-schedule-dumps
+          if-no-files-found: ignore

@@ -54,6 +54,8 @@ def kernel_with_call():
 
     def inner():
         q = cudaq.qvector(2)
+        x(q[0])
+        mz(q)
 
     inner()
 
@@ -127,8 +129,10 @@ def test_translate_openqasm_synth():
 
 
 def test_translate_openqasm_call():
+    # Optimization removes idle qubits, so the callee applies a gate.
     asm = cudaq.translate(kernel_with_call, format="openqasm2")
     assert 'qreg var0[2];' in asm
+    assert 'x var0[0];' in asm
 
 
 def test_translate_openqasm_return_typed_kernel():
@@ -166,13 +170,19 @@ def test_translate_qir_bool_list_args():
                 x(qubits[i])
 
     qir = cudaq.translate(flip, [True, False, True], format="qir")
-    assert re.findall(r"store i8 (\d), ptr", qir) == ["1", "0", "1"], qir
+    qubits = re.findall(r"(%\d+) = call ptr @__quantum__rt__qubit_allocate\(\)",
+                        qir)
+    flipped = re.findall(r"call void @__quantum__qis__x\(ptr (%\d+)\)", qir)
+    assert flipped == [qubits[0], qubits[2]], qir
 
 
 def test_translate_qir_call():
     qir = cudaq.translate(kernel_with_call, format="qir")
-    pattern = r"call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate"
-    assert not re.search(pattern, qir, re.DOTALL), f"{qir} content mismatch"
+    # The callee is inlined, so the kernel is the only function defined and it
+    # applies the callee's gate.
+    assert len(re.findall(r"^define ", qir, re.MULTILINE)) == 1, qir
+    assert qir.count("call void @__quantum__qis__x(") == 1, qir
+    assert "@__quantum__qis__mz" in qir, qir
 
 
 def test_translate_qir_base():

@@ -331,6 +331,9 @@ public:
     bool hasConditionalsOnMeasureResults = false;
     /// The quantum optimization level at which the kernel was compiled.
     OptimizationLevel optimizationLevel = defaultOptimizationLevel;
+    /// Whether every stage of the target normalized the kernel. It is false
+    /// when no stage ran.
+    bool everyStageNormalizedKernel = false;
   };
 
   // The choice of constructors is intentionally limited to:

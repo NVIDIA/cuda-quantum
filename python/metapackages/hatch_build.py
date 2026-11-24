@@ -267,7 +267,7 @@ class CudaqMetadataHook(MetadataHookInterface):
         metadata["dependencies"] = [
             f"cudaq-core=={version}",
             f"{bdist}=={version}",
-            f"cudaq-logical[{logical_extra}]=={logical_version}; sys_platform == 'linux'",
+            f"cudaq-logical[{logical_extra}]=={logical_version}; sys_platform == 'linux' or sys_platform == 'darwin'",
             # The C API is not stable yet, so the exact version is pinned.
-            f"cudaq-edem=={edem_version}; sys_platform == 'linux'",
+            f"cudaq-edem=={edem_version}; sys_platform == 'linux' or sys_platform == 'darwin'",
         ]

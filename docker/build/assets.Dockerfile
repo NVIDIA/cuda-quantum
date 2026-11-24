@@ -57,6 +57,10 @@ RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
 RUN source /cuda-quantum/scripts/configure_build.sh install-gcc
 
 # [CUDA-Q Dependencies]
+# The LLVM builds restore their ccache from the registry and save it back (see
+# llvm_ccache.sh), so that they recompile only what changed when the layer
+# misses. The cache mount hands it from the build below to the Python one.
+ADD scripts/llvm_ccache.sh /cuda-quantum/scripts/llvm_ccache.sh
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 ADD scripts/prereqs_common.sh /cuda-quantum/scripts/prereqs_common.sh
 ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
@@ -81,9 +85,11 @@ RUN cd /cuda-quantum && git init && \
         fi; \
     done && git submodule init && git submodule
 RUN --mount=type=cache,target=/root/.ccache,id=llvm-prereqs-ccache \
-    cd /cuda-quantum && source scripts/configure_build.sh && \
+    --mount=type=secret,id=llvm_ccache,required=false \
+    cd /cuda-quantum && source scripts/llvm_ccache.sh && llvm_ccache_begin assets && \
+    source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
-    bash scripts/install_prerequisites.sh -t llvm -e qrmi
+    bash scripts/install_prerequisites.sh -t llvm -e qrmi && true
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
@@ -107,7 +113,10 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && 
     ${PYTHON} -m ensurepip --upgrade && \
     CCACHE_DISABLE=1 ${PYTHON} -m pip install numpy build auditwheel patchelf
 
-RUN cd /cuda-quantum && \
+RUN --mount=type=cache,target=/root/.ccache,id=llvm-prereqs-ccache \
+    --mount=type=secret,id=llvm_ccache,required=false \
+    cd /cuda-quantum && \
+    . scripts/llvm_ccache.sh && llvm_ccache_begin assets && \
     . scripts/configure_build.sh && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
     # are not built in the prereqs stage.
@@ -117,7 +126,7 @@ RUN cd /cuda-quantum && \
     # the ones in the install_prerequisites.sh invocation in the prereqs stage
     # and in the python_build stage!
     LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;openmp;runtimes' \
-    bash scripts/install_prerequisites.sh -t llvm -e qrmi
+    bash scripts/install_prerequisites.sh -t llvm -e qrmi && true
 
 ## [C++ support]
 FROM prereqs AS cpp_build

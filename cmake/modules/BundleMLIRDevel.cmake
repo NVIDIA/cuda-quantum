@@ -30,10 +30,18 @@ foreach(_dir IN LISTS _cudaq_mlir_devel_dirs)
     if(NOT _install_destination)
       set(_install_destination ".")
     endif()
+    # The Apple toolchain also ships clang runtimes for iOS and the other
+    # device platforms. They are of no use here and target newer macOS
+    # versions than the wheel, which makes delocate reject it.
     install(DIRECTORY "${CUDAQ_LLVM_INSTALL_PREFIX}/${_dir}"
       DESTINATION "${_install_destination}"
       COMPONENT Development
-      USE_SOURCE_PERMISSIONS)
+      USE_SOURCE_PERMISSIONS
+      PATTERN "libclang_rt.*ios*" EXCLUDE
+      PATTERN "libclang_rt.*watchos*" EXCLUDE
+      PATTERN "libclang_rt.*tvos*" EXCLUDE
+      PATTERN "libclang_rt.*xros*" EXCLUDE
+      PATTERN "libclang_rt.*bridgeos*" EXCLUDE)
   endif()
 endforeach()
 

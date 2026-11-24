@@ -16,17 +16,22 @@ inline std::pair<Block *, Block *> findCloneRange(Block *first, Block *last) {
   return {first->getNextNode(), last->getPrevNode()};
 }
 
-static std::size_t
+/// The number of iterations of a counted \p loop, or `nullopt` when it cannot
+/// be read yet. The loop analysis treats a loop as counted when its bound is a
+/// constant behind a cast, but this function reads the count only from an
+/// `arith.constant`. Such a loop has to wait until the greedy driver folds the
+/// cast and visits the loop again.
+static std::optional<std::size_t>
 unrollLoopByValue(cudaq::cc::LoopOp loop,
                   const cudaq::opt::LoopComponents &components) {
-  auto c = components.compareValue.getDefiningOp<arith::ConstantOp>();
-  if (loop->hasAttr(cudaq::opt::NormalizedLoopAttr))
-    return cast<IntegerAttr>(c.getValue()).getInt();
+  if (loop->hasAttr(cudaq::opt::NormalizedLoopAttr)) {
+    if (auto c = components.compareValue.getDefiningOp<arith::ConstantOp>())
+      return cast<IntegerAttr>(c.getValue()).getInt();
+    return std::nullopt;
+  }
   if (components.hasAlwaysFalseCondition())
     return 0;
-  auto resultOpt = components.getIterationsConstant();
-  assert(resultOpt.has_value() && "must be counted loop");
-  return *resultOpt;
+  return components.getIterationsConstant();
 }
 
 static bool exceedsThresholdValue(cudaq::cc::LoopOp loop, std::size_t threshold,
@@ -38,8 +43,10 @@ static bool exceedsThresholdValue(cudaq::cc::LoopOp loop, std::size_t threshold,
                         "supported in a kernel.");
     return true;
   }
+  // A loop whose count is not known yet is treated as over the threshold, so
+  // that it is not unrolled in this round.
   auto upperBound = unrollLoopByValue(loop, *components);
-  return upperBound > threshold;
+  return !upperBound || *upperBound > threshold;
 }
 
 static bool loopCanBeUnrolled(cudaq::cc::LoopOp loop, bool allowBreak,
@@ -259,7 +266,9 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     assert(components && "counted loop must have components");
     if (!components->induction.has_value())
       return failure();
-    auto unrollBy = unrollLoopByValue(loop, *components);
+    // The count is known here: `exceedsThresholdValue` rejected the loop above
+    // otherwise.
+    auto unrollBy = *unrollLoopByValue(loop, *components);
     Type inductionTy = loop.getOperands()[*components->induction].getType();
     LLVM_DEBUG(llvm::dbgs()
                << "unrolling loop by " << unrollBy << " iterations\n");

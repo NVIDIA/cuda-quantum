@@ -3552,18 +3552,19 @@ class PyASTBridge(ast.NodeVisitor):
                     (namespace == 'math' and
                      self.__isSupportedMathFunction(node.func.attr))):
 
-                    value = self.__groupValues(node.args, [1])
-
                     if node.func.attr == 'array':
-                        # The expected Python behavior is that a constructor
-                        # call to array creates a new array (a shallow copy).
-                        # Additionally, since a new value is created, we need to
-                        # make sure container entries are properly validated. To
-                        # not duplicate the logic, we simply call `copy` here.
+                        if not node.args:
+                            self.emitFatalError("missing value", node)
+                        if len(node.args) > 1:
+                            self.emitFatalError("too many values", node)
+                        # Let copy evaluate the input once and validate the
+                        # entries of the newly created container.
                         self.visit_Call(
                             ast.Call(ast.Attribute(node.args[0], 'copy'), [],
                                      node.keywords))
                         return
+
+                    value = self.__groupValues(node.args, [1])
 
                     if node.func.attr in ['complex128', 'complex64']:
                         if node.func.attr == 'complex128':

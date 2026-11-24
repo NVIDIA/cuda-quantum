@@ -165,6 +165,31 @@ jobs:
           package-type: 'container'
           package-version-ids: '${{ steps.packages.outputs.versions_to_remove }}'
 
+  # Saving a ccache over its tag leaves the previous archive, several GB, untagged.
+  # Nothing depends on an untagged version of these, so only the latest few are kept.
+  llvm_ccache_images:
+    name: Clean up the LLVM ccache images
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 0 * * *'
+    runs-on: ubuntu-latest
+
+    permissions:
+      packages: write
+
+    strategy:
+      matrix:
+        image_name: [cuda-quantum-llvm-ccache, cuda-quantum-llvm-ccache-ci]
+      fail-fast: false
+
+    steps:
+      - name: Delete untagged images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.image_name }}
+          package-type: 'container'
+          min-versions-to-keep: 4
+          delete-only-untagged-versions: 'true'
+        continue-on-error: true
+
   # We use environments to deploy to a public registry after PRs are merged.
   # Since we use the same workflows during CI, a default environment that defines
   # the necessary variables is used instead. Unfortunately, this automatically

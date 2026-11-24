@@ -13,6 +13,7 @@
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/LoweringHandler.h"
+#include "cudaq/Optimizer/CodeGen/CodegenMode.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -36,6 +37,24 @@ class FuncOp;
 } // namespace mlir
 
 namespace cudaq_internal::compiler {
+
+/// A target's JIT pass pipeline.
+struct PassPipeline {
+  std::string text;
+  /// Whether every stage has `StagePasses::normalizesKernel` set, so that
+  /// `codegen` only emits. A pipeline that ran no stage does not count.
+  bool everyStageNormalizesKernel = false;
+};
+
+/// How much of the kernel's preparation `codegen` still does for a kernel
+/// that was compiled with \p metadata. When every stage normalized the
+/// kernel, `codegen` only emits. Otherwise `codegen` normalizes the kernel
+/// itself and, above level 0, also optimizes it. That includes a compile that
+/// skipped the target pipeline, since then no stage ran.
+// TODO: REST targets take the level from `codegen` until their target
+// definitions declare a stage that applies it.
+cudaq::opt::CodegenMode
+codegenMode(const cudaq::CompiledModule::CompilationMetadata &metadata);
 
 class Compiler {
   /// @brief Flag indicating whether we should perform the passes in a
@@ -81,34 +100,54 @@ class Compiler {
   void applyPipeline(const std::string &pipeline, mlir::ModuleOp moduleOp,
                      const std::string &kernelName);
 
-  /// Build the module, merge closures, and synthesize arguments.
+  /// Build the module, merge closures, synthesize arguments, and erase unused
+  /// private symbols. Returns the module, the entry point, and whether every
+  /// argument was specialized.
   std::tuple<mlir::ModuleOp, mlir::func::FuncOp, bool>
   prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
                 cudaq::KernelArgs args, bool isEntryPoint);
+
+  /// Generate the host functions that marshal the kernel's arguments and
+  /// result.
+  void generateHostFunctions(mlir::ModuleOp moduleOp, bool isFullySpecialized);
 
   /// Delay combine-measurements for emulation, then run the main pass
   /// pipeline built from \p resolvedOptions, the options resolved for this
   /// compile.  Returns
   ///  - whether combine-measurements was delayed,
-  ///  - the pass pipeline that was executed.
-  std::pair<bool, std::string>
+  ///  - the pass pipeline that was executed, which is empty when none ran.
+  std::pair<bool, PassPipeline>
   executeMainPipeline(mlir::ModuleOp moduleOp, const std::string &kernelName,
                       const cudaq::CompileOptions &resolvedOptions);
+
+  /// What `assembleCompiledModule` produces besides the MLIR artifact.
+  struct AssemblyRequest {
+    /// JIT-compile the kernel.
+    bool needsJit = false;
+    /// Give the module that the JIT compiles the host functions that marshal
+    /// the kernel's arguments and result.
+    bool needsHostFunctions = false;
+    /// Every argument of the kernel was specialized.
+    bool isFullySpecialized = false;
+    /// The kernel is a complete execution boundary, not a nested callable.
+    bool isEntryPoint = false;
+    /// Run `combine-measurements` on the modules after the JIT has its copy.
+    bool combineMeasurements = false;
+  };
 
   /// Create JIT and MLIR artifacts and assemble a CompiledModule.
   cudaq::CompiledModule assembleCompiledModule(
       const std::string &kernelName,
       std::vector<std::pair<std::string, mlir::ModuleOp>> &modules,
-      bool needJit, bool isFullySpecialized, bool isEntryPoint,
-      bool runCombineMeasurements,
+      const AssemblyRequest &request,
       std::optional<cudaq::Resources> resourceCounts,
       cudaq::CompiledModule::CompilationMetadata metadata,
       std::shared_ptr<mlir::MLIRContext> context);
 
   /// Translate \p module according to the target's `codegen` emission format.
   /// Returns the target code and its JSON-serialized output names mapping.
-  std::pair<std::string, std::string> emitTargetCode(mlir::ModuleOp module,
-                                                     bool disableQuantumOpts);
+  std::pair<std::string, std::string>
+  emitTargetCode(mlir::ModuleOp module, cudaq::opt::CodegenMode codegenMode);
 
 public:
   const cudaq::CompileTarget &getTarget() const { return target; }
@@ -162,9 +201,13 @@ public:
 ///    target's only stage.
 ///
 /// The emission format and `CompileOptions::emulate` set the options of prep,
-/// deploy, and finalize. If the target sets `disable_qubit_mapping`, every
-/// `qubit-mapping` in the result gets `device=bypass`.
-std::optional<std::string>
+/// deploy, and finalize. When no stage needs gate lowering, prep leaves the
+/// gates that hardware lacks in the kernel and deploy does not run. When every
+/// stage also normalizes the kernel, prep and finalize skip the work that the
+/// stages' `prepare-for-wireset` repeats. If the target
+/// sets `disable_qubit_mapping`, every `qubit-mapping` in the result gets
+/// `device=bypass`.
+std::optional<PassPipeline>
 getPassPipeline(const cudaq::CompileTarget &target,
                 const cudaq::CompileOptions &options,
                 const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
