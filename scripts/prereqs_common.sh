@@ -66,6 +66,11 @@ QRMI_UNPACK_DIR="libqrmi-${QRMI_RELEASE_VERSION}"
 #   sha256sum qrmi.tar.gz | awk '{print $1}'
 QRMI_ARCHIVE_SHA256=${QRMI_ARCHIVE_SHA256:-0e4d2e841832454dba1b7802768b250943f10ebfdb2c2b3b89dc71655a730ddb}
 
+# SHA-256 of the GMP and MPFR tarballs. Checked on every mirror, so one that
+# serves a placeholder or a stale file falls through to the next.
+GMP_TARBALL_SHA256=a3c2b80201b89e68616f4ad30bc66aee4927c3ce50e33929ca819d5c43538898
+MPFR_TARBALL_SHA256=b67ba0383ef7e8a8563734e2e889ef5ec3c3b898a01d00fa0a6869ad81c6ce01
+
 # Process command line arguments
 toolchain=''
 exclude_prereq=''
@@ -114,6 +119,10 @@ PREREQS_BUILD_DIR=$(mktemp -d)
 : "${PREREQS_BUILD_DIR:?ERROR mktemp failed}"
 echo "Building prerequisites in $PREREQS_BUILD_DIR"
 
+# Dead hosts should fail in seconds, not after wget's defaults (minutes).
+export WGETRC="$PREREQS_BUILD_DIR/wgetrc"
+printf 'connect_timeout = 20\nread_timeout = 60\ndns_timeout = 20\n' > "$WGETRC"
+
 # Retry a command, clearing package-manager metadata between attempts. The CUDA
 # yum repo CDN intermittently serves a stale repomd.xml that points at rotated
 # repodata files, producing 404s; clearing metadata forces a fresh fetch.
@@ -133,13 +142,34 @@ function retry {
 }
 
 
+function verify_sha256 {
+  local file="$1" expected="$2" actual
+  if [ -z "$expected" ]; then return 0; fi
+  if [ -x "$(command -v sha256sum)" ]; then
+    actual="$(sha256sum "$file" | awk '{print $1}')"
+  else
+    actual="$(shasum -a 256 "$file" | awk '{print $1}')"
+  fi
+  if [ "$actual" != "$expected" ]; then
+    echo "Checksum mismatch for ${file}: expected ${expected}, got ${actual}." >&2
+    return 1
+  fi
+}
+
+# Usage: download_first <file> [sha256=<hash>] <url>...
+# Two quick tries per URL, then the next one.
 function download_first {
   local filename="$1"; shift
+  local sha256=""
+  if [[ "${1:-}" == sha256=* ]]; then sha256="${1#sha256=}"; shift; fi
   for url in "$@"; do
     echo "Downloading ${url}..."
-    if retry wget --tries=1 -O "${filename}" "${url}"; then
-      return 0
-    fi
+    for attempt in 1 2; do
+      if wget --tries=1 -O "${filename}" "${url}" && verify_sha256 "${filename}" "${sha256}"; then
+        return 0
+      fi
+      if [ "$attempt" -lt 2 ]; then sleep 5; fi
+    done
     echo "Failed to download from ${url}; trying next mirror..." >&2
   done
   rm -f "${filename}"

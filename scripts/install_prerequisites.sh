@@ -195,7 +195,7 @@ if [ -n "$GMP_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep gmp)" ]; 
 
     pushd "$PREREQS_BUILD_DIR"
 
-    download_first "gmp-${GMP_VERSION}.tar.xz" ${GMP_TARBALL_URLS}
+    download_first "gmp-${GMP_VERSION}.tar.xz" sha256="${GMP_TARBALL_SHA256}" ${GMP_TARBALL_URLS}
     tar -xf "gmp-${GMP_VERSION}.tar.xz" && cd "gmp-${GMP_VERSION}"
     gmp_host_flags=""
     if [ "$(uname -m)" = "x86_64" ]; then
@@ -230,7 +230,7 @@ if [ -n "$MPFR_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep mpfr)" ]
 
     pushd "$PREREQS_BUILD_DIR"
 
-    download_first "mpfr-${MPFR_VERSION}.tar.xz" ${MPFR_TARBALL_URLS}
+    download_first "mpfr-${MPFR_VERSION}.tar.xz" sha256="${MPFR_TARBALL_SHA256}" ${MPFR_TARBALL_URLS}
     tar -xf "mpfr-${MPFR_VERSION}.tar.xz" && cd "mpfr-${MPFR_VERSION}"
     if [ "$(uname)" = "Darwin" ]; then
       mpfr_ldflags="-Wl,-rpath,$GMP_INSTALL_PREFIX/lib"

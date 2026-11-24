@@ -195,6 +195,7 @@ jobs:
     name: Test ${{ matrix.provider }}
     needs: [setup, metadata, provider_matrix_setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -436,6 +437,10 @@ jobs:
           echo "### Testing ${{ matrix.provider }}" >> $GITHUB_STEP_SUMMARY
           export CUDAQ_LOG_LEVEL="info"
 
+          # Keep a copy of the output to tell provider outages from test failures.
+          log="$RUNNER_TEMP/provider_test.log"
+          exec > >(tee "$log") 2>&1
+
           tii_retry() {
             local attempt output status
             for attempt in 1 2 3 4 5; do
@@ -453,12 +458,28 @@ jobs:
             echo "::error::TII parallel job limit still reached after 5 attempts"
             return $status
           }
+          # Network and capacity errors on the provider side are reported, not
+          # failed. Auth errors (401/403) still fail: they need a new secret.
+          provider_down='Connection (timed out|refused|reset by peer)|Could not resolve host|Temporary failure in name resolution|Network is unreachable|status code (408|429|5[0-9][0-9])|Target platform not available|HTTPSConnectionPool|Max retries exceeded|ConnectTimeout|ReadTimeout'
+          fail_test() {
+            sleep 1 # let tee flush the test output
+            if tail -c +"$((file_start+1))" "$log" | grep -Eq "$provider_down"; then
+              echo "::warning::Provider unavailable, not counted as a failure: $filename"
+              echo ":warning: Provider unavailable, not counted as a failure: $filename" >> $GITHUB_STEP_SUMMARY
+              test_unavailable_sum=$((test_unavailable_sum+1))
+            else
+              test_err_sum=$((test_err_sum+1))
+            fi
+          }
+
           set +e # Allow script to keep going through errors
           test_err_sum=0
           test_skip_sum=0
+          test_unavailable_sum=0
 
           # Single loop handles both C++ and Python tests
           for filename in ${{ steps.gettests.outputs.testlist }}; do
+            file_start=$(wc -c < "$log")
             # Check if file exists
             if [ ! -e "$filename" ]; then
               echo "::warning::File not found: $filename"
@@ -478,11 +499,11 @@ jobs:
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 else
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
+                  fail_test
                 fi
                 ;;
 
@@ -497,11 +518,11 @@ jobs:
                       echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                     else
                       echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                      test_err_sum=$((test_err_sum+1))
+                      fail_test
                     fi
                   else
                     echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 elif [[ "$filename" == *.py ]]; then
                   python3 $filename 1> /dev/null
@@ -510,7 +531,7 @@ jobs:
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 else
                   echo "::warning::Unsupported file type: $filename"
@@ -530,11 +551,11 @@ jobs:
                       echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                     else
                       echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                      test_err_sum=$((test_err_sum+1))
+                      fail_test
                     fi
                   else
                     echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 elif [[ "$filename" == *.py ]]; then
                   python3 $filename 1> /dev/null
@@ -543,7 +564,7 @@ jobs:
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 else
                   echo "::warning::Unsupported file type: $filename"
@@ -562,11 +583,11 @@ jobs:
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 else
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
+                  fail_test
                 fi
                 ;;
 
@@ -580,11 +601,11 @@ jobs:
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 else
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
+                  fail_test
                 fi
                 ;;
 
@@ -598,11 +619,11 @@ jobs:
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 else
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
+                  fail_test
                 fi
                 ;;
 
@@ -617,11 +638,11 @@ jobs:
                       echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                     else
                       echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                      test_err_sum=$((test_err_sum+1))
+                      fail_test
                     fi
                   else
                     echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 elif [[ "$filename" == *.py ]]; then
                   python3 $filename 1> /dev/null
@@ -630,7 +651,7 @@ jobs:
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 else
                   echo "::warning::Unsupported file type: $filename"
@@ -650,11 +671,11 @@ jobs:
                       echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                     else
                       echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                      test_err_sum=$((test_err_sum+1))
+                      fail_test
                     fi
                   else
                     echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 elif [[ "$filename" == *.py ]]; then
                   python3 $filename 1> /dev/null
@@ -663,7 +684,7 @@ jobs:
                     echo ":white_check_mark: Successfully ran test: $filename  (direct execution)" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename (direct execution)" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                   if [ "$(uname)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && \
                      [ -f "${QRMI_INSTALL_PREFIX:-/usr/local/qrmi}/lib64/libqrmi.so" ]; then
@@ -677,7 +698,7 @@ jobs:
                       echo ":white_check_mark: Successfully ran test: $filename (qrmi execution)" >> $GITHUB_STEP_SUMMARY
                     else
                       echo ":x: Test failed (failed to execute): $filename (qrmi execution)" >> $GITHUB_STEP_SUMMARY
-                      test_err_sum=$((test_err_sum+1))
+                      fail_test
                     fi
                   else
                     echo ":information_source: Skipped QRMI test for $filename (QRMI not available in this build)" >> $GITHUB_STEP_SUMMARY
@@ -700,11 +721,11 @@ jobs:
                       echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                     else
                       echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                      test_err_sum=$((test_err_sum+1))
+                      fail_test
                     fi
                   else
                     echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 elif [[ "$filename" == *.py ]]; then
                   python3 $filename 1> /dev/null
@@ -713,7 +734,7 @@ jobs:
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 else
                   echo "::warning::Unsupported file type: $filename"
@@ -739,11 +760,11 @@ jobs:
                       echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                     else
                       echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                      test_err_sum=$((test_err_sum+1))
+                      fail_test
                     fi
                   else
                     echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 elif [[ "$filename" == *.py ]]; then
                   echo "### Running Quantinuum Python test" >> $GITHUB_STEP_SUMMARY
@@ -753,7 +774,7 @@ jobs:
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 else
                   echo "::warning::Unsupported file type: $filename"
@@ -773,11 +794,11 @@ jobs:
                       echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                     else
                       echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                      test_err_sum=$((test_err_sum+1))
+                      fail_test
                     fi
                   else
                     echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 elif [[ "$filename" == *.py ]]; then
                   python3 $filename 1> /dev/null
@@ -786,7 +807,7 @@ jobs:
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 else
                   echo "::warning::Unsupported file type: $filename"
@@ -806,11 +827,11 @@ jobs:
                       echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                     else
                       echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                      test_err_sum=$((test_err_sum+1))
+                      fail_test
                     fi
                   else
                     echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 elif [[ "$filename" == *.py ]]; then
                   tii_retry python3 $filename
@@ -819,7 +840,7 @@ jobs:
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
+                    fail_test
                   fi
                 else
                   echo "::warning::Unsupported file type: $filename"
@@ -833,6 +854,9 @@ jobs:
           # Print summary
           if [ $test_skip_sum -gt 0 ]; then
             echo "::warning::${test_skip_sum} tests skipped"
+          fi
+          if [ $test_unavailable_sum -gt 0 ]; then
+            echo "::warning::${test_unavailable_sum} tests not counted: provider unavailable"
           fi
 
           set -e # Re-enable exit code error checking

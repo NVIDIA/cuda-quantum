@@ -33,6 +33,7 @@ jobs:
     if: github.event_name == 'workflow_run'
     permissions: write-all
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Download cache keys
@@ -71,6 +72,7 @@ jobs:
     name: Clean up selective GitHub caches
     if: (github.event_name == 'workflow_dispatch' && inputs.cache_keys != '' )
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions: write-all
 
     steps:        
@@ -87,6 +89,7 @@ jobs:
     name: Clean up Github caches with tar archives
     if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'tar' )
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions: write-all
 
     steps:        
@@ -104,6 +107,7 @@ jobs:
     name: Clean up branch specific caches
     if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'branch' ) || (github.event_name == 'delete' && github.event.ref_type == 'branch')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions: write-all
 
     steps:        
@@ -124,8 +128,11 @@ jobs:
       # downsides, and do just that here to have some periodic clean up.
       # The package names carry the CUDA version, so update them when it changes.
 
+      # Housekeeping: a GHCR API error or an already deleted version
+      # is not a failure, the next run catches up.
       - name: Delete build caches for MPI asset (CUDA 12.6, ARM64)
         uses: actions/delete-package-versions@v5
+        continue-on-error: true
         with: 
           package-name: buildcache-cuda-quantum-assets-openmpi-cu12-6-llvm-arm64
           package-type: 'container'
@@ -133,6 +140,7 @@ jobs:
 
       - name: Delete build caches for MPI asset (CUDA 12.6, AMD64)
         uses: actions/delete-package-versions@v5
+        continue-on-error: true
         with: 
           package-name: buildcache-cuda-quantum-assets-openmpi-cu12-6-llvm-amd64
           package-type: 'container'
@@ -140,6 +148,7 @@ jobs:
 
       - name: Delete build caches for MPI asset (CUDA 13.0, ARM64)
         uses: actions/delete-package-versions@v5
+        continue-on-error: true
         with: 
           package-name: buildcache-cuda-quantum-assets-openmpi-cu13-0-llvm-arm64
           package-type: 'container'
@@ -147,6 +156,7 @@ jobs:
 
       - name: Delete build caches for MPI asset (CUDA 13.0, AMD64)
         uses: actions/delete-package-versions@v5
+        continue-on-error: true
         with: 
           package-name: buildcache-cuda-quantum-assets-openmpi-cu13-0-llvm-amd64
           package-type: 'container'
@@ -156,6 +166,7 @@ jobs:
     name: Clean up PR related GitHub caches
     if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions: write-all
 
     steps:

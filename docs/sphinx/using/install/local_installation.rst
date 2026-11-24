@@ -10,7 +10,7 @@ guidance for application development on a remote host where CUDA-Q is installed.
 
 The following sections contain instructions for how to install CUDA-Q on your machine using
 
-- :ref:`Docker <install-docker-image>`: A fully featured CUDA-Q installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/overview/>`__ image.
+- :ref:`Docker <install-docker-image>`: A fully featured CUDA-Q installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/>`__ image.
 - :ref:`Singularity <install-singularity-image>`: A `Singularity <https://docs.sylabs.io/guides/latest/user-guide/introduction.html>`__ container can easily be created based on our Docker images. 
 - :ref:`PyPI <install-python-wheels>`: Additionally, we distribute pre-built Python wheels via `PyPI <https://pypi.org>`__.
 - :ref:`Pre-built binaries <install-prebuilt-binaries>`: We also provide pre-built C++ binaries, bundled as `self-extracting archive <https://makeself.io/>`__, that work across a range of Linux operating systems.

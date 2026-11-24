@@ -63,12 +63,14 @@ add_lock_line "gmp" \
   "type=tar" \
   "url=${GMP_TARBALL_URLS%% *}" \
   "mirrors=$(echo ${GMP_TARBALL_URLS#* } | tr ' ' ',')" \
-  "version=${GMP_VERSION}"
+  "version=${GMP_VERSION}" \
+  "sha256=${GMP_TARBALL_SHA256}"
 add_lock_line "mpfr" \
   "type=tar" \
   "url=${MPFR_TARBALL_URLS%% *}" \
   "mirrors=$(echo ${MPFR_TARBALL_URLS#* } | tr ' ' ',')" \
-  "version=${MPFR_VERSION}"
+  "version=${MPFR_VERSION}" \
+  "sha256=${MPFR_TARBALL_SHA256}"
 
 # [OpenSSL] (and its private Perl used only for the build)
 add_lock_line "perl" \

@@ -408,16 +408,21 @@ jobs:
           wc -l tpls_commits.lock || true
 
       - name: Download CUDA-Q prerequisite sources
+        timeout-minutes: 30
         run: |
           set -euo pipefail
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           # Try the primary url, then each comma-separated mirror. A dead host
           # (ftp.gnu.org has been one) should fail in seconds, not minutes.
-          fetch() { # <dest> <url> [mirrors]
-            local dest=$1 url=$2 mirrors=${3:-} candidate
+          fetch() { # <dest> <url> [mirrors] [sha256]
+            local dest=$1 url=$2 mirrors=${3:-} sha256=${4:-} candidate
             for candidate in "$url" ${mirrors//,/ }; do
               echo "Downloading $candidate -> $dest"
-              retry curl -fL --connect-timeout 20 "$candidate" -o "$dest" && return 0
+              # Abort a stalled transfer (under 1 kB/s for a minute), not just a dead host.
+              if retry curl -fL --connect-timeout 20 --speed-limit 1024 --speed-time 60 "$candidate" -o "$dest" &&
+                 { [ -z "$sha256" ] || echo "$sha256  $dest" | sha256sum -c --quiet -; }; then
+                return 0
+              fi
               echo "Failed: $candidate" >&2
             done
             return 1
@@ -445,6 +450,7 @@ jobs:
             type=""
             url=""
             mirrors=""
+            sha256=""
             ref=""
 
             for kv in $line; do
@@ -455,6 +461,7 @@ jobs:
                 type) type="$val" ;;
                 url)  url="$val" ;;
                 mirrors) mirrors="$val" ;;
+                sha256) sha256="$val" ;;
                 ref)  ref="$val" ;;
               esac
             done
@@ -469,7 +476,7 @@ jobs:
 
             case "$type" in
               tar)
-                fetch "prereqs/${name}/$(basename "$url")" "$url" "$mirrors"
+                fetch "prereqs/${name}/$(basename "$url")" "$url" "$mirrors" "$sha256"
                 ;;
               sh)
                 dest="prereqs/${name}/$(basename "$url")"

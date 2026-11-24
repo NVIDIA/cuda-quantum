@@ -28,6 +28,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' && inputs.delete_temp_branches) ||
       github.event.schedule == '0 0 * * *'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - run: |
@@ -73,6 +74,7 @@ jobs:
     name: Delete draft release
     if: github.event_name == 'workflow_dispatch' && inputs.delete_draft_releases
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - run: |
@@ -93,6 +95,7 @@ jobs:
   ghcr_images:
     name: Clean up GHCR images
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     strategy:
       matrix:
@@ -102,8 +105,11 @@ jobs:
     steps:
       # We need to keep a good number of untagged manifests, 
       # since each tagged image contains/depends on untagged components
+      # Housekeeping: a GHCR API error or an already deleted version
+      # is not a failure, the next run catches up.
       - name: Delete untagged images
         uses: actions/delete-package-versions@v5
+        continue-on-error: true
         with: 
           package-name: ${{ matrix.image_name }}
           package-type: 'container'
@@ -160,6 +166,7 @@ jobs:
       - name: Delete matching signatures
         if: steps.packages.outputs.versions_to_remove
         uses: actions/delete-package-versions@v5
+        continue-on-error: true
         with: 
           package-name: ${{ matrix.image_name }}
           package-type: 'container'
@@ -175,6 +182,7 @@ jobs:
   deployments:
     name: Deployments
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       deployments: write
 
@@ -218,6 +226,7 @@ jobs:
     name: Clean up documentation previews
     if: github.event_name == 'pull_request_target' || github.event.schedule == '0 0 * * *'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     permissions:
       contents: write
@@ -279,6 +288,7 @@ jobs:
     name: Clean up PR ccache artifacts
     if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     permissions:
       packages: write

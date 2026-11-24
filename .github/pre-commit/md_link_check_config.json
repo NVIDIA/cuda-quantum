@@ -41,6 +41,18 @@
         "pattern": "^https://www\\.scaleway\\.com/"
       },
       {
+        "_comment": "Returns 403 to GitHub runners although the page is live.",
+        "pattern": "^https://console\\.scaleway\\.com/"
+      },
+      {
+        "_comment": "Connections from CI runners time out (ETIMEDOUT) although the site is live.",
+        "pattern": "^https://slurm\\.schedmd\\.com/"
+      },
+      {
+        "_comment": "Connections from CI runners time out (ETIMEDOUT) although the page is live.",
+        "pattern": "^https://www\\.nvidia\\.com/en-au/edge-computing/products/igx/"
+      },
+      {
         "pattern": "^https://epubs.siam.org/doi/10.1137/S0097539796300921"
       },
       {

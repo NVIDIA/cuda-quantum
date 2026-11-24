@@ -63,6 +63,23 @@ runs:
         fi
 
     - name: Check links in Markdown files
+      id: links
+      # One recheck below absorbs timeouts and transient errors.
+      continue-on-error: true
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        use-verbose-mode: "yes"
+        config-file: ${{ inputs.config-file }}
+        check-modified-files-only: ${{ inputs.check-modified-files-only }}
+        base-branch: ${{ inputs.base-branch }}
+
+    - name: Wait before rechecking links
+      if: steps.links.outcome == 'failure'
+      shell: bash
+      run: sleep 60
+
+    - name: Recheck links in Markdown files
+      if: steps.links.outcome == 'failure'
       uses: gaurav-nelson/github-action-markdown-link-check@v1
       with:
         use-verbose-mode: "yes"
