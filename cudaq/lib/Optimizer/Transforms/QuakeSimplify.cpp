@@ -515,6 +515,8 @@ public:
     // on the angle, so every link may move forward to `later`. Folding the
     // chain in one rewrite searches each stretch of the block only once.
     SmallVector<QOP> chain;
+    // Links removed as exact inverse pairs. They contribute no angle.
+    SmallVector<QOP> cancelled;
     for (QOP anchor = later;;) {
       Operation *match =
           matcher.find_nearest(anchor, [&](Operation *candidate) {
@@ -528,19 +530,32 @@ public:
       if (!match)
         break;
       anchor = cast<QOP>(match);
-      // An exact inverse of `later` cancels without creating a new angle.
-      if (chain.empty() && later.isAdj() != anchor.isAdj() &&
-          haveExactValue(laterAngle, anchor.getParameters().front())) {
-        cancelPair(anchor, later, rewriter);
+      // An exact inverse of the nearest surviving link cancels without
+      // creating a new angle. Summing the pair instead would leave `x + -x`
+      // for a symbolic angle, which no floating-point fold removes. Every link
+      // commutes forward to `later`, so the pair is adjacent once the links
+      // between them have cancelled.
+      QOP survivor = chain.empty() ? later : chain.back();
+      if (survivor.isAdj() != anchor.isAdj() &&
+          haveExactValue(survivor.getParameters().front(),
+                         anchor.getParameters().front())) {
         ++combineStat;
-        return success();
+        if (chain.empty()) {
+          cancelPair(anchor, later, rewriter);
+          for (QOP link : cancelled)
+            eraseOrForward(link, rewriter);
+          return success();
+        }
+        cancelled.push_back(chain.pop_back_val());
+        cancelled.push_back(anchor);
+        continue;
       }
       chain.push_back(anchor);
     }
-    if (chain.empty())
+    if (chain.empty() && cancelled.empty())
       return failure();
 
-    {
+    if (!chain.empty()) {
       OpBuilder::InsertionGuard guard(rewriter);
       rewriter.setInsertionPoint(later);
       Value combinedAngle = laterAngle;
@@ -562,6 +577,8 @@ public:
     }
     for (QOP earlier : chain)
       eraseOrForward(earlier, rewriter);
+    for (QOP link : cancelled)
+      eraseOrForward(link, rewriter);
     combineStat += chain.size();
     return success();
   }

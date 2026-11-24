@@ -41,6 +41,14 @@ static RewritePatternSet canonicalizationPatterns(MLIRContext *ctx) {
   return patterns;
 }
 
+// Hash the identity and order of every operation nested in `op`. Erasing,
+// inserting, or moving an operation changes the result.
+static llvm::hash_code hashOperationOrder(Operation *op) {
+  llvm::hash_code hash(0);
+  op->walk([&](Operation *nested) { hash = llvm::hash_combine(hash, nested); });
+  return hash;
+}
+
 // A single block whose operations have no nested regions.
 static bool isFlatKernel(func::FuncOp func) {
   return func.getBody().hasOneBlock() &&
@@ -136,10 +144,17 @@ private:
         changed |= succeeded(simplifyRegions(rewriter, op->getRegions()));
       }
       progress = 0;
+      // The driver reports a change only when a pattern, a fold, or region
+      // simplification fired. It also hoists and deduplicates constants while
+      // populating its worklist, without reporting that until
+      // llvm/llvm-project#232574. Those edits only move or erase operations,
+      // so compare the operation order as well.
+      // TODO: drop the hash once the bundled LLVM includes that fix.
+      auto orderBefore = hashOperationOrder(op);
       bool rewritten = false;
       if (failed(applyPatternsGreedily(op, frozen, {}, &rewritten)))
         return true;
-      changed |= rewritten;
+      changed |= rewritten || orderBefore != hashOperationOrder(op);
     } while (progress);
     return changed;
   }

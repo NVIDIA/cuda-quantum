@@ -1,0 +1,50 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// The angles are symbolic, so CircuitCheck cannot compare unitaries here.
+// RUN: cudaq-opt --quake-simplify %s | FileCheck %s
+
+// An exact inverse pair inside a longer chain cancels instead of being summed
+// into a symbolic angle. The remaining constants fold to an identity.
+func.func @cancel_inverse_inside_chain(%a: f64) {
+  %pi = arith.constant 3.1415926535897931 : f64
+  %pi3 = arith.constant 9.4247779607693793 : f64
+  %q = quake.null_wire
+  %r0 = quake.rx (%a) %q : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.rx<adj> (%a) %r0 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.rx (%pi) %r1 : (f64, !quake.wire) -> !quake.wire
+  %r3 = quake.rx (%pi3) %r2 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r3 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @cancel_inverse_inside_chain(
+// CHECK-NOT:     arith.addf
+// CHECK-NOT:     quake.rx
+// CHECK:         return
+
+// Nested inverse pairs cancel outward, leaving only the unmatched rotations.
+func.func @cancel_nested_inverses_in_chain(%a: f64, %b: f64, %c: f64) {
+  %q = quake.null_wire
+  %r0 = quake.rx (%c) %q : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.rx (%a) %r0 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.rx (%b) %r1 : (f64, !quake.wire) -> !quake.wire
+  %r3 = quake.rx<adj> (%b) %r2 : (f64, !quake.wire) -> !quake.wire
+  %r4 = quake.rx<adj> (%a) %r3 : (f64, !quake.wire) -> !quake.wire
+  %r5 = quake.rx (%c) %r4 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r5 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @cancel_nested_inverses_in_chain(
+// CHECK-SAME:      %[[A:.*]]: f64, %[[B:.*]]: f64, %[[C:.*]]: f64)
+// CHECK-NOT:     arith.negf
+// CHECK:         %[[SUM:.*]] = arith.addf %[[C]], %[[C]] : f64
+// CHECK-NEXT:    quake.rx (%[[SUM]])
+// CHECK-NOT:     quake.rx
+// CHECK:         return
