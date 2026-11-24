@@ -787,7 +787,9 @@ class cudaq::quake::detail::LogicalQubitOperationIndex {
   };
 
   // Key each operation by its stable block ordinal so erasing a gate in the
-  // middle of a long per-qubit sequence costs logarithmic time.
+  // middle of a long per-qubit sequence costs logarithmic time. The container
+  // must stay ordered. Every backward walk seeks to an ordinal with
+  // `upper_bound` and then iterates in descending ordinal order.
   using OrderedOperations = std::map<unsigned, Operation *>;
 
   // Group the per-qubit operation lists within one searchable block interval.
