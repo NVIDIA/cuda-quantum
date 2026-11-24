@@ -380,6 +380,20 @@ def test_generic_measure_in_a_logical_program_rejects_physical_options(
         cql.compile(generic)
 
 
+def test_reset_in_a_logical_program_is_rejected():
+    import cudaq.logical as cql
+
+    @cql.program
+    def resets() -> tuple[bool]:
+        q = cql.allocate(1, state=cql.types.zero)
+        return (cql.measure_z(cql.reset(cql.h(q[0]))),)
+
+    with pytest.raises(
+            TypeError,
+            match="cudaq.logical.reset is not supported in a logical program"):
+        cql.compile(resets)
+
+
 def test_cudaq_qvector_and_scalar_import_as_zero_preparation():
     import cudaq
     import cudaq.logical as cql
