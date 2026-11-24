@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include "common/ConfigUtils.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "nlohmann/json.hpp"
@@ -79,15 +80,6 @@ private:
   /// @brief Helper method to set the number of qubits based on the target.
   int setQubits(const std::string &target);
 
-  /// @brief Helper method to retrieve the value of an environment variable.
-  std::string getEnvVar(const std::string &key, const std::string &defaultVal,
-                        const bool isRequired) const;
-
-  /// @brief Helper function to get value from config or return a default value.
-  std::string getValueOrDefault(const BackendConfig &config,
-                                const std::string &key,
-                                const std::string &defaultValue) const;
-
   /// @brief Helper method to check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
 };
@@ -128,31 +120,6 @@ void IonQServerHelper::initialize(BackendConfig config) {
     backendConfig["sharpen"] = config["sharpen"];
   if (config.find("format") != config.end())
     backendConfig["format"] = config["format"];
-}
-
-// Implementation of the getValueOrDefault function
-std::string
-IonQServerHelper::getValueOrDefault(const BackendConfig &config,
-                                    const std::string &key,
-                                    const std::string &defaultValue) const {
-  return config.find(key) != config.end() ? config.at(key) : defaultValue;
-}
-
-// Retrieve an environment variable
-std::string IonQServerHelper::getEnvVar(const std::string &key,
-                                        const std::string &defaultVal,
-                                        const bool isRequired) const {
-  // Get the environment variable
-  const char *env_var = std::getenv(key.c_str());
-  // If the variable is not set, either return the default or throw an exception
-  if (env_var == nullptr) {
-    if (isRequired)
-      throw std::runtime_error(key + " environment variable is not set.");
-    else
-      return defaultVal;
-  }
-  // Return the variable as a string
-  return std::string(env_var);
 }
 
 // Helper function to get a value from a dictionary or return a default

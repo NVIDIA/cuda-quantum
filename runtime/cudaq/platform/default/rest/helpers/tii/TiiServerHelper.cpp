@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/ConfigUtils.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "nlohmann/json.hpp"
@@ -23,21 +24,6 @@ std::string lowercaseArgument(std::string value) {
 bool booleanArgument(const std::string &string_argument) {
   return lowercaseArgument(string_argument) ==
          "true"; // we should handle wrong string-boolean values
-}
-
-// Retrieve an environment variable
-std::string getEnvVar(const std::string &key, const std::string &defaultVal,
-                      const bool isRequired) {
-  const char *env_var = std::getenv(key.c_str());
-  // If the variable is not set, either return the default or throw an
-  // exception
-  if (env_var == nullptr) {
-    if (isRequired)
-      throw std::runtime_error(key + " environment variable is not set.");
-    else
-      return defaultVal;
-  }
-  return std::string(env_var);
 }
 } // namespace
 

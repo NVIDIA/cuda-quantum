@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/ConfigUtils.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "nlohmann/json.hpp"
@@ -93,15 +94,6 @@ private:
   /// @brief RestClient used for HTTP requests.
   RestClient client;
 
-  /// @brief Helper method to retrieve the value of an environment variable.
-  std::string getEnvVar(const std::string &key, const std::string &defaultVal,
-                        const bool isRequired) const;
-
-  /// @brief Helper function to get value from config or return a default value.
-  std::string getValueOrDefault(const BackendConfig &config,
-                                const std::string &key,
-                                const std::string &defaultValue) const;
-
   /// @brief Helper method to check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
 };
@@ -137,7 +129,9 @@ void InfleqtionServerHelper::initialize(BackendConfig config) {
   // Get the API token from environment variable if not provided
   if (!keyExists("token")) {
     backendConfig["token"] =
-        getEnvVar("SUPERSTAQ_API_KEY", "0", isTokenRequired);
+        getEnvVar("SUPERSTAQ_API_KEY", "0", isTokenRequired,
+                  "Environment variable SUPERSTAQ_API_KEY is required but not "
+                  "set.");
   }
 
   // Construct the API job path
@@ -278,29 +272,6 @@ InfleqtionServerHelper::processResults(ServerMessage &getJobResponse,
 
   // Return the sample_result
   return cudaq::sample_result{execResult};
-}
-
-// Helper method to retrieve an environment variable
-std::string InfleqtionServerHelper::getEnvVar(const std::string &key,
-                                              const std::string &defaultVal,
-                                              const bool isRequired) const {
-  const char *env_var = std::getenv(key.c_str());
-  if (env_var == nullptr) {
-    if (isRequired)
-      throw std::runtime_error("Environment variable " + key +
-                               " is required but not set.");
-    else
-      return defaultVal;
-  }
-  return std::string(env_var);
-}
-
-// Helper function to get a value from config or return a default
-std::string InfleqtionServerHelper::getValueOrDefault(
-    const BackendConfig &config, const std::string &key,
-    const std::string &defaultValue) const {
-  auto it = config.find(key);
-  return (it != config.end()) ? it->second : defaultValue;
 }
 
 // Check if a key exists in the backend configuration
