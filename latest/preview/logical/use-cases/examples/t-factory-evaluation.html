@@ -80,7 +80,7 @@
 <li class="toctree-l2"><a class="reference internal" href="index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="logical-resource-estimate.html">Logical Resource Estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="clifford-t.html">Clifford+T Synthesis</a></li>
-<li class="toctree-l3"><a class="reference internal" href="cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cudaq-resource-estimate.html">Surface-code resource estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="carbon-code.html">Carbon Code Target</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gidney-ekera.html">Gidney–Ekerå RSA</a></li>
@@ -91,6 +91,7 @@
 <li class="toctree-l3"><a class="reference internal" href="p1-placement.html">P1 Placement</a></li>
 <li class="toctree-l3"><a class="reference internal" href="code-and-gadget.html">Code and Gadget</a></li>
 <li class="toctree-l3"><a class="reference internal" href="physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="steane-preparation-check.html">Steane Preparation Check with Noise on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
@@ -330,7 +331,7 @@
              
   <section class="tex2jax_ignore mathjax_ignore" id="t-state-distillation-with-cudaq-run">
 <h1>T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code><a class="headerlink" href="#t-state-distillation-with-cudaq-run" title="Link to this heading"></a></h1>
-<p><a class="reference download internal" download="" href="../../_downloads/0a1c6ca37e4a3d5f5bc0433eb2b90fd4/08_t_factory_evaluation.py"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">standalone/08_t_factory_evaluation.py</span></code></span></a>
+<p><a class="reference download internal" download="" href="../../_downloads/f1ecbf2ff70bfd26c5670943324a7bb7/07_t_factory_evaluation.py"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">standalone/07_t_factory_evaluation.py</span></code></span></a>
 runs a 15-to-1 T-state distillation attempt per shot with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code>, with
 and without noise on its raw T states.
 It complements the <a class="reference internal" href="distillation.html"><span class="std std-doc">static protocol example</span></a>: execution uses
@@ -347,11 +348,11 @@ selected in Python, rather than running the resource-backed protocol unchanged.<
 
 <span class="sd">Each shot runs one distillation attempt on BareQubit patches (one physical</span>
 <span class="sd">qubit per patch). The attempt uses the rotation supports, final S, and X checks</span>
-<span class="sd">of the library's 15-to-1 protocol (example 07). It returns its four check bits</span>
+<span class="sd">of the library's 15-to-1 protocol (example 06). It returns its four check bits</span>
 <span class="sd">and a check of its output, and the caller accepts an attempt when all four</span>
 <span class="sd">checks are False.</span>
 
-<span class="sd">Example 07's protocol requests 15 raw T states from an external stream. It</span>
+<span class="sd">Example 06's protocol requests 15 raw T states from an external stream. It</span>
 <span class="sd">unpacks four as check rows and consumes eleven with resource-backed rotations.</span>
 <span class="sd">Logical specifies the ideal operation of such a rotation, but it has no</span>
 <span class="sd">concrete preparation for an external raw T state and no execution lowering for</span>

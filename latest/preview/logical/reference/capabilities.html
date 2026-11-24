@@ -80,7 +80,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/examples/index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/logical-resource-estimate.html">Logical Resource Estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/clifford-t.html">Clifford+T Synthesis</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/cudaq-resource-estimate.html">Surface-code resource estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/carbon-code.html">Carbon Code Target</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/gidney-ekera.html">Gidney–Ekerå RSA</a></li>
@@ -91,6 +91,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/p1-placement.html">P1 Placement</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/code-and-gadget.html">Code and Gadget</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/steane-preparation-check.html">Steane Preparation Check with Noise on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
@@ -381,7 +382,7 @@ ordinary <code class="docutils literal notranslate"><span class="pre">cudaq.run<
 </tr>
 <tr class="row-odd"><td><p>Protocols — <code class="docutils literal notranslate"><span class="pre">&#64;protocol</span></code>, typed resources, postselection, bounded retry, 15-to-1 distillation</p></td>
 <td><p>shipped, exercised</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">examples/standalone/07_magic_state_distillation.py</span></code>, <code class="docutils literal notranslate"><span class="pre">examples/standalone/09_gidney_ekera_lookup_addition.py</span></code>; tests</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">examples/standalone/06_magic_state_distillation.py</span></code>, <code class="docutils literal notranslate"><span class="pre">examples/standalone/08_gidney_ekera_lookup_addition.py</span></code>; tests</p></td>
 </tr>
 <tr class="row-even"><td><p>Clifford+T synthesis — rotation lowering with provenance</p></td>
 <td><p>shipped, exercised</p></td>
@@ -397,15 +398,15 @@ ordinary <code class="docutils literal notranslate"><span class="pre">cudaq.run<
 </tr>
 <tr class="row-odd"><td><p>Static P2 estimation — gadget/operation counts with folding</p></td>
 <td><p>shipped, exercised</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">examples/02_surface_code_resource_estimate.py</span></code>, <code class="docutils literal notranslate"><span class="pre">examples/standalone/07_magic_state_distillation.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">examples/02_surface_code_resource_estimate.py</span></code>, <code class="docutils literal notranslate"><span class="pre">examples/standalone/06_magic_state_distillation.py</span></code></p></td>
 </tr>
 <tr class="row-even"><td><p>P3 physical lowering, routing, native legalization, and scheduling</p></td>
 <td><p>shipped, exercised</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">examples/04_carbon_code.py</span></code>, <code class="docutils literal notranslate"><span class="pre">examples/standalone/03_physical_schedule.py</span></code>, <code class="docutils literal notranslate"><span class="pre">examples/standalone/09_gidney_ekera_lookup_addition.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">examples/04_carbon_code.py</span></code>, <code class="docutils literal notranslate"><span class="pre">examples/standalone/03_physical_schedule.py</span></code>, <code class="docutils literal notranslate"><span class="pre">examples/standalone/08_gidney_ekera_lookup_addition.py</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p>Analytical and schedule estimation</p></td>
 <td><p>shipped, exercised</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">examples/02_surface_code_resource_estimate.py</span></code>, <code class="docutils literal notranslate"><span class="pre">examples/standalone/03_physical_schedule.py</span></code>, <code class="docutils literal notranslate"><span class="pre">examples/standalone/09_gidney_ekera_lookup_addition.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">examples/02_surface_code_resource_estimate.py</span></code>, <code class="docutils literal notranslate"><span class="pre">examples/standalone/03_physical_schedule.py</span></code>, <code class="docutils literal notranslate"><span class="pre">examples/standalone/08_gidney_ekera_lookup_addition.py</span></code></p></td>
 </tr>
 <tr class="row-even"><td><p>Paper-specific Gidney–Ekerå RSA-2048/3072/4096 projection</p></td>
 <td><p>shipped, exercised</p></td>
@@ -417,7 +418,7 @@ ordinary <code class="docutils literal notranslate"><span class="pre">cudaq.run<
 </tr>
 <tr class="row-even"><td><p>P3 execution — <code class="docutils literal notranslate"><span class="pre">Build.to_quake()</span></code> and <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></p></td>
 <td><p>shipped, exercised</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">python/tests/cudaq/logical/test_run_physical.py</span></code>; standalone examples 06 and 07</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">python/tests/cudaq/logical/test_run_physical.py</span></code>; standalone examples 05 and 06</p></td>
 </tr>
 </tbody>
 </table>

@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-0.17.0
+latest
 :::
 
 ::: {role="search"}
@@ -35,6 +35,20 @@
         -   [Observe](run_kernel.html#observe){.reference .internal}
         -   [Running on a
             GPU](run_kernel.html#running-on-a-gpu){.reference .internal}
+    -   [Defining targets and customizing
+        compilation](compile_kernel.html){.reference .internal}
+        -   [Compiling for built-in
+            targets](compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](compile_kernel.html#customizing-all-the-way){.reference
+            .internal}
     -   [Troubleshooting](#){.current .reference .internal}
         -   [Debugging and Verbose Simulation
             Output](#debugging-and-verbose-simulation-output){.reference
@@ -1613,6 +1627,9 @@
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`compile()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.compile){.reference
+                .internal}
             -   [[`estimate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
@@ -2028,7 +2045,7 @@
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](run_kernel.html "Running your first CUDA-Q Program"){.btn
+Previous](compile_kernel.html "Defining targets and customizing compilation"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../examples/examples.html "CUDA-Q by Example"){.btn
@@ -2158,11 +2175,11 @@ command-line options. For affected releases, import Numba or Triton
 before importing CUDA-Q. If the application cannot control import order,
 run CUDA-Q in a separate process.
 
-CUDA-Q keeps its LLVM-dependent runtime and backend libraries local.
+CUDA-Q keeps its LLVM-dependent compiler and backend libraries local.
 Importing [`cudaq`{.docutils .literal .notranslate}]{.pre} exposes only
-the LLVM-free kernel runtime ([`libnvqir`{.docutils .literal
-.notranslate}]{.pre}, [`libcudaq-common`{.docutils .literal
-.notranslate}]{.pre}, [`libcudaq-kernel-runtime`{.docutils .literal
+the LLVM-free core runtime ([`libnvqir`{.docutils .literal
+.notranslate}]{.pre}, [`libcudaq`{.docutils .literal
+.notranslate}]{.pre}, [`libcudaq-em-default`{.docutils .literal
 .notranslate}]{.pre}, and their dependencies) globally. This allows
 shared libraries containing [`nvq++`{.docutils .literal
 .notranslate}]{.pre}-compiled kernels to be loaded with
@@ -2175,10 +2192,8 @@ CUDA-Q, even when compiled with [`nvq++`{.docutils .literal
 without explicit CUDA-Q dependencies. Kernel launches use the active
 CUDA-Q target without exposing the compiler's LLVM symbols globally.
 
-External native extensions using C++ runtime APIs must still link to the
-CUDA-Q libraries they use, including
-[`cudaq::cudaq-em-default`{.docutils .literal .notranslate}]{.pre} when
-using the default execution manager. Compiler plugins should link to
+External native extensions using other CUDA-Q libraries must still link
+to the libraries they use. Compiler plugins should link to
 [`cudaq::MLIR`{.docutils .literal .notranslate}]{.pre}. They must not
 rely on [`import`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 .literal .notranslate}[`cudaq`{.docutils .literal .notranslate}]{.pre}
@@ -2190,7 +2205,7 @@ placing those dependencies in the process-wide symbol scope.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](run_kernel.html "Running your first CUDA-Q Program"){.btn
+Previous](compile_kernel.html "Defining targets and customizing compilation"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../examples/examples.html "CUDA-Q by Example"){.btn

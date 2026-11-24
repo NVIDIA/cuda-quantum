@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-0.17.0
+latest
 :::
 
 ::: {role="search"}
@@ -37,6 +37,21 @@
             .internal}
         -   [Running on a
             GPU](../basics/run_kernel.html#running-on-a-gpu){.reference
+            .internal}
+    -   [Defining targets and customizing
+        compilation](../basics/compile_kernel.html){.reference
+        .internal}
+        -   [Compiling for built-in
+            targets](../basics/compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](../basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](../basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](../basics/compile_kernel.html#customizing-all-the-way){.reference
             .internal}
     -   [Troubleshooting](../basics/troubleshooting.html){.reference
         .internal}
@@ -1584,6 +1599,9 @@
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`compile()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.compile){.reference
+                .internal}
             -   [[`estimate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
@@ -2358,7 +2376,6 @@ When [`kernel_type`{.docutils .literal .notranslate}]{.pre}` `{.docutils
     .notranslate}]{.pre}
 
 -   All other wiring ([`set_function_table`{.docutils .literal
-    .notranslate}]{.pre}, [`set_control`{.docutils .literal
     .notranslate}]{.pre}) remains the same
 :::
 
@@ -2395,7 +2412,6 @@ The application is built with [`-rdc`{.docutils .literal
     // ... fill the DEVICE_CALL entry with `handler`, copy the table to the device
 
     cudaq_dispatcher_set_function_table(dispatcher, &table);
-    cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
     cudaq_dispatcher_start(dispatcher);
     cudaq_bridge_launch(bridge);
 :::
@@ -2724,7 +2740,7 @@ Parameters:
 -   [`out_dispatcher`{.docutils .literal .notranslate}]{.pre}: receives
     the created dispatcher handle.
 
-Call this before wiring ring buffers, function tables, or control state.
+Call this before wiring ring buffers or function tables.
 
 **`cudaq_dispatcher_destroy`** releases a dispatcher after it has been
 stopped.
@@ -2831,26 +2847,26 @@ Function ID semantics:
 -   Suggested: use stable, human-readable handler names (e.g.,
     [`"mock_decode"`{.docutils .literal .notranslate}]{.pre}).
 
-**`cudaq_dispatcher_set_control`** supplies the shutdown flag and stats
-buffer the dispatch kernel uses for termination and bookkeeping.
-
-Parameters:
-
--   [`dispatcher`{.docutils .literal .notranslate}]{.pre}: dispatcher
-    handle.
-
--   [`shutdown_flag`{.docutils .literal .notranslate}]{.pre}:
-    device-visible flag used to signal shutdown.
-
--   [`stats`{.docutils .literal .notranslate}]{.pre}: device-visible
-    stats buffer.
-
-Call this before starting the dispatcher; both buffers must remain valid
-for the dispatcher's lifetime.
+**`cudaq_dispatcher_set_control`** is deprecated. The dispatcher owns
+the shutdown flag its loop polls and the counter it adds processed
+requests to: [`cudaq_dispatcher_start`{.docutils .literal
+.notranslate}]{.pre} sets them up (zeroed at each start),
+[`cudaq_dispatcher_stop`{.docutils .literal .notranslate}]{.pre} raises
+the flag, and [`cudaq_dispatcher_get_processed`{.docutils .literal
+.notranslate}]{.pre} reads the count. The call remains for applications
+not yet moved: it overrides both words with the caller's (device-visible
+on the device path), which must then stay valid until the dispatcher is
+destroyed. The override's words are used as given:
+[`cudaq_dispatcher_start`{.docutils .literal .notranslate}]{.pre} does
+not zero them, so the caller clears the flag before a restart. Call it
+before [`cudaq_dispatcher_start`{.docutils .literal
+.notranslate}]{.pre}; it is refused while the dispatcher runs.
 
 **`cudaq_dispatcher_set_launch_fn`** provides the host-side launch
 wrapper that invokes the dispatch kernel with the correct grid/block
-dimensions.
+dimensions, on the stream it is given:
+[`cudaq_dispatcher_stop`{.docutils .literal .notranslate}]{.pre} raises
+the shutdown flag and then waits on that stream for the kernel to exit.
 
 Parameters:
 
@@ -2875,8 +2891,12 @@ Parameters:
 -   [`dispatcher`{.docutils .literal .notranslate}]{.pre}: dispatcher
     handle.
 
-Call this only after ring buffers, function table, control buffers, and
-launch function are set.
+Call this once the dispatcher is wired for its shape: the function
+table, and the ring buffer or bridge (host unified needs the bridge's
+CPU data plane; device unified needs the bridge's GPU data plane or
+[`cudaq_dispatcher_set_unified_launch`{.docutils .literal
+.notranslate}]{.pre}). [`cudaq_dispatcher_set_launch_fn`{.docutils
+.literal .notranslate}]{.pre} is optional on the device ring path.
 
 **`cudaq_dispatcher_stop`** signals the dispatch kernel to exit and
 waits for it to shut down.
@@ -2888,8 +2908,12 @@ Parameters:
 
 Call this during tear-down before destroying the dispatcher.
 
-**`cudaq_dispatcher_get_processed`** reads the processed‑packet counter
-from the stats buffer to support debugging or throughput tracking.
+**`cudaq_dispatcher_get_processed`** reads the dispatcher's
+processed‑request counter to support debugging or throughput tracking.
+With the dispatcher's own counter it is zero before the first start; it
+is final once [`cudaq_dispatcher_stop`{.docutils .literal
+.notranslate}]{.pre} has returned (the host loops publish their count
+when they exit).
 
 Parameters:
 
@@ -3190,9 +3214,6 @@ device and host see the same memory.
     table.entries = d_entries;
     table.count = func_count_;
     ASSERT_EQ(cudaq_dispatcher_set_function_table(dispatcher_, &table), CUDAQ_OK);
-
-    ASSERT_EQ(cudaq_dispatcher_set_control(dispatcher_, d_shutdown_flag_, d_stats_),
-              CUDAQ_OK);
 
     ASSERT_EQ(cudaq_dispatcher_set_launch_fn(
                   dispatcher_,

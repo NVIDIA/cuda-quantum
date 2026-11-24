@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](index.html){.icon .icon-home}
 
 ::: version
-0.17.0
+latest
 :::
 
 ::: {role="search"}
@@ -39,6 +39,21 @@
             .internal}
         -   [Running on a
             GPU](using/basics/run_kernel.html#running-on-a-gpu){.reference
+            .internal}
+    -   [Defining targets and customizing
+        compilation](using/basics/compile_kernel.html){.reference
+        .internal}
+        -   [Compiling for built-in
+            targets](using/basics/compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](using/basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](using/basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](using/basics/compile_kernel.html#customizing-all-the-way){.reference
             .internal}
     -   [Troubleshooting](using/basics/troubleshooting.html){.reference
         .internal}
@@ -1619,6 +1634,9 @@
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`compile()`{.docutils .literal
+                .notranslate}]{.pre}](api/languages/python_api.html#cudaq.compile){.reference
+                .internal}
             -   [[`estimate()`{.docutils .literal
                 .notranslate}]{.pre}](api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
@@ -2058,6 +2076,60 @@ about installing the nightly builds can be found
 
 -   [Examples](https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples){.reference
     .external}
+
+**0.17.0**
+
+This release comes with a range of exciting new features.
+
+We now distribute a new [EDEM
+package](https://pypi.org/project/cudaq-edem/){.reference .external} to
+facilitate building DEMs dynamically for QEC at scale. We have also
+created a separate [cudaq-core PyPI
+package](https://pypi.org/project/cudaq-core/){.reference .external}
+that contains the runtime dependencies for the [cudaq-devel
+package](https://github.com/NVIDIA/cuda-quantum/releases/tag/0.17.0){.reference
+.external} that can be found as artifact in the GitHub release. These
+two packages contain the necessary build and runtime dependencies
+respectively to build and distribute CUDA-Q compiler extensions and
+integrations.
+
+We have completely overhauled our compiler configurability, improved
+performance across the board, and include a new [`custabilizer`{.code
+.docutils .literal .notranslate}]{.pre} backend for faster stabilizer
+simulation. Take a look at the features and enhancements listed in the
+[0.17.0 GitHub
+release](https://github.com/NVIDIA/cuda-quantum/releases/0.17.0){.reference
+.external}.
+
+Last but not least, the transport and dispatch APIs for CUDA-Q Realtime
+received a major update to make integration easier and more consistent.
+To facilitate exploring highly customized scenarios, we now provide the
+means to plug in a custom dispatcher tailored to specific applications.
+
+-   [Docker
+    image](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags){.reference
+    .external}
+
+-   [Python wheel](https://pypi.org/project/cudaq/0.17.0){.reference
+    .external}
+
+-   [C++
+    installer](https://github.com/NVIDIA/cuda-quantum/releases/0.17.0){.reference
+    .external}
+
+-   [CUDA-Q Realtime
+    installer](https://github.com/NVIDIA/cuda-quantum/releases/0.17.0){.reference
+    .external}
+
+-   [Documentation](https://nvidia.github.io/cuda-quantum/0.17.0){.reference
+    .external}
+
+-   [Examples](https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.17.0/docs/sphinx/examples){.reference
+    .external}
+
+The full change log can be found
+[here](https://github.com/NVIDIA/cuda-quantum/releases/0.17.0){.reference
+.external}.
 
 **0.16.0**
 

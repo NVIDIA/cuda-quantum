@@ -82,7 +82,7 @@
 <li class="toctree-l2"><a class="reference internal" href="examples/index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/logical-resource-estimate.html">Logical Resource Estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/clifford-t.html">Clifford+T Synthesis</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/cudaq-resource-estimate.html">Surface-code resource estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/carbon-code.html">Carbon Code Target</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/gidney-ekera.html">Gidney–Ekerå RSA</a></li>
@@ -93,6 +93,7 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/p1-placement.html">P1 Placement</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/code-and-gadget.html">Code and Gadget</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/steane-preparation-check.html">Steane Preparation Check with Noise on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
@@ -447,11 +448,11 @@ raw inputs, <code class="docutils literal notranslate"><span class="pre">cudaq.l
 </section>
 <section id="to-1-a-concrete-factory">
 <h2>15-to-1: a concrete factory<a class="headerlink" href="#to-1-a-concrete-factory" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">examples/standalone/07_magic_state_distillation.py</span></code> authors the real five-row
+<p><code class="docutils literal notranslate"><span class="pre">examples/standalone/06_magic_state_distillation.py</span></code> authors the real five-row
 triorthogonal circuit with the root authoring facade — not an analytical
 placeholder:</p>
 <div class="literal-block-wrapper docutils container" id="id1">
-<div class="code-block-caption"><span class="caption-text">The 15-to-1 T-state protocol (examples/standalone/07_magic_state_distillation.py).</span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="code-block-caption"><span class="caption-text">The 15-to-1 T-state protocol (examples/standalone/06_magic_state_distillation.py).</span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
 
 

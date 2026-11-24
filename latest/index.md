@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](#){.icon .icon-home}
 
 ::: version
-0.17.0
+latest
 :::
 
 ::: {role="search"}
@@ -39,6 +39,21 @@
             .internal}
         -   [Running on a
             GPU](using/basics/run_kernel.html#running-on-a-gpu){.reference
+            .internal}
+    -   [Defining targets and customizing
+        compilation](using/basics/compile_kernel.html){.reference
+        .internal}
+        -   [Compiling for built-in
+            targets](using/basics/compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](using/basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](using/basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](using/basics/compile_kernel.html#customizing-all-the-way){.reference
             .internal}
     -   [Troubleshooting](using/basics/troubleshooting.html){.reference
         .internal}
@@ -1619,6 +1634,9 @@
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`compile()`{.docutils .literal
+                .notranslate}]{.pre}](api/languages/python_api.html#cudaq.compile){.reference
+                .internal}
             -   [[`estimate()`{.docutils .literal
                 .notranslate}]{.pre}](api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
@@ -2067,7 +2085,7 @@ architecture co-design, currently in preview. See
 [cudaq-logical](./preview/logical/index.html#http://){.reference
 .external} for more information.
 
-You are browsing the documentation for 0.17.0 version of CUDA-Q. You can
+You are browsing the documentation for latest version of CUDA-Q. You can
 find documentation for all released versions
 [[here]{.doc}](versions.html){.reference .internal}.
 
@@ -2106,6 +2124,9 @@ scope and limitations.
         Program](using/basics/build_kernel.html){.reference .internal}
     -   [Running your first CUDA-Q
         Program](using/basics/run_kernel.html){.reference .internal}
+    -   [Defining targets and customizing
+        compilation](using/basics/compile_kernel.html){.reference
+        .internal}
     -   [Troubleshooting](using/basics/troubleshooting.html){.reference
         .internal}
 -   [Examples](using/examples/examples.html){.reference .internal}

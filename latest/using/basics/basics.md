@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-0.17.0
+latest
 :::
 
 ::: {role="search"}
@@ -35,6 +35,20 @@
         -   [Observe](run_kernel.html#observe){.reference .internal}
         -   [Running on a
             GPU](run_kernel.html#running-on-a-gpu){.reference .internal}
+    -   [Defining targets and customizing
+        compilation](compile_kernel.html){.reference .internal}
+        -   [Compiling for built-in
+            targets](compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](compile_kernel.html#customizing-all-the-way){.reference
+            .internal}
     -   [Troubleshooting](troubleshooting.html){.reference .internal}
         -   [Debugging and Verbose Simulation
             Output](troubleshooting.html#debugging-and-verbose-simulation-output){.reference
@@ -1615,6 +1629,9 @@
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`compile()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.compile){.reference
+                .internal}
             -   [[`estimate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
@@ -2055,6 +2072,20 @@ aria-hidden="true"}](kernel_intro.html "What is a CUDA-Q kernel?"){.btn
     -   [Run](run_kernel.html#run){.reference .internal}
     -   [Observe](run_kernel.html#observe){.reference .internal}
     -   [Running on a GPU](run_kernel.html#running-on-a-gpu){.reference
+        .internal}
+-   [Defining targets and customizing
+    compilation](compile_kernel.html){.reference .internal}
+    -   [Compiling for built-in
+        targets](compile_kernel.html#compiling-for-built-in-targets){.reference
+        .internal}
+    -   [Controlling the optimization level of the
+        compiler](compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+        .internal}
+    -   [Using custom compile targets for finer-grained compilation
+        control](compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+        .internal}
+    -   [Customizing all the
+        way](compile_kernel.html#customizing-all-the-way){.reference
         .internal}
 -   [Troubleshooting](troubleshooting.html){.reference .internal}
     -   [Debugging and Verbose Simulation

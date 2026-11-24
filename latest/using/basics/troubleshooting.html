@@ -32,7 +32,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="CUDA-Q by Example" href="../examples/examples.html" />
-    <link rel="prev" title="Running your first CUDA-Q Program" href="run_kernel.html" /> 
+    <link rel="prev" title="Defining targets and customizing compilation" href="compile_kernel.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,7 +47,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                0.17.0
+                latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -114,6 +114,13 @@
 <li class="toctree-l3"><a class="reference internal" href="run_kernel.html#run">Run</a></li>
 <li class="toctree-l3"><a class="reference internal" href="run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="compile_kernel.html">   Defining targets and customizing compilation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="compile_kernel.html#compiling-for-built-in-targets">Compiling for built-in targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="compile_kernel.html#controlling-the-optimization-level-of-the-compiler">Controlling the optimization level of the compiler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control">Using custom compile targets for finer-grained compilation control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="compile_kernel.html#customizing-all-the-way">Customizing all the way</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Troubleshooting</a><ul>
@@ -945,6 +952,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.compile"><code class="docutils literal notranslate"><span class="pre">compile()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
@@ -1143,7 +1151,7 @@
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="run_kernel.html" class="btn btn-neutral float-left" title="Running your first CUDA-Q Program" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="compile_kernel.html" class="btn btn-neutral float-left" title="Defining targets and customizing compilation" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../examples/examples.html" class="btn btn-neutral float-right" title="CUDA-Q by Example" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -1220,19 +1228,18 @@ extensions. On Linux, importing Numba or Triton after CUDA-Q can then abort the
 process during JIT compilation or report duplicate LLVM command-line options.
 For affected releases, import Numba or Triton before importing CUDA-Q. If the
 application cannot control import order, run CUDA-Q in a separate process.</p>
-<p>CUDA-Q keeps its LLVM-dependent runtime and backend libraries local. Importing
-<code class="docutils literal notranslate"><span class="pre">cudaq</span></code> exposes only the LLVM-free kernel runtime (<code class="docutils literal notranslate"><span class="pre">libnvqir</span></code>,
-<code class="docutils literal notranslate"><span class="pre">libcudaq-common</span></code>, <code class="docutils literal notranslate"><span class="pre">libcudaq-kernel-runtime</span></code>, and their dependencies) globally.
-This allows shared libraries containing <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>-compiled kernels to be loaded
-with <code class="docutils literal notranslate"><span class="pre">dlopen</span></code> or <code class="docutils literal notranslate"><span class="pre">ctypes.CDLL</span></code> after importing CUDA-Q, even when compiled with
-<code class="docutils literal notranslate"><span class="pre">nvq++</span> <span class="pre">-c</span> <span class="pre">-fPIC</span></code> and linked without explicit CUDA-Q dependencies. Kernel launches
-use the active CUDA-Q target without exposing the compiler’s LLVM symbols
-globally.</p>
-<p>External native extensions using C++ runtime APIs must still link to the CUDA-Q
-libraries they use, including <code class="docutils literal notranslate"><span class="pre">cudaq::cudaq-em-default</span></code> when using the default
-execution manager. Compiler plugins should link to <code class="docutils literal notranslate"><span class="pre">cudaq::MLIR</span></code>. They must not
-rely on <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code> placing those dependencies in the process-wide symbol
-scope.</p>
+<p>CUDA-Q keeps its LLVM-dependent compiler and backend libraries local. Importing
+<code class="docutils literal notranslate"><span class="pre">cudaq</span></code> exposes only the LLVM-free core runtime (<code class="docutils literal notranslate"><span class="pre">libnvqir</span></code>, <code class="docutils literal notranslate"><span class="pre">libcudaq</span></code>,
+<code class="docutils literal notranslate"><span class="pre">libcudaq-em-default</span></code>, and their dependencies) globally. This allows shared
+libraries containing <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>-compiled kernels to be loaded with <code class="docutils literal notranslate"><span class="pre">dlopen</span></code> or
+<code class="docutils literal notranslate"><span class="pre">ctypes.CDLL</span></code> after importing CUDA-Q, even when compiled with
+<code class="docutils literal notranslate"><span class="pre">nvq++</span> <span class="pre">-c</span> <span class="pre">-fPIC</span></code> and linked without explicit CUDA-Q dependencies. Kernel
+launches use the active CUDA-Q target without exposing the compiler’s LLVM
+symbols globally.</p>
+<p>External native extensions using other CUDA-Q libraries must still link to the
+libraries they use. Compiler plugins should link to <code class="docutils literal notranslate"><span class="pre">cudaq::MLIR</span></code>. They must
+not rely on <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code> placing those dependencies in the process-wide
+symbol scope.</p>
 </section>
 </section>
 
@@ -1240,7 +1247,7 @@ scope.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="run_kernel.html" class="btn btn-neutral float-left" title="Running your first CUDA-Q Program" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="compile_kernel.html" class="btn btn-neutral float-left" title="Defining targets and customizing compilation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../examples/examples.html" class="btn btn-neutral float-right" title="CUDA-Q by Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

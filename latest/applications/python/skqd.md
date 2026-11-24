@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-0.17.0
+latest
 :::
 
 ::: {role="search"}
@@ -42,6 +42,21 @@
             .internal}
         -   [Running on a
             GPU](../../using/basics/run_kernel.html#running-on-a-gpu){.reference
+            .internal}
+    -   [Defining targets and customizing
+        compilation](../../using/basics/compile_kernel.html){.reference
+        .internal}
+        -   [Compiling for built-in
+            targets](../../using/basics/compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](../../using/basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](../../using/basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](../../using/basics/compile_kernel.html#customizing-all-the-way){.reference
             .internal}
     -   [Troubleshooting](../../using/basics/troubleshooting.html){.reference
         .internal}
@@ -1623,6 +1638,9 @@
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`compile()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.compile){.reference
+                .internal}
             -   [[`estimate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
@@ -2614,7 +2632,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![3e4accf493e34fa289dd6a60501fdfd2](../../_images/speedup.png){.no-scaled-link
+![365f0cd793c042169adcc2b9e3aff4ec](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2628,9 +2646,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![6b138d59e4954834a6f48ae2599fecbc](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![cfe8c6a083f54d6dbfa7264333e41004](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![266ea20564cd42c4b97997ed8a16edfd](../../_images/efficiency.jpeg){.no-scaled-link
+![87f9f05878594db9ab1d34c888989612](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

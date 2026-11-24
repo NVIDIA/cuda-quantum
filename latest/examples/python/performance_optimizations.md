@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
 ::: version
-0.17.0
+latest
 :::
 
 ::: {role="search"}
@@ -42,6 +42,21 @@
             .internal}
         -   [Running on a
             GPU](../../using/basics/run_kernel.html#running-on-a-gpu){.reference
+            .internal}
+    -   [Defining targets and customizing
+        compilation](../../using/basics/compile_kernel.html){.reference
+        .internal}
+        -   [Compiling for built-in
+            targets](../../using/basics/compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](../../using/basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](../../using/basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](../../using/basics/compile_kernel.html#customizing-all-the-way){.reference
             .internal}
     -   [Troubleshooting](../../using/basics/troubleshooting.html){.reference
         .internal}
@@ -1638,6 +1653,9 @@
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`compile()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.compile){.reference
+                .internal}
             -   [[`estimate()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
@@ -2101,14 +2119,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![8f9c559ba3bf4a419bd4fa475ce174ec](../../_images/gate-fuse.png)
+![d7a55caf523b4e009352025bcf5b5d75](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![c41e2a30680943419827d414ee543b0d](../../_images/gatefusion.png)
+![83ef555f9a7647d3b31f1d1b38317333](../../_images/gatefusion.png)
 :::
 :::
 :::

@@ -4,7 +4,7 @@
 [NVIDIA CUDA-Q](../index.html){.icon .icon-home}
 
 ::: version
-0.17.0
+latest
 :::
 
 ::: {role="search"}
@@ -36,6 +36,20 @@
             .internal}
         -   [Running on a
             GPU](basics/run_kernel.html#running-on-a-gpu){.reference
+            .internal}
+    -   [Defining targets and customizing
+        compilation](basics/compile_kernel.html){.reference .internal}
+        -   [Compiling for built-in
+            targets](basics/compile_kernel.html#compiling-for-built-in-targets){.reference
+            .internal}
+        -   [Controlling the optimization level of the
+            compiler](basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler){.reference
+            .internal}
+        -   [Using custom compile targets for finer-grained compilation
+            control](basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control){.reference
+            .internal}
+        -   [Customizing all the
+            way](basics/compile_kernel.html#customizing-all-the-way){.reference
             .internal}
     -   [Troubleshooting](basics/troubleshooting.html){.reference
         .internal}
@@ -1588,6 +1602,9 @@
             -   [[`translate()`{.docutils .literal
                 .notranslate}]{.pre}](../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [[`compile()`{.docutils .literal
+                .notranslate}]{.pre}](../api/languages/python_api.html#cudaq.compile){.reference
+                .internal}
             -   [[`estimate()`{.docutils .literal
                 .notranslate}]{.pre}](../api/languages/python_api.html#cudaq.estimate){.reference
                 .internal}
@@ -2676,7 +2693,7 @@ C++
 ::: {.highlight-cpp .notranslate}
 ::: highlight
         auto displacement_matrix =
-            [](const std::vector<int64_t> &dimensions,
+            [](const std::vector<std::int64_t> &dimensions,
                const std::unordered_map<std::string, std::complex<double>>
                    &parameters) -> cudaq::complex_matrix {
           // Returns the displacement operator matrix.
@@ -3715,6 +3732,13 @@ The [[Dynamics Examples]{.std
 .internal} section of the docs contains a number of excellent dynamics
 examples demonstrating how to simulate basic physics models, specific
 qubit modalities, and utilize multi-GPU multi-Node capabilities.
+
+Benchmarks for measuring the performance of the [`dynamics`{.docutils
+.literal .notranslate}]{.pre} target on one or more GPUs, using a
+Heisenberg spin chain with dissipation and a Jaynes-Cummings cavity QED
+model, are described in the [benchmarks
+README](https://github.com/NVIDIA/cuda-quantum/blob/main/docs/sphinx/examples/python/dynamics/benchmarks/README.md){.reference
+.external}.
 :::
 :::
 :::

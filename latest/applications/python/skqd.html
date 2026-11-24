@@ -50,7 +50,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                0.17.0
+                latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -117,6 +117,13 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#run">Run</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/basics/compile_kernel.html">   Defining targets and customizing compilation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/basics/compile_kernel.html#compiling-for-built-in-targets">Compiling for built-in targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/basics/compile_kernel.html#controlling-the-optimization-level-of-the-compiler">Controlling the optimization level of the compiler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/basics/compile_kernel.html#using-custom-compile-targets-for-finer-grained-compilation-control">Using custom compile targets for finer-grained compilation control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/basics/compile_kernel.html#customizing-all-the-way">Customizing all the way</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/basics/troubleshooting.html">   Troubleshooting</a><ul>
@@ -948,6 +955,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.compile"><code class="docutils literal notranslate"><span class="pre">compile()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
@@ -1512,12 +1520,12 @@ Generating Krylov state U^11...
 <p>The data in the plot below was gathered by averaging over 5 runs on a NVIDIA H100 GPU and an Intel Xeon Platinum 8480CL CPU with 224 threads. The only thing that changed between the 2 data points was <code class="docutils literal notranslate"><span class="pre">vectorized_pj_on_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> and <code class="docutils literal notranslate"><span class="pre">vectorized_pj_on_gpu</span> <span class="pre">=</span> <span class="pre">False</span></code></p>
 <p>This substantial acceleration comes from: - <strong>Parallel Pauli string evaluation</strong> across thousands of basis states simultaneously - <strong>Vectorized matrix element computation</strong> leveraging CUDA cores - <strong>GPU-optimized sparse linear algebra</strong> via cuSPARSE library for eigenvalue solving</p>
 <p>The speedup becomes increasingly critical as the Krylov dimension grows, since the computational subspace dimension (and thus the matrix size) scales exponentially with k. For higher k values, GPU acceleration transforms previously intractable postprocessing into feasible computation times.</p>
-<p><img alt="3e4accf493e34fa289dd6a60501fdfd2" class="no-scaled-link" src="../../_images/speedup.png" style="width: 500px;" /></p>
+<p><img alt="365f0cd793c042169adcc2b9e3aff4ec" class="no-scaled-link" src="../../_images/speedup.png" style="width: 500px;" /></p>
 </section>
 <section id="Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node">
 <h2>Postprocessing Scale-Up and Scale-Out: Linear Operator Approach, Multi-GPU Multi-Node<a class="headerlink" href="#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node" title="Permalink to this heading">¶</a></h2>
 <p>The plots below were generated using <code class="docutils literal notranslate"><span class="pre">distributed_eigsh()</span></code> with the Hamiltonian of an active site of a GPCR (G protein-coupled receptor) molecule. This demonstrates scaling behavior on a problem with a much larger computational subspace than the 22-qubit demo above.</p>
-<div style="display: flex; gap: 10px;"><p><img alt="6b138d59e4954834a6f48ae2599fecbc" class="no-scaled-link" src="../../_images/strong_scaling_timing.jpeg" style="width: 450px;" /> <img alt="266ea20564cd42c4b97997ed8a16edfd" class="no-scaled-link" src="../../_images/efficiency.jpeg" style="width: 450px;" /></p>
+<div style="display: flex; gap: 10px;"><p><img alt="cfe8c6a083f54d6dbfa7264333e41004" class="no-scaled-link" src="../../_images/strong_scaling_timing.jpeg" style="width: 450px;" /> <img alt="87f9f05878594db9ab1d34c888989612" class="no-scaled-link" src="../../_images/efficiency.jpeg" style="width: 450px;" /></p>
 </div><section id="Saving-Hamiltonian-Data">
 <h3>Saving Hamiltonian Data<a class="headerlink" href="#Saving-Hamiltonian-Data" title="Permalink to this heading">¶</a></h3>
 <p>To run the multi-GPU solver, we first save the Hamiltonian data (pauli words, coefficients) and the sampled basis states so they can be loaded by each MPI rank.</p>
