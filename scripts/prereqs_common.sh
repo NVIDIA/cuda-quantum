@@ -33,11 +33,14 @@ BLAS_TARBALL_URL="https://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
 # are built as shared libraries only and linked dynamically.
 GMP_VERSION=6.3.0
 GMP_TARBALL_URLS="https://ftp.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.xz \
+https://ftpmirror.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.xz \
+https://mirrors.kernel.org/gnu/gmp/gmp-${GMP_VERSION}.tar.xz \
 https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz"
 
 MPFR_VERSION=4.2.2
 MPFR_TARBALL_URLS="https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFR_VERSION}.tar.xz \
-https://www.mpfr.org/mpfr-${MPFR_VERSION}/mpfr-${MPFR_VERSION}.tar.xz"
+https://www.mpfr.org/mpfr-${MPFR_VERSION}/mpfr-${MPFR_VERSION}.tar.xz \
+https://ftpmirror.gnu.org/gnu/mpfr/mpfr-${MPFR_VERSION}.tar.xz"
 
 PERL_VERSION=5.38.2
 PERL_TARBALL_URL="https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz"
