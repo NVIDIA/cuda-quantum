@@ -188,7 +188,14 @@ jobs:
           echo "=== Dependencies before repair ==="
           delocate-listdeps --all "$RAW_WHEEL"
 
-          delocate-wheel --require-archs arm64 -v "${excludes[@]}" -w dist/repaired "$RAW_WHEEL"
+          delocate-wheel --require-archs arm64 -v "${excludes[@]}" -w dist/delocated "$RAW_WHEEL"
+
+          # The exclusions leave the build machine's GMP and MPFR paths in
+          # the binaries, and those do not exist on a user's Mac. Load the
+          # copies that core ships through @rpath instead.
+          delocated="$(find dist/delocated -name "cudaq_logical-*.whl" -print -quit)"
+          python preview/logical/scripts/relocate_macos_wheel_deps.py rewrite "$delocated" \
+            --out-dir dist/repaired --library libgmp.10.dylib --library libmpfr.6.dylib
 
           wheel="$(find dist/repaired -name "cudaq_logical-*-cp${PYTHON_VERSION/./}-*-macosx_*_arm64.whl" -print -quit)"
           if [ -z "$wheel" ]; then
@@ -199,6 +206,8 @@ jobs:
 
           echo "=== Dependencies after repair ==="
           delocate-listdeps --all "$wheel"
+          # Fail on any dependency that is neither @-relative nor a system library.
+          python preview/logical/scripts/relocate_macos_wheel_deps.py check "$wheel"
           echo "wheel_path=$wheel" >> "$GITHUB_OUTPUT"
 
       - name: Upload cudaq-logical wheel
@@ -264,6 +273,14 @@ jobs:
         with:
           name: cudaq-logical-${{ inputs.python_version }}-darwin-arm64
           path: dist
+
+      # The wheels must load the GMP and MPFR that cudaq-core ships. The
+      # runner's Homebrew copies would hide a reference to them.
+      - name: Remove Homebrew GMP and MPFR
+        run: |
+          brew uninstall --ignore-dependencies --force gmp mpfr
+          test ! -e /opt/homebrew/opt/gmp
+          test ! -e /opt/homebrew/opt/mpfr
 
       - name: Create the test environment
         run: |
