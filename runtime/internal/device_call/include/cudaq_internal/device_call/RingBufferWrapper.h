@@ -27,7 +27,7 @@ std::uint64_t requiredRingSlotSize(std::uint64_t requestBytes,
 
 DeviceCallStatus statusFromCudaqStatus(cudaq_status_t status);
 
-// Helper to check the return status of dispatcher API calls
+// Helper to check the return status of host API calls
 void checkDispatcherStatus(cudaq_status_t status, const char *call,
                            const char *file, int line, const char *function);
 

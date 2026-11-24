@@ -10,7 +10,7 @@
 # Run-time device link of the unified dispatcher (libcudaq-realtime-device-code.a)
 # ==============================================================================
 # The nvJitLink linker and the unified dispatch kernel's embedded LTO-IR image,
-# linked privately into libcudaq-realtime.so, whose dispatcher API
+# linked privately into libcudaq-realtime.so, whose host API
 # (cudaq_dispatcher_get_device_handler) drives them.
 
 if(NOT CUDA_FOUND)
