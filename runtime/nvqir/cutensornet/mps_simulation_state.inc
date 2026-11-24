@@ -650,6 +650,11 @@ MPSSettings::MPSSettings() {
     svdAlgo = iter->second;
     CUDAQ_INFO("Setting MPS SVD algorithm to {} ({}).",
                cudaq_fmt::underlying(svdAlgo), iter->first);
+  } else if (cutensornetGetVersion() < 21500) {
+    // GESVD's host workspace issue is fixed in cuTensorNet 2.15.0.
+    svdAlgo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ;
+    CUDAQ_WARN("Defaulting MPS SVD algorithm to GESVDJ because cuTensorNet is "
+               "older than 2.15.0.");
   }
 
   using GaugePair =
