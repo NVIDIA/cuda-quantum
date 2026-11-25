@@ -212,9 +212,11 @@ jobs:
           retry pip3 install numpy --break-system-packages
           
           # Build prerequisites with Python bindings enabled so the cmake
-          # cache already has MLIR_ENABLE_BINDINGS_PYTHON=ON.  Downstream
-          # wheel jobs only change Python3_EXECUTABLE, which keeps ninja's
-          # incremental rebuild scoped to the binding targets.
+          # cache already has MLIR_ENABLE_BINDINGS_PYTHON=ON, and keep the LLVM
+          # build tree. Downstream jobs only change Python3_EXECUTABLE (see
+          # build_mlir_python_bindings.sh), which keeps ninja's incremental
+          # rebuild scoped to the binding targets.
+          export LLVM_KEEP_BUILD_DIR=1
           # Initialize nanobind submodule which are needed for MLIR Python bindings
           retry git submodule update --init --recursive --depth 1 tpls/nanobind
 

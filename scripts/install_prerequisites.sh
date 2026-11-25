@@ -308,8 +308,11 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
       # Fixed path, not randomized -- clean it up or a later rebuild
       # (e.g. python_build) reuses its stale, now-invalid CMakeCache.txt.
       rm -rf "${LLVM_SOURCE:-$HOME/.llvm-project}/stage1_build"
-      # Same issue, same fix, for the real (non-stage-1) build dir.
-      rm -rf "${LLVM_SOURCE:-$HOME/.llvm-project}/build"
+      # Same issue, same fix, for the real (non-stage-1) build dir. An image
+      # that rebuilds only the MLIR Python bindings per Python version keeps it.
+      if [ -z "${LLVM_KEEP_BUILD_DIR:-}" ]; then
+        rm -rf "${LLVM_SOURCE:-$HOME/.llvm-project}/build"
+      fi
     fi
     export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
