@@ -166,7 +166,14 @@ def tdg(q):
 
 
 def reset(q):
+    from cudaq.logical.programs.builder import UnplacedBuilder
+
     trace = require_trace("reset")
+    if isinstance(trace, UnplacedBuilder):
+        # QLX has no reset action; only gadget bodies and P3 traces reset.
+        raise TypeError(
+            "cudaq.logical.reset is not supported in a logical program; it is "
+            "available in a gadget body or a P3 physical trace")
     if hasattr(trace, "reset"):
         scalar = not isinstance(q, (tuple, list))
         values = (q,) if scalar else tuple(q)
