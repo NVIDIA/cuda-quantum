@@ -21,8 +21,6 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <algorithm>
 #include <functional>
-#include <iterator>
-#include <map>
 #include <optional>
 #include <utility>
 
@@ -786,16 +784,18 @@ class cudaq::quake::detail::LogicalQubitOperationIndex {
     llvm::SmallVector<QubitId> support;
   };
 
-  // Key each operation by its stable block ordinal so erasing a gate in the
-  // middle of a long per-qubit sequence costs logarithmic time. The container
-  // must stay ordered. Every backward walk seeks to an ordinal with
-  // `upper_bound` and then iterates in descending ordinal order.
-  using OrderedOperations = std::map<unsigned, Operation *>;
+  // Store an operation in block order under each logical qubit it may affect.
+  // The copied ordinal makes those ordered lists directly searchable.
+  struct IndexedOperation {
+    Operation *operation;
+    unsigned ordinal;
+  };
 
   // Group the per-qubit operation lists within one searchable block interval.
   // A multi-qubit operation appears in every list it affects.
   struct Segment {
-    llvm::DenseMap<QubitId, OrderedOperations> operationsByQubit;
+    llvm::DenseMap<QubitId, llvm::SmallVector<IndexedOperation>>
+        operationsByQubit;
   };
 
   // Hold the indexed positions that bound one backward walk.
@@ -806,7 +806,18 @@ class cudaq::quake::detail::LogicalQubitOperationIndex {
 
   // Track one per-qubit operation list during a multi-qubit backward merge.
   struct OperationCursor {
-    OrderedOperations::const_reverse_iterator current, end;
+    llvm::ArrayRef<IndexedOperation> operations;
+    std::ptrdiff_t index;
+
+    const IndexedOperation *current() const {
+      return index < 0 ? nullptr : &operations[index];
+    }
+
+    void advancePast(unsigned ordinal) {
+      if (const IndexedOperation *operation = current();
+          operation && operation->ordinal == ordinal)
+        --index;
+    }
   };
 
 public:
@@ -933,6 +944,17 @@ private:
     return WalkPositions{&anchorPosition->second, &upperPosition->second};
   }
 
+  static std::ptrdiff_t
+  findLastOperationAtOrBefore(llvm::ArrayRef<IndexedOperation> operations,
+                              unsigned upperOrdinal) {
+    auto end = std::upper_bound(
+        operations.begin(), operations.end(), upperOrdinal,
+        [](unsigned ordinal, const IndexedOperation &operation) {
+          return ordinal < operation.ordinal;
+        });
+    return std::distance(operations.begin(), end) - 1;
+  }
+
   void
   walkQubitOperations(const Segment &segment, QubitId qubitId,
                       unsigned upperOrdinal,
@@ -940,11 +962,10 @@ private:
     auto operations = segment.operationsByQubit.find(qubitId);
     if (operations == segment.operationsByQubit.end())
       return;
-    const auto &ordered = operations->second;
-    for (auto it =
-             std::make_reverse_iterator(ordered.upper_bound(upperOrdinal));
-         it != ordered.rend(); ++it)
-      if (!visitor(it->second))
+    for (std::ptrdiff_t index =
+             findLastOperationAtOrBefore(operations->second, upperOrdinal);
+         index >= 0; --index)
+      if (!visitor(operations->second[index].operation))
         break;
   }
 
@@ -954,14 +975,12 @@ private:
                        unsigned upperOrdinal,
                        llvm::function_ref<bool(Operation *)> visitor) const {
     auto cursors = makeOperationCursors(segment, anchorSupport, upperOrdinal);
-    while (const auto *next = findNextOperation(cursors)) {
+    while (const IndexedOperation *next = findNextOperation(cursors)) {
       // Advance every list at this ordinal because a multi-qubit operation
       // appears in several lists but should be visited only once.
       for (OperationCursor &cursor : cursors)
-        if (cursor.current != cursor.end &&
-            cursor.current->first == next->first)
-          ++cursor.current;
-      if (!visitor(next->second))
+        cursor.advancePast(next->ordinal);
+      if (!visitor(next->operation))
         return;
     }
   }
@@ -975,22 +994,21 @@ private:
       auto operations = segment.operationsByQubit.find(qubitId);
       if (operations == segment.operationsByQubit.end())
         continue;
-      const auto &ordered = operations->second;
-      auto current =
-          std::make_reverse_iterator(ordered.upper_bound(upperOrdinal));
-      if (current != ordered.rend())
-        cursors.push_back({current, ordered.rend()});
+      std::ptrdiff_t index =
+          findLastOperationAtOrBefore(operations->second, upperOrdinal);
+      if (index >= 0)
+        cursors.push_back({operations->second, index});
     }
     return cursors;
   }
 
-  static const OrderedOperations::value_type *
+  static const IndexedOperation *
   findNextOperation(llvm::ArrayRef<OperationCursor> cursors) {
-    const OrderedOperations::value_type *next = nullptr;
+    const IndexedOperation *next = nullptr;
     for (const OperationCursor &cursor : cursors) {
-      if (cursor.current != cursor.end &&
-          (!next || cursor.current->first > next->first))
-        next = &*cursor.current;
+      const IndexedOperation *current = cursor.current();
+      if (current && (!next || current->ordinal > next->ordinal))
+        next = current;
     }
     return next;
   }
@@ -1035,9 +1053,15 @@ private:
       auto operations = segment.operationsByQubit.find(qubitId);
       assert(operations != segment.operationsByQubit.end() &&
              "operation is missing from its logical-qubit index");
-      auto indexedOperation = operations->second.find(position.ordinal);
+      auto indexedOperation = std::lower_bound(
+          operations->second.begin(), operations->second.end(),
+          position.ordinal,
+          [](const IndexedOperation &candidate, unsigned ordinal) {
+            return candidate.ordinal < ordinal;
+          });
       assert(indexedOperation != operations->second.end() &&
-             indexedOperation->second == operation &&
+             indexedOperation->ordinal == position.ordinal &&
+             indexedOperation->operation == operation &&
              "operation is missing from its logical-qubit index");
       operations->second.erase(indexedOperation);
     }
@@ -1049,8 +1073,12 @@ private:
     Segment &segment = segments[position.segment];
     for (QubitId qubitId : position.support) {
       auto &operations = segment.operationsByQubit[qubitId];
-      // Index construction appends in block order.
-      operations.emplace_hint(operations.end(), position.ordinal, operation);
+      auto insertion = std::lower_bound(
+          operations.begin(), operations.end(), position.ordinal,
+          [](const IndexedOperation &operation, unsigned ordinal) {
+            return operation.ordinal < ordinal;
+          });
+      operations.insert(insertion, {operation, position.ordinal});
     }
   }
 

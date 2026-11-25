@@ -266,10 +266,6 @@ public:
 
   void runOnOperation() override {
     auto *op = getOperation();
-    if (!cudaq::opt::containsAnyOperationOfType<func::CallOp>(op)) {
-      markAllAnalysesPreserved();
-      return;
-    }
     LLVM_DEBUG(llvm::dbgs() << "Before erasure:\n" << *op << "\n\n");
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
