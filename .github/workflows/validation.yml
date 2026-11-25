@@ -429,7 +429,9 @@ jobs:
               -q '.artifacts[] | {name: .name, url: .archive_download_url}' \
               | jq -c '.' > /tmp/macos_artifacts.jsonl
             wheels=$(grep -c '"pycudaq-[^"]*-darwin-arm64"' /tmp/macos_artifacts.jsonl || true)
-            if [ "$wheels" -ge 4 ]; then
+            # The cudaq metapackage also needs the cudaq-edem and cudaq-logical wheels.
+            companions=$(grep -cE '"cudaq-(edem|logical)-[^"]*-darwin-arm64"' /tmp/macos_artifacts.jsonl || true)
+            if [ "$wheels" -ge 4 ] && [ "$companions" -ge 8 ]; then
               break
             fi
             status=$(retry gh api "repos/${{ github.repository }}/actions/runs/${{ needs.metadata.outputs.deployment_id }}" --jq .status)
@@ -454,6 +456,11 @@ jobs:
               unzip -o "/tmp/${name}.zip" -d wheels/ < /dev/null
               rm "/tmp/${name}.zip"
               has_macos_wheels=true
+            elif [[ "$name" == cudaq-edem-*-darwin-arm64 || "$name" == cudaq-logical-*-darwin-arm64 ]]; then
+              echo "Downloading macOS wheel: $name"
+              retry download "$url" "/tmp/${name}.zip"
+              unzip -o "/tmp/${name}.zip" -d wheels/ < /dev/null
+              rm "/tmp/${name}.zip"
             fi
           done < /tmp/macos_artifacts.jsonl
 
