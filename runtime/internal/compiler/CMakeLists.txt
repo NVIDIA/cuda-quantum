@@ -24,6 +24,7 @@ add_library(cudaq-mlir-runtime
     ArgumentConversion.cpp
     Compiler.cpp
     CompiledModuleHelper.cpp
+    InlineExecutor.cpp
     JITTargetPipeline.cpp
     JIT.cpp
     LoweringHandler.cpp
@@ -37,6 +38,7 @@ add_library(cudaq-mlir-runtime
 )
 
 set_source_files_properties(
+    InlineExecutor.cpp
     TracePassInstrumentation.cpp
     PROPERTIES COMPILE_FLAGS "-fno-rtti -fno-exceptions"
 )
