@@ -123,7 +123,8 @@ compilesForSimulator(const cudaq::config::QuakeUnmappedProfile &profile) {
 /// Pauli word is known. Otherwise `exp_pauli` and its qubits stay on
 /// references. When \p profile compiles for a simulator, the kernel keeps the
 /// implicit output that holds every qubit, so that `dqe` removes no idle
-/// qubit.
+/// qubit. The kernel also keeps its register names, so that a register measured
+/// as several bits stays one register.
 inline std::string
 convertToWires(const cudaq::config::QuakeUnmappedProfile &profile,
                bool addWireSet, bool decomposeExpPauli) {
@@ -134,7 +135,9 @@ convertToWires(const cudaq::config::QuakeUnmappedProfile &profile,
               ? " unroll-only-index-use-loops=true"
               : "") +
          (decomposeExpPauli ? "" : " decompose-exp-pauli=false") +
-         (compilesForSimulator(profile) ? " erase-implicit-output=false" : "") +
+         (compilesForSimulator(profile)
+              ? " erase-implicit-output=false unique-register-names=false"
+              : "") +
          "}";
 }
 
