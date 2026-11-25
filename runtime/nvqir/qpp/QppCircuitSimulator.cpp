@@ -122,6 +122,120 @@ struct QppState : public cudaq::SimulationState {
   }
 };
 
+namespace details {
+
+/// @brief Insert a 0 bit at each of the given (ascending) bit positions.
+inline std::size_t insertZeroBits(std::size_t value,
+                                  const std::vector<std::size_t> &sortedBits) {
+  for (auto bit : sortedBits) {
+    const std::size_t low = value & ((1ULL << bit) - 1);
+    value = ((value >> bit) << (bit + 1)) | low;
+  }
+  return value;
+}
+
+/// @brief Complex product without the NaN/Inf handling of `operator*`, which
+/// is much slower in the hot loops.
+inline std::complex<double> multiply(const std::complex<double> &a,
+                                     const std::complex<double> &b) {
+  return {a.real() * b.real() - a.imag() * b.imag(),
+          a.real() * b.imag() + a.imag() * b.real()};
+}
+
+/// @brief Apply a (controlled) gate to a state vector, in place.
+///
+/// Qubit `q` is bit `q` of the amplitude index. `matrix` is row-major, with
+/// `targets[0]` as the most significant bit of its index. Only amplitudes
+/// whose control bits are all 1 are touched.
+inline void applyGateInPlace(std::complex<double> *state, std::size_t numQubits,
+                             const std::vector<std::complex<double>> &matrix,
+                             const std::vector<std::size_t> &controls,
+                             const std::vector<std::size_t> &targets) {
+  const std::size_t numTargets = targets.size();
+  if (numTargets == 0)
+    throw std::invalid_argument("[qpp] gate applied to no target qubits.");
+  if (numTargets >= numQubits + 1)
+    throw std::invalid_argument("[qpp] gate has more targets than qubits.");
+  const std::size_t dim = 1ULL << numTargets;
+  if (matrix.size() != dim * dim)
+    throw std::invalid_argument(
+        "[qpp] gate matrix size does not match the number of targets.");
+
+  // Collect and validate the control and target qubits.
+  std::size_t controlMask = 0, involvedMask = 0;
+  std::vector<std::size_t> involved;
+  involved.reserve(controls.size() + numTargets);
+  const auto addQubit = [&](std::size_t qubit) {
+    if (qubit >= numQubits)
+      throw std::invalid_argument("[qpp] qubit index out of range.");
+    const std::size_t bit = 1ULL << qubit;
+    if (involvedMask & bit)
+      throw std::invalid_argument(
+          "[qpp] control and target qubits must be distinct.");
+    involvedMask |= bit;
+    involved.push_back(qubit);
+  };
+  for (auto qubit : controls) {
+    addQubit(qubit);
+    controlMask |= 1ULL << qubit;
+  }
+  for (auto qubit : targets)
+    addQubit(qubit);
+  std::sort(involved.begin(), involved.end());
+
+  // One group of amplitudes per assignment of the remaining qubits.
+  const std::size_t numGroups = 1ULL << (numQubits - involved.size());
+  [[maybe_unused]] const bool runParallel = numGroups >= (1ULL << 12);
+
+  if (numTargets == 1) {
+    const std::size_t targetBit = 1ULL << targets[0];
+    const auto m00 = matrix[0], m01 = matrix[1], m10 = matrix[2],
+               m11 = matrix[3];
+#if defined(_OPENMP)
+#pragma omp parallel for if (runParallel)
+#endif
+    for (std::size_t i = 0; i < numGroups; ++i) {
+      const std::size_t i0 = insertZeroBits(i, involved) | controlMask;
+      const std::size_t i1 = i0 | targetBit;
+      const auto a0 = state[i0], a1 = state[i1];
+      state[i0] = multiply(m00, a0) + multiply(m01, a1);
+      state[i1] = multiply(m10, a0) + multiply(m11, a1);
+    }
+    return;
+  }
+
+  // Index offset of each target basis state within a group.
+  std::vector<std::size_t> offsets(dim, 0);
+  for (std::size_t m = 0; m < dim; ++m)
+    for (std::size_t j = 0; j < numTargets; ++j)
+      if (m & (1ULL << (numTargets - 1 - j)))
+        offsets[m] |= 1ULL << targets[j];
+
+#if defined(_OPENMP)
+#pragma omp parallel if (runParallel)
+#endif
+  {
+    std::vector<std::complex<double>> amplitudes(dim);
+#if defined(_OPENMP)
+#pragma omp for
+#endif
+    for (std::size_t i = 0; i < numGroups; ++i) {
+      const std::size_t base = insertZeroBits(i, involved) | controlMask;
+      for (std::size_t m = 0; m < dim; ++m)
+        amplitudes[m] = state[base | offsets[m]];
+      for (std::size_t row = 0; row < dim; ++row) {
+        std::complex<double> sum = 0.0;
+        const auto *matrixRow = matrix.data() + row * dim;
+        for (std::size_t col = 0; col < dim; ++col)
+          sum += multiply(matrixRow[col], amplitudes[col]);
+        state[base | offsets[row]] = sum;
+      }
+    }
+  }
+}
+
+} // namespace details
+
 /// @brief The QppCircuitSimulator implements the CircuitSimulator
 /// base class to provide a simulator delegating to the Q++ library from
 /// https://github.com/softwareqinc/qpp.
@@ -246,6 +360,17 @@ protected:
   }
 
   void applyGate(const GateApplicationTask &task) override {
+    if constexpr (std::is_same_v<StateType, qpp::ket>) {
+      // State vector: apply the gate in place, which is much faster than
+      // `qpp::apply` / `qpp::applyCTRL`.
+      const std::size_t numQubits =
+          std::bit_width(static_cast<std::size_t>(state.size())) - 1;
+      details::applyGateInPlace(state.data(), numQubits, task.matrix,
+                                task.controls, task.targets);
+      return;
+    }
+
+    // Density matrix: delegate to Q++.
     auto matrix = toQppMatrix(task.matrix, task.targets.size());
     // First, convert all of the qubit indices to big endian.
     std::vector<std::size_t> controls;
