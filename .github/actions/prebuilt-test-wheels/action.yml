@@ -1,0 +1,69 @@
+name: prebuilt-test-wheels
+description: >-
+  PyPI ships no aarch64 wheel of stim, so installing the Logical test
+  requirements compiles it (~8 min). Build the wheels once, keep them in the
+  Actions cache, and make uv prefer them. Does nothing on other architectures.
+  Run it after the Python environment is set up and activated.
+
+inputs:
+  requirements:
+    description: Requirements file of the test dependencies.
+    required: false
+    default: preview/logical/requirements-test.txt
+
+runs:
+  using: composite
+  steps:
+    - name: Compute the cache key
+      id: key
+      if: runner.arch == 'ARM64'
+      shell: bash
+      env:
+        REQUIREMENTS: ${{ inputs.requirements }}
+      run: |
+        # The wheel is specific to the Python version, and the action text is
+        # hashed so that a change of the build rebuilds the wheel.
+        py=$(python -c 'import sys; print(f"cp{sys.version_info.major}{sys.version_info.minor}")')
+        hash=$(cat "$REQUIREMENTS" "$GITHUB_ACTION_PATH/action.yml" | sha256sum | cut -c1-16)
+        echo "key=test-wheels-linux-arm64-$py-$hash" >> "$GITHUB_OUTPUT"
+        echo "dir=$RUNNER_TEMP/test-wheelhouse" >> "$GITHUB_OUTPUT"
+
+    - name: Restore the prebuilt wheels
+      id: restore
+      if: runner.arch == 'ARM64'
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ steps.key.outputs.dir }}
+        key: ${{ steps.key.outputs.key }}
+
+    - name: Build the wheels
+      id: build
+      if: runner.arch == 'ARM64' && steps.restore.outputs.cache-hit != 'true'
+      # Without the wheels, the install of the requirements compiles stim as before.
+      continue-on-error: true
+      shell: bash
+      env:
+        REQUIREMENTS: ${{ inputs.requirements }}
+        WHEELHOUSE: ${{ steps.key.outputs.dir }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$WHEELHOUSE"
+        uvx --python "$(command -v python)" pip wheel --no-deps \
+          -r "$REQUIREMENTS" -w "$WHEELHOUSE"
+        ls -l "$WHEELHOUSE"
+
+    - name: Save the prebuilt wheels
+      if: steps.build.outcome == 'success'
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.key.outputs.dir }}
+        key: ${{ steps.key.outputs.key }}
+
+    - name: Make uv prefer the prebuilt wheels
+      if: runner.arch == 'ARM64' && (steps.restore.outputs.cache-hit == 'true' || steps.build.outcome == 'success')
+      shell: bash
+      env:
+        WHEELHOUSE: ${{ steps.key.outputs.dir }}
+      run: |
+        # Used by every `uv pip install` that does not pass its own --find-links.
+        echo "UV_FIND_LINKS=$WHEELHOUSE" >> "$GITHUB_ENV"

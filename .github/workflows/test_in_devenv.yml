@@ -131,11 +131,39 @@ jobs:
             --build-arg run_tests=true \
             --target test
 
-      - name: Test cudaq.logical (out-of-tree, toolchain audit)
+      # PyPI has no aarch64 wheel of stim, so the two Logical stages below would each
+      # compile it for ~8 min. Build the wheels once and keep them in the cache.
+      - name: Restore prebuilt Logical test wheels
+        id: test_wheels
+        if: contains(inputs.platform, 'arm')
+        uses: actions/cache/restore@v6
+        with:
+          path: /tmp/test-wheelhouse
+          key: test-wheels-${{ steps.platform_meta.outputs.platform_id }}${{ inputs.toolchain && format('-{0}', inputs.toolchain) }}-${{ hashFiles('preview/logical/requirements-test.txt', 'docker/build/devdeps.Dockerfile') }}
+
+      - name: Build Logical test wheels
+        if: contains(inputs.platform, 'arm') && steps.test_wheels.outputs.cache-hit != 'true'
         run: |
           docker buildx build --progress=plain --platform ${{ inputs.platform }} \
             -f docker/build/cudaq.dev.Dockerfile . \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --target test-wheels-export \
+            --output type=local,dest=/tmp/test-wheelhouse
+
+      - name: Save prebuilt Logical test wheels
+        if: contains(inputs.platform, 'arm') && steps.test_wheels.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: /tmp/test-wheelhouse
+          key: ${{ steps.test_wheels.outputs.cache-primary-key }}
+
+      - name: Test cudaq.logical (out-of-tree, toolchain audit)
+        run: |
+          mkdir -p /tmp/test-wheelhouse
+          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
             --build-context ccache-data=/tmp/ccache-data \
+            --build-context test-wheelhouse=/tmp/test-wheelhouse \
             --build-arg base_image=${{ steps.build.outputs.base_image }} \
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
             --build-arg mpi="${{ inputs.mpi }}" \
@@ -144,9 +172,11 @@ jobs:
 
       - name: Test cudaq.logical (in-tree, CUDAQ_ENABLE_LOGICAL=ON)
         run: |
+          mkdir -p /tmp/test-wheelhouse
           docker buildx build --progress=plain --platform ${{ inputs.platform }} \
             -f docker/build/cudaq.dev.Dockerfile . \
             --build-context ccache-data=/tmp/ccache-data \
+            --build-context test-wheelhouse=/tmp/test-wheelhouse \
             --build-arg base_image=${{ steps.build.outputs.base_image }} \
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
             --build-arg mpi="${{ inputs.mpi }}" \

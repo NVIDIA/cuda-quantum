@@ -257,9 +257,13 @@ jobs:
           endpoint: builder_context
           version: v0.19.0
           buildkitd-config: ${{ needs.metadata.outputs.runner != 'ubuntu-latest' && '/etc/buildkit/buildkitd.toml' || null }}
+          # BuildKit clips each step's log at 2 MiB, which drops the ccache statistics
+          # that llvm_ccache.sh prints at the end of an LLVM build.
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
+            env.BUILDKIT_STEP_LOG_MAX_SIZE=52428800
+            env.BUILDKIT_STEP_LOG_MAX_SPEED=10485760
 
       - name: Setup proxy cache
         if: needs.metadata.outputs.runner != 'ubuntu-latest'
