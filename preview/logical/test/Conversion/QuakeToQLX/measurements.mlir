@@ -117,8 +117,8 @@ module {
   }
   llvm.func @flip..0x1.kernelRegFunc() {
     %f = func.constant @flip..0x1.argsCreator : (!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64
-    %0 = llvm.mlir.addressof @flip..0x1.kernelName : !llvm.ptr
-    %1 = cc.cast %0 : (!llvm.ptr) -> !cc.ptr<i8>
+    %0 = cc.address_of @flip..0x1.kernelName : !cc.ptr<!llvm.array<10 x i8>>
+    %1 = cc.cast %0 : (!cc.ptr<!llvm.array<10 x i8>>) -> !cc.ptr<i8>
     func.call @cudaqRegisterKernelName(%1) : (!cc.ptr<i8>) -> ()
     %2 = cc.func_ptr %f : ((!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64) -> !cc.ptr<i8>
     func.call @cudaqRegisterArgsCreator(%1, %2) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()

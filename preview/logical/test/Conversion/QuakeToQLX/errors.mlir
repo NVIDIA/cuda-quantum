@@ -410,8 +410,8 @@ module {
   func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
   // expected-error@+1 {{unexpected top-level operation at the Quake-to-P0 boundary}}
   llvm.func @entry.kernelRegFunc() {
-    %0 = llvm.mlir.addressof @other.kernelName : !llvm.ptr
-    %1 = cc.cast %0 : (!llvm.ptr) -> !cc.ptr<i8>
+    %0 = cc.address_of @other.kernelName : !cc.ptr<!llvm.array<6 x i8>>
+    %1 = cc.cast %0 : (!cc.ptr<!llvm.array<6 x i8>>) -> !cc.ptr<i8>
     func.call @cudaqRegisterKernelName(%1) : (!cc.ptr<i8>) -> ()
     llvm.return
   }

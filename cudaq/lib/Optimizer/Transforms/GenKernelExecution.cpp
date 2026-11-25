@@ -608,9 +608,8 @@ public:
     }
 
     // Prepare to call the `launchKernel` runtime library entry point.
-    Value loadKernName = LLVM::AddressOfOp::create(
-        builder, loc,
-        cudaq::opt::factory::getPointerType(kernelNameObj.getType()),
+    Value loadKernName = cudaq::cc::AddressOfOp::create(
+        builder, loc, cudaq::cc::PointerType::get(kernelNameObj.getType()),
         kernelNameObj.getSymName());
     auto castLoadKernName =
         cudaq::cc::CastOp::create(builder, loc, ptrI8Ty, loadKernName);
@@ -818,9 +817,8 @@ public:
     OpBuilder::InsertionGuard guard(builder);
     auto *initFunEntry = initFun.addEntryBlock(builder);
     builder.setInsertionPointToStart(initFunEntry);
-    auto kernRef = LLVM::AddressOfOp::create(
-        builder, loc,
-        cudaq::opt::factory::getPointerType(kernelNameObj.getType()),
+    auto kernRef = cudaq::cc::AddressOfOp::create(
+        builder, loc, cudaq::cc::PointerType::get(kernelNameObj.getType()),
         kernelNameObj.getSymName());
     auto castKernRef =
         cudaq::cc::CastOp::create(builder, loc, ptrType, kernRef);
@@ -864,9 +862,8 @@ public:
             builder.getStringAttr(demangledName + '\0'), /*alignment=*/0);
 
         builder.restoreInsertionPoint(insertPoint);
-        auto lambdaRef = LLVM::AddressOfOp::create(
-            builder, loc,
-            cudaq::opt::factory::getPointerType(lambdaName.getType()),
+        auto lambdaRef = cudaq::cc::AddressOfOp::create(
+            builder, loc, cudaq::cc::PointerType::get(lambdaName.getType()),
             lambdaName.getSymName());
 
         auto castLambdaRef = cudaq::cc::CastOp::create(

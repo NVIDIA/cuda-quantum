@@ -277,11 +277,8 @@ static bool namesKernelSymbol(StringRef symbol, StringRef kernel,
 /// passes it to a runtime registration function, or returns.
 static bool isRegistrationStep(Operation &op, StringRef kernel) {
   StringRef name = op.getName().getStringRef();
-  if (name == "llvm.mlir.addressof") {
-    auto global = op.getAttrOfType<FlatSymbolRefAttr>("global_name");
-    return global &&
-           namesKernelSymbol(global.getValue(), kernel, ".kernelName");
-  }
+  if (auto addr = dyn_cast<cudaq::cc::AddressOfOp>(op))
+    return namesKernelSymbol(addr.getGlobalName(), kernel, ".kernelName");
   if (auto constant = dyn_cast<func::ConstantOp>(op))
     return namesKernelSymbol(constant.getValue(), kernel, ".argsCreator");
   if (auto call = dyn_cast<func::CallOp>(op))
