@@ -196,12 +196,19 @@ jobs:
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           CCACHE_DISABLE=1 retry pip install -r requirements-dev.txt
 
+      # The prerequisites image keeps the LLVM build, so only the bindings for
+      # this Python version are rebuilt. An image without it rebuilds LLVM.
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-          Python3_EXECUTABLE="$(which python3)" \
-          LLVM_SOURCE="$HOME/.llvm-project" \
-          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          export LLVM_SOURCE="$HOME/.llvm-project"
+          export Python3_EXECUTABLE="$(which python3)"
+          if [ -f "$LLVM_SOURCE/build/CMakeCache.txt" ]; then
+            NANOBIND_CMAKE_DIR="$NANOBIND_INSTALL_PREFIX/nanobind/cmake" \
+            bash scripts/build_mlir_python_bindings.sh
+          else
+            bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          fi
 
       - name: Build CUDA-Q
         run: bash scripts/build_cudaq.sh -v -- -DCUDAQ_TEST_OMP_SLOTS=2
@@ -289,12 +296,19 @@ jobs:
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           CCACHE_DISABLE=1 retry pip install -r requirements-dev.txt
 
+      # The prerequisites image keeps the LLVM build, so only the bindings for
+      # this Python version are rebuilt. An image without it rebuilds LLVM.
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-          Python3_EXECUTABLE="$(which python3)" \
-          LLVM_SOURCE="$HOME/.llvm-project" \
-          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          export LLVM_SOURCE="$HOME/.llvm-project"
+          export Python3_EXECUTABLE="$(which python3)"
+          if [ -f "$LLVM_SOURCE/build/CMakeCache.txt" ]; then
+            NANOBIND_CMAKE_DIR="$NANOBIND_INSTALL_PREFIX/nanobind/cmake" \
+            bash scripts/build_mlir_python_bindings.sh
+          else
+            bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          fi
 
       - name: Build wheel
         run: |
@@ -397,12 +411,19 @@ jobs:
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           CCACHE_DISABLE=1 retry pip install -r requirements-dev.txt
 
+      # The prerequisites image keeps the LLVM build, so only the bindings for
+      # this Python version are rebuilt. An image without it rebuilds LLVM.
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-          Python3_EXECUTABLE="$(which python3)" \
-          LLVM_SOURCE="$HOME/.llvm-project" \
-          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          export LLVM_SOURCE="$HOME/.llvm-project"
+          export Python3_EXECUTABLE="$(which python3)"
+          if [ -f "$LLVM_SOURCE/build/CMakeCache.txt" ]; then
+            NANOBIND_CMAKE_DIR="$NANOBIND_INSTALL_PREFIX/nanobind/cmake" \
+            bash scripts/build_mlir_python_bindings.sh
+          else
+            bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          fi
 
       - name: Build devel wheel
         run: |
@@ -679,12 +700,19 @@ jobs:
           CCACHE_DISABLE=1 retry pip install -r requirements-dev.txt
           retry brew install makeself pigz
 
+      # The prerequisites image keeps the LLVM build, so only the bindings for
+      # this Python version are rebuilt. An image without it rebuilds LLVM.
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-          Python3_EXECUTABLE="$(which python3)" \
-          LLVM_SOURCE="$HOME/.llvm-project" \
-          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          export LLVM_SOURCE="$HOME/.llvm-project"
+          export Python3_EXECUTABLE="$(which python3)"
+          if [ -f "$LLVM_SOURCE/build/CMakeCache.txt" ]; then
+            NANOBIND_CMAKE_DIR="$NANOBIND_INSTALL_PREFIX/nanobind/cmake" \
+            bash scripts/build_mlir_python_bindings.sh
+          else
+            bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          fi
 
       - name: Build CUDA-Q
         run: bash scripts/build_cudaq.sh -v -- -DCUDAQ_TEST_OMP_SLOTS=2
