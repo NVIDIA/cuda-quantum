@@ -8,12 +8,16 @@
 
 #pragma once
 
-#include "cudaq/gadgets/utils.h"
+#include "cudaq/gadgets/circuit/circuit.h"
 
+#include <cstddef>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <variant>
+#include <vector>
 
 namespace cudaq::gadgets {
 inline namespace v0 {
@@ -83,6 +87,35 @@ std::string_view to_string(Opcode opcode);
 /// The opcode with this name or alias (NOT, CNOT, PREPARE_ZERO, PREPARE_PLUS,
 /// TOFFOLI, FREDKIN), if any.
 std::optional<Opcode> find_opcode(std::string_view name);
+
+/// A semantic operation, with a payload if its opcode takes one.
+struct OpcodeNode : Node {
+  /// Throws std::invalid_argument if the payload or wires do not fit opcode.
+  OpcodeNode(Opcode opcode, Wires wires,
+             std::optional<Payload> payload = std::nullopt)
+      : Node(std::move(wires)), opcode(opcode), payload(std::move(payload)) {
+    check_shape(get_shape(opcode, this->payload));
+  }
+  Opcode get_opcode() const { return opcode; }
+  const std::optional<Payload> &get_payload() const { return payload; }
+
+private:
+  Opcode opcode;
+  std::optional<Payload> payload;
+};
+
+/// A circuit of semantic operations.
+struct SemanticCircuit : Circuit<OpcodeNode> {
+  explicit SemanticCircuit(Wires wires = {}) : Circuit(std::move(wires)) {}
+
+  using Circuit::append;
+
+  /// Appends an OpcodeNode built from opcode, wires, and payload.
+  std::size_t append(Opcode opcode, Wires wires,
+                     std::optional<Payload> payload = std::nullopt) {
+    return append(OpcodeNode(opcode, std::move(wires), std::move(payload)));
+  }
+};
 
 } // namespace v0
 } // namespace cudaq::gadgets

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/gadgets/circuit/circuit.h"
+#include "cudaq/gadgets/circuit/instructions.h"
 
 #include <unordered_map>
 

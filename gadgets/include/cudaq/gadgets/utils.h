@@ -123,5 +123,24 @@ private:
   std::size_t n;
 };
 
+using WireId = std::string;
+
+/// Qubit and classical input and output wires, of a node or a circuit.
+struct Wires {
+  Wires(std::vector<WireId> q_in = {}, std::vector<WireId> q_out = {},
+        std::vector<WireId> c_in = {}, std::vector<WireId> c_out = {})
+      : q_in(std::move(q_in)), q_out(std::move(q_out)), c_in(std::move(c_in)),
+        c_out(std::move(c_out)) {}
+
+  std::vector<WireId> q_in;
+  std::vector<WireId> q_out;
+  std::vector<WireId> c_in;
+  std::vector<WireId> c_out;
+
+  Shape get_shape() const {
+    return {q_in.size(), q_out.size(), c_in.size(), c_out.size()};
+  }
+};
+
 } // namespace v0
 } // namespace cudaq::gadgets

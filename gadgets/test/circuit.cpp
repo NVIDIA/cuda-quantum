@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/gadgets/circuit/circuit.h"
+#include "cudaq/gadgets/circuit/instructions.h"
 
 #include <cstdio>
 
@@ -65,6 +65,15 @@ SemanticCircuit bell_correction() {
 
 int main() {
   expect_ok("valid circuit", [] { bell_correction().validate(); });
+  {
+    SemanticCircuit bell = bell_correction();
+    const Circuit<OpcodeNode> &circuit = bell;
+    if (circuit.get_nodes().size() != 4 ||
+        circuit.get_nodes()[2].get_wires().c_out != WireList{"m"}) {
+      std::printf("FAIL: nodes through the base circuit\n");
+      ++failures;
+    }
+  }
   expect_ok("random bit, idle, and reset", [] {
     SemanticCircuit circuit({{"a"}, {"c"}, {}, {"r"}});
     circuit.append(OpcodeNode(Opcode::RANDOM_BIT, {{}, {}, {}, {"r"}}));

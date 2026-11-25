@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.   *
  *****************************************************************************/
 
-#include "cudaq/gadgets/circuit/circuit.h"
+#include "cudaq/gadgets/circuit/instructions.h"
 
 #include <algorithm>
 
@@ -19,8 +19,7 @@ std::size_t InstructionCircuit::append(InstructionNode node) {
                                 std::to_string(node.get_instruction()) +
                                 " is not in the instruction set");
   node.check_shape(instructions[node.get_instruction()].get_shape());
-  nodes.push_back(std::move(node));
-  return nodes.size() - 1;
+  return Circuit::append(std::move(node));
 }
 
 PhysicalInstructionDefinition::PhysicalInstructionDefinition(
