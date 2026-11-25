@@ -204,7 +204,13 @@ public:
 
     patterns.add<ResolveDevicePtrOpPat>(ctx);
     patterns.insert<QIRDeviceCallPat>(ctx, insertTrapImplementation);
-    if (failed(applyPatternsGreedily(module, std::move(patterns))))
+    // Aggressive region simplification replaces a block argument with the value
+    // that all of its predecessors pass. A wire that a branch passes to two
+    // successors would then have a use in each, and a wire must have exactly
+    // one use. `canonicalize` also runs at `Normal`.
+    GreedyRewriteConfig config;
+    config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Normal);
+    if (failed(applyPatternsGreedily(module, std::move(patterns), config)))
       signalPassFailure();
   }
 };

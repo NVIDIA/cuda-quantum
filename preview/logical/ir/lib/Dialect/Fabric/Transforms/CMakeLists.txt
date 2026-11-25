@@ -17,7 +17,7 @@ qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
 add_mlir_library(MLIRFabricTransforms
   FabricCountPass.cpp
   FabricEstimateAnalytical.cpp
-  FabricInlineRealisations.cpp
+  FabricInlineRealization.cpp
   FabricLowerProtocols.cpp
 
   ADDITIONAL_HEADER_DIRS

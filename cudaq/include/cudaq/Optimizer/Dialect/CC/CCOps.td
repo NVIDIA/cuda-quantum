@@ -14,8 +14,10 @@ include "mlir/IR/SymbolInterfaces.td"
 include "cudaq/Optimizer/Dialect/CC/CCDialect.td"
 include "cudaq/Optimizer/Dialect/CC/CCInterfaces.td"
 include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
-include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.td"
 include "cudaq/Optimizer/Dialect/Traits.td"
+
+def AnyLinearType : Type<CPred<"$_self.hasTrait<::mlir::TypeTrait::SSIType>()">,
+                         "any linear (SSI) value type">;
 
 def AnyPointerType : Type<CPred<"isa<mlir::LLVM::LLVMPointerType,"
                           "cudaq::cc::PointerType>($_self)">,
@@ -71,7 +73,7 @@ def cc_ScopeOp : CCOp<"scope",
     ScopeOp.
 
     Example:
-    
+
     ```mlir
       cc.scope {
         %alloc = cc.alloca i32
@@ -84,14 +86,14 @@ def cc_ScopeOp : CCOp<"scope",
   let arguments = (ins OptionalAttr<UnitAttr>:$atomic_quantum_region);
   let results = (outs Variadic<AnyType>:$results);
   let regions = (region AnyRegion:$initRegion);
-  
+
   let hasCustomAssemblyFormat = 1;
   let hasCanonicalizer = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::TypeRange",
       "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>")>,
-    OpBuilder<(ins 
+    OpBuilder<(ins
       CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>",
            "nullptr">)>
   ];
@@ -105,7 +107,7 @@ def cc_ScopeOp : CCOp<"scope",
 
     // Determine if the scope has a classical allocation, ignoring quantum.
     bool hasClassicalAllocation();
-    
+
     // Determine if the scope has a quantum allocation, ignoring classical.
     bool hasQuantumAllocation();
   }];
@@ -128,7 +130,7 @@ def cc_LoopOp : CCOp<"loop",
     has the following (maximal) structure.
 
     Example:
-    
+
     ```mlir
       cc.loop while {
         <while-code>
@@ -145,16 +147,16 @@ def cc_LoopOp : CCOp<"loop",
     cc.loop construct.
 
     - C/C++ `for` statement:
-    
+
     ```c++
       for (<init-code>; <while-code>; <step-code>) {
         <do-code>
       }
     ```
-    
+
     The above C++ `for` loop (C-style) is lowered to the following ScopeOp and
     LoopOp.
-    
+
     ```mlir
       cc.scope {
         <init-code>
@@ -177,10 +179,10 @@ def cc_LoopOp : CCOp<"loop",
         <do-code>
       }
     ```
-    
+
     The above C++ `while` loop is lowered to the following LoopOp. Note that
     the LoopOp's step region is left empty.
-    
+
     ```mlir
       cc.loop while {
         <while-code>
@@ -197,12 +199,12 @@ def cc_LoopOp : CCOp<"loop",
         <do-code>
       } while (<while-code>);
     ```
-    
+
     The above C++ `do while` loop is lowered to the following LoopOp. Once
     again, the LoopOp's step region is left empty. The semantics of this form of
     LoopOp are identical to a C `do while` loop. The body of the loop will be
     executed exactly one time before the control condition is evaluated.
-    
+
     ```mlir
       cc.loop do {
         <do-code>
@@ -365,7 +367,7 @@ def cc_IfOp : CCOp<"if",
     to the parent operation.
 
     Example:
-    
+
     ```mlir
       cc.if (%cond) {
         ^bb0:
@@ -386,7 +388,7 @@ def cc_IfOp : CCOp<"if",
 
   let arguments = (ins
     I1:$condition,
-    Variadic<AnyQLinearType>:$linearArgs
+    Variadic<AnyLinearType>:$linearArgs
   );
   let results = (outs Variadic<AnyType>:$results);
   let regions = (region
@@ -649,7 +651,7 @@ def cc_UnwindBreakOp : CCOp<"unwind_break", [
     ($operands^ `:` qualified(type($operands)))? attr-dict
   }];
 
-  let builders = [OpBuilder<(ins), [{ /* nothing to do */ }]>];  
+  let builders = [OpBuilder<(ins), [{ /* nothing to do */ }]>];
   let hasVerifier = 1;
   let hasCanonicalizer = 1;
 }
@@ -711,7 +713,7 @@ def cc_UnwindContinueOp : CCOp<"unwind_continue", [
     ($operands^ `:` qualified(type($operands)))? attr-dict
   }];
 
-  let builders = [OpBuilder<(ins), [{ /* nothing to do */ }]>];  
+  let builders = [OpBuilder<(ins), [{ /* nothing to do */ }]>];
   let hasVerifier = 1;
   let hasCanonicalizer = 1;
 }
@@ -767,7 +769,7 @@ def cc_UnwindReturnOp : CCOp<"unwind_return", [
     ($operands^ `:` qualified(type($operands)))? attr-dict
   }];
 
-  let builders = [OpBuilder<(ins), [{ /* nothing to do */ }]>];  
+  let builders = [OpBuilder<(ins), [{ /* nothing to do */ }]>];
   let hasVerifier = 1;
 }
 
@@ -910,7 +912,7 @@ def cc_AddressOfOp : CCOp<"address_of", [Pure,
       %fp = cc.address_of @my_void_function : !cc.ptr<() -> ()>
     ```
   }];
-  
+
   let arguments = (ins FlatSymbolRefAttr:$global_name);
   let results = (outs cc_PointerType:$res);
 
@@ -1099,7 +1101,7 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
                CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attributes)>,
     OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$basePtr,
                "mlir::ArrayRef<cudaq::cc::ComputePtrArg>":$indices,
-               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attributes)> 
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attributes)>
   ];
   let extraClassDeclaration = [{
     static constexpr std::int32_t kDynamicIndex =
@@ -1420,7 +1422,7 @@ def cc_CastOp : CCOp<"cast", [Pure]> {
 
   let hasCanonicalizer = 1;
   let hasVerifier = 1;
-  
+
   let assemblyFormat = [{
     ( `signed` $sint^ ):( ( `unsigned` $zint^ )? )? $value `:`
       functional-type(operands, results) attr-dict
@@ -1937,6 +1939,11 @@ def cc_VarargCallOp : CCOp<"call_vararg",
 
     The use of LLVMIR dialect for varargs functions is required as MLIR's Func
     dialect does not support varargs calls.
+
+    A call through this op to a callee that is not variadic is permitted as
+    long as it passes exactly the callee's parameters; passing extra arguments
+    to a `func.func` is rejected by the verifier. Such a call to a `func.func`
+    is canonicalized to a `func.call`.
   }];
 
   let arguments = (ins
@@ -1990,6 +1997,8 @@ def cc_VarargCallOp : CCOp<"call_vararg",
 
     mlir::LogicalResult verifySymbolUses(mlir::SymbolTableCollection &);
   }];
+
+  let hasCanonicalizer = 1;
 }
 
 

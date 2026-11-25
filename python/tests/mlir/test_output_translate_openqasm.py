@@ -39,7 +39,8 @@ def test_openqasm2_synth():
 
 def test_openqasm2_gates():
 
-    @cudaq.kernel
+    # Level 0 keeps every gate, including the rotation pairs that cancel.
+    @cudaq.kernel(disable_quantum_optimization=True)
     def gates():
         q = cudaq.qubit()
         ctrl0 = cudaq.qubit()
@@ -97,11 +98,11 @@ def test_openqasm2_gates():
 # CHECK-NEXT: tdg var0[0];
 # CHECK-NEXT: cx var0{{\[[12]\]}}, var0[0];
 # CHECK-NEXT: t var0[0];
+# CHECK-NEXT: t var0{{\[[12]\]}};
+# CHECK-NEXT: t var0{{\[[12]\]}};
 # CHECK-NEXT: cx var0{{\[[12]\]}}, var0{{\[[12]\]}};
 # CHECK-NEXT: tdg var0{{\[[12]\]}};
 # CHECK-NEXT: cx var0{{\[[12]\]}}, var0{{\[[12]\]}};
-# CHECK-NEXT: t var0{{\[[12]\]}};
-# CHECK-NEXT: t var0{{\[[12]\]}};
 # CHECK-NEXT: s var0[0];
 # CHECK-NEXT: cx var0{{\[[12]\]}}, var0[0];
 # CHECK-NEXT: ry(-1.570796e+00) var0[0];

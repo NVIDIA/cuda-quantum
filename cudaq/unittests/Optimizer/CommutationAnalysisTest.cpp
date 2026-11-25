@@ -274,7 +274,7 @@ TEST_F(CommutationAnalysisTest, ClassifiesRepresentativeSemanticRules) {
         %q2 = quake.null_wire
         %measurement, %measured:2 = quake.mz %q0, %q1
             : (!quake.wire, !quake.wire)
-              -> (!cc.sequence<!cc.measure_handle>, !quake.wire, !quake.wire)
+              -> (!cc.sequence<!quake.measure>, !quake.wire, !quake.wire)
         %x = quake.x %q2 : (!quake.wire) -> !quake.wire
         quake.sink %measured#0 : !quake.wire
         quake.sink %measured#1 : !quake.wire

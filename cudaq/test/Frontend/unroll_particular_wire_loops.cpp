@@ -123,13 +123,13 @@ __qpu__ bool keeps_measurement_data_loop() {
 // CHECK-NOT:       quake.extract_ref
 // CHECK:           %[[X0:.*]] = quake.x %[[Q0]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[X2:.*]] = quake.x %[[Q2]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[HANDLES:.*]] = cc.alloca !cc.array<!cc.measure_handle x 3>
-// CHECK:           %[[M0:.*]], %[[W0:.*]] = quake.mz %[[X0]] name "bits" : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           cc.store %[[M0]], %{{.*}} : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[M1:.*]], %[[W1:.*]] = quake.mz %[[Q1]] name "bits" : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           cc.store %[[M1]], %{{.*}} : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[M2:.*]], %[[W2:.*]] = quake.mz %[[X2]] name "bits" : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-// CHECK:           cc.store %[[M2]], %{{.*}} : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[HANDLES:.*]] = cc.alloca !cc.array<!quake.measure x 3>
+// CHECK:           %[[M0:.*]], %[[W0:.*]] = quake.mz %[[X0]] name "bits" : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           cc.store %[[M0]], %{{.*}} : !cc.ptr<!quake.measure>
+// CHECK:           %[[M1:.*]], %[[W1:.*]] = quake.mz %[[Q1]] name "bits" : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           cc.store %[[M1]], %{{.*}} : !cc.ptr<!quake.measure>
+// CHECK:           %[[M2:.*]], %[[W2:.*]] = quake.mz %[[X2]] name "bits" : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           cc.store %[[M2]], %{{.*}} : !cc.ptr<!quake.measure>
 // CHECK-NOT:       quake.alloca
 // CHECK-NOT:       quake.unwrap
 // CHECK-NOT:       quake.wrap
@@ -137,9 +137,9 @@ __qpu__ bool keeps_measurement_data_loop() {
 // CHECK-NOT:       quake.extract_ref
 // CHECK:           %[[LOOP:.*]]:2 = cc.loop while
 // CHECK-SAME:        (i32, i1)
-// CHECK:             %[[PTR:.*]] = cc.compute_ptr %[[HANDLES]]{{\[}}%{{.*}}] : (!cc.ptr<!cc.array<!cc.measure_handle x 3>>, i64) -> !cc.ptr<!cc.measure_handle>
-// CHECK:             %[[HANDLE:.*]] = cc.load %[[PTR]] : !cc.ptr<!cc.measure_handle>
-// CHECK:             quake.discriminate %[[HANDLE]] : (!cc.measure_handle) -> i1
+// CHECK:             %[[PTR:.*]] = cc.compute_ptr %[[HANDLES]]{{\[}}%{{.*}}] : (!cc.ptr<!cc.array<!quake.measure x 3>>, i64) -> !cc.ptr<!quake.measure>
+// CHECK:             %[[HANDLE:.*]] = cc.load %[[PTR]] : !cc.ptr<!quake.measure>
+// CHECK:             quake.discriminate %[[HANDLE]] : (!quake.measure) -> i1
 // CHECK:             cc.continue
 // CHECK:           quake.return_wire %[[W0]] : !quake.wire
 // CHECK:           quake.return_wire %[[W1]] : !quake.wire

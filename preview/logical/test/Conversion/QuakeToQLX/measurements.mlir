@@ -15,12 +15,12 @@ module {
     %0 = quake.null_wire
     %1 = quake.null_wire
     %2 = quake.null_wire
-    %mx, %wx = quake.mx %0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %my, %wy = quake.my %1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %mz, %wz = quake.mz %2 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %x = quake.discriminate %mx : (!cc.measure_handle) -> i1
-    %y = quake.discriminate %my : (!cc.measure_handle) -> i1
-    %z = quake.discriminate %mz : (!cc.measure_handle) -> i1
+    %mx, %wx = quake.mx %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %my, %wy = quake.my %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %mz, %wz = quake.mz %2 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %x = quake.discriminate %mx : (!quake.measure) -> i1
+    %y = quake.discriminate %my : (!quake.measure) -> i1
+    %z = quake.discriminate %mz : (!quake.measure) -> i1
     quake.sink %wx : !quake.wire
     quake.sink %wy : !quake.wire
     quake.sink %wz : !quake.wire
@@ -75,8 +75,8 @@ module {
   func.func @__nvqpp__mlirgen__flip..0x1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.null_wire
     %1 = quake.x %0 : (!quake.wire) -> !quake.wire
-    %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %2 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+    %measOut, %wires = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %2 = quake.discriminate %measOut : (!quake.measure) -> i1
     quake.sink %wires : !quake.wire
     return %2 : i1
   }
@@ -153,10 +153,10 @@ module {
     %1 = quake.null_wire
     %2 = quake.h %0 : (!quake.wire) -> !quake.wire
     %3:2 = quake.x [%2] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-    %measOut, %wires = quake.mz %3#0 name "first" : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %measOut_0, %wires_1 = quake.mz %3#1 name "second" : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %4 = quake.discriminate %measOut_0 : (!cc.measure_handle) -> i1
-    %5 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+    %measOut, %wires = quake.mz %3#0 name "first" : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %measOut_0, %wires_1 = quake.mz %3#1 name "second" : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %4 = quake.discriminate %measOut_0 : (!quake.measure) -> i1
+    %5 = quake.discriminate %measOut : (!quake.measure) -> i1
     %6 = cc.undef !cc.struct<"tuple" {i1, i1}>
     %7 = cc.insert_value %6[0], %4 : (!cc.struct<"tuple" {i1, i1}>, i1) -> !cc.struct<"tuple" {i1, i1}>
     %8 = cc.insert_value %7[1], %5 : (!cc.struct<"tuple" {i1, i1}>, i1) -> !cc.struct<"tuple" {i1, i1}>

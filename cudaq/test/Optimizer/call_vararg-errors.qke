@@ -1,0 +1,36 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --split-input-file --verify-diagnostics %s
+
+// Extra (variadic) arguments must not be passed to a non-variadic func.func.
+func.func private @plain(i32)
+
+func.func @extra(%a: i32, %b: i32) {
+  // expected-error@+1 {{variadic arguments passed to a non-variadic callee}}
+  cc.call_vararg @plain(%a, %b) : (i32, i32) -> ()
+  return
+}
+
+// -----
+
+func.func private @plain(i32)
+
+func.func @type_mismatch(%a: f64) {
+  // expected-error@+1 {{operand type mismatch}}
+  cc.call_vararg @plain(%a) : (f64) -> ()
+  return
+}
+
+// -----
+
+func.func @missing(%a: i32) {
+  // expected-error@+1 {{does not reference a valid function}}
+  cc.call_vararg @nowhere(%a) : (i32) -> ()
+  return
+}

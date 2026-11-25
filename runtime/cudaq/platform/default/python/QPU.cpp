@@ -82,11 +82,9 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
       cudaq::opt::addAggressiveInlining(pm);
       cudaq::opt::createTargetFinalizePipeline(pm);
     }
-    bool disableQuantumOpt = compiled.getMetadata().optimizationLevel ==
-                             cudaq::OptimizationLevel::O0;
-    cudaq::opt::addAOTPipelineConvertToQIR(pm, format,
-                                           /*useValueSemantics=*/
-                                           !disableQuantumOpt);
+    cudaq::opt::addAOTPipelineConvertToQIR(
+        pm, format,
+        cudaq_internal::compiler::codegenMode(compiled.getMetadata()));
   }
   if (failed(cudaq_internal::compiler::runPassManager(pm, compiled_module)))
     throw std::runtime_error("Pass pipeline failed.");

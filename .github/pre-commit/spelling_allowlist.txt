@@ -52,6 +52,7 @@ CuDensityMat
 CuPy
 DCO
 DEMs
+DEP
 DGX
 DLP
 DOCA
@@ -71,11 +72,13 @@ FPGA
 FPGAs
 FabricToQIR
 Fermion
+FetchDependencies
 Floquet
 Fock
 ForLoop
 Fortran
 Fourier
+GDRCopy
 GF
 GHCR
 GMP
@@ -143,6 +146,7 @@ MPICH
 MPPs
 MPS
 MSB
+MUNGE
 MacOS
 MachineModel
 Magnus
@@ -161,6 +165,7 @@ NVQLink
 Nielsen
 NumPy
 Numba
+OFED
 OPX
 OQC
 ORCA
@@ -173,6 +178,8 @@ OpenSSL
 OpenSUSE
 Ou
 PBC
+PMI
+PMIx
 POSIX
 PSIRT
 PTSBE
@@ -251,6 +258,7 @@ Scaleway
 SelectionOp
 Selinger
 Shutty
+Slurm
 Sqale
 Steane
 Stim
@@ -267,7 +275,9 @@ Toffoli
 Toshiko
 TryTakeOp
 UC
+UCC
 UCCSD
+UCX
 UDD
 UMA
 UTF
@@ -369,6 +379,7 @@ cflow
 checkable
 circulant
 circulants
+cmake
 cnot
 codebase
 codecs
@@ -383,6 +394,7 @@ compat
 composability
 composable
 config
+configurability
 conftest
 constructible
 controlled
@@ -407,6 +419,7 @@ cuQuantum
 cuTensor
 cudaq
 cudaqPulseRunCanonicalize
+cudaqx
 cudm
 cultiv
 cwd
@@ -448,6 +461,8 @@ destructors
 deterministically
 detuning
 deutsch
+devcontainer
+devdeps
 diag
 dicts
 dimensionality
@@ -459,6 +474,8 @@ discretized
 dispersive
 dissipator
 dissipators
+dkms
+doca
 dominator
 dsurface
 dt
@@ -541,6 +558,7 @@ hz
 iXZ
 idx
 iff
+importlib
 increment
 incrementing
 init
@@ -572,6 +590,7 @@ iteratively
 kOp
 ket
 kets
+knem
 krylov
 legalizations
 len
@@ -616,6 +635,7 @@ miscalibration
 misclassified
 mixup
 mlir
+mlnx
 monomial
 monomials
 monotonicity
@@ -651,6 +671,8 @@ numpy
 nvcc
 nvq
 observables
+ofed
+ompi
 operand's
 opname
 optimizer
@@ -693,6 +715,7 @@ prepended
 prepends
 preprocessing
 preprocessor
+prereqs
 probability
 prog
 programmatically
@@ -727,6 +750,7 @@ qumode
 qumodes
 qvec
 rabi
+rdma
 reStructuredText
 realtime
 rebindings
@@ -775,6 +799,7 @@ schedulable
 scheduler's
 schemas
 sdg
+sdist
 selectable
 serializable
 sexualized
@@ -793,6 +818,7 @@ sqale
 sqrt
 statevector
 stderr
+stdin
 stdout
 stim
 str
@@ -844,6 +870,7 @@ toolchains
 toolset
 topologies
 toric
+tpls
 traceback
 tracebacks
 transactional
@@ -856,10 +883,12 @@ triorthogonal
 trixie
 trotterization
 trotterized
+tsv
 tunable
 tx
 typeinfo
 uccsd
+ucx
 uint
 unadopted
 unary
@@ -892,6 +921,7 @@ untracked
 upstream's
 upvote
 url
+uv
 validator
 variadic
 variational
@@ -913,4 +943,5 @@ whitespace
 workflow
 workspaces
 worldlines
+xpmem
 zener

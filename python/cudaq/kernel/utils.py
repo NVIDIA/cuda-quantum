@@ -50,7 +50,7 @@ boundaryDiagnostic = (
 
 
 def containsMeasureHandle(ty, _seen=None):
-    """Return True iff ``ty`` is ``!cc.measure_handle`` or transitively
+    """Return True iff ``ty`` is ``!quake.measure`` or transitively
     contains one. The walk stops at callable / function-type boundaries: a
     callable parameter's signature is a device-side type contract for the
     body of the callable, not a slot for a handle value.
@@ -60,7 +60,7 @@ def containsMeasureHandle(ty, _seen=None):
     if ty is None or id(ty) in _seen:
         return False
     _seen.add(id(ty))
-    if cc.MeasureHandleType.isinstance(ty):
+    if quake.MeasureType.isinstance(ty):
         return True
     if cc.PointerType.isinstance(ty):
         return containsMeasureHandle(cc.PointerType.getElementType(ty), _seen)
@@ -508,7 +508,7 @@ def mlirTypeFromAnnotation(annotation,
                 if annotation.attr == 'pauli_word':
                     return cc.CharspanType.get()
                 if annotation.attr == 'measure_handle':
-                    return cc.MeasureHandleType.get()
+                    return quake.MeasureType.get()
 
             if annotation.value.id in ['numpy', 'np']:
                 if annotation.attr in ['array', 'ndarray']:
@@ -706,7 +706,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return F64Type.get(ctx)
     if argType == np.float32:
         return F32Type.get(ctx)
-    if argType == bool:
+    if argType in [bool, np.bool_]:
         return IntegerType.get_signless(1, ctx)
     if argType == complex:
         return ComplexType.get(mlirTypeFromPyType(float, ctx))
@@ -801,7 +801,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
     if argType == measure_handle:
-        return cc.MeasureHandleType.get(ctx)
+        return quake.MeasureType.get(ctx)
 
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
@@ -881,7 +881,7 @@ def mlirTypeToPyType(argType):
     if cc.CharspanType.isinstance(argType):
         return pauli_word
 
-    if cc.MeasureHandleType.isinstance(argType):
+    if quake.MeasureType.isinstance(argType):
         return measure_handle
 
     if cc.SequenceType.isinstance(argType):

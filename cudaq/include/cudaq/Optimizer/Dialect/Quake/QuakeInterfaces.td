@@ -94,6 +94,14 @@ def MeasurementInterface : OpInterface<"MeasurementInterface"> {
     returns a classical value, resp. a bit (bitstring). A measurement "destroys"
     the value of the qubit in the sense the information that the qubit encoded
     in its state is not recoverable.
+
+    A measurement either measures each of its targets independently, giving
+    one classical result per target (e.g., `mz`), or it measures all of its
+    targets together as a single joint observable, giving exactly one classical
+    result no matter how many targets there are (e.g., `mpp`). Code that
+    assumes the first form, such as code that pairs each target with a result
+    or that treats each target as an independent single-qubit measurement, must
+    consult `isJointMeasurement` before treating a measurement generically.
   }];
   let cppNamespace = "cudaq::quake";
 
@@ -111,6 +119,16 @@ def MeasurementInterface : OpInterface<"MeasurementInterface"> {
       /*methodName=*/ "getWires",
       /*args=*/ (ins),
       /*methodBody=*/ "return $_op.getWires();"
+    >,
+    InterfaceMethod<
+      /*desc=*/ [{ Returns true if the targets are measured together as one
+                   joint observable that yields a single classical result,
+                   and false if each target is measured independently. }],
+      /*retType=*/ "bool",
+      /*methodName=*/ "isJointMeasurement",
+      /*args=*/ (ins),
+      /*methodBody=*/ [{}],
+      /*defaultImplementation=*/ "return false;"
     >,
     InterfaceMethod<
       /*desc=*/ "Returns the register name, if any.",

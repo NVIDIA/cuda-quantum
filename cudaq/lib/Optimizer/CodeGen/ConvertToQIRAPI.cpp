@@ -153,19 +153,15 @@ struct QIRAPITypeConverter : public TypeConverter {
     addConversion([&](cudaq::quake::CableType ty) {
       return getArrayType(ty.getContext());
     });
-    addConversion([&](cudaq::quake::MeasureType ty) {
-      return getResultType(ty.getContext());
+    // A measurement result is an opaque `i64` handle in every API flavor. The
+    // flavor decides how the handle is produced (a runtime entry that returns
+    // it directly, or a `Result*` token cast to `i64`) and how it is read back
+    // (`read_result` on the token), not what type it has.
+    addConversion([](cudaq::quake::MeasureType ty) -> Type {
+      return IntegerType::get(ty.getContext(), 64);
     });
     addConversion(
         [&](cudaq::quake::StruqType ty) { return convertStruqType(ty); });
-    // `!cc.measure_handle` is the IR alias of `cudaq::measure_handle`. The
-    // QIR API models classical measurement results as `Result*` (legacy
-    // `quake.measure`) or as opaque `i64` payloads (handle form). The
-    // measurement / discriminate patterns bridge `Result*` to/from `i64`
-    // when the original op carried a handle.
-    addConversion([](cudaq::cc::MeasureHandleType ty) -> Type {
-      return IntegerType::get(ty.getContext(), 64);
-    });
     // Recursively convert handle / quake types nested in CC array and
     // sequence types so that container-shaped function signatures, allocations,
     // and pointers see consistent post-conversion element types.
@@ -827,29 +823,19 @@ struct DiscriminateOpRewrite
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = disc.getLoc();
     Value m = adaptor.getMeasurement();
-    // Handle-form: the operand is the opaque i64 handle produced by
-    // `mz_handle__to__register`. Round-trip it through `Result*` and call
-    // the QIR runtime's canonical `__quantum__rt__read_result` reader, which
-    // looks the bit up under the inttoptr-encoded key the handle entry
-    // populated.
-    if (isa<IntegerType>(m.getType())) {
-      auto ctx = rewriter.getContext();
-      auto resultPtrTy =
-          static_cast<const QIRAPITypeConverter *>(getTypeConverter())
-              ->getResultType(ctx);
-      auto resAsPtr = cudaq::cc::CastOp::create(rewriter, loc, resultPtrTy, m);
-      rewriter.replaceOpWithNewOp<func::CallOp>(disc, rewriter.getI1Type(),
-                                                cudaq::opt::qir1_0::ReadResult,
-                                                ValueRange{resAsPtr});
-      return success();
-    }
-    // Non-handle path: legacy `Result* -> ptr<i1>; load` pattern. Safe
-    // because the only producer of `Result*` outside the handle path is
-    // the sentinel-returning `mz` / `mz__to__register`, where
-    // `Result = bool` and the pointer is dereferenceable.
-    auto i1PtrTy = cudaq::cc::PointerType::get(rewriter.getI1Type());
-    auto cast = cudaq::cc::CastOp::create(rewriter, loc, i1PtrTy, m);
-    rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(disc, cast);
+    // The operand is the opaque i64 handle produced by
+    // `mz_handle__to__register`. Round-trip it through `Result*` and call the
+    // QIR runtime's canonical `__quantum__rt__read_result` reader, which looks
+    // the bit up under the inttoptr-encoded key the handle entry populated.
+    assert(isa<IntegerType>(m.getType()) && "measurement must be a handle");
+    auto ctx = rewriter.getContext();
+    auto resultPtrTy =
+        static_cast<const QIRAPITypeConverter *>(getTypeConverter())
+            ->getResultType(ctx);
+    auto resAsPtr = cudaq::cc::CastOp::create(rewriter, loc, resultPtrTy, m);
+    rewriter.replaceOpWithNewOp<func::CallOp>(disc, rewriter.getI1Type(),
+                                              cudaq::opt::qir1_0::ReadResult,
+                                              ValueRange{resAsPtr});
     return success();
   }
 };
@@ -866,41 +852,26 @@ struct DiscriminateOpToCallRewrite
   matchAndRewrite(cudaq::quake::DiscriminateOp disc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = disc.getLoc();
-    // Handle-form callers feed `quake.discriminate` an `i64` payload (the
-    // converted form of `!cc.measure_handle`). Restore the `Result*` view
-    // expected by the QIR read-result functions.
+    // The operand is the `i64` handle payload. Restore the `Result*` view
+    // expected by the QIR read-result functions. The runtime call recovers the
+    // bit without exposing the QEC chronological index contract to ordinary
+    // `discriminate(handle)`; dereferencing the integer-encoded pointer
+    // directly would segfault.
     SmallVector<Value> operands{adaptor.getOperands().begin(),
                                 adaptor.getOperands().end()};
-    const bool operandIsHandle =
-        operands.size() == 1 && isa<IntegerType>(operands.front().getType());
-    if (operandIsHandle) {
-      auto resultTy = M::getResultType(rewriter.getContext());
-      operands.front() =
-          cudaq::cc::CastOp::create(rewriter, loc, resultTy, operands.front());
-    }
-    // For handle-form callers, the i64 payload is an opaque runtime handle.
-    // Loading through `Result*` as if it were `bool*` (the legacy bitcast+load
-    // pattern below) would dereference an integer-encoded pointer and segfault.
-    // The read-result runtime call recovers the bit without exposing the QEC
-    // chronological index contract to ordinary `discriminate(handle)`.
-    if (operandIsHandle || M::discriminateToClassical) {
-      if constexpr (M::qirVersion == QirVersion::version_1_0) {
-        rewriter.replaceOpWithNewOp<func::CallOp>(
-            disc, rewriter.getI1Type(), cudaq::opt::qir1_0::ReadResult,
-            operands);
-      } else {
-        rewriter.replaceOpWithNewOp<func::CallOp>(
-            disc, rewriter.getI1Type(), cudaq::opt::qir0_1::ReadResultBody,
-            operands);
-      }
+    assert(operands.size() == 1 &&
+           isa<IntegerType>(operands.front().getType()) &&
+           "measurement must be a handle");
+    auto resultTy = M::getResultType(rewriter.getContext());
+    operands.front() =
+        cudaq::cc::CastOp::create(rewriter, loc, resultTy, operands.front());
+    if constexpr (M::qirVersion == QirVersion::version_1_0) {
+      rewriter.replaceOpWithNewOp<func::CallOp>(
+          disc, rewriter.getI1Type(), cudaq::opt::qir1_0::ReadResult, operands);
     } else {
-      // NB: the double cast here is to avoid folding the pointer casts.
-      auto i64Ty = rewriter.getI64Type();
-      auto unu = cudaq::cc::CastOp::create(rewriter, loc, i64Ty,
-                                           adaptor.getOperands());
-      auto ptrI1Ty = cudaq::cc::PointerType::get(rewriter.getI1Type());
-      auto du = cudaq::cc::CastOp::create(rewriter, loc, ptrI1Ty, unu);
-      rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(disc, du);
+      rewriter.replaceOpWithNewOp<func::CallOp>(
+          disc, rewriter.getI1Type(), cudaq::opt::qir0_1::ReadResultBody,
+          operands);
     }
     return success();
   }
@@ -1675,54 +1646,32 @@ struct MeasurementOpPattern : public OpConversionPattern<cudaq::quake::MzOp> {
                             adaptor.getTargets().end()};
     auto functionName = M::getQIRMeasure();
 
-    // Handle-form measurements produce a `!cc.measure_handle` SSA value whose
-    // converted type is `i64`. Route handle-form callers to the sibling runtime
+    // Measurements produce an `i64` handle (the converted form of
+    // `!quake.measure`). Where the flavor allows it, route to the runtime
     // entry `__quantum__qis__mz_handle__to__register`; ordinary discrimination
     // treats the return value as an opaque handle, while QEC runtime calls map
     // it to a chronological measurement index.
-    const bool measOutIsHandle =
-        isa<cudaq::cc::MeasureHandleType>(mz.getMeasOut().getType());
 
     // Are we using the measurement that returns a result?
     if constexpr (M::mzReturnsResultType) {
-      // Handle-form gets its own runtime entry that returns `i64` directly.
-      if (measOutIsHandle) {
-        StringRef runtimeRegisterName =
-            mz->getAttr(cudaq::opt::MzAssignedNameAttrName)
-                ? regNameAttr.getValue()
-                : StringRef{};
-        auto cstringGlobal =
-            createGlobalCString(mz, loc, rewriter, runtimeRegisterName);
-        args.push_back(cstringGlobal);
-        auto i64Ty = rewriter.getI64Type();
-        auto call = func::CallOp::create(
-            rewriter, loc, i64Ty, cudaq::opt::QIRMeasureHandleToRegister, args);
-        call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
-        SmallVector<Value> replaceVals;
-        replaceVals.push_back(call.getResult(0));
-        auto assundry = filterArgs(mz, adaptor.getTargets());
-        replaceVals.append(assundry.begin(), assundry.end());
-        rewriter.replaceOp(mz, replaceVals);
-        return success();
-      }
-
-      // Non-handle path: use the standard mz / mz__to__register call and
-      // forward its `Result*` result unchanged.
-      if (mz->getAttr(cudaq::opt::MzAssignedNameAttrName)) {
-        functionName = cudaq::opt::QIRMeasureToRegister;
-        auto cstringGlobal =
-            createGlobalCString(mz, loc, rewriter, regNameAttr.getValue());
-        args.push_back(cstringGlobal);
-      }
-      auto resultTy = M::getResultType(rewriter.getContext());
-      auto call =
-          func::CallOp::create(rewriter, loc, resultTy, functionName, args);
-      auto assundry = filterArgs(mz, adaptor.getTargets());
+      // The handle entry returns `i64` directly.
+      StringRef runtimeRegisterName =
+          mz->getAttr(cudaq::opt::MzAssignedNameAttrName)
+              ? regNameAttr.getValue()
+              : StringRef{};
+      auto cstringGlobal =
+          createGlobalCString(mz, loc, rewriter, runtimeRegisterName);
+      args.push_back(cstringGlobal);
+      auto i64Ty = rewriter.getI64Type();
+      auto call = func::CallOp::create(
+          rewriter, loc, i64Ty, cudaq::opt::QIRMeasureHandleToRegister, args);
+      call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
       SmallVector<Value> replaceVals;
-      replaceVals.append(call.getResults().begin(), call.getResults().end());
+      replaceVals.push_back(call.getResult(0));
+      auto assundry = filterArgs(mz, adaptor.getTargets());
       replaceVals.append(assundry.begin(), assundry.end());
       rewriter.replaceOp(mz, replaceVals);
-      call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
+      return success();
     } else {
       // No, the measurement doesn't return any result so use a much more
       // convoluted pattern.
@@ -1742,18 +1691,16 @@ struct MeasurementOpPattern : public OpConversionPattern<cudaq::quake::MzOp> {
       auto call =
           func::CallOp::create(rewriter, loc, TypeRange{}, functionName, args);
       call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
-      // For handle-form callers, materialize the back-cast `Result* -> i64`
-      // here so it dominates downstream uses. The `!discriminateToClassical`
-      // branch below moves the insertion point to the block terminator for
-      // the record-output call, after which a cast would not dominate.
+      // Materialize the back-cast `Result* -> i64` here so it dominates
+      // downstream uses. The `recordOutputMustBeAtEnd` branch below moves the
+      // insertion point to the block terminator for the record-output call,
+      // after which a cast would not dominate.
 
       auto i64Ty = rewriter.getI64Type();
-      Value handleRes =
-          measOutIsHandle ? cudaq::cc::CastOp::create(rewriter, loc, i64Ty, res)
-                          : res;
+      Value handleRes = cudaq::cc::CastOp::create(rewriter, loc, i64Ty, res);
       auto cstringGlobal =
           createGlobalCString(mz, loc, rewriter, regNameAttr.getValue());
-      if constexpr (!M::discriminateToClassical) {
+      if constexpr (M::recordOutputMustBeAtEnd) {
         // These QIR profile variants force all record output calls to appear
         // at the end. In these variants, control-flow isn't allowed in the
         // final LLVM. Therefore, a single basic block is assumed but unchecked
@@ -2347,7 +2294,7 @@ using PoisonOpPattern = OpInterfacePattern<cudaq::cc::PoisonOp>;
 using CastOpPattern = OpInterfacePattern<cudaq::cc::CastOp>;
 using SelectOpPattern = OpInterfacePattern<arith::SelectOp>;
 // Pointer-arithmetic and `sequence` accessors carry pointer/`sequence` types
-// whose element types may need conversion (notably `!cc.measure_handle` ->
+// whose element types may need conversion (notably `!quake.measure` ->
 // `i64`). Without explicit patterns the type converter inserts unrealized casts
 // on their results that the partial conversion cannot resolve.
 using ComputePtrOpPattern = OpInterfacePattern<cudaq::cc::ComputePtrOp>;
@@ -2854,7 +2801,9 @@ struct BaseProfileQIR : public AnyProfileQIR<opaquePtr> {
             typeConverter, patterns.getContext());
   }
 
-  static constexpr bool discriminateToClassical = false;
+  // The base profile requires every `result_record_output` call to come last,
+  // after all measurements, in a single basic block.
+  static constexpr bool recordOutputMustBeAtEnd = true;
   static constexpr QirVersion qirVersion = version;
 };
 
@@ -2872,7 +2821,9 @@ struct AdaptiveProfileQIR : public AnyProfileQIR<opaquePtr> {
             typeConverter, patterns.getContext());
   }
 
-  static constexpr bool discriminateToClassical = true;
+  // The adaptive profile allows control flow, so the record output call stays
+  // next to its measurement.
+  static constexpr bool recordOutputMustBeAtEnd = false;
   static constexpr QirVersion qirVersion = version;
 };
 
@@ -2994,8 +2945,8 @@ struct QuakeToQIRAPIPass
   // by `QIRAPITypeConverter`. The recursion descends through CC container
   // types that the converter rewrites (`cc.ptr`, `cc.callable`,
   // `cc.indirect_callable`, function types, `cc.array`, `cc.sequence`) and the
-  // leaf check covers Quake types and `!cc.measure_handle` (the IR alias of
-  // `cudaq::measure_handle`, lowered to `i64`).
+  // leaf check covers Quake types (including `!quake.measure`, lowered to
+  // `i64`).
   static bool needsTypeConversion(Type ty) {
     if (auto pty = dyn_cast<cudaq::cc::PointerType>(ty))
       return needsTypeConversion(pty.getElementType());
@@ -3016,8 +2967,7 @@ struct QuakeToQIRAPIPass
           return true;
       return false;
     }
-    return cudaq::quake::isQuakeType(ty) ||
-           isa<cudaq::cc::MeasureHandleType>(ty);
+    return cudaq::quake::isQuakeType(ty);
   }
 
   void runOnOperation() override {

@@ -34,7 +34,7 @@ The executable walkthroughs in [`examples/`](examples/README.md) cover:
 - Fermi--Hubbard and Gidney--Ekerå application studies;
 - standalone Python authoring with each compiler step exposed;
 - encoded circuit execution and T-state distillation through `cudaq.run`
-  (standalone examples 06 and 07); and
+  (standalone examples 05 and 06); and
 - standalone MLIR workflows through `qlx-opt` and `qlx-translate`.
 
 The full documentation (quick start, concepts, workflow guides, and the example

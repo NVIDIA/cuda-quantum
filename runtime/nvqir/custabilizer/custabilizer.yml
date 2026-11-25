@@ -6,9 +6,18 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+version: 2-alpha
 name: custabilizer
 description: "cuStabilizer-accelerated backend target"
 gpu-requirements: true
 config:
   nvqir-simulation-backend: custabilizer
   preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-unmapped
+        options:
+          cost-model: gate-count
+          max-unroll-iterations: 50 # The current `cc-loop-unroll` default.

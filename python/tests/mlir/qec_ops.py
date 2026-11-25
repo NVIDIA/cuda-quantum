@@ -31,8 +31,8 @@ def test_detector_scalar():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_detector_scalar
 # CHECK-SAME:      attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "h" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           qec.detector %[[VAL_1]] : !cc.measure_handle
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "h" : (!quake.ref) -> !quake.measure
+# CHECK:           qec.detector %[[VAL_1]] : !quake.measure
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -58,10 +58,10 @@ def test_detector_variadic():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_detector_variadic
-# CHECK:           %[[H0:.*]] = quake.mz %{{.*}} name "h0" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[H1:.*]] = quake.mz %{{.*}} name "h1" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[H2:.*]] = quake.mz %{{.*}} name "h2" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           qec.detector %[[H0]], %[[H1]], %[[H2]] : !cc.measure_handle, !cc.measure_handle, !cc.measure_handle
+# CHECK:           %[[H0:.*]] = quake.mz %{{.*}} name "h0" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[H1:.*]] = quake.mz %{{.*}} name "h1" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[H2:.*]] = quake.mz %{{.*}} name "h2" : (!quake.ref) -> !quake.measure
+# CHECK:           qec.detector %[[H0]], %[[H1]], %[[H2]] : !quake.measure, !quake.measure, !quake.measure
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -83,8 +83,8 @@ def test_detector_vector():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_detector_vector
-# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<4>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           qec.detector %[[VS]] : !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<4>) -> !cc.sequence<!quake.measure>
+# CHECK:           qec.detector %[[VS]] : !cc.sequence<!quake.measure>
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -110,7 +110,7 @@ def test_observable_variadic():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_observable_variadic
 # CHECK:           %[[H0:.*]] = quake.mz %{{.*}} name "h0"
 # CHECK:           %[[H1:.*]] = quake.mz %{{.*}} name "h1"
-# CHECK:           qec.observable %[[H0]], %[[H1]] : !cc.measure_handle, !cc.measure_handle
+# CHECK:           qec.observable %[[H0]], %[[H1]] : !quake.measure, !quake.measure
 # CHECK-NOT:       index
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
@@ -133,8 +133,8 @@ def test_observable_vector():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_observable_vector_default
-# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           qec.observable %[[VS]] : !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+# CHECK:           qec.observable %[[VS]] : !cc.sequence<!quake.measure>
 # CHECK-NOT:       index
 # CHECK:           return
 # CHECK:         }
@@ -156,8 +156,8 @@ def test_observable_indexed():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_observable_explicit_idx
-# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           qec.observable %[[VS]] index 2 : !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+# CHECK:           qec.observable %[[VS]] index 2 : !cc.sequence<!quake.measure>
 # CHECK:           return
 # CHECK:         }
 
@@ -178,8 +178,8 @@ def test_detector_nested_mz():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_detector_nested_mz
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[H:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !cc.measure_handle
-# CHECK:           qec.detector %[[H]] : !cc.measure_handle
+# CHECK:           %[[H:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
+# CHECK:           qec.detector %[[H]] : !quake.measure
 # CHECK:           return
 # CHECK:         }
 
@@ -207,9 +207,9 @@ def test_detector_mixed():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_detector_mixed
-# CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} name "h" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "hs" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           qec.detector %[[VAL_HS]], %[[VAL_M]] : !cc.sequence<!cc.measure_handle>, !cc.measure_handle
+# CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} name "h" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "hs" : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+# CHECK:           qec.detector %[[VAL_HS]], %[[VAL_M]] : !cc.sequence<!quake.measure>, !quake.measure
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -233,9 +233,9 @@ def test_pair_detectors():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_pair_detectors
-# CHECK:           %[[P:.*]] = quake.mz %{{.*}} name "prev" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           %[[C:.*]] = quake.mz %{{.*}} name "curr" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           qec.pair_detectors %[[P]], %[[C]] : <!cc.measure_handle>, <!cc.measure_handle>
+# CHECK:           %[[P:.*]] = quake.mz %{{.*}} name "prev" : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+# CHECK:           %[[C:.*]] = quake.mz %{{.*}} name "curr" : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+# CHECK:           qec.pair_detectors %[[P]], %[[C]] : <!quake.measure>, <!quake.measure>
 # CHECK:           return
 # CHECK:         }
 
@@ -287,13 +287,13 @@ def test_rep_code_d3():
 # CHECK-DAG:       %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<3>
 # CHECK-DAG:       %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
 # CHECK-DAG:       %[[ALLOCA_2:.*]] = quake.alloca !quake.ref
-# CHECK-DAG:       %[[UNDEF_0:.*]] = cc.undef !cc.measure_handle
-# CHECK-DAG:       %[[UNDEF_1:.*]] = cc.undef !cc.measure_handle
-# CHECK:           %[[LOOP_0:.*]]:3 = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_1]], %[[VAL_2:.*]] = %[[UNDEF_0]], %[[VAL_3:.*]] = %[[UNDEF_1]]) -> (i64, !cc.measure_handle, !cc.measure_handle)) {
+# CHECK-DAG:       %[[UNDEF_0:.*]] = cc.undef !quake.measure
+# CHECK-DAG:       %[[UNDEF_1:.*]] = cc.undef !quake.measure
+# CHECK:           %[[LOOP_0:.*]]:3 = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_1]], %[[VAL_2:.*]] = %[[UNDEF_0]], %[[VAL_3:.*]] = %[[UNDEF_1]]) -> (i64, !quake.measure, !quake.measure)) {
 # CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[ARG0]] : i64
-# CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]], %[[VAL_2]], %[[VAL_3]] : i64, !cc.measure_handle, !cc.measure_handle)
+# CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]], %[[VAL_2]], %[[VAL_3]] : i64, !quake.measure, !quake.measure)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_6:.*]]: i64, %[[VAL_8:.*]]: !cc.measure_handle, %[[VAL_9:.*]]: !cc.measure_handle):
+# CHECK:           ^bb0(%[[VAL_6:.*]]: i64, %[[VAL_8:.*]]: !quake.measure, %[[VAL_9:.*]]: !quake.measure):
 # CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<3>) -> !quake.ref
 # CHECK:             quake.x {{\[}}%[[EXTRACT_REF_0]]] %[[ALLOCA_1]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:             %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<3>) -> !quake.ref
@@ -301,24 +301,24 @@ def test_rep_code_d3():
 # CHECK:             quake.x {{\[}}%[[EXTRACT_REF_1]]] %[[ALLOCA_2]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:             %[[EXTRACT_REF_3:.*]] = quake.extract_ref %[[ALLOCA_0]][2] : (!quake.veq<3>) -> !quake.ref
 # CHECK:             quake.x {{\[}}%[[EXTRACT_REF_3]]] %[[ALLOCA_2]] : (!quake.ref, !quake.ref) -> ()
-# CHECK:             %[[MZ_0:.*]] = quake.mz %[[ALLOCA_1]] name "s0" : (!quake.ref) -> !cc.measure_handle
-# CHECK:             %[[MZ_1:.*]] = quake.mz %[[ALLOCA_2]] name "s1" : (!quake.ref) -> !cc.measure_handle
+# CHECK:             %[[MZ_0:.*]] = quake.mz %[[ALLOCA_1]] name "s0" : (!quake.ref) -> !quake.measure
+# CHECK:             %[[MZ_1:.*]] = quake.mz %[[ALLOCA_2]] name "s1" : (!quake.ref) -> !quake.measure
 # CHECK:             quake.reset %[[ALLOCA_1]] : (!quake.ref) -> ()
 # CHECK:             quake.reset %[[ALLOCA_2]] : (!quake.ref) -> ()
 # CHECK:             %[[CMPI_1:.*]] = arith.cmpi sgt, %[[VAL_6]], %[[CONSTANT_1]] : i64
 # CHECK:             cc.if(%[[CMPI_1]]) {
-# CHECK:               qec.detector %[[VAL_8]], %[[MZ_0]] : !cc.measure_handle, !cc.measure_handle
-# CHECK:               qec.detector %[[VAL_9]], %[[MZ_1]] : !cc.measure_handle, !cc.measure_handle
+# CHECK:               qec.detector %[[VAL_8]], %[[MZ_0]] : !quake.measure, !quake.measure
+# CHECK:               qec.detector %[[VAL_9]], %[[MZ_1]] : !quake.measure, !quake.measure
 # CHECK:             } else {
 # CHECK:             }
-# CHECK:             cc.continue %[[VAL_6]], %[[MZ_0]], %[[MZ_1]] : i64, !cc.measure_handle, !cc.measure_handle
+# CHECK:             cc.continue %[[VAL_6]], %[[MZ_0]], %[[MZ_1]] : i64, !quake.measure, !quake.measure
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_12:.*]]: i64, %[[VAL_14:.*]]: !cc.measure_handle, %[[VAL_15:.*]]: !cc.measure_handle):
+# CHECK:           ^bb0(%[[VAL_12:.*]]: i64, %[[VAL_14:.*]]: !quake.measure, %[[VAL_15:.*]]: !quake.measure):
 # CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_12]], %[[CONSTANT_0]] : i64
-# CHECK:             cc.continue %[[ADDI_0]], %[[VAL_14]], %[[VAL_15]] : i64, !cc.measure_handle, !cc.measure_handle
+# CHECK:             cc.continue %[[ADDI_0]], %[[VAL_14]], %[[VAL_15]] : i64, !quake.measure, !quake.measure
 # CHECK:           }
-# CHECK:           %[[MZ_2:.*]] = quake.mz %[[ALLOCA_0]] name "readout" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           qec.observable %[[MZ_2]] : !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[MZ_2:.*]] = quake.mz %[[ALLOCA_0]] name "readout" : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+# CHECK:           qec.observable %[[MZ_2]] : !cc.sequence<!quake.measure>
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -337,8 +337,8 @@ def test_b_detector_scalar():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK:           %[[H:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
-# CHECK:           qec.detector %[[H]] : !cc.measure_handle
+# CHECK:           %[[H:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+# CHECK:           qec.detector %[[H]] : !quake.measure
 # CHECK:           return
 
 
@@ -351,8 +351,8 @@ def test_b_detector_vector():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<4>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           qec.detector %[[HS]] : !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<4>) -> !cc.sequence<!quake.measure>
+# CHECK:           qec.detector %[[HS]] : !cc.sequence<!quake.measure>
 # CHECK:           return
 
 
@@ -367,9 +367,9 @@ def test_b_detector_mixed():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK:           %[[H:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           qec.detector %[[HS]], %[[H]] : !cc.sequence<!cc.measure_handle>, !cc.measure_handle
+# CHECK:           %[[H:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+# CHECK:           qec.detector %[[HS]], %[[H]] : !cc.sequence<!quake.measure>, !quake.measure
 # CHECK:           return
 
 
@@ -384,9 +384,9 @@ def test_b_observable_variadic():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK:           %[[H0:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[H1:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
-# CHECK:           qec.observable %[[H0]], %[[H1]] : !cc.measure_handle, !cc.measure_handle
+# CHECK:           %[[H0:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+# CHECK:           %[[H1:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+# CHECK:           qec.observable %[[H0]], %[[H1]] : !quake.measure, !quake.measure
 # CHECK-NOT:       index
 # CHECK:           return
 
@@ -400,8 +400,8 @@ def test_b_observable_vector():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           qec.observable %[[HS]] : !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+# CHECK:           qec.observable %[[HS]] : !cc.sequence<!quake.measure>
 # CHECK-NOT:       index
 # CHECK:           return
 
@@ -415,8 +415,8 @@ def test_b_observable_indexed():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           qec.observable %[[HS]] index 2 : !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+# CHECK:           qec.observable %[[HS]] index 2 : !cc.sequence<!quake.measure>
 # CHECK:           return
 
 
@@ -431,7 +431,7 @@ def test_b_pair_detectors():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK:           %[[P:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           %[[C:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           qec.pair_detectors %[[P]], %[[C]] : <!cc.measure_handle>, <!cc.measure_handle>
+# CHECK:           %[[P:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+# CHECK:           %[[C:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+# CHECK:           qec.pair_detectors %[[P]], %[[C]] : <!quake.measure>, <!quake.measure>
 # CHECK:           return

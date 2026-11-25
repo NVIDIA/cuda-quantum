@@ -285,12 +285,18 @@ public:
   }
 };
 
-/// Count of runPassManager invocations while the counting hook is installed.
+/// Count of runPassManager invocations that run the fake stage's passes while
+/// the counting hook is installed. The compiler runs other pass managers, such
+/// as the one that erases unused symbols first, which this does not count.
 static int targetPipelineRuns = 0;
 
 static mlir::LogicalResult countTargetPipelineRun(mlir::PassManager &pm,
                                                   mlir::Operation *op) {
-  ++targetPipelineRuns;
+  std::string pipeline;
+  llvm::raw_string_ostream os(pipeline);
+  pm.printAsTextualPipeline(os);
+  if (llvm::StringRef(pipeline).contains("add-measurements"))
+    ++targetPipelineRuns;
   return pm.run(op);
 }
 
@@ -330,28 +336,70 @@ void test_staged_inferred(mlir::MLIRContext *ctx) {
 // CHECK: quake.mz
 // CHECK: target pipeline runs: 1
 
-/// A staged target with skipTargetLoweringPipeline neither runs nor plans any
-/// target lowering.
-void test_staged_skip(mlir::MLIRContext *ctx) {
-  cudaq::CompileOptions options;
-  options.skipTargetLoweringPipeline = true;
-  Compiler compiler(inferredTarget(), std::move(options), {});
-  auto mod = mlir::parseSourceString<mlir::ModuleOp>(phaseResourceKernel, ctx);
-  auto compiled = compiler.compile(
-      "phaseResources", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
-      /*isEntryPoint=*/true);
+static const char *modeName(cudaq::opt::CodegenMode mode) {
+  switch (mode) {
+  case cudaq::opt::CodegenMode::emit_only:
+    return "emit_only";
+  case cudaq::opt::CodegenMode::normalize:
+    return "normalize";
+  case cudaq::opt::CodegenMode::normalize_and_optimize:
+    return "normalize_and_optimize";
+  }
+  return "unknown";
+}
 
-  auto mlirArtifact = compiled.getMlir();
-  auto moduleOp = CompiledModuleHelper::getMlirModuleOp(*mlirArtifact);
+/// A staged target with skipTargetLoweringPipeline neither runs nor plans any
+/// target lowering. Codegen then normalizes and optimizes, where it only
+/// emits after the stage runs.
+void test_staged_codegen_mode(mlir::MLIRContext *ctx) {
+  cudaq::CompileTarget target;
+  target.stages.push_back(
+      {.irOutputProfile =
+           cudaq::config::QuakeUnmappedProfile{
+               .costModel = cudaq::config::CostModel::two_qubit_gate_count},
+       .lowering = cudaq::config::InferredLowering{}});
+  const auto compile =
+      [&](bool skip, std::vector<std::unique_ptr<LoweringHandler>> handlers,
+          cudaq::OptimizationLevel level = cudaq::OptimizationLevel::O2) {
+        cudaq::CompileOptions options;
+        options.skipTargetLoweringPipeline = skip;
+        options.optimizationLevel = level;
+        Compiler compiler(target, std::move(options), std::move(handlers));
+        auto mod =
+            mlir::parseSourceString<mlir::ModuleOp>(phaseResourceKernel, ctx);
+        return compiler.compile("phaseResources",
+                                mod.release().getAsOpaquePointer(),
+                                cudaq::KernelArgs{}, /*isEntryPoint=*/true);
+      };
+
+  auto skipped = compile(/*skip=*/true, {});
+  auto moduleOp = CompiledModuleHelper::getMlirModuleOp(*skipped.getMlir());
   llvm::outs() << "Skipped staged module:\n" << moduleOp << "\n";
+  llvm::outs() << "skipped stage, codegen mode: "
+               << modeName(codegenMode(skipped.getMetadata())) << "\n";
+  auto skippedLevel0 = compile(/*skip=*/true, {}, cudaq::OptimizationLevel::O0);
+  llvm::outs() << "skipped stage at level 0, codegen mode: "
+               << modeName(codegenMode(skippedLevel0.getMetadata())) << "\n";
+  auto ran = compile(/*skip=*/false, makeBuiltinLoweringHandlers());
+  llvm::outs() << "ran stage, codegen mode: "
+               << modeName(codegenMode(ran.getMetadata())) << "\n";
+  // Without a cost model the stage adds no pass, so codegen still normalizes.
+  target.stages.front().irOutputProfile = cudaq::config::QuakeUnmappedProfile{};
+  auto noPasses = compile(/*skip=*/false, makeBuiltinLoweringHandlers());
+  llvm::outs() << "stage without passes, codegen mode: "
+               << modeName(codegenMode(noPasses.getMetadata())) << "\n";
 }
 
 // CHECK-LABEL: Skipped staged module:
 // CHECK: quake.r1
 // CHECK-NOT: quake.mz
+// CHECK: skipped stage, codegen mode: normalize_and_optimize
+// CHECK: skipped stage at level 0, codegen mode: normalize{{$}}
+// CHECK: ran stage, codegen mode: emit_only
+// CHECK: stage without passes, codegen mode: normalize_and_optimize
 
-/// Four one-qubit rotations that `fuse-1q-chains-for-clifford-t` rewrites as
-/// three.
+/// Four one-qubit rotations that `fuse-1q-to-u3` fuses into one `u3`,
+/// which decomposes into three rotations.
 static const char *fusableRotationsKernel = R"#(
 func.func @__nvqpp__mlirgen__fusable() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
   %a = arith.constant 3.000000e-01 : f64
@@ -401,10 +449,11 @@ func.func @__nvqpp__mlirgen__longLoop() attributes {"cudaq-entrypoint", "cudaq-k
 }
 )#";
 
-/// A `quake-unmapped` stage fuses the rotations only from level 2, and a loop
-/// it cannot unroll stays rolled and is still counted. Without a rotation in
-/// the basis, every level synthesizes, and the strict basis conversion rejects
-/// any rotation left over.
+/// A `quake-unmapped` stage fuses the rotations only from level 1, and a
+/// loop it cannot unroll stays rolled and is still counted. Without a rotation
+/// in the basis, every level synthesizes, and the strict basis conversion
+/// rejects any rotation left over. With `u3` but no rotation in the basis,
+/// every rotation is fused into a `u3`, which stays.
 void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
   using cudaq::OptimizationLevel;
   const auto count = [&](const std::string &heading, const char *kernelName,
@@ -444,12 +493,17 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
         OptimizationLevel::O2);
   count("Clifford+T exact angle", "expPauli", expPauliKernel, cliffordT,
         OptimizationLevel::O0);
+  const std::vector<std::string> u3 = {"u3", "h", "x(1)"};
+  count("U3 level 1", "fusable", fusableRotationsKernel, u3,
+        OptimizationLevel::O1);
+  count("U3 level 2", "fusable", fusableRotationsKernel, u3,
+        OptimizationLevel::O2);
 }
 
 // CHECK-LABEL: Rotations level 0 resource counts:
 // CHECK: total: 4{{$}}
 // CHECK-LABEL: Rotations level 1 resource counts:
-// CHECK: total: 4{{$}}
+// CHECK: total: 3{{$}}
 // CHECK-LABEL: Rotations level 2 resource counts:
 // CHECK: total: 3{{$}}
 // CHECK-LABEL: Long loop resource counts:
@@ -461,6 +515,12 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
 // CHECK: rz: 0{{$}}
 // CHECK: r1: 0{{$}}
 // CHECK-LABEL: Clifford+T exact angle resource counts:
+// CHECK: total: 1{{$}}
+// CHECK-LABEL: U3 level 1 resource counts:
+// CHECK: rz: 0{{$}}
+// CHECK: total: 1{{$}}
+// CHECK-LABEL: U3 level 2 resource counts:
+// CHECK: rz: 0{{$}}
 // CHECK: total: 1{{$}}
 
 /// A rotation whose angle is the kernel's argument.
@@ -628,7 +688,7 @@ int main() {
   test_resource_count_completes_phase_lifecycle(context.get());
   test_resource_count_disabled_by_target(context.get());
   test_staged_inferred(context.get());
-  test_staged_skip(context.get());
+  test_staged_codegen_mode(context.get());
   test_quake_unmapped_levels(context.get());
   test_quake_unmapped_specialization(context.get());
   test_quake_mapped_levels(context.get());

@@ -84,6 +84,40 @@ public:
   }
 };
 
+// Bind an mpp operation to its constant pauli word, as is done for exp_pauli.
+//
+//   %a = cc.string_literal "XZ" : !cc.ptr<!cc.array<i8 x 3>>
+//   %m = quake.mpp %q to %a : (!quake.veq<2>, !cc.ptr<!cc.array<i8 x 3>>) ->
+//           !quake.measure
+//   ─────────────────────────────────────────────────────────────────────
+//   %a = cc.string_literal "XZ" : !cc.ptr<!cc.array<i8 x 3>>  // DCE?
+//   %m = quake.mpp %q to "XZ" : (!quake.veq<2>) -> !quake.measure
+//
+class BindMppPauliWord : public OpRewritePattern<cudaq::quake::MppOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::MppOp mpp,
+                                PatternRewriter &rewriter) const override {
+    auto pauliWord = mpp.getPauli();
+    if (!pauliWord)
+      return failure();
+    auto vecInit = pauliWord.getDefiningOp<cudaq::cc::SequenceInitOp>();
+    Value litVal = vecInit ? vecInit.getBuffer() : pauliWord;
+    auto buffer = litVal.getDefiningOp<cudaq::cc::CreateStringLiteralOp>();
+    if (!buffer)
+      return failure();
+
+    auto dict = mpp->getDiscardableAttrDictionary();
+    auto newMpp = rewriter.replaceOpWithNewOp<cudaq::quake::MppOp>(
+        mpp, mpp.getResultTypes(), mpp.getTargets(), Value{},
+        buffer.getStringLiteralAttr(), mpp.getNegatedAttr(),
+        mpp.getRegisterNameAttr());
+    newMpp->setDiscardableAttrs(std::move(dict));
+    return success();
+  }
+};
+
 // %4 = quake.veq_size %3 : (!quake.veq<10>) -> i64
 // ────────────────────────────────────────────────
 // %4 = constant 10 : i64
@@ -1059,9 +1093,11 @@ struct KillDeadWrapPattern : public OpRewritePattern<cudaq::quake::WrapOp> {
 
   LogicalResult matchAndRewrite(cudaq::quake::WrapOp wrap,
                                 PatternRewriter &rewriter) const override {
-    if (auto unwrap =
-            wrap.getWireValue().getDefiningOp<cudaq::quake::UnwrapOp>())
-      rewriter.eraseOp(wrap);
+    // Report a change only when the wrap is erased. Otherwise the greedy
+    // driver never converges and re-walks the function to its iteration limit.
+    if (!wrap.getWireValue().getDefiningOp<cudaq::quake::UnwrapOp>())
+      return failure();
+    rewriter.eraseOp(wrap);
     return success();
   }
 };

@@ -57,3 +57,24 @@ func.func @retain_state_pointer() -> f64 {
 // CHECK-NOT: cc.store
 // CHECK: quake.init_state {{.*}}, %[[PTR]]
 // CHECK: return %[[ONE]] : f64
+
+// A load through a cast to another element type reads the stored array.
+func.func @load_as_other_type() -> i1 {
+  %c1_i8 = arith.constant 1 : i8
+  %c0_i8 = arith.constant 0 : i8
+  %a = cc.alloca !cc.array<i8 x 2>
+  %p0 = cc.cast %a : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+  %p1 = cc.compute_ptr %a[1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+  cc.store %c1_i8, %p0 : !cc.ptr<i8>
+  cc.store %c0_i8, %p1 : !cc.ptr<i8>
+  %b = cc.cast %a : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i1>
+  %x = cc.load %b : !cc.ptr<i1>
+  return %x : i1
+}
+// CHECK-LABEL: func.func @load_as_other_type
+// CHECK: %[[ARRAY:.*]] = cc.const_array [1 : i8, 0 : i8]
+// CHECK: %[[ALLOC:.*]] = cc.alloca !cc.array<i8 x 2>
+// CHECK-NEXT: cc.store %[[ARRAY]], %[[ALLOC]]
+// CHECK-NEXT: %[[PTR:.*]] = cc.cast %[[ALLOC]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i1>
+// CHECK-NEXT: %[[X:.*]] = cc.load %[[PTR]] : !cc.ptr<i1>
+// CHECK-NEXT: return %[[X]] : i1

@@ -13,7 +13,7 @@ import pytest
 import cudaq
 
 # ---------------------------------------------------------------------------
-# Scalar `mz` / `mx` / `my` on a single qubit produce `!cc.measure_handle`
+# Scalar `mz` / `mx` / `my` on a single qubit produce `!quake.measure`
 # and do not inline a `quake.discriminate`.
 # ---------------------------------------------------------------------------
 
@@ -31,7 +31,7 @@ def test_scalar_mz_emits_handle_no_discriminate():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_scalar_mz
 # CHECK-SAME:      attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "h" : (!quake.ref) -> !cc.measure_handle
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "h" : (!quake.ref) -> !quake.measure
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -50,7 +50,7 @@ def test_scalar_mx_emits_handle():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_scalar_mx
 # CHECK-SAME:      attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_1:.*]] = quake.mx %[[VAL_0]] name "h" : (!quake.ref) -> !cc.measure_handle
+# CHECK:           %[[VAL_1:.*]] = quake.mx %[[VAL_0]] name "h" : (!quake.ref) -> !quake.measure
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -69,7 +69,7 @@ def test_scalar_my_emits_handle():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_scalar_my
 # CHECK-SAME:      attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_1:.*]] = quake.my %[[VAL_0]] name "h" : (!quake.ref) -> !cc.measure_handle
+# CHECK:           %[[VAL_1:.*]] = quake.my %[[VAL_0]] name "h" : (!quake.ref) -> !quake.measure
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -88,7 +88,7 @@ def test_vector_mz_emits_sequence_of_handles():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_vector_mz
 # CHECK-SAME:      attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "hs" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "hs" : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -114,8 +114,8 @@ def test_bool_coercion_in_if():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_if
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "h" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "h" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 # CHECK:           cc.if(%[[VAL_2]]) {
 # CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           }
@@ -137,9 +137,9 @@ def test_bool_coercion_in_while():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_while
-# CHECK:           %[[VAL_0:.*]] = quake.mz {{.*}} : (!quake.ref) -> !cc.measure_handle
+# CHECK:           %[[VAL_0:.*]] = quake.mz {{.*}} : (!quake.ref) -> !quake.measure
 # CHECK:           cc.loop while
-# CHECK:             %[[VAL_1:.*]] = quake.discriminate %{{.*}} : (!cc.measure_handle) -> i1
+# CHECK:             %[[VAL_1:.*]] = quake.discriminate %{{.*}} : (!quake.measure) -> i1
 # CHECK:             cc.condition %[[VAL_1]]
 # CHECK:           return
 # CHECK:         }
@@ -158,8 +158,8 @@ def test_bool_coercion_in_not():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_not
-# CHECK:           %[[VAL_0:.*]] = quake.mz {{.*}} : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[VAL_1:.*]] = quake.discriminate %[[VAL_0]] : (!cc.measure_handle) -> i1
+# CHECK:           %[[VAL_0:.*]] = quake.mz {{.*}} : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_1:.*]] = quake.discriminate %[[VAL_0]] : (!quake.measure) -> i1
 # CHECK:           %[[VAL_2:.*]] = arith.xori %[[VAL_1]], %{{.*}} : i1
 # CHECK:           cc.if(%[[VAL_2]])
 # CHECK:           return
@@ -179,8 +179,8 @@ def test_bool_coercion_in_bool_call():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_bool_call
 # CHECK-SAME:      -> i1
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 # CHECK:           return %[[VAL_2]] : i1
 # CHECK:         }
 
@@ -199,8 +199,8 @@ def test_bool_coercion_in_return():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_return
 # CHECK-SAME:      -> i1
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "h" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "h" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 # CHECK:           return %[[VAL_2]] : i1
 # CHECK:         }
 
@@ -222,10 +222,10 @@ def test_handle_equality_emits_two_discriminates_and_cmpi():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_eq
 # CHECK-SAME:      -> i1
-# CHECK:           %[[VAL_0:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[VAL_1:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_0]] : (!cc.measure_handle) -> i1
-# CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+# CHECK:           %[[VAL_0:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_1:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_0]] : (!quake.measure) -> i1
+# CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 # CHECK:           %[[VAL_4:.*]] = arith.cmpi eq, %[[VAL_2]], %[[VAL_3]] : i1
 # CHECK:           return %[[VAL_4]] : i1
 # CHECK:         }
@@ -243,10 +243,10 @@ def test_handle_inequality_emits_two_discriminates_and_cmpi():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_ne
 # CHECK-SAME:      -> i1
-# CHECK:           %[[VAL_0:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[VAL_1:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_0]] : (!cc.measure_handle) -> i1
-# CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+# CHECK:           %[[VAL_0:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_1:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_0]] : (!quake.measure) -> i1
+# CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 # CHECK:           %[[VAL_4:.*]] = arith.cmpi ne, %[[VAL_2]], %[[VAL_3]] : i1
 # CHECK:           return %[[VAL_4]] : i1
 # CHECK:         }
@@ -272,11 +272,11 @@ def test_and_short_circuits_second_discriminate():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_and
-# CHECK:           %[[H0:.*]] = quake.mz %{{.*}} name "h0" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[H1:.*]] = quake.mz %{{.*}} name "h1" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[D0:.*]] = quake.discriminate %[[H0]] : (!cc.measure_handle) -> i1
+# CHECK:           %[[H0:.*]] = quake.mz %{{.*}} name "h0" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[H1:.*]] = quake.mz %{{.*}} name "h1" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[D0:.*]] = quake.discriminate %[[H0]] : (!quake.measure) -> i1
 # CHECK:           %{{.*}} = cc.if(%{{.*}}) -> i1 {
-# CHECK:             %[[D1:.*]] = quake.discriminate %[[H1]] : (!cc.measure_handle) -> i1
+# CHECK:             %[[D1:.*]] = quake.discriminate %[[H1]] : (!quake.measure) -> i1
 # CHECK:           }
 # CHECK:           return
 # CHECK:         }
@@ -296,11 +296,11 @@ def test_or_short_circuits_second_discriminate():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_or
-# CHECK:           %[[H0:.*]] = quake.mz %{{.*}} name "h0" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[H1:.*]] = quake.mz %{{.*}} name "h1" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[D0:.*]] = quake.discriminate %[[H0]] : (!cc.measure_handle) -> i1
+# CHECK:           %[[H0:.*]] = quake.mz %{{.*}} name "h0" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[H1:.*]] = quake.mz %{{.*}} name "h1" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[D0:.*]] = quake.discriminate %[[H0]] : (!quake.measure) -> i1
 # CHECK:           %{{.*}} = cc.if(%[[D0]]) -> i1 {
-# CHECK:             %[[D1:.*]] = quake.discriminate %[[H1]] : (!cc.measure_handle) -> i1
+# CHECK:             %[[D1:.*]] = quake.discriminate %[[H1]] : (!quake.measure) -> i1
 # CHECK:           }
 # CHECK:           return
 # CHECK:         }
@@ -308,7 +308,7 @@ def test_or_short_circuits_second_discriminate():
 # ---------------------------------------------------------------------------
 # `cudaq.to_bools` (vector discrimination) and composition with
 # `cudaq.to_integer`. The vector discriminate lowers to a single
-# `quake.discriminate` taking `!cc.sequence<!cc.measure_handle>` and
+# `quake.discriminate` taking `!cc.sequence<!quake.measure>` and
 # producing `!cc.sequence<i1>`.
 # ---------------------------------------------------------------------------
 
@@ -326,8 +326,8 @@ def test_to_bools_lowers_to_vectorized_discriminate():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_to_bools
 # CHECK-SAME:      -> !cc.sequence<i1>
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.sequence<!quake.measure>) -> !cc.sequence<i1>
 # CHECK:           return %{{.*}} : !cc.sequence<i1>
 # CHECK:         }
 
@@ -345,8 +345,8 @@ def test_to_integer_composes_with_to_bools():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_to_integer
 # CHECK-SAME:      -> i64
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.sequence<!quake.measure>) -> !cc.sequence<i1>
 # CHECK:           cc.sequence_size %[[VAL_2]] : (!cc.sequence<i1>) -> i64
 # CHECK:           cc.sequence_data %[[VAL_2]] : (!cc.sequence<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
 # CHECK-NOT:       quake.discriminate
@@ -370,7 +370,7 @@ def test_builder_scalar_mz_emits_handle():
 # CHECK-SAME:      () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "scalarHandle" : (!quake.ref) -> !cc.measure_handle
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "scalarHandle" : (!quake.ref) -> !quake.measure
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -387,7 +387,7 @@ def test_builder_vector_mz_emits_sequence_of_handles():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "vectorHandle" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "vectorHandle" : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -406,8 +406,8 @@ def test_builder_mx_my_emit_handles():
 # CHECK-SAME:      () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_1:.*]] = quake.mx %[[VAL_0]] name "xHandle" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[VAL_2:.*]] = quake.my %[[VAL_0]] name "yHandle" : (!quake.ref) -> !cc.measure_handle
+# CHECK:           %[[VAL_1:.*]] = quake.mx %[[VAL_0]] name "xHandle" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_2:.*]] = quake.my %[[VAL_0]] name "yHandle" : (!quake.ref) -> !quake.measure
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -432,14 +432,14 @@ def test_listcomp_default_handle_pre_allocation():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_listcomp_handles
 # CHECK-SAME:      attributes {"cudaq-entrypoint"
 # CHECK:           %[[VEQ:.*]] = quake.alloca !quake.veq<4>
-# CHECK:           %[[ARR:.*]] = cc.alloca !cc.array<!cc.measure_handle x 4>
+# CHECK:           %[[ARR:.*]] = cc.alloca !cc.array<!quake.measure x 4>
 # CHECK:           cc.loop
-# CHECK:             %[[UNDEF:.*]] = cc.undef !cc.measure_handle
-# CHECK:             %[[SLOT:.*]] = cc.compute_ptr %[[ARR]]{{.*}} : (!cc.ptr<!cc.array<!cc.measure_handle x 4>>, i64) -> !cc.ptr<!cc.measure_handle>
-# CHECK:             cc.store %[[UNDEF]], %[[SLOT]] : !cc.ptr<!cc.measure_handle>
+# CHECK:             %[[UNDEF:.*]] = cc.undef !quake.measure
+# CHECK:             %[[SLOT:.*]] = cc.compute_ptr %[[ARR]]{{.*}} : (!cc.ptr<!cc.array<!quake.measure x 4>>, i64) -> !cc.ptr<!quake.measure>
+# CHECK:             cc.store %[[UNDEF]], %[[SLOT]] : !cc.ptr<!quake.measure>
 # CHECK:           cc.loop
 # CHECK:             %[[REF:.*]] = quake.extract_ref %[[VEQ]]
-# CHECK:             %[[MEAS:.*]] = quake.mz %[[REF]] : (!quake.ref) -> !cc.measure_handle
+# CHECK:             %[[MEAS:.*]] = quake.mz %[[REF]] : (!quake.ref) -> !quake.measure
 # CHECK:             cc.store %[[MEAS]]
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
@@ -471,10 +471,10 @@ def test_handle_vector_cross_round_reassignment():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_handle_vec_cross_round
 # CHECK-SAME:      attributes {"cudaq-entrypoint"
 # CHECK:           %[[VEQ:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[MVEC:.*]] = quake.mz %[[VEQ]] name "mvec" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[MVEC:.*]] = quake.mz %[[VEQ]] name "mvec" : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
 # CHECK:           cc.loop while ((%{{.*}} = %{{.*}}) -> (i64)) {
 # CHECK:           } do {
-# CHECK:             %[[MNEW:.*]] = quake.mz %[[VEQ]] name "m_new" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:             %[[MNEW:.*]] = quake.mz %[[VEQ]] name "m_new" : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
 # CHECK:             cc.continue %{{.*}} : i64
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return

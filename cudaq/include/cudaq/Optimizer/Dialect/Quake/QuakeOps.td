@@ -125,7 +125,7 @@ def quake_InitializeStateOp : QuakeOp<"init_state",
     AnyStateInitType:$state
   );
   let results = (outs VeqType);
-  
+
   let assemblyFormat = [{
     $targets `,` $state `:` functional-type(operands, results) attr-dict
   }];
@@ -339,7 +339,7 @@ def quake_SubVeqOp : QuakeOp<"subveq", [AttrSizedOperandSegments, Pure]> {
       return build($_builder, $_state, veqTy, input, {}, {}, lower, upper);
     }]>
   ];
-  
+
   let extraClassDeclaration = [{
     static constexpr std::size_t kDynamicIndex =
       std::numeric_limits<std::size_t>::max();
@@ -363,7 +363,7 @@ def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
       %0 = quake.alloca !quake.veq<4>
       // %1 will be 4 with canonicalization.
       %1 = quake.veq_size %0 : (!quake.veq<4>) -> i64
-      
+
       %2 = ... : !quake.veq<?>
       // %3 may not be computed until runtime.
       %3 = quake.veq_size %2 : (!quake.veq<?>) -> i64
@@ -848,7 +848,7 @@ def quake_NullCableOp : QuakeOp<"null_cable"> {
     identical semantics to a series of `quake.null_wire` operations.
   }];
 
-  let results = (outs 
+  let results = (outs
     Arg<CableType, "cable created", [MemRead, MemWrite]>:$cableType
   );
 
@@ -888,7 +888,7 @@ def quake_SplitCableOp : QuakeOp<"split_cable", [Pure]> {
     the wires in a cable as individual wire values. All resulting wires have
     linear types and must be used exactly one time after this operation.
   }];
-  
+
   let arguments = (ins CableType:$cable);
   let results = (outs Variadic<WireType>);
 
@@ -1046,7 +1046,7 @@ def quake_BorrowWireOp : QuakeOp<"borrow_wire"> {
   let results = (outs
     Arg<WireType, "wire borrowed", [MemRead, MemWrite]>
   );
-  
+
   let hasVerifier = 1;
   let assemblyFormat = [{
     $set_name `[` $identity `]` `:` type(results) attr-dict
@@ -1209,16 +1209,12 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
     OptionalAttr<StrAttr>:$registerName
   );
   // The classical result of a measurement is one of:
-  //   - !quake.measure                   (the legacy SSA result),
-  //   - !cc.measure_handle               (the cudaq::measure_handle alias),
-  //   - !cc.sequence<!quake.measure>       (vector of legacy results),
-  //   - !cc.sequence<!cc.measure_handle>   (vector of handles).
-  // The handle forms are emitted by the bridge for `cudaq::measure_handle`
-  // callers (overloads of `mz`/`mx`/`my`) and are lowered to `i64` by
-  // `--convert-to-qir-api`'s `TypeConverter`.
+  //   - !quake.measure                 (a single measurement),
+  //   - !cc.sequence<!quake.measure>   (a vector of measurements).
+  // `!quake.measure` is the IR form of `cudaq::measure_handle`, and is lowered
+  // to `i64` by `--convert-to-qir-api`'s `TypeConverter`.
   let results = (outs
-    AnyTypeOf<[MeasureType, cc_MeasureHandleType,
-               SequenceOf<[MeasureType, cc_MeasureHandleType]>]>:$measOut,
+    AnyTypeOf<[MeasureType, SequenceOf<[MeasureType]>]>:$measOut,
     Variadic<AnyQLinearType>:$wires
   );
 
@@ -1280,14 +1276,86 @@ def MzOp : Measurement<"mz"> {
   let extraClassDeclaration = OpBaseDeclaration;
 }
 
+def MppOp : QuakeOp<"mpp", [AttrSizedOperandSegments, MeasurementInterface,
+    QuantumMeasure, DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
+  let summary = "Measurement of a Pauli product";
+  let description = [{
+    The `mpp` operation measures a tensor product of Pauli operators over its
+    targets and yields one classical bit, which is the eigenvalue of the
+    product (0 for +1 and 1 for -1). Unlike `mx`, `my`, and `mz`, which
+    measure each target independently and return one result per qubit, `mpp`
+    always returns a single `!quake.measure`, no matter how many qubits it
+    acts on.
+
+    The Pauli product is a Pauli word whose characters are the Paulis `I`, `X`,
+    `Y`, and `Z`, applied to the qubits of the targets in order. The word is
+    exactly that of `exp_pauli`: either a string literal or a runtime value (a
+    pointer or a character span). The length of a literal must equal the
+    number of qubits in the targets when that count is known statically. The
+    contents of a runtime word cannot be checked by the verifier.
+
+    The optional `negated` keyword measures the negation of the Pauli product,
+    that is, the product with its eigenvalues swapped. The recorded bit is then
+    the complement of the outcome of the same measurement without `negated`.
+
+    The state of the targets is projected onto the eigenspace of the measured
+    product. A value-form `mpp` returns the targets' wires in order, as `mx`,
+    `my`, and `mz` do.
+
+    Example:
+    ```mlir
+      // Measure X (x) Z on two qubits and get one bit.
+      %m = quake.mpp %q0, %q1 to "XZ" : (!quake.ref, !quake.ref) -> !quake.measure
+      // The negated product, in value form.
+      %m, %w:2 = quake.mpp %a, %b negated to "ZZ" : (!quake.wire,
+          !quake.wire) -> (!quake.measure, !quake.wire, !quake.wire)
+      // A runtime Pauli word.
+      %s = cc.string_literal "XYZ" : !cc.ptr<!cc.array<i8 x 4>>
+      %m = quake.mpp %v to %s : (!quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) ->
+          !quake.measure
+    ```
+  }];
+
+  let arguments = (ins
+    Variadic<AnyQTargetType>:$targets,
+    Optional<AnyTypeOf<[cc_PointerType, cc_CharSpanType]>>:$pauli,
+    OptionalAttr<StrAttr>:$pauliLiteral,
+    UnitAttr:$negated,
+    OptionalAttr<StrAttr>:$registerName
+  );
+  // The result is always a single measurement, never a sequence.
+  let results = (outs
+    MeasureType:$measOut,
+    Variadic<AnyQLinearType>:$wires
+  );
+
+  let assemblyFormat = [{
+    $targets (`negated` $negated^)? `to` custom<RawString>($pauli, $pauliLiteral)
+      (`name` $registerName^)? `:` functional-type(operands, results) attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
+      mlir::MemoryEffects::Effect>> &effects) {
+      cudaq::quake::getMeasurementEffectsImpl(effects, getTargetsMutable());
+    }
+
+    /// An mpp measures all of its targets as one Pauli product.
+    bool isJointMeasurement() { return true; }
+  }];
+
+  let hasCanonicalizer = 1;
+  let hasVerifier = 1;
+}
+
 def quake_DiscriminateOp : QuakeOp<"discriminate",
     [DeclareOpInterfaceMethods<MemoryEffectsOpInterface>,
      DeclareOpInterfaceMethods<ConditionallySpeculatable>]> {
   let summary = "Converts a measurement to a classical integral value.";
   let description = [{
-    Quake's measurement operators return a value of type `!quake.measure` or,
-    for `cudaq::measure_handle` callers, `!cc.measure_handle`. The
-    discriminate operation converts either form to a classical integral value.
+    Quake's measurement operators return a value of type `!quake.measure`,
+    which is also the IR form of `cudaq::measure_handle`. The discriminate
+    operation converts it to a classical integral value.
     The result is typically an `i1`, but might be `i2` for qutrits, or `i8`
     for general qudits.
 
@@ -1296,9 +1364,9 @@ def quake_DiscriminateOp : QuakeOp<"discriminate",
     Multiple applications of discriminate on the same scalar measurement
     handle yield the same result, so the scalar form is treated as pure.
 
-    The vector form (`!cc.sequence<!cc.measure_handle>` or
-    `!cc.sequence<!quake.measure>`) operates on a `(data_ptr, size)`
-    descriptor that aliases mutable backing storage; storing a new handle
+    The vector form (`!cc.sequence<!quake.measure>`) operates on a
+    `(data_ptr, size)` descriptor that aliases mutable backing storage;
+    storing a new measurement
     into a slot through that storage changes the result of a subsequent
     discriminate of the same descriptor. The vector form therefore
     declares a `MemoryEffects::Read` effect and is not speculatable, so
@@ -1307,8 +1375,7 @@ def quake_DiscriminateOp : QuakeOp<"discriminate",
   }];
 
   let arguments = (ins
-    AnyTypeOf<[MeasureType, cc_MeasureHandleType,
-               SequenceOf<[MeasureType, cc_MeasureHandleType]>]>:$measurement
+    AnyTypeOf<[MeasureType, SequenceOf<[MeasureType]>]>:$measurement
   );
   let results = (outs
     AnyTypeOf<[AnySignlessInteger, SequenceOf<[AnySignlessInteger]>]>
@@ -1472,12 +1539,12 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
 def quake_ExpPauliOp : QuakeOperator<"exp_pauli"> {
   let summary = "General Pauli tensor product rotation";
   let description = [{
-    This operation affects a general Pauli tensor product rotation on 
-    the input qubits. The number of Pauli characters in the input Pauli word 
+    This operation affects a general Pauli tensor product rotation on
+    the input qubits. The number of Pauli characters in the input Pauli word
     string must equal the number of qubits in the veq. Mathematically, this
-    operation applies exp(i theta P) where P is a general Pauli tensor product. 
+    operation applies exp(i theta P) where P is a general Pauli tensor product.
   }];
-  
+
   let arguments = !con(commonArguments, (ins
     Optional<AnyTypeOf<[cc_PointerType, cc_CharSpanType]>>:$pauli,
     OptionalAttr<StrAttr>:$pauliLiteral

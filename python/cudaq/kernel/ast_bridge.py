@@ -693,7 +693,7 @@ class PyASTBridge(ast.NodeVisitor):
         # primary contract; the wider-integer and float cases also automatically
         # discriminate. `i8` also covers element stores into a `list[bool]`,
         # which the bridge backs with `i8` storage but logically owns as bool.
-        if cc.MeasureHandleType.isinstance(
+        if quake.MeasureType.isinstance(
                 operand.type) and (IntegerType.isinstance(ty) or
                                    F32Type.isinstance(ty) or
                                    F64Type.isinstance(ty)):
@@ -702,7 +702,7 @@ class PyASTBridge(ast.NodeVisitor):
         if (cc.SequenceType.isinstance(ty) and
                 cc.SequenceType.getElementType(ty) == i1Type and
                 cc.SequenceType.isinstance(operand.type) and
-                cc.MeasureHandleType.isinstance(
+                quake.MeasureType.isinstance(
                     cc.SequenceType.getElementType(operand.type))):
             return self.__discriminateIfMeasureHandle(operand, self.currentNode)
         if cc.CallableType.isinstance(ty):
@@ -981,19 +981,19 @@ class PyASTBridge(ast.NodeVisitor):
         return sawStore
 
     def __discriminateIfMeasureHandle(self, value, node):
-        """If `value` is a `!cc.measure_handle` (or `sequence` thereof) at a
+        """If `value` is a `!quake.measure` (or `sequence` thereof) at a
         `bool`-coercion context, insert a `quake.discriminate` and return
         the `i1`/`sequence<i1>` result.
         """
         if value is None:
             return value
         ty = value.type
-        if cc.MeasureHandleType.isinstance(ty):
+        if quake.MeasureType.isinstance(ty):
             if self.__isProvablyUnboundHandleSource(value):
                 self.emitFatalError(
                     'discriminating an unbound measurement handle', node)
             return quake.DiscriminateOp(self.getIntegerType(1), value).result
-        if cc.SequenceType.isinstance(ty) and cc.MeasureHandleType.isinstance(
+        if cc.SequenceType.isinstance(ty) and quake.MeasureType.isinstance(
                 cc.SequenceType.getElementType(ty)):
             return quake.DiscriminateOp(
                 cc.SequenceType.get(self.getIntegerType(1)), value).result
@@ -3224,10 +3224,10 @@ class PyASTBridge(ast.NodeVisitor):
                     qubits = groupValues(node.args, [(1, -1)])
                     label = registerName or None
                     # `mx`/`my`/`mz` are the single measurement API: they emit
-                    # `quake.{mx,my,mz}` producing `!cc.measure_handle` (scalar)
-                    # or `!cc.sequence<!cc.measure_handle>` (vector form on a
+                    # `quake.{mx,my,mz}` producing `!quake.measure` (scalar)
+                    # or `!cc.sequence<!quake.measure>` (vector form on a
                     # `qvector`/`qview`).
-                    handleEleTy = cc.MeasureHandleType.get()
+                    handleEleTy = quake.MeasureType.get()
                     if len(qubits) == 1 and quake.RefType.isinstance(
                             qubits[0].type):
                         measTy = handleEleTy
@@ -3334,9 +3334,9 @@ class PyASTBridge(ast.NodeVisitor):
 
             elif node.func.id == 'bool':
                 # explicit `bool(h)` is one of the sanctioned coercion contexts
-                # on a `!cc.measure_handle`, lowering to `quake.discriminate`.
+                # on a `!quake.measure`, lowering to `quake.discriminate`.
                 value = self.__groupValues(node.args, [1])
-                if cc.MeasureHandleType.isinstance(value.type):
+                if quake.MeasureType.isinstance(value.type):
                     self.pushValue(
                         self.__discriminateIfMeasureHandle(value, node))
                     return
@@ -3552,18 +3552,19 @@ class PyASTBridge(ast.NodeVisitor):
                     (namespace == 'math' and
                      self.__isSupportedMathFunction(node.func.attr))):
 
-                    value = self.__groupValues(node.args, [1])
-
                     if node.func.attr == 'array':
-                        # The expected Python behavior is that a constructor
-                        # call to array creates a new array (a shallow copy).
-                        # Additionally, since a new value is created, we need to
-                        # make sure container entries are properly validated. To
-                        # not duplicate the logic, we simply call `copy` here.
+                        if not node.args:
+                            self.emitFatalError("missing value", node)
+                        if len(node.args) > 1:
+                            self.emitFatalError("too many values", node)
+                        # Let copy evaluate the input once and validate the
+                        # entries of the newly created container.
                         self.visit_Call(
                             ast.Call(ast.Attribute(node.args[0], 'copy'), [],
                                      node.keywords))
                         return
+
+                    value = self.__groupValues(node.args, [1])
 
                     if node.func.attr in ['complex128', 'complex64']:
                         if node.func.attr == 'complex128':
@@ -3867,14 +3868,14 @@ class PyASTBridge(ast.NodeVisitor):
                     if node.func.attr == "measure_handle":
                         # `cudaq.measure_handle()`, i.e. the default
                         # constructor produces an unbound handle. Materialize
-                        # a fresh `!cc.measure_handle` SSA value via
+                        # a fresh `!quake.measure` SSA value via
                         # `cc.undef`.
                         if len(node.args) != 0 or node.keywords:
                             self.emitFatalError(
                                 'cudaq.measure_handle() takes no arguments',
                                 node)
                         self.pushValue(
-                            cc.UndefOp(cc.MeasureHandleType.get()).result)
+                            cc.UndefOp(quake.MeasureType.get()).result)
                         return
 
                     if node.func.attr == "to_bools":
@@ -3889,7 +3890,7 @@ class PyASTBridge(ast.NodeVisitor):
                         handle = self.__groupValues(node.args, [1])
                         ty = handle.type
                         if not (cc.SequenceType.isinstance(ty) and
-                                cc.MeasureHandleType.isinstance(
+                                quake.MeasureType.isinstance(
                                     cc.SequenceType.getElementType(ty))):
                             self.emitFatalError(
                                 'cudaq.to_bools expects a '
@@ -4096,7 +4097,7 @@ class PyASTBridge(ast.NodeVisitor):
                         # `cudaq.to_integer` consumes a `list[bool]`
                         boolVec = self.__groupValues(node.args, [1])
                         if (cc.SequenceType.isinstance(boolVec.type) and
-                                cc.MeasureHandleType.isinstance(
+                                quake.MeasureType.isinstance(
                                     cc.SequenceType.getElementType(
                                         boolVec.type))):
                             self.emitFatalError(
@@ -4534,7 +4535,7 @@ class PyASTBridge(ast.NodeVisitor):
                     if (pyval.func.attr == 'measure_handle' and
                             isinstance(pyval.func.value, ast.Name) and
                             pyval.func.value.id == 'cudaq'):
-                        return cc.MeasureHandleType.get()
+                        return quake.MeasureType.get()
                 self.emitFatalError("unsupported call in list comprehension",
                                     node)
             elif isinstance(pyval, ast.Compare):
@@ -5637,7 +5638,7 @@ class PyASTBridge(ast.NodeVisitor):
         # If we are returning a tuple expression with a struct return type,
         # signal `visit_Tuple` to coerce each element to its expected member
         # type before assembling the struct. Without this, an intermediate
-        # struct whose element types include `!cc.measure_handle` is built
+        # struct whose element types include `!quake.measure` is built
         # and survives to QIR lowering, where it fails to legalize even
         # though the outer struct is later coerced to the expected type.
         expectedRet = self.signature.return_type

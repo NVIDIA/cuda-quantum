@@ -24,10 +24,10 @@
 // CHECK:     %[[V3:.*]] = cc.load %[[V0]] : !cc.ptr<f64>
 // CHECK:     %[[V4:.*]] = arith.divf %[[V3]], %[[cst]] : f64
 // CHECK:     quake.ry (%[[V4]]) %[[V1]] : (f64,
-// CHECK:     %[[V5:.*]] = quake.mz %[[V1]] : (!quake.ref) -> !cc.measure_handle
-// CHECK:     %[[HA:.*]] = cc.alloca !cc.measure_handle
-// CHECK:     cc.store %[[V5]], %[[HA]] : !cc.ptr<!cc.measure_handle>
-// CHECK:     %[[HL:.*]] = cc.load %[[HA]] : !cc.ptr<!cc.measure_handle>
+// CHECK:     %[[V5:.*]] = quake.mz %[[V1]] : (!quake.ref) -> !quake.measure
+// CHECK:     %[[HA:.*]] = cc.alloca !quake.measure
+// CHECK:     cc.store %[[V5]], %[[HA]] : !cc.ptr<!quake.measure>
+// CHECK:     %[[HL:.*]] = cc.load %[[HA]] : !cc.ptr<!quake.measure>
 // CHECK:     %[[VAL_6:.*]] = quake.discriminate %[[HL]] :
 // CHECK:     return %[[VAL_6]] : i1
 // CHECK:   }

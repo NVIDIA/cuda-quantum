@@ -12,8 +12,6 @@
 #include "nvqir/CircuitSimulator.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Target/TargetCatalog.h"
-#include "cudaq/platform/KernelRuntime.h"
-#include "cudaq/platform/nvqpp_interface.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -155,20 +153,18 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
 
   CUDAQ_INFO("Init: Library Path is {}.", cudaqLibPath.string());
 
-  // Compiled kernel libraries need the QIR runtime, registration hooks, and
-  // compiler support helpers in the global scope. NVQIR, cudaq-common, and the
-  // kernel runtime facade are LLVM-free. Keep cudaq and the execution manager
-  // local. Promoting either would also expose LLVM to unrelated Python
-  // extensions.
-  const auto kernelRuntimePath =
-      cudaqLibPath / fmt::format("libcudaq-kernel-runtime.{}", libSuffix);
+  // Load nvqir and the nvq++ C API into the global scope. Kernels compiled with
+  // `nvq++` call into the C API of both, so that libraries containing such
+  // kernels (e.g. built with `nvq++ -c`) can be loaded and called from Python.
+  //
+  // Note: we have to be careful that these libraries don't pollute the global
+  // link table with symbols that might conflict with third-party packages (e.g.
+  // MLIR symbols). All libraries that do link in MLIR (e.g. libcudaqMLIR,
+  // cudaq-mlir-runtime, and the `CUDAQ_DYNLIBS` below) must be loaded locally.
   std::vector<std::pair<std::filesystem::path, int>> libPaths{
       // NVQIR may already be loaded from a separate core installation.
       {fmt::format("libnvqir.{}", libSuffix), RTLD_GLOBAL},
-      {cudaqLibPath / fmt::format("libcudaq.{}", libSuffix), RTLD_LOCAL},
-      {cudaqLibPath / fmt::format("libcudaq-em-default.{}", libSuffix),
-       RTLD_LOCAL},
-      {kernelRuntimePath, RTLD_LOCAL}};
+      {cudaqLibPath / fmt::format("libcudaq.{}", libSuffix), RTLD_GLOBAL}};
 
   const char *dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
   if (dynlibs_var != nullptr) {
@@ -185,35 +181,6 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
     ScopedTraceWithContext("dlopen_core_and_dynlibs");
     for (auto &[p, scope] : libPaths) {
       void *libHandle = dlopen(p.string().c_str(), scope | RTLD_NOW);
-      if (p == kernelRuntimePath) {
-        if (!libHandle)
-          throw std::runtime_error("Failed to load kernel runtime: " +
-                                   std::string(dlerror()));
-        auto initialize = reinterpret_cast<detail::InitializeKernelRuntime>(
-            dlsym(libHandle, "cudaqInitializeKernelRuntime"));
-        if (!initialize) {
-          dlclose(libHandle);
-          throw std::runtime_error("Missing kernel runtime initializer.");
-        }
-        // These references are already bound to our local runtime. Capture them
-        // before the facade exports the same ABI names into the global scope.
-        initialize({altLaunchKernel, streamlinedLaunchKernel,
-                    hybridLaunchKernel, getExecutionManagerInternal,
-                    getRegisteredExecutionManager,
-                    detail::getExecutionManagerFromContext,
-                    [] { detail::YamlTargetConfigDisabler disabler; },
-                    [](const char *backend) {
-                      detail::TargetSetter setter(backend);
-                    }});
-        void *globalHandle = dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
-        if (!globalHandle) {
-          const std::string error = dlerror();
-          dlclose(libHandle);
-          throw std::runtime_error("Failed to expose kernel runtime: " + error);
-        }
-        dlclose(libHandle);
-        libHandle = globalHandle;
-      }
       if (libHandle) {
         libHandles.emplace(p.string(), libHandle);
       } else {

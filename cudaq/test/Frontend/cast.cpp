@@ -28,10 +28,10 @@ struct testCast {
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !cc.measure_handle
-// CHECK:           %[[HA:.*]] = cc.alloca !cc.measure_handle
-// CHECK:           cc.store %[[VAL_3]], %[[HA]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[HL:.*]] = cc.load %[[HA]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[HA:.*]] = cc.alloca !quake.measure
+// CHECK:           cc.store %[[VAL_3]], %[[HA]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[HL:.*]] = cc.load %[[HA]] : !cc.ptr<!quake.measure>
 // CHECK:           %[[VAL_10:.*]] = quake.discriminate %[[HL]] :
 // CHECK:           %[[VAL_4:.*]] = cc.cast unsigned %[[VAL_10]] : (i1) -> f64
 // CHECK:           %[[VAL_5:.*]] = cc.alloca f64
@@ -41,7 +41,7 @@ struct testCast {
 // CHECK:           cc.if(%[[VAL_7]]) {
 // CHECK:             quake.x %[[VAL_2]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_2]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_2]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -65,10 +65,10 @@ struct testCastBoolMeasurement {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_m0:.*]] = quake.mz %[[VAL_0]]{{.*}} : (!quake.ref) -> !cc.measure_handle
-// CHECK:           %[[HA:.*]] = cc.alloca !cc.measure_handle
-// CHECK:           cc.store %[[VAL_m0]], %[[HA]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[HL:.*]] = cc.load %[[HA]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[VAL_m0:.*]] = quake.mz %[[VAL_0]]{{.*}} : (!quake.ref) -> !quake.measure
+// CHECK:           %[[HA:.*]] = cc.alloca !quake.measure
+// CHECK:           cc.store %[[VAL_m0]], %[[HA]] : !cc.ptr<!quake.measure>
+// CHECK:           %[[HL:.*]] = cc.load %[[HA]] : !cc.ptr<!quake.measure>
 // CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[HL]] :
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i1
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_3]] : !cc.ptr<i1>
@@ -81,7 +81,7 @@ struct testCastBoolMeasurement {
 // CHECK:           cc.if(%[[VAL_8]]) {
 // CHECK:             quake.x %[[VAL_1]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_m1:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_m1:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -109,7 +109,7 @@ struct testUnsignedCastBoolConstTrue {
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_m:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_m:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -137,7 +137,7 @@ struct testUnsignedCastBoolConstFalse {
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_m:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_m:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -165,7 +165,7 @@ struct testSignedCastBoolConstTrue {
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_m:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_m:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -193,7 +193,7 @@ struct testSignedCastBoolConstFalse {
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_m:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_m:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
 // clang-format on

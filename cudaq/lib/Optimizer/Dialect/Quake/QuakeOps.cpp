@@ -24,15 +24,50 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <unordered_set>
 
 using namespace mlir;
 
 #include "CanonicalPatterns.inc"
+
+// A linear value may be forwarded by several branches (CFG terminators) as long
+// as every one of those branches delivers it to the same block argument of the
+// same successor block. That is a phi node that merges one value: on each path
+// the wire is still consumed exactly once, by the block argument. Block
+// argument positions must agree, otherwise the block would receive the wire
+// more than once.
+//
+// This is a local check on the uses of one value; it deliberately does not look
+// at the control-flow graph, because the verifier runs on every operation of a
+// potentially very large function. In particular it does not detect
+// hand-written IR where a back edge delivers a value defined outside a loop to
+// the loop header again. The passes do not produce that shape: loop-carried
+// wires travel through `cc.loop` iteration arguments before CFG lowering.
+static bool allUsesMergeIntoOneBlockArgument(Value v) {
+  BlockArgument merged;
+  for (OpOperand &use : v.getUses()) {
+    auto branch = dyn_cast<BranchOpInterface>(use.getOwner());
+    if (!branch)
+      return false;
+    // The block argument that receives this operand. There is none when the
+    // operand is not forwarded to a successor, e.g., a branch condition.
+    std::optional<BlockArgument> arg =
+        branch.getSuccessorBlockArgument(use.getOperandNumber());
+    if (!arg)
+      return false;
+    if (!merged)
+      merged = *arg;
+    else if (merged != *arg)
+      return false;
+  }
+  return static_cast<bool>(merged);
+}
 
 static LogicalResult verifyWireResultsAreLinear(Operation *op) {
   for (Value v : op->getOpResults())
@@ -47,6 +82,10 @@ static LogicalResult verifyWireResultsAreLinear(Operation *op) {
         uniqs.insert(u);
       if (uniqs.size() == 1 &&
           (*uniqs.begin())->hasTrait<OpTrait::IsTerminator>())
+        continue;
+      // Allow several branches to forward the value to the same block
+      // argument (a phi node merging one value).
+      if (allUsesMergeIntoOneBlockArgument(v))
         continue;
       return op->emitOpError(
           "wires are a linear type and must have exactly one use");
@@ -773,6 +812,11 @@ void cudaq::quake::ExpPauliOp::getCanonicalizationPatterns(
                EraseAllFalseNegatedControlsPattern<ExpPauliOp>>(context);
 }
 
+void cudaq::quake::MppOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<BindMppPauliWord>(context);
+}
+
 LogicalResult cudaq::quake::ExpPauliOp::verify() {
   if (getPauliLiteralAttr()) {
     if (getPauli())
@@ -1097,7 +1141,7 @@ LogicalResult cudaq::quake::CallByRefOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
-// Measurements (MxOp, MyOp, MzOp)
+// Measurements (MxOp, MyOp, MzOp, MppOp)
 //===----------------------------------------------------------------------===//
 
 // Common verification for measurement operations.
@@ -1113,18 +1157,14 @@ LogicalResult verifyMeasurements(MEAS op, TypeRange targetsType,
     auto sequenceTy =
         dyn_cast<cudaq::cc::SequenceType>(op.getMeasOut().getType());
     if (!sequenceTy ||
-        !isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
-            sequenceTy.getElementType()))
+        !isa<cudaq::quake::MeasureType>(sequenceTy.getElementType()))
       return op.emitOpError(
-          "must return `!cc.sequence<!quake.measure>` or "
-          "`!cc.sequence<!cc.measure_handle>` when measuring a qvector, a "
-          "series of qubits, or both");
+          "must return `!cc.sequence<!quake.measure>` when measuring a "
+          "qvector, a series of qubits, or both");
   } else {
-    if (!isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
-            op.getMeasOut().getType()))
-      return op->emitOpError(
-          "must return `!quake.measure` or `!cc.measure_handle` when "
-          "measuring exactly one qubit");
+    if (!isa<cudaq::quake::MeasureType>(op.getMeasOut().getType()))
+      return op->emitOpError("must return `!quake.measure` when measuring "
+                             "exactly one qubit");
   }
   if (op.getRegisterName())
     if (op.getRegisterName()->empty())
@@ -1147,6 +1187,33 @@ LogicalResult cudaq::quake::MzOp::verify() {
                             getMeasOut().getType());
 }
 
+// An mpp measures one Pauli product over all of its targets, so unlike the
+// single-axis measurements it yields exactly one measurement result no matter
+// how many qubits it acts on. The result type is already restricted to a
+// single measure or measure handle by the op definition. The Pauli word is
+// either a literal or a value, exactly as for exp_pauli.
+LogicalResult cudaq::quake::MppOp::verify() {
+  if (failed(verifyWireResultsAreLinear(getOperation())))
+    return failure();
+  if (getTargets().empty())
+    return emitOpError("must have at least one target");
+  if (getPauliLiteralAttr()) {
+    if (getPauli())
+      return emitOpError("cannot have both a literal and a value Pauli word");
+    if (!symbolizePauliWord(*getPauliLiteral()))
+      return emitOpError("literal Pauli word must contain only I, X, Y, or Z");
+    auto targetQubitCount = getStaticTargetQubitCount(getTargets());
+    if (targetQubitCount && getPauliLiteral()->size() != *targetQubitCount)
+      return emitOpError(
+          "literal Pauli word length must match target qubit count");
+  } else if (!getPauli()) {
+    return emitOpError("must have either a literal or a value Pauli word");
+  }
+  if (getRegisterName() && getRegisterName()->empty())
+    return emitOpError("quake measurement name cannot be empty.");
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // Discriminate
 //===----------------------------------------------------------------------===//
@@ -1159,8 +1226,7 @@ LogicalResult cudaq::quake::DiscriminateOp::verify() {
           "must return a !cc.sequence<integral> type, when discriminating a "
           "qvector, a series of qubits, or both");
   } else {
-    if (!isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
-            getMeasurement().getType()) ||
+    if (!isa<cudaq::quake::MeasureType>(getMeasurement().getType()) ||
         !isa<IntegerType>(getResult().getType()))
       return emitOpError(
           "must return integral type when discriminating exactly one qubit");
@@ -1686,6 +1752,17 @@ void cudaq::quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
   }
 
 QUANTUM_OPS(INSTANTIATE_CALLBACKS)
+
+/// An mpp reads the Pauli word, if it is given as an argument, in addition to
+/// the effects it has on its qubits, as an exp_pauli does.
+void cudaq::quake::MppOp::getEffects(
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
+        &effects) {
+  getEffectsImpl(effects);
+  if (getPauli())
+    effects.emplace_back(MemoryEffects::Read::get(), &getPauliMutable()[0],
+                         SideEffects::DefaultResource::get());
+}
 
 /// An exp_pauli reads the Pauli word, if it is given as an argument, in
 /// addition to the effects it has on its qubits. This is the case whether the

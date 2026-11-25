@@ -6,6 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
+// The expected values are libm results printed to the last digit, and Apple's
+// libm differs from glibc by an ulp (0.43749999999999994 instead of 0.4375).
+// UNSUPPORTED: system-darwin
 // RUN: not qlx-opt %s --phys-schedule='graph=conditional result=conditional_schedule' \
 // RUN:   --phys-estimate-schedule='schedule=conditional_schedule lower-tier=analytical result=estimate' \
 // RUN:   2>&1 | FileCheck %s --check-prefix=CONDITIONAL

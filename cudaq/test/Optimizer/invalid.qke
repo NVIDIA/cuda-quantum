@@ -261,13 +261,13 @@ func.func private @wonk(!quake.struq<!quake.veq<2>, !quake.ref>)
 // -----
 
 // expected-error@+1 {{cannot classically allocate quake abstract type}}
-%0 = cc.alloca !quake.measure
+%0 = cc.alloca !quake.ref
 
 // -----
 
 func.func @mz_handle_register_scalar_result(%v: !quake.veq<?>) {
-  // expected-error@+1 {{must return `!cc.sequence<!quake.measure>` or `!cc.sequence<!cc.measure_handle>`}}
-  %m = quake.mz %v : (!quake.veq<?>) -> !cc.measure_handle
+  // expected-error@+1 {{must return `!cc.sequence<!quake.measure>`}}
+  %m = quake.mz %v : (!quake.veq<?>) -> !quake.measure
   return
 }
 
@@ -411,5 +411,105 @@ func.func @invalid_exp_pauli_control_polarity_count(%theta: f64,
                                                     %target: !quake.ref) {
   // expected-error@+1 {{control polarity count must match control operand count}}
   quake.exp_pauli (%theta) [%control neg [true, false]] %target to "X" : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @invalid_mpp_literal() {
+  %qubits = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{literal Pauli word must contain only I, X, Y, or Z}}
+  %0 = quake.mpp %qubits to "XA" : (!quake.veq<2>) -> !quake.measure
+  return
+}
+
+// -----
+
+func.func @invalid_mpp_sign_is_not_part_of_the_word() {
+  %qubits = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{literal Pauli word must contain only I, X, Y, or Z}}
+  %0 = quake.mpp %qubits to "-XZ" : (!quake.veq<2>) -> !quake.measure
+  return
+}
+
+// -----
+
+func.func @invalid_mpp_literal_length() {
+  %qubits = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{literal Pauli word length must match target qubit count}}
+  %0 = quake.mpp %qubits to "X" : (!quake.veq<2>) -> !quake.measure
+  return
+}
+
+// -----
+
+func.func @invalid_mpp_multi_target_literal_length() {
+  %scalar = quake.alloca !quake.ref
+  %vector = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{literal Pauli word length must match target qubit count}}
+  %0 = quake.mpp %scalar, %vector to "XY" : (!quake.ref, !quake.veq<2>) -> !quake.measure
+  return
+}
+
+// -----
+
+func.func @invalid_mpp_relaxed_literal_length() {
+  %targets = quake.alloca !quake.veq<2>
+  %relaxed = quake.relax_size %targets : (!quake.veq<2>) -> !quake.veq<?>
+  // expected-error@+1 {{literal Pauli word length must match target qubit count}}
+  %0 = quake.mpp %relaxed to "X" : (!quake.veq<?>) -> !quake.measure
+  return
+}
+
+// -----
+
+func.func @invalid_mpp_no_targets() {
+  // expected-error@+1 {{must have at least one target}}
+  %0 = quake.mpp to "" : () -> !quake.measure
+  return
+}
+
+// -----
+
+func.func @invalid_mpp_empty_register_name() {
+  %q = quake.alloca !quake.ref
+  // expected-error@+1 {{quake measurement name cannot be empty.}}
+  %0 = quake.mpp %q to "X" name "" : (!quake.ref) -> !quake.measure
+  return
+}
+
+// -----
+
+func.func @invalid_mpp_sequence_result() {
+  %qubits = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{result #0 must be}}
+  %0 = quake.mpp %qubits to "XZ" : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+  return
+}
+
+// -----
+
+func.func @invalid_mpp_wire_arity(%w0: !quake.wire, %w1: !quake.wire) {
+  // expected-error@+1 {{arity does not equal coarity of wires}}
+  %0 = quake.mpp %w0, %w1 to "XZ" : (!quake.wire, !quake.wire) -> !quake.measure
+  return
+}
+
+// -----
+
+// The custom syntax only builds a literal or a value word, so the two invalid
+// combinations are written in the generic form.
+func.func @invalid_mpp_literal_and_value(%q: !quake.ref) {
+  %word = cc.string_literal "X" : !cc.ptr<!cc.array<i8 x 2>>
+  // expected-error@+1 {{cannot have both a literal and a value Pauli word}}
+  %0 = "quake.mpp"(%q, %word) <{operandSegmentSizes = array<i32: 1, 1>, pauliLiteral = "X"}> : (!quake.ref, !cc.ptr<!cc.array<i8 x 2>>) -> !quake.measure
+  return
+}
+
+// -----
+
+func.func @invalid_mpp_no_word(%q: !quake.ref) {
+  // expected-error@+1 {{must have either a literal or a value Pauli word}}
+  %0 = "quake.mpp"(%q) <{operandSegmentSizes = array<i32: 1, 0>}> : (!quake.ref) -> !quake.measure
   return
 }

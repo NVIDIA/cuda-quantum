@@ -14,6 +14,7 @@
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/IR/DataLayout.h"
+#include "mlir/AsmParser/AsmParser.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -23,6 +24,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Interfaces/FunctionInterfaces.h"
 
 using namespace mlir;
 
@@ -88,16 +90,15 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
                 // we're assuming pointers are 64 bits.
                 return {8};
               })
-          .Case(
-              [](cudaq::cc::MeasureHandleType) -> std::optional<std::int32_t> {
-                // `!cc.measure_handle` is the IR alias of
-                // `cudaq::measure_handle`, a class with a single `std::int64_t`
-                // field. A later pass replaces it with `i64`, until then it is
-                // statically 8 bytes wide. Required so
-                // `__nvqpp_vectorCopyCtor` gets a constant element size when a
-                // pure-device kernel returns `std::vector<measure_handle>`.
-                return {8};
-              })
+          .Case([](cudaq::quake::MeasureType) -> std::optional<std::int32_t> {
+            // `!quake.measure` is the IR form of `cudaq::measure_handle`, a
+            // class with a single `std::int64_t` field. A later pass
+            // replaces it with `i64`, until then it is statically 8 bytes
+            // wide. Required so
+            // `__nvqpp_vectorCopyCtor` gets a constant element size when a
+            // pure-device kernel returns `std::vector<measure_handle>`.
+            return {8};
+          })
           .Default({});
 
   if (rawSize)
@@ -218,7 +219,7 @@ void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
 
 LogicalResult cudaq::cc::AllocaOp::verify() {
   // It is deeply incorrect to allocate storage for quake abstract types.
-  if (cudaq::quake::isQuakeType(getElementType()))
+  if (cudaq::quake::isQuantumType(getElementType()))
     return emitOpError("cannot classically allocate quake abstract type");
   return success();
 }
@@ -446,11 +447,6 @@ LogicalResult cudaq::cc::CastOp::verify() {
     } else if (isa<IntegerType>(inTy) && isa<cc::IndirectCallableType>(outTy)) {
       // ok: nop
       // the indirect callable value is an integer key on the device side.
-    } else if (isa<IntegerType>(inTy) && isa<cc::MeasureHandleType>(outTy)) {
-      // ok: nop
-      // the measure handle is an opaque i64 payload.
-    } else if (isa<cc::MeasureHandleType>(inTy) && isa<IntegerType>(outTy)) {
-      // ok: nop
     } else if (isa<IntegerType>(inTy) && isa<cc::PointerType>(outTy)) {
       // ok: inttoptr
     } else if (isa<cc::PointerType>(inTy) && isa<IntegerType>(outTy)) {
@@ -2449,13 +2445,26 @@ LogicalResult cudaq::cc::IfOp::verify() {
   return success();
 }
 
+/// The type of a linear region argument that is written without one.
+static constexpr llvm::StringLiteral defaultLinearArgumentTypeText =
+    "!quake.wire";
+
 void cudaq::cc::IfOp::print(OpAsmPrinter &p) {
   p << '(' << getCondition() << ')';
   if (!getLinearArgs().empty()) {
     p << " ((";
-    llvm::interleaveComma(
-        llvm::zip(getThenEntryArguments(), getLinearArgs()), p,
-        [&](auto it) { p << std::get<0>(it) << " = " << std::get<1>(it); });
+    llvm::interleaveComma(llvm::zip(getThenEntryArguments(), getLinearArgs()),
+                          p, [&](auto it) {
+                            p << std::get<0>(it) << " = " << std::get<1>(it);
+                            // `!quake.wire` is the default and is not written,
+                            // so existing IR prints as before. Any other linear
+                            // type is annotated.
+                            Type type = std::get<1>(it).getType();
+                            std::string text;
+                            llvm::raw_string_ostream(text) << type;
+                            if (text != defaultLinearArgumentTypeText)
+                              p << " : " << type;
+                          });
     p << "))";
   }
   p.printOptionalArrowTypeList(getResultTypes());
@@ -2511,18 +2520,44 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
     return failure();
   SmallVector<OpAsmParser::Argument, 4> regionArgs;
   if (succeeded(parser.parseOptionalLParen())) {
-    // Linear type arguments.
-    SmallVector<OpAsmParser::UnresolvedOperand, 4> linearOperands;
-    if (parser.parseAssignmentList(regionArgs, linearOperands) ||
-        parser.parseRParen())
+    // Linear type arguments: `((%arg = %value [: type], ...))`. The type is
+    // optional for compatibility; when it is omitted it is `!quake.wire`.
+    // That default is looked up by name through the type parser, so CC has no
+    // link-time dependence on Quake.
+    if (parser.parseLParen())
       return failure();
-    Type wireTy = cudaq::quake::WireType::get(builder.getContext());
-    for (auto argOperand : llvm::zip(regionArgs, linearOperands)) {
-      std::get<0>(argOperand).type = wireTy;
-      if (parser.resolveOperand(std::get<1>(argOperand), wireTy,
-                                result.operands))
+    do {
+      OpAsmParser::Argument arg;
+      OpAsmParser::UnresolvedOperand operand;
+      if (parser.parseArgument(arg) || parser.parseEqual() ||
+          parser.parseOperand(operand))
         return failure();
-    }
+      Type type;
+      if (succeeded(parser.parseOptionalColon())) {
+        if (parser.parseType(type))
+          return failure();
+      } else {
+        type =
+            mlir::parseType(defaultLinearArgumentTypeText, parser.getContext());
+        if (!type)
+          return parser.emitError(
+              parser.getNameLoc(),
+              "a linear region argument without a type defaults to "
+              "!quake.wire, which is not available here; write the type "
+              "explicitly");
+      }
+      if (!cudaq::cc::isLinearType(type))
+        return parser.emitError(parser.getNameLoc(),
+                                "linear region argument must have a linear "
+                                "(SSI) type, got ")
+               << type;
+      arg.type = type;
+      if (parser.resolveOperand(operand, type, result.operands))
+        return failure();
+      regionArgs.push_back(arg);
+    } while (succeeded(parser.parseOptionalComma()));
+    if (parser.parseRParen() || parser.parseRParen())
+      return failure();
   }
   if (parser.parseOptionalArrowTypeList(result.types))
     return failure();
@@ -2532,7 +2567,7 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
     // region arguments. (It can have more.)
     std::int64_t numRegionArgs = regionArgs.size();
     std::for_each(result.types.begin(), result.types.end(), [&](Type t) {
-      if (cudaq::quake::isLinearType(t))
+      if (cudaq::cc::isLinearType(t))
         --numRegionArgs;
     });
     if (numRegionArgs > 0)
@@ -2598,7 +2633,7 @@ void cudaq::cc::IfOp::getEntrySuccessorRegions(
 template <typename A>
 long countLinearArgs(const A &iterable) {
   return std::count_if(iterable.begin(), iterable.end(),
-                       [](Type t) { return cudaq::quake::isLinearType(t); });
+                       [](Type t) { return cudaq::cc::isLinearType(t); });
 }
 
 LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {
@@ -3366,38 +3401,80 @@ cudaq::cc::VarargCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
   if (!fnAttr)
     return emitOpError("requires a 'callee' symbol reference attribute");
-  LLVM::LLVMFuncOp fn =
-      symbolTable.lookupNearestSymbolFrom<LLVM::LLVMFuncOp>(*this, fnAttr);
+  // The callee is found through `FunctionOpInterface` rather than by naming
+  // `llvm.func`, so this op carries no link-time dependence on the LLVM
+  // dialect. `llvm.func` implements the interface; its argument types exclude
+  // the variadic tail and its result types are empty for a `void` return.
+  auto fn =
+      symbolTable.lookupNearestSymbolFrom<FunctionOpInterface>(*this, fnAttr);
   if (!fn)
     return emitOpError() << "'" << fnAttr.getValue()
-                         << "' does not reference a valid LLVM function";
+                         << "' does not reference a valid function";
 
   // Verify that the operand and result types match the callee.
-  auto fnType = fn.getFunctionType();
-  if (fnType.getNumParams() > getNumOperands())
+  auto paramTypes = fn.getArgumentTypes();
+  if (paramTypes.size() > getNumOperands())
     return emitOpError("incorrect number of operands for callee");
 
-  for (unsigned i = 0, e = fnType.getNumParams(); i != e; ++i)
-    if (getOperand(i).getType() != fnType.getParams()[i]) {
+  // A `func.func` can never be variadic, so extra arguments would be passed to
+  // a function that does not accept them. Other callee kinds (`llvm.func`) are
+  // opaque here; whether they are variadic is not visible through the
+  // interface.
+  if (isa<FunctionType>(fn.getFunctionType()) &&
+      paramTypes.size() != getNumOperands())
+    return emitOpError("variadic arguments passed to a non-variadic callee");
+
+  for (unsigned i = 0, e = paramTypes.size(); i != e; ++i)
+    if (getOperand(i).getType() != paramTypes[i]) {
       return emitOpError("operand type mismatch: expected operand type ")
-             << fnType.getParams()[i] << ", but provided "
-             << getOperand(i).getType() << " for operand number " << i;
+             << paramTypes[i] << ", but provided " << getOperand(i).getType()
+             << " for operand number " << i;
     }
 
-  if (fnType.getReturnType() == LLVM::LLVMVoidType::get(getContext()) &&
-      getNumResults() == 0)
+  auto resultTypes = fn.getResultTypes();
+  if (resultTypes.empty() && getNumResults() == 0)
     return success();
 
   if (getNumResults() > 1)
     return emitOpError("wrong number of result types: ") << getNumResults();
 
-  if (getResult(0).getType() != fnType.getReturnType()) {
+  if (resultTypes.size() != getNumResults() ||
+      getResult(0).getType() != resultTypes[0]) {
     auto diag = emitOpError("result type mismatch ");
     diag.attachNote() << "      op result types: " << getResultTypes();
-    diag.attachNote() << "function result types: " << fnType.getReturnType();
+    diag.attachNote() << "function result types: " << resultTypes;
     return diag;
   }
   return success();
+}
+
+namespace {
+/// A vararg call to a `func.func` has no variadic tail (the verifier ensures
+/// the operand count matches), so it is an ordinary call.
+struct VarargCallToFuncCall : public OpRewritePattern<cudaq::cc::VarargCallOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::VarargCallOp call,
+                                PatternRewriter &rewriter) const override {
+    auto callee = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
+        call, call.getCalleeAttr());
+    if (!callee ||
+        callee.getFunctionType().getNumInputs() != call.getNumOperands())
+      return failure();
+    auto newCall = rewriter.replaceOpWithNewOp<func::CallOp>(
+        call, call.getCalleeAttr(), call.getResultTypes(), call.getArgs());
+    if (auto argAttrs = call.getArgAttrsAttr())
+      newCall.setArgAttrsAttr(argAttrs);
+    if (auto resAttrs = call.getResAttrsAttr())
+      newCall.setResAttrsAttr(resAttrs);
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::VarargCallOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<VarargCallToFuncCall>(context);
 }
 
 //===----------------------------------------------------------------------===//

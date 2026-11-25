@@ -9,6 +9,8 @@
 from __future__ import annotations
 from typing import Any, Callable, Iterable, Iterator, Optional
 
+import numpy
+
 from ..operators import NumericType
 
 
@@ -60,7 +62,9 @@ class Schedule(Iterator):
 
         def resolve_parameter(name: str, value: Any) -> NumericType:
             if name in self._parameters:
-                if isinstance(value, (complex, float, int)):
+                numpy_scalar = isinstance(
+                    value, numpy.generic) and value.dtype.kind in ("i", "f")
+                if isinstance(value, (complex, float, int)) or numpy_scalar:
                     return value
                 else:
                     raise TypeError(

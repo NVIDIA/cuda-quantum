@@ -9,10 +9,17 @@
 #pragma once
 
 #include "cudaq/Optimizer/Dialect/InlinerInterface.h"
+#include "mlir/IR/Types.h"
 
 using CCInlinerInterface = cudaq::EnableInlinerInterface;
 
 namespace cudaq::cc {
+
+/// A linear type is any type that carries the `SSIType` trait. CC does not know
+/// which dialects define such types; Quake's wire and cable are two of them.
+inline bool isLinearType(mlir::Type ty) {
+  return ty.hasTrait<mlir::TypeTrait::SSIType>();
+}
 
 mlir::LogicalResult verifyConvergentLinearTypesInRegions(mlir::Operation *op);
 

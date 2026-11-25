@@ -28,7 +28,7 @@ namespace cudaq_internal::compiler {
 ///   canonicalize
 ///   prep pipeline
 ///     preDeployPasses       (first stage only)
-///   jit-deploy-pipeline
+///   jit-deploy-pipeline     (only when a stage needs gate lowering)
 ///     postDeployPasses
 ///   jit-finalize-pipeline
 ///     postFinalizePasses    (last stage only)
@@ -38,8 +38,7 @@ namespace cudaq_internal::compiler {
 /// of the stages before it. Without them, a second stage's passes before
 /// deploy would run ahead of the first stage's passes after deploy.
 /// `getPassPipeline` checks each stage and rejects a target that breaks either
-/// limit. It also uses this struct to collect the passes of all stages, in
-/// stage order.
+/// limit.
 struct StagePasses {
   /// Passes that run after prep and before deploy.
   std::string preDeployPasses{};
@@ -47,6 +46,17 @@ struct StagePasses {
   std::string postDeployPasses{};
   /// Passes that run after finalize.
   std::string postFinalizePasses{};
+  /// The stage's output is limited to a basis, so prep and deploy lower the
+  /// gates that hardware lacks: custom unitaries, state initialization, `u3`,
+  /// and multi-controlled gates.
+  // TODO: Lower these gates in each profile's lowering, driven by what its
+  // basis does not accept, once no custom stage relies on prep and deploy
+  // for them. This field then goes.
+  bool needsGateLowering = true;
+  /// The stage normalizes the kernel: it converts the kernel to wires with
+  /// `prepare-for-wireset` and applies the requested level. When every stage
+  /// does, `codegen` only emits.
+  bool normalizesKernel = false;
 };
 
 /// Interface for lowering between IR profiles.
@@ -93,22 +103,38 @@ public:
   }
 };
 
+/// Whether a stage into \p profile compiles for a simulator. `gate-count` is
+/// the cost model for simulators. `get_state` returns every qubit the kernel
+/// allocates, so such a stage keeps the implicit output that holds them.
+// TODO: This choice does not belong to the cost model. Erase the implicit
+// output per launch instead, for the launches that do not read idle qubits.
+inline bool
+compilesForSimulator(const cudaq::config::QuakeUnmappedProfile &profile) {
+  return profile.costModel == cudaq::config::CostModel::gate_count;
+}
+
 /// Pipeline text for `prepare-for-wireset`, which unrolls the loops that
 /// \p profile selects, up to its limit, and moves the kernel's qubits onto
 /// wires. A qubit picked by a longer loop or a run-time index stays a
 /// reference. Stages run it at every optimization level, since the level only
 /// changes how much we optimize, not the representation. With \p addWireSet,
 /// it also borrows every qubit from a new wire set, which `qubit-mapping`
-/// needs.
+/// needs. With \p decomposeExpPauli, it decomposes each `exp_pauli` whose
+/// Pauli word is known. Otherwise `exp_pauli` and its qubits stay on
+/// references. When \p profile compiles for a simulator, the kernel keeps the
+/// implicit output that holds every qubit, so that `dqe` removes no idle
+/// qubit.
 inline std::string
 convertToWires(const cudaq::config::QuakeUnmappedProfile &profile,
-               bool addWireSet = false) {
+               bool addWireSet, bool decomposeExpPauli) {
   return std::string("prepare-for-wireset{") +
          (addWireSet ? "add-wireset=true " : "") +
          "maximum-iterations=" + std::to_string(profile.maxUnrollIterations) +
          (profile.unrollLoops == cudaq::config::LoopUnrolling::index_use
               ? " unroll-only-index-use-loops=true"
               : "") +
+         (decomposeExpPauli ? "" : " decompose-exp-pauli=false") +
+         (compilesForSimulator(profile) ? " erase-implicit-output=false" : "") +
          "}";
 }
 

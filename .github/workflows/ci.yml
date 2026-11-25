@@ -192,6 +192,7 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
+      runner_cpus: '32'
       build_args: toolchain=${{ matrix.toolchain }}
       build_config_id: ${{ matrix.toolchain }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
@@ -217,6 +218,7 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
+      runner_cpus: '32'
       build_config_id: cu${{ matrix.cuda_version }}-gcc12
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
@@ -247,6 +249,7 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/assets.Dockerfile
+      runner_cpus: '32'
       build_config_id: cu${{ matrix.cuda_version }}-llvm
       build_target: prereqs
       build_args: |
