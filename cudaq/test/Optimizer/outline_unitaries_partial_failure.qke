@@ -1,0 +1,48 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: not cudaq-opt --outline-unitaries --mlir-print-ir-after-all --mlir-print-ir-after-failure %s 2>&1 | FileCheck %s
+
+// There should be 3 total groups, but only the first and third group will be outlined.
+// The second group will fail because of the gate acting on a `!quake.ref`.
+// The pass returns failure while outlining 2 of 3 groups.
+func.func @partial_outlining_of_unitaries(%q0_wire: !quake.wire, %q1_ref: !quake.ref, %q2_wire: !quake.wire) -> (!quake.wire, !quake.wire) {
+  %h0 = quake.h %q0_wire : (!quake.wire) -> !quake.wire
+  %m0, %q0_wire_final = quake.mz %h0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.h %q1_ref : (!quake.ref) -> ()
+  %m1 = quake.mz %q1_ref : (!quake.ref) -> !quake.measure
+  %h2 = quake.h %q2_wire : (!quake.wire) -> !quake.wire
+  %m2, %q2_wire_final = quake.mz %h2 : (!quake.wire)  -> (!quake.measure, !quake.wire)
+  return %q0_wire_final, %q2_wire_final : !quake.wire, !quake.wire
+}
+
+// CHECK: error: failed to outline unitary group: selected operation must be memory-effect-free and have supported wire semantics
+
+// CHECK-LABEL: func.func @partial_outlining_of_unitaries(
+// CHECK-SAME:         %[[ARG0:.*]]: !quake.wire,
+// CHECK-SAME:         %[[ARG1:.*]]: !quake.ref,
+// CHECK-SAME:         %[[ARG2:.*]]: !quake.wire) -> (!quake.wire, !quake.wire) {
+// First group outlined successfully.
+// CHECK-NEXT:         %[[CREATE_LAMBDA_0:.*]] = cc.create_lambda {
+// CHECK-NEXT:           %[[H_0:.*]] = quake.h %[[ARG0]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:           cc.return %[[H_0]] : !quake.wire
+// CHECK-NEXT:         } : !cc.callable<() -> !quake.wire>
+// CHECK-NEXT:         %[[CALL_CALLABLE_0:.*]] = cc.call_callable %[[CREATE_LAMBDA_0]] : (!cc.callable<() -> !quake.wire>) -> !quake.wire
+// CHECK-NEXT:         %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[CALL_CALLABLE_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// Note that this group fails to outline because it contains a `!quake.ref` input to a gate
+// CHECK-NEXT:         quake.h %[[ARG1]] : (!quake.ref) -> ()
+// CHECK-NEXT:         %[[MZ_1:.*]] = quake.mz %[[ARG1]] : (!quake.ref) -> !quake.measure
+// Third group outlined successfully.
+// CHECK-NEXT:         %[[CREATE_LAMBDA_1:.*]] = cc.create_lambda {
+// CHECK-NEXT:           %[[H_1:.*]] = quake.h %[[ARG2]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:           cc.return %[[H_1]] : !quake.wire
+// CHECK-NEXT:         } : !cc.callable<() -> !quake.wire>
+// CHECK-NEXT:         %[[CALL_CALLABLE_1:.*]] = cc.call_callable %[[CREATE_LAMBDA_1]] : (!cc.callable<() -> !quake.wire>) -> !quake.wire
+// CHECK-NEXT:         %[[VAL_1:.*]], %[[MZ_2:.*]] = quake.mz %[[CALL_CALLABLE_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK-NEXT:         return %[[MZ_0]], %[[MZ_2]] : !quake.wire, !quake.wire
+// CHECK-NEXT:       }
