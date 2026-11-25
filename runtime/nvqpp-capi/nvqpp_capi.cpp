@@ -25,25 +25,25 @@
 // Kernel launch
 //===----------------------------------------------------------------------===//
 
-cudaq::KernelThunkResultType
-__cudaq_altLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
-                        void *args, std::uint64_t argsSize,
-                        std::uint64_t resultOffset) {
+cudaq::KernelThunkResultType altLaunchKernel(const char *kernelName,
+                                             cudaq::KernelThunkType kernel,
+                                             void *args, std::uint64_t argsSize,
+                                             std::uint64_t resultOffset) {
   return cudaq::altLaunchKernel(kernelName, kernel, args, argsSize,
                                 resultOffset);
 }
 
 cudaq::KernelThunkResultType
-__cudaq_streamlinedLaunchKernel(const char *kernelName,
-                                const std::vector<void *> &rawArgs) {
+streamlinedLaunchKernel(const char *kernelName,
+                        const std::vector<void *> &rawArgs) {
   return cudaq::streamlinedLaunchKernel(kernelName, rawArgs);
 }
 
 cudaq::KernelThunkResultType
-__cudaq_hybridLaunchKernel(const char *kernelName,
-                           cudaq::KernelThunkType kernel, void *args,
-                           std::uint64_t argsSize, std::uint64_t resultOffset,
-                           const std::vector<void *> &rawArgs) {
+hybridLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
+                   void *args, std::uint64_t argsSize,
+                   std::uint64_t resultOffset,
+                   const std::vector<void *> &rawArgs) {
   return cudaq::hybridLaunchKernel(kernelName, kernel, args, argsSize,
                                    resultOffset, rawArgs);
 }
@@ -56,20 +56,20 @@ void __cudaq_deviceCodeHolderAdd(const char *key, const char *code) {
   cudaq::registry::deviceCodeHolderAdd(key, code);
 }
 
-void __cudaq_registerKernelName(const char *kernelName) {
+void cudaqRegisterKernelName(const char *kernelName) {
   cudaq::registry::registerKernelName(kernelName);
 }
 
-void __cudaq_registerCallbackName(const char *name, void *unmarshalFunc,
-                                  void *devFunc) {
+void cudaqRegisterCallbackName(const char *name, void *unmarshalFunc,
+                               void *devFunc) {
   cudaq::registry::registerCallbackName(name, unmarshalFunc, devFunc);
 }
 
-void __cudaq_registerArgsCreator(const char *name, char *rawFunctor) {
+void cudaqRegisterArgsCreator(const char *name, char *rawFunctor) {
   cudaq::registry::registerArgsCreator(name, rawFunctor);
 }
 
-void __cudaq_registerLambdaName(const char *name, const char *value) {
+void cudaqRegisterLambdaName(const char *name, const char *value) {
   cudaq::registry::registerLambdaName(name, value);
 }
 
@@ -96,36 +96,42 @@ void *__cudaq_getLinkableKernelDeviceFunction(std::intptr_t key) {
 // `cudaq::state` helpers
 //===----------------------------------------------------------------------===//
 
-std::int64_t __cudaq_stateNumberOfQubits(cudaq::state *obj) {
+std::int64_t __nvqpp_cudaq_state_numberOfQubits(cudaq::state *obj) {
   return cudaq::detail::stateNumberOfQubits(obj);
 }
 
-cudaq::state *__cudaq_stateCreateFromDataF64(double *data, std::size_t size) {
+cudaq::state *__nvqpp_cudaq_state_createFromData_f64(double *data,
+                                                     std::size_t size) {
   return cudaq::detail::stateCreateFromDataF64(data, size);
 }
 
-cudaq::state *__cudaq_stateCreateFromDataF32(float *data, std::size_t size) {
+cudaq::state *__nvqpp_cudaq_state_createFromData_f32(float *data,
+                                                     std::size_t size) {
   return cudaq::detail::stateCreateFromDataF32(data, size);
 }
 
-cudaq::state *__cudaq_stateCreateFromDataComplexF64(std::complex<double> *data,
-                                                    std::size_t size) {
+cudaq::state *
+__nvqpp_cudaq_state_createFromData_complex_f64(std::complex<double> *data,
+                                               std::size_t size) {
   return cudaq::detail::stateCreateFromDataComplexF64(data, size);
 }
 
-cudaq::state *__cudaq_stateCreateFromDataComplexF32(std::complex<float> *data,
-                                                    std::size_t size) {
+cudaq::state *
+__nvqpp_cudaq_state_createFromData_complex_f32(std::complex<float> *data,
+                                               std::size_t size) {
   return cudaq::detail::stateCreateFromDataComplexF32(data, size);
 }
 
-void __cudaq_stateDelete(cudaq::state *obj) { cudaq::detail::stateDelete(obj); }
+void __nvqpp_cudaq_state_delete(cudaq::state *obj) {
+  cudaq::detail::stateDelete(obj);
+}
 
 //===----------------------------------------------------------------------===//
 // Host-side helpers
 //===----------------------------------------------------------------------===//
 
-void __cudaq_initializerListToVectorBool(std::vector<bool> &result,
-                                         char *initList, std::size_t size) {
+void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &result,
+                                             char *initList, std::size_t size) {
   // result is a sret return value. Make sure it is default initialized. Takes
   // advantage of default empty vector being all 0s.
   std::memset(static_cast<void *>(&result), 0, sizeof(result));
@@ -139,9 +145,9 @@ void __cudaq_initializerListToVectorBool(std::vector<bool> &result,
   free(initList);
 }
 
-void __cudaq_vectorBoolToInitializerList(void *outData,
-                                         const std::vector<bool> &inVec,
-                                         std::vector<char *> **allocations) {
+void __nvqpp_vector_bool_to_initializer_list(
+    void *outData, const std::vector<bool> &inVec,
+    std::vector<char *> **allocations) {
   // The MockVector must be allocated by the caller.
   struct MockVector {
     char *start;
@@ -161,26 +167,26 @@ void __cudaq_vectorBoolToInitializerList(void *outData,
     newData[i] = static_cast<char>(inVec[i]);
 }
 
-void __cudaq_vectorBoolDestroy(std::vector<bool> &vec) { vec.~vector(); }
+void __nvqpp_vector_bool_destroy(std::vector<bool> &vec) { vec.~vector(); }
 
-void __cudaq_vectorBoolFreeTemporaryInitLists(
+void __nvqpp_vector_bool_free_temporary_initlists(
     std::vector<char *> *allocations) {
   for (auto *p : *allocations)
     free(p);
   delete allocations;
 }
 
-void __cudaq_hostDeallocate(void *ptr) { ::operator delete(ptr); }
+void __nvqpp_hostDeallocate(void *ptr) { ::operator delete(ptr); }
 
-const char *__cudaq_getStringData(const std::string &s) { return s.data(); }
+const char *__nvqpp_getStringData(const std::string &s) { return s.data(); }
 
-std::uint64_t __cudaq_getStringSize(const std::string &s) { return s.size(); }
+std::uint64_t __nvqpp_getStringSize(const std::string &s) { return s.size(); }
 
 cudaq::KernelThunkResultType
-__cudaq_deviceCallbackRun(std::int64_t deviceId, const char *name,
-                          void *unmarshalFunc, void *buffer,
-                          std::int64_t bufferSize, std::int64_t returnOffset,
-                          std::int64_t numBlocks, std::int64_t numThreads) {
+__nvqpp__device_callback_run(std::int64_t deviceId, const char *name,
+                             void *unmarshalFunc, void *buffer,
+                             std::int64_t bufferSize, std::int64_t returnOffset,
+                             std::int64_t numBlocks, std::int64_t numThreads) {
   auto thunk = reinterpret_cast<cudaq::KernelThunkType>(unmarshalFunc);
   return thunk(buffer, /*isRemote=*/false);
 }

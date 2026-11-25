@@ -143,8 +143,8 @@ public:
   /// and using the compiler's knowledge of a kernel encodes those argument
   /// values into a message buffer. The message buffer is a pointer-free block
   /// of memory allocated on the heap on the host. Once the argument values are
-  /// packed into the message buffer, they can be passed to
-  /// __cudaq_altLaunchKernel or the corresponding thunk function.
+  /// packed into the message buffer, they can be passed to altLaunchKernel or
+  /// the corresponding thunk function.
   ///
   /// The created function takes two arguments. The first argument is a pointer
   /// to a block containing the argument values to be encoded. The second
@@ -896,20 +896,17 @@ public:
     case 0:
       if (failed(irBuilder.loadIntrinsic(
               module, cudaq::runtime::launchKernelHybridFuncName)))
-        return module.emitError(
-            "could not load __cudaq_altLaunchKernel intrinsic.");
+        return module.emitError("could not load altLaunchKernel intrinsic.");
       break;
     case 1:
       if (failed(irBuilder.loadIntrinsic(module,
                                          cudaq::runtime::launchKernelFuncName)))
-        return module.emitError(
-            "could not load __cudaq_altLaunchKernel intrinsic.");
+        return module.emitError("could not load altLaunchKernel intrinsic.");
       break;
     case 2:
       if (failed(irBuilder.loadIntrinsic(
               module, cudaq::runtime::launchKernelStreamlinedFuncName)))
-        return module.emitError(
-            "could not load __cudaq_altLaunchKernel intrinsic.");
+        return module.emitError("could not load altLaunchKernel intrinsic.");
       break;
     default:
       return module.emitError("invalid codegen kind value.");
@@ -950,7 +947,7 @@ public:
       return module.emitError(
           "could not load cudaq::pauli_word::_nvqpp_size or _nvqpp_data");
     if (failed(irBuilder.loadIntrinsic(module, cudaq::runtime::cleanupArrays)))
-      return module.emitError("could not load __nvqir_cleanupArrays");
+      return module.emitError("could not load __nvqpp_cleanup_arrays");
     return success();
   }
 

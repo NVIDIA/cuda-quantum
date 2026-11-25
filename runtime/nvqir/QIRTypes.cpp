@@ -241,5 +241,5 @@ void __quantum__rt__array_release(Array *a) {
   delete a;
 }
 
-void __nvqir_cleanupArrays() { nvqir::ArrayTracker::getInstance().clear(); }
+void __nvqpp_cleanup_arrays() { nvqir::ArrayTracker::getInstance().clear(); }
 }

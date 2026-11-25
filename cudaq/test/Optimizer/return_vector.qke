@@ -57,7 +57,7 @@ func.func @test_0(%0: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i3
 // CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_15]] : (!cc.ptr<i8>) -> i64
 // CHECK:           %[[VAL_17:.*]] = arith.cmpi ne, %[[VAL_16]], %[[VAL_6]] : i64
 // CHECK:           cc.if(%[[VAL_17]]) {
-// CHECK:             func.call @__cudaq_vectorBoolFreeTemporaryInitLists(%[[VAL_15]]) : (!cc.ptr<i8>) -> ()
+// CHECK:             func.call @__nvqpp_vector_bool_free_temporary_initlists(%[[VAL_15]]) : (!cc.ptr<i8>) -> ()
 // CHECK:           }
 // CHECK:           %[[VAL_18:.*]] = cc.func_ptr %[[VAL_5]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_19:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
@@ -81,7 +81,7 @@ func.func @test_0(%0: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i3
 // CHECK:           cc.store %[[VAL_32]], %[[VAL_30]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_33:.*]] = cc.cast %[[VAL_21]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_35:.*]] = cc.cast %[[VAL_34]] : (!llvm.ptr) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_36:.*]] = call @__cudaq_hybridLaunchKernel(%[[VAL_35]], %[[VAL_18]], %[[VAL_19]], %[[VAL_10]], %[[VAL_20]], %[[VAL_33]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_36:.*]] = call @hybridLaunchKernel(%[[VAL_35]], %[[VAL_18]], %[[VAL_19]], %[[VAL_10]], %[[VAL_20]], %[[VAL_33]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           %[[VAL_37:.*]] = cc.extract_value %[[VAL_36]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_38:.*]] = cc.cast %[[VAL_37]] : (!cc.ptr<i8>) -> i64
 // CHECK:           %[[VAL_39:.*]] = arith.cmpi ne, %[[VAL_38]], %[[VAL_6]] : i64
@@ -154,7 +154,7 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:           %[[VAL_15:.*]] = cc.cast %[[VAL_14]] : (!cc.ptr<i8>) -> i64
 // CHECK:           %[[VAL_16:.*]] = arith.cmpi ne, %[[VAL_15]], %[[VAL_5]] : i64
 // CHECK:           cc.if(%[[VAL_16]]) {
-// CHECK:             func.call @__cudaq_vectorBoolFreeTemporaryInitLists(%[[VAL_14]]) : (!cc.ptr<i8>) -> ()
+// CHECK:             func.call @__nvqpp_vector_bool_free_temporary_initlists(%[[VAL_14]]) : (!cc.ptr<i8>) -> ()
 // CHECK:           }
 // CHECK:           %[[VAL_17:.*]] = cc.func_ptr %[[VAL_4]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
@@ -178,7 +178,7 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:           cc.store %[[VAL_31]], %[[VAL_29]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_32:.*]] = cc.cast %[[VAL_20]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_34:.*]] = cc.cast %[[VAL_33]] : (!llvm.ptr) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_35:.*]] = call @__cudaq_hybridLaunchKernel(%[[VAL_34]], %[[VAL_17]], %[[VAL_18]], %[[VAL_9]], %[[VAL_19]], %[[VAL_32]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:           %[[VAL_35:.*]] = call @hybridLaunchKernel(%[[VAL_34]], %[[VAL_17]], %[[VAL_18]], %[[VAL_9]], %[[VAL_19]], %[[VAL_32]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           %[[VAL_36:.*]] = cc.extract_value %[[VAL_35]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_37:.*]] = cc.cast %[[VAL_36]] : (!cc.ptr<i8>) -> i64
 // CHECK:           %[[VAL_38:.*]] = arith.cmpi ne, %[[VAL_37]], %[[VAL_5]] : i64
@@ -212,15 +212,15 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 
 }
 
-// CHECK:         func.func private @__cudaq_hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-// CHECK:         func.func private @__cudaq_registerArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
-// CHECK:         llvm.func @__cudaq_registerLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
+// CHECK:         func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// CHECK:         func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
+// CHECK:         llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 // CHECK:         func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)
 // CHECK:         func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
-// CHECK:         func.func private @__cudaq_registerKernelName(!cc.ptr<i8>)
+// CHECK:         func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
 // CHECK:         func.func private @free(!cc.ptr<i8>)
-// CHECK:         func.func private @__cudaq_initializerListToVectorBool(!cc.ptr<none>, !cc.ptr<none>, i64)
-// CHECK:         func.func private @__cudaq_vectorBoolToInitializerList(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
+// CHECK:         func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64)
+// CHECK:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
 // CHECK:         func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
 // CHECK-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
@@ -305,9 +305,9 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:           %[[VAL_0:.*]] = func.constant @test_0.argsCreator : (!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64
 // CHECK:           %[[VAL_1:.*]] = llvm.mlir.addressof @test_0.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!llvm.ptr) -> !cc.ptr<i8>
-// CHECK:           func.call @__cudaq_registerKernelName(%[[VAL_2]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           func.call @cudaqRegisterKernelName(%[[VAL_2]]) : (!cc.ptr<i8>) -> ()
 // CHECK:           %[[VAL_3:.*]] = cc.func_ptr %[[VAL_0]] : ((!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64) -> !cc.ptr<i8>
-// CHECK:           func.call @__cudaq_registerArgsCreator(%[[VAL_2]], %[[VAL_3]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+// CHECK:           func.call @cudaqRegisterArgsCreator(%[[VAL_2]], %[[VAL_3]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
 // CHECK:           llvm.return
 // CHECK:         }
 // CHECK:         llvm.mlir.global_ctors ctors = [@test_0.kernelRegFunc], priorities = [17 : i32]
@@ -360,9 +360,9 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:           %[[VAL_0:.*]] = func.constant @test_1.argsCreator : (!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64
 // CHECK:           %[[VAL_1:.*]] = llvm.mlir.addressof @test_1.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!llvm.ptr) -> !cc.ptr<i8>
-// CHECK:           func.call @__cudaq_registerKernelName(%[[VAL_2]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           func.call @cudaqRegisterKernelName(%[[VAL_2]]) : (!cc.ptr<i8>) -> ()
 // CHECK:           %[[VAL_3:.*]] = cc.func_ptr %[[VAL_0]] : ((!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64) -> !cc.ptr<i8>
-// CHECK:           func.call @__cudaq_registerArgsCreator(%[[VAL_2]], %[[VAL_3]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+// CHECK:           func.call @cudaqRegisterArgsCreator(%[[VAL_2]], %[[VAL_3]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
 // CHECK:           llvm.return
 // CHECK:         }
 // CHECK:         llvm.mlir.global_ctors ctors = [@test_1.kernelRegFunc], priorities = [17 : i32]

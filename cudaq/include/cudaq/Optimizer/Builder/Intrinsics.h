@@ -45,39 +45,40 @@ static constexpr const char realtimeUnpackBits[] = "__nvqpp_RealtimeUnpackBits";
 // Convert a sequence of booleans (as bytes) into a std::vector<bool> (which is
 // typically specialized to be bit packed).
 static constexpr const char sequenceBoolCtorFromInitList[] =
-    "__cudaq_initializerListToVectorBool";
+    "__nvqpp_initializer_list_to_vector_bool";
 
 // Convert a (likely packed) std::vector<bool> into a sequence of bytes, each
 // holding a boolean value.
 static constexpr const char sequenceBoolUnpackToInitList[] =
-    "__cudaq_vectorBoolToInitializerList";
+    "__nvqpp_vector_bool_to_initializer_list";
 
 // Free any temporary buffers used to hold std::vector<bool> data.
 static constexpr const char sequenceBoolFreeTemporaryLists[] =
-    "__cudaq_vectorBoolFreeTemporaryInitLists";
+    "__nvqpp_vector_bool_free_temporary_initlists";
 
 // Destroy a host std::vector<bool> in place, releasing its storage. The layout
 // of the host's std::vector<bool> specialization is not known to the compiler,
 // so this must be done by the library that was built with that specialization.
-static constexpr const char sequenceBoolDestroy[] = "__cudaq_vectorBoolDestroy";
+static constexpr const char sequenceBoolDestroy[] =
+    "__nvqpp_vector_bool_destroy";
 
 // The internal data of the cudaq::state object must be `2**n` in length. This
 // function returns the value `n`.
 static constexpr const char getNumQubitsFromCudaqState[] =
-    "__cudaq_stateNumberOfQubits";
+    "__nvqpp_cudaq_state_numberOfQubits";
 
 // Create a new state from data.
 static constexpr const char createCudaqStateFromDataComplexF64[] =
-    "__cudaq_stateCreateFromDataComplexF64";
+    "__nvqpp_cudaq_state_createFromData_complex_f64";
 static constexpr const char createCudaqStateFromDataComplexF32[] =
-    "__cudaq_stateCreateFromDataComplexF32";
+    "__nvqpp_cudaq_state_createFromData_complex_f32";
 static constexpr const char createCudaqStateFromDataF64[] =
-    "__cudaq_stateCreateFromDataF64";
+    "__nvqpp_cudaq_state_createFromData_f64";
 static constexpr const char createCudaqStateFromDataF32[] =
-    "__cudaq_stateCreateFromDataF32";
+    "__nvqpp_cudaq_state_createFromData_f32";
 
 // Delete a state created by the runtime functions above.
-static constexpr const char deleteCudaqState[] = "__cudaq_stateDelete";
+static constexpr const char deleteCudaqState[] = "__nvqpp_cudaq_state_delete";
 
 // LLVM intrinsics to save and restore the stack pointer.
 static constexpr const char llvmStackSave[] = "llvm.stacksave.p0";

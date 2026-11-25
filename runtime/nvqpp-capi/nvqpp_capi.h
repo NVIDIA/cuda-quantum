@@ -51,24 +51,23 @@ extern const unsigned __cudaq_runtime_abi_v1;
 
 /// Client-server (legacy) interface.
 CUDAQ_NVQPP_API cudaq::KernelThunkResultType
-__cudaq_altLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
-                        void *args, std::uint64_t argsSize,
-                        std::uint64_t resultOffset);
+altLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
+                void *args, std::uint64_t argsSize, std::uint64_t resultOffset);
 
 /// Streamlined interface for launching kernels. Argument synthesis and JIT
 /// compilation *must* happen on the local machine.
 CUDAQ_NVQPP_API cudaq::KernelThunkResultType
-__cudaq_streamlinedLaunchKernel(const char *kernelName,
-                                const std::vector<void *> &rawArgs);
+streamlinedLaunchKernel(const char *kernelName,
+                        const std::vector<void *> &rawArgs);
 
 /// Hybrid of the client-server and streamlined approaches. Lets JIT
 /// compilation happen either early or late and can handle return values from
 /// each kernel launch.
 CUDAQ_NVQPP_API cudaq::KernelThunkResultType
-__cudaq_hybridLaunchKernel(const char *kernelName,
-                           cudaq::KernelThunkType kernel, void *args,
-                           std::uint64_t argsSize, std::uint64_t resultOffset,
-                           const std::vector<void *> &rawArgs);
+hybridLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
+                   void *args, std::uint64_t argsSize,
+                   std::uint64_t resultOffset,
+                   const std::vector<void *> &rawArgs);
 
 //===----------------------------------------------------------------------===//
 // Kernel registration (called from static initializers of generated code)
@@ -76,14 +75,13 @@ __cudaq_hybridLaunchKernel(const char *kernelName,
 
 CUDAQ_NVQPP_API void __cudaq_deviceCodeHolderAdd(const char *key,
                                                  const char *code);
-CUDAQ_NVQPP_API void __cudaq_registerKernelName(const char *kernelName);
-CUDAQ_NVQPP_API void __cudaq_registerCallbackName(const char *name,
-                                                  void *unmarshalFunc,
-                                                  void *devFunc);
-CUDAQ_NVQPP_API void __cudaq_registerArgsCreator(const char *name,
-                                                 char *rawFunctor);
-CUDAQ_NVQPP_API void __cudaq_registerLambdaName(const char *name,
-                                                const char *value);
+CUDAQ_NVQPP_API void cudaqRegisterKernelName(const char *kernelName);
+CUDAQ_NVQPP_API void
+cudaqRegisterCallbackName(const char *name, void *unmarshalFunc, void *devFunc);
+CUDAQ_NVQPP_API void cudaqRegisterArgsCreator(const char *name,
+                                              char *rawFunctor);
+CUDAQ_NVQPP_API void cudaqRegisterLambdaName(const char *name,
+                                             const char *value);
 CUDAQ_NVQPP_API void __cudaq_registerLinkableKernel(void *hostSideFunc,
                                                     const char *kernelName,
                                                     void *deviceSideFunc);
@@ -102,18 +100,19 @@ __cudaq_getLinkableKernelDeviceFunction(std::intptr_t key);
 // `cudaq::state` helpers
 //===----------------------------------------------------------------------===//
 
-CUDAQ_NVQPP_API std::int64_t __cudaq_stateNumberOfQubits(cudaq::state *obj);
-CUDAQ_NVQPP_API cudaq::state *__cudaq_stateCreateFromDataF64(double *data,
-                                                             std::size_t size);
-CUDAQ_NVQPP_API cudaq::state *__cudaq_stateCreateFromDataF32(float *data,
-                                                             std::size_t size);
+CUDAQ_NVQPP_API std::int64_t
+__nvqpp_cudaq_state_numberOfQubits(cudaq::state *obj);
 CUDAQ_NVQPP_API cudaq::state *
-__cudaq_stateCreateFromDataComplexF64(std::complex<double> *data,
-                                      std::size_t size);
+__nvqpp_cudaq_state_createFromData_f64(double *data, std::size_t size);
 CUDAQ_NVQPP_API cudaq::state *
-__cudaq_stateCreateFromDataComplexF32(std::complex<float> *data,
-                                      std::size_t size);
-CUDAQ_NVQPP_API void __cudaq_stateDelete(cudaq::state *obj);
+__nvqpp_cudaq_state_createFromData_f32(float *data, std::size_t size);
+CUDAQ_NVQPP_API cudaq::state *
+__nvqpp_cudaq_state_createFromData_complex_f64(std::complex<double> *data,
+                                               std::size_t size);
+CUDAQ_NVQPP_API cudaq::state *
+__nvqpp_cudaq_state_createFromData_complex_f32(std::complex<float> *data,
+                                               std::size_t size);
+CUDAQ_NVQPP_API void __nvqpp_cudaq_state_delete(cudaq::state *obj);
 
 //===----------------------------------------------------------------------===//
 // Host-side helpers. These may only be called on the host side.
@@ -122,8 +121,8 @@ CUDAQ_NVQPP_API void __cudaq_stateDelete(cudaq::state *obj);
 /// Build a `std::vector<bool>` (returned via \p result) from a heap-allocated
 /// block of \p size bytes, each 0 or 1. Frees \p initList.
 CUDAQ_NVQPP_API void
-__cudaq_initializerListToVectorBool(std::vector<bool> &result, char *initList,
-                                    std::size_t size);
+__nvqpp_initializer_list_to_vector_bool(std::vector<bool> &result,
+                                        char *initList, std::size_t size);
 
 /// Construct a block of 0 and 1 bytes that corresponds to the `vector<bool>`
 /// values. This gets rid of the bit packing implementation of the
@@ -131,31 +130,31 @@ __cudaq_initializerListToVectorBool(std::vector<bool> &result, char *initList,
 /// into a mock vector structure that looks like `std::vector<char>`. The
 /// calling routine must cleanup the buffer allocated by this code.
 CUDAQ_NVQPP_API void
-__cudaq_vectorBoolToInitializerList(void *outData,
-                                    const std::vector<bool> &inVec,
-                                    std::vector<char *> **allocations);
+__nvqpp_vector_bool_to_initializer_list(void *outData,
+                                        const std::vector<bool> &inVec,
+                                        std::vector<char *> **allocations);
 
 /// Destroy the host `std::vector<bool>` that \p vec refers to, releasing its
 /// storage. The vector is left in an unspecified state and must not be used
 /// again. The compiler cannot know the layout of the host's specialization of
 /// `std::vector<bool>`, so the destruction is done here.
-CUDAQ_NVQPP_API void __cudaq_vectorBoolDestroy(std::vector<bool> &vec);
+CUDAQ_NVQPP_API void __nvqpp_vector_bool_destroy(std::vector<bool> &vec);
 
 /// Delete the vector that tracks all the temporaries that were created as well
 /// as the temporaries themselves.
 CUDAQ_NVQPP_API void
-__cudaq_vectorBoolFreeTemporaryInitLists(std::vector<char *> *allocations);
+__nvqpp_vector_bool_free_temporary_initlists(std::vector<char *> *allocations);
 
 /// Release storage that was obtained with `operator new`, such as the storage
 /// of a host `std::vector<T>`. The compiler calls this wrapper instead of the
 /// mangled name of `operator delete`, which varies by platform and standard
 /// library.
-CUDAQ_NVQPP_API void __cudaq_hostDeallocate(void *ptr);
+CUDAQ_NVQPP_API void __nvqpp_hostDeallocate(void *ptr);
 
 /// Quasi-portable string helpers. These allow the compiler to remain portable
 /// with respect to the layout of `std::string`.
-CUDAQ_NVQPP_API const char *__cudaq_getStringData(const std::string &s);
-CUDAQ_NVQPP_API std::uint64_t __cudaq_getStringSize(const std::string &s);
+CUDAQ_NVQPP_API const char *__nvqpp_getStringData(const std::string &s);
+CUDAQ_NVQPP_API std::uint64_t __nvqpp_getStringSize(const std::string &s);
 
 /// Dispatch hook for the generalized, distributed-memory reference
 /// `device_call` lowering. This reference implementation assumes the `device`
@@ -167,9 +166,9 @@ CUDAQ_NVQPP_API std::uint64_t __cudaq_getStringSize(const std::string &s);
 /// reference implementation; a distributed target's runtime would replace this
 /// hook to route the call to the appropriate remote device instead.
 CUDAQ_NVQPP_API cudaq::KernelThunkResultType
-__cudaq_deviceCallbackRun(std::int64_t deviceId, const char *name,
-                          void *unmarshalFunc, void *buffer,
-                          std::int64_t bufferSize, std::int64_t returnOffset,
-                          std::int64_t numBlocks, std::int64_t numThreads);
+__nvqpp__device_callback_run(std::int64_t deviceId, const char *name,
+                             void *unmarshalFunc, void *buffer,
+                             std::int64_t bufferSize, std::int64_t returnOffset,
+                             std::int64_t numBlocks, std::int64_t numThreads);
 
 } // extern "C"
