@@ -40,9 +40,30 @@
 #include <cstddef>
 #include <stdexcept>
 #include <vector>
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
 
 namespace nvqir {
 namespace details {
+
+/// @brief Number of threads to use for a loop over a state vector of the
+/// given dimension. Small states run serially, since waking the thread pool
+/// costs more than the loop, and mid-sized ones use part of the pool. The
+/// count depends only on the dimension so that every loop of one execution
+/// uses the same team: resizing the team between loops is expensive.
+inline int parallelThreads(std::size_t dimension) {
+#if defined(_OPENMP)
+  const auto maxThreads =
+      static_cast<std::size_t>(std::max(1, omp_get_max_threads()));
+  if (dimension < (1ULL << 15))
+    return 1;
+  return static_cast<int>(
+      std::clamp<std::size_t>(dimension >> 13, 1, maxThreads));
+#else
+  return 1;
+#endif
+}
 
 /// @brief Insert a 0 bit at each of the given (ascending) bit positions.
 inline std::size_t insertZeroBits(std::size_t value,
@@ -105,14 +126,14 @@ inline void applyGateInPlace(std::complex<double> *state, std::size_t numQubits,
 
   // One group of amplitudes per assignment of the remaining qubits.
   const std::size_t numGroups = 1ULL << (numQubits - involved.size());
-  [[maybe_unused]] const bool runParallel = numGroups >= (1ULL << 12);
+  [[maybe_unused]] const int numThreads = parallelThreads(1ULL << numQubits);
 
   if (numTargets == 1) {
     const std::size_t targetBit = 1ULL << targets[0];
     const auto m00 = matrix[0], m01 = matrix[1], m10 = matrix[2],
                m11 = matrix[3];
 #if defined(_OPENMP)
-#pragma omp parallel for if (runParallel)
+#pragma omp parallel for num_threads(numThreads) if (numThreads > 1)
 #endif
     for (std::size_t i = 0; i < numGroups; ++i) {
       const std::size_t i0 = insertZeroBits(i, involved) | controlMask;
@@ -132,7 +153,7 @@ inline void applyGateInPlace(std::complex<double> *state, std::size_t numQubits,
         offsets[m] |= 1ULL << targets[j];
 
 #if defined(_OPENMP)
-#pragma omp parallel if (runParallel)
+#pragma omp parallel num_threads(numThreads) if (numThreads > 1)
 #endif
   {
     std::vector<std::complex<double>> amplitudes(dim);

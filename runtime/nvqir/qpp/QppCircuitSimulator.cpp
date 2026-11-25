@@ -148,8 +148,9 @@ sampleBasisStates(const std::complex<double> *state, std::size_t dimension,
 
   // Total weight of each fixed-size chunk of the state.
   std::vector<double> chunkWeights(numChunks);
+  [[maybe_unused]] const int numThreads = parallelThreads(dimension);
 #if defined(_OPENMP)
-#pragma omp parallel for if (numChunks >= 16)
+#pragma omp parallel for num_threads(numThreads) if (numThreads > 1)
 #endif
   for (std::size_t chunk = 0; chunk < numChunks; ++chunk) {
     const std::size_t begin = chunk * chunkSize;
