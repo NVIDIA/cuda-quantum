@@ -19,9 +19,12 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 import os
+import sys
 from pygments.lexers.special import TextLexer
 import sphinx_rtd_theme
 from sphinx.util import logging
+
+sys.path.insert(0, os.path.abspath('_ext'))
 
 # -- Project information -----------------------------------------------------
 
@@ -54,6 +57,7 @@ extensions = [
     'sphinx.ext.napoleon',  # support google/numpy style docstrings
     #'sphinx.ext.linkcode',
     'sphinx_reredirects',
+    'community_projects',  # discovers projects under community/
     'breathe',
     'sphinx_tags',
     'enum_tools.autoenum',  # for pretty-print Python enums
@@ -121,6 +125,7 @@ exclude_patterns = [
     'examples/python/building_kernels.ipynb',
     'examples/python/measuring_kernels.ipynb',
     'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb',
+    'community/README.md',
     'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md',
     'examples/plugins/mlir_extension/README.md',
     'examples/python/dynamics/benchmarks/README.md',

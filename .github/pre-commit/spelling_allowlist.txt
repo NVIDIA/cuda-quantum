@@ -64,6 +64,7 @@ Devcontainer
 Dockerfile
 Doxygen
 EDEMs
+EPL
 Ekerå
 Eq
 Exponentiating
@@ -221,6 +222,7 @@ QTX
 QX
 QaaS
 Qiskit
+Qrisp
 QuEra
 QuTiP
 Quake
