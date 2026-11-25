@@ -49,6 +49,19 @@ if(POLICY CMP0177)
   cmake_policy(SET CMP0177 NEW)
 endif()
 
+# Route compiles through ccache when it is present. build_cudaq.sh passes
+# these itself; a plain `pip install .` does not, so its build never cached.
+find_program(CUDAQ_CCACHE_EXECUTABLE ccache)
+if(CUDAQ_CCACHE_EXECUTABLE)
+  foreach(lang C CXX CUDA)
+    if(NOT CMAKE_${lang}_COMPILER_LAUNCHER)
+      set(CMAKE_${lang}_COMPILER_LAUNCHER "${CUDAQ_CCACHE_EXECUTABLE}"
+          CACHE STRING "Compiler launcher for ${lang}")
+    endif()
+  endforeach()
+  message(STATUS "Using ccache: ${CUDAQ_CCACHE_EXECUTABLE}")
+endif()
+
 # Project setup
 # ==============================================================================
 project(cudaq LANGUAGES CXX C)
