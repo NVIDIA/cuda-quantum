@@ -9,7 +9,6 @@
 #include "py_draw.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "cudaq/algorithms/draw.h"
-#include "cudaq/platform/nvqpp_interface.h"
 #include <nanobind/stl/shared_ptr.h>
 
 /// @brief Run `cudaq::contrib::draw`'s string overload on the provided kernel.

@@ -164,7 +164,8 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   std::vector<std::pair<std::filesystem::path, int>> libPaths{
       // NVQIR may already be loaded from a separate core installation.
       {fmt::format("libnvqir.{}", libSuffix), RTLD_GLOBAL},
-      {cudaqLibPath / fmt::format("libcudaq.{}", libSuffix), RTLD_GLOBAL}};
+      {cudaqLibPath / fmt::format("libcudaq-nvqpp-capi.{}", libSuffix),
+       RTLD_GLOBAL}};
 
   const char *dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
   if (dynlibs_var != nullptr) {

@@ -150,8 +150,6 @@ public:
 };
 /// @endcond
 
-extern "C" void __cudaq_deviceCodeHolderAdd(const char *, const char *);
-
 void dumpSubstitutionModules(ArgumentConverter &con) {
   // Dump the conversions
   for (auto *kInfo : con.getKernelSubstitutions())

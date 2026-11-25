@@ -26,6 +26,11 @@
 
 using namespace cudaq_internal::compiler;
 
+// The current ABI version of the runtime. This ensures that an nvq++-produced
+// binary compiled for an outdated (or future) version of the runtime fails at
+// link time.
+extern "C" const unsigned __cudaq_runtime_abi_v1 = 0;
+
 CUDAQ_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 // Bridge so the Python extension can register QPU subtypes (e.g. RemoteRESTQPU)

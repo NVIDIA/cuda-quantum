@@ -862,7 +862,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
 
 Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
                   void *p, ModuleOp substMod, llvm::DataLayout &layout) {
-  auto key = cudaq::registry::__cudaq_getLinkableKernelKey(p);
+  auto key = cudaq::registry::getLinkableKernelKey(p);
   auto *name = cudaq::registry::getLinkableKernelNameOrNull(key);
   if (!name)
     return {};
