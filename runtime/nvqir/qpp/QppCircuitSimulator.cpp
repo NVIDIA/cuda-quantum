@@ -11,7 +11,7 @@
 #include "nvqir/Gates.h"
 #include <bit>
 #include <iostream>
-#include <qpp.h>
+#include <qpp/qpp.hpp>
 #include <set>
 #include <span>
 
@@ -280,8 +280,8 @@ protected:
     const auto measurement_tuple =
         qpp::measure(state, qpp::cmat::Identity(2, 2), {qubitIdx},
                      /*qudit dimension=*/2, /*destructive measmt=*/false);
-    const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
-    const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
+    const auto measurement_result = std::get<qpp::measure_idx::res>(measurement_tuple);
+    const auto &post_meas_states = std::get<qpp::measure_idx::st>(measurement_tuple);
     const auto &collapsed_state = post_meas_states[measurement_result];
     if constexpr (std::is_same_v<StateType, qpp::ket>) {
       state = Eigen::Map<const StateType>(collapsed_state.data(),
