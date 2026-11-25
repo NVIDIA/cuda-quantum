@@ -51,7 +51,7 @@ std::string getKernelName(QuantumKernel &&kernel) {
     // and made linkable in GenDeviceCodeLoader pass.
     auto qKernel =
         cudaq::detail::createQKernel(std::forward<QuantumKernel>(kernel));
-    auto key = cudaq::registry::__cudaq_getLinkableKernelKey(&qKernel);
+    auto key = cudaq::registry::getLinkableKernelKey(&qKernel);
     auto name = cudaq::registry::getLinkableKernelNameOrNull(key);
     if (!name)
       return detail::demangle_kernel(typeid(kernel).name());

@@ -60,22 +60,25 @@ using namespace mlir;
 llvm::Expected<std::unique_ptr<mlir::ExecutionEngine>>
 cudaq_internal::compiler::createExecutionEngine(
     mlir::ModuleOp module, mlir::ExecutionEngineOptions options) {
-  // Resolve runtime symbols through a local handle. sharedLibPaths would load
+  // Resolve runtime symbols through local handles. sharedLibPaths would load
   // the library RTLD_GLOBAL and expose its LLVM/MLIR dependencies.
-  static void *runtimeHandle = [] {
+  auto openRuntimeLibrary = [](const char *name) {
     auto directory =
         std::filesystem::path(cudaq::getCUDAQLibraryPath()).parent_path();
 #ifdef __APPLE__
-    auto path = directory / "libcudaq-em-default.dylib";
+    auto path = directory / (std::string(name) + ".dylib");
 #else
-    auto path = directory / "libcudaq-em-default.so";
+    auto path = directory / (std::string(name) + ".so");
 #endif
     auto *handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!handle)
       throw std::runtime_error("Could not load CUDA-Q JIT runtime: " +
                                std::string(dlerror()));
     return handle;
-  }();
+  };
+  static void *runtimeHandle = openRuntimeLibrary("libcudaq-em-default");
+  // The C API that generated code calls into (see runtime/nvqpp-capi).
+  static void *capiHandle = openRuntimeLibrary("libcudaq-nvqpp-capi");
 
   llvm::StringMap<void *> runtimeSymbols;
   auto originalTransformer = options.transformer;
@@ -88,6 +91,8 @@ cudaq_internal::compiler::createExecutionEngine(
         continue;
       auto name = symbol.getName().str();
       if (auto *address = dlsym(runtimeHandle, name.c_str()))
+        runtimeSymbols[name] = address;
+      else if (auto *address = dlsym(capiHandle, name.c_str()))
         runtimeSymbols[name] = address;
     }
     return llvm::Error::success();

@@ -13,6 +13,7 @@ add_subdirectory(internal)
 add_subdirectory(common)
 add_subdirectory(nvqir)
 add_subdirectory(cudaq)
+add_subdirectory(nvqpp-capi)
 add_subdirectory(test)
 
 # Install

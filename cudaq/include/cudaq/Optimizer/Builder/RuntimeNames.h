@@ -33,8 +33,6 @@ static constexpr const char registerRunnableKernel[] =
     "__cudaq_registerRunnableKernel";
 static constexpr const char getLinkableKernelKey[] =
     "__cudaq_getLinkableKernelKey";
-static constexpr const char getLinkableKernelName[] =
-    "__cudaq_getLinkableKernelName";
 static constexpr const char getLinkableKernelDeviceSide[] =
     "__cudaq_getLinkableKernelDeviceFunction";
 
