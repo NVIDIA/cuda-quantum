@@ -74,7 +74,7 @@ int main() {
   std::vector<double> steps = cudaq::linspace(0.0, 10.0, num_steps);
   cudaq::schedule schedule(steps);
 
-  // Create a CUDA quantum state
+  // Create a CUDA-Q state
   // The initial state is converted into a quantum state object for evolution.
   auto rho0 = cudaq::state::from_data(initial_state_vec);
 
