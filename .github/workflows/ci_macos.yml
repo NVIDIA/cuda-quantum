@@ -146,9 +146,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # LLVM comes from the prerequisites image, so skip its slow checkout.
       - name: Initialize submodules (with retry and mirror fallback)
         run: |
-          bash scripts/update_submodules.sh --depth 1
+          bash scripts/update_submodules.sh -c submodule.tpls/llvm.update=none --depth 1
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -242,9 +243,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # LLVM comes from the prerequisites image, so skip its slow checkout.
       - name: Initialize submodules (with retry and mirror fallback)
         run: |
-          bash scripts/update_submodules.sh --depth 1
+          bash scripts/update_submodules.sh -c submodule.tpls/llvm.update=none --depth 1
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -348,9 +350,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # LLVM comes from the prerequisites image, so skip its slow checkout.
       - name: Initialize submodules (with retry and mirror fallback)
         run: |
-          bash scripts/update_submodules.sh --depth 1
+          bash scripts/update_submodules.sh -c submodule.tpls/llvm.update=none --depth 1
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -596,9 +599,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # LLVM comes from the prerequisites image, so skip its slow checkout.
       - name: Initialize submodules (with retry and mirror fallback)
         run: |
-          bash scripts/update_submodules.sh --depth 1
+          bash scripts/update_submodules.sh -c submodule.tpls/llvm.update=none --depth 1
 
       - name: Set up Python
         uses: actions/setup-python@v7
