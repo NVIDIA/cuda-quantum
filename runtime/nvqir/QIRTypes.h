@@ -89,7 +89,7 @@ Array *__quantum__rt__array_slice_1d(Array *array, std::int64_t range_start,
 Array *quantum__rt__array_slice(Array *array, std::int32_t dim, Range range);
 
 // Internal method to clean up any dangling arrays
-void __nvqir_cleanupArrays();
+void __nvqpp_cleanup_arrays();
 }
 
 // Results

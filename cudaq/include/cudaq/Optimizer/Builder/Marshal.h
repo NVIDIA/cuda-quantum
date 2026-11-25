@@ -196,7 +196,7 @@ mlir::Value copyDynamicValueToStack(mlir::Location loc,
 /// \p hostPtr points to, where the argument has device type \p devTy. The
 /// callback side builds a real `std::vector<bool>` for such an argument, which
 /// owns its storage. The other parts of an argument refer to the storage of the
-/// communication buffer, and are left alone. The `__cudaq_vectorBoolDestroy`
+/// communication buffer, and are left alone. The `__nvqpp_vector_bool_destroy`
 /// intrinsic must be loaded in \p module.
 void destroyHostBoolVectors(mlir::Location loc, mlir::OpBuilder &builder,
                             mlir::ModuleOp module, mlir::Type devTy,
