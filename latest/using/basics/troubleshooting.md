@@ -2179,7 +2179,6 @@ CUDA-Q keeps its LLVM-dependent compiler and backend libraries local.
 Importing [`cudaq`{.docutils .literal .notranslate}]{.pre} exposes only
 the LLVM-free core runtime ([`libnvqir`{.docutils .literal
 .notranslate}]{.pre}, [`libcudaq`{.docutils .literal
-.notranslate}]{.pre}, [`libcudaq-em-default`{.docutils .literal
 .notranslate}]{.pre}, and their dependencies) globally. This allows
 shared libraries containing [`nvq++`{.docutils .literal
 .notranslate}]{.pre}-compiled kernels to be loaded with

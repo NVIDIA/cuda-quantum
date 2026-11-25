@@ -1305,26 +1305,27 @@ The <code class="code docutils literal notranslate"><span class="pre">tensornet-
 <li><p><strong>`CUDAQ_MPS_MAX_BOND=X`</strong>: The maximum number of singular values to keep (fixed extent truncation). Default: 64.</p></li>
 <li><p><strong>`CUDAQ_MPS_ABS_CUTOFF=X`</strong>: The cutoff for the largest singular value during truncation. Eigenvalues that are smaller will be trimmed out. Default: 1e-5.</p></li>
 <li><p><strong>`CUDAQ_MPS_RELATIVE_CUTOFF=X`</strong>: The cutoff for the maximal singular value relative to the largest eigenvalue. Eigenvalues that are smaller than this fraction of the largest singular value will be trimmed out. Default: 1e-5</p></li>
-<li><p><strong>`CUDAQ_MPS_SVD_ALGO=X`</strong>: The SVD algorithm to use. Valid values are: <code class="code docutils literal notranslate"><span class="pre">GESVD</span></code> (QR algorithm), <code class="code docutils literal notranslate"><span class="pre">GESVDJ</span></code> (Jacobi method), <code class="code docutils literal notranslate"><span class="pre">GESVDP</span></code> (<a class="reference external" href="https://epubs.siam.org/doi/10.1137/090774999">polar decomposition</a>), <code class="code docutils literal notranslate"><span class="pre">GESVDR</span></code> (<a class="reference external" href="https://epubs.siam.org/doi/10.1137/090771806">randomized methods</a>). Default: <code class="code docutils literal notranslate"><span class="pre">GESVDJ</span></code>.</p></li>
+<li><p><strong>`CUDAQ_MPS_SVD_ALGO=X`</strong>: The SVD algorithm to use. Valid values are: <code class="code docutils literal notranslate"><span class="pre">GESVD</span></code> (QR algorithm), <code class="code docutils literal notranslate"><span class="pre">GESVDJ</span></code> (Jacobi method), <code class="code docutils literal notranslate"><span class="pre">GESVDP</span></code> (<a class="reference external" href="https://epubs.siam.org/doi/10.1137/090774999">polar decomposition</a>), <code class="code docutils literal notranslate"><span class="pre">GESVDR</span></code> (<a class="reference external" href="https://epubs.siam.org/doi/10.1137/090771806">randomized methods</a>). Default: <code class="code docutils literal notranslate"><span class="pre">GESVD</span></code> for <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> 2.15.0 or later, matching the <a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/overview.html#svd-options">cuTensorNet default</a>, and <code class="code docutils literal notranslate"><span class="pre">GESVDJ</span></code> for <a class="reference internal" href="#tensornet-mps-svd-workspace"><span class="std std-ref">older versions</span></a>.</p></li>
 <li><p><strong>`CUDAQ_MPS_GAUGE=X`</strong>: The optional gauge option to improve accuracy of the MPS simulation. Valid values are: <code class="code docutils literal notranslate"><span class="pre">FREE</span></code> (gauge is disabled) or <code class="code docutils literal notranslate"><span class="pre">SIMPLE</span></code> (simple update algorithm). By default, no gauge configuration is set, thus the default <code class="code docutils literal notranslate"><span class="pre">cuquantum</span></code> MPS setting will be used (see <code class="code docutils literal notranslate"><span class="pre">cuquantum</span></code> <a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/api/types.html#cutensornetstatempsgaugeoption-t">doc</a>).</p></li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For values of <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_MAX_BOND</span></code> smaller than the default bond dimension
+of 64, consider benchmarking <code class="code docutils literal notranslate"><span class="pre">GESVDJ</span></code> against <code class="code docutils literal notranslate"><span class="pre">GESVD</span></code> for your workload.</p>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This backend requires an NVIDIA GPU and CUDA runtime libraries.
 If you do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>.
 See the section <a class="reference internal" href="../../install/local_installation.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
-<div class="admonition note">
+<div class="admonition note" id="tensornet-mps-svd-workspace">
 <p class="admonition-title">Note</p>
-<p>The parallelism of Jacobi method (the default <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting) gives GPU better performance on small and medium size matrices.
-If you expect a large number of singular values (e.g., increasing the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_MAX_BOND</span></code> setting), please adjust the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting accordingly.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>With CUDA 13 and cuSOLVER 12.3.4.7, <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO=GESVD</span></code> may fail with
-an <code class="docutils literal notranslate"><span class="pre">Insufficient</span> <span class="pre">host</span> <span class="pre">workspace</span></code> error from <code class="docutils literal notranslate"><span class="pre">tensorSVD</span></code>.
-cuSOLVER’s <a class="reference external" href="https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#cusolver-release-13-4-update-1">updated SVD algorithm</a> requires host memory.
-Use another <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> option or roll back to a cuSOLVER version earlier than 12.3.4.7.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> versions before 2.15.0 can fail with an insufficient host workspace
+error when running <code class="code docutils literal notranslate"><span class="pre">GESVD</span></code> with cuSOLVER 12.3.4 or later. The fix is included in
+<code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> 2.15.0, which ships with
+<a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/26.11.0/cutensornet/release-notes.html#cutensornet-v2-15-0">cuQuantum 26.11.0</a>.
+CUDA-Q defaults to <code class="code docutils literal notranslate"><span class="pre">GESVDJ</span></code> on older <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> versions to avoid this issue.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
