@@ -19,6 +19,7 @@ module {
     %m:2 = qlx.instrument #qlx.instrument<mpp>(%h)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -39,6 +40,7 @@ module {
     %m:2 = qlx.instrument #qlx.instrument<mpp>(%r)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -79,6 +81,7 @@ module {
     %m1:2 = qlx.instrument #qlx.instrument<mpp>(%r)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m1#0 : !qlx.logical_qubit
     qlx.return %m1#1 : i1
   }
 }
@@ -86,7 +89,6 @@ module {
 // -----
 
 /// Logical-qubit captures are hidden loop state and therefore invalid.
-// expected-error@+1 {{PBC rotation input has no tracked qubit identity}}
 module {
   qlx.program @bad_repeat_capture : () -> i1 attributes {qlx.stage = "p0"} {
     %q0 = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
@@ -94,6 +96,8 @@ module {
     %angle = arith.constant 0.78539816339744828 : f64
     %r = cflow.repeat 8
         iter(%arg : !qlx.logical_qubit = %q0) {
+      // The P0 linear-ownership verifier rejects the capture first.
+      // expected-error@+1 {{defined outside cflow.repeat is consumed inside its body by qlx.apply}}
       %rot = qlx.apply #qlx.action<pauli_rotation>(%q1, %angle)
           {parameters = {angle_pi_denom = 4 : i64, angle_pi_numer = 1 : i64,
                          sign = 1 : i64, x_mask = 1 : i64, z_mask = 0 : i64}}
@@ -112,17 +116,19 @@ module {
 
 /// Historical SSA values are not live loop owners after a rotation consumes
 /// them.
-// expected-error@+1 {{PBC rotation input must consume the current logical-qubit SSA owner}}
 module {
   qlx.program @bad_repeat_stale_owner_reuse : () -> i1 attributes {qlx.stage = "p0"} {
     %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
     %r = cflow.repeat 8
         iter(%arg : !qlx.logical_qubit = %q) {
       %angle = arith.constant 0.78539816339744828 : f64
+      // expected-note@+1 {{earlier consume here}}
       %rot0 = qlx.apply #qlx.action<pauli_rotation>(%arg, %angle)
           {parameters = {angle_pi_denom = 4 : i64, angle_pi_numer = 1 : i64,
                          sign = 1 : i64, x_mask = 1 : i64, z_mask = 0 : i64}}
           : (!qlx.logical_qubit, f64) -> !qlx.logical_qubit
+      // The P0 linear-ownership verifier rejects the stale reuse first.
+      // expected-error@+1 {{is consumed more than once}}
       %rot1 = qlx.apply #qlx.action<pauli_rotation>(%arg, %angle)
           {parameters = {angle_pi_denom = 4 : i64, angle_pi_numer = 1 : i64,
                          sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
@@ -151,6 +157,7 @@ module {
     %m:2 = qlx.instrument #qlx.instrument<mpp>(%rot)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -164,6 +171,7 @@ module {
     %m:2 = qlx.instrument #qlx.instrument<mpp>(%q)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 2 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -182,6 +190,7 @@ module {
     %m:2 = qlx.instrument #qlx.instrument<mpp>(%rot)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -200,6 +209,7 @@ module {
     %m:2 = qlx.instrument #qlx.instrument<mpp>(%rot)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -218,6 +228,7 @@ module {
     %m:2 = qlx.instrument #qlx.instrument<mpp>(%rot)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -239,6 +250,7 @@ module {
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
     qlx.discard %rot#1 : !qlx.logical_qubit
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -274,6 +286,7 @@ module {
     %m:2 = qlx.instrument #qlx.instrument<mpp>(%rot)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -288,19 +301,22 @@ module {
         {parameters = {extra = 0 : i64, sign = 1 : i64,
                        x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
 
 // -----
 
-// expected-error@+1 {{PBC rotation logical operands must have distinct owners}}
 module {
   qlx.program @bad_repeat_duplicate_rotation_owner : () -> i1 attributes {qlx.stage = "p0"} {
     %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
     %r = cflow.repeat 4
         iter(%arg : !qlx.logical_qubit = %q) {
       %angle = arith.constant 0.78539816339744828 : f64
+      // The P0 linear-ownership verifier rejects the duplicate first.
+      // expected-note@+2 {{earlier consume here}}
+      // expected-error@+1 {{is consumed more than once}}
       %rot:2 = qlx.apply #qlx.action<pauli_rotation>(%arg, %arg, %angle)
           {parameters = {angle_pi_denom = 4 : i64, angle_pi_numer = 1 : i64,
                          sign = 1 : i64, x_mask = 1 : i64, z_mask = 2 : i64}}
@@ -317,10 +333,12 @@ module {
 
 // -----
 
-// expected-error@+1 {{PBC mpp logical operands must have distinct owners}}
 module {
   qlx.program @bad_duplicate_mpp_owner : () -> i1 attributes {qlx.stage = "p0"} {
     %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+    // The P0 linear-ownership verifier rejects the duplicate first.
+    // expected-note@+2 {{earlier consume here}}
+    // expected-error@+1 {{is consumed more than once}}
     %m:3 = qlx.instrument #qlx.instrument<mpp>(%q, %q)
         {parameters = {sign = 1 : i64, x_mask = 1 : i64, z_mask = 2 : i64}}
         : (!qlx.logical_qubit, !qlx.logical_qubit)
@@ -343,6 +361,7 @@ module {
     %m:2 = qlx.instrument #qlx.instrument<mpp>(%rot#0)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -357,6 +376,7 @@ module {
     %m:2 = qlx.instrument #qlx.instrument<mpp>(%q, %extra)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit, f64) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -375,6 +395,7 @@ module {
     %m:2 = qlx.instrument #qlx.instrument<mpp>(%rot)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -414,6 +435,7 @@ module {
     %m:2 = qlx.instrument #qlx.instrument<mpp>(%r)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m#0 : !qlx.logical_qubit
     qlx.return %m#1 : i1
   }
 }
@@ -437,6 +459,7 @@ module {
     %m1:2 = qlx.instrument #qlx.instrument<mpp>(%r)
         {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
         : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %m1#0 : !qlx.logical_qubit
     qlx.return %m1#1 : i1
   }
 }
@@ -481,9 +504,10 @@ module {
 // -----
 
 /// A classical return does not excuse a leaked logical owner.
-// expected-error@+1 {{PBC form requires every logical-qubit owner to be measured and discarded before program return}}
 module {
   qlx.program @bad_live_owner_at_return : () -> i1 attributes {qlx.stage = "p0"} {
+    // The P0 linear-ownership verifier rejects the leak first.
+    // expected-error@+1 {{is never consumed}}
     %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
     %out = arith.constant 0 : i1
     qlx.return %out : i1

@@ -10,6 +10,7 @@ add_subdirectory(IR)
 add_subdirectory(Transforms)
 
 add_custom_target(MLIRFabricIncGen DEPENDS
+  MLIRQLXLinearOwnershipInterfacesIncGen
   MLIRFabricDialectIncGen
   MLIRFabricInterfacesIncGen
   MLIRFabricTypesIncGen

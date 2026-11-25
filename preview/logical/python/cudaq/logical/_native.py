@@ -53,6 +53,9 @@ class _NativeFacade:
         _qlxRuntime.verify_clifford_t_module)
     lower_to_pbc_module = staticmethod(_qlxRuntime.lower_to_pbc_module)
     verify_pbc_module = staticmethod(_qlxRuntime.verify_pbc_module)
+    type_is_linear = staticmethod(_qlxRuntime.type_is_linear)
+    analyze_linear_ownership_json = staticmethod(
+        _qlxRuntime.analyze_linear_ownership_json)
     clone_module_capsule = staticmethod(_qlxRuntime.clone_module_capsule)
     clone_module_into_context_capsule = staticmethod(
         _qlxRuntime.clone_module_into_context_capsule)
