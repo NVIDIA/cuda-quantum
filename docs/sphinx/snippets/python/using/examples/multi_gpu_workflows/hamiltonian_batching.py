@@ -34,7 +34,7 @@ def kernel(n_qubits: int):
 # Create a random Hamiltonian
 hamiltonian = cudaq.SpinOperator.random(qubit_count, term_count)
 
-# The observe calls allows calculation of the the expectation value of the Hamiltonian with respect to a specified kernel.
+# The observe calls allows calculation of the expectation value of the Hamiltonian with respect to a specified kernel.
 
 # Single node, single GPU.
 result = cudaq.observe(kernel, hamiltonian, qubit_count)

@@ -182,7 +182,7 @@ html_theme_options = {
         "#76b900"  # Set upper left search bar to NVIDIA green
 }
 
-html_css_files = ['_static/cudaq_override.css', 'custom.css']
+html_css_files = ['custom.css']
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
