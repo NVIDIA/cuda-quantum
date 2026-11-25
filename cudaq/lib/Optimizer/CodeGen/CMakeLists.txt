@@ -23,6 +23,7 @@ add_cudaq_library(OptCodeGen
   DelayMeasurements.cpp
   EraseCGEvince.cpp
   OptUtils.cpp
+  LowerFrequencies.cpp
   Passes.cpp
   Pipelines.cpp
   QirInsertArrayRecord.cpp

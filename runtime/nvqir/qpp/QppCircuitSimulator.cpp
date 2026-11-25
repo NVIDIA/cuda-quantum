@@ -9,6 +9,7 @@
 #include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "nvqir/Gates.h"
+#include "nvqir/NativeFrequencies.h"
 #include <bit>
 #include <iostream>
 #include <qpp.h>
@@ -126,7 +127,8 @@ struct QppState : public cudaq::SimulationState {
 /// base class to provide a simulator delegating to the Q++ library from
 /// https://github.com/softwareqinc/qpp.
 template <typename StateType>
-class QppCircuitSimulator : public nvqir::CircuitSimulatorBase<double> {
+class QppCircuitSimulator : public nvqir::CircuitSimulatorBase<double>,
+                            public nvqir::NativeFrequencies {
 protected:
   /// The QPP state representation (qpp::ket or qpp::cmat)
   StateType state;
@@ -353,6 +355,21 @@ public:
     flushAnySamplingTasks();
     const auto qubitIdx = convertQubitIndex(index);
     state = qpp::reset(state, {qubitIdx});
+  }
+
+  bool supportsNativeFrequencies() const override {
+    return std::is_same_v<StateType, qpp::ket>;
+  }
+
+  /// Sample the already prepared state without re-executing its preparation.
+  cudaq::ExecutionResult frequencies(const std::vector<std::size_t> &qubits,
+                                     int shots) override {
+    if (!supportsNativeFrequencies() || shots <= 0)
+      throw std::runtime_error(
+          "native frequencies requires qpp state-vector sampling");
+    flushGateQueue();
+    CUDAQ_INFO("qpp native frequencies: shots={}", shots);
+    return sample(qubits, shots, /*includeSequentialData=*/false);
   }
 
   /// @brief Sample the multi-qubit state.

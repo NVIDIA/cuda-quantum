@@ -31,6 +31,7 @@ add_library(cudaq-mlir-runtime
     QuakeReferenceSemanticsHandler.cpp
     QuakeUnmappedHandler.cpp
     ResourceCount.cpp
+    ServerHelperFrequencies.cpp
     RuntimeMLIR.cpp
     LayoutInfo.cpp
     TracePassInstrumentation.cpp

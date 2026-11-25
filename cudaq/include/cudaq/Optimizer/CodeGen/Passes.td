@@ -61,6 +61,12 @@ def EraseCompilerGeneratedEvince :
   }];
 }
 
+def LowerFrequencies : Pass<"lower-frequencies", "mlir::ModuleOp"> {
+  let summary = "Lower prototype frequencies and explicit outcome emission";
+  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect",
+                           "mlir::arith::ArithDialect", "mlir::func::FuncDialect"];
+}
+
 def LowerToCG : Pass<"lower-to-cg", "mlir::ModuleOp"> {
   let summary = "Lower Quake to CG dialect.";
   let description = [{

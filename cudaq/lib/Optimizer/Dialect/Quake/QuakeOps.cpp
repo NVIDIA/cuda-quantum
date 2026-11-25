@@ -1931,3 +1931,24 @@ void cudaq::quake::threadWireResults(cudaq::quake::OperatorInterface op,
 
 #define GET_OP_CLASSES
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.cpp.inc"
+
+LogicalResult cudaq::quake::FrequenciesOp::verify() {
+  auto prep = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
+      *this, getPreparationAttr());
+  if (!prep)
+    return emitOpError("preparation must name a kernel");
+  auto type = prep.getFunctionType();
+  if (type.getNumInputs() == 0 || type.getNumResults() != 0)
+    return emitOpError(
+        "preparation must take a fixed-size register and return void");
+  auto reg = dyn_cast<VeqType>(type.getInput(0));
+  if (!reg || !reg.hasSpecifiedSize())
+    return emitOpError("preparation requires a fixed-size register parameter");
+  if (type.getInputs().drop_front() != getArgs().getTypes())
+    return emitOpError(
+        "classical arguments must match the preparation signature");
+  for (auto ty : type.getInputs().drop_front())
+    if (isQuantumType(ty))
+      return emitOpError("parameters after the register must be classical");
+  return success();
+}

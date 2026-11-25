@@ -566,6 +566,9 @@ QuakeTypeVisitor::interceptRecordDecl(clang::RecordDecl *x, bool &intercepted) {
   };
   if (isInNamespace(x, "cudaq")) {
     // Types from the `cudaq` namespace.
+    // Prototype histogram pointers are opaque runtime handles.
+    if (name == "histogram")
+      return builder.getI8Type();
     // A qubit is a qudit<LEVEL=2>.
     if (name == "qudit" || name == "qubit")
       return cudaq::quake::RefType::get(ctx);

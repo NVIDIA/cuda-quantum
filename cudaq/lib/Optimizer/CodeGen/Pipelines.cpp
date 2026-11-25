@@ -174,6 +174,7 @@ static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
 static void
 createCommonTargetCodegenPipeline(OpPassManager &pm,
                                   const TargetCodegenPipelineOptions &options) {
+  pm.addPass(cudaq::opt::createLowerFrequencies());
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());

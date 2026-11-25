@@ -56,7 +56,13 @@ run_result RemoteRESTQPU::launchKernel(const run_policy &policy,
                                        const CompiledModule &module,
                                        KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
-
+  if (module.getMlir("cudaq.outcome_program")) {
+    executeOutcomeProgram(module);
+    return {};
+  }
+  if (!emulate)
+    throw std::runtime_error("ServerHelper outcome prototype requires one "
+                             "frequencies -> emit program");
   auto codes = getKernelExecutions(module);
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
