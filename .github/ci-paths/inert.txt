@@ -1,0 +1,13 @@
+# Metadata no workflow reads. A PR touching only these skips the whole CI.
+# One prefix or glob per line.
+.github/ISSUE_TEMPLATE/
+.github/CODEOWNERS
+.github/labeler.yml
+.github/nv-slack-bot.yaml
+.github/ops-bot.yml
+.github/dco.yml
+.github/release.yml
+CITATION.cff
+LICENSE
+LICENSES/
+llms.txt

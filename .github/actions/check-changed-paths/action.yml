@@ -10,18 +10,22 @@ inputs:
   paths:
     description: >-
       Newline-separated list of path prefixes to match against changed files.
-      An empty list matches every path.
+      An entry containing `*`, `?` or `[` is a glob matched against the whole
+      path (`*` also matches `/`). An empty list matches every path.
     required: false
     default: ''
   paths-ignore:
     description: >-
-      Newline-separated list of path prefixes to exclude before matching.
+      Newline-separated list of path prefixes or globs to exclude before
+      matching.
     required: false
     default: ''
   paths-ignore-file:
     description: >-
-      Repository-relative file containing additional path prefixes to exclude,
-      one per line. Blank lines and lines beginning with # are ignored.
+      Newline-separated list of repository-relative files, each containing
+      additional path prefixes or globs to exclude, one per line. Blank lines
+      and lines beginning with # are ignored. A change to one of these files
+      always matches, so editing a path list runs the gated jobs.
     required: false
     default: ''
   token:
@@ -50,6 +54,15 @@ runs:
         MERGE_GROUP_BASE: ${{ github.event.merge_group.base_sha }}
         MERGE_GROUP_HEAD: ${{ github.event.merge_group.head_sha }}
       run: |
+        # Globs match the whole path, other entries are prefixes.
+        path_matches() {
+          local file=$1 entry=$2
+          case "$entry" in
+            *[*?[]*) [[ "$file" == $entry ]] ;;
+            *) [[ "$file" == "$entry"* ]] ;;
+          esac
+        }
+
         matched=""
         files=""
         case "$EVENT_NAME" in
@@ -94,27 +107,35 @@ runs:
           matched=false
           readarray -t prefixes <<< "$PATH_PREFIXES"
           readarray -t ignores <<< "$PATH_IGNORES"
+          ignore_files=()
           if [ -n "$PATH_IGNORES_FILE" ]; then
-            if [ -f "$PATH_IGNORES_FILE" ]; then
-              file_ignores=()
-              readarray -t file_ignores < <(
-                sed -e 's/#.*$//' \
-                    -e 's/^[[:space:]]*//' \
-                    -e 's/[[:space:]]*$//' \
-                    -e '/^$/d' \
-                    "$PATH_IGNORES_FILE"
-              )
-              ignores+=("${file_ignores[@]}")
-            else
-              echo "::warning::Path-ignore file not found: $PATH_IGNORES_FILE; running full CI"
-              matched=true
-            fi
+            readarray -t ignore_files <<< "$PATH_IGNORES_FILE"
+            for ignore_file in "${ignore_files[@]}"; do
+              [ -z "$ignore_file" ] && continue
+              if [ -f "$ignore_file" ]; then
+                file_ignores=()
+                readarray -t file_ignores < <(
+                  sed -e 's/#.*$//' \
+                      -e 's/^[[:space:]]*//' \
+                      -e 's/[[:space:]]*$//' \
+                      -e '/^$/d' \
+                      "$ignore_file"
+                )
+                ignores+=("${file_ignores[@]}")
+              else
+                echo "::warning::Path-ignore file not found: $ignore_file; running full CI"
+                matched=true
+              fi
+            done
           fi
           if [ "$matched" != true ]; then
             while IFS= read -r file; do
               [ -z "$file" ] && continue
-              if [ -n "$PATH_IGNORES_FILE" ] &&
-                 [ "$file" = "$PATH_IGNORES_FILE" ]; then
+              registry=false
+              for ignore_file in "${ignore_files[@]}"; do
+                [ -n "$ignore_file" ] && [ "$file" = "$ignore_file" ] && registry=true
+              done
+              if $registry; then
                 echo "Matched path-ignore registry change: $file"
                 matched=true
                 break
@@ -122,7 +143,7 @@ runs:
               ignored=false
               for prefix in "${ignores[@]}"; do
                 [ -z "$prefix" ] && continue
-                if [[ "$file" == "$prefix"* ]]; then
+                if path_matches "$file" "$prefix"; then
                   ignored=true
                   break
                 fi
@@ -136,7 +157,7 @@ runs:
               fi
               for prefix in "${prefixes[@]}"; do
                 [ -z "$prefix" ] && continue
-                if [[ "$file" == "$prefix"* ]]; then
+                if path_matches "$file" "$prefix"; then
                   echo "Matched changed file: $file (prefix: $prefix)"
                   matched=true
                   break 2

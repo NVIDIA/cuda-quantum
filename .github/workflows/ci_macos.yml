@@ -40,22 +40,39 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+    # Gate for PR pushes only. See .github/ci-paths/README.md.
     outputs:
-      stable: ${{ steps.filter.outputs.matched }}
+      stable: ${{ steps.filter.outputs.matched == 'true' && (github.event_name != 'push' || steps.scope.outputs.matched == 'true') }}
     steps:
       - name: Checkout changed-path action
         uses: actions/checkout@v6
         with:
           sparse-checkout: |
             .github/actions/check-changed-paths
+            .github/ci-paths
             .github/research-preview-paths.txt
           sparse-checkout-cone-mode: false
 
+      # Any change except previews and metadata.
       - name: Check changed paths
         id: filter
         uses: ./.github/actions/check-changed-paths
         with:
-          paths-ignore-file: .github/research-preview-paths.txt
+          paths-ignore-file: |
+            .github/research-preview-paths.txt
+            .github/ci-paths/inert.txt
+
+      # Drop logical-only.txt once macOS builds edem or logical.
+      - name: Check macOS inputs
+        id: scope
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths-ignore-file: |
+            .github/research-preview-paths.txt
+            .github/ci-paths/inert.txt
+            .github/ci-paths/docs-prose.txt
+            .github/ci-paths/logical-only.txt
+            .github/ci-paths/not-macos-ci.txt
 
   # ============================================================================
   # Metadata: Retrieve PR info and commit hashes
