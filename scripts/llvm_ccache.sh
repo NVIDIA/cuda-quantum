@@ -8,6 +8,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# TEST ONLY, DO NOT MERGE: this comment changes the layer of every image that
+# sources this script, to check that a PR restores the ccache of the registry.
+#
 # Restores the ccache directory of an LLVM build from a registry before it
 # starts, and saves it back when it ends. A build whose Docker layer cache
 # misses, whatever the reason, then recompiles only what changed.
