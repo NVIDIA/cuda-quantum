@@ -801,18 +801,12 @@ cudaq_internal::compiler::getEntryPointName(OwningOpRef<ModuleOp> &module) {
   return std::nullopt;
 }
 
-// Verifying after every pass walks the whole module each time, which dominates
-// the no-op passes of a pipeline on large kernels. Release builds verify once
-// per pipeline instead.
-#ifdef NDEBUG
-static constexpr bool verifyEachPass = false;
-#else
-static constexpr bool verifyEachPass = true;
-#endif
-
 void cudaq_internal::compiler::configurePassManagerFromEnv(PassManager &pm) {
   auto *ctx = pm.getContext();
-  pm.enableVerifier(verifyEachPass);
+  // Verifying after every pass walks the whole module each time, which
+  // dominates the no-op passes of a pipeline on large kernels. `runPassManager`
+  // verifies once per pipeline instead.
+  pm.enableVerifier(false);
   auto printEachPass =
       cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
   auto disableThreading =
@@ -856,5 +850,5 @@ cudaq_internal::compiler::runPassManager(mlir::PassManager &pm,
                                          mlir::Operation *op) {
   if (failed(g_runPassManagerHook(pm, op)))
     return mlir::failure();
-  return verifyEachPass ? mlir::success() : mlir::verify(op);
+  return mlir::verify(op);
 }
