@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -15,6 +15,9 @@
 #include "mlir/IR/Value.h"
 
 namespace cudaq::opt {
+
+/// Normalize exact Clifford+T chains in the given block.
+void normalizeSingleQubitCliffordT(mlir::Block &block);
 
 /// A maximal sequence of gates on one target qubit, in execution order, with
 /// the same controls and control polarities throughout. Each operation threads

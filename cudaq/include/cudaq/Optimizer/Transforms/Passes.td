@@ -2216,6 +2216,18 @@ def ShrinkWrap : Pass<"shrink-wrap", "mlir::func::FuncOp"> {
   }];
 }
 
+def SignedPauliPropagation : Pass<"signed-pauli-propagation", "mlir::func::FuncOp"> {
+  let summary = "Cancel Pauli gates across straight-line Quake wire operations";
+  let description = [{
+    Propagate X, Y, and Z through H, CX, S, T, and their adjoints on linear
+    wires after rotation synthesis. Each unsupported operation ends the sequence.
+    Try both directions and keep a rewrite only if it uses fewer physical gates
+    after cleanup without increasing the T-count or two-qubit gate count.
+    Emit `quake.phase` when needed to preserve the sequence's global phase.
+  }];
+  let dependentDialects = ["mlir::arith::ArithDialect", "cudaq::quake::QuakeDialect"];
+}
+
 def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
   let summary = "Stack frame preallocation.";
   let description = [{

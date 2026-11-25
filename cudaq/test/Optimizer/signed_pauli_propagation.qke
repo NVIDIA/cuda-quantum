@@ -1,0 +1,288 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: split-file %s %t
+// RUN: cudaq-opt --signed-pauli-propagation --canonicalize %t/gates.qke > %t/out
+// RUN: FileCheck %s < %t/out
+// RUN: CircuitCheck --input=%t/out %t/gates.qke
+// RUN: cudaq-opt --signed-pauli-propagation %t/controlled.qke | FileCheck %s --check-prefix=ADJOINT
+// RUN: cudaq-opt --signed-pauli-propagation --regtomem --canonicalize --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --lower-phase --canonicalize %t/controlled.qke | CircuitCheck %t/reference.qke
+// RUN: cudaq-opt --signed-pauli-propagation %t/boundary.qke | FileCheck %s --check-prefix=BOUNDARY
+
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='level=2' %t/pipeline.qke > %t/synth
+// RUN: FileCheck %s --check-prefix=PIPELINE --implicit-check-not=quake.phase --implicit-check-not='quake.x %' < %t/synth
+// RUN: CircuitCheck --up-to-global-phase --input=%t/synth %t/pipeline.qke
+
+//--- gates.qke
+
+func.func @spread_x(%c: !quake.ref, %t: !quake.ref) {
+  %0 = quake.unwrap %c : (!quake.ref) -> !quake.wire
+  %1 = quake.unwrap %t : (!quake.ref) -> !quake.wire
+  // The dependency-analysis node ID on this X still permits cancellation.
+  %2 = quake.x %0 : (!quake.wire) -> !quake.wire {dnodeid = 1 : ui32}
+  %3:2 = quake.x [%2] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.x %3#0 : (!quake.wire) -> !quake.wire
+  %5 = quake.x %3#1 : (!quake.wire) -> !quake.wire
+  quake.wrap %4 to %c : !quake.wire, !quake.ref
+  quake.wrap %5 to %t : !quake.wire, !quake.ref
+  return
+}
+// CHECK-LABEL: func.func @spread_x
+// CHECK-NOT: quake.x %
+// CHECK: quake.x [
+// CHECK-NOT: quake.x
+// CHECK: return
+
+func.func @spread_z(%c: !quake.ref, %t: !quake.ref) {
+  %0 = quake.unwrap %c : (!quake.ref) -> !quake.wire
+  %1 = quake.unwrap %t : (!quake.ref) -> !quake.wire
+  %2 = quake.z %1 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.z %3#0 : (!quake.wire) -> !quake.wire
+  %5 = quake.z %3#1 : (!quake.wire) -> !quake.wire
+  quake.wrap %4 to %c : !quake.wire, !quake.ref
+  quake.wrap %5 to %t : !quake.wire, !quake.ref
+  return
+}
+// CHECK-LABEL: func.func @spread_z
+// CHECK-NOT: quake.z
+// CHECK: quake.x [
+// CHECK-NOT: quake.z
+// CHECK: return
+
+// Moving Y on both wires through CX leaves -X on the control times Z on the
+// target. The final X and Z cancel those Paulis, leaving the scalar -1.
+func.func @cx_sign(%c: !quake.ref, %t: !quake.ref) {
+  %0 = quake.unwrap %c : (!quake.ref) -> !quake.wire
+  %1 = quake.unwrap %t : (!quake.ref) -> !quake.wire
+  %2 = quake.y %0 : (!quake.wire) -> !quake.wire
+  %3 = quake.y %1 : (!quake.wire) -> !quake.wire
+  %4:2 = quake.x [%2] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %5 = quake.x %4#0 : (!quake.wire) -> !quake.wire
+  %6 = quake.z %4#1 : (!quake.wire) -> !quake.wire
+  quake.wrap %5 to %c : !quake.wire, !quake.ref
+  quake.wrap %6 to %t : !quake.wire, !quake.ref
+  return
+}
+// CHECK-LABEL: func.func @cx_sign
+// CHECK: %[[PI:.*]] = arith.constant 3.1415926535897931
+// CHECK-NOT: quake.{{[xyz]}}
+// CHECK: quake.x [
+// CHECK-NEXT: quake.phase (%[[PI]])
+// CHECK-NOT: quake.{{[xyz]}}
+// CHECK: return
+
+// Only propagation from the output end reduces this sequence.
+func.func @reverse_only(%c: !quake.ref, %t: !quake.ref) {
+  %0 = quake.unwrap %c : (!quake.ref) -> !quake.wire
+  %1 = quake.unwrap %t : (!quake.ref) -> !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %3 = quake.x %2#0 : (!quake.wire) -> !quake.wire
+  %4 = quake.x %2#1 : (!quake.wire) -> !quake.wire
+  quake.wrap %3 to %c : !quake.wire, !quake.ref
+  quake.wrap %4 to %t : !quake.wire, !quake.ref
+  return
+}
+// CHECK-LABEL: func.func @reverse_only
+// CHECK: quake.x %
+// CHECK-NEXT: {{.*}}quake.x [
+// CHECK-NOT: quake.x
+// CHECK: return
+
+func.func @hyh(%q: !quake.ref) {
+  %0 = quake.unwrap %q : (!quake.ref) -> !quake.wire
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.y %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.h %2 : (!quake.wire) -> !quake.wire
+  quake.wrap %3 to %q : !quake.wire, !quake.ref
+  return
+}
+// CHECK-LABEL: func.func @hyh
+// CHECK: %[[PI:.*]] = arith.constant 3.1415926535897931
+// CHECK-NOT: quake.h
+// CHECK: %[[Y:.*]] = quake.y
+// CHECK-NEXT: quake.phase (%[[PI]]) %[[Y]]
+// CHECK-NOT: quake.h
+// CHECK: return
+
+// A standalone invocation can see rotations. Each one ends its Pauli frame.
+func.func @rotation_boundaries(%q: !quake.ref) {
+  %angle = arith.constant 0.25 : f64
+  %0 = quake.unwrap %q : (!quake.ref) -> !quake.wire
+  %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.rz (%angle) %1 : (f64, !quake.wire) -> !quake.wire
+  %3 = quake.x %2 : (!quake.wire) -> !quake.wire
+  %4 = quake.ry (%angle) %3 : (f64, !quake.wire) -> !quake.wire
+  %5 = quake.z %4 : (!quake.wire) -> !quake.wire
+  %6 = quake.rx (%angle) %5 : (f64, !quake.wire) -> !quake.wire
+  %7 = quake.z %6 : (!quake.wire) -> !quake.wire
+  quake.wrap %7 to %q : !quake.wire, !quake.ref
+  return
+}
+// CHECK-LABEL: func.func @rotation_boundaries
+// CHECK: %[[ANGLE:.*]] = arith.constant 2.500000e-01
+// CHECK: quake.x
+// CHECK-NEXT: {{.*}}quake.rz (%[[ANGLE]])
+// CHECK-NEXT: {{.*}}quake.x
+// CHECK-NEXT: {{.*}}quake.ry (%[[ANGLE]])
+// CHECK-NEXT: {{.*}}quake.z
+// CHECK-NEXT: {{.*}}quake.rx (%[[ANGLE]])
+// CHECK-NEXT: {{.*}}quake.z
+
+func.func @conjugate_s(%q: !quake.ref) {
+  %a = quake.unwrap %q : (!quake.ref) -> !quake.wire
+  %b = quake.x %a : (!quake.wire) -> !quake.wire
+  %c = quake.s %b : (!quake.wire) -> !quake.wire
+  %d = quake.x %c : (!quake.wire) -> !quake.wire
+  quake.wrap %d to %q : !quake.wire, !quake.ref
+  return
+}
+// CHECK-LABEL: func.func @conjugate_s
+// CHECK: %[[ANGLE:.*]] = arith.constant 1.5707963267948966
+// CHECK-NOT: quake.x
+// CHECK: %[[S:.*]] = quake.s<adj>
+// CHECK-NEXT: quake.phase (%[[ANGLE]]) %[[S]]
+// CHECK-NOT: quake.x
+// CHECK: return
+
+// X followed by Z is iY. One Y gate suffices, with a global phase of pi/2.
+func.func @xz_to_y(%q: !quake.ref) {
+  %0 = quake.unwrap %q : (!quake.ref) -> !quake.wire
+  %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.z %1 : (!quake.wire) -> !quake.wire
+  quake.wrap %2 to %q : !quake.wire, !quake.ref
+  return
+}
+// CHECK-LABEL: func.func @xz_to_y
+// CHECK: %[[HALF_PI:.*]] = arith.constant 1.5707963267948966
+// CHECK-NOT: quake.{{[xz]}} %
+// CHECK: %[[Y:.*]] = quake.y
+// CHECK-NEXT: quake.phase (%[[HALF_PI]]) %[[Y]]
+// CHECK-NOT: quake.{{[xz]}} %
+// CHECK: return
+
+// The matrix product Z Y X is -i I.
+func.func @pauli_product(%q: !quake.ref) {
+  %0 = quake.unwrap %q : (!quake.ref) -> !quake.wire
+  %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.y %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.z %2 : (!quake.wire) -> !quake.wire
+  quake.wrap %3 to %q : !quake.wire, !quake.ref
+  return
+}
+// CHECK-LABEL: func.func @pauli_product
+// CHECK: %[[PHASE:.*]] = arith.constant 4.7123889803846897
+// CHECK-NOT: quake.{{[xyz]}} %
+// CHECK: quake.phase (%[[PHASE]])
+// CHECK-NOT: quake.{{[xyz]}} %
+// CHECK: return
+
+func.func @growth(%c: !quake.ref, %t: !quake.ref) {
+  %0 = quake.unwrap %c : (!quake.ref) -> !quake.wire
+  %1 = quake.unwrap %t : (!quake.ref) -> !quake.wire
+  %2 = quake.x %0 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%2] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.wrap %3#0 to %c : !quake.wire, !quake.ref
+  quake.wrap %3#1 to %t : !quake.wire, !quake.ref
+  return
+}
+// CHECK-LABEL: func.func @growth
+// CHECK: quake.x %
+// CHECK-NEXT: {{.*}}quake.x [
+
+//--- boundary.qke
+
+func.func @measure(%q: !quake.wire) -> (!quake.measure, !quake.wire) {
+  %a = quake.x %q : (!quake.wire) -> !quake.wire
+  %m, %b = quake.mz %a : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %c = quake.x %b : (!quake.wire) -> !quake.wire
+  return %m, %c : !quake.measure, !quake.wire
+}
+// BOUNDARY-LABEL: func.func @measure
+// BOUNDARY: quake.x
+// BOUNDARY-NEXT: {{.*}}quake.mz
+// BOUNDARY-NEXT: {{.*}}quake.x
+
+func.func @reset(%q: !quake.wire) -> !quake.wire {
+  %a = quake.z %q : (!quake.wire) -> !quake.wire
+  %b = quake.reset %a : (!quake.wire) -> !quake.wire
+  %c = quake.z %b : (!quake.wire) -> !quake.wire
+  return %c : !quake.wire
+}
+// BOUNDARY-LABEL: func.func @reset
+// BOUNDARY: quake.z
+// BOUNDARY-NEXT: {{.*}}quake.reset
+// BOUNDARY-NEXT: {{.*}}quake.z
+
+func.func @branch(%condition: i1, %q: !quake.wire) -> !quake.wire {
+  %a = quake.x %q : (!quake.wire) -> !quake.wire
+  %b = cc.if (%condition) ((%arg = %a)) -> (!quake.wire) {
+    cc.continue %arg : !quake.wire
+  } else {
+    cc.continue %arg : !quake.wire
+  }
+  %c = quake.x %b : (!quake.wire) -> !quake.wire
+  return %c : !quake.wire
+}
+// BOUNDARY-LABEL: func.func @branch
+// BOUNDARY: quake.x
+// BOUNDARY-NEXT: {{.*}}cc.if
+// BOUNDARY: quake.x
+
+//--- controlled.qke
+
+func.func private @helper(%target: !quake.ref) {
+  %q = quake.unwrap %target : (!quake.ref) -> !quake.wire
+  %a = quake.x %q : (!quake.wire) -> !quake.wire
+  %b = quake.t<adj> %a : (!quake.wire) -> !quake.wire
+  %c = quake.x %b : (!quake.wire) -> !quake.wire
+  quake.wrap %c to %target : !quake.wire, !quake.ref
+  return
+}
+func.func @controlled(%control: !quake.ref, %target: !quake.ref) {
+  quake.apply @helper [%control] (%target) : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// ADJOINT-LABEL: func.func private @helper
+// ADJOINT-NOT: quake.x
+// ADJOINT: quake.t %
+// ADJOINT: quake.phase
+// ADJOINT-NOT: quake.x
+// ADJOINT: return
+
+//--- reference.qke
+
+func.func @controlled(%control: !quake.ref, %target: !quake.ref) {
+  quake.x [%control] %target : (!quake.ref, !quake.ref) -> ()
+  quake.t<adj> [%control] %target : (!quake.ref, !quake.ref) -> ()
+  quake.x [%control] %target : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+//--- pipeline.qke
+
+// Commuting X through T introduces a global phase of pi/4. The existing
+// lower-phase pass erases it from the final circuit.
+func.func @kernel(%c: !quake.ref, %t: !quake.ref) {
+  %0 = quake.unwrap %c : (!quake.ref) -> !quake.wire
+  %1 = quake.unwrap %t : (!quake.ref) -> !quake.wire
+  %2 = quake.x %0 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%2] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.x %3#1 : (!quake.wire) -> !quake.wire
+  %5 = quake.t %3#0 : (!quake.wire) -> !quake.wire
+  %6 = quake.x %5 : (!quake.wire) -> !quake.wire
+  quake.wrap %6 to %c : !quake.wire, !quake.ref
+  quake.wrap %4 to %t : !quake.wire, !quake.ref
+  return
+}
+
+// PIPELINE-LABEL: func.func @kernel
+// PIPELINE: quake.x [
+// PIPELINE: quake.t<adj>
+// PIPELINE: return

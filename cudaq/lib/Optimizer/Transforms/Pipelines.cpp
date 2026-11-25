@@ -332,6 +332,7 @@ static void addCliffordTCleanup(OpPassManager &funcPM,
   funcPM.addPass(cudaq::opt::createQuakeSimplify(cleanupOpts));
   funcPM.addPass(cudaq::opt::createNormalizeSingleQubitCliffordT());
   funcPM.addPass(cudaq::opt::createPhaseFolding());
+  funcPM.addPass(cudaq::opt::createSignedPauliPropagation());
   funcPM.addPass(cudaq::opt::createNormalizePhasePlacement());
   funcPM.addPass(cudaq::opt::createLowerPhase());
   funcPM.addPass(createCanonicalizerPass());

@@ -192,7 +192,12 @@ emitCircuit(OpBuilder &builder, Location location, ValueRange inputs,
   return controls;
 }
 
-static void normalizeBlock(Block &block) {
+/// Find chains of H, S, T, X, Y, and Z gates starting in `block` that share
+/// a target wire and the same controls. Replace a chain with its exact
+/// Clifford+T normal form if it uses fewer T gates, or fewer one-qubit gates
+/// at the same T-count. Emit any phase correction with the original controls
+/// and their polarities.
+void cudaq::opt::normalizeSingleQubitCliffordT(Block &block) {
   llvm::SmallVector<Candidate, 0> candidates;
   auto chains = cudaq::opt::collectSingleQubitChains(block, isExactGate);
 
@@ -230,5 +235,6 @@ void NormalizeSingleQubitCliffordTPass::runOnOperation() {
   func::FuncOp function = getOperation();
   if (cudaq::runtime::isQuantumOptimizationDisabled(function))
     return;
-  cudaq::opt::forEachNestedBlock(function.getBody(), normalizeBlock);
+  cudaq::opt::forEachNestedBlock(function.getBody(),
+                                 cudaq::opt::normalizeSingleQubitCliffordT);
 }
