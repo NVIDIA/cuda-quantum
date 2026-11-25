@@ -146,37 +146,19 @@ state &state::operator=(state &&other) {
   return *this;
 }
 
-extern "C" {
-std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
-  return obj->get_num_qubits();
-}
+namespace detail {
+std::int64_t stateNumberOfQubits(state *obj) { return obj->get_num_qubits(); }
 
 // Code gen helpers to convert spans (device side data) to state objects.
-state *__nvqpp_cudaq_state_createFromData_complex_f64(std::complex<double> *d,
-                                                      std::size_t size) {
+state *stateCreateFromDataComplexF64(std::complex<double> *d,
+                                     std::size_t size) {
   if (cudaq::get_simulator()->isSinglePrecision())
     return new state(std::vector<std::complex<float>>{d, d + size});
 
   return new state(std::vector<std::complex<double>>{d, d + size});
 }
 
-state *__nvqpp_cudaq_state_createFromData_f64(double *d, std::size_t size) {
-
-  if (cudaq::get_simulator()->isSinglePrecision())
-    return new state(std::vector<std::complex<float>>{d, d + size});
-
-  return new state(std::vector<std::complex<double>>{d, d + size});
-}
-
-state *__nvqpp_cudaq_state_createFromData_complex_f32(std::complex<float> *d,
-                                                      std::size_t size) {
-  if (cudaq::get_simulator()->isSinglePrecision())
-    return new state(std::vector<std::complex<float>>{d, d + size});
-
-  return new state(std::vector<std::complex<double>>{d, d + size});
-}
-
-state *__nvqpp_cudaq_state_createFromData_f32(float *d, std::size_t size) {
+state *stateCreateFromDataF64(double *d, std::size_t size) {
 
   if (cudaq::get_simulator()->isSinglePrecision())
     return new state(std::vector<std::complex<float>>{d, d + size});
@@ -184,6 +166,21 @@ state *__nvqpp_cudaq_state_createFromData_f32(float *d, std::size_t size) {
   return new state(std::vector<std::complex<double>>{d, d + size});
 }
 
-void __nvqpp_cudaq_state_delete(state *obj) { delete obj; }
+state *stateCreateFromDataComplexF32(std::complex<float> *d, std::size_t size) {
+  if (cudaq::get_simulator()->isSinglePrecision())
+    return new state(std::vector<std::complex<float>>{d, d + size});
+
+  return new state(std::vector<std::complex<double>>{d, d + size});
 }
+
+state *stateCreateFromDataF32(float *d, std::size_t size) {
+
+  if (cudaq::get_simulator()->isSinglePrecision())
+    return new state(std::vector<std::complex<float>>{d, d + size});
+
+  return new state(std::vector<std::complex<double>>{d, d + size});
+}
+
+void stateDelete(state *obj) { delete obj; }
+} // namespace detail
 } // namespace cudaq

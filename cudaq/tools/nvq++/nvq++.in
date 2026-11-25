@@ -1255,6 +1255,9 @@ if ${DO_LINK}; then
 		LINKLIBS="-lc++abi ${LINKLIBS}"
 	fi
 
+	# The nvq++ C API library provides the C API called by the generated code.
+	LINKLIBS="${install_dir}/lib/libcudaq-nvqpp-capi.a ${LINKLIBS}"
+
 	run ${CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else
 	# Save the object file to what the user specified

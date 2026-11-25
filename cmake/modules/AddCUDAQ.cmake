@@ -601,3 +601,56 @@ if(NOT TARGET cudaq::MLIR)
     )
   endif()
 endif()
+
+# --------------------------------------------------------------------------- #
+# ``cudaq_extract_exported_symbols(<header> <out_var> <marker>)``
+#
+# Collect into ``<out_var>`` the names of the functions declared in ``<header>``
+# with the macro ``<marker>`` in front, e.g. `CUDAQ_NVQPP_API void foo(int);`.
+# Each declaration must contain the function name directly followed by `(`.
+# Comments (`//`) and preprocessor lines are ignored.
+# --------------------------------------------------------------------------- #
+function(cudaq_extract_exported_symbols header out_var marker)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${header}")
+  file(READ "${header}" _text)
+  string(REGEX REPLACE "//[^\n]*" "" _text "${_text}")
+  string(REGEX REPLACE "#[^\n]*" "" _text "${_text}")
+  string(REGEX MATCHALL "${marker}[^;(]*\\(" _declarations "${_text}")
+  set(_symbols)
+  foreach(_declaration IN LISTS _declarations)
+    string(REGEX REPLACE "^.*[^A-Za-z0-9_]([A-Za-z0-9_]+)[ \t\n]*\\($" "\\1"
+           _symbol "${_declaration}")
+    list(APPEND _symbols "${_symbol}")
+  endforeach()
+  if(NOT _symbols)
+    message(FATAL_ERROR "No '${marker}' declarations found in ${header}")
+  endif()
+  set(${out_var} "${_symbols}" PARENT_SCOPE)
+endfunction()
+
+# --------------------------------------------------------------------------- #
+# ``cudaq_export_only_symbols(<target> <symbol>...)``
+#
+# Make the shared library ``<target>`` export exactly the given (C) symbols,
+# using a version script on Linux and an exported symbols list on macOS.
+# --------------------------------------------------------------------------- #
+function(cudaq_export_only_symbols target)
+  set(_file "${CMAKE_CURRENT_BINARY_DIR}/${target}.exports")
+  if(APPLE)
+    set(_content "")
+    foreach(_symbol IN LISTS ARGN)
+      string(APPEND _content "_${_symbol}\n")
+    endforeach()
+    set(_option "LINKER:-exported_symbols_list,${_file}")
+  else()
+    set(_content "{\n  global:\n")
+    foreach(_symbol IN LISTS ARGN)
+      string(APPEND _content "    ${_symbol};\n")
+    endforeach()
+    string(APPEND _content "  local: *;\n};\n")
+    set(_option "LINKER:--version-script=${_file}")
+  endif()
+  file(GENERATE OUTPUT "${_file}" CONTENT "${_content}")
+  target_link_options(${target} PRIVATE "${_option}")
+  set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS "${_file}")
+endfunction()
