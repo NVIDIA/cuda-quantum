@@ -28,30 +28,33 @@ InstructionSetNoiseModel::InstructionSetNoiseModel(
   }
 }
 
-CircuitNoise InstructionSetNoiseModel::noise(const Circuit &circuit) const {
-  if (circuit.get_instruction_set() != instruction_set)
+CircuitNoise
+InstructionSetNoiseModel::noise(const InstructionCircuit &circuit) const {
+  if (&circuit.get_instruction_set() != instruction_set)
     throw std::invalid_argument("circuit does not use the instruction set");
 
   std::unordered_map<WireId, PauliNoise> noise;
-  for (const Node &node : circuit.get_nodes()) {
-    auto it = instruction_noise.find(
-        instruction_set->get_instructions().at(node.get_opcode()).get_name());
+  for (const InstructionNode &node : circuit.get_nodes()) {
+    auto it = instruction_noise.find(instruction_set->get_instructions()
+                                         .at(node.get_instruction())
+                                         .get_name());
     if (it == instruction_noise.end())
       continue;
     std::size_t k = 0;
-    for (const WireId &wire : node.get_q_out())
+    for (const WireId &wire : node.get_wires().q_out)
       noise.emplace(wire, it->second[k++]);
-    for (const WireId &wire : node.get_c_out())
+    for (const WireId &wire : node.get_wires().c_out)
       noise.emplace(wire, it->second[k++]);
   }
   std::vector<PauliNoise> output_noise;
-  for (const auto *wires : {&circuit.get_q_out(), &circuit.get_c_out()})
+  for (const auto *wires :
+       {&circuit.get_wires().q_out, &circuit.get_wires().c_out})
     for (const WireId &wire : *wires) {
       auto it = noise.find(wire);
       output_noise.push_back(it == noise.end() ? PauliNoise{} : it->second);
     }
   return CircuitNoise(std::move(noise), std::move(output_noise),
-                      circuit.get_q_out().size());
+                      circuit.get_wires().q_out.size());
 }
 
 } // namespace v0

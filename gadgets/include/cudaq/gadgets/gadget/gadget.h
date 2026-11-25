@@ -72,8 +72,8 @@ struct Gadget {
   std::string name;
   std::vector<const SubsystemCode *> in_codes;
   std::vector<const SubsystemCode *> out_codes;
-  Circuit logical_action;
-  Circuit realization;
+  SemanticCircuit logical_action;
+  std::variant<SemanticCircuit, InstructionCircuit> realization;
   std::vector<BlockBinding> boundary_bindings;
   OutcomeMap outcome_map;
   std::vector<Param> params;

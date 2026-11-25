@@ -46,22 +46,22 @@ int main() {
 
   PhysicalInstructionSet native;
   native.name = "native";
-  Circuit x_action({"a"}, {"b"});
-  x_action.append(Node("x", Opcode::X, {"a"}, {"b"}));
+  SemanticCircuit x_action({{"a"}, {"b"}});
+  x_action.append(OpcodeNode(Opcode::X, {{"a"}, {"b"}}));
   native.append(PhysicalInstructionDefinition("X", std::move(x_action)));
-  Circuit cz_action({"a", "b"}, {"c", "d"});
-  cz_action.append(Node("cz", Opcode::CZ, {"a", "b"}, {"c", "d"}));
+  SemanticCircuit cz_action({{"a", "b"}, {"c", "d"}});
+  cz_action.append(OpcodeNode(Opcode::CZ, {{"a", "b"}, {"c", "d"}}));
   native.append(PhysicalInstructionDefinition("CZ", std::move(cz_action)));
 
   Gadget gadget;
   gadget.name = "identity";
   gadget.in_codes = {&rep3};
   gadget.out_codes = {&rep3};
-  gadget.realization = Circuit({"q0", "q2"}, {"q3", "q4"}, {}, {}, &native);
-  gadget.realization.append(
-      Node("flip", *native.index_of("X"), {"q0"}, {"q1"}));
-  gadget.realization.append(
-      Node("entangle", *native.index_of("CZ"), {"q1", "q2"}, {"q3", "q4"}));
+  InstructionCircuit realization(native, {{"q0", "q2"}, {"q3", "q4"}});
+  realization.append(InstructionNode(*native.index_of("X"), {{"q0"}, {"q1"}}));
+  realization.append(
+      InstructionNode(*native.index_of("CZ"), {{"q1", "q2"}, {"q3", "q4"}}));
+  gadget.realization = std::move(realization);
   gadget.boundary_bindings.push_back({0, false, {"q0", "q1", "q2"}, {"l0"}});
   gadget.outcome_map.push_back({"o0", {{"m0", "v0"}, true}});
 
@@ -72,15 +72,15 @@ int main() {
     return 1;
   // Each native instruction's action is one semantic operation.
   auto action_opcode = [&](std::size_t i) {
-    std::size_t index = stored->realization.get_nodes()[i].get_opcode();
+    std::size_t index = std::get<InstructionCircuit>(stored->realization)
+                            .get_nodes()[i]
+                            .get_instruction();
     return native.get_instructions()[index]
         .get_action()
         .get_nodes()
         .front()
         .get_opcode();
   };
-  return action_opcode(0) == std::size_t(Opcode::X) &&
-                 action_opcode(1) == std::size_t(Opcode::CZ)
-             ? 0
-             : 1;
+  return action_opcode(0) == Opcode::X && action_opcode(1) == Opcode::CZ ? 0
+                                                                         : 1;
 }

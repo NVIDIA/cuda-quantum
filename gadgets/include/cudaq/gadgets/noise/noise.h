@@ -62,7 +62,7 @@ private:
 
 struct NoiseModel {
   virtual ~NoiseModel() = default;
-  virtual CircuitNoise noise(const Circuit &circuit) const = 0;
+  virtual CircuitNoise noise(const InstructionCircuit &circuit) const = 0;
 };
 
 /// Noise per instruction, one PauliNoise per output (qubits, then bits),
@@ -77,7 +77,7 @@ struct InstructionSetNoiseModel : NoiseModel {
                            InstructionNoise noise);
 
   /// Throws std::invalid_argument if circuit does not use instruction_set.
-  CircuitNoise noise(const Circuit &circuit) const override;
+  CircuitNoise noise(const InstructionCircuit &circuit) const override;
 
 private:
   const PhysicalInstructionSet *instruction_set;

@@ -21,8 +21,7 @@ Everything builds into one library, `cudaq-gadgets`. Tests are in [test/](test/)
 | --- | --- |
 | `Pauli`, `PauliString`, `Shape`, `CliffordImages`, `ConditionalPauli`, `DiagonalUnitary`, `Unitary` | [utils.h](include/cudaq/gadgets/utils.h) |
 | `Opcode`, `Payload`, `get_shape`, `to_string`, `find_opcode` | [circuit/standard.h](include/cudaq/gadgets/circuit/standard.h); table in [standard.cpp](lib/circuit/standard.cpp) |
-| `Node` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
-| `Circuit` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
+| `Wires`, `OpcodeNode`, `InstructionNode`, `SemanticCircuit`, `InstructionCircuit` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
 | `PhysicalInstructionDefinition` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h); signature tracing in [circuit.cpp](lib/circuit/circuit.cpp) |
 | `InstructionSet`, `PhysicalInstructionSet` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
 | `SubsystemCode`, `GadgetProfile`, `BlockBinding`, `OutcomeMap` | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) |
@@ -35,9 +34,9 @@ Everything builds into one library, `cudaq-gadgets`. Tests are in [test/](test/)
 - Wires are single-assignment: each wire ID is defined once and names one
   segment.
 - There are no subroutine or repeat nodes.
-- A circuit is over one instruction set: a physical one, whose instructions
-  nodes name by index, or the semantic instructions (`Opcode`). Only semantic
-  instructions take a payload.
+- A `SemanticCircuit` holds semantic operations (`Opcode`, with payloads). An
+  `InstructionCircuit` calls the instructions of a physical instruction set by
+  index.
 - Gadget circuits are not supported yet.
 - Noise is separate from gadgets and instruction sets. A `NoiseModel` maps a
   circuit to per-wire Pauli noise. A standard definition for uniform noise over
