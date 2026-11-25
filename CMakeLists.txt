@@ -961,13 +961,18 @@ endif()
 
 # QPP simulator
 if (NOT CUDAQ_DISABLE_RUNTIME)
-  add_subdirectory(tpls/qpp EXCLUDE_FROM_ALL)
-  # Required workaround to add libqpp as SYSTEM. This will prevent it from
-  # generating warnings, which we treat as errors.
-  get_target_property(LIBQPP_INCLUDE libqpp INTERFACE_INCLUDE_DIRECTORIES)
-  set_target_properties(libqpp
-    PROPERTIES
-      INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${LIBQPP_INCLUDE}")
+  # Quantum++ 7 is header-only. Its own CMake project requires Eigen >= 5
+  # (and fetches it when it is not installed), while CUDA-Q builds against
+  # tpls/eigen, so the headers are added here directly as a SYSTEM interface
+  # target; that also keeps their warnings, which we treat as errors, out of
+  # our builds.
+  add_library(libqpp INTERFACE)
+  target_include_directories(libqpp SYSTEM INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/qpp/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/qpp/qasmtools/include>)
+  # The definitions Quantum++'s own CMake sets by default.
+  target_compile_definitions(libqpp INTERFACE
+    QPP_ENABLE_QUBIT_OPTIMIZATIONS QPP_ENABLE_THREAD_LOCAL)
   add_openmp_interface_definitions(libqpp)
 endif()
 

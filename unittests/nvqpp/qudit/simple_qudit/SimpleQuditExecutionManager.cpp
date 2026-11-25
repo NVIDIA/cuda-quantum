@@ -11,7 +11,7 @@
 #include "common/SampleResult.h"
 #include "cudaq/runtime/logger/logger.h"
 
-#include "qpp.h"
+#include "qpp/qpp.hpp"
 #include "cudaq/operators.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/qis/qudit.h"
@@ -118,8 +118,8 @@ protected:
     const auto measurement_tuple = qpp::measure(
         state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
         /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
-    const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
-    const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
+    const auto measurement_result = std::get<qpp::measure_idx::res>(measurement_tuple);
+    const auto &post_meas_states = std::get<qpp::measure_idx::st>(measurement_tuple);
     const auto &collapsed_state = post_meas_states[measurement_result];
     state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
                                        collapsed_state.size());
