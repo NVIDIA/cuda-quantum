@@ -20,6 +20,11 @@ on:
         description: Save the compiler caches of this run under the branch's tag and restore them from there. Runs on main, schedules, merge queues and PRs always save them.
         required: false
         default: false
+      refresh_llvm_ccache:
+        type: boolean
+        description: With update_registry_cache, also rebuild LLVM in the dependency images with the ccache of the branch and save it. Run it after changes to the LLVM build, as the build cache otherwise skips it.
+        required: false
+        default: false
       cache_base:
         required: false
         type: string
@@ -86,6 +91,7 @@ jobs:
       nanobind_commit: ${{ steps.build_config.outputs.nanobind_commit }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
       cache_target: ${{ steps.build_info.outputs.cache_target }}
+      refresh_llvm_ccache: ${{ steps.build_info.outputs.refresh_llvm_ccache }}
       multi_platform: ${{ steps.build_info.outputs.multi_platform }}
       platforms: ${{ steps.build_info.outputs.platforms }}
       build_dependencies: ${{ steps.build_config.outputs.build_dependencies }}
@@ -158,6 +164,16 @@ jobs:
           cache_target=${{ (github.event_name != 'workflow_dispatch' && (steps.pr_info.outputs.pr_base || github.ref_name)) || (inputs.update_registry_cache && github.ref_name) || '' }}
           environment=${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
 
+          # Layers that hit the build cache never run the LLVM build that saves the ccache.
+          refresh_llvm_ccache=false
+          if ${{ inputs.refresh_llvm_ccache == true }}; then
+            if [ -z "$cache_target" ]; then
+              echo "::error::refresh_llvm_ccache requires update_registry_cache."
+              exit 1
+            fi
+            refresh_llvm_ccache=true
+          fi
+
           # Store deployment info
           release_title="${{ inputs.create_release }}"
           release_version=`echo "$release_title" | (egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)" || true)`
@@ -185,6 +201,7 @@ jobs:
 
           echo "cache_base=$cache_base" >> $GITHUB_OUTPUT
           echo "cache_target=$cache_target" >> $GITHUB_OUTPUT
+          echo "refresh_llvm_ccache=$refresh_llvm_ccache" >> $GITHUB_OUTPUT
           echo "multi_platform=$(echo $multi_platform)" >> $GITHUB_OUTPUT
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
           echo "environment=$environment" >> $GITHUB_OUTPUT
@@ -240,6 +257,7 @@ jobs:
       dockerfile: build/devdeps.Dockerfile
       runner_cpus: '32'
       build_config_id: ${{ matrix.toolchain }}
+      refresh_llvm_ccache: ${{ needs.metadata.outputs.refresh_llvm_ccache == 'true' }}
       build_args: |
         toolchain=${{ matrix.toolchain }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
@@ -271,6 +289,7 @@ jobs:
       dockerfile: build/devdeps.manylinux.Dockerfile
       runner_cpus: '32'
       build_config_id: cu${{ matrix.cuda_version }}-gcc12
+      refresh_llvm_ccache: ${{ needs.metadata.outputs.refresh_llvm_ccache == 'true' && matrix.cuda_version == '12.6' }}
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         cuda_version=${{ matrix.cuda_version }}
@@ -305,6 +324,7 @@ jobs:
       runner_cpus: '32'
       build_config_id: cu${{ matrix.cuda_version }}-llvm
       build_target: prereqs
+      refresh_llvm_ccache: ${{ needs.metadata.outputs.refresh_llvm_ccache == 'true' && matrix.cuda_version == '12.6' }}
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
         cuda_version=${{ matrix.cuda_version }}
