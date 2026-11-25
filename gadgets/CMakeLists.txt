@@ -33,17 +33,17 @@ if(NOT TARGET cudaq-edem)
   add_subdirectory(../edem "${CMAKE_CURRENT_BINARY_DIR}/edem")
 endif()
 
-add_library(cudaq-gadgets lib/core.cpp lib/analysis/analysis.cpp
-  lib/circuit/circuit.cpp lib/circuit/pauli.cpp lib/circuit/standard.cpp
+add_library(cudaq-gadgets lib/core.cpp lib/utils.cpp lib/analysis/analysis.cpp
+  lib/circuit/circuit.cpp lib/circuit/standard.cpp
   lib/noise/noise.cpp)
 add_library(cudaq::gadgets ALIAS cudaq-gadgets)
 target_sources(cudaq-gadgets PUBLIC
   FILE_SET HEADERS
   BASE_DIRS include
   FILES include/cudaq/gadgets/core.h
+    include/cudaq/gadgets/utils.h
     include/cudaq/gadgets/analysis/analysis.h
     include/cudaq/gadgets/circuit/circuit.h
-    include/cudaq/gadgets/circuit/pauli.h
     include/cudaq/gadgets/circuit/standard.h
     include/cudaq/gadgets/gadget/gadget.h
     include/cudaq/gadgets/noise/noise.h

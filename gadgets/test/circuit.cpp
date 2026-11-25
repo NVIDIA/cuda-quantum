@@ -37,106 +37,126 @@ void expect_ok(const char *name, F f) {
   }
 }
 
-std::unique_ptr<Node> op(Opcode opcode, Wires q_in, Wires q_out,
-                         Wires c_out = {}) {
-  return std::make_unique<OpcodeNode>("", opcode, std::move(q_in),
-                                      std::move(q_out), std::move(c_out));
+Node op(Opcode opcode, Wires q_in, Wires q_out, Wires c_out = {}) {
+  return Node("", opcode, std::move(q_in), std::move(q_out), {},
+              std::move(c_out));
 }
 
-/// H a; CX a b; M a -> m; X b if m.
+/// Appends node to an empty semantic circuit.
+void append(Node node) { Circuit().append(std::move(node)); }
+
+/// H a; CX a b; MEASURE_Z a -> m; X b if m.
 Circuit bell_correction() {
-  Circuit circuit;
-  circuit.q_in = {"a0", "b0"};
+  Circuit circuit({"a0", "b0"}, {"b2"}, {}, {"m"});
   circuit.append(op(Opcode::H, {"a0"}, {"a1"}));
   circuit.append(op(Opcode::CX, {"a1", "b0"}, {"a2", "b1"}));
-  auto [id, outcomes] = circuit.append(std::make_unique<OpcodeNode>(
-      "measure", Opcode::M, Wires{"a2"}, Wires{"a3"}, Wires{"m"}));
+  auto [id, outcomes] =
+      circuit.append(Node("measure", Opcode::MEASURE_Z, {"a2"}, {}, {}, {"m"}));
   if (id != "measure" || outcomes != Wires{"m"}) {
     std::printf("FAIL: append result\n");
     ++failures;
   }
-  circuit.append(std::make_unique<ConditionalPauliNode>(
-      "fix", PauliString::from_string("+X"), Predicate{{"m"}, false},
-      Wires{"b1"}, Wires{"b2"}));
-  circuit.q_out = {"a3", "b2"};
-  circuit.c_out = {"m"};
+  circuit.append(Node("fix", Opcode::CONDITIONAL_PAULI, {"b1"}, {"b2"}, {"m"},
+                      {}, ConditionalPauli{PauliString::from_string("+X"), 1}));
   return circuit;
 }
 } // namespace
 
 int main() {
   expect_ok("valid circuit", [] { bell_correction().validate(); });
-  expect_ok("random bit and discard", [] {
-    Circuit circuit;
-    circuit.q_in = {"a"};
-    circuit.append(std::make_unique<RandomBitNode>("random", "r"));
-    circuit.append(op(Opcode::DISCARD, {"a"}, {}));
-    circuit.c_out = {"r"};
+  expect_ok("random bit, idle, and reset", [] {
+    Circuit circuit({"a"}, {"c"}, {}, {"r"});
+    circuit.append(Node("random", Opcode::RANDOM_BIT, {}, {}, {}, {"r"}));
+    circuit.append(op(Opcode::IDLE, {"a"}, {"b"}));
+    circuit.append(op(Opcode::RESET, {"b"}, {"c"}));
     circuit.validate();
   });
 
+  expect_throw("wire counts", [] { append(op(Opcode::CX, {"a"}, {"b"})); });
+  expect_throw("unknown opcode", [] {
+    append(Node("x", std::size_t(num_opcodes), {"a"}, {"b"}));
+  });
   expect_throw("conditional Pauli width", [] {
-    Circuit circuit;
-    circuit.q_in = {"a"};
-    circuit.append(std::make_unique<ConditionalPauliNode>(
-        "fix", PauliString::from_string("+ZZ"), Predicate{}, Wires{"a"},
-        Wires{"b"}));
+    append(Node("fix", Opcode::CONDITIONAL_PAULI, {"a"}, {"b"}, {}, {},
+                ConditionalPauli{PauliString::from_string("+ZZ")}));
+  });
+  expect_throw("conditional Pauli bits", [] {
+    append(Node("fix", Opcode::CONDITIONAL_PAULI, {"a"}, {"b"}, {"m", "n"}, {},
+                ConditionalPauli{PauliString::from_string("+Z"), 1}));
+  });
+  expect_throw("Clifford images", [] {
+    CliffordImages({PauliString::from_string("X")},
+                   {PauliString::from_string("ZZ")});
+  });
+  expect_throw("non-Hermitian Pauli", [] {
+    append(Node("m", Opcode::PAULI_MEASUREMENT, {"a"}, {"b"}, {}, {"m"},
+                PauliString::from_string("+iZ")));
+  });
+  expect_throw("missing param", [] { append(op(Opcode::RX, {"a"}, {"b"})); });
+  expect_throw("unexpected payload", [] {
+    append(Node("x", Opcode::X, {"a"}, {"b"}, {}, {}, ParamValue(1.0)));
+  });
+  expect_throw("unitary size", [] {
+    append(Node("u", Opcode::UNITARY, {"a"}, {"b"}, {}, {},
+                Unitary(std::vector<std::complex<double>>(2))));
+  });
+  expect_ok("payloads", [] {
+    append(Node("rx", Opcode::RX, {"a"}, {"b"}, {}, {}, ParamValue("theta")));
+    append(Node(
+        "swap", Opcode::CLIFFORD, {"a", "b"}, {"c", "d"}, {}, {},
+        CliffordImages{
+            {PauliString::from_string("IX"), PauliString::from_string("XI")},
+            {PauliString::from_string("IZ"), PauliString::from_string("ZI")}}));
+    append(Node("mzz", Opcode::PAULI_MEASUREMENT, {"a", "b"}, {"c", "d"}, {},
+                {"m0", "m1"}, PauliString::from_string("ZZ")));
+    append(Node("s", Opcode::DIAGONAL_UNITARY, {"a"}, {"b"}, {}, {},
+                DiagonalUnitary({1, {0, 1}})));
+    append(Node("cz", Opcode::CONDITIONAL_PAULI, {"a"}, {"b"}, {"m", "n"}, {},
+                ConditionalPauli{PauliString::from_string("+Z"), 2, true}));
   });
 
   PhysicalInstructionSet native;
-  Circuit cz;
-  cz.q_in = {"a", "b"};
-  cz.q_out = {"c", "d"};
+  Circuit cz({"a", "b"}, {"c", "d"});
   cz.append(op(Opcode::CZ, {"a", "b"}, {"c", "d"}));
   native.append(PhysicalInstructionDefinition("CZ", std::move(cz)));
-  auto call = [&](Wires q_in, Wires q_out) {
-    return std::make_unique<InstructionNode>("cz", "CZ", std::move(q_in),
-                                             std::move(q_out));
+  std::size_t cz_index = *native.index_of("CZ");
+  auto physical = [&] {
+    return Circuit({"a", "b"}, {"c", "d"}, {}, {}, &native);
   };
   expect_ok("instruction", [&] {
-    Circuit circuit;
-    circuit.instruction_set = &native;
-    circuit.q_in = {"a", "b"};
-    circuit.append(call({"a", "b"}, {"c", "d"}));
-    circuit.q_out = {"c", "d"};
+    Circuit circuit = physical();
+    circuit.append(Node("cz", cz_index, {"a", "b"}, {"c", "d"}));
     circuit.validate();
   });
+  expect_throw("instruction wire count",
+               [&] { physical().append(Node("cz", cz_index, {"a"}, {"c"})); });
+  expect_throw("instruction not in the set", [&] {
+    physical().append(Node("cz", cz_index + 1, {"a", "b"}, {"c", "d"}));
+  });
+  expect_throw("payload on a physical instruction", [&] {
+    physical().append(
+        Node("cz", cz_index, {"a", "b"}, {"c", "d"}, {}, {}, ParamValue(1.0)));
+  });
+  expect_throw("action over an instruction set", [&] {
+    Circuit action = physical();
+    action.append(Node("cz", cz_index, {"a", "b"}, {"c", "d"}));
+    PhysicalInstructionDefinition("wrapped", std::move(action));
+  });
 
-  // Signature derived by tracing: a -> H -> MR -> out 1 (reset), b
-  // discarded, c passes straight to out 2 (inactive), out 0 prepared.
+  // Signature derived by tracing: a -> H -> RESET -> out 1, b measured
+  // destructively, c straight to out 2, out 0 prepared.
   {
-    Circuit action;
-    action.q_in = {"a", "b", "c"};
+    Circuit action({"a", "b", "c"}, {"p", "a2", "c"}, {}, {"m"});
     action.append(op(Opcode::H, {"a"}, {"a1"}));
-    action.append(op(Opcode::MR, {"a1"}, {"a2"}, {"m"}));
-    action.append(op(Opcode::DISCARD, {"b"}, {}));
-    action.append(op(Opcode::PREP_Z, {}, {"p"}));
-    action.q_out = {"p", "a2", "c"};
-    action.c_out = {"m"};
+    action.append(op(Opcode::RESET, {"a1"}, {"a2"}));
+    action.append(op(Opcode::MEASURE_Z, {"b"}, {}, {"m"}));
+    action.append(op(Opcode::PREPARE_Z, {}, {"p"}));
     PhysicalInstructionDefinition def("composite", std::move(action));
-    std::vector<std::pair<u32, u32>> port_map = {{0, 1}, {2, 2}};
-    const auto &in = def.get_q_in();
-    const auto &out = def.get_q_out();
-    if (def.get_port_map() != port_map || def.get_c_in() != 0 ||
-        def.get_c_out() != 1 || in.size() != 3 || out.size() != 3 ||
-        in[0].discarded || !in[1].discarded || in[0].inactive ||
-        !in[2].inactive || !out[0].prepared || out[1].prepared ||
-        !out[1].reset || out[2].reset || !out[2].inactive) {
+    std::vector<std::pair<std::size_t, std::size_t>> port_map = {{0, 1},
+                                                                 {2, 2}};
+    if (def.get_port_map() != port_map ||
+        def.get_shape() != Shape{3, 3, 0, 1}) {
       std::printf("FAIL: derived signature\n");
-      ++failures;
-    }
-
-    // A call to that definition follows its port map.
-    PhysicalInstructionSet set;
-    set.append(std::move(def));
-    Circuit outer;
-    outer.instruction_set = &set;
-    InstructionNode node("call", "composite", {"x", "y", "z"}, {"u", "v", "w"},
-                         {}, {"n"});
-    if (node.trace(0, outer) != std::optional<std::size_t>(1) ||
-        node.trace(1, outer) ||
-        node.trace(2, outer) != std::optional<std::size_t>(2)) {
-      std::printf("FAIL: trace through an instruction\n");
       ++failures;
     }
   }

@@ -15,22 +15,28 @@ inline namespace v0 {
 
 struct Gadget;
 
+/// XOR of distinct outcomes and a constant offset.
+struct ParityExpr {
+  std::vector<OutcomeRef> refs;
+  bool offset = false;
+};
+
 /// Logical outcomes as parities of measurements m and input virtual outcomes
 /// v_in: o = A m + B v_in + b.
 using OutcomeMap = std::vector<std::pair<OutcomeRef, ParityExpr>>;
 
 /// Signed product of generators by index: (-1)^negative * prod g_i.
 struct GeneratorProduct {
-  std::vector<u32> generators;
+  std::vector<std::size_t> generators;
   bool negative = false;
 };
 
 // TODO: validate(): sizes, commutation, decompositions.
 struct SubsystemCode {
   std::string name;
-  u32 n_phys = 0;
-  u32 n_log = 0;
-  u32 n_gauge = 0;
+  std::size_t n_phys = 0;
+  std::size_t n_log = 0;
+  std::size_t n_gauge = 0;
   std::vector<PauliString> stabilizers;
   std::vector<PauliString> logical_x;
   std::vector<PauliString> logical_z;
@@ -55,7 +61,7 @@ struct GadgetProfile {
 
 /// Binds a code block, by index, to realization and logical-action qubits.
 struct BlockBinding {
-  u32 block = 0;
+  std::size_t block = 0;
   bool output = false;
   std::vector<WireId> realization;
   std::vector<WireId> logical;
@@ -78,12 +84,8 @@ struct Gadget {
   const std::string &get_name() const { return name; }
 };
 
-/// Gadgets, for a GadgetCircuit.
+/// Gadgets, by name.
 using GadgetSet = InstructionSet<Gadget>;
-
-using GadgetCircuit = BasicCircuit<Gadget>;
-
-using GadgetCallNode = OccurrenceNode<NodeKind::GadgetCall>;
 
 } // namespace v0
 } // namespace cudaq::gadgets

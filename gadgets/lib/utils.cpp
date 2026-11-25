@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.   *
  *****************************************************************************/
 
-#include "cudaq/gadgets/circuit/pauli.h"
+#include "cudaq/gadgets/utils.h"
 
 #include <stdexcept>
 
@@ -66,6 +66,24 @@ PauliString PauliString::from_string(std::string_view text) {
     result.ops.push_back(pauli_from_char(c));
   return result;
 }
+
+namespace {
+/// n such that size == 2^(bits * n); throws std::invalid_argument otherwise.
+std::size_t qubits(std::size_t size, std::size_t bits) {
+  std::size_t n = 0;
+  while ((std::size_t{1} << (bits * n)) < size)
+    ++n;
+  if ((std::size_t{1} << (bits * n)) != size)
+    throw std::invalid_argument("unitary size does not fit whole qubits");
+  return n;
+}
+} // namespace
+
+DiagonalUnitary::DiagonalUnitary(std::vector<std::complex<double>> diagonal)
+    : diagonal(std::move(diagonal)), n(qubits(this->diagonal.size(), 1)) {}
+
+Unitary::Unitary(std::vector<std::complex<double>> matrix)
+    : matrix(std::move(matrix)), n(qubits(this->matrix.size(), 2)) {}
 
 } // namespace v0
 } // namespace cudaq::gadgets

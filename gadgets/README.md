@@ -7,7 +7,8 @@ Each component depends only on those above it.
 | Component | Headers | Sources | Contents |
 | --- | --- | --- | --- |
 | core | [core.h](include/cudaq/gadgets/core.h) | [core.cpp](lib/core.cpp) | C ABI version |
-| circuit | [circuit/](include/cudaq/gadgets/circuit/) `circuit.h` `pauli.h` `standard.h` | [circuit/](lib/circuit/) | Paulis, standard operations, nodes, circuits, instruction sets |
+| utils | [utils.h](include/cudaq/gadgets/utils.h) | [utils.cpp](lib/utils.cpp) | Paulis and operation payloads |
+| circuit | [circuit/](include/cudaq/gadgets/circuit/) `circuit.h` `standard.h` | [circuit/](lib/circuit/) | Standard operations, nodes, circuits, instruction sets |
 | gadget | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) | — | Codes, gadgets, profiles, gadget circuits |
 | noise | [noise/noise.h](include/cudaq/gadgets/noise/noise.h) | [noise/](lib/noise/) | Pauli noise and noise models over circuits |
 | analysis | [analysis/analysis.h](include/cudaq/gadgets/analysis/analysis.h) | [analysis/](lib/analysis/) | Verification and EDEM generation |
@@ -18,14 +19,14 @@ Everything builds into one library, `cudaq-gadgets`. Tests are in [test/](test/)
 
 | Structure | Definition |
 | --- | --- |
-| `Pauli`, `PauliString` | [circuit/pauli.h](include/cudaq/gadgets/circuit/pauli.h) |
-| `Opcode`, `OpcodeContract`, `PortFlags`, `contract`, `find_opcode` | [circuit/standard.h](include/cudaq/gadgets/circuit/standard.h); table in [standard.cpp](lib/circuit/standard.cpp) |
-| `Node` and subclasses (`InstructionNode`, `ConditionalPauliNode`, `OpcodeNode`, `IdleNode`, `RandomBitNode`, `PauliUnitaryNode`, `UnitaryNode`, `JointMeasurementNode`) | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
-| `BasicCircuit`, `Circuit` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
+| `Pauli`, `PauliString`, `Shape`, `CliffordImages`, `ConditionalPauli`, `DiagonalUnitary`, `Unitary` | [utils.h](include/cudaq/gadgets/utils.h) |
+| `Opcode`, `Payload`, `get_shape`, `to_string`, `find_opcode` | [circuit/standard.h](include/cudaq/gadgets/circuit/standard.h); table in [standard.cpp](lib/circuit/standard.cpp) |
+| `Node` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
+| `Circuit` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
 | `PhysicalInstructionDefinition` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h); signature tracing in [circuit.cpp](lib/circuit/circuit.cpp) |
-| `InstructionSet`, `PhysicalInstructionSet`, `standard_instruction_set` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
+| `InstructionSet`, `PhysicalInstructionSet` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
 | `SubsystemCode`, `GadgetProfile`, `BlockBinding`, `OutcomeMap` | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) |
-| `Gadget`, `GadgetSet`, `GadgetCircuit`, `GadgetCallNode` | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) |
+| `Gadget`, `GadgetSet` | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) |
 | `PauliNoise`, `CircuitNoise`, `NoiseModel`, `InstructionSetNoiseModel` | [noise/noise.h](include/cudaq/gadgets/noise/noise.h) |
 | `EDEM`, `VerificationReport`, `verify`, `get_edem` | [analysis/analysis.h](include/cudaq/gadgets/analysis/analysis.h) |
 
@@ -33,10 +34,11 @@ Everything builds into one library, `cudaq-gadgets`. Tests are in [test/](test/)
 
 - Wires are single-assignment: each wire ID is defined once and names one
   segment.
-- There are no subroutine or repeat nodes, and no variable-width operations.
-- Calls name their callee; the circuit's instruction set resolves the name.
-- A circuit over an instruction set contains only calls to it. A circuit
-  without one contains only standard operations.
+- There are no subroutine or repeat nodes.
+- A circuit is over one instruction set: a physical one, whose instructions
+  nodes name by index, or the semantic instructions (`Opcode`). Only semantic
+  instructions take a payload.
+- Gadget circuits are not supported yet.
 - Noise is separate from gadgets and instruction sets. A `NoiseModel` maps a
   circuit to per-wire Pauli noise. A standard definition for uniform noise over
   instruction sets is provided. Otherwise a custom noise model can specify noise

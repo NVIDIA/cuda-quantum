@@ -12,112 +12,61 @@
 
 namespace cudaq::gadgets {
 inline namespace v0 {
-namespace {
-
-/// The definition node calls.
-const PhysicalInstructionDefinition &definition(const Circuit &circuit,
-                                                const InstructionNode &node) {
-  const PhysicalInstructionDefinition *def =
-      circuit.instruction_set ? circuit.instruction_set->find(node.get_callee())
-                              : nullptr;
-  if (!def)
-    throw std::invalid_argument("node '" + node.get_id() + "': instruction '" +
-                                node.get_callee() +
-                                "' is not in the circuit's instruction set");
-  return *def;
+Shape Circuit::get_shape(const Node &node) const {
+  if (!instruction_set) {
+    if (node.get_opcode() >= num_opcodes)
+      throw std::invalid_argument("node '" + node.get_id() +
+                                  "': unknown opcode");
+    return cudaq::gadgets::get_shape(static_cast<Opcode>(node.get_opcode()),
+                                     node.get_payload());
+  }
+  const auto &instructions = instruction_set->get_instructions();
+  if (node.get_opcode() >= instructions.size())
+    throw std::invalid_argument("node '" + node.get_id() +
+                                "': not in the instruction set");
+  if (node.get_payload())
+    throw std::invalid_argument("node '" + node.get_id() +
+                                "': physical instructions take no payload");
+  return instructions[node.get_opcode()].get_shape();
 }
 
-/// Whether node resets qubit output j.
-bool resets(const Circuit &circuit, const Node &node, std::size_t j) {
-  if (OpcodeNode::classof(&node))
-    return contract(static_cast<const OpcodeNode &>(node).get_opcode())
-        .out_flags.reset;
-  if (InstructionNode::classof(&node))
-    return definition(circuit, static_cast<const InstructionNode &>(node))
-        .get_q_out()[j]
-        .reset;
-  return false;
-}
-
-} // namespace
-
-std::optional<std::size_t>
-InstructionNode::trace(std::size_t k, const Circuit &circuit) const {
-  for (auto [in, out] : definition(circuit, *this).get_port_map())
-    if (in == k)
-      return out;
-  return std::nullopt;
+std::pair<Id, std::vector<OutcomeRef>> Circuit::append(Node node) {
+  if (node.get_shape() != get_shape(node))
+    throw std::invalid_argument("node '" + node.get_id() +
+                                "': wire counts do not match the operation");
+  auto result = std::make_pair(node.get_id(), node.get_c_out());
+  nodes.push_back(std::move(node));
+  return result;
 }
 
 PhysicalInstructionDefinition::PhysicalInstructionDefinition(std::string name,
                                                              Circuit action)
-    : name(std::move(name)), q_in(action.q_in.size()),
-      q_out(action.q_out.size()), c_in(action.c_in.size()),
-      c_out(action.c_out.size()), action(std::move(action)) {
+    : name(std::move(name)),
+      shape{action.get_q_in().size(), action.get_q_out().size(),
+            action.get_c_in().size(), action.get_c_out().size()},
+      action(std::move(action)) {
   const Circuit &circuit = this->action;
+  if (circuit.get_instruction_set())
+    throw std::invalid_argument("instruction '" + this->name +
+                                "': action must use semantic instructions");
   circuit.validate();
-  // TODO: Derive params from the parameter names the action's nodes use.
 
-  // Current wire of each input port.
-  std::vector<WireId> wires = circuit.q_in;
-  std::vector<bool> reset(wires.size());
-  for (const auto &node : circuit.nodes)
-    for (std::size_t k = 0; k < node->get_q_in().size(); ++k) {
-      auto it = std::find(wires.begin(), wires.end(), node->get_q_in()[k]);
+  // Current wire of each input port; empty once discarded.
+  std::vector<WireId> wires = circuit.get_q_in();
+  for (const Node &node : circuit.get_nodes())
+    for (std::size_t k = 0; k < node.get_q_in().size(); ++k) {
+      auto it = std::find(wires.begin(), wires.end(), node.get_q_in()[k]);
       if (it == wires.end())
         continue; // Prepared inside the action.
-      std::size_t i = it - wires.begin();
-      if (auto j = node->trace(k, circuit)) {
-        *it = node->get_q_out()[*j];
-        reset[i] = reset[i] || resets(circuit, *node, *j);
-      } else {
-        q_in[i].discarded = true;
-      }
+      // Semantic input k continues as output k, if there is one.
+      *it = k < node.get_q_out().size() ? node.get_q_out()[k] : WireId();
     }
 
-  std::vector<bool> reached(circuit.q_out.size());
-  for (u32 i = 0; i < wires.size(); ++i) {
-    if (q_in[i].discarded)
-      continue;
-    // A valid action ends each live input at an output.
-    u32 j = std::find(circuit.q_out.begin(), circuit.q_out.end(), wires[i]) -
-            circuit.q_out.begin();
-    port_map.emplace_back(i, j);
-    reached[j] = true;
-    q_out[j].reset = reset[i];
-    q_in[i].inactive = q_out[j].inactive = wires[i] == circuit.q_in[i];
-  }
-  for (u32 j = 0; j < circuit.q_out.size(); ++j)
-    q_out[j].prepared = !reached[j];
-}
-
-const PhysicalInstructionSet &standard_instruction_set() {
-  static const PhysicalInstructionSet set = [] {
-    auto wires = [](const char *prefix, u32 count) {
-      std::vector<WireId> names;
-      for (u32 k = 0; k < count; ++k)
-        names.push_back(prefix + std::to_string(k));
-      return names;
-    };
-    PhysicalInstructionSet standard;
-    standard.name = "standard";
-    for (u32 i = 0; i < num_opcodes; ++i) {
-      const OpcodeContract &op = contract(static_cast<Opcode>(i));
-      Circuit action;
-      action.q_in = wires("in", op.q_in);
-      action.q_out = wires("out", op.q_out);
-      action.c_out = wires("m", op.c_out);
-      std::optional<ParamValue> param;
-      if (op.param)
-        param = Param(op.param);
-      action.append(std::make_unique<OpcodeNode>(
-          op.name, op.opcode, action.q_in, action.q_out, action.c_out, param));
-      standard.append(
-          PhysicalInstructionDefinition(op.name, std::move(action)));
-    }
-    return standard;
-  }();
-  return set;
+  for (std::size_t i = 0; i < wires.size(); ++i)
+    if (!wires[i].empty()) // A valid action ends each live input at an output.
+      port_map.emplace_back(i, std::find(circuit.get_q_out().begin(),
+                                         circuit.get_q_out().end(), wires[i]) -
+                                   circuit.get_q_out().begin());
 }
 
 } // namespace v0

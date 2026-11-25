@@ -8,12 +8,10 @@
 
 #pragma once
 
-#include "cudaq/gadgets/circuit/pauli.h"
 #include "cudaq/gadgets/circuit/standard.h"
 
 #include <complex>
 #include <cstddef>
-#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -26,317 +24,128 @@ inline namespace v0 {
 
 using Id = std::string;
 using WireId = std::string;
-using Param = std::string;
-using OutcomeRef = std::string;
-/// A constant or a parameter name.
-using ParamValue = std::variant<double, Param>;
 
 // Pointers between objects are non-owning.
 template <typename Instruction>
 struct InstructionSet;
-template <typename Instruction>
-struct BasicCircuit;
 struct PhysicalInstructionDefinition;
 using PhysicalInstructionSet = InstructionSet<PhysicalInstructionDefinition>;
-using Circuit = BasicCircuit<PhysicalInstructionDefinition>;
 
 struct DebugInfo {
   std::vector<std::pair<Id, std::string>> labels;
 };
 
-/// XOR of distinct outcomes and a constant offset.
-struct ParityExpr {
-  std::vector<OutcomeRef> refs;
-  bool offset = false;
-};
-
-using Predicate = ParityExpr;
-
-enum class NodeKind : u32 {
-  Instruction,
-  GadgetCall,
-  ConditionalPauli,
-  // Atomic nodes; keep contiguous.
-  Opcode,
-  Idle,
-  RandomBit,
-  PauliUnitary,
-  Unitary,
-  JointMeasurement
-};
-
-/// An operation with an ID; wires bind to ports by position. Supports
-/// LLVM-style isa/dyn_cast through classof.
+/// An operation: an opcode and its wires, plus a payload for a semantic
+/// instruction that takes one. In a circuit over a physical instruction set,
+/// the opcode indexes the set; otherwise it is an Opcode.
 struct Node {
-  virtual ~Node() = default;
-  NodeKind get_kind() const { return kind; }
+  Node(Id id, std::size_t opcode, std::vector<WireId> q_in,
+       std::vector<WireId> q_out, std::vector<WireId> c_in = {},
+       std::vector<WireId> c_out = {},
+       std::optional<Payload> payload = std::nullopt)
+      : id(std::move(id)), opcode(opcode), q_in(std::move(q_in)),
+        q_out(std::move(q_out)), c_in(std::move(c_in)), c_out(std::move(c_out)),
+        payload(std::move(payload)) {}
+  Node(Id id, Opcode opcode, std::vector<WireId> q_in,
+       std::vector<WireId> q_out, std::vector<WireId> c_in = {},
+       std::vector<WireId> c_out = {},
+       std::optional<Payload> payload = std::nullopt)
+      : Node(std::move(id), static_cast<std::size_t>(opcode), std::move(q_in),
+             std::move(q_out), std::move(c_in), std::move(c_out),
+             std::move(payload)) {}
+
   const Id &get_id() const { return id; }
+  std::size_t get_opcode() const { return opcode; }
   const std::vector<WireId> &get_q_in() const { return q_in; }
   const std::vector<WireId> &get_q_out() const { return q_out; }
   const std::vector<WireId> &get_c_in() const { return c_in; }
   const std::vector<WireId> &get_c_out() const { return c_out; }
-
-  /// The qubit output continuing qubit input k, if any; output k by default.
-  virtual std::optional<std::size_t> trace(std::size_t k,
-                                           const Circuit &) const {
-    return k < q_out.size() ? std::optional<std::size_t>(k) : std::nullopt;
+  const std::optional<Payload> &get_payload() const { return payload; }
+  /// The numbers of wires.
+  Shape get_shape() const {
+    return {q_in.size(), q_out.size(), c_in.size(), c_out.size()};
   }
 
-protected:
-  Node(NodeKind kind, Id id, std::vector<WireId> q_in,
-       std::vector<WireId> q_out, std::vector<WireId> c_in,
-       std::vector<WireId> c_out)
-      : kind(kind), id(std::move(id)), q_in(std::move(q_in)),
+private:
+  Id id;
+  std::size_t opcode;
+  std::vector<WireId> q_in;
+  std::vector<WireId> q_out;
+  std::vector<WireId> c_in;
+  std::vector<WireId> c_out;
+  std::optional<Payload> payload;
+};
+
+/// A circuit over a physical instruction set, or over the semantic
+/// instructions (Opcode) when instruction_set is null.
+struct Circuit {
+  explicit Circuit(std::vector<WireId> q_in = {},
+                   std::vector<WireId> q_out = {},
+                   std::vector<WireId> c_in = {},
+                   std::vector<WireId> c_out = {},
+                   const PhysicalInstructionSet *instruction_set = nullptr)
+      : instruction_set(instruction_set), q_in(std::move(q_in)),
         q_out(std::move(q_out)), c_in(std::move(c_in)),
         c_out(std::move(c_out)) {}
 
-private:
-  NodeKind kind;
-  Id id;
-  std::vector<WireId> q_in;
-  std::vector<WireId> q_out;
-  std::vector<WireId> c_in;
-  std::vector<WireId> c_out;
-};
-
-/// Call to a named instruction or gadget.
-template <NodeKind Kind>
-struct OccurrenceNode : Node {
-  /// Each declared param of the callee, bound to a value.
-  using Params = std::vector<std::pair<Param, ParamValue>>;
-
-  OccurrenceNode(Id id, std::string callee, std::vector<WireId> q_in,
-                 std::vector<WireId> q_out, std::vector<WireId> c_in = {},
-                 std::vector<WireId> c_out = {}, Params params = {})
-      : Node(Kind, std::move(id), std::move(q_in), std::move(q_out),
-             std::move(c_in), std::move(c_out)),
-        callee(std::move(callee)), params(std::move(params)) {}
-  /// The callee's name.
-  const std::string &get_callee() const { return callee; }
-  const Params &get_params() const { return params; }
-  static bool classof(const Node *node) { return node->get_kind() == Kind; }
-
-private:
-  std::string callee;
-  Params params;
-};
-
-/// Call to a physical instruction.
-struct InstructionNode : OccurrenceNode<NodeKind::Instruction> {
-  using OccurrenceNode::OccurrenceNode;
-
-  /// Follows the callee's port map.
-  std::optional<std::size_t> trace(std::size_t k,
-                                   const Circuit &circuit) const override;
-};
-
-/// Applies pauli when predicate is one.
-struct ConditionalPauliNode : Node {
-  ConditionalPauliNode(Id id, PauliString pauli, Predicate predicate,
-                       std::vector<WireId> q_in, std::vector<WireId> q_out)
-      : Node(NodeKind::ConditionalPauli, std::move(id), std::move(q_in),
-             std::move(q_out), {}, {}),
-        pauli(std::move(pauli)), predicate(std::move(predicate)) {
-    if (get_q_in().size() != this->pauli.ops.size() ||
-        get_q_out().size() != this->pauli.ops.size())
-      throw std::invalid_argument("wire counts do not match the Pauli");
+  const PhysicalInstructionSet *get_instruction_set() const {
+    return instruction_set;
   }
-  const PauliString &get_pauli() const { return pauli; }
-  const Predicate &get_predicate() const { return predicate; }
-  static bool classof(const Node *node) {
-    return node->get_kind() == NodeKind::ConditionalPauli;
-  }
+  const std::vector<WireId> &get_q_in() const { return q_in; }
+  const std::vector<WireId> &get_q_out() const { return q_out; }
+  const std::vector<WireId> &get_c_in() const { return c_in; }
+  const std::vector<WireId> &get_c_out() const { return c_out; }
+  const std::vector<Node> &get_nodes() const { return nodes; }
 
-private:
-  PauliString pauli;
-  Predicate predicate;
-};
+  /// The shape of node's operation. Throws std::invalid_argument if the
+  /// opcode is not in the instruction set, or the payload does not fit it;
+  /// only semantic instructions take a payload.
+  Shape get_shape(const Node &node) const;
 
-/// An elementary operation, not a call.
-struct AtomicNode : Node {
-  static bool classof(const Node *node) {
-    return node->get_kind() >= NodeKind::Opcode &&
-           node->get_kind() <= NodeKind::JointMeasurement;
-  }
-
-protected:
-  AtomicNode(NodeKind kind, Id id, std::vector<WireId> q_in,
-             std::vector<WireId> q_out, std::vector<WireId> c_out,
-             std::size_t num_q_in, std::size_t num_q_out, std::size_t num_c_out)
-      : Node(kind, std::move(id), std::move(q_in), std::move(q_out), {},
-             std::move(c_out)) {
-    if (get_q_in().size() != num_q_in || get_q_out().size() != num_q_out ||
-        get_c_out().size() != num_c_out)
-      throw std::invalid_argument("wire counts do not match the operation");
-  }
-};
-
-/// A standard operation; its contract gives the wire counts and param.
-struct OpcodeNode : AtomicNode {
-  OpcodeNode(Id id, Opcode opcode, std::vector<WireId> q_in,
-             std::vector<WireId> q_out, std::vector<WireId> c_out = {},
-             std::optional<ParamValue> param = std::nullopt)
-      : AtomicNode(NodeKind::Opcode, std::move(id), std::move(q_in),
-                   std::move(q_out), std::move(c_out), contract(opcode).q_in,
-                   contract(opcode).q_out, contract(opcode).c_out),
-        opcode(opcode), param(std::move(param)) {
-    if (this->param.has_value() != (contract(opcode).param != nullptr))
-      throw std::invalid_argument(this->param ? "opcode does not take a param"
-                                              : "opcode needs a param");
-  }
-  Opcode get_opcode() const { return opcode; }
-  const std::optional<ParamValue> &get_param() const { return param; }
-  static bool classof(const Node *node) {
-    return node->get_kind() == NodeKind::Opcode;
-  }
-
-private:
-  Opcode opcode;
-  std::optional<ParamValue> param;
-};
-
-/// Identity on its qubits.
-struct IdleNode : AtomicNode {
-  IdleNode(Id id, std::vector<WireId> q_in, std::vector<WireId> q_out)
-      : AtomicNode(NodeKind::Idle, std::move(id), q_in, std::move(q_out), {},
-                   q_in.size(), q_in.size(), 0) {}
-  static bool classof(const Node *node) {
-    return node->get_kind() == NodeKind::Idle;
-  }
-};
-
-/// Produces a uniformly random bit.
-struct RandomBitNode : AtomicNode {
-  RandomBitNode(Id id, WireId bit)
-      : AtomicNode(NodeKind::RandomBit, std::move(id), {}, {}, {std::move(bit)},
-                   0, 0, 1) {}
-  static bool classof(const Node *node) {
-    return node->get_kind() == NodeKind::RandomBit;
-  }
-};
-
-/// Applies pauli.
-struct PauliUnitaryNode : AtomicNode {
-  PauliUnitaryNode(Id id, PauliString pauli, std::vector<WireId> q_in,
-                   std::vector<WireId> q_out)
-      : AtomicNode(NodeKind::PauliUnitary, std::move(id), std::move(q_in),
-                   std::move(q_out), {}, pauli.ops.size(), pauli.ops.size(), 0),
-        pauli(std::move(pauli)) {}
-  const PauliString &get_pauli() const { return pauli; }
-  static bool classof(const Node *node) {
-    return node->get_kind() == NodeKind::PauliUnitary;
-  }
-
-private:
-  PauliString pauli;
-};
-
-/// Applies a row-major 2^n x 2^n matrix to n qubits.
-/// TODO: Variable width needs contract support, or fixed n (e.g. 1-3).
-struct UnitaryNode : AtomicNode {
-  UnitaryNode(Id id, std::vector<std::complex<double>> matrix,
-              std::vector<WireId> q_in, std::vector<WireId> q_out)
-      : AtomicNode(NodeKind::Unitary, std::move(id), q_in, std::move(q_out), {},
-                   q_in.size(), q_in.size(), 0),
-        matrix(std::move(matrix)) {
-    if (this->matrix.size() != std::size_t{1} << (2 * get_q_in().size()))
-      throw std::invalid_argument("matrix size does not match the qubits");
-  }
-  const std::vector<std::complex<double>> &get_matrix() const { return matrix; }
-  static bool classof(const Node *node) {
-    return node->get_kind() == NodeKind::Unitary;
-  }
-
-private:
-  std::vector<std::complex<double>> matrix;
-};
-
-/// Non-destructive measurement of a Hermitian pauli.
-struct JointMeasurementNode : AtomicNode {
-  JointMeasurementNode(Id id, PauliString pauli, std::vector<WireId> q_in,
-                       std::vector<WireId> q_out, WireId outcome)
-      : AtomicNode(NodeKind::JointMeasurement, std::move(id), std::move(q_in),
-                   std::move(q_out), {std::move(outcome)}, pauli.ops.size(),
-                   pauli.ops.size(), 1),
-        pauli(std::move(pauli)) {
-    if (this->pauli.phase_exponent % 2)
-      throw std::invalid_argument("measured Pauli must be Hermitian");
-  }
-  const PauliString &get_pauli() const { return pauli; }
-  static bool classof(const Node *node) {
-    return node->get_kind() == NodeKind::JointMeasurement;
-  }
-
-private:
-  PauliString pauli;
-};
-
-/// A circuit calling Instruction entries of an instruction set. In a gadget
-/// circuit, qubit wires are code blocks.
-template <typename Instruction>
-struct BasicCircuit {
-  std::string name;
-  /// Null for a circuit of standard operations.
-  const InstructionSet<Instruction> *instruction_set = nullptr;
-  std::vector<WireId> q_in;
-  std::vector<WireId> q_out;
-  std::vector<WireId> c_in;
-  std::vector<WireId> c_out;
-  std::vector<std::unique_ptr<Node>> nodes;
-
-  /// Appends node and returns its ID and outcomes.
+  /// Appends node after checking its wires against its operation's shape, and
+  /// returns its ID and outcomes.
   /// TODO: Check node as validate() would.
-  std::pair<Id, std::vector<OutcomeRef>> append(std::unique_ptr<Node> node) {
-    auto result = std::make_pair(node->get_id(), node->get_c_out());
-    nodes.push_back(std::move(node));
-    return result;
-  }
+  std::pair<Id, std::vector<OutcomeRef>> append(Node node);
 
   /// TODO: Throw std::invalid_argument unless:
+  /// - each node fits its operation's shape, as for append;
   /// - each wire is defined once, by an input or a node;
   /// - each qubit wire is consumed once, by a node or an output;
-  /// - wires and predicate bits are read only after they are defined;
-  /// - with an instruction set, nodes are calls matching its signatures;
-  ///   without one, they are standard operations;
-  /// - parameter bindings match declared params;
-  /// - predicate refs and classical outputs are distinct;
-  /// - unitary matrices are unitary;
-  /// - in a gadget circuit, code blocks match the gadgets' codes.
+  /// - wires are read only after they are defined;
+  /// - classical outputs are distinct;
+  /// - unitary matrices are unitary.
   void validate() const {}
+
+private:
+  const PhysicalInstructionSet *instruction_set;
+  std::vector<WireId> q_in;
+  std::vector<WireId> q_out;
+  std::vector<WireId> c_in;
+  std::vector<WireId> c_out;
+  std::vector<Node> nodes;
 };
 
 /// A physical instruction, defined by an action of standard operations whose
 /// boundary wires bind to its ports by index.
 struct PhysicalInstructionDefinition {
-  /// Validates action and derives the signature by tracing each input:
-  /// - port_map pairs it with the output it reaches;
-  /// - an input that reaches a discard is discarded;
-  /// - an output no input reaches is prepared;
-  /// - an output reached through a reset is reset;
-  /// - an input wire that is also an output wire is inactive on both ports.
+  /// Validates action, which must be over the semantic instructions, takes
+  /// its shape from the boundary, and derives port_map by tracing each input
+  /// to the output it reaches.
+  /// TODO: Queries for port flags (prepared, reset, discarded, inactive).
   PhysicalInstructionDefinition(std::string name, Circuit action);
 
   const std::string &get_name() const { return name; }
-  /// Signature: flags per port.
-  const std::vector<PortFlags> &get_q_in() const { return q_in; }
-  const std::vector<PortFlags> &get_q_out() const { return q_out; }
-  u32 get_c_in() const { return c_in; }
-  u32 get_c_out() const { return c_out; }
-  const std::vector<Param> &get_params() const { return params; }
+  const Shape &get_shape() const { return shape; }
   /// (input port, output port) for each qubit passing through.
-  const std::vector<std::pair<u32, u32>> &get_port_map() const {
+  const std::vector<std::pair<std::size_t, std::size_t>> &get_port_map() const {
     return port_map;
   }
   const Circuit &get_action() const { return action; }
 
 private:
   std::string name;
-  std::vector<PortFlags> q_in;
-  std::vector<PortFlags> q_out;
-  u32 c_in = 0;
-  u32 c_out = 0;
-  std::vector<Param> params;
-  std::vector<std::pair<u32, u32>> port_map;
+  Shape shape;
+  std::vector<std::pair<std::size_t, std::size_t>> port_map;
   Circuit action;
 };
 
@@ -357,6 +166,14 @@ struct InstructionSet {
     return instructions;
   }
 
+  /// The index of the instruction with this name, if any.
+  std::optional<std::size_t> index_of(std::string_view name) const {
+    for (std::size_t i = 0; i < instructions.size(); ++i)
+      if (instructions[i].get_name() == name)
+        return i;
+    return std::nullopt;
+  }
+
   /// The instruction with this name, or null.
   const Instruction *find(std::string_view name) const {
     for (const Instruction &instruction : instructions)
@@ -368,9 +185,6 @@ struct InstructionSet {
 private:
   std::vector<Instruction> instructions;
 };
-
-/// One instruction per opcode, named as in its contract.
-const PhysicalInstructionSet &standard_instruction_set();
 
 } // namespace v0
 } // namespace cudaq::gadgets

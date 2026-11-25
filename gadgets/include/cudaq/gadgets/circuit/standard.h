@@ -8,119 +8,81 @@
 
 #pragma once
 
-#include <cstdint>
+#include "cudaq/gadgets/utils.h"
+
+#include <optional>
+#include <string>
 #include <string_view>
+#include <variant>
 
 namespace cudaq::gadgets {
 inline namespace v0 {
 
-using u32 = std::uint32_t;
+using OutcomeRef = std::string;
 
-/// Flags for one declared port.
-struct PortFlags {
-  bool inactive = false;
-  bool prepared = false;
-  bool reset = false;
-  bool discarded = false;
-};
+/// Data a standard operation carries.
+using Payload = std::variant<ParamValue, PauliString, CliffordImages,
+                             ConditionalPauli, DiagonalUnitary, Unitary>;
 
-/// The standard abstract instruction set: Stim's fixed-width gates, plus
-/// preparation, discard, T, and diagonal rotations.
+/// Standard operations. Variable-width ones take their width from a payload.
 enum class Opcode : u32 {
   // Paulis.
   I,
   X,
   Y,
   Z,
-  // Single-qubit Cliffords.
-  C_NXYZ,
-  C_NZYX,
-  C_XNYZ,
-  C_XYNZ,
-  C_XYZ,
-  C_ZNYX,
-  C_ZYNX,
-  C_ZYX,
+  // Cliffords.
   H,
-  H_NXY,
-  H_NXZ,
-  H_NYZ,
-  H_XY,
-  H_YZ,
   S,
-  SQRT_X,
-  SQRT_X_DAG,
-  SQRT_Y,
-  SQRT_Y_DAG,
-  S_DAG,
-  // Two-qubit Cliffords.
+  SX,
+  SY,
   CX,
-  CXSWAP,
-  CY,
   CZ,
-  CZSWAP,
-  ISWAP,
-  ISWAP_DAG,
-  SQRT_XX,
-  SQRT_XX_DAG,
-  SQRT_YY,
-  SQRT_YY_DAG,
-  SQRT_ZZ,
-  SQRT_ZZ_DAG,
+  CY,
   SWAP,
-  SWAPCX,
-  XCX,
-  XCY,
-  XCZ,
-  YCX,
-  YCY,
-  YCZ,
-  // Measurement, reset, preparation, and discard.
-  M,
-  MX,
-  MY,
-  MR,
-  MRX,
-  MRY,
-  MXX,
-  MYY,
-  MZZ,
-  R,
+  CLIFFORD, // Variable width: images of X and Z.
+  // Preparation of the +1 eigenstate, measurement, and reset.
+  PREPARE_X,
+  PREPARE_Y,
+  PREPARE_Z,
+  MEASURE_X, // Destructive.
+  MEASURE_Y,
+  MEASURE_Z,
+  BELL_MEASURE, // Destructive.
+  BELL_PREPARE,
+  RESET,
+  IDLE,
+  RANDOM_BIT,        // Produces a uniformly random bit.
+  PAULI_MEASUREMENT, // Variable width: joint, by Pauli string.
+  CONDITIONAL_PAULI, // Variable width: on the parity of outcomes.
+  // Non-Cliffords.
+  T,
+  SQRT_T,
+  CS,
+  CCZ,
+  CCX,
+  CSWAP,
   RX,
   RY,
-  PREP_X,
-  PREP_Y,
-  PREP_Z,
-  DISCARD,
-  // Non-Clifford.
-  T,
-  T_DAG,
-  // TODO: Multi-qubit rotations need variable-width support, or fixed widths
-  // (e.g. 1-3).
-  DIAGONAL_ROTATION, // Keep last.
+  RZ,
+  DIAGONAL_UNITARY, // Variable width: by its diagonal.
+  UNITARY,          // Variable width: by its matrix. Keep last.
 };
 
-inline constexpr u32 num_opcodes =
-    static_cast<u32>(Opcode::DIAGONAL_ROTATION) + 1;
+inline constexpr u32 num_opcodes = static_cast<u32>(Opcode::UNITARY) + 1;
 
-/// Signature of a standard operation. All ports share flags; input i
-/// continues as output i.
-struct OpcodeContract {
-  Opcode opcode;
-  const char *name;
-  u32 q_in = 0;
-  u32 q_out = 0;
-  u32 c_out = 0;
-  PortFlags in_flags;
-  PortFlags out_flags;
-  /// Float parameter name, e.g. "angle"; null if none.
-  const char *param = nullptr;
-};
+/// The opcode's shape given its payload; a variable-width opcode takes its
+/// width from the payload. Input i continues as output i. Throws
+/// std::invalid_argument if the payload does not fit the opcode.
+Shape get_shape(Opcode opcode,
+                const std::optional<Payload> &payload = std::nullopt);
 
-const OpcodeContract &contract(Opcode opcode);
+/// The opcode's name, e.g. "CX".
+std::string_view to_string(Opcode opcode);
 
-/// The contract with this name, or null.
-const OpcodeContract *find_opcode(std::string_view name);
+/// The opcode with this name or alias (NOT, CNOT, PREPARE_ZERO, PREPARE_PLUS,
+/// TOFFOLI, FREDKIN), if any.
+std::optional<Opcode> find_opcode(std::string_view name);
 
 } // namespace v0
 } // namespace cudaq::gadgets
