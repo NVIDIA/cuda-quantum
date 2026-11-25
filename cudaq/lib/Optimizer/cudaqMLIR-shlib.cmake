@@ -48,15 +48,8 @@ add_library(${LIBRARY_NAME} SHARED ${_cudaq_bundle_objs})
 # 2b. Provide the namespaced alias cudaq::cudaqMLIR used downstream
 add_library(cudaq::${LIBRARY_NAME} ALIAS ${LIBRARY_NAME})
 
-# 2c. Ensure the linker always prefers `libcudaqMLIR` over static libraries providing the same symbols.
-if(NOT APPLE)
-  set(_cudaq_no_as_needed
-    "LINKER:--push-state,--no-as-needed"
-    "$<TARGET_FILE:cudaq::${LIBRARY_NAME}>"
-    "LINKER:--pop-state")
-  set_property(TARGET ${LIBRARY_NAME} APPEND PROPERTY
-    INTERFACE_LINK_OPTIONS ${_cudaq_no_as_needed})
-endif()
+# 2c. Prefer this shared runtime over static copies in every consumer.
+_cudaq_set_shared_mlir_link_options(${LIBRARY_NAME})
 
 # 2d. Pull in any required transitive dependencies.
 target_link_libraries(${LIBRARY_NAME} PRIVATE ${_cudaq_bundle_link_libs})
