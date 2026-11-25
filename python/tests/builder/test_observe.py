@@ -717,6 +717,192 @@ def test_observe_list():
     assert assert_close(want_expectation_value, sum, tolerance=1e-2)
 
 
+def multiTermOperatorList():
+    """A list of operators that all have more than one term, each carrying a
+    coefficient.
+
+    The circuit used below prepares `|+>` on `q[0]` and a `ry(theta)` state on
+    `q[1]`, hence `<X0> = 1`, `<Z1> = cos(theta)`, `<X1> = sin(theta)`,
+    `<X0 Z1> = cos(theta)` and `<X0 X1> = sin(theta)`. Every term of every
+    entry therefore has a non-zero contribution.
+    """
+    return [
+        2 * spin.x(0) + 3 * spin.z(1), .5 * spin.x(0) * spin.z(1) + 1.0,
+        4 * spin.z(1) + 2 * spin.x(1),
+        1.5 * spin.x(0) * spin.x(1) - 2.0 * spin.z(1)
+    ]
+
+
+def twoQubitThetaCircuit():
+    """A two qubit circuit preparing `|+>` on `q[0]` and a `ry(theta)` state
+    on `q[1]`."""
+    circuit, theta = cudaq.make_kernel(float)
+    q = circuit.qalloc(2)
+    circuit.h(q[0])
+    circuit.ry(theta, q[1])
+    return circuit, theta
+
+
+def multiTermOperatorExpectations(theta):
+    """The expectation values of the operators of `multiTermOperatorList` for
+    the circuit of `twoQubitThetaCircuit`."""
+    return [
+        2.0 + 3 * np.cos(theta), .5 * np.cos(theta) + 1.0,
+        4 * np.cos(theta) + 2 * np.sin(theta),
+        1.5 * np.sin(theta) - 2 * np.cos(theta)
+    ]
+
+
+def test_observe_list_multi_term_coefficients():
+    """A multi-term entry in a `spin_operator` list must include each term's
+    coefficient, so that the list form agrees with an equivalent per-operator
+    `observe` call."""
+    circuit, theta = twoQubitThetaCircuit()
+
+    # One `observe` call per operator is the reference behavior.
+    want = [
+        cudaq.observe(circuit, o, .59).expectation()
+        for o in multiTermOperatorList()
+    ]
+
+    results = cudaq.observe(circuit, multiTermOperatorList(), .59)
+    assert len(results) == len(want)
+    for r, want_expectation_value in zip(results, want):
+        assert assert_close(want_expectation_value, r.expectation())
+
+
+def test_observe_list_multi_term_coefficients_values():
+    """Check the multi-term list results against hand computed values."""
+    circuit, theta = twoQubitThetaCircuit()
+    theta_val = .59
+
+    results = cudaq.observe(circuit, multiTermOperatorList(), theta_val)
+
+    for r, want_expectation_value in zip(
+            results, multiTermOperatorExpectations(theta_val)):
+        assert assert_close(want_expectation_value, r.expectation())
+
+
+def test_observe_list_multi_term_coefficients_shots():
+    """The coefficients must also be applied when the expectation values are
+    computed from sampled counts."""
+    circuit, theta = twoQubitThetaCircuit()
+    theta_val = .59
+    shots_count = 10000
+
+    results = cudaq.observe(circuit,
+                            multiTermOperatorList(),
+                            theta_val,
+                            shots_count=shots_count)
+
+    for r, want_expectation_value in zip(
+            results, multiTermOperatorExpectations(theta_val)):
+        assert assert_close(want_expectation_value,
+                            r.expectation(),
+                            tolerance=1.e-1)
+
+
+def test_observe_list_multi_term_broadcast():
+    """Broadcasting kernel arguments over a list of multi-term operators must
+    return one row per argument set, each matching a per-operator `observe`
+    call."""
+    circuit, theta = twoQubitThetaCircuit()
+
+    angles = [.0, .59, np.pi]
+    want = [[
+        cudaq.observe(circuit, o, angle).expectation()
+        for o in multiTermOperatorList()
+    ]
+            for angle in angles]
+
+    results = cudaq.observe(circuit, multiTermOperatorList(), angles)
+    assert len(results) == len(angles)
+    for perArgResults, wantRow in zip(results, want):
+        assert len(perArgResults) == len(wantRow)
+        for r, want_expectation_value in zip(perArgResults, wantRow):
+            assert assert_close(want_expectation_value, r.expectation())
+
+
+def test_observe_list_broadcast_matches_non_broadcast():
+    """The broadcast and the non-broadcast paths must agree, they cannot
+    report different expectation values for the same operator."""
+    circuit, theta = twoQubitThetaCircuit()
+
+    operators = multiTermOperatorList()
+    broadcast = cudaq.observe(circuit, operators, [.59])
+    plain = cudaq.observe(circuit, operators, .59)
+
+    assert len(broadcast) == 1
+    for r, plainResult in zip(broadcast[0], plain):
+        assert assert_close(plainResult.expectation(), r.expectation())
+        assert sorted(r.counts().register_names) == sorted(
+            plainResult.counts().register_names)
+
+
+def test_observe_list_single_term_is_not_weighted():
+    """A single-term entry in a `spin_operator` list reports the raw Pauli
+    expectation, matching the term-list overload of the C++ `observe`, so its
+    coefficient has to be applied by the caller."""
+    circuit, theta = twoQubitThetaCircuit()
+
+    operators = [3 * spin.z(1), spin.x(0)]
+    results = cudaq.observe(circuit, operators, .59)
+
+    # `<Z1> = cos(theta)` and `<X0> = 1`, the coefficients are not applied.
+    want = [np.cos(.59), 1.0]
+    for r, want_expectation_value in zip(results, want):
+        assert assert_close(want_expectation_value, r.expectation())
+
+
+def test_observe_list_identity():
+    """The identity term is never measured, it contributes its coefficient to
+    the expectation value of the entry holding it."""
+    circuit, theta = twoQubitThetaCircuit()
+
+    operators = [spin.identity(), 2.0 * spin.identity(), spin.z(1) + 1.0]
+    results = cudaq.observe(circuit, operators, .59)
+
+    want = [1.0, 2.0, 1.0 + np.cos(.59)]
+    for r, want_expectation_value in zip(results, want):
+        assert assert_close(want_expectation_value, r.expectation())
+
+
+def test_observe_list_identity_broadcast():
+    """An entry holding only the identity term has no measurement register,
+    the broadcast path must not fail on it."""
+    circuit, theta = twoQubitThetaCircuit()
+
+    operators = [spin.identity(), spin.z(1) + 1.0]
+    results = cudaq.observe(circuit, operators, [.59])
+
+    assert len(results) == 1
+    want = [1.0, 1.0 + np.cos(.59)]
+    for r, want_expectation_value in zip(results[0], want):
+        assert assert_close(want_expectation_value, r.expectation())
+
+
+def test_observe_list_counts():
+    """The operators of a list are measured together, so the counts data
+    holds one register per measured term."""
+    circuit, theta = twoQubitThetaCircuit()
+
+    shots_count = 2000
+    results = cudaq.observe(circuit,
+                            multiTermOperatorList(),
+                            .59,
+                            shots_count=shots_count)
+
+    counts = results[0].counts()
+    register_names = list(counts.register_names)
+    if '__global__' in register_names:
+        register_names.remove('__global__')
+
+    # Every measured term of every entry keeps its own register.
+    assert sorted(register_names) == ['X0', 'X0X1', 'X0Z1', 'X1', 'Z1']
+    for name in register_names:
+        assert sum(counts.get_register_counts(name).values()) == shots_count
+
+
 def test_combine_sweep():
     """
     Test that we can sweep/broadcast both the spin_op and param lists 
