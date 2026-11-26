@@ -173,7 +173,7 @@ Array *__quantum__rt__array_slice_1d(Array *array, std::int64_t range_start,
                                      std::int64_t range_end);
 Array *__quantum__rt__array_copy(Array *array, bool forceNewInstance);
 Array *__quantum__rt__array_concatenate(Array *head, Array *tail);
-void __nvqpp_cleanup_arrays();
+void __nvqir_cleanupArrays();
 }
 
 CUDAQ_TEST(NVQIRTester, checkArrayIndexBoundsBeforeByteOffset) {
@@ -249,12 +249,12 @@ CUDAQ_TEST(NVQIRTester, checkArrayTrackingAcrossReleaseAndCleanup) {
   __quantum__rt__array_release(nullptr);
 
   // Cleanup frees the rest and is safe to repeat.
-  __nvqpp_cleanup_arrays();
-  __nvqpp_cleanup_arrays();
+  __nvqir_cleanupArrays();
+  __nvqir_cleanupArrays();
   auto *fresh = __quantum__rt__array_create_1d(1, 4);
   EXPECT_EQ(__quantum__rt__array_get_size_1d(fresh), 4);
   __quantum__rt__array_release(fresh);
-  __nvqpp_cleanup_arrays();
+  __nvqir_cleanupArrays();
 }
 
 CUDAQ_TEST(NVQIRTester, checkArrayTrackingIsThreadLocal) {
@@ -265,8 +265,8 @@ CUDAQ_TEST(NVQIRTester, checkArrayTrackingIsThreadLocal) {
     auto *released = __quantum__rt__array_create_1d(1, 8);
     __quantum__rt__array_create_1d(1, 16);
     __quantum__rt__array_release(released);
-    __nvqpp_cleanup_arrays();
-    __nvqpp_cleanup_arrays();
+    __nvqir_cleanupArrays();
+    __nvqir_cleanupArrays();
   });
   worker.join();
   EXPECT_EQ(*reinterpret_cast<std::int64_t *>(
@@ -301,7 +301,7 @@ CUDAQ_TEST(NVQIRTester, checkArrayTrackingPastScanLimit) {
                 static_cast<std::int64_t>(i));
 
     // Cleanup resets the tracker for the next round.
-    __nvqpp_cleanup_arrays();
+    __nvqir_cleanupArrays();
   }
 }
 

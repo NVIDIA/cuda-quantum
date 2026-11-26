@@ -23,10 +23,10 @@ struct kernel {
 
 // clang-format off
 // CHECK-LABEL: define void @__nvqpp__mlirgen__kernel() local_unnamed_addr {
-// CHECK:         %[[VAL_0:.*]] = tail call ptr @__nvqpp_cudaq_state_createFromData_complex_f64(ptr nonnull @__nvqpp__mlirgen__kernel.rodata_0, i64 4)
-// CHECK:         %[[VAL_1:.*]] = tail call i64 @__nvqpp_cudaq_state_numberOfQubits(ptr %[[VAL_0]])
+// CHECK:         %[[VAL_0:.*]] = tail call ptr @__cudaq_stateCreateFromDataComplexF64(ptr nonnull @__nvqpp__mlirgen__kernel.rodata_0, i64 4)
+// CHECK:         %[[VAL_1:.*]] = tail call i64 @__cudaq_stateNumberOfQubits(ptr %[[VAL_0]])
 // CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_1]], ptr %[[VAL_0]])
-// CHECK:         tail call void @__nvqpp_cudaq_state_delete(ptr %[[VAL_0]])
+// CHECK:         tail call void @__cudaq_stateDelete(ptr %[[VAL_0]])
 // CHECK:         %[[VAL_4:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(ptr %[[VAL_2]])
 // CHECK:         %[[VAL_5:.*]] = icmp sgt i64 %[[VAL_4]], 0
 // CHECK:         br i1 %[[VAL_5]], label %[[VAL_6:.*]], label %[[VAL_7:.*]]
