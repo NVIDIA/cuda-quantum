@@ -696,6 +696,30 @@ operations, each operating on 2 qubits.
       :end-before: [End Docs]
 
 
+Targets of a custom operation are passed positionally, one qubit each. A
+single-target custom operation also accepts a whole :code:`qvector` as its one
+argument, and applies the operation to each qubit in turn. This broadcast form
+applies to the base and adjoint forms only, never to the controlled form, the
+same as for built-in single-qubit gates.
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        qubits = cudaq.qvector(3)
+        custom_x(qubits)      # custom_x on each of the 3 qubits
+        custom_x.adj(qubits)  # the adjoint, on each qubit
+        # my_cnot(qubits)     # error: targets must be passed positionally
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        cudaq::qvector q(3);
+        custom_x(q);          // custom_x on each of the 3 qubits
+        // MyCNOT(q);         // error: targets must be passed positionally
+
+
 .. note::
 
   When a custom operation is used on hardware backends, it is synthesized to a
