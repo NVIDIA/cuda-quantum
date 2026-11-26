@@ -374,7 +374,8 @@ jobs:
             # Uncapped, 16 workers x 16 OMP threads on a cpu16 runner starve 
             # memory and surface as `std::bad_alloc`. See PR#4530.
             export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
-            pytest_workers="${PYTEST_WORKERS:-$(( ($(nproc) + 1) / 2 ))}"
+            # nproc reports OMP_NUM_THREADS when it is set, so unset it to count the cores.
+            pytest_workers="${PYTEST_WORKERS:-$(( ($(env -u OMP_NUM_THREADS -u OMP_THREAD_LIMIT nproc) + 1) / 2 ))}"
             python -m pytest -v --durations=0 -n "$pytest_workers" python/tests/ \
               --ignore python/tests/backends \
               --ignore python/tests/contrib

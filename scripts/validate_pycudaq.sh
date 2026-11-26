@@ -116,7 +116,8 @@ pytest_workers="${PYTEST_WORKERS:-4}"
 if [ "$(uname)" = "Darwin" ]; then
     parallel_jobs=$(sysctl -n hw.ncpu)
 else
-    parallel_jobs=$(nproc)
+    # nproc reports OMP_NUM_THREADS (exported above) when it is set, so unset it to count the cores.
+    parallel_jobs=$(env -u OMP_NUM_THREADS -u OMP_THREAD_LIMIT nproc)
 fi
 
 # Auto-detect repo structure if -f not provided
