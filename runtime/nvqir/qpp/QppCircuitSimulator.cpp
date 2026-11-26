@@ -12,6 +12,7 @@
 #include <bit>
 #include <iostream>
 #include <qpp/qpp.hpp>
+#include <random>
 #include <set>
 #include <span>
 
@@ -295,6 +296,99 @@ protected:
     return measurement_result == 1 ? true : false;
   }
 
+  /// @brief Draw `shots` basis states from the state vector and return their
+  /// amplitude indices in ascending order.
+  ///
+  /// One uniform number is drawn per shot and located in the running sum of
+  /// the probabilities. The numbers are sorted first, so one pass over the
+  /// state places all of them and no table of probabilities is stored.
+  std::vector<std::size_t> drawBasisStates(std::size_t shots) {
+    const std::size_t dimension = state.size();
+    double total = 0.0;
+    for (std::size_t i = 0; i < dimension; ++i)
+      total += std::norm(state[i]);
+
+    auto &generator = qpp::RandomDevices::get_instance().get_prng();
+    std::vector<double> thresholds(shots);
+    for (auto &threshold : thresholds)
+      threshold = std::generate_canonical<double, 53>(generator) * total;
+    std::sort(thresholds.begin(), thresholds.end());
+
+    std::vector<std::size_t> indices;
+    indices.reserve(shots);
+    double runningSum = 0.0;
+    std::size_t lastPossible = 0;
+    for (std::size_t i = 0; i < dimension && indices.size() < shots; ++i) {
+      const double probability = std::norm(state[i]);
+      if (probability == 0.0)
+        continue;
+      runningSum += probability;
+      lastPossible = i;
+      while (indices.size() < shots && thresholds[indices.size()] < runningSum)
+        indices.push_back(i);
+    }
+    // Rounding can leave the largest numbers at or above the final sum. They
+    // belong to the last basis state that can occur.
+    indices.resize(shots, lastPossible);
+    return indices;
+  }
+
+  /// @brief Sample the given qubits of a state vector.
+  cudaq::ExecutionResult
+  sampleStateVector(const std::vector<std::size_t> &qubits, const int shots,
+                    bool includeSequentialData) {
+    if (state.size() == 0)
+      throw std::runtime_error("cannot sample an empty state");
+    const std::size_t numQubits = std::log2(state.size());
+    for (const auto qubit : qubits)
+      if (qubit >= numQubits)
+        throw std::runtime_error("qubit index " + std::to_string(qubit) +
+                                 " is out of range");
+
+    // Pack the measured bits of each drawn basis state into an integer, the
+    // first qubit in the highest bit, so that the integers sort in the order
+    // of the bitstrings.
+    const auto indices = drawBasisStates(shots);
+    std::vector<std::uint64_t> outcomes;
+    outcomes.reserve(indices.size());
+    for (const auto index : indices) {
+      std::uint64_t outcome = 0;
+      for (const auto qubit : qubits)
+        outcome = (outcome << 1) | ((index >> qubit) & 1);
+      outcomes.push_back(outcome);
+    }
+    std::sort(outcomes.begin(), outcomes.end());
+
+    cudaq::ExecutionResult counts;
+    double expVal = 0.0;
+    std::string bitstring(qubits.size(), '0');
+    for (std::size_t first = 0; first < outcomes.size();) {
+      const auto outcome = outcomes[first];
+      std::size_t last = first;
+      while (last < outcomes.size() && outcomes[last] == outcome)
+        ++last;
+      const std::size_t count = last - first;
+      first = last;
+
+      for (std::size_t j = 0; j < qubits.size(); ++j)
+        bitstring[j] = '0' + ((outcome >> (qubits.size() - 1 - j)) & 1);
+      // in mid-circ sampling mode this will append 1 bitstring
+      if (includeSequentialData)
+        counts.appendResult(bitstring, count);
+      else
+        counts.counts[bitstring] += count;
+
+      // Expectation value from the counts
+      auto p = count / (double)shots;
+      if (std::popcount(outcome) % 2 != 0)
+        p = -p;
+      expVal += p;
+    }
+
+    counts.expectationValue = expVal;
+    return counts;
+  }
+
   QubitOrdering getQubitOrdering() const override { return QubitOrdering::msb; }
 
 public:
@@ -364,6 +458,10 @@ public:
       CUDAQ_INFO("Computed expectation value = {}", expectationValue);
       return cudaq::ExecutionResult{{}, expectationValue};
     }
+
+    if constexpr (std::is_same_v<StateType, qpp::ket>)
+      if (qubits.size() <= 64)
+        return sampleStateVector(qubits, shots, includeSequentialData);
 
     std::vector<std::size_t> measuredBits;
     for (auto index : qubits) {
