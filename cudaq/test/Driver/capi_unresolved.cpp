@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Host code that launches a kernel needs runtime symbols outside the nvq++ C
-// API, so `nvq++ -c` warns about it.
+// Host code that launches a kernel needs runtime symbols outside the nvq++
+// C-API, so `nvq++ -c` warns about it.
 
 // RUN: nvq++ -c %s -o %t.o 2>&1 | FileCheck %s
 
@@ -22,6 +22,7 @@ __qpu__ void bell() {
 
 int run() { return cudaq::sample(bell).size(); }
 
-// CHECK: warning: {{.*}}capi_unresolved.cpp: references CUDA-Q symbols outside
-// the nvq++ C API: CHECK: cudaq::getRegisteredExecutionManager() CHECK:
-// -Wno-nvqpp-capi
+// clang-format off
+// CHECK: warning: {{.*}}capi_unresolved.cpp: references CUDA-Q symbols outside the nvq++ C-API:
+// CHECK: cudaq::getRegisteredExecutionManager()
+// clang-format on
