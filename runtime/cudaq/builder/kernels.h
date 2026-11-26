@@ -11,6 +11,7 @@
 #include "kernel_builder.h"
 #include <complex>
 #include <functional>
+#include <optional>
 #include <span>
 #include <stdexcept>
 
