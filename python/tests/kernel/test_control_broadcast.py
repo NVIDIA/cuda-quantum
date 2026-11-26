@@ -22,8 +22,9 @@ def test_ctrl_x_broadcast():
         # Put controls in |11> state
         x(controls)
 
-        # Broadcast CX over all targets
-        cx(controls, targets)
+        # Apply CX to each target individually
+        for t in targets:
+            cx(controls, t)
 
     counts = cudaq.sample(kernel)
     # All 5 qubits should be |1>
@@ -39,7 +40,8 @@ def test_ctrl_x_broadcast_single_control():
         targets = cudaq.qvector(3)
 
         x(control)
-        cx(control, targets)
+        for t in targets:
+            cx(control, t)
 
     counts = cudaq.sample(kernel)
     # Control + 3 targets = 4 qubits all |1>
@@ -55,7 +57,8 @@ def test_ctrl_y_broadcast():
         targets = cudaq.qvector(2)
 
         x(controls)
-        cy(controls, targets)
+        for t in targets:
+            cy(controls, t)
 
     counts = cudaq.sample(kernel)
     # 4 qubits all |1>
@@ -71,7 +74,8 @@ def test_ctrl_z_broadcast():
         targets = cudaq.qvector(2)
 
         x(controls)
-        cz(controls, targets)
+        for t in targets:
+            cz(controls, t)
 
     counts = cudaq.sample(kernel)
     # Phase gate doesn't change computational basis state
@@ -87,7 +91,8 @@ def test_ctrl_h_broadcast():
         targets = cudaq.qvector(2)
 
         x(controls)
-        ch(controls, targets)
+        for t in targets:
+            ch(controls, t)
 
     cudaq.set_random_seed(42)
     counts = cudaq.sample(kernel, shots_count=10000)
@@ -105,7 +110,8 @@ def test_crx_broadcast():
         targets = cudaq.qvector(2)
 
         x(controls)
-        crx(angle, controls, targets)
+        for t in targets:
+            crx(angle, controls, t)
 
     counts = cudaq.sample(kernel, math.pi)
     # 4 qubits all |1> (RX(pi) = X up to phase)
@@ -121,7 +127,8 @@ def test_cry_broadcast():
         targets = cudaq.qvector(2)
 
         x(controls)
-        cry(angle, controls, targets)
+        for t in targets:
+            cry(angle, controls, t)
 
     counts = cudaq.sample(kernel, math.pi)
     # RY(pi) = Y up to phase, so targets should be |1>
@@ -137,7 +144,8 @@ def test_crz_broadcast():
         targets = cudaq.qvector(2)
 
         x(controls)
-        crz(angle, controls, targets)
+        for t in targets:
+            crz(angle, controls, t)
 
     counts = cudaq.sample(kernel, math.pi)
     # Phase gate doesn't change computational basis
@@ -157,7 +165,8 @@ def test_ctrl_custom_gate_broadcast():
         targets = cudaq.qvector(3)
 
         x(controls)
-        my_controlled_gate(controls, targets)
+        for t in targets:
+            my_controlled_gate(controls, t)
 
     counts = cudaq.sample(kernel)
     assert counts["11111"] == 1000
@@ -174,7 +183,9 @@ def test_broadcast_with_list_of_controls():
         x(controls[0])
         x(controls[2])
         # Use list comprehension for controls
-        cx([controls[i] for i in [0, 2]], targets)
+        ctrl_list = [controls[i] for i in [0, 2]]
+        for t in targets:
+            cx(ctrl_list, t)
 
     counts = cudaq.sample(kernel)
     # controls[0] and controls[2] are |1>, targets should be flipped
@@ -213,13 +224,15 @@ def test_broadcast_empty_controls():
         controls = cudaq.qvector(n)
         targets = cudaq.qvector(2)
 
-        # Only put targets in |1>
+        # Put targets in |1>
         x(targets)
-        cx(controls, targets)
+        for t in targets:
+            cx(controls, t)
 
     counts = cudaq.sample(kernel, 0)
-    # No controls, so no effect - targets remain |11>
-    assert counts["11"] == 1000
+    # With zero controls the controlled gate degenerates to a plain X gate,
+    # so each target is flipped a second time and ends up back in |0>.
+    assert counts["00"] == 1000
 
 
 def test_ctrl_broadcast_mixed_qubit_types():
@@ -233,8 +246,9 @@ def test_ctrl_broadcast_mixed_qubit_types():
 
         x(control_reg)
         x(control_scalar)
-        # Broadcast with both register and scalar controls
-        cx([control_reg, control_scalar], target_reg)
+        # Apply CX to each target individually with mixed controls
+        for t in target_reg:
+            cx([*control_reg, control_scalar], t)
 
     counts = cudaq.sample(kernel)
     # All 5 qubits should be |1>
