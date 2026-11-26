@@ -495,7 +495,8 @@ protected:
     const std::size_t circuitTaskCount = m_deferredTasks.size();
     std::vector<std::size_t> measuredWires;
     std::vector<std::function<void()>> basisChanges;
-    for (const auto &termOp : *op.begin()) {
+    auto term = *op.begin();
+    for (const auto &termOp : term) {
       const auto pauli = termOp.as_pauli();
       const std::size_t target = termOp.target();
       if (pauli != cudaq::pauli::I)
