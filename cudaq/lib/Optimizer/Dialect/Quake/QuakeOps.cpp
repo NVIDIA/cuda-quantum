@@ -223,9 +223,12 @@ bool cudaq::quake::detail::mayModifyMemory(Operation *operation) {
   auto effects = dyn_cast<MemoryEffectOpInterface>(operation);
   if (!effects)
     return !isMemoryEffectFree(operation);
-  return effects.hasEffect<MemoryEffects::Write>() ||
-         effects.hasEffect<MemoryEffects::Free>() ||
-         effects.hasEffect<MemoryEffects::Allocate>();
+  SmallVector<MemoryEffects::EffectInstance, 4> instances;
+  effects.getEffects(instances);
+  return llvm::any_of(instances, [](const auto &instance) {
+    return isa<MemoryEffects::Write, MemoryEffects::Free,
+               MemoryEffects::Allocate>(instance.getEffect());
+  });
 }
 
 std::optional<cudaq::quake::detail::WireFlow>

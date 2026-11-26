@@ -47,6 +47,24 @@ def _from_qasm_file(qasm):
 class TestFromQiskit:
     """Tests for cudaq.contrib.from_qiskit()."""
 
+    def test_reuses_references_for_repeated_gate_operands(self):
+        qc = QuantumCircuit(5)
+        qc.h(4)
+        qc.cx(4, 1)
+        qc.cx(1, 4)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        assert str(kernel.module).count("quake.extract_ref") == 2
+
+    def test_reuses_equal_angles_and_preserves_signed_zero(self):
+        qc = QuantumCircuit(1)
+        for angle in [0.5, -0.0, 0.0, 0.5]:
+            qc.rz(angle, 0)
+
+        ir = str(cudaq.contrib.from_qiskit(qc).module)
+        assert ir.count(" : f64") == 3
+        assert "arith.constant -0.000000e+00" in ir
+
     def test_single_qubit_h_gate(self):
         """Test conversion of a single H gate."""
         qc = QuantumCircuit(1)

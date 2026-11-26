@@ -32,7 +32,7 @@ public:
 
   /// Remove stores followed by a store to the same pointer if the pointer is
   /// not used in between, using collected block info.
-  void removeOverriddenStores() {
+  bool removeOverriddenStores() {
     SmallVector<Operation *> toErase;
 
     for (const auto &[block, ptrToStores] : blockInfo) {
@@ -52,6 +52,7 @@ public:
 
     for (auto *op : toErase)
       op->erase();
+    return !toErase.empty();
   }
 
 private:

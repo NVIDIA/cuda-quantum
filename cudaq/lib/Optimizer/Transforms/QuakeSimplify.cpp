@@ -510,43 +510,76 @@ public:
     }
 
     Value laterAngle = parameters.front();
-    Operation *match = matcher.find_nearest(later, [&](Operation *candidate) {
-      auto earlier = getSameActionEndpoint(later, candidate, matcher);
-      if (!earlier)
-        return false;
-      auto earlierParameters = earlier.getParameters();
-      return earlierParameters.size() == 1 &&
-             earlierParameters.front().getType() == laterAngle.getType();
-    });
-    if (!match)
+    // Collect the whole chain of combinable rotations before rewriting. Each
+    // link commutes back to the previous one, and commutation does not depend
+    // on the angle, so every link may move forward to `later`. Folding the
+    // chain in one rewrite searches each stretch of the block only once.
+    SmallVector<QOP> chain;
+    // Links removed as exact inverse pairs. They contribute no angle.
+    SmallVector<QOP> cancelled;
+    auto findEarlierLink = [&](QOP anchor) {
+      return matcher.find_nearest(anchor, [&](Operation *candidate) {
+        auto earlier = getSameActionEndpoint(anchor, candidate, matcher);
+        if (!earlier)
+          return false;
+        auto earlierParameters = earlier.getParameters();
+        return earlierParameters.size() == 1 &&
+               earlierParameters.front().getType() == laterAngle.getType();
+      });
+    };
+    QOP anchor = later;
+    while (Operation *match = findEarlierLink(anchor)) {
+      anchor = cast<QOP>(match);
+      // An exact inverse of the nearest surviving link cancels without
+      // creating a new angle. Summing the pair instead would leave `x + -x`
+      // for a symbolic angle, which no floating-point fold removes. Every link
+      // commutes forward to `later`, so the pair is adjacent once the links
+      // between them have cancelled.
+      QOP survivor = chain.empty() ? later : chain.back();
+      if (survivor.isAdj() != anchor.isAdj() &&
+          haveExactValue(survivor.getParameters().front(),
+                         anchor.getParameters().front())) {
+        ++combineStat;
+        if (chain.empty()) {
+          cancelPair(anchor, later, rewriter);
+          for (QOP link : cancelled)
+            eraseOrForward(link, rewriter);
+          return success();
+        }
+        cancelled.push_back(chain.pop_back_val());
+        cancelled.push_back(anchor);
+        continue;
+      }
+      chain.push_back(anchor);
+    }
+    if (chain.empty() && cancelled.empty())
       return failure();
 
-    auto earlier = cast<QOP>(match);
-    Value earlierAngle = earlier.getParameters().front();
-    if (later.isAdj() != earlier.isAdj() &&
-        haveExactValue(laterAngle, earlierAngle)) {
-      cancelPair(earlier, later, rewriter);
-      ++combineStat;
-      return success();
-    }
-
-    {
+    if (!chain.empty()) {
       OpBuilder::InsertionGuard guard(rewriter);
       rewriter.setInsertionPoint(later);
-      Value combinedAngle = createCombinedRotationAngle(
-          rewriter, later.getLoc(), laterAngle, later.isAdj(), earlierAngle,
-          earlier.isAdj());
+      Value combinedAngle = laterAngle;
+      bool combinedIsAdjoint = later.isAdj();
+      for (QOP earlier : chain) {
+        LLVM_DEBUG(llvm::dbgs() << "combined: " << earlier << '\n');
+        combinedAngle = createCombinedRotationAngle(
+            rewriter, later.getLoc(), combinedAngle, combinedIsAdjoint,
+            earlier.getParameters().front(), earlier.isAdj());
+        combinedIsAdjoint = false;
+      }
 
-      LLVM_DEBUG(llvm::dbgs() << "combined: " << earlier << '\n'
-                              << later << '\n');
+      LLVM_DEBUG(llvm::dbgs() << "with: " << later << '\n');
       [[maybe_unused]] auto combined = rewriter.replaceOpWithNewOp<QOP>(
           later, later.getResultTypes(), UnitAttr{}, ValueRange{combinedAngle},
           later.getControls(), later.getTargets(),
           later.getNegatedQubitControlsAttr());
       LLVM_DEBUG(llvm::dbgs() << "into: " << combined << '\n');
     }
-    eraseOrForward(earlier, rewriter);
-    ++combineStat;
+    for (QOP earlier : chain)
+      eraseOrForward(earlier, rewriter);
+    for (QOP link : cancelled)
+      eraseOrForward(link, rewriter);
+    combineStat += chain.size();
     return success();
   }
 

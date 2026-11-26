@@ -45,6 +45,37 @@ func.func @combine_r1_across_z() {
 // CHECK-NEXT:    quake.r1 (%[[SUM]]) %[[Z]]
 // CHECK-NEXT:    quake.sink
 
+// An Rz chain across CX controls combines into one Rz at the last position.
+func.func @combine_rz_chain_across_controls() {
+  %a = arith.constant 1.250000e-01 : f64
+  %b = arith.constant 2.500000e-01 : f64
+  %c = arith.constant 5.000000e-01 : f64
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %before = quake.rz (%a) %control : (f64, !quake.wire) -> !quake.wire
+  %barrier = quake.h %before : (!quake.wire) -> !quake.wire
+  %r0 = quake.rz (%a) %barrier : (f64, !quake.wire) -> !quake.wire
+  %x0:2 = quake.x [%r0] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %r1 = quake.rz (%b) %x0#0 : (f64, !quake.wire) -> !quake.wire
+  %h = quake.h %x0#1 : (!quake.wire) -> !quake.wire
+  %x1:2 = quake.x [%r1] %h : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %r2 = quake.rz (%c) %x1#0 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r2 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @combine_rz_chain_across_controls() {
+// CHECK:         %[[SUM:.*]] = arith.constant 8.750000e-01 : f64
+// CHECK:         %[[BEFORE:.*]] = quake.rz
+// CHECK-NEXT:    %[[BARRIER:.*]] = quake.h %[[BEFORE]]
+// CHECK-NEXT:    %[[X0:.*]]:2 = quake.x {{\[}}%[[BARRIER]]]
+// CHECK-NEXT:    %[[H:.*]] = quake.h %[[X0]]#1
+// CHECK-NEXT:    %[[X1:.*]]:2 = quake.x {{\[}}%[[X0]]#0] %[[H]]
+// CHECK-NEXT:    quake.rz (%[[SUM]]) %[[X1]]#0
+// CHECK-NOT:     quake.rz
+// CHECK:         return
+
 // Cancelling the controlled-X pair exposes the Rz pair to the same greedy
 // fixed point.
 func.func @fold_after_cancellation() {

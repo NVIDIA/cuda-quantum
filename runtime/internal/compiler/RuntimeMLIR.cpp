@@ -46,6 +46,7 @@
 #include "mlir/Dialect/LLVMIR/Transforms/InlinerInterfaceImpl.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
+#include "mlir/IR/Verifier.h"
 #include "mlir/InitAllTranslations.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
@@ -802,6 +803,10 @@ cudaq_internal::compiler::getEntryPointName(OwningOpRef<ModuleOp> &module) {
 
 void cudaq_internal::compiler::configurePassManagerFromEnv(PassManager &pm) {
   auto *ctx = pm.getContext();
+  // Verifying after every pass walks the whole module each time, which
+  // dominates the no-op passes of a pipeline on large kernels. `runPassManager`
+  // verifies once per pipeline instead.
+  pm.enableVerifier(false);
   auto printEachPass =
       cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
   auto disableThreading =
@@ -843,5 +848,7 @@ void cudaq_internal::compiler::initializeLangMLIR() {
 mlir::LogicalResult
 cudaq_internal::compiler::runPassManager(mlir::PassManager &pm,
                                          mlir::Operation *op) {
-  return g_runPassManagerHook(pm, op);
+  if (failed(g_runPassManagerHook(pm, op)))
+    return mlir::failure();
+  return mlir::verify(op);
 }

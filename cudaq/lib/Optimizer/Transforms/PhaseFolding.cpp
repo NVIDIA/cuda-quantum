@@ -478,13 +478,15 @@ protected:
   void addAnchorPoint(Value v) { anchor_points.insert(v); }
   void addTerminationPoint(Value v) { termination_points.insert(v); }
 
-  void calculateSubcircuitForQubitForward(Value v) {
+  // Advance the forward walk by one operation. Return the next wire, or a
+  // null value when the walk ends at `v`.
+  Value stepSubcircuitForQubitForward(Value v) {
     if (seen.contains(v))
-      return;
+      return {};
     seen.insert(v);
     if (!v.hasOneUse()) {
       addTerminationPoint(v);
-      return;
+      return {};
     }
     OpOperand *use = &*v.getUses().begin();
     Operation *op = use->getOwner();
@@ -499,20 +501,19 @@ protected:
           cont.getNumOperands() != scope->getNumResults() ||
           use->getOperandNumber() >= scope->getNumResults()) {
         addTerminationPoint(v);
-        return;
+        return {};
       }
       auto nextResult = scope->getResult(use->getOperandNumber());
       if (!isa<cudaq::quake::WireType>(nextResult.getType())) {
         addTerminationPoint(v);
-        return;
+        return {};
       }
       scope_result_to_continue_operand[nextResult] = use->get();
-      calculateSubcircuitForQubitForward(nextResult);
-      return;
+      return nextResult;
     }
     if (isTerminationPoint(op)) {
       addTerminationPoint(v);
-      return;
+      return {};
     }
     ops.insert(op);
     auto nextResult = getNextResult(v);
@@ -525,12 +526,20 @@ protected:
       else
         addAnchorPoint(control);
     }
-    calculateSubcircuitForQubitForward(nextResult);
+    return nextResult;
   }
 
-  void calculateSubcircuitForQubitBackward(Value v) {
+  // Iterate rather than recurse: a wire can be longer than the stack is deep.
+  void calculateSubcircuitForQubitForward(Value v) {
+    while (v)
+      v = stepSubcircuitForQubitForward(v);
+  }
+
+  // Advance the backward walk by one operation. Return the next wire, or a
+  // null value when the walk ends at `v`.
+  Value stepSubcircuitForQubitBackward(Value v) {
     if (seen.contains(v))
-      return;
+      return {};
     seen.insert(v);
     Operation *op = v.getDefiningOp();
     if (auto scope = dyn_cast_or_null<cudaq::cc::ScopeOp>(op)) {
@@ -540,23 +549,22 @@ protected:
       if (scope.getAtomicQuantumRegionAttr() ||
           !scope.getRegion().hasOneBlock()) {
         addTerminationPoint(v);
-        return;
+        return {};
       }
       auto resultIndex = cast<OpResult>(v).getResultNumber();
       auto continueOp = dyn_cast_or_null<cudaq::cc::ContinueOp>(
           scope.getInitRegion().front().getTerminator());
       if (!continueOp || continueOp.getNumOperands() <= resultIndex) {
         addTerminationPoint(v);
-        return;
+        return {};
       }
       Value continueWire = continueOp.getOperand(resultIndex);
       scope_result_to_continue_operand[v] = continueWire;
-      calculateSubcircuitForQubitBackward(continueWire);
-      return;
+      return continueWire;
     }
     if (isTerminationPoint(op)) {
       addTerminationPoint(v);
-      return;
+      return {};
     }
     ops.insert(op);
     auto nextOperand = getNextOperand(v);
@@ -570,7 +578,13 @@ protected:
       else
         addAnchorPoint(control);
     }
-    calculateSubcircuitForQubitBackward(nextOperand);
+    return nextOperand;
+  }
+
+  // Iterate rather than recurse: a wire can be longer than the stack is deep.
+  void calculateSubcircuitForQubitBackward(Value v) {
+    while (v)
+      v = stepSubcircuitForQubitBackward(v);
   }
 
   void calculateInitialSubcircuit(Operation *op) {

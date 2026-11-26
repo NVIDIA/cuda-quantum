@@ -1491,8 +1491,12 @@ class QuakeOperator<string mnemonic, int numParameters = -1,
 
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      cudaq::quake::getOperatorEffectsImpl(effects, getControlsMutable(),
-                                           getTargetsMutable());
+      // Effects refer to operand slots. Read their ranges without materializing
+      // the segment-size attributes used by the mutable accessors.
+      auto controls = getControls();
+      auto targets = getTargets();
+      cudaq::quake::getOperatorEffectsImpl(effects,
+          {controls.getBase(), controls.size()}, {targets.getBase(), targets.size()});
     }
 
     //===------------------------------------------------------------------===//

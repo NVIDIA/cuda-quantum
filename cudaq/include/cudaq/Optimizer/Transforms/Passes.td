@@ -276,6 +276,8 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
     "mlir::cf::ControlFlowDialect"];
 
   let options = [
+    Option<"cseAndRepeat", "cse-and-repeat", "bool", /*default=*/"false",
+      "Run CSE after optimization and repeat optimization if either changed IR.">,
     Option<"threshold", "maximum-iterations", "unsigned", /*default=*/"50",
       "Maximum iterations to unroll.">,
     Option<"allowClosedInterval", "allow-closed-interval", "bool",
