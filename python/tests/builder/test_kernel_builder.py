@@ -1089,6 +1089,23 @@ def test_exp_pauli():
         kernel.exp_pauli(theta, qubits, invalidOp)
 
 
+@pytest.mark.parametrize("angle", [1, np.int64(1), np.float32(1.0)])
+def test_non_float_angle(angle):
+    """Rotation angles that are real numbers but not `float` are accepted."""
+    cudaq.reset_target()
+
+    def state(angle):
+        kernel = cudaq.make_kernel()
+        qubits = kernel.qalloc(2)
+        kernel.ry(angle, qubits[0])
+        kernel.u3(angle, angle, angle, qubits[1])
+        kernel.exp_pauli(angle, qubits, "XY")
+        kernel.givens_rotation(angle, qubits[0], qubits[1])
+        return np.array(cudaq.get_state(kernel))
+
+    assert np.allclose(state(angle), state(1.0))
+
+
 def test_exp_pauli_register_and_qubits():
     """Test that exp_pauli correctly concatenates a register with
     individual qubits (regression test for operator precedence fix)."""

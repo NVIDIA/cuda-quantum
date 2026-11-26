@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import numbers
 import random
 import re
 import string
@@ -78,9 +79,10 @@ def __generalOperation(self,
 
 def get_parameter_value(self, parameter):
     paramVal = parameter
-    if isinstance(parameter, float):
+    # Any real number (`int`, `numpy.float32`, ...) is a constant angle.
+    if isinstance(parameter, numbers.Real):
         fty = mlirTypeFromPyType(float, self.ctx)
-        paramVal = arith.ConstantOp(fty, FloatAttr.get(fty, parameter))
+        paramVal = arith.ConstantOp(fty, FloatAttr.get(fty, float(parameter)))
     elif isinstance(parameter, QuakeValue):
         paramVal = parameter.mlirValue
     return paramVal
@@ -979,13 +981,7 @@ class PyKernel(object):
                         arg.mlirValue.type):
                     qubitsList.append(arg.mlirValue)
 
-            thetaVal = None
-            if isinstance(theta, float):
-                fty = mlirTypeFromPyType(float, self.ctx)
-                thetaVal = arith.ConstantOp(fty, FloatAttr.get(fty,
-                                                               theta)).result
-            else:
-                thetaVal = theta.mlirValue
+            thetaVal = get_parameter_value(self, theta)
 
             if len(qubitsList) > 0:
                 quantumVal = quake.ConcatOp(
