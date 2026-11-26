@@ -391,6 +391,9 @@ jobs:
           python-version: ${{ needs.resolve.outputs.python_version }}
           activate-environment: true
 
+      - name: Prebuild the test wheels
+        uses: ./.github/actions/prebuilt-test-wheels
+
       - name: Validate core and logical without the frontend
         shell: bash
         run: |
