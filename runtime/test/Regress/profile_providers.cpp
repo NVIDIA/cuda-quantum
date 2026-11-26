@@ -77,12 +77,12 @@
 // CHECK-LABEL: qpp-cpu level 0:
 // CHECK-NEXT: canonicalize
 // CHECK-NEXT: hw-jit-prep-pipeline{allow-early-exit=false erase-noise=false erase-qec=false lower-gates=false normalize=false}
-// CHECK-NEXT: prepare-for-wireset{maximum-iterations=50 decompose-exp-pauli=false erase-implicit-output=false}
+// CHECK-NEXT: prepare-for-wireset{maximum-iterations=50 decompose-exp-pauli=false erase-implicit-output=false unique-register-names=false}
 // CHECK-NEXT: jit-finalize-pipeline{lower-device-calls=true normalize=false}
 // CHECK-EMPTY:
 
 // CHECK-LABEL: qpp-cpu level 1:
-// CHECK:       prepare-for-wireset{maximum-iterations=50 decompose-exp-pauli=false erase-implicit-output=false}
+// CHECK:       prepare-for-wireset{maximum-iterations=50 decompose-exp-pauli=false erase-implicit-output=false unique-register-names=false}
 // CHECK-NEXT:  func.func(quake-simplify{threshold=0},dqe)
 // CHECK-NEXT:  jit-finalize-pipeline{lower-device-calls=true normalize=false}
 

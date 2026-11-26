@@ -136,6 +136,11 @@ struct ClassicalOptimizationPipelineOptions
       llvm::cl::desc("Unroll only loops whose induction variable is used in "
                      "the loop body. (default: false)"),
       llvm::cl::init(false)};
+  PassOptions::Option<bool> uniqueRegisterNames{
+      *this, "unique-register-names",
+      llvm::cl::desc("Give each measurement that shares a register name a "
+                     "unique name. (default: true)"),
+      llvm::cl::init(true)};
 };
 } // namespace
 
@@ -161,7 +166,8 @@ static void createClassicalOptPipeline(
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalOptimization(opts));
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalOptimization(opts));
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
+  if (options.uniqueRegisterNames)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }
 
 void cudaq::opt::createClassicalOptimizationPipeline(
@@ -169,7 +175,8 @@ void cudaq::opt::createClassicalOptimizationPipeline(
     std::optional<bool> allowBreak, std::optional<bool> allowClosedInterval,
     std::optional<bool> disableLoopUnrolling,
     std::optional<bool> unrollOnlyAliasingQuantumAccessLoops,
-    std::optional<bool> unrollOnlyIndexUseLoops) {
+    std::optional<bool> unrollOnlyIndexUseLoops,
+    std::optional<bool> uniqueRegisterNames) {
   ClassicalOptimizationPipelineOptions options;
   if (threshold.has_value())
     options.threshold = *threshold;
@@ -184,6 +191,8 @@ void cudaq::opt::createClassicalOptimizationPipeline(
         *unrollOnlyAliasingQuantumAccessLoops;
   if (unrollOnlyIndexUseLoops.has_value())
     options.unrollOnlyIndexUseLoops = *unrollOnlyIndexUseLoops;
+  if (uniqueRegisterNames.has_value())
+    options.uniqueRegisterNames = *uniqueRegisterNames;
   ::createClassicalOptPipeline(pm, options);
 }
 

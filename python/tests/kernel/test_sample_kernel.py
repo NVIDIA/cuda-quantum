@@ -354,6 +354,26 @@ def test_function_scope_bare_return():
     assert '0' in counts and len(counts) == 1
 
 
+def test_register_spanning_several_measurements():
+    """Measuring a slice and measuring in a loop both give several
+    measurements one name. Sampling returns one register per name, with one
+    bit per measurement."""
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(4)
+        x(q[0])
+        x(q[3])
+        pair = mz(q[0:2])
+        for i in range(2, 4):
+            mz(q[i], register_name="tail")
+
+    counts = cudaq.sample(kernel, shots_count=10)
+    assert sorted(counts.register_names) == ["__global__", "pair", "tail"]
+    assert dict(counts.get_register_counts("pair").items()) == {"10": 10}
+    assert dict(counts.get_register_counts("tail").items()) == {"01": 10}
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
