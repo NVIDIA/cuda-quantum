@@ -7,10 +7,14 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "common/ServerHelper.h"
 #include "cudaq/algorithm.h"
 #include <fstream>
+#include <functional>
 #include <gtest/gtest.h>
+#include <stdexcept>
 #include <stdlib.h>
+#include <string>
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
@@ -64,6 +68,86 @@ CUDAQ_TEST(InfleqtionTester, checkSampleAsyncLoadFromFile) {
   EXPECT_EQ(counts.size(), 2);
 
   std::remove("saveMe.json");
+}
+
+namespace {
+// Sets (value != nullptr) or unsets an environment variable for the lifetime
+// of the object and restores the previous state afterwards.
+struct ScopedEnv {
+  ScopedEnv(const char *name, const char *value) : name(name) {
+    if (const char *old = std::getenv(name)) {
+      hadOld = true;
+      oldValue = old;
+    }
+    if (value)
+      ::setenv(name, value, 1);
+    else
+      ::unsetenv(name);
+  }
+  ~ScopedEnv() {
+    if (hadOld)
+      ::setenv(name, oldValue.c_str(), 1);
+    else
+      ::unsetenv(name);
+  }
+  const char *name;
+  bool hadOld = false;
+  std::string oldValue;
+};
+
+// Returns the message of the `std::runtime_error` thrown by `fn`, or
+// "<no throw>".
+std::string thrownMessage(const std::function<void()> &fn) {
+  try {
+    fn();
+  } catch (const std::runtime_error &e) {
+    return e.what();
+  }
+  return "<no throw>";
+}
+} // namespace
+
+// The tests below drive the helper through the registry to pin how
+// `initialize` resolves the API token and config values. No network access
+// happens during `initialize`.
+CUDAQ_TEST(InfleqtionTester, checkMissingApiKeyThrows) {
+  ScopedEnv env("SUPERSTAQ_API_KEY", nullptr);
+  auto helper = cudaq::registry::get<cudaq::ServerHelper>("infleqtion");
+  ASSERT_TRUE(helper);
+  cudaq::BackendConfig config{{"emulate", "false"}};
+  // Infleqtion has its own wording, distinct from the generic
+  // "<name> environment variable is not set." used by other backends.
+  EXPECT_EQ(thrownMessage([&]() { helper->initialize(config); }),
+            "Environment variable SUPERSTAQ_API_KEY is required but not set.");
+}
+
+CUDAQ_TEST(InfleqtionTester, checkEmulateDoesNotRequireApiKey) {
+  ScopedEnv env("SUPERSTAQ_API_KEY", nullptr);
+  auto helper = cudaq::registry::get<cudaq::ServerHelper>("infleqtion");
+  ASSERT_TRUE(helper);
+  helper->initialize({{"emulate", "true"}});
+  EXPECT_EQ(helper->getConfig()["token"], "0");
+}
+
+CUDAQ_TEST(InfleqtionTester, checkTokenPrecedenceAndConfigOverrides) {
+  ScopedEnv env("SUPERSTAQ_API_KEY", "env-key");
+  auto helper = cudaq::registry::get<cudaq::ServerHelper>("infleqtion");
+  ASSERT_TRUE(helper);
+  helper->initialize({{"emulate", "false"}});
+  auto config = helper->getConfig();
+  EXPECT_EQ(config["token"], "env-key");
+  EXPECT_EQ(config["url"], "https://superstaq.infleqtion.com");
+  EXPECT_EQ(config["machine"], "cq_sqale_simulator");
+
+  // A token in the config takes precedence over the environment.
+  helper->initialize({{"emulate", "false"},
+                      {"token", "cfg-key"},
+                      {"url", "http://localhost:1"},
+                      {"machine", "cq_sqale_qpu"}});
+  config = helper->getConfig();
+  EXPECT_EQ(config["token"], "cfg-key");
+  EXPECT_EQ(config["url"], "http://localhost:1");
+  EXPECT_EQ(config["machine"], "cq_sqale_qpu");
 }
 
 int main(int argc, char **argv) {

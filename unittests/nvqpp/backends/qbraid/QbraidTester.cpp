@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 #include <stdlib.h>
+#include <string>
 
 // Update the backend string to match the QBraid format
 std::string mockPort = "62454";
@@ -334,6 +335,70 @@ CUDAQ_TEST(QbraidTester, checkAnalogDeviceRejected) {
   EXPECT_TRUE(
       throwsWithMessage([&]() { helper->initialize(config); },
                         "device 'aws:quera:qpu:aquila' has paradigm 'analog'"));
+}
+
+namespace {
+// Sets (value != nullptr) or unsets an environment variable for the lifetime
+// of the object and restores the previous state afterwards.
+struct ScopedEnv {
+  ScopedEnv(const char *name, const char *value) : name(name) {
+    if (const char *old = std::getenv(name)) {
+      hadOld = true;
+      oldValue = old;
+    }
+    if (value)
+      ::setenv(name, value, 1);
+    else
+      ::unsetenv(name);
+  }
+  ~ScopedEnv() {
+    if (hadOld)
+      ::setenv(name, oldValue.c_str(), 1);
+    else
+      ::unsetenv(name);
+  }
+  const char *name;
+  bool hadOld = false;
+  std::string oldValue;
+};
+} // namespace
+
+// With emulate=false and no api_key in the config, the key must come from
+// QBRAID_API_KEY; if that is unset, initialize() fails before any request.
+CUDAQ_TEST(QbraidTester, checkMissingApiKeyThrows) {
+  ScopedEnv env("QBRAID_API_KEY", nullptr);
+  auto helper = cudaq::registry::get<cudaq::ServerHelper>("qbraid");
+  ASSERT_TRUE(helper);
+  cudaq::BackendConfig config;
+  config["emulate"] = "false";
+  config["url"] = "http://localhost:" + mockPort;
+  EXPECT_TRUE(throwsWithMessage([&]() { helper->initialize(config); },
+                                "QBRAID_API_KEY environment variable is not "
+                                "set."));
+}
+
+CUDAQ_TEST(QbraidTester, checkEmulateDoesNotRequireApiKey) {
+  ScopedEnv env("QBRAID_API_KEY", nullptr);
+  auto helper = cudaq::registry::get<cudaq::ServerHelper>("qbraid");
+  ASSERT_TRUE(helper);
+  cudaq::BackendConfig config;
+  config["emulate"] = "true";
+  config["url"] = "http://localhost:" + mockPort;
+  helper->initialize(config);
+  EXPECT_EQ(helper->getConfig()["api_key"], "");
+}
+
+CUDAQ_TEST(QbraidTester, checkApiKeyFromEnv) {
+  ScopedEnv env("QBRAID_API_KEY", "11111111111111111111111111111111");
+  auto helper = cudaq::registry::get<cudaq::ServerHelper>("qbraid");
+  ASSERT_TRUE(helper);
+  cudaq::BackendConfig config;
+  config["emulate"] = "false";
+  config["url"] = "http://localhost:" + mockPort;
+  helper->initialize(config);
+  auto resolved = helper->getConfig();
+  EXPECT_EQ(resolved["api_key"], "11111111111111111111111111111111");
+  EXPECT_EQ(resolved["device_id"], "qbraid:qbraid:sim:qir-sv");
 }
 
 int main(int argc, char **argv) {

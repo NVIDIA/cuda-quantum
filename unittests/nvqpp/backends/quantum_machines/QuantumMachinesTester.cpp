@@ -101,6 +101,27 @@ CUDAQ_TEST(QuantumMachinesTester, rewritesLegacySpellings) {
   EXPECT_EQ(submittedIR.find("quake.evince"), std::string::npos);
 }
 
+CUDAQ_TEST(QuantumMachinesTester, configDefaultsAndOverrides) {
+  auto helper = cudaq::registry::get<cudaq::ServerHelper>("quantum_machines");
+  ASSERT_TRUE(helper);
+  helper->initialize({});
+  auto config = helper->getConfig();
+  EXPECT_EQ(config["url"], "https://api.quantum-machines.com");
+  EXPECT_EQ(config["version"], "v1.0.0");
+  EXPECT_EQ(config["executor"], "mock");
+  EXPECT_EQ(config["qubit_mapping_mode"], "local_get_latest");
+
+  helper->initialize({{"url", "http://localhost:62448"},
+                      {"version", "v9"},
+                      {"executor", "real"},
+                      {"qubit_mapping_mode", "custom"}});
+  config = helper->getConfig();
+  EXPECT_EQ(config["url"], "http://localhost:62448");
+  EXPECT_EQ(config["version"], "v9");
+  EXPECT_EQ(config["executor"], "real");
+  EXPECT_EQ(config["qubit_mapping_mode"], "custom");
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();

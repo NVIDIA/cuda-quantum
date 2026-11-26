@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/ConfigUtils.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/Support/Version.h"
@@ -413,28 +414,6 @@ private:
           "supports only gate-model devices.");
     }
     cudaq::info("Device '{}' paradigm is gate_model.", deviceId);
-  }
-
-  /// @brief Helper method to retrieve the value of an environment variable.
-  std::string getEnvVar(const std::string &key, const std::string &defaultVal,
-                        const bool isRequired) const {
-    const char *env_var = std::getenv(key.c_str());
-    if (env_var == nullptr) {
-      if (isRequired) {
-        throw std::runtime_error(key + " environment variable is not set.");
-      }
-
-      return defaultVal;
-    }
-    return std::string(env_var);
-  }
-
-  /// @brief Helper function to get a value from config or return a default
-  /// value.
-  std::string getValueOrDefault(const BackendConfig &config,
-                                const std::string &key,
-                                const std::string &defaultValue) const {
-    return config.find(key) != config.end() ? config.at(key) : defaultValue;
   }
 };
 } // namespace cudaq

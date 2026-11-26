@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/ConfigUtils.h"
 #include "common/ExtraPayloadProvider.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
@@ -69,14 +70,6 @@ public:
     headers["Content-Type"] = "application/json";
     headers["X-API-Key"] = backendConfig["api_key"];
     return headers;
-  }
-
-  // Helper function to get a value from config or return a default
-  std::string getValueOrDefault(const BackendConfig &config,
-                                const std::string &key,
-                                const std::string &defaultValue) const {
-    auto it = config.find(key);
-    return (it != config.end()) ? it->second : defaultValue;
   }
 
   /// @brief Initializes the server helper with the provided backend
