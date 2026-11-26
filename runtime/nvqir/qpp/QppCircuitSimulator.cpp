@@ -6,12 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "QppInPlaceGates.h"
 #include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "nvqir/Gates.h"
+#include <algorithm>
 #include <bit>
+#include <cmath>
 #include <iostream>
+#include <map>
+#include <numeric>
 #include <qpp.h>
+#include <random>
 #include <set>
 #include <span>
 
@@ -121,6 +127,105 @@ struct QppState : public cudaq::SimulationState {
     state = k;
   }
 };
+
+namespace details {
+
+/// @brief Draw `shots` basis states from a state vector, with probability
+/// proportional to the squared magnitude of each amplitude.
+///
+/// Returns (basis state index, count) pairs in ascending index order. The
+/// state does not need to be normalized. Unlike `qpp::sample`, this allocates
+/// nothing the size of the state: the sorted random draws are resolved in one
+/// pass over the per-chunk weights, and only chunks that contain a draw are
+/// scanned amplitude by amplitude. The result does not depend on the number
+/// of threads.
+template <typename Generator>
+std::vector<std::pair<std::size_t, std::size_t>>
+sampleBasisStates(const std::complex<double> *state, std::size_t dimension,
+                  std::size_t shots, Generator &generator) {
+  constexpr std::size_t chunkSize = 1ULL << 12;
+  const std::size_t numChunks = (dimension + chunkSize - 1) / chunkSize;
+
+  // Total weight of each fixed-size chunk of the state.
+  std::vector<double> chunkWeights(numChunks);
+  [[maybe_unused]] const int numThreads = parallelThreads(dimension);
+#if defined(_OPENMP)
+#pragma omp parallel for num_threads(numThreads) if (numThreads > 1)
+#endif
+  for (std::size_t chunk = 0; chunk < numChunks; ++chunk) {
+    const std::size_t begin = chunk * chunkSize;
+    const std::size_t end = std::min(begin + chunkSize, dimension);
+    double weight = 0.0;
+    for (std::size_t i = begin; i < end; ++i)
+      weight += std::norm(state[i]);
+    chunkWeights[chunk] = weight;
+  }
+  const double total =
+      std::accumulate(chunkWeights.begin(), chunkWeights.end(), 0.0);
+  if (!(total > 0.0) || !std::isfinite(total))
+    throw std::runtime_error("[qpp] cannot sample from a state whose norm is "
+                             "zero or not finite.");
+
+  // One sorted point in [0, total) per shot.
+  std::vector<double> draws(shots);
+  std::uniform_real_distribution<double> uniform(0.0, 1.0);
+  for (auto &draw : draws)
+    draw = uniform(generator) * total;
+  std::sort(draws.begin(), draws.end());
+
+  std::vector<std::pair<std::size_t, std::size_t>> counts;
+  const auto record = [&](std::size_t index, std::size_t count) {
+    if (!counts.empty() && counts.back().first == index)
+      counts.back().second += count;
+    else
+      counts.emplace_back(index, count);
+  };
+
+  // Walk the cumulative distribution; every draw below `chunkStart` has
+  // already been assigned.
+  std::size_t next = 0;
+  double chunkStart = 0.0;
+  for (std::size_t chunk = 0; chunk < numChunks && next < shots; ++chunk) {
+    const double chunkEnd = chunkStart + chunkWeights[chunk];
+    if (draws[next] < chunkEnd) {
+      const std::size_t begin = chunk * chunkSize;
+      const std::size_t end = std::min(begin + chunkSize, dimension);
+      double cumulative = chunkStart;
+      std::size_t lastNonZero = begin;
+      for (std::size_t i = begin;
+           i < end && next < shots && draws[next] < chunkEnd; ++i) {
+        const double weight = std::norm(state[i]);
+        if (weight == 0.0)
+          continue;
+        cumulative += weight;
+        lastNonZero = i;
+        std::size_t count = 0;
+        for (; next < shots && draws[next] < cumulative; ++next)
+          ++count;
+        if (count > 0)
+          record(i, count);
+      }
+      // Draws left in this chunk by floating-point rounding.
+      std::size_t count = 0;
+      for (; next < shots && draws[next] < chunkEnd; ++next)
+        ++count;
+      if (count > 0)
+        record(lastNonZero, count);
+    }
+    chunkStart = chunkEnd;
+  }
+
+  // Draws at or beyond the total (rounding) go to the last possible outcome.
+  if (next < shots) {
+    std::size_t last = dimension - 1;
+    while (last > 0 && std::norm(state[last]) == 0.0)
+      --last;
+    record(last, shots - next);
+  }
+  return counts;
+}
+
+} // namespace details
 
 /// @brief The QppCircuitSimulator implements the CircuitSimulator
 /// base class to provide a simulator delegating to the Q++ library from
@@ -246,6 +351,17 @@ protected:
   }
 
   void applyGate(const GateApplicationTask &task) override {
+    if constexpr (std::is_same_v<StateType, qpp::ket>) {
+      // State vector: apply the gate in place, which is much faster than
+      // `qpp::apply` / `qpp::applyCTRL`.
+      const std::size_t numQubits =
+          std::bit_width(static_cast<std::size_t>(state.size())) - 1;
+      details::applyGateInPlace(state.data(), numQubits, task.matrix,
+                                task.controls, task.targets);
+      return;
+    }
+
+    // Density matrix: delegate to Q++.
     auto matrix = toQppMatrix(task.matrix, task.targets.size());
     // First, convert all of the qubit indices to big endian.
     std::vector<std::size_t> controls;
@@ -365,27 +481,41 @@ public:
       return cudaq::ExecutionResult{{}, expectationValue};
     }
 
-    std::vector<std::size_t> measuredBits;
-    for (auto index : qubits) {
-      measuredBits.push_back(convertQubitIndex(index));
+    // Bitstring of the measured qubits -> number of shots, in the
+    // (lexicographic) order the results are reported in.
+    std::map<std::string, std::size_t> sampleResult;
+    if constexpr (std::is_same_v<StateType, qpp::ket>) {
+      // State vector: sample without the state-sized temporaries of
+      // `qpp::sample`. Qubit `q` is bit `q` of the basis state index.
+      const auto sampled = details::sampleBasisStates(
+          state.data(), state.size(), shots,
+          qpp::RandomDevices::get_instance().get_prng());
+      std::string bitstring(qubits.size(), '0');
+      for (const auto &[basisState, count] : sampled) {
+        for (std::size_t i = 0; i < qubits.size(); ++i)
+          bitstring[i] = ((basisState >> qubits[i]) & 1) ? '1' : '0';
+        sampleResult[bitstring] += count;
+      }
+    } else {
+      // Density matrix: delegate to Q++.
+      std::vector<std::size_t> measuredBits;
+      for (auto index : qubits)
+        measuredBits.push_back(convertQubitIndex(index));
+      for (const auto &[result, count] :
+           qpp::sample(shots, state, measuredBits, 2)) {
+        std::string bitstring;
+        for (const auto &bit : result)
+          bitstring.push_back(bit ? '1' : '0');
+        sampleResult[bitstring] += count;
+      }
     }
 
-    auto sampleResult = qpp::sample(shots, state, measuredBits, 2);
-    // Convert to what we expect
-    std::stringstream bitstream;
+    // Convert to what we expect, with the expectation value from the counts.
     cudaq::ExecutionResult counts;
-
-    // Expectation value from the counts
     double expVal = 0.0;
-    for (auto [result, count] : sampleResult) {
-      // Push back each term in the vector of bits to the bitstring.
-      for (const auto &bit : result) {
-        bitstream << bit;
-      }
-
+    for (const auto &[bitstring, count] : sampleResult) {
       // Add to the sample result
       // in mid-circ sampling mode this will append 1 bitstring
-      auto bitstring = bitstream.str();
       if (includeSequentialData)
         counts.appendResult(bitstring, count);
       else
@@ -396,9 +526,6 @@ public:
         p = -p;
       }
       expVal += p;
-      // Reset the state.
-      bitstream.str("");
-      bitstream.clear();
     }
 
     counts.expectationValue = expVal;
