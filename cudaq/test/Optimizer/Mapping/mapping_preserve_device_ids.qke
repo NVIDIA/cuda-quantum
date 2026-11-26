@@ -1,0 +1,36 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// The QIR targets must lower mapped wires directly, without converting them
+// to virtual allocations. Routing from device 5 to 7 uses physical qubit 6.
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=identity search=none' '--lower-wireset-to-profile-qir=convert-to=qir-base' %s | FileCheck --check-prefixes=CHECK,BASE %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=identity search=none' '--lower-wireset-to-profile-qir=convert-to=qir-adaptive' %s | FileCheck --check-prefixes=CHECK,ADAPTIVE %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @route_line_endpoints() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q5 = quake.borrow_wire @wires[5] : !quake.wire
+  %q7 = quake.borrow_wire @wires[7] : !quake.wire
+  %0:2 = quake.x [%q5] %q7 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %0#0 : !quake.wire
+  quake.return_wire %0#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: llvm.func @route_line_endpoints()
+// BASE-SAME: "qir_profiles", "base_profile"
+// ADAPTIVE-SAME: "qir_profiles", "adaptive_profile"
+// CHECK-SAME: "requiredQubits", "8"
+// CHECK-DAG: %[[PHYS6:[0-9]+]] = llvm.mlir.constant(6 : i64) : i64
+// CHECK-DAG: %[[PHYS7:[0-9]+]] = llvm.mlir.constant(7 : i64) : i64
+// CHECK-DAG: %[[PHYS5:[0-9]+]] = llvm.mlir.constant(5 : i64) : i64
+// CHECK-DAG: %[[Q5:[0-9]+]] = llvm.inttoptr %[[PHYS5]] : i64 to !llvm.ptr
+// CHECK-DAG: %[[Q7:[0-9]+]] = llvm.inttoptr %[[PHYS7]] : i64 to !llvm.ptr
+// CHECK-DAG: %[[Q6:[0-9]+]] = llvm.inttoptr %[[PHYS6]] : i64 to !llvm.ptr
+// CHECK: llvm.call @__quantum__qis__swap__body(%[[Q5]], %[[Q6]]) : (!llvm.ptr, !llvm.ptr) -> ()
+// CHECK: llvm.call @__quantum__qis__cnot__body(%[[Q6]], %[[Q7]]) : (!llvm.ptr, !llvm.ptr) -> ()

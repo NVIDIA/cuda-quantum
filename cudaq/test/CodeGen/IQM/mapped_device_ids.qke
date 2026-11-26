@@ -1,0 +1,34 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=iqm %s | FileCheck %s
+// RUN: cudaq-opt --lower-to-cfg %s | FileCheck --check-prefix=PRE-IQM %s
+
+// Device qubit 6 must reach the emitted IQM JSON as QB7 (one-based).
+quake.wire_set @mapped_wireset[8]
+
+func.func @mapped_device_ids() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q0 = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+  %q6 = quake.borrow_wire @mapped_wireset[6] : !quake.wire
+  %next:2 = quake.z [%q0] %q6 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %next#0 : !quake.wire
+  quake.return_wire %next#1 : !quake.wire
+  return
+}
+
+// CHECK: "name": "cz",
+// CHECK: "qubits": [
+// CHECK-NEXT: "QB1",
+// CHECK-NEXT: "QB7"
+// CHECK-NEXT: ]
+// CHECK: "name": "mapped_device_ids"
+
+// PRE-IQM-LABEL: func.func @mapped_device_ids()
+// PRE-IQM: quake.borrow_wire @mapped_wireset[0]
+// PRE-IQM: quake.borrow_wire @mapped_wireset[6]
+// PRE-IQM: quake.z
