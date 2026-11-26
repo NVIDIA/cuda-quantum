@@ -10,19 +10,6 @@
 #include "common/FmtCore.h"
 #include "nlohmann/json.hpp"
 
-namespace {
-std::string prepareOpenQasm(std::string source) {
-  const std::regex includeRE{"include \".*\";"};
-  source = std::regex_replace(source, includeRE, "");
-  const std::regex cxToCnot{"\\scx\\s"};
-  source = std::regex_replace(source, cxToCnot, " cnot ");
-  const std::regex ccxToCcnot{"\\sccx\\s"};
-  source = std::regex_replace(source, ccxToCcnot, " ccnot ");
-  return source;
-}
-
-} // namespace
-
 namespace cudaq {
 
 std::string checkDeviceArn(const std::string &machine) {
@@ -83,7 +70,7 @@ BraketServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     auto action = nlohmann::json::parse(
         "{\"braketSchemaHeader\": {\"name\": \"braket.ir.openqasm.program\", "
         "\"version\": \"1\"}, \"source\": \"\", \"inputs\": {}}");
-    action["source"] = prepareOpenQasm(circuitCode.code);
+    action["source"] = circuitCode.code;
     taskRequest["action"] = action.dump();
     taskRequest["shots"] = shots;
     tasks.push_back(taskRequest);
