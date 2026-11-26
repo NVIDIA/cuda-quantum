@@ -2176,20 +2176,13 @@ before importing CUDA-Q. If the application cannot control import order,
 run CUDA-Q in a separate process.
 
 CUDA-Q keeps its LLVM-dependent compiler and backend libraries local.
-Importing [`cudaq`{.docutils .literal .notranslate}]{.pre} exposes only
-the LLVM-free core runtime ([`libnvqir`{.docutils .literal
-.notranslate}]{.pre}, [`libcudaq`{.docutils .literal
-.notranslate}]{.pre}, and their dependencies) globally. This allows
-shared libraries containing [`nvq++`{.docutils .literal
-.notranslate}]{.pre}-compiled kernels to be loaded with
-[`dlopen`{.docutils .literal .notranslate}]{.pre} or
-[`ctypes.CDLL`{.docutils .literal .notranslate}]{.pre} after importing
-CUDA-Q, even when compiled with [`nvq++`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`-c`{.docutils
-.literal .notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`-fPIC`{.docutils .literal .notranslate}]{.pre} and linked
-without explicit CUDA-Q dependencies. Kernel launches use the active
-CUDA-Q target without exposing the compiler's LLVM symbols globally.
+The only symbols exposed globally by [`cudaq`{.docutils .literal
+.notranslate}]{.pre} are the NVQIR simulation symbols
+([`libnvqir`{.docutils .literal .notranslate}]{.pre}) and the nvq++ C
+API ([`libcudaq-nvqpp-capi`{.docutils .literal .notranslate}]{.pre}),
+used to launch kernels compiled from C++ with [`nvq++`{.code .docutils
+.literal .notranslate}]{.pre}. Kernel launches use the active CUDA-Q
+target without exposing the compiler's LLVM symbols globally.
 
 External native extensions using other CUDA-Q libraries must still link
 to the libraries they use. Compiler plugins should link to
