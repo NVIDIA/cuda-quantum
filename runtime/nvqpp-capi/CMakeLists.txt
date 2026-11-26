@@ -41,7 +41,17 @@ add_library(cudaq-nvqpp-capi-static STATIC
 set_target_properties(cudaq-nvqpp-capi-static PROPERTIES
   OUTPUT_NAME cudaq-nvqpp-capi
   ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-install(TARGETS cudaq-nvqpp-capi-static DESTINATION lib COMPONENT Nvqpp)
+target_link_libraries(cudaq-nvqpp-capi-static INTERFACE cudaq cudaq-common)
+
+# Umbrella target: everything that nvq++-compiled code needs at link time.
+add_library(cudaq-nvqpp INTERFACE)
+set_target_properties(cudaq-nvqpp PROPERTIES EXPORT_NAME nvqpp)
+target_link_libraries(cudaq-nvqpp INTERFACE cudaq-nvqpp-capi-static)
+
+# Exported with the rest of the runtime.
+install(TARGETS cudaq-nvqpp-capi-static cudaq-nvqpp
+        EXPORT cudaq-targets
+        ARCHIVE DESTINATION lib COMPONENT Nvqpp)
 
 if(CUDAQ_BUILD_TESTS)
   add_test(NAME nvqpp_capi_exports
