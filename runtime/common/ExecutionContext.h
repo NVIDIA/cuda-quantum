@@ -52,9 +52,6 @@ public:
   /// @brief An optional spin operator
   std::optional<cudaq::spin_op> spin;
 
-  /// @brief An optimization result
-  std::optional<cudaq::optimization_result> optResult = std::nullopt;
-
   /// @brief The kernel being executed in this context has conditional
   /// statements on measure results.
   bool hasConditionalsOnMeasureResults = false;
@@ -65,18 +62,6 @@ public:
   /// @brief Flag to indicate if backend can handle spin_op observe task under
   /// this ExecutionContext.
   bool canHandleObserve = false;
-
-  /// @brief Flag indicating that the current execution should occur
-  /// asynchronously
-  bool asyncExec = false;
-
-  /// @brief When execution asynchronously, store the expected results as a
-  /// cudaq::future here.
-  detail::future futureResult;
-
-  /// @brief Construct a `async_sample_result` so as to pass across Python
-  /// boundary
-  async_result<sample_result> asyncResult;
 
   /// @brief Pointer to simulation-specific simulation data.
   std::unique_ptr<SimulationState> simulationState;
@@ -99,10 +84,6 @@ public:
   /// register names.
   std::vector<std::string> registerNames;
 
-  /// @brief A vector containing information about how to reorder the global
-  /// register after execution. Empty means no reordering.
-  std::vector<std::size_t> reorderIdx;
-
   /// @brief The ID of the QPU that this execution context is running on.
   std::size_t qpuId = 0;
 
@@ -118,10 +99,6 @@ public:
   /// @brief Pointer to the execution manager for the current execution context,
   /// if it exists.
   ExecutionManager *executionManager = nullptr;
-
-  /// @brief Dispatcher towards the policy specific launch.
-  std::function<void(const AnyModule &module, const KernelArgs &args)>
-      executeKernelApi;
 
   /// @endcond
 

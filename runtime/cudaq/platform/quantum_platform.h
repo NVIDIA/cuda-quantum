@@ -12,13 +12,16 @@
 #include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
+#include "common/InvocationContext.h"
 #include "common/KernelArgs.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
 #include "common/RuntimeTarget.h"
 #include "common/SampleResult.h"
 #include "common/ThunkInterface.h"
+#include "cudaq/KernelLaunch.h"
 #include "cudaq/Target/CompileTarget.h"
+#include "cudaq/algorithms/policies.h"
 #include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
@@ -30,6 +33,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace cudaq {
@@ -198,13 +202,29 @@ public:
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
   /// \cond
-  /// Launch \p module outside of a launch policy.
-  ///
-  /// If a `SourceModule` is passed, it is compiled against \p target and
-  /// \p options before being launched.
-  [[nodiscard]] KernelThunkResultType
-  compileAndLaunchKernel(const AnyModule &module, KernelArgs args,
-                         std::size_t qpu_id = 0);
+  /// Resolve the invocation context of a kernel launch under \p policy on QPU
+  /// \p qpuId: its compile target, compile options, launch options and
+  /// runtime endpoint. The policy is left empty for the caller to set.
+  template <typename Policy>
+  [[nodiscard]] InvocationContext
+  makeInvocationContext(Policy policy, std::uint64_t randomSeed,
+                        std::size_t qpuId) {
+    validateQpuId(qpuId);
+    std::optional<AnyPolicy> optPolicy;
+    if constexpr (!std::is_same_v<Policy, other_policies>) {
+      optPolicy = std::move(policy);
+    }
+    return InvocationContext{
+        .target = compileTargets[qpuId],
+        .compileOptions = getCompileOptions(policy, randomSeed, qpuId),
+        .launchOptions = {.qpuId = qpuId, .policy = optPolicy},
+        .endpoint = &runtimeEndpoints[qpuId]};
+  }
+
+  /// The invocation context of a kernel launch that no algorithm pushed one
+  /// for: no launch policy, on the QPU of the current execution context (or
+  /// QPU 0 without one).
+  [[nodiscard]] InvocationContext defaultInvocationContext();
 
   [[nodiscard]] cudaq::CompileTarget
   getCompileTarget(std::size_t qpu_id = 0) const;
@@ -324,34 +344,6 @@ public:
 
 } // namespace detail
 
-/// Entry point for the auto-generated kernel execution path. TODO: Needs to be
-/// tied to the quantum platform instance somehow. Note that the compiler cannot
-/// provide that information.
-// Client-server (legacy) interface.
-[[nodiscard]] KernelThunkResultType
-altLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
-                std::uint64_t argsSize, std::uint64_t resultOffset);
-
-// Streamlined interface for launching kernels. Argument synthesis and JIT
-// compilation *must* happen on the local machine.
-[[nodiscard]] KernelThunkResultType
-streamlinedLaunchKernel(const char *kernelName,
-                        const std::vector<void *> &rawArgs);
-
-// Launch a kernel from an already compiled module. In some environments (e.g.,
-// Python), the ModuleOp of the source can be provided immediately to be
-// launched, unlike with statically compiled systems (C++).
-[[nodiscard]] KernelThunkResultType
-streamlinedLaunchModule(const CompiledModule &compiled,
-                        const std::vector<void *> &rawArgs);
-
-// Hybrid of the client-server and streamlined approaches. Letting JIT
-// compilation happen either early or late and can handle return values from
-// each kernel launch.
-[[nodiscard]] KernelThunkResultType
-hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
-                   std::uint64_t argsSize, std::uint64_t resultOffset,
-                   const std::vector<void *> &rawArgs);
 } // namespace cudaq
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)

@@ -11,10 +11,10 @@
 
 #include "nvqpp_capi.h"
 #include "common/DeviceCodeRegistry.h"
-#include "cudaq/algorithms/get_state.h"
-#include "cudaq/platform/quantum_platform.h"
+#include "cudaq/KernelLaunch.h"
 #include <cstdlib>
 #include <cstring>
+#include <span>
 
 // Link-time check that the runtime implements the interface this library
 // was built against. See `nvqpp_capi.h`.
@@ -26,26 +26,19 @@
 //===----------------------------------------------------------------------===//
 
 cudaq::KernelThunkResultType
-__cudaq_altLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
-                        void *args, std::uint64_t argsSize,
-                        std::uint64_t resultOffset) {
-  return cudaq::altLaunchKernel(kernelName, kernel, args, argsSize,
-                                resultOffset);
-}
-
-cudaq::KernelThunkResultType
-__cudaq_streamlinedLaunchKernel(const char *kernelName,
-                                const std::vector<void *> &rawArgs) {
-  return cudaq::streamlinedLaunchKernel(kernelName, rawArgs);
-}
-
-cudaq::KernelThunkResultType
-__cudaq_hybridLaunchKernel(const char *kernelName,
-                           cudaq::KernelThunkType kernel, void *args,
-                           std::uint64_t argsSize, std::uint64_t resultOffset,
-                           const std::vector<void *> &rawArgs) {
-  return cudaq::hybridLaunchKernel(kernelName, kernel, args, argsSize,
-                                   resultOffset, rawArgs);
+__cudaq_launchKernel(const char *kernelName, cudaq::KernelThunkType thunk,
+                     void *packedArgs, std::uint64_t argsSize,
+                     std::uint64_t resultOffset,
+                     const std::vector<void *> *rawArgs) {
+  const cudaq::InvocationContext ctx = cudaq::claimInvocationContext();
+  std::span<void *const> rawArgsSpan =
+      rawArgs ? *rawArgs : std::span<void *const>{};
+  cudaq::KernelArgs args{{packedArgs, packedArgs ? argsSize : 0, resultOffset},
+                         rawArgsSpan};
+  auto module = thunk ? cudaq::SourceModule{kernelName, thunk}
+                      : cudaq::SourceModule{kernelName};
+  // TODO: if required JIT compile here before launching
+  return cudaq::launchKernel(module, args, ctx);
 }
 
 //===----------------------------------------------------------------------===//

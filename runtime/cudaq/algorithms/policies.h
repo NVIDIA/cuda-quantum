@@ -19,6 +19,7 @@
 #include "cudaq/platform/orca/policy.h"
 #include "cudaq/ptsbe/policy.h"
 #include <tuple>
+#include <variant>
 
 namespace cudaq {
 
@@ -35,6 +36,19 @@ using all_policies =
                async_observe_policy, run_policy, async_run_policy,
                msm_size_policy, msm_policy, dem_policy, ptsbe::sample_policy,
                estimate_policy, orca::sample_policy, orca::async_sample_policy>;
+
+namespace detail {
+template <typename Tuple>
+struct tuple_to_variant;
+
+template <typename... Policies>
+struct tuple_to_variant<std::tuple<Policies...>> {
+  using type = std::variant<Policies...>;
+};
+} // namespace detail
+
+/// A type-erased launch policy.
+using AnyPolicy = typename detail::tuple_to_variant<all_policies>::type;
 
 /// @brief Concept satisfied by any type registered in @c all_policies.
 template <typename Policy>

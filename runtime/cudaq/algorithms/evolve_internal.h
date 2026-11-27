@@ -17,6 +17,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/schedule.h"
+#include <cstddef>
 #include <exception>
 
 namespace cudaq {
@@ -283,9 +284,11 @@ inline sample_result launchAnalogKernel(const std::string &kernel_name,
   policy.kernelName = kernel_name;
   ExecutionContext ctx(sample_policy::name, shots_count, qpu_id);
   return detail::launch(policy, qpu_id, ctx, platform, [&]() {
-    [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
-        kernel_name.c_str(), KernelThunkType(nullptr),
-        const_cast<char *>(program.c_str()), program.size(), 0);
+    [[maybe_unused]] auto dynamicResult = cudaq::launchKernel(
+        SourceModule{kernel_name, KernelThunkType(nullptr)},
+        KernelArgs::PackedArgs{const_cast<char *>(program.c_str()),
+                               program.size(), 0},
+        cudaq::claimInvocationContext());
   });
 }
 
@@ -316,9 +319,11 @@ launchAnalogKernelAsync(const std::string &kernel_name,
   policy.inner.kernelName = kernel_name;
   ExecutionContext ctx(sample_policy::name, shots_count, qpu_id);
   return detail::launch(policy, qpu_id, ctx, platform, [&]() {
-    [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
-        kernel_name.c_str(), KernelThunkType(nullptr),
-        const_cast<char *>(program.c_str()), program.size(), 0);
+    [[maybe_unused]] auto dynamicResult = cudaq::launchKernel(
+        SourceModule{kernel_name, KernelThunkType(nullptr)},
+        KernelArgs::PackedArgs{const_cast<char *>(program.c_str()),
+                               program.size(), 0},
+        cudaq::claimInvocationContext());
   });
 }
 

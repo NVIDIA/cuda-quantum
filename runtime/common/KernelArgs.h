@@ -30,7 +30,7 @@ namespace cudaq {
 /// to ensure the lifetime of the arguments.
 ///
 /// `KernelArgs` can hold either representation, or both at once — the hybrid
-/// path (`cudaq::hybridLaunchKernel`) supplies both so the receiving platform
+/// path (nvq++ hybrid `codegenKind`) supplies both so the receiving platform
 /// can pick the shape it prefers.
 class KernelArgs {
 public:

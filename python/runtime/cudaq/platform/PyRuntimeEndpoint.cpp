@@ -93,7 +93,7 @@ struct PyKernelArgs {
   PyKernelArgs() = default;
 
   PyKernelArgs(KernelArgs kargs, const CompiledModule &compiled) {
-    if (kargs.hasPacked())
+    if (kargs.hasPacked() && !kargs.hasTypeErased())
       CUDAQ_WARN("Packed arguments are not supported for Python runtime "
                  "endpoints. Ignoring arguments.");
     if (auto typeErasedArgs = kargs.getTypeErased())

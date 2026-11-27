@@ -47,17 +47,20 @@ cudaq::KernelThunkResultType kernelThunk(void *, bool) {
   return {};
 }
 
-// Mimic the compiler-generated launch stub so no JIT is needed.
-void kernel() {
-  auto *ctx = cudaq::getExecutionContext();
-  if (ctx->executeKernelApi) {
-    cudaq::CompiledModule module{
-        cudaq::SourceModule{"device_selection", kernelThunk}};
-    ctx->executeKernelApi(module, {});
-  } else {
+// Launch the kernel as `__cudaq_launchKernel` does, from an already compiled
+// module so no JIT is needed. Without a launch policy (library mode,
+// `get_state`), run the kernel body directly.
+void launchKernel(const cudaq::InvocationContext &ctx) {
+  if (!ctx.launchOptions.policy) {
     kernelBody();
+    return;
   }
+  cudaq::CompiledModule module{
+      cudaq::SourceModule{"device_selection", kernelThunk}};
+  [[maybe_unused]] auto result = cudaq::launchKernel(module, {}, ctx);
 }
+
+void kernel() { launchKernel(cudaq::claimInvocationContext()); }
 
 class MQPUDeviceSelection : public testing::TestWithParam<bool> {
 protected:
@@ -128,6 +131,41 @@ TEST_P(MQPUDeviceSelection, TargetSwitchOnlyBindsGpuQpus) {
                     .get()
                     .expectation(),
                 -1.0, 1e-12);
+}
+
+TEST_P(MQPUDeviceSelection, InvocationContextCarriesPolicyCompileOptions) {
+  if (GetParam())
+    GTEST_SKIP()
+        << "Library mode launches kernels without an invocation context.";
+  auto &platform = cudaq::get_platform();
+  // Record the invocation context that each kernel launch claims.
+  static std::optional<cudaq::InvocationContext> claimed;
+  auto recordingKernel = [] {
+    claimed = cudaq::claimInvocationContext();
+    launchKernel(*claimed);
+  };
+
+  auto obs = cudaq::spin::z(0);
+  cudaq::observe_async(2, recordingKernel, obs).get();
+  ASSERT_TRUE(claimed && claimed->launchOptions.policy);
+  EXPECT_EQ(claimed->launchOptions.qpuId, 2);
+  EXPECT_EQ(claimed->endpoint, &platform.getRuntimeEndpoint(2));
+  EXPECT_EQ(claimed->compileOptions.measureObservable, obs);
+
+  cudaq::sample_async(10, 1, recordingKernel).get();
+  ASSERT_TRUE(claimed && claimed->launchOptions.policy);
+  EXPECT_EQ(claimed->launchOptions.qpuId, 1);
+  EXPECT_EQ(claimed->endpoint, &platform.getRuntimeEndpoint(1));
+  EXPECT_TRUE(claimed->compileOptions.addSampleMeasurements);
+
+  // `get_state` pushes no invocation context: the claim falls back to the
+  // platform's default, on the QPU of the execution context and without a
+  // launch policy.
+  cudaq::get_state_async(3, recordingKernel).get();
+  ASSERT_TRUE(claimed && !claimed->launchOptions.policy);
+  EXPECT_EQ(claimed->launchOptions.qpuId, 3);
+  EXPECT_EQ(claimed->endpoint, &platform.getRuntimeEndpoint(3));
+  EXPECT_FALSE(claimed->compileOptions.emitTargetCode);
 }
 
 INSTANTIATE_TEST_SUITE_P(LaunchPaths, MQPUDeviceSelection,

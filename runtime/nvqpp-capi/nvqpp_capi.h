@@ -49,26 +49,24 @@ extern const unsigned __cudaq_runtime_abi_v1;
 // Kernel launch
 //===----------------------------------------------------------------------===//
 
-/// Client-server (legacy) interface.
+/// Launch the kernel \p kernelName.
+///
+/// There are two supported argument passing conventions:
+///
+/// - **Packed**: \p packedArgs, of \p argsSize bytes, as built by the kernel's
+///   `argsCreator` and read by its \p thunk. The result, if any, is written
+///   back into it at \p resultOffset.
+/// - **Type-erased**: \p rawArgs, one pointer per argument (no result slot).
+///
+/// At least one of the two argument lists must be non-nullptr.
+///
+/// The launch uses the invocation context that the algorithm calling the
+/// kernel pushed, or the platform's default one when there is none.
 CUDAQ_NVQPP_API cudaq::KernelThunkResultType
-__cudaq_altLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
-                        void *args, std::uint64_t argsSize,
-                        std::uint64_t resultOffset);
-
-/// Streamlined interface for launching kernels. Argument synthesis and JIT
-/// compilation *must* happen on the local machine.
-CUDAQ_NVQPP_API cudaq::KernelThunkResultType
-__cudaq_streamlinedLaunchKernel(const char *kernelName,
-                                const std::vector<void *> &rawArgs);
-
-/// Hybrid of the client-server and streamlined approaches. Lets JIT
-/// compilation happen either early or late and can handle return values from
-/// each kernel launch.
-CUDAQ_NVQPP_API cudaq::KernelThunkResultType
-__cudaq_hybridLaunchKernel(const char *kernelName,
-                           cudaq::KernelThunkType kernel, void *args,
-                           std::uint64_t argsSize, std::uint64_t resultOffset,
-                           const std::vector<void *> &rawArgs);
+__cudaq_launchKernel(const char *kernelName, cudaq::KernelThunkType thunk,
+                     void *packedArgs, std::uint64_t argsSize,
+                     std::uint64_t resultOffset,
+                     const std::vector<void *> *rawArgs);
 
 //===----------------------------------------------------------------------===//
 // Kernel registration (called from static initializers of generated code)

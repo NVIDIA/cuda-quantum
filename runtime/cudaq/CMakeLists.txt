@@ -14,6 +14,7 @@ add_library(${LIBRARY_NAME}
   SHARED
     cudaq.cpp
     CompiledModuleExecution.cpp
+    KernelLaunch.cpp
     realtime.cpp
     target_control.cpp
     algorithms/draw.cpp

@@ -11,7 +11,7 @@
 // All tests should pass.
 
 // Tests that arguments of vector, vector of vector, and vector of vector of
-// vector can be passed through __cudaq_altLaunchKernel() and get the correct
+// vector can be passed through __cudaq_launchKernel() and get the correct
 // values in the span structures in the kernel.
 
 #include "cudaq/qis/qubit_qis.h"

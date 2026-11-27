@@ -1106,7 +1106,7 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   std::string properName = name(kernelName);
 
   // Incoming Args... have been converted to void **, now we convert to void *
-  // altLaunchKernel args.
+  // packed launch args.
   auto argCreatorName = properName + ".argsCreator";
   auto expectedPtr = jit->lookup(argCreatorName);
   if (!expectedPtr) {
@@ -1139,7 +1139,9 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   auto resultOffset = reinterpret_cast<std::uint64_t>(*roPtr);
 
   [[maybe_unused]] auto uncheckedResult =
-      altLaunchKernel(properName.data(), thunk, rawArgs, size, resultOffset);
+      cudaq::launchKernel(SourceModule{properName, thunk},
+                          KernelArgs::PackedArgs{rawArgs, size, resultOffset},
+                          cudaq::claimInvocationContext());
   std::free(rawArgs);
   // TODO: any return values are dropped on the floor here.
 }
