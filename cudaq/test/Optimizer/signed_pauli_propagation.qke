@@ -10,13 +10,37 @@
 // RUN: cudaq-opt --signed-pauli-propagation --canonicalize %t/gates.qke > %t/out
 // RUN: FileCheck %s < %t/out
 // RUN: CircuitCheck --input=%t/out %t/gates.qke
+// RUN: cudaq-opt --signed-pauli-propagation='basis=h,t,x,y,z' %t/gates.qke | FileCheck %s --check-prefix=NO-S
 // RUN: cudaq-opt --signed-pauli-propagation %t/controlled.qke | FileCheck %s --check-prefix=ADJOINT
 // RUN: cudaq-opt --signed-pauli-propagation --regtomem --canonicalize --apply-op-specialization --aggressive-inlining --symbol-dce --expand-control-veqs --lower-phase --canonicalize %t/controlled.qke | CircuitCheck %t/reference.qke
 // RUN: cudaq-opt --signed-pauli-propagation %t/boundary.qke | FileCheck %s --check-prefix=BOUNDARY
+// RUN: cudaq-opt --signed-pauli-propagation='basis=y,z,x(1)' %t/split-x.qke > %t/yz
+// RUN: FileCheck %s --check-prefix=SPLIT-X --implicit-check-not='quake.x %' < %t/yz
+// RUN: CircuitCheck --input=%t/yz %t/split-x.qke
+// RUN: cudaq-opt --signed-pauli-propagation='basis=z,x,y(1)' %t/split-y.qke > %t/zx
+// RUN: FileCheck %s --check-prefix=SPLIT-Y --implicit-check-not='quake.y %' < %t/zx
+// RUN: CircuitCheck --input=%t/zx %t/split-y.qke
+// RUN: cudaq-opt --signed-pauli-propagation='basis=x,y,z(1)' %t/split-z.qke > %t/xy
+// RUN: FileCheck %s --check-prefix=SPLIT-Z --implicit-check-not='quake.z %' < %t/xy
+// RUN: CircuitCheck --input=%t/xy %t/split-z.qke
+// RUN: cudaq-opt --signed-pauli-propagation='basis=h,s,y,z' %t/normalized-x.qke > %t/normalized-x
+// RUN: FileCheck %s --check-prefix=NORMALIZED-X --implicit-check-not='quake.x %' < %t/normalized-x
+// RUN: CircuitCheck --input=%t/normalized-x %t/normalized-x.qke
+// RUN: cudaq-opt --signed-pauli-propagation='basis=h,x' %t/unavailable.qke | FileCheck %s --check-prefix=UNAVAILABLE
 
 // RUN: cudaq-opt --clifford-t-synthesis-pipeline='level=2' %t/pipeline.qke > %t/synth
 // RUN: FileCheck %s --check-prefix=PIPELINE --implicit-check-not=quake.phase --implicit-check-not='quake.x %' < %t/synth
 // RUN: CircuitCheck --up-to-global-phase --input=%t/synth %t/pipeline.qke
+// RUN: cudaq-opt --signed-pauli-propagation %t/no-y-pipeline.qke > %t/reverse-y
+// RUN: FileCheck %s --check-prefix=REVERSE-Y < %t/reverse-y
+// RUN: CircuitCheck --input=%t/reverse-y %t/no-y-pipeline.qke
+// RUN: cudaq-opt --signed-pauli-propagation='basis=h,s,t,x,z,x(1)' %t/no-y-pipeline.qke > %t/reverse-xz
+// RUN: FileCheck %s --check-prefix=REVERSE-XZ --implicit-check-not=quake.y < %t/reverse-xz
+// RUN: CircuitCheck --input=%t/reverse-xz %t/no-y-pipeline.qke
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='level=2' %t/no-y-pipeline.qke | FileCheck %s --check-prefix=WITH-Y
+// RUN: cudaq-opt --pass-pipeline='builtin.module(clifford-t-synthesis-pipeline{level=2 basis=h,s,t,x,z,x(1)},basis-conversion{basis=h,s,t,x,z,x(1)})' %t/no-y-pipeline.qke > %t/no-y-synth
+// RUN: FileCheck %s --check-prefixes=NO-Y,REVERSE-XZ --implicit-check-not=quake.y --implicit-check-not=quake.phase < %t/no-y-synth
+// RUN: CircuitCheck --up-to-global-phase --input=%t/no-y-synth %t/no-y-pipeline.qke
 
 //--- gates.qke
 
@@ -110,7 +134,7 @@ func.func @hyh(%q: !quake.ref) {
 // CHECK-NOT: quake.h
 // CHECK: return
 
-// A standalone invocation can see rotations. Each one ends its Pauli frame.
+// Each rotation ends the run, so the Paulis on either side cannot cancel.
 func.func @rotation_boundaries(%q: !quake.ref) {
   %angle = arith.constant 0.25 : f64
   %0 = quake.unwrap %q : (!quake.ref) -> !quake.wire
@@ -195,6 +219,30 @@ func.func @growth(%c: !quake.ref, %t: !quake.ref) {
 // CHECK: quake.x %
 // CHECK-NEXT: {{.*}}quake.x [
 
+// T X T-adjoint X normalizes to S with phase -pi/4. A target without S
+// must keep the four original gates, all of which are in its basis.
+func.func @needs_s(%q: !quake.ref) {
+  %0 = quake.unwrap %q : (!quake.ref) -> !quake.wire
+  %1 = quake.t %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.x %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.t<adj> %2 : (!quake.wire) -> !quake.wire
+  %4 = quake.x %3 : (!quake.wire) -> !quake.wire
+  quake.wrap %4 to %q : !quake.wire, !quake.ref
+  return
+}
+// CHECK-LABEL: func.func @needs_s
+// CHECK-NOT: quake.{{[tx]}}
+// CHECK: quake.s %
+// CHECK-NOT: quake.{{[tx]}}
+// CHECK: return
+// NO-S-LABEL: func.func @needs_s
+// NO-S: %[[IN:.*]] = quake.unwrap
+// NO-S-NEXT: %[[T:.*]] = quake.t %[[IN]]
+// NO-S-NEXT: %[[X:.*]] = quake.x %[[T]]
+// NO-S-NEXT: %[[TDG:.*]] = quake.t<adj> %[[X]]
+// NO-S-NEXT: %[[OUT:.*]] = quake.x %[[TDG]]
+// NO-S-NEXT: quake.wrap %[[OUT]]
+
 //--- boundary.qke
 
 func.func @measure(%q: !quake.wire) -> (!quake.measure, !quake.wire) {
@@ -234,6 +282,94 @@ func.func @branch(%condition: i1, %q: !quake.wire) -> !quake.wire {
 // BOUNDARY-NEXT: {{.*}}cc.if
 // BOUNDARY: quake.x
 
+func.func @reference_gate(%ref: !quake.ref, %q: !quake.wire) -> !quake.wire {
+  %a = quake.x %q : (!quake.wire) -> !quake.wire
+  quake.x %ref : (!quake.ref) -> ()
+  %b = quake.x %a : (!quake.wire) -> !quake.wire
+  return %b : !quake.wire
+}
+// BOUNDARY-LABEL: func.func @reference_gate
+// BOUNDARY: quake.x %{{.*}} : (!quake.wire) -> !quake.wire
+// BOUNDARY-NEXT: quake.x %{{.*}} : (!quake.ref) -> ()
+// BOUNDARY-NEXT: {{.*}}quake.x %{{.*}} : (!quake.wire) -> !quake.wire
+
+func.func @reference_control(%ref: !quake.ref, %q: !quake.wire) -> !quake.wire {
+  %a = quake.x %q : (!quake.wire) -> !quake.wire
+  %b = quake.x [%ref] %a : (!quake.ref, !quake.wire) -> !quake.wire
+  %c = quake.x %b : (!quake.wire) -> !quake.wire
+  return %c : !quake.wire
+}
+// BOUNDARY-LABEL: func.func @reference_control
+// BOUNDARY: quake.x %
+// BOUNDARY-NEXT: {{.*}}quake.x [
+// BOUNDARY-NEXT: {{.*}}quake.x %
+
+func.func @controlled_h(%c: !quake.wire, %q: !quake.wire) -> (!quake.wire, !quake.wire) {
+  %a = quake.x %q : (!quake.wire) -> !quake.wire
+  %b:2 = quake.h [%c] %a : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %d = quake.x %b#1 : (!quake.wire) -> !quake.wire
+  return %b#0, %d : !quake.wire, !quake.wire
+}
+// BOUNDARY-LABEL: func.func @controlled_h
+// BOUNDARY: quake.x %
+// BOUNDARY-NEXT: {{.*}}quake.h [
+// BOUNDARY-NEXT: {{.*}}quake.x %
+
+func.func @two_controls(%c0: !quake.wire, %c1: !quake.wire, %q: !quake.wire)
+    -> (!quake.wire, !quake.wire, !quake.wire) {
+  %a = quake.x %q : (!quake.wire) -> !quake.wire
+  %b:3 = quake.x [%c0, %c1] %a : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+  %d = quake.x %b#2 : (!quake.wire) -> !quake.wire
+  return %b#0, %b#1, %d : !quake.wire, !quake.wire, !quake.wire
+}
+// BOUNDARY-LABEL: func.func @two_controls
+// BOUNDARY: quake.x %
+// BOUNDARY-NEXT: {{.*}}quake.x [%{{.*}}, %{{.*}}]
+// BOUNDARY-NEXT: {{.*}}quake.x %
+
+func.func @negated_control(%c: !quake.wire, %q: !quake.wire) -> (!quake.wire, !quake.wire) {
+  %a = quake.x %q : (!quake.wire) -> !quake.wire
+  %b:2 = quake.x [%c neg [true]] %a : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %d = quake.x %b#1 : (!quake.wire) -> !quake.wire
+  return %b#0, %d : !quake.wire, !quake.wire
+}
+// BOUNDARY-LABEL: func.func @negated_control
+// BOUNDARY: quake.x %
+// BOUNDARY-NEXT: {{.*}}quake.x [%{{.*}} neg [true]]
+// BOUNDARY-NEXT: {{.*}}quake.x %
+
+func.func @two_targets(%a: !quake.wire, %b: !quake.wire) -> (!quake.wire, !quake.wire) {
+  %x = quake.x %a : (!quake.wire) -> !quake.wire
+  %s:2 = quake.swap %x, %b : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %y = quake.x %s#1 : (!quake.wire) -> !quake.wire
+  return %s#0, %y : !quake.wire, !quake.wire
+}
+// BOUNDARY-LABEL: func.func @two_targets
+// BOUNDARY: quake.x %
+// BOUNDARY-NEXT: {{.*}}quake.swap
+// BOUNDARY-NEXT: {{.*}}quake.x %
+
+// An unsupported rotation on a distinct wire ends the run between the X gates.
+func.func @disjoint_rotation_boundary() {
+  %angle = arith.constant 0.25 : f64
+  %a = quake.null_wire
+  %b = quake.null_wire
+  %x = quake.x %b : (!quake.wire) -> !quake.wire
+  %r = quake.rz (%angle) %a : (f64, !quake.wire) -> !quake.wire
+  %y = quake.x %x : (!quake.wire) -> !quake.wire
+  quake.sink %r : !quake.wire
+  quake.sink %y : !quake.wire
+  return
+}
+// BOUNDARY-LABEL: func.func @disjoint_rotation_boundary
+// BOUNDARY: %[[A:.*]] = quake.null_wire
+// BOUNDARY-NEXT: %[[B:.*]] = quake.null_wire
+// BOUNDARY-NEXT: %[[X:.*]] = quake.x %[[B]]
+// BOUNDARY-NEXT: %[[R:.*]] = quake.rz (%{{.*}}) %[[A]]
+// BOUNDARY-NEXT: %[[Y:.*]] = quake.x %[[X]]
+// BOUNDARY-NEXT: quake.sink %[[R]]
+// BOUNDARY-NEXT: quake.sink %[[Y]]
+
 //--- controlled.qke
 
 func.func private @helper(%target: !quake.ref) {
@@ -267,8 +403,7 @@ func.func @controlled(%control: !quake.ref, %target: !quake.ref) {
 
 //--- pipeline.qke
 
-// Commuting X through T introduces a global phase of pi/4. The existing
-// lower-phase pass erases it from the final circuit.
+// Up to global phase, the circuit reduces to CX followed by T-adjoint.
 func.func @kernel(%c: !quake.ref, %t: !quake.ref) {
   %0 = quake.unwrap %c : (!quake.ref) -> !quake.wire
   %1 = quake.unwrap %t : (!quake.ref) -> !quake.wire
@@ -286,3 +421,196 @@ func.func @kernel(%c: !quake.ref, %t: !quake.ref) {
 // PIPELINE: quake.x [
 // PIPELINE: quake.t<adj>
 // PIPELINE: return
+
+//--- split-x.qke
+
+// In execution order, ZYYY reduces to the native pair YZ with a minus sign.
+func.func @split_x(%q: !quake.ref) {
+  %0 = quake.unwrap %q : (!quake.ref) -> !quake.wire
+  %1 = quake.z %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.y %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.y %2 : (!quake.wire) -> !quake.wire
+  %4 = quake.y %3 : (!quake.wire) -> !quake.wire
+  quake.wrap %4 to %q : !quake.wire, !quake.ref
+  return
+}
+// SPLIT-X-LABEL: func.func @split_x
+// SPLIT-X-NOT: quake.{{[xyz]}} %
+// SPLIT-X: %[[FIRST:.*]] = quake.y %
+// SPLIT-X-NEXT: {{.*}}quake.z %[[FIRST]]
+// SPLIT-X-NOT: quake.{{[xyz]}} %
+// SPLIT-X: return
+
+//--- split-y.qke
+
+// In execution order, XZZZ reduces to the native pair ZX with a minus sign.
+func.func @split_y(%q: !quake.ref) {
+  %0 = quake.unwrap %q : (!quake.ref) -> !quake.wire
+  %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.z %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.z %2 : (!quake.wire) -> !quake.wire
+  %4 = quake.z %3 : (!quake.wire) -> !quake.wire
+  quake.wrap %4 to %q : !quake.wire, !quake.ref
+  return
+}
+// SPLIT-Y-LABEL: func.func @split_y
+// SPLIT-Y-NOT: quake.{{[xyz]}} %
+// SPLIT-Y: %[[FIRST:.*]] = quake.z %
+// SPLIT-Y-NEXT: {{.*}}quake.x %[[FIRST]]
+// SPLIT-Y-NOT: quake.{{[xyz]}} %
+// SPLIT-Y: return
+
+// Each wire contributes a Y to the same candidate. Splitting both Ys
+// contributes a total phase correction of pi.
+func.func @two_splits(%a: !quake.ref, %b: !quake.ref) {
+  %a0 = quake.unwrap %a : (!quake.ref) -> !quake.wire
+  %b0 = quake.unwrap %b : (!quake.ref) -> !quake.wire
+  %a1 = quake.x %a0 : (!quake.wire) -> !quake.wire
+  %a2 = quake.z %a1 : (!quake.wire) -> !quake.wire
+  %a3 = quake.z %a2 : (!quake.wire) -> !quake.wire
+  %a4 = quake.z %a3 : (!quake.wire) -> !quake.wire
+  %b1 = quake.x %b0 : (!quake.wire) -> !quake.wire
+  %b2 = quake.z %b1 : (!quake.wire) -> !quake.wire
+  %b3 = quake.z %b2 : (!quake.wire) -> !quake.wire
+  %b4 = quake.z %b3 : (!quake.wire) -> !quake.wire
+  quake.wrap %a4 to %a : !quake.wire, !quake.ref
+  quake.wrap %b4 to %b : !quake.wire, !quake.ref
+  return
+}
+// SPLIT-Y-LABEL: func.func @two_splits
+// SPLIT-Y: %[[A:.*]] = quake.unwrap
+// SPLIT-Y-NEXT: %[[B:.*]] = quake.unwrap
+// SPLIT-Y-NEXT: %[[ZA:.*]] = quake.z %[[A]]
+// SPLIT-Y-NEXT: {{.*}}quake.x %[[ZA]]
+// SPLIT-Y-NEXT: %[[ZB:.*]] = quake.z %[[B]]
+// SPLIT-Y-NEXT: {{.*}}quake.x %[[ZB]]
+// SPLIT-Y-NOT: quake.{{[xz]}} %
+// SPLIT-Y: return
+
+//--- split-z.qke
+
+// In execution order, YXXX reduces to the native pair XY with a minus sign.
+func.func @split_z(%q: !quake.ref) {
+  %0 = quake.unwrap %q : (!quake.ref) -> !quake.wire
+  %1 = quake.y %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.x %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.x %2 : (!quake.wire) -> !quake.wire
+  %4 = quake.x %3 : (!quake.wire) -> !quake.wire
+  quake.wrap %4 to %q : !quake.wire, !quake.ref
+  return
+}
+// SPLIT-Z-LABEL: func.func @split_z
+// SPLIT-Z-NOT: quake.{{[xyz]}} %
+// SPLIT-Z: %[[FIRST:.*]] = quake.x %
+// SPLIT-Z-NEXT: {{.*}}quake.y %[[FIRST]]
+// SPLIT-Z-NOT: quake.{{[xyz]}} %
+// SPLIT-Z: return
+
+//--- normalized-x.qke
+
+// The two Y gates cancel during propagation. Single-qubit normalization then
+// turns H S S H into X, which also needs decomposition in this basis.
+func.func @normalized_x(%q: !quake.ref) {
+  %0 = quake.unwrap %q : (!quake.ref) -> !quake.wire
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.s %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.s %2 : (!quake.wire) -> !quake.wire
+  %4 = quake.h %3 : (!quake.wire) -> !quake.wire
+  %5 = quake.y %4 : (!quake.wire) -> !quake.wire
+  %6 = quake.y %5 : (!quake.wire) -> !quake.wire
+  quake.wrap %6 to %q : !quake.wire, !quake.ref
+  return
+}
+// NORMALIZED-X-LABEL: func.func @normalized_x
+// NORMALIZED-X-NOT: quake.{{[hsyz]}} %
+// NORMALIZED-X: %[[Y:.*]] = quake.y %
+// NORMALIZED-X-NEXT: {{.*}}quake.z %[[Y]]
+// NORMALIZED-X-NOT: quake.{{[hsyz]}} %
+// NORMALIZED-X: return
+
+//--- unavailable.qke
+
+// H X H would reduce to Z, which the target cannot emit.
+func.func @unavailable_z(%q: !quake.wire) -> !quake.wire {
+  %a = quake.h %q : (!quake.wire) -> !quake.wire
+  %b = quake.x %a : (!quake.wire) -> !quake.wire
+  %c = quake.h %b : (!quake.wire) -> !quake.wire
+  return %c : !quake.wire
+}
+// UNAVAILABLE-LABEL: func.func @unavailable_z
+// UNAVAILABLE: quake.h %
+// UNAVAILABLE-NEXT: {{.*}}quake.x %
+// UNAVAILABLE-NEXT: {{.*}}quake.h %
+
+//--- no-y-pipeline.qke
+
+// A native Y reduces the gate count. With only X and Z available for the
+// Pauli factor, the candidate ties the input and the original gates remain.
+func.func @y_free(%c: !quake.ref, %t: !quake.ref) {
+  %0 = quake.unwrap %c : (!quake.ref) -> !quake.wire
+  %1 = quake.unwrap %t : (!quake.ref) -> !quake.wire
+  %2 = quake.x %1 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.z %3#1 : (!quake.wire) -> !quake.wire
+  quake.wrap %3#0 to %c : !quake.wire, !quake.ref
+  quake.wrap %4 to %t : !quake.wire, !quake.ref
+  return
+}
+// WITH-Y-LABEL: func.func @y_free
+// WITH-Y: quake.x [
+// WITH-Y: quake.y %
+// NO-Y-LABEL: func.func @y_free
+// NO-Y: %[[X:.*]] = quake.x %
+// NO-Y-NEXT: %[[CX:.*]]:2 = quake.x {{\[}}%{{.*}}] %[[X]]
+// NO-Y-NEXT: {{.*}}quake.z %[[CX]]#1
+
+// With only X and Z available, the forward sweep ties the five input gates.
+// The reverse sweep emits Y on the control before CX and flips T to T-adjoint,
+// with phase -pi/4. Splitting Y into Z then X adds pi/2, giving +pi/4 overall.
+func.func @reverse_t(%c: !quake.ref, %t: !quake.ref) {
+  %0 = quake.unwrap %c : (!quake.ref) -> !quake.wire
+  %1 = quake.unwrap %t : (!quake.ref) -> !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %3 = quake.t %2#0 : (!quake.wire) -> !quake.wire
+  %4 = quake.z %3 : (!quake.wire) -> !quake.wire
+  %5 = quake.x %2#1 : (!quake.wire) -> !quake.wire
+  %6 = quake.x %4 : (!quake.wire) -> !quake.wire
+  quake.wrap %6 to %c : !quake.wire, !quake.ref
+  quake.wrap %5 to %t : !quake.wire, !quake.ref
+  return
+}
+// REVERSE-Y-LABEL: func.func @reverse_t(
+// REVERSE-Y: %[[Y:.*]] = quake.y %
+// REVERSE-Y-NEXT: %[[CX:.*]]:2 = quake.x {{\[}}%[[Y]]]
+// REVERSE-Y-NEXT: {{.*}}quake.t<adj> %[[CX]]#0
+
+// REVERSE-XZ-LABEL: func.func @reverse_t(
+// REVERSE-XZ: %[[Z:.*]] = quake.z %
+// REVERSE-XZ-NEXT: %[[X:.*]] = quake.x %[[Z]]
+// REVERSE-XZ-NEXT: %[[CX:.*]]:2 = quake.x {{\[}}%[[X]]]
+// REVERSE-XZ-NEXT: {{.*}}quake.t<adj> %[[CX]]#0
+
+// With T-adjoint in the source, the reverse sweep emits T. Its phase is
+// 5pi/4 with native Y, or 7pi/4 after splitting Y into Z then X.
+func.func @reverse_tdg(%c: !quake.ref, %t: !quake.ref) {
+  %0 = quake.unwrap %c : (!quake.ref) -> !quake.wire
+  %1 = quake.unwrap %t : (!quake.ref) -> !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %3 = quake.t<adj> %2#0 : (!quake.wire) -> !quake.wire
+  %4 = quake.z %3 : (!quake.wire) -> !quake.wire
+  %5 = quake.x %2#1 : (!quake.wire) -> !quake.wire
+  %6 = quake.x %4 : (!quake.wire) -> !quake.wire
+  quake.wrap %6 to %c : !quake.wire, !quake.ref
+  quake.wrap %5 to %t : !quake.wire, !quake.ref
+  return
+}
+// REVERSE-Y-LABEL: func.func @reverse_tdg
+// REVERSE-Y: %[[Y:.*]] = quake.y %
+// REVERSE-Y-NEXT: %[[CX:.*]]:2 = quake.x {{\[}}%[[Y]]]
+// REVERSE-Y-NEXT: {{.*}}quake.t %[[CX]]#0
+
+// REVERSE-XZ-LABEL: func.func @reverse_tdg
+// REVERSE-XZ: %[[Z:.*]] = quake.z %
+// REVERSE-XZ-NEXT: %[[X:.*]] = quake.x %[[Z]]
+// REVERSE-XZ-NEXT: %[[CX:.*]]:2 = quake.x {{\[}}%[[X]]]
+// REVERSE-XZ-NEXT: {{.*}}quake.t %[[CX]]#0

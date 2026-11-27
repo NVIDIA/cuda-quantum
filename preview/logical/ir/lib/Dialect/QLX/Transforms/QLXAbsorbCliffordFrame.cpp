@@ -12,6 +12,7 @@
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
 #include "qlx/Dialect/QLX/IR/QLXTypes.h"
 #include "qlx/Dialect/QLX/Transforms/Passes.h"
+#include "cudaq/Support/PauliProduct.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SmallVector.h"
@@ -35,50 +36,11 @@ using namespace qlx;
 
 namespace {
 
-/// `i^phase X^x Z^z` over one fixed global owner order.
-struct Pauli {
-  llvm::APInt x;
-  llvm::APInt z;
-  unsigned phase = 0;
-
-  explicit Pauli(unsigned width, unsigned phase = 0)
-      : x(width, 0), z(width, 0), phase(phase & 3U) {}
-
-  bool operator==(const Pauli &other) const {
-    return x == other.x && z == other.z && phase == other.phase;
-  }
-};
-
-static Pauli multiply(const Pauli &left, const Pauli &right) {
-  Pauli result(left.x.getBitWidth());
-  result.x = left.x ^ right.x;
-  result.z = left.z ^ right.z;
-  result.phase =
-      (left.phase + right.phase +
-       2U * static_cast<unsigned>((left.z & right.x).popcount() & 1U)) &
-      3U;
-  return result;
-}
-
-static bool anticommutes(const Pauli &left, const Pauli &right) {
-  return ((((left.x & right.z).popcount() + (left.z & right.x).popcount()) &
-           1U) != 0U);
-}
-
-static std::optional<bool> hermitianSign(const Pauli &pauli) {
-  unsigned canonical =
-      static_cast<unsigned>((pauli.x & pauli.z).popcount()) & 3U;
-  unsigned delta = (pauli.phase + 4U - canonical) & 3U;
-  if (delta == 0U)
-    return false;
-  if (delta == 2U)
-    return true;
-  return std::nullopt;
-}
+using Pauli = cudaq::PauliProduct;
 
 static Pauli conjugateInverseQuarter(const Pauli &axis, Pauli value,
                                      int quarterTurns) {
-  if (!anticommutes(axis, value))
+  if (!axis.anticommutes(value))
     return value;
   int reduced = quarterTurns % 4;
   if (reduced == 0)
@@ -89,7 +51,7 @@ static Pauli conjugateInverseQuarter(const Pauli &axis, Pauli value,
     // Walking the authored circuit forward while retaining an inverse frame
     // requires D^dagger Q D. For D=exp(-i*pi*P/4), this is +i P Q;
     // the negative quarter turn uses -i P Q.
-    value = multiply(axis, value);
+    value = axis * value;
     value.phase = (value.phase + (direction > 0 ? 1U : 3U)) & 3U;
   }
   return value;
@@ -115,10 +77,10 @@ public:
     Pauli result(width, source.phase);
     for (unsigned q = 0; q < width; ++q)
       if (source.x[q])
-        result = multiply(result, images[q]);
+        result = result * images[q];
     for (unsigned q = 0; q < width; ++q)
       if (source.z[q])
-        result = multiply(result, images[width + q]);
+        result = result * images[width + q];
     return result;
   }
 
@@ -275,7 +237,7 @@ static DictionaryAttr transformedParameters(OpBuilder &builder,
                       IntegerAttr::get(maskType, xMask));
   fields.emplace_back(builder.getStringAttr("z_mask"),
                       IntegerAttr::get(maskType, zMask));
-  bool negative = hermitianSign(pauli).value_or(false);
+  bool negative = pauli.hermitianSign().value_or(false);
   fields.emplace_back(builder.getStringAttr("sign"),
                       IntegerAttr::get(i64, negative ? -1 : 1));
   return DictionaryAttr::get(builder.getContext(), fields);
@@ -537,7 +499,7 @@ static LogicalResult normalizeBlock(Block &block, InverseFrame &frame,
                            indexed.qidx, frame.size(), source)))
         return failure();
       Pauli transformed = frame.map(source);
-      auto sign = hermitianSign(transformed);
+      auto sign = transformed.hermitianSign();
       if (!sign)
         return apply.emitOpError(
             "Clifford frame transformed a Hermitian Pauli into a non-Hermitian "

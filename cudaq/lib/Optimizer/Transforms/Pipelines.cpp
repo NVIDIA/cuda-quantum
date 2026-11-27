@@ -326,13 +326,16 @@ bool cudaq::opt::canFuseToU3(ArrayRef<std::string> basis) {
 /// Simplify and normalize the Clifford+T words that synthesis emits.
 /// Clifford+T normalization emits a global phase, so lower it again.
 static void addCliffordTCleanup(OpPassManager &funcPM,
-                                double approximationTolerance) {
+                                double approximationTolerance,
+                                ArrayRef<std::string> basis) {
   cudaq::opt::QuakeSimplifyOptions cleanupOpts;
   cleanupOpts.threshold = approximationTolerance;
   funcPM.addPass(cudaq::opt::createQuakeSimplify(cleanupOpts));
   funcPM.addPass(cudaq::opt::createNormalizeSingleQubitCliffordT());
   funcPM.addPass(cudaq::opt::createPhaseFolding());
-  funcPM.addPass(cudaq::opt::createSignedPauliPropagation());
+  cudaq::opt::SignedPauliPropagationOptions pauliOpts;
+  pauliOpts.basis.assign(basis.begin(), basis.end());
+  funcPM.addPass(cudaq::opt::createSignedPauliPropagation(pauliOpts));
   funcPM.addPass(cudaq::opt::createNormalizePhasePlacement());
   funcPM.addPass(cudaq::opt::createLowerPhase());
   funcPM.addPass(createCanonicalizerPass());
@@ -394,8 +397,8 @@ addCliffordTSynthesis(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   if (options.level >= 2)
-    addCliffordTCleanup(pm.nest<func::FuncOp>(),
-                        options.approximationTolerance);
+    addCliffordTCleanup(pm.nest<func::FuncOp>(), options.approximationTolerance,
+                        basis);
 }
 
 void cudaq::opt::registerCliffordTPipelines() {

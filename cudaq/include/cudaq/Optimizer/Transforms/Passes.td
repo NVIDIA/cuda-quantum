@@ -2219,12 +2219,21 @@ def ShrinkWrap : Pass<"shrink-wrap", "mlir::func::FuncOp"> {
 def SignedPauliPropagation : Pass<"signed-pauli-propagation", "mlir::func::FuncOp"> {
   let summary = "Cancel Pauli gates across straight-line Quake wire operations";
   let description = [{
-    Propagate X, Y, and Z through H, CX, S, T, and their adjoints on linear
-    wires after rotation synthesis. Each unsupported operation ends the sequence.
-    Try both directions and keep a rewrite only if it uses fewer physical gates
-    after cleanup without increasing the T-count or two-qubit gate count.
-    Emit `quake.phase` when needed to preserve the sequence's global phase.
+    Move X, Y, and Z through H, CX, S, T, and their adjoints on linear Quake
+    wires to expose gate cancellations. Each unsupported operation ends the
+    sequence, even when it acts on a different wire.
+
+    Try both propagation directions and normalize the resulting single-qubit
+    Clifford+T sequences. If a candidate needs a Pauli outside the target
+    basis, use the other two Paulis when both are native and count both gates.
+    An empty basis permits all supported gates.
+
+    Accept a rewrite only if its gates are legal in the basis and it reduces
+    the total physical gate count without increasing the T-count or two-qubit
+    gate count. Emit `quake.phase` when needed to preserve the exact unitary.
   }];
+  let options = [ListOption<"basis", "basis", "std::string",
+                            "Allowed gates with optional control counts, e.g. h,x(1)">];
   let dependentDialects = ["mlir::arith::ArithDialect", "cudaq::quake::QuakeDialect"];
 }
 

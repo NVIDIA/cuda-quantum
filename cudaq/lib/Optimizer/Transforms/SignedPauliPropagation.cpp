@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Move Pauli gates through the Clifford+T gates left by rotation synthesis
+// Move Pauli gates through a Clifford+T sequence
 // so they can cancel with Paulis on the same wires. Preserve the global phase.
 // For example,
 //
@@ -17,6 +17,8 @@
 // Try propagation from both ends. Emit the remaining Paulis and normalize
 // the Clifford+T gates in each candidate before comparing gate counts.
 
+#include "DecompositionPatterns.h"
+#include "NormalizeSingleQubitCliffordT.h"
 #include "PhaseUtilities.h"
 #include "SingleQubitChain.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
@@ -24,7 +26,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "llvm/ADT/BitVector.h"
+#include "cudaq/Support/PauliProduct.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -39,41 +41,20 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-/// The Quake gates for which propagatePauliFrame() implements an exact frame
-/// update.
-enum class Kind { X, Y, Z, H, CX, S, T };
 
-/// A gate in execution order. Lane indices identify qubits even as each
-/// emitted gate produces a new SSA wire for its target and controls.
+/// The SSA values change as gates are emitted. Lane indices remain stable.
 struct Gate {
-  /// Selects the frame update and the Quake operation to emit.
-  Kind kind;
-  /// Index of the target in the sequence's wire arrays.
+  cudaq::quake::OperatorInterface op;
   unsigned target;
-  /// Index of the control wire for CX. Empty for single-qubit gates.
   std::optional<unsigned> control;
-  /// Source location carried into the replacement IR.
-  Location loc;
-  /// Whether to emit the adjoint of the named gate.
-  bool adj;
-  /// Quake's Hermitian trait identifies gates that are their own inverses.
-  bool hermitian;
-
-  /// Only S and T have distinct adjoints in this gate set.
-  void takeAdjoint() {
-    if (!hermitian)
-      adj = !adj;
-  }
 };
 
-/// A contiguous run of supported operations in one block. The lane order is
-/// fixed by the first use of each wire and shared by both candidate sweeps.
+/// A contiguous run of supported gates in one block. Both sweeps use the
+/// same first-use order for wire lanes.
 struct Sequence {
-  /// Original operations to erase if a candidate wins, in execution order.
-  SmallVector<Operation *> operations;
   SmallVector<Value> inputs;  ///< First wire operand on each lane.
   SmallVector<Value> outputs; ///< Most recent wire result on each lane.
-  /// Gates in the same order as operations, with wires resolved to lanes.
+  /// Gates in execution order, with wires resolved to lanes.
   SmallVector<Gate> gates;
   /// Maps the current SSA value on each wire to its lane index.
   DenseMap<Value, unsigned> lanes;
@@ -86,8 +67,8 @@ struct Sequence {
   /// @return The qubit's stable index in this sequence's `inputs` and
   /// `outputs`, assigned on first use and reused by subsequent gates.
   unsigned advanceWireLane(Value input, Value output) {
-    auto [it, fresh] = lanes.try_emplace(input, inputs.size());
-    unsigned index = it->second;
+    const auto [it, fresh] = lanes.try_emplace(input, inputs.size());
+    const unsigned index = it->second;
     // `fresh` is true when try_emplace inserted this SSA wire into the map.
     // Its first use in this sequence establishes a new input lane.
     if (fresh) {
@@ -106,89 +87,57 @@ struct Sequence {
   ///
   /// @param op Operation to check for exact Pauli propagation.
   /// @return True if the gate was appended and its wire lanes advanced.
-  /// False leaves the sequence unchanged so the caller can finish it before
-  /// `op`.
+  /// Otherwise, the sequence ends before `op`.
   bool tryAppendGate(Operation &op) {
-    auto kind = llvm::TypeSwitch<Operation *, std::optional<Kind>>(&op)
-                    .Case<cudaq::quake::XOp>([](auto g) {
-                      return g.getControls().empty() ? Kind::X : Kind::CX;
-                    })
-                    .Case<cudaq::quake::YOp>([](auto) { return Kind::Y; })
-                    .Case<cudaq::quake::ZOp>([](auto) { return Kind::Z; })
-                    .Case<cudaq::quake::HOp>([](auto) { return Kind::H; })
-                    .Case<cudaq::quake::SOp>([](auto) { return Kind::S; })
-                    .Case<cudaq::quake::TOp>([](auto) { return Kind::T; })
-                    .Default(std::nullopt);
-    // Only the gate kinds above have frame-update rules. End the sequence
-    // here so pending Paulis are flushed before this operation.
-    if (!kind)
+    if (!isa<cudaq::quake::XOp, cudaq::quake::YOp, cudaq::quake::ZOp,
+             cudaq::quake::HOp, cudaq::quake::SOp, cudaq::quake::TOp>(op))
       return false;
     auto gate = cast<cudaq::quake::OperatorInterface>(&op);
-    auto flow = cudaq::quake::detail::getWireFlow(&op);
-    // Each input must have a unique use and a corresponding wire result.
-    // The CX update assumes one positive control.
+    const auto flow = cudaq::quake::detail::getWireFlow(&op);
+    // Only CX has a frame update for a controlled operation.
     if (!flow || gate.getTargets().size() != 1 ||
-        gate.getControls().size() != (*kind == Kind::CX ? 1u : 0u) ||
-        llvm::is_contained(cudaq::quake::getControlPolarities(gate), true) ||
+        (!gate.getControls().empty() &&
+         (!isa<cudaq::quake::XOp>(op) || gate.getControls().size() != 1 ||
+          llvm::is_contained(cudaq::quake::getControlPolarities(gate),
+                             true))) ||
         !llvm::all_of(flow->inputs, [](Value v) { return v.hasOneUse(); }))
       return false;
+
     // Quake lists control wires before the target in both inputs and results.
     std::optional<unsigned> control;
     if (!gate.getControls().empty())
       control = advanceWireLane(flow->inputs.front(), flow->results.front());
-    auto target = advanceWireLane(flow->inputs.back(), flow->results.back());
-    gates.push_back({*kind, target, control, op.getLoc(), gate.isAdj(),
-                     op.hasTrait<cudaq::Hermitian>()});
-    operations.push_back(&op);
+    const auto target =
+        advanceWireLane(flow->inputs.back(), flow->results.back());
+    gates.push_back({gate, target, control});
     return true;
   }
 };
 
-/// Take the adjoint of the entire sequence in place, reversing execution order.
-static void takeSequenceAdjoint(SmallVectorImpl<Gate> &gates) {
-  std::reverse(gates.begin(), gates.end());
-  for (Gate &g : gates)
-    g.takeAdjoint();
-}
-
-/// One binary symplectic tableau row (x | z) and its scalar phase represent
-/// the pending product exp(i pi phase/4) prod_j X_j^x[j] Z_j^z[j].
-struct PauliFrame {
-  /// Start with the identity on every wire.
-  explicit PauliFrame(unsigned width) : x(width), z(width) {}
-
-  llvm::BitVector x;  ///< One packed X bit per wire.
-  llvm::BitVector z;  ///< One packed Z bit per wire.
-  unsigned phase = 0; ///< Exponent of exp(i pi/4), modulo eight.
-
-  /// Multiply the entire row by exp(i pi exponent/4). Unsigned reduction
-  /// modulo eight also handles negative exponents.
-  void addPhase(int exponent) { phase = (phase + exponent) % 8; }
+/// A source gate that survived propagation. Only S and T can change adjoint.
+struct RetainedGate {
+  Gate gate;
+  bool adjoint;
 };
 
-/// Sweep forward on `width` wires. After each input gate, the original prefix
-/// equals the emitted gates followed in execution order by the pending frame.
-/// In matrix order the frame is F = omega^phase prod_j X_j^x Z_j^z, where
-/// omega = exp(i pi/4). For each gate G, solve G F = F' G' and emit G'.
-/// The diagrams below give each rule in execution order. I is an idle wire.
+/// Sweep the circuit or its adjoint. After each gate the original prefix equals
+/// the emitted gates followed in execution order by the pending Pauli product.
+/// The additional scalar is in units of pi/4, since T can introduce an odd
+/// power of exp(i pi/4). The Pauli product itself carries a power of i.
 ///
-/// @param gates Sequence to rewrite in place, including the final Paulis.
-/// @param width Number of wire lanes in the sequence.
-/// @return Remaining scalar exponent modulo eight after emitting the frame.
-static unsigned propagatePauliFrame(SmallVectorImpl<Gate> &gates,
-                                    unsigned width) {
-  PauliFrame frame(width);
-  SmallVector<Gate> result;
-  for (Gate g : gates) {
-    switch (g.kind) {
-    case Kind::X:
-    case Kind::Y:
-    case Kind::Z:
-      /*
-       * Absorb any single-qubit Pauli gate G (X, Y, or Z) into the frame.
-       * If P is pending on its target wire, the product in matrix order is
-       * G P = s Q. The frame retains Q and the scalar phase for later emission.
-       */
+/// @return The additional phase modulo 8, or `std::nullopt` if a gate has no
+/// propagation rule. In that case the caller must discard the partial frame
+/// and retained gates.
+static std::optional<unsigned>
+propagatePauliFrame(const Sequence &seq, bool reverse,
+                    cudaq::PauliProduct &frame,
+                    SmallVectorImpl<RetainedGate> &result) {
+  unsigned phase = 0;
+  for (size_t i = 0, n = seq.gates.size(); i < n; ++i) {
+    Gate g = seq.gates[reverse ? n - i - 1 : i];
+    bool adjoint = false;
+    if (!g.control &&
+        isa<cudaq::quake::XOp, cudaq::quake::YOp, cudaq::quake::ZOp>(g.op)) {
       //  ┌───┐┌───┐       ┌───┐
       //  ┤ P ├┤ G ├ = s × ┤ Q ├
       //  └───┘└───┘       └───┘
@@ -199,19 +148,11 @@ static unsigned propagatePauliFrame(SmallVectorImpl<Gate> &gates,
       //    X       I   -iZ    iY
       //    Y      iZ     I   -iX
       //    Z     -iY    iX     I
-      // Left-multiply by the incoming Pauli. Y supplies i = omega^2.
-      // Moving its Z factor (or an incoming Z) past a pending X supplies -1.
-      if (g.kind == Kind::Y)
-        frame.addPhase(2);
-      if (g.kind != Kind::X) {
-        if (frame.x.test(g.target))
-          frame.addPhase(4);
-        frame.z.flip(g.target);
-      }
-      if (g.kind != Kind::Z)
-        frame.x.flip(g.target);
+      frame.leftMultiplyPauli(g.target, !isa<cudaq::quake::ZOp>(g.op),
+                              !isa<cudaq::quake::XOp>(g.op));
       continue;
-    case Kind::H: {
+    }
+    if (!g.control && isa<cudaq::quake::HOp>(g.op)) {
       //  ┌───┐┌───┐       ┌───┐┌───┐
       //  ┤ P ├┤ H ├ = s × ┤ H ├┤ Q ├
       //  └───┘└───┘       └───┘└───┘
@@ -224,15 +165,13 @@ static unsigned propagatePauliFrame(SmallVectorImpl<Gate> &gates,
       //  └───┘└───┘└───┘        └───┘
       // H exchanges X and Z. When both are present, reordering ZX to XZ
       // supplies the minus sign in H Y H = -Y.
-      const bool x = frame.x.test(g.target);
-      const bool z = frame.z.test(g.target);
+      const bool x = frame.x[g.target];
+      const bool z = frame.z[g.target];
       if (x && z)
-        frame.addPhase(4);
-      frame.x[g.target] = z;
-      frame.z[g.target] = x;
-      break;
-    }
-    case Kind::CX:
+        frame.phase = (frame.phase + 2) % 4;
+      frame.x.setBitVal(g.target, z);
+      frame.z.setBitVal(g.target, x);
+    } else if (g.control && isa<cudaq::quake::XOp>(g.op)) {
       //  ┌───┐                 ┌───┐
       //  ┤ A ├──●──       ──●──┤ C ├
       //  └───┘  │   = s ×   │  └───┘
@@ -267,13 +206,12 @@ static unsigned propagatePauliFrame(SmallVectorImpl<Gate> &gates,
       //  └───┘└───┘   └───┘└───┘
       // CX preserves X-before-Z order in the frame. The minus signs above
       // arise when converting between the XZ factors and physical Y gates.
-      if (frame.x.test(*g.control))
-        frame.x.flip(g.target);
-      if (frame.z.test(g.target))
-        frame.z.flip(*g.control);
-      break;
-    case Kind::S:
-    case Kind::T:
+      if (frame.x[g.control.value()])
+        frame.x.flipBit(g.target);
+      if (frame.z[g.target])
+        frame.z.flipBit(g.control.value());
+    } else if (!g.control && isa<cudaq::quake::SOp, cudaq::quake::TOp>(g.op)) {
+      adjoint = g.op.isAdj();
       //  For P = I or Z, D commutes with the frame.
       //
       //  ┌───┐┌───┐   ┌───┐┌───┐
@@ -289,46 +227,33 @@ static unsigned propagatePauliFrame(SmallVectorImpl<Gate> &gates,
       //   D      S    S†     T           T†
       //  D†     S†    S      T†          T
       //   s      i   -i      exp(iπ/4)   exp(-iπ/4)
-      if (frame.x.test(g.target)) {
+      if (frame.x[g.target]) {
         // For D = diag(1, omega^k), D X = omega^k X D†. The
         // exponent changes sign for an adjoint S or T.
-        int exponent = g.kind == Kind::T ? 1 : 2;
-        frame.addPhase(g.adj ? -exponent : exponent);
-        g.adj = !g.adj;
+        const unsigned exponent = isa<cudaq::quake::TOp>(g.op) ? 1 : 2;
+        phase += (adjoint != reverse) ? 8 - exponent : exponent;
+        adjoint = !adjoint;
       }
-      break;
+    } else {
+      return std::nullopt;
     }
-    // Absorbing a Pauli can expose adjacent inverse gates on the same wires.
+    // Equal gates on the same lanes cancel if their final forms are inverses.
     if (!result.empty()) {
-      const Gate &last = result.back();
-      if (last.kind == g.kind && last.target == g.target &&
-          last.control == g.control && (g.hermitian || last.adj != g.adj)) {
+      const auto &last = result.back();
+      if (last.gate.op->getName() == g.op->getName() &&
+          last.gate.target == g.target && last.gate.control == g.control &&
+          (g.op->hasTrait<cudaq::Hermitian>() || last.adjoint != adjoint)) {
         result.pop_back();
         continue;
       }
     }
-    result.push_back(g);
+    result.push_back({g, adjoint});
   }
-  // Flush at most one Pauli per wire in the sequence's original lane order.
-  for (unsigned lane = 0; lane < width; ++lane) {
-    const bool x = frame.x.test(lane);
-    const bool z = frame.z.test(lane);
-    if (!x && !z)
-      continue;
-    // Y = iXZ, so emitting Y for XZ leaves a scalar of -i.
-    if (x && z)
-      frame.addPhase(-2);
-    result.push_back({x ? (z ? Kind::Y : Kind::X) : Kind::Z, lane, std::nullopt,
-                      gates.back().loc,
-                      /*adj=*/false,
-                      /*hermitian=*/true});
-  }
-  gates = std::move(result);
-  return frame.phase;
+  return phase % 8;
 }
 
-/// Emit a gate and advance the caller's target and control wires to its SSA
-/// results using Quake's operand and result ordering.
+/// Emit a gate and update its target and control wires to the corresponding
+/// SSA results.
 template <typename Op>
 static void emitGate(OpBuilder &builder, Location loc, Value &target,
                      MutableArrayRef<Value> controls = {},
@@ -338,10 +263,34 @@ static void emitGate(OpBuilder &builder, Location loc, Value &target,
       MutableArrayRef<Value>(target));
 }
 
-/// Build one candidate by propagating Paulis either forward (input to output)
-/// or in reverse (output to input). The caller tries both directions because
-/// they can expose different cancellations. Both candidates implement the
-/// original circuit, including its global phase.
+static void emitPauli(cudaq::quake::Pauli pauli, OpBuilder &builder,
+                      Location loc, Value &wire) {
+  switch (pauli) {
+  case cudaq::quake::Pauli::X:
+    return emitGate<cudaq::quake::XOp>(builder, loc, wire);
+  case cudaq::quake::Pauli::Y:
+    return emitGate<cudaq::quake::YOp>(builder, loc, wire);
+  case cudaq::quake::Pauli::Z:
+    return emitGate<cudaq::quake::ZOp>(builder, loc, wire);
+  case cudaq::quake::Pauli::I:
+    llvm_unreachable("identity has no gate");
+  }
+}
+
+/// Anchor exp(i pi exponent/4) on a live wire to preserve the exact unitary.
+static Value applyGlobalPhase(OpBuilder &builder, Location loc, Value wire,
+                              unsigned exponent) {
+  exponent %= 8;
+  if (!exponent)
+    return wire;
+  const Value angle =
+      cudaq::opt::factory::createF64Constant(loc, builder, exponent * M_PI_4);
+  return cudaq::opt::emitPhaseCorrection(builder, loc, angle, {}, {}, wire)
+      .anchor;
+}
+
+/// Build an exactly equivalent candidate by propagating Paulis from one end
+/// of the sequence. The two directions can expose different cancellations.
 ///
 /// For example, start with a CX followed by an X on each wire. Both circuits
 /// below are drawn in execution order, from left to right.
@@ -362,70 +311,68 @@ static void emitGate(OpBuilder &builder, Location loc, Value &target,
 /// and output wires define the lane order of the candidate.
 /// @param reverse If false, sweep from input to output. If true, sweep the
 /// adjoint sequence and take the adjoint of the result.
-/// @return A caller-owned, detached block in the original execution direction,
-/// with the Pauli frame fully emitted. Block argument i represents
-/// `seq.inputs[i]` and operand i of its `func.return` replaces
-/// `seq.outputs[i]` if the caller selects this candidate.
+/// @return A detached block in the original execution direction, with the
+/// Pauli frame fully emitted. Block argument i corresponds to `seq.inputs[i]`
+/// and operand i of its `func.return` corresponds to `seq.outputs[i]`.
+/// A null block means a gate lacks a propagation or emission rule and the
+/// caller must keep the original sequence.
 static std::unique_ptr<Block> materializeCandidate(const Sequence &seq,
                                                    bool reverse) {
-  auto gates = seq.gates;
-  // For a reverse sweep, reverse the gate order and invert each gate. The
-  // forward routine then visits the original circuit from output to input.
-  if (reverse)
-    takeSequenceAdjoint(gates);
-  unsigned phase = propagatePauliFrame(gates, seq.inputs.size());
-  if (reverse) {
-    // The sweep just optimized the inverse circuit. Invert the result so the
-    // candidate implements the original circuit in its input-to-output order.
-    takeSequenceAdjoint(gates);
-    // Taking the adjoint also conjugates the scalar returned by the sweep.
-    phase = (8 - phase) % 8;
-  }
-  // Build each candidate off to the side so cleanup can follow unique wire
-  // uses without modifying the original. The terminator holds its live-outs.
+  const unsigned width = seq.inputs.size();
+  cudaq::PauliProduct frame(width);
+  SmallVector<RetainedGate> retained;
+  const auto sweepPhase = propagatePauliFrame(seq, reverse, frame, retained);
+  if (!sweepPhase)
+    return nullptr;
+  unsigned phase = sweepPhase.value() + 2 * frame.phase;
+
   auto block = std::make_unique<Block>();
-  OpBuilder b(seq.operations.front()->getContext());
+  OpBuilder b(seq.inputs.front().getContext());
   b.setInsertionPointToEnd(block.get());
   SmallVector<Value> wires;
   for (Value input : seq.inputs)
     wires.push_back(block->addArgument(input.getType(), input.getLoc()));
-  for (const Gate &g : gates) {
-    Value &q = wires[g.target];
-    switch (g.kind) {
-    case Kind::X:
-      emitGate<cudaq::quake::XOp>(b, g.loc, q);
-      break;
-    case Kind::Y:
-      emitGate<cudaq::quake::YOp>(b, g.loc, q);
-      break;
-    case Kind::Z:
-      emitGate<cudaq::quake::ZOp>(b, g.loc, q);
-      break;
-    case Kind::H:
-      emitGate<cudaq::quake::HOp>(b, g.loc, q);
-      break;
-    case Kind::CX:
-      emitGate<cudaq::quake::XOp>(b, g.loc, q,
-                                  MutableArrayRef<Value>(wires[*g.control]));
-      break;
-    case Kind::S:
-      emitGate<cudaq::quake::SOp>(b, g.loc, q, {}, g.adj);
-      break;
-    case Kind::T:
-      emitGate<cudaq::quake::TOp>(b, g.loc, q, {}, g.adj);
-      break;
+  const Location loc = seq.gates.back().op->getLoc();
+  const auto emitFrame = [&] {
+    for (unsigned i = 0; i < width; ++i) {
+      const unsigned lane = reverse ? width - i - 1 : i;
+      const bool x = frame.x[lane], z = frame.z[lane];
+      if (!x && !z)
+        continue;
+      if (x && z)
+        phase += 6; // XZ = -iY.
+      emitPauli(x && z ? cudaq::quake::Pauli::Y
+                : x    ? cudaq::quake::Pauli::X
+                       : cudaq::quake::Pauli::Z,
+                b, reverse ? seq.gates.front().op->getLoc() : loc, wires[lane]);
     }
+  };
+  // Taking the adjoint of the reverse candidate moves its residual frame to
+  // the front and restores the original order of the surviving source gates.
+  if (reverse) {
+    emitFrame();
+    std::reverse(retained.begin(), retained.end());
   }
-  Location loc = seq.operations.back()->getLoc();
-  if (phase) {
-    // A global phase multiplies the whole sequence. Anchor it on one live
-    // wire and forward that wire through the correction.
-    Value angle =
-        cudaq::opt::factory::createF64Constant(loc, b, phase * M_PI_4);
-    wires.front() =
-        cudaq::opt::emitPhaseCorrection(b, loc, angle, {}, {}, wires.front())
-            .anchor;
+  for (const auto &[g, adjoint] : retained) {
+    MutableArrayRef<Value> controls;
+    if (g.control)
+      controls = MutableArrayRef<Value>(wires[g.control.value()]);
+    const auto emitted =
+        llvm::TypeSwitch<Operation *, LogicalResult>(g.op)
+            .Case<cudaq::quake::HOp, cudaq::quake::XOp, cudaq::quake::SOp,
+                  cudaq::quake::TOp>([&](auto op) {
+              emitGate<decltype(op)>(b, op.getLoc(), wires[g.target], controls,
+                                     adjoint);
+              return success();
+            })
+            .Default(failure());
+    if (failed(emitted))
+      return nullptr;
   }
+  if (!reverse)
+    emitFrame();
+  wires.front() =
+      applyGlobalPhase(b, loc, wires.front(), reverse ? 0u - phase : phase);
   func::ReturnOp::create(b, loc, wires);
   // Propagation can expose a simpler Clifford+T word. For example, moving X
   // through T† in T X T† X leaves two T gates and a phase.
@@ -447,49 +394,85 @@ struct GateCounts {
   size_t twoQubit = 0;
 };
 
-/// Count gates in a materialized sequence. Return no count if phase lowering
-/// is needed to determine how many physical gates a controlled phase emits.
+/// Count a physical Quake operation identically in the input and both sweeps.
+static void countGate(GateCounts &counts,
+                      cudaq::quake::OperatorInterface gate) {
+  ++counts.total;
+  counts.tCount += isa<cudaq::quake::TOp>(gate);
+  counts.twoQubit += gate.getControls().size() + gate.getTargets().size() == 2;
+}
+
+/// Legalize the normalized candidate before comparing its physical gate count.
 static std::optional<GateCounts>
-countGates(llvm::iterator_range<Block::iterator> operations) {
+legalizeAndCount(Block &block, const ConversionTarget *target) {
   GateCounts counts;
-  for (Operation &op : operations) {
+  unsigned phase = 0;
+  for (Operation &op : llvm::make_early_inc_range(block.without_terminator())) {
     auto gate = dyn_cast<cudaq::quake::OperatorInterface>(op);
     if (!gate)
       continue;
     if (isa<cudaq::quake::PhaseOp>(op)) {
-      // LowerPhase erases a global phase. A controlled phase needs gates
-      // on its controls, so its gate count is only known after lowering.
       if (!gate.getControls().empty())
         return std::nullopt;
       continue;
     }
-    ++counts.total;
-    counts.tCount += isa<cudaq::quake::TOp>(op);
-    counts.twoQubit +=
-        gate.getControls().size() + gate.getTargets().size() == 2;
+    if (!target || target->isLegal(&op)) {
+      countGate(counts, gate);
+      continue;
+    }
+
+    if (!gate.getControls().empty() ||
+        !isa<cudaq::quake::XOp, cudaq::quake::YOp, cudaq::quake::ZOp>(op))
+      return std::nullopt;
+    constexpr cudaq::quake::Pauli axes[] = {
+        cudaq::quake::Pauli::X, cudaq::quake::Pauli::Y, cudaq::quake::Pauli::Z};
+    const unsigned missing = isa<cudaq::quake::XOp>(op)   ? 0
+                             : isa<cudaq::quake::YOp>(op) ? 1
+                                                          : 2;
+    OpBuilder builder(&op);
+    Value wire = gate.getTargets().front();
+    for (const unsigned offset : {1u, 2u}) {
+      const cudaq::quake::Pauli axis = axes[(missing + offset) % 3];
+      emitPauli(axis, builder, op.getLoc(), wire);
+      Operation *emitted = wire.getDefiningOp();
+      if (!target->isLegal(emitted))
+        return std::nullopt;
+      countGate(counts, cast<cudaq::quake::OperatorInterface>(emitted));
+    }
+    // In cyclic order the emitted pair equals -i times the missing Pauli
+    // (ZY = -iX, XZ = -iY, YX = -iZ). Correct by +i, or two units of pi/4.
+    phase += 2;
+    op.getResult(0).replaceAllUsesWith(wire);
+    op.erase();
+  }
+  if (phase % 8) {
+    Operation &ret = block.back();
+    OpBuilder builder(&ret);
+    ret.setOperand(
+        0, applyGlobalPhase(builder, ret.getLoc(), ret.getOperand(0), phase));
   }
   return counts;
 }
 
 /// Compare both sweeps against the input and splice the best qualifying
 /// candidate into the original block, preserving its external wire uses.
-static void optimizeSequence(Sequence &seq) {
-  // An empty sequence or one without explicit Paulis has no frame to move.
+static void optimizeSequence(Sequence &seq, const ConversionTarget *target) {
   if (!llvm::any_of(seq.gates, [](const Gate &g) {
-        return g.kind == Kind::X || g.kind == Kind::Y || g.kind == Kind::Z;
+        return !g.control &&
+               isa<cudaq::quake::XOp, cudaq::quake::YOp, cudaq::quake::ZOp>(
+                   g.op);
       }))
     return;
-  auto original = countGates(
-      llvm::make_range(seq.operations.front()->getIterator(),
-                       std::next(seq.operations.back()->getIterator())));
-  if (!original)
-    return;
-  size_t bestCount = original->total;
+  GateCounts original;
+  for (const Gate &gate : seq.gates)
+    countGate(original, gate.op);
+  size_t bestCount = original.total;
   std::unique_ptr<Block> best;
-  // Build each sweep in a temporary block so we can flush its frame, run the
-  // existing Clifford+T normalizer, and compare the gates we would emit.
-  for (bool reverse : {false, true}) {
+  // Score each normalized candidate before changing the original block.
+  for (const bool reverse : {false, true}) {
     auto block = materializeCandidate(seq, reverse);
+    if (!block)
+      return;
     // NOTE: Use the total gate count after flushing the frame and normalizing.
     // In the circuit below, the forward sweep records the middle X as pending
     // on the control wire. Moving it through the second CX makes an X pending
@@ -504,14 +487,14 @@ static void optimizeSequence(Sequence &seq) {
     //  ┌─┴─┐     ┌─┴─┐   ┌───┐
     //  ┤ X ├─────┤ X ├   ┤ X ├
     //  └───┘     └───┘   └───┘
-    auto candidate = countGates(block->without_terminator());
-    // Select this sweep only if countGates succeeded and its total beats
+    const auto candidate = legalizeAndCount(*block, target);
+    // Select this sweep only if legalization succeeded and its total beats
     // bestCount (the input total, or the forward sweep's total if selected).
     // A tie keeps the current choice. Both the T count and the two-qubit
     // count must also be at most their respective counts in the original.
     if (candidate && candidate->total < bestCount &&
-        candidate->tCount <= original->tCount &&
-        candidate->twoQubit <= original->twoQubit) {
+        candidate->tCount <= original.tCount &&
+        candidate->twoQubit <= original.twoQubit) {
       bestCount = candidate->total;
       best = std::move(block);
     }
@@ -528,35 +511,35 @@ static void optimizeSequence(Sequence &seq) {
   // Splice the gates and any phase correction, then erase the replaced
   // operations from users to definitions.
   best->back().erase();
-  seq.operations.front()->getBlock()->getOperations().splice(
-      seq.operations.front()->getIterator(), best->getOperations());
-  for (auto *op : llvm::reverse(seq.operations))
-    op->erase();
+  seq.gates.front().op->getBlock()->getOperations().splice(
+      seq.gates.front().op->getIterator(), best->getOperations());
+  for (const Gate &gate : llvm::reverse(seq.gates))
+    gate.op->erase();
 }
 
 /// Run signed Pauli propagation on the straight-line sequences in a function.
 struct SignedPauliPropagationPass
     : cudaq::opt::impl::SignedPauliPropagationBase<SignedPauliPropagationPass> {
-  /// Visit nested blocks independently and flush the frame at each unsupported
-  /// operation, including measurements, resets, and region boundaries.
+  using SignedPauliPropagationBase::SignedPauliPropagationBase;
+
   void runOnOperation() override {
     if (cudaq::runtime::isQuantumOptimizationDisabled(getOperation()))
       return;
-    cudaq::opt::forEachNestedBlock(getOperation().getBody(), [](Block &block) {
+    const auto target =
+        basis.empty() ? nullptr : cudaq::createBasisTarget(getContext(), basis);
+
+    cudaq::opt::forEachNestedBlock(getOperation().getBody(), [&](Block &block) {
       Sequence seq;
       for (Operation &op : block) {
-        // Collect consecutive supported gates in circuit order.
-        if (seq.tryAppendGate(op))
+        if (seq.tryAppendGate(op) || seq.gates.empty())
           continue;
-        // This operation ends the run. Leave it in place, optimize any gates
-        // collected before it, and resume collection at the next operation.
-        if (!seq.operations.empty()) {
-          optimizeSequence(seq);
-          seq = Sequence();
-        }
+        // A later CX can connect this op's wire to the run. Stopping here
+        // keeps each rewrite contiguous and avoids tracking which wires a
+        // skipped operation touched.
+        optimizeSequence(seq, target.get());
+        seq = Sequence();
       }
-      // The final run can reach the end of the block.
-      optimizeSequence(seq);
+      optimizeSequence(seq, target.get());
     });
   }
 };
