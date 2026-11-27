@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "device_call_realtime_lib.cuh"
 #include "DeviceCallLibrary.h"
+#include "device_call_realtime_lib.cuh"
 
 constexpr auto countTrueBitsSchema =
     cudaq_internal::device_call::detail::makeHandlerSchema<&countTrueBits>();

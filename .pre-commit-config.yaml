@@ -33,8 +33,8 @@ repos:
     hooks:
       - id: clang-format
         name: C++ formatting (clang-format-22)
-        types_or: [c++, c]
-        files: '\.(cpp|h|hpp)$'
+        types_or: [c++, c, cuda]
+        files: '\.(cpp|h|hpp|cu|cuh)$'
         exclude: '^(tpls|runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src)/'
         args: ['-i']  # In-place formatting
 

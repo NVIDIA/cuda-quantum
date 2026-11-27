@@ -8,9 +8,9 @@
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include <cuda_runtime.h>
 #include <cstddef>
 #include <cstdint>
+#include <cuda_runtime.h>
 
 namespace cudaq_internal::device_call::test {
 

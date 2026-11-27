@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "device_call_realtime_lib.cuh"
 #include "DeviceCallLibrary.h"
+#include "device_call_realtime_lib.cuh"
 
 CUDAQ_DEVICE_CALL_LIBRARY_BEGIN(test_device_call_scalar)
 CUDAQ_DEVICE_CALL_EXPORT(addThem)

@@ -13,15 +13,15 @@
 /// requests.
 ///
 
+#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel.cuh"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
 #include <cstdint>
 #include <cstring>
 #include <cuda_runtime.h>
 #include <iostream>
 #include <unistd.h>
 #include <vector>
-#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel.cuh"
-#include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
 
 // Helper macro for CUDA error checking
 #define CUDA_CHECK(call)                                                       \
@@ -134,8 +134,8 @@ bool allocate_ring_buffer(std::size_t num_slots, std::size_t slot_size,
                           std::uint8_t **host_data_out,
                           std::uint8_t **device_data_out) {
   void *host_flags_ptr = nullptr;
-  cudaError_t err = cudaHostAlloc(&host_flags_ptr, num_slots * sizeof(std::uint64_t),
-                                  cudaHostAllocMapped);
+  cudaError_t err = cudaHostAlloc(
+      &host_flags_ptr, num_slots * sizeof(std::uint64_t), cudaHostAllocMapped);
   if (err != cudaSuccess)
     return false;
 
@@ -171,7 +171,8 @@ bool allocate_ring_buffer(std::size_t num_slots, std::size_t slot_size,
   return true;
 }
 
-void free_ring_buffer(volatile std::uint64_t *host_flags, std::uint8_t *host_data) {
+void free_ring_buffer(volatile std::uint64_t *host_flags,
+                      std::uint8_t *host_data) {
   if (host_flags)
     cudaFreeHost(const_cast<std::uint64_t *>(host_flags));
   if (host_data)
