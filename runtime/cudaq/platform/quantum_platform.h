@@ -9,7 +9,7 @@
 #pragma once
 
 #include "common/CodeGenConfig.h"
-#include "common/CompileTarget.h"
+#include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
@@ -18,7 +18,8 @@
 #include "common/RuntimeTarget.h"
 #include "common/SampleResult.h"
 #include "common/ThunkInterface.h"
-#include "nvqpp_interface.h"
+#include "cudaq/Target/CompileTarget.h"
+#include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -42,6 +43,7 @@ class LinkedLibraryHolder;
 namespace detail {
 class TargetSetter;
 class PlatformTestAccess;
+class PlatformRegistry;
 class with_platform_in_library_mode;
 } // namespace detail
 
@@ -61,8 +63,8 @@ using ObserveTask = std::function<observe_result()>;
 /// `clearQPUs`.
 class quantum_platform {
 public:
-  quantum_platform() = default;
-  virtual ~quantum_platform() = default;
+  quantum_platform();
+  virtual ~quantum_platform();
 
   /// @brief Return true if this platform exposes multiple QPUs and
   /// supports parallel distribution of quantum tasks.
@@ -174,6 +176,10 @@ public:
   /// Specify the execution context for this platform.
   void configureExecutionContext(ExecutionContext &ctx) const;
 
+  /// Bind the calling thread to QPU @p qpu_id (e.g. its CUDA device) before
+  /// its simulator is initialized.
+  virtual void prepareExecution(std::size_t qpu_id) const {}
+
   /// @brief Post-process the results stored in @p ctx after execution on this
   /// platform.
   void finalizeExecutionContext(cudaq::ExecutionContext &ctx) const;
@@ -191,12 +197,46 @@ public:
   /// @brief Enqueue a general task that runs on the specified QPU
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
+  /// \cond
+  /// Launch \p module outside of a launch policy.
+  ///
+  /// If a `SourceModule` is passed, it is compiled against \p target and
+  /// \p options before being launched.
   [[nodiscard]] KernelThunkResultType
-  unifiedLaunchModule(const AnyModule &module, KernelArgs args,
-                      std::size_t qpu_id = 0);
+  compileAndLaunchKernel(const AnyModule &module, KernelArgs args,
+                         std::size_t qpu_id = 0);
 
   [[nodiscard]] cudaq::CompileTarget
   getCompileTarget(std::size_t qpu_id = 0) const;
+
+  /// Get the compile options for launching under \p policy on QPU \p qpu_id
+  ///
+  /// This is obtained from a combination of the execution policy and the
+  /// current runtime endpoint.
+  template <typename Policy>
+  [[nodiscard]] cudaq::CompileOptions
+  getCompileOptions(const Policy &policy, std::uint64_t randomSeed = 0,
+                    std::size_t qpuId = 0) const {
+    validateQpuId(qpuId);
+    return getCompileOptions(policy, randomSeed, runtimeEndpoints[qpuId]);
+  }
+
+  /// Get the compile options for launching under \p policy on \p endpoint.
+  /// The endpoint need not belong to a platform.
+  template <typename Policy>
+  [[nodiscard]] static cudaq::CompileOptions
+  getCompileOptions(const Policy &policy, std::uint64_t randomSeed,
+                    const RuntimeEndpoint &endpoint) {
+    cudaq::CompileOptions options;
+    if constexpr (requires { policy.inner; }) {
+      options = cudaq::get_compile_options(policy.inner, randomSeed);
+    } else {
+      options = cudaq::get_compile_options(policy, randomSeed);
+    }
+    resolveCompileOptions(options, endpoint);
+    return options;
+  }
+  /// \endcond
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();
@@ -215,6 +255,7 @@ protected:
   friend class cudaq::LinkedLibraryHolder;
   friend class cudaq::detail::TargetSetter;
   friend class cudaq::detail::PlatformTestAccess;
+  friend class cudaq::detail::PlatformRegistry;
   /// @brief Set the target backend, by default do nothing, let subclasses
   /// override
   /// @param name
@@ -232,6 +273,9 @@ protected:
   /// Destroy all of the platform's QPUs and runtime endpoints.
   void clearQPUs();
 
+  /// Clear endpoints while keeping queues alive for QPUs that will be reused.
+  void clearQPUs(const std::vector<RuntimeEndpoint> &retainedEndpoints);
+
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
 
@@ -246,6 +290,10 @@ private:
 
   // Helper to validate QPU Id
   void validateQpuId(std::size_t qpuId) const;
+
+  /// Amend \p options based on the properties of \p endpoint.
+  static void resolveCompileOptions(cudaq::CompileOptions &options,
+                                    const RuntimeEndpoint &endpoint);
 
   /// The compilation targets for each QPU on the platform.
   std::vector<CompileTarget> compileTargets;
@@ -279,7 +327,6 @@ public:
 /// Entry point for the auto-generated kernel execution path. TODO: Needs to be
 /// tied to the quantum platform instance somehow. Note that the compiler cannot
 /// provide that information.
-extern "C" {
 // Client-server (legacy) interface.
 [[nodiscard]] KernelThunkResultType
 altLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
@@ -291,6 +338,13 @@ altLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
 streamlinedLaunchKernel(const char *kernelName,
                         const std::vector<void *> &rawArgs);
 
+// Launch a kernel from an already compiled module. In some environments (e.g.,
+// Python), the ModuleOp of the source can be provided immediately to be
+// launched, unlike with statically compiled systems (C++).
+[[nodiscard]] KernelThunkResultType
+streamlinedLaunchModule(const CompiledModule &compiled,
+                        const std::vector<void *> &rawArgs);
+
 // Hybrid of the client-server and streamlined approaches. Letting JIT
 // compilation happen either early or late and can handle return values from
 // each kernel launch.
@@ -298,20 +352,21 @@ streamlinedLaunchKernel(const char *kernelName,
 hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
                    std::uint64_t argsSize, std::uint64_t resultOffset,
                    const std::vector<void *> &rawArgs);
-} // extern "C"
 } // namespace cudaq
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define CONCAT_INNER(a, b) a##b
+// Not thread_local. The platform is process-wide and must outlive the thread
+// that created it.
 #define CUDAQ_REGISTER_PLATFORM(NAME, PRINTED_NAME)                            \
   extern "C" {                                                                 \
   cudaq::quantum_platform *getQuantumPlatform() {                              \
-    thread_local static std::unique_ptr<cudaq::quantum_platform> m_platform =  \
+    static std::unique_ptr<cudaq::quantum_platform> m_platform =               \
         std::make_unique<NAME>();                                              \
     return m_platform.get();                                                   \
   }                                                                            \
   cudaq::quantum_platform *CONCAT(getQuantumPlatform_, PRINTED_NAME)() {       \
-    thread_local static std::unique_ptr<cudaq::quantum_platform> m_platform =  \
+    static std::unique_ptr<cudaq::quantum_platform> m_platform =               \
         std::make_unique<NAME>();                                              \
     return m_platform.get();                                                   \
   }                                                                            \

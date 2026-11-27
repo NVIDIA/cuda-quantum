@@ -33,7 +33,26 @@ void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
 void registerToCFGPipeline();
-void registerFaultTolerantTargetPipeline();
+
+/// Register `clifford-t-optimization-pipeline` and
+/// `clifford-t-synthesis-pipeline`.
+void registerCliffordTPipelines();
+
+/// Register `two-qubit-gate-count-optimization-pipeline`.
+void registerTwoQubitGateCountOptimizationPipeline();
+
+/// Whether a stage with output basis \p basis can run
+/// `two-qubit-gate-count-optimization-pipeline`. The pipeline works on
+/// controlled `x` gates, so the basis has to be able to express one. An empty
+/// basis allows any gate.
+bool canOptimizeTwoQubitGateCount(mlir::ArrayRef<std::string> basis);
+
+/// Whether `fuse-1q-to-u3` should run for a target with basis \p basis. Each
+/// fused sequence becomes a `u3`, so CUDA-Q has to be able to decompose `u3`s
+/// back into basis gates.
+///
+/// If `basis` is empty, it is assumed that any gate is allowed.
+bool canFuseToU3(mlir::ArrayRef<std::string> basis);
 
 /// Convert supported Quake IR to explicit linear values. This splits
 /// fixed-size allocations, expands vector controls, and threads reusable
@@ -60,36 +79,6 @@ void addDecomposition(mlir::OpPassManager &pm,
                       mlir::ArrayRef<std::string> enabledPats,
                       mlir::ArrayRef<std::string> disabledPats = {});
 
-/// Clifford+T fault-tolerant synthesis sub-pipeline
-/// UnitarySynthesis
-/// ApplyOpSpecialization
-/// constant propagation
-/// `exp-pauli` and U3 decomposition
-/// quantum deallocation insertion and linear-value conversion
-/// `thresholded` exact-angle simplification
-/// register-to-memory conversion
-/// rotation-to-`Rz` decomposition
-/// CliffordTSynthesis
-/// Decomposition to the {H, S, T, X, Z, CNOT} basis
-///
-/// Intent: this is the production entry point for fault-tolerant lowering. It
-/// is the exact sub-pipeline registered as `cudaq-fault-tolerant-target` (see
-/// registerFaultTolerantTargetPipeline), not a test-only helper. The prelude
-/// passes (UnitarySynthesis, ApplyOpSpecialization, constant propagation) are
-/// included on purpose so the sub-pipeline is self-contained and establishes
-/// CliffordTSynthesis's preconditions (materialized controls/`adjoints`, folded
-/// constant angles) regardless of what ran before it. That means these passes
-/// may re-run if an enclosing pipeline already scheduled them; the passes are
-/// idempotent on already-lowered IR, so the duplication is safe.
-///
-/// Opt-in only. This helper is not added to default target pipelines.
-///
-/// `seed` seeds the randomized factoring in CliffordTSynthesis. 0 leaves it
-/// unseeded, so the synthesized circuit may differ from run to run. Targets
-/// set it through their config.
-void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10,
-                           bool failOnControlledRotation = false,
-                           uint64_t seed = 0);
 /// Append the common pipeline that expands, normalizes, and lowers
 /// `quake.phase` operations before final code generation.
 void addPhaseLifecycle(mlir::OpPassManager &pm);
@@ -103,14 +92,18 @@ void registerJITPipelines();
 /// Default values are threshold = 1024, allow break = true, and allow closed
 /// interval = true. If loop unrolling is disabled (`disableLoopUnrolling` =
 /// true), the pipeline keeps cc.loop operations. The two selective unrolling
-/// options mirror the cc-loop-unroll options of the same name.
+/// options mirror the cc-loop-unroll options of the same name. Unless
+/// `uniqueRegisterNames` is false, the pipeline ends with
+/// `update-register-names`, which gives each measurement that shares a
+/// register name a unique name.
 void createClassicalOptimizationPipeline(
     mlir::OpPassManager &pm, std::optional<unsigned> threshold = std::nullopt,
     std::optional<bool> allowBreak = std::nullopt,
     std::optional<bool> allowClosedInterval = std::nullopt,
     std::optional<bool> disableLoopUnrolling = std::nullopt,
     std::optional<bool> unrollOnlyAliasingQuantumAccessLoops = std::nullopt,
-    std::optional<bool> unrollOnlyIndexUseLoops = std::nullopt);
+    std::optional<bool> unrollOnlyIndexUseLoops = std::nullopt,
+    std::optional<bool> uniqueRegisterNames = std::nullopt);
 
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 void addLowerToCFG(mlir::OpPassManager &pm);

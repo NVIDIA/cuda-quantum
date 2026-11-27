@@ -1,0 +1,28 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt \
+// RUN:   --pass-pipeline='builtin.module(func.func(canonicalize{test-convergence=true}))' \
+// RUN:   %s | FileCheck %s
+
+// A wrap of a wire that a gate produced stays, and the canonicalizer
+// converges. A wrap directly of its own unwrap is erased.
+func.func @wraps(%r: !quake.ref, %s: !quake.ref) {
+  %0 = quake.unwrap %r : (!quake.ref) -> !quake.wire
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  quake.wrap %1 to %r : !quake.wire, !quake.ref
+  %2 = quake.unwrap %s : (!quake.ref) -> !quake.wire
+  quake.wrap %2 to %s : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @wraps(
+// CHECK-SAME:      %[[R:.*]]: !quake.ref, %[[S:.*]]: !quake.ref) {
+// CHECK:           %[[W:.*]] = quake.h
+// CHECK-NEXT:      quake.wrap %[[W]] to %[[R]] : !quake.wire, !quake.ref
+// CHECK-NEXT:      return

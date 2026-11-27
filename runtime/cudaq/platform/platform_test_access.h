@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/CompileTarget.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/quantum_platform.h"
 

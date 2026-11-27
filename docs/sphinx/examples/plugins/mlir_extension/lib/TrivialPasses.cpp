@@ -9,7 +9,6 @@
 #include "Trivial/TrivialPasses.h"
 #include "Trivial/TrivialDialect.h"
 #include "Trivial/TrivialOps.h"
-
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 

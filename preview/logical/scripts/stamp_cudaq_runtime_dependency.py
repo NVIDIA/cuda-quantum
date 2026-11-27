@@ -19,9 +19,9 @@ try:
 except ModuleNotFoundError:
     from pip._vendor.packaging.version import Version
 
-# The CUDA-Q runtime arrives through these two extras; the base package is
-# runtime-agnostic. Release CI stamps both bare entries with ==CUDAQ_VERSION.
-RUNTIME_DISTRIBUTIONS = ("cuda-quantum-cu12", "cuda-quantum-cu13")
+# Core is a base dependency; frontend execution is selected through extras.
+# All three share the same native ABI and must use the tested CUDA-Q version.
+RUNTIME_DISTRIBUTIONS = ("cudaq-core", "cuda-quantum-cu12", "cuda-quantum-cu13")
 
 
 def stamp_runtime_dependency(
@@ -57,8 +57,8 @@ def main() -> None:
         dest="distributions",
         action="append",
         default=None,
-        help="Bare dependency entry to pin; repeatable. Defaults to both "
-        "CUDA-Q runtime extras: " + ", ".join(RUNTIME_DISTRIBUTIONS),
+        help="Bare dependency entry to pin; repeatable. Defaults to core and "
+        "both CUDA-Q runtime extras: " + ", ".join(RUNTIME_DISTRIBUTIONS),
     )
     parser.add_argument("--version", required=True)
     args = parser.parse_args()

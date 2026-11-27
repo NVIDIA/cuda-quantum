@@ -11,6 +11,7 @@
 #include "CuDensityMatTimeStepper.h"
 #include "test_Mocks.h"
 #include <CuDensityMatErrorHandling.h>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>
@@ -86,7 +87,7 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepLargeTimeValues) {
 TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
   const std::vector<std::complex<double>> initialState = {
       {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
-  const std::vector<int64_t> dims = {4};
+  const std::vector<std::int64_t> dims = {4};
   auto inputState = cudaq::state::from_data(initialState);
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -120,7 +121,7 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
   initial_state.resize(100, {0.0, 0.0});
   initial_state[5 * 10 + 5] = {1.0, 0.0};
 
-  const std::vector<int64_t> dims = {10};
+  const std::vector<std::int64_t> dims = {10};
   auto input_state = cudaq::state::from_data(initial_state);
   auto *simState = cudaq::state_helper::getSimulationState(&input_state);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -154,7 +155,7 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
 TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
   const std::vector<std::complex<double>> initialState = {
       {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
-  const std::vector<int64_t> dims = {4};
+  const std::vector<std::int64_t> dims = {4};
   auto inputState = cudaq::state::from_data(initialState);
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -201,7 +202,7 @@ TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
 TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
   const std::vector<std::complex<double>> initialState = {{1.0, 0.0},
                                                           {1.0, 0.0}};
-  const std::vector<int64_t> dims = {2};
+  const std::vector<std::int64_t> dims = {2};
   auto inputState = cudaq::state::from_data(initialState);
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -214,7 +215,7 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
       {paramName, paramValue}};
 
   auto tensorFunction =
-      [paramName](const std::vector<int64_t> &dimensions,
+      [paramName](const std::vector<std::int64_t> &dimensions,
                   const std::unordered_map<std::string, std::complex<double>>
                       &parameters) -> complex_matrix {
     if (dimensions.empty())
@@ -267,7 +268,7 @@ static CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
 TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrder) {
   const std::vector<std::complex<double>> initialState = {
       {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}};
-  const std::vector<int64_t> dims = {4};
+  const std::vector<std::int64_t> dims = {4};
   auto inputState = cudaq::state::from_data(initialState);
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -307,7 +308,7 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrder) {
 TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrderDensityMatrix) {
   constexpr int N = 4;
   const std::vector<std::complex<double>> initialState(N * N, 1.0);
-  const std::vector<int64_t> dims = {N};
+  const std::vector<std::int64_t> dims = {N};
   auto inputState = cudaq::state::from_data(initialState);
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -346,7 +347,7 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrderDensityMatrix) {
 }
 
 TEST_F(CuDensityMatTimeStepperTest, BatchedOperatorSimple) {
-  const std::vector<int64_t> dims = {2};
+  const std::vector<std::int64_t> dims = {2};
   cudaq::product_op<cudaq::matrix_handler> ham_1 =
       (2.0 * M_PI * 0.1 * cudaq::spin_op::x(0));
   cudaq::sum_op<cudaq::matrix_handler> ham1(ham_1);
@@ -399,4 +400,53 @@ TEST_F(CuDensityMatTimeStepperTest, BatchedOperatorSimple) {
   EXPECT_NEAR(std::abs(std::complex<double>(0.0, -1.0) * ham2Mat[{1, 0}] -
                        outputStateVec2[1]),
               0.0, 1e-6);
+}
+
+TEST_F(CuDensityMatTimeStepperTest, WorkspaceStateIsReusedForSameShape) {
+  auto &input = *dynamic_cast<CuDensityMatState *>(
+      cudaq::state_helper::getSimulationState(&state_));
+  auto &first = time_stepper_->workspaceState(0, input);
+  void *firstPtr = first.get_device_pointer();
+  EXPECT_TRUE(first.has_same_shape(input));
+  EXPECT_NE(firstPtr, input.get_device_pointer());
+
+  auto &again = time_stepper_->workspaceState(0, input);
+  EXPECT_EQ(&again, &first);
+  EXPECT_EQ(again.get_device_pointer(), firstPtr);
+
+  auto &second = time_stepper_->workspaceState(1, input);
+  EXPECT_NE(&second, &first);
+  EXPECT_NE(second.get_device_pointer(), firstPtr);
+  EXPECT_TRUE(second.has_same_shape(input));
+}
+
+TEST_F(CuDensityMatTimeStepperTest, WorkspaceStateIsReplacedWhenShapeChanges) {
+  auto &input = *dynamic_cast<CuDensityMatState *>(
+      cudaq::state_helper::getSimulationState(&state_));
+  EXPECT_FALSE(time_stepper_->workspaceState(0, input).is_density_matrix());
+
+  auto densityMatrix = input.to_density_matrix();
+  auto &replaced = time_stepper_->workspaceState(0, densityMatrix);
+  EXPECT_TRUE(replaced.has_same_shape(densityMatrix));
+  EXPECT_TRUE(replaced.is_density_matrix());
+}
+
+TEST_F(CuDensityMatTimeStepperTest, ComputeIntoMatchesCompute) {
+  auto &input = *dynamic_cast<CuDensityMatState *>(
+      cudaq::state_helper::getSimulationState(&state_));
+  const std::size_t numElements = input.get_element_count();
+  std::vector<std::complex<double>> expected(numElements), actual(numElements);
+  auto computed = time_stepper_->compute(state_, 0.0, {});
+  computed.to_host(expected.data(), expected.size());
+
+  // Start from nonzero contents to check that the output is overwritten.
+  auto &output = time_stepper_->workspaceState(0, input);
+  output.copy_from(input);
+  time_stepper_->computeInto(input, output, 0.0, {});
+  output.toHost(actual.data(), actual.size());
+
+  for (std::size_t i = 0; i < numElements; ++i) {
+    EXPECT_NEAR(actual[i].real(), expected[i].real(), 1e-12) << i;
+    EXPECT_NEAR(actual[i].imag(), expected[i].imag(), 1e-12) << i;
+  }
 }

@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-version: 1
+version: 2-alpha
 name: tensornet
 description: "cutensornet simulator backend target based on full tensor network contraction"
 gpu-requirements: true
@@ -31,3 +31,11 @@ configuration-matrix:
       gen-target-backend: true
       nvqir-simulation-backend: tensornet-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
+
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-unmapped
+        options:
+          cost-model: gate-count
+          max-unroll-iterations: 50 # The current `cc-loop-unroll` default.

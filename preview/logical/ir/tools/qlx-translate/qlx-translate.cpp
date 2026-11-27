@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // qlx-translate: translates between QLX MLIR and external formats.
 //
@@ -19,7 +19,6 @@
 
 #include "qlx/Target/Fabric/EmitStim.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
-
 #include <cstdlib>
 
 int main(int argc, char **argv) {

@@ -1,0 +1,71 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
+# RUN: %target-catalog-driver codegen %s qpu=shared-box | FileCheck %s --check-prefix=NAME
+# RUN: %target-catalog-driver codegen %s qpu=shared-42 | FileCheck %s --check-prefix=DIGITS
+# RUN: %target-catalog-driver codegen %s qpu=lab-shared-7-x | FileCheck %s --check-prefix=SUBSTR
+# RUN: %target-catalog-driver codegen %s qpu=shared-dd | FileCheck %s --check-prefix=NONDIGIT
+# RUN: %target-catalog-driver codegen %s qpu=shared-late | FileCheck %s --check-prefix=REGEXFIRST
+# RUN: %target-catalog-driver codegen %s qpu=unrelated | FileCheck %s --check-prefix=FALLBACK
+
+# Test argument types and machine config resolution based on regex
+
+version: 1
+name: lit-arg-types
+description: "Argument-type spellings and machine matching coverage"
+config:
+  codegen-emission: qir-base
+target-arguments:
+  - key: plain
+  - key: text
+    type: string
+  - key: count
+    type: integer
+  - key: ident
+    type: uuid
+  - key: flags
+    type: option-flags
+  - key: qpu
+    type: machine-config
+    platform-arg: qpu
+    machine-config:
+      - arch-name: named
+        machine-names: ["shared-box"]
+        config:
+          codegen-emission: qir-full
+      - arch-name: digits
+        pattern: 'shared-\d+'
+        config:
+          codegen-emission: qir-adaptive
+      - arch-name: suffixes
+        pattern: "shared-.*"
+        config:
+          codegen-emission: qir-affine
+      - arch-name: late-named
+        machine-names: ["shared-late"]
+        config:
+          codegen-emission: qir-pulse
+
+# PARSE: argument: plain type=string required=false platform-arg=-
+# PARSE: argument: text type=string required=false platform-arg=-
+# PARSE: argument: count type=integer required=false platform-arg=-
+# PARSE: argument: ident type=uuid required=false platform-arg=-
+# PARSE: argument: flags type=option-flags required=false platform-arg=-
+# PARSE: argument: qpu type=machine-config required=false platform-arg=qpu
+# PARSE:   arch: named codegen-emission=qir-full pattern= machines=["shared-box"]
+# PARSE:   arch: digits codegen-emission=qir-adaptive pattern=shared-\\d+ machines=[]
+# PARSE:   arch: suffixes codegen-emission=qir-affine pattern=shared-.* machines=[]
+# PARSE:   arch: late-named codegen-emission=qir-pulse pattern= machines=["shared-late"]
+
+# NAME: codegen-emission: qir-full
+# DIGITS: codegen-emission: qir-adaptive
+# SUBSTR: codegen-emission: qir-adaptive
+# NONDIGIT: codegen-emission: qir-affine
+# REGEXFIRST: codegen-emission: qir-affine
+# FALLBACK: codegen-emission: qir-base

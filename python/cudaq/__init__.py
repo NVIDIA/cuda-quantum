@@ -15,6 +15,26 @@ from typing import Dict, List, Sequence, Tuple
 
 import numpy
 
+# Split wheels share the cudaq namespace across installation prefixes. The
+# frontend owns this initializer; core alone is a namespace package.
+from pkgutil import extend_path as _extend_path
+
+__path__ = _extend_path(__path__, __name__)
+
+from . import core as _core
+
+_core_lib = Path(_core.__file__).parent / "lib"
+if _core_lib.is_dir():
+    # Resolve shared providers before loading the frontend extension. Relative
+    # RPATHs alone cannot reach core when pip reuses it from another prefix.
+    import ctypes as _ctypes
+    from .mlir._mlir_libs import _backends
+    _ctypes.CDLL(
+        str(_core_lib /
+            ("libnvqir.dylib" if sys.platform == "darwin" else "libnvqir.so")),
+        mode=_ctypes.RTLD_GLOBAL
+        if sys.platform == "darwin" else _ctypes.RTLD_LOCAL)
+
 # ============================================================================ #
 # Enable logging to match the CUDAQ_LOG_LEVEL environment variable.
 # ============================================================================ #
@@ -73,6 +93,7 @@ def _configure_cuda_library_paths() -> None:
     common_libs: Dict[str, Tuple[str, str]] = {
         'cutensor': ('cutensor-cu{cuda_major}', 'libcutensor.so.2'),
         'custatevec': ('custatevec-cu{cuda_major}', 'libcustatevec.so.1'),
+        'custabilizer': ('custabilizer-cu{cuda_major}', 'libcustabilizer.so.0'),
         'cutensornet': ('cutensornet-cu{cuda_major}', 'libcutensornet.so.2'),
         'cudensitymat': ('cudensitymat-cu{cuda_major}', 'libcudensitymat.so.0'),
     }
@@ -108,7 +129,7 @@ def _configure_cuda_library_paths() -> None:
     load_order: List[str] = [
         'cudart', 'curand', 'nvrtc', 'nvrtc_builtins', 'cublaslt', 'cublas',
         'cusolver', 'cusolvermg', 'cutensor', 'custatevec', 'cutensornet',
-        'cudensitymat'
+        'cudensitymat', 'custabilizer'
     ]
 
     # Select library configuration based on CUDA version
@@ -238,6 +259,7 @@ from .runtime.translate import translate
 from .runtime.state import (get_state, get_state_async, to_cupy)
 from .runtime.draw import draw
 from .runtime.unitary import get_unitary
+from .runtime.compile import compile
 from .runtime.resource_count import estimate
 from .runtime.resource_count import estimate_resources
 from .runtime.dem import dem_from_kernel
@@ -254,11 +276,19 @@ else:
     from .visualization.bloch_visualize import add_to_bloch_sphere
     from .visualization.bloch_visualize import show_bloch_sphere as show
 
-# If cudaq-logical is installed, check that it can be imported. Catches cases where cudaq
-# and cudaq-logical are installed in different directories, which is currently not supported.
+# cudaq.logical is optional and may be absent. If cudaq-logical is installed, check that it
+# can be imported. Catches cases where cudaq and cudaq-logical are installed in different
+# directories, which is currently not supported.
 try:
     from . import logical  # noqa: F401
 except ImportError:
+    # A failed import can leave half-initialized `cudaq.logical*` modules behind,
+    # which would break any later attempt to import them.
+    for _m in [
+            m for m in sys.modules if m == f"{__name__}.logical" or
+            m.startswith(f"{__name__}.logical.")
+    ]:
+        del sys.modules[_m]
     from importlib.metadata import PackageNotFoundError as _PkgNotFound, distribution as _dist
     try:
         _dist("cudaq-logical")
@@ -316,15 +346,21 @@ __version__ = cudaq_runtime.__version__
 initialize_cudaq = cudaq_runtime.initialize_cudaq
 
 
-def set_target(target, **extra_config):
+def set_target(target, *, compile_target=None, **extra_config):
     """Set the backend used for CUDA-Q kernel execution.
 
     Can provide optional, target-specific configuration data via Python `kwargs`.
 
     Args:
-      target: The CUDA-Q target, specified as a recognized target name (``str``)
-        or a :class:`cudaq.Target` instance. Support for
-        instances of ``cudaq._experimental.CustomTarget`` is experimental.
+      target: The CUDA-Q target that kernels run on at runtime, specified as a
+        recognized target name (``str``) or a :class:`cudaq.Target` instance.
+        Support for instances of ``cudaq._experimental.CustomTarget`` is
+        experimental.
+      compile_target: The ``cudaq._experimental.CompileTarget`` that kernels
+        are compiled against before running on ``target``. If omitted, the
+        target's default compile target is used. Not supported when
+        ``target`` is a ``CustomTarget``, which carries its own compile
+        target. This argument is experimental.
       **extra_config: Target-specific configuration for the named-target
         overload.
 
@@ -336,12 +372,14 @@ def set_target(target, **extra_config):
         # ever importing cudaq._experimental, so that module being
         # unavailable (e.g. not staged into an incremental build) can't
         # break ordinary target selection.
-        return cudaq_runtime.set_target(target, **extra_config)
+        return cudaq_runtime.set_target(target,
+                                        compile_target=compile_target,
+                                        **extra_config)
 
     from cudaq._experimental import CustomTarget
 
     if isinstance(target, CustomTarget):
-        if extra_config:
+        if compile_target is not None or extra_config:
             raise TypeError(
                 "cudaq.set_target() does not accept keyword arguments when "
                 "target is a cudaq._experimental.CustomTarget.")
@@ -458,7 +496,7 @@ def to_bools(handles):
     ``list[bool]``. Device-only: this Python symbol exists so kernel
     code can call ``cudaq.to_bools(...)``; the AST bridge intercepts
     the call and lowers it to a vector form ``quake.discriminate`` on
-    ``!cc.sequence<!cc.measure_handle>``. Host-side invocation raises a
+    ``!cc.sequence<!quake.measure>``. Host-side invocation raises a
     ``RuntimeError``.
     """
     raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.to_bools"))
@@ -530,6 +568,10 @@ _DEFERRED_STAR_MODULES = [
 
 
 def __getattr__(name):
+    # Fail fast for `dunder` attributes, which get probed by tools such as pytest
+    if name.startswith('__') and name.endswith('__'):
+        raise AttributeError(f"module 'cudaq' has no attribute {name!r}")
+
     import importlib
 
     if name in _LAZY_ATTRS:

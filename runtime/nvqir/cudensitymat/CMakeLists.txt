@@ -26,6 +26,7 @@ endif()
 if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
 
   add_library(${LIBRARY_NAME} SHARED
+    AnalogEvolution.cpp
     CuDensityMatSim.cpp
     mpi_support.cpp
     CuDensityMatTimeStepper.cpp
@@ -40,6 +41,7 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
     CuDensityMatCallbackConverter.cpp
     CuDensityMatSuperOpCtor.cpp
     CuDensityMatUtils.cpp
+    CuDensityMatDeviceAllocator.cpp
   )
 
   message("CUDAToolkit_INCLUDE_DIRS: ${CUDAToolkit_INCLUDE_DIRS}")
@@ -62,6 +64,7 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
                           fmt::fmt-header-only 
                           cudaq-logger
                           cudaq-common
+                          cudaq
                           cuDensityMat::cuDensityMat
                           cuTensor::cuTensor
                           cuTensorNet::cuTensorNet

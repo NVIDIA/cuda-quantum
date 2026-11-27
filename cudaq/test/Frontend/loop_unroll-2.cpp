@@ -9,7 +9,7 @@
 // clang-format off
 // RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --cc-loop-unroll --canonicalize | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct test1 {
   void operator()(cudaq::qvector<> &q) __qpu__ {

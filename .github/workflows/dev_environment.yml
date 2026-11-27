@@ -26,6 +26,11 @@ on:
         required: false
         type: string
         description: If defined, the build cache for the given branch name will be updated on the registry (no image will be pushed or created in this case).
+      refresh_llvm_ccache:
+        required: false
+        type: boolean
+        description: Also rebuilds LLVM without the build cache, to refresh its ccache in the registry (only with update_registry_cache).
+        default: false
       create_local_cache:
         required: false
         type: boolean
@@ -50,7 +55,7 @@ on:
       checkout_submodules:
         required: false
         type: boolean
-        description: Whether to checkout submodules when checking out the repository.
+        description: Whether the image build needs the recorded submodule commits.
         default: false
       matrix_key:
         required: false
@@ -64,6 +69,11 @@ on:
         required: false
         type: string
         description: The name of the GitHub environment within which to execute the workflow. A protected non-default environment should be specified when the workflow pushes images to the registry.
+      runner_cpus:
+        required: false
+        type: string
+        description: The number of CPU cores of the runner. Builds of LLVM take roughly proportionally less time on a larger runner.
+        default: '8'
     outputs:
       image_hash:
         description: "The name and digest of the docker image that was deployed to the registry, which can be used to retrieve it independently of any tag updates."
@@ -100,6 +110,7 @@ jobs:
       dockerfile: ${{ steps.build_info.outputs.dockerfile }}
       owner: ${{ steps.build_info.outputs.owner }}
       pr_number: ${{ steps.build_info.outputs.pr_number }}
+      concurrency_id: ${{ steps.build_info.outputs.concurrency_id }}
       image_name: ${{ steps.build_info.outputs.image_name }}
       image_title: ${{ steps.build_info.outputs.image_title }}
       image_id: ${{ steps.build_info.outputs.image_id }}
@@ -121,17 +132,21 @@ jobs:
       - name: Determine build arguments
         id: build_info
         run: |
+          # Unique per call, so builds that don't write a cache never share a group.
+          echo "concurrency_id=$(cat /proc/sys/kernel/random/uuid)" >> $GITHUB_OUTPUT
+
+          cpus=${{ inputs.runner_cpus }}
           if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
             # multi-platform builds get no platform tag
-            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu$cpus" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
             echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
-            echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
+            echo "runner=linux-arm64-cpu$cpus" >> $GITHUB_OUTPUT
           else
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
             echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
-            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu$cpus" >> $GITHUB_OUTPUT
           fi
 
           repo_owner=${{ github.repository_owner }}
@@ -198,6 +213,10 @@ jobs:
   build:
     name: Caching
     needs: metadata
+    # One cache-writing build per image at a time, so a later one finds its cache.
+    concurrency:
+      group: ${{ inputs.update_registry_cache != '' && format('dev-env-cache-{0}-{1}-{2}-{3}-{4}-{5}', inputs.dockerfile, inputs.build_target, inputs.build_config_id, inputs.platforms, inputs.update_registry_cache, inputs.pull_request_number != '') || format('dev-env-{0}', needs.metadata.outputs.concurrency_id) }}
+      cancel-in-progress: false
     runs-on: ${{ needs.metadata.outputs.runner }}
     timeout-minutes: 600
     permissions:
@@ -222,11 +241,16 @@ jobs:
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
-      - name: Initialize submodules (with retry)
+      - name: Record submodule commits
         if: ${{ inputs.checkout_submodules }}
         run: |
-          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          retry git submodule update --init --recursive --depth 1
+          # These images clone the submodules themselves and only read the
+          # commit out of .git/modules/<path>/HEAD, so skip the checkout.
+          paths=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}')
+          for path in $paths; do
+            mkdir -p ".git/modules/$path"
+            git rev-parse "HEAD:$path" > ".git/modules/$path/HEAD"
+          done
 
       - name: Set up context for buildx
         run: |
@@ -238,9 +262,13 @@ jobs:
           endpoint: builder_context
           version: v0.19.0
           buildkitd-config: ${{ needs.metadata.outputs.runner != 'ubuntu-latest' && '/etc/buildkit/buildkitd.toml' || null }}
+          # BuildKit clips each step's log at 2 MiB, which drops the ccache statistics
+          # that llvm_ccache.sh prints at the end of an LLVM build.
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
+            env.BUILDKIT_STEP_LOG_MAX_SIZE=52428800
+            env.BUILDKIT_STEP_LOG_MAX_SPEED=10485760
 
       - name: Setup proxy cache
         if: needs.metadata.outputs.runner != 'ubuntu-latest'
@@ -266,6 +294,7 @@ jobs:
         run: |
           build_config_id=${{ inputs.build_config_id }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}buildcache-cuda-quantum
+          registry_cache_root=$registry_cache
           if ${{ needs.metadata.outputs.pr_number != '' }}; then
             registry_cache=${registry_cache}-ci
           elif ${{ github.event_name == 'merge_group' }}; then
@@ -300,11 +329,13 @@ jobs:
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
           elif ${{ needs.metadata.outputs.pr_number != '' }}; then
             # for PRs, also push buildkit cache to the registry to speed up subsequent builds
-            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }},compression=zstd"
+            # mode=max keeps the layers of the build stages; without them any change to the
+            # final stage reruns the LLVM build, although its own cache key still matches.
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }},mode=max,ignore-error=true,compression=zstd"
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           elif ${{ github.event_name == 'merge_group' }}; then
             # for merge queues, also push buildkit cache to the registry to speed up subsequent builds
-            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base,compression=zstd"
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base,mode=max,ignore-error=true,compression=zstd"
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
           else 
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
@@ -321,15 +352,24 @@ jobs:
           } >> $GITHUB_OUTPUT
           {
             echo 'cache_from_registry<<multiline'
+            # A base branch without a cache of its own (e.g. releases/*) still matches main's layers.
+            bases="$registry_cache_base"
+            if [ "$registry_cache_base" != main ]; then bases="$bases main"; fi
             for platform_id in $platform_ids; do
               if ${{ needs.metadata.outputs.pr_number != '' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
               elif ${{ github.event_name == 'merge_group' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
               fi
-              echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
-              echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
-            done
+              for base in $bases; do
+                echo "type=registry,ref=${registry_cache_root}-${cache_id}-${platform_id}:${base}"
+                # Merge runs refresh the -ci caches and the merge queue builds the merged tree before
+                # they do; each of PRs, the queue and deployments would otherwise miss the others.
+                echo "type=registry,ref=${registry_cache_root}-ci-${cache_id}-${platform_id}:${base}"
+                echo "type=registry,ref=${registry_cache_root}-merge-group-${cache_id}-${platform_id}:merge-group-${base}"
+                echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${base}"
+              done
+            done | awk '!seen[$0]++'
             echo multiline
           } >> $GITHUB_OUTPUT
 
@@ -358,6 +398,40 @@ jobs:
             ${{ steps.cache.outputs.local_buildcache_key }}
             ${{ steps.cache.outputs.base_buildcache_key }}
 
+      # The builds of LLVM keep their ccache in the registry (see llvm_ccache.sh), so that a
+      # layer that misses recompiles only what changed. Deployments write one tag per branch
+      # and read only those, as their objects end up in what is released. All other builds
+      # write a shared tag in the -ci package, which they read together with main's.
+      - name: Configure the LLVM ccache
+        id: llvm_ccache
+        if: inputs.dockerfile == 'build/devdeps.Dockerfile' || inputs.dockerfile == 'build/devdeps.manylinux.Dockerfile' || inputs.dockerfile == 'build/assets.Dockerfile'
+        env:
+          REGISTRY_TOKEN: ${{ github.token }}
+          REGISTRY_USER: ${{ github.actor }}
+          REF_NAME: ${{ github.ref_name }}
+          CACHE_BASE: ${{ steps.cache.outputs.registry_cache_base }}
+        run: |
+          root=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}cuda-quantum-llvm-ccache
+          base=$(printf %s "$CACHE_BASE" | tr -c 'A-Za-z0-9_.-' -)
+          branch=$(printf %s "$REF_NAME" | tr -c 'A-Za-z0-9_.-' -)
+          if ${{ inputs.environment == 'ghcr-deployment' }}; then
+            push="$root:$branch"
+            pull="$root:$branch $root:main"
+          else
+            push="$root-ci:ci"
+            pull="$root-ci:ci $root:$base $root:main"
+          fi
+          pull=$(echo $pull | tr ' ' '\n' | awk '!seen[$0]++' | tr '\n' ' ')
+          file="$RUNNER_TEMP/llvm_ccache"
+          (umask 077 && {
+            echo "user=$REGISTRY_USER"
+            echo "token=$REGISTRY_TOKEN"
+            echo "pull=$pull"
+            echo "push=$push"
+          } > "$file")
+          echo "LLVM ccache: read $pull, write $push"
+          echo "secret_files=llvm_ccache=$file" >> $GITHUB_OUTPUT
+
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: docker_build
         uses: docker/build-push-action@v7
@@ -377,14 +451,35 @@ jobs:
             ${{ steps.cache.outputs.cache_from_gh }}
             ${{ steps.cache.outputs.cache_from_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
+          secret-files: ${{ steps.llvm_ccache.outputs.secret_files }}
           push: ${{ steps.cache.outputs.push_to_registry == 'true' }}
           outputs: ${{ steps.cache.outputs.docker_output }}
 
+      # Layers that hit the build cache skip the LLVM build, and with it the ccache save.
+      # This reruns that build, so main always has a ccache that matches its sources.
+      - name: Refresh the LLVM ccache
+        if: inputs.refresh_llvm_ccache && inputs.update_registry_cache != '' && steps.llvm_ccache.outcome == 'success'
+        continue-on-error: true
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
+        with:
+          context: .
+          file: ./docker/${{ needs.metadata.outputs.dockerfile }}
+          target: ${{ inputs.build_target || (inputs.dockerfile == 'build/devdeps.Dockerfile' && 'prereqs') || '' }}
+          build-args: |
+            ${{ inputs.build_args }}
+          platforms: ${{ inputs.platforms }}
+          no-cache: true
+          secret-files: ${{ steps.llvm_ccache.outputs.secret_files }}
+          push: false
+          outputs: type=cacheonly
+
       - name: Install Cosign
         if: steps.cache.outputs.push_to_registry == 'true'
-        uses: sigstore/cosign-installer@v3.3.0
+        uses: sigstore/cosign-installer@v4.1.2
         with:
-          cosign-release: 'v2.2.2'
+          cosign-release: 'v2.6.5'
 
       - name: Sign image with GitHub OIDC Token
         if: steps.cache.outputs.push_to_registry == 'true'
@@ -394,6 +489,54 @@ jobs:
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           retry cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
+      # GHCR has a practical per-layer size limit; a layer over that can fail
+      # to push/pull reliably. Report every layer's pushed (compressed) size
+      # and fail if any single layer is over the limit.
+      - name: Check Docker layer sizes
+        if: steps.cache.outputs.push_to_registry == 'true'
+        env:
+          IMAGE_REF: ${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+        run: |
+          max_bytes=$((5 * 1000 * 1000 * 1000))
+          report_layers() {
+            local manifest_file=$1 label=$2
+            echo "--- $label ---"
+            jq -r '.layers[] | "\(.size)\t\(.mediaType)"' "$manifest_file" \
+              | sort -rn \
+              | while IFS=$'\t' read -r size media; do
+                  gb=$(awk -v s="$size" 'BEGIN { printf "%.3f", s/1000000000 }')
+                  marker=""
+                  if [ "$size" -gt "$max_bytes" ]; then
+                    marker="  <<<< OVER ${max_bytes}-byte (5GB) LIMIT"
+                    echo over >> /tmp/layer_size_over_limit
+                  fi
+                  printf "  %8s GB  %s%s\n" "$gb" "$media" "$marker"
+                done
+          }
+
+          rm -f /tmp/layer_size_over_limit
+          echo "=== Docker layer sizes for $IMAGE_REF ==="
+          docker buildx imagetools inspect "$IMAGE_REF" --raw > /tmp/index.json
+          media_type=$(jq -r '.mediaType' /tmp/index.json)
+          repo="${IMAGE_REF%@*}"
+
+          if [ "$media_type" = "application/vnd.oci.image.index.v1+json" ] || \
+             [ "$media_type" = "application/vnd.docker.distribution.manifest.list.v2+json" ]; then
+            digests=$(jq -r '.manifests[] | select(.platform.architecture != null and .platform.architecture != "unknown") | .digest' /tmp/index.json)
+            for digest in $digests; do
+              platform=$(jq -r --arg d "$digest" '.manifests[] | select(.digest == $d) | "\(.platform.os)/\(.platform.architecture)"' /tmp/index.json)
+              docker buildx imagetools inspect "$repo@$digest" --raw > /tmp/platform_manifest.json
+              report_layers /tmp/platform_manifest.json "$platform"
+            done
+          else
+            report_layers /tmp/index.json "$(uname -m)"
+          fi
+
+          if [ -f /tmp/layer_size_over_limit ]; then
+            echo "::error::One or more Docker layers for $IMAGE_REF exceed the 5GB GHCR practical limit."
+            exit 1
+          fi
 
       # See also https://github.com/moby/buildkit/issues/1896
       - name: Clean up build cache

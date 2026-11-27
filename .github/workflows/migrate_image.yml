@@ -128,13 +128,15 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ steps.setup.outputs.platforms }}
-          push: false # FIXME
+          # nvcr.io 400s on buildx's default attestation manifest.
+          provenance: false
+          push: true
 
       - name: Install Cosign
         if: inputs.sign_image && steps.config.outputs.push_to_ngc != 'true'
-        uses: sigstore/cosign-installer@v3.3.0
+        uses: sigstore/cosign-installer@v4.1.2
         with:
-          cosign-release: 'v2.2.2'
+          cosign-release: 'v2.6.5'
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.sign_image && steps.config.outputs.push_to_ngc != 'true'

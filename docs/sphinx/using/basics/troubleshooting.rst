@@ -68,3 +68,23 @@ This flag can be combined with other CUDA-Q Python runtime options such as
 .. code-block:: bash
 
     python3 program.py --target nvidia --target-option fp64 --cudaq-full-stack-trace
+
+LLVM-based Python packages
+++++++++++++++++++++++++++
+
+Older CUDA-Q releases can expose their bundled LLVM symbols to other Python
+extensions. On Linux, importing Numba or Triton after CUDA-Q can then abort the
+process during JIT compilation or report duplicate LLVM command-line options.
+For affected releases, import Numba or Triton before importing CUDA-Q. If the
+application cannot control import order, run CUDA-Q in a separate process.
+
+CUDA-Q keeps its LLVM-dependent compiler and backend libraries local. The only
+symbols exposed globally by ``cudaq`` are the NVQIR simulation symbols
+(``libnvqir``) and the nvq++ C API (``libcudaq-nvqpp-capi``), used
+to launch kernels compiled from C++ with `nvq++`. Kernel launches use the active
+CUDA-Q target without exposing the compiler's LLVM symbols globally.
+
+External native extensions using other CUDA-Q libraries must still link to the
+libraries they use. Compiler plugins should link to ``cudaq::MLIR``. They must
+not rely on ``import cudaq`` placing those dependencies in the process-wide
+symbol scope.

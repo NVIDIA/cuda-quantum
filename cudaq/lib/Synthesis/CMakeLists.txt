@@ -48,5 +48,6 @@ foreach(_synth_dep IN ITEMS GMP::gmp MPFR::mpfr)
       "${_synth_dep_file}; CUDA-Q must ship ${_synth_dep} to comply with the "
       "LGPL v3.")
   endif()
-  install(FILES ${_synth_dep_files} DESTINATION lib)
+  install(FILES ${_synth_dep_files} DESTINATION lib
+    COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT})
 endforeach()

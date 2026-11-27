@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // A `for` statement with an empty init clause (the loop variable is declared
 // as a separate statement before the loop) must still emit a `step` region

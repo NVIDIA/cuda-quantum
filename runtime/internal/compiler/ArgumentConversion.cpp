@@ -21,6 +21,7 @@
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Parser/Parser.h"
+#include <cstdint>
 
 using namespace mlir;
 
@@ -28,7 +29,7 @@ template <typename A>
 Value genIntegerConstant(OpBuilder &builder, A v, unsigned bits) {
   return arith::ConstantIntOp::create(builder, builder.getUnknownLoc(),
                                       builder.getIntegerType(bits),
-                                      static_cast<int64_t>(v));
+                                      static_cast<std::int64_t>(v));
 }
 
 static Value genConstant(OpBuilder &builder, bool v) {
@@ -233,6 +234,39 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
 
   // Process the function body
   process(initFunc.getRegion().front());
+
+  // Trace \p v back through the state and veq view operations to the value it
+  // is a view of.
+  auto traceToAllocation = [](Value v) {
+    while (Operation *def = v.getDefiningOp()) {
+      if (auto init = dyn_cast<cudaq::quake::InitializeStateOp>(def))
+        v = init.getTargets();
+      else if (auto sub = dyn_cast<cudaq::quake::SubVeqOp>(def))
+        v = sub.getVeq();
+      else if (auto relax = dyn_cast<cudaq::quake::RelaxSizeOp>(def))
+        v = relax.getInputVec();
+      else
+        break;
+    }
+    return v;
+  };
+
+  // The caller owns the qubits, so drop deallocations of the argument.
+  initFunc.walk([&](cudaq::quake::DeallocOp dealloc) {
+    if (isa<BlockArgument>(traceToAllocation(dealloc.getReference())))
+      dealloc.erase();
+  });
+
+  // The caller is also responsible for making its own qubits observable. Drop
+  // the compiler-generated evince ops on the argument, which would otherwise
+  // be observation points in the middle of the caller's circuit.
+  initFunc.walk([&](cudaq::quake::EvinceOp evince) {
+    if (evince.getCompilerGenerated() &&
+        llvm::all_of(evince.getArgs(), [&](Value v) {
+          return isa<BlockArgument>(traceToAllocation(v));
+        }))
+      evince.erase();
+  });
 }
 
 /// Create callee.num_qubits_N that calculates the number of qubits to
@@ -275,7 +309,7 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
   auto *entryBlock = &numQubitsFunc.getRegion().front();
   newBuilder.setInsertionPointToStart(entryBlock);
   Value size = arith::ConstantIntOp::create(newBuilder, loc, retType,
-                                            static_cast<int64_t>(0));
+                                            static_cast<std::int64_t>(0));
 
   // Process block recursively to calculate and return allocation size
   // and remove everything else.
@@ -828,7 +862,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
 
 Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
                   void *p, ModuleOp substMod, llvm::DataLayout &layout) {
-  auto key = cudaq::registry::__cudaq_getLinkableKernelKey(p);
+  auto key = cudaq::registry::getLinkableKernelKey(p);
   auto *name = cudaq::registry::getLinkableKernelNameOrNull(key);
   if (!name)
     return {};

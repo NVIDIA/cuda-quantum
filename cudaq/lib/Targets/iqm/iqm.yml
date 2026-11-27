@@ -36,5 +36,10 @@ target-arguments:
   - key: server-url
     required: false
     type: string
-    platform-arg: url 
+    platform-arg: url
     help-string: "Specify URL."
+  - key: quantum-computer
+    required: false
+    type: string
+    platform-arg: qc
+    help-string: "Specify the quantum computer."

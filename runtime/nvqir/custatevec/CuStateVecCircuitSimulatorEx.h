@@ -19,7 +19,6 @@
 #include "CuStateVecSimulatorDetail.h"
 #include "Gates.h"
 #include "cudaq/ptsbe/PTSBESamplerImpl.h"
-
 #include <algorithm>
 #include <bit>
 #include <cassert>
@@ -61,8 +60,8 @@ public:
         m_randomEngine(m_randomDevice()) {
     HANDLE_CUDA_ERROR(cudaFree(nullptr));
     if (m_config.enableMemPool) {
-      int32_t device = 0;
-      int32_t supported = 0;
+      std::int32_t device = 0;
+      std::int32_t supported = 0;
       HANDLE_CUDA_ERROR(cudaGetDevice(&device));
       HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(
           &supported, cudaDevAttrMemoryPoolsSupported, device));
@@ -120,10 +119,40 @@ public:
       return;
     m_engine->flush(*m_state, m_pendingRandomNumbers);
     m_pendingRandomNumbers.clear();
+    if (m_deferHostWait)
+      return;
     m_state->synchronize();
   }
 
 protected:
+  /// @brief Suppress the host-side wait in synchronize() for the duration of a
+  /// scope. Used to flush ExpPauli without unnecessary host-side wait.
+  /// Implemented as guard object, so m_deferHostWait is reset to false on
+  /// an exception.
+  class DeferredHostWait {
+  public:
+    explicit DeferredHostWait(CuStateVecCircuitSimulator &simulator)
+        : m_simulator(simulator) {
+      m_simulator.m_deferHostWait = true;
+    }
+    ~DeferredHostWait() { m_simulator.m_deferHostWait = false; }
+    DeferredHostWait(const DeferredHostWait &) = delete;
+    DeferredHostWait &operator=(const DeferredHostWait &) = delete;
+
+  private:
+    CuStateVecCircuitSimulator &m_simulator;
+  };
+
+  /// @brief Hand the queued gates to the engine without the host-side wait,
+  /// leaving the engine flush in place.
+  ///
+  /// flushGateQueue() ends in synchronize() and this bypasses the final
+  /// host synchronization in cases where it is unnecessary to read the state.
+  void flushGateQueueNoWait() {
+    const DeferredHostWait defer(*this);
+    flushGateQueue();
+  }
+
   void addQubitToState() override { addQubitsToState(1, nullptr); }
 
   void addQubitsToState(std::size_t count, const void *stateData) override {
@@ -139,7 +168,7 @@ protected:
     else if (firstAllocation)
       m_hasCustomInitialState = false;
     if (firstAllocation && m_state) {
-      if (m_state->numWires() == static_cast<int32_t>(count)) {
+      if (m_state->numWires() == static_cast<std::int32_t>(count)) {
         // Reuse the same-size allocation (config can force realloc instead). A
         // prior run may leave a non-identity wire ordering -- from
         // host-migration bits here, or distribution bits in the MGPU subclass.
@@ -149,9 +178,9 @@ protected:
         m_deferredTasks.clear();
         m_pendingRandomNumbers.clear();
         m_engine = createGateEngine<Scalar>(m_config);
-        std::vector<int32_t> identity(count);
+        std::vector<std::int32_t> identity(count);
         for (std::size_t index = 0; index < count; ++index)
-          identity[index] = static_cast<int32_t>(index);
+          identity[index] = static_cast<std::int32_t>(index);
         m_state->reassignWireOrdering(identity);
         m_state->setZeroState();
         if (stateData) {
@@ -180,6 +209,10 @@ protected:
 
     // Direct Kronecker not possible (migrated/distributed): grow the register
     // with zeroed wires, then initialize them via the gate-based extension.
+    // synchronize() above leaves noisy circuit gates queued for trajectory
+    // replay. Finish pending state initialization, such as zero-fills, before
+    // resizing, which can unmap and remap the state's virtual memory.
+    m_state->synchronize();
     addZeroWires(count);
     if (!stateData)
       return;
@@ -203,7 +236,8 @@ protected:
       initialization.matrix[row * addedSize] = addedState[row];
     initialization.targets.reserve(count);
     for (std::size_t wire = 0; wire < count; ++wire)
-      initialization.targets.push_back(static_cast<int32_t>(oldWires + wire));
+      initialization.targets.push_back(
+          static_cast<std::int32_t>(oldWires + wire));
     DirectGateEngine<Scalar> direct;
     direct.apply(*m_state, initialization);
     m_state->synchronize();
@@ -263,20 +297,24 @@ protected:
     ensureState();
     rejectOperationAfterMeasurement();
     // Both engine submission and deferred replay need the control predicate.
-    MatrixTask<Scalar> operation;
+    auto &operation = std::get<MatrixTask<Scalar>>(m_gateScratch);
+    // Compaction may have changed the previous gate's type.
+    operation.matrixType = CUSTATEVEC_EX_MATRIX_DENSE;
     operation.matrix = task.matrix;
-    operation.targets = detail::toInt32(task.targets);
-    operation.controls = detail::toInt32(task.controls);
+    operation.targets =
+        detail::toInt32(task.targets, std::move(operation.targets));
+    operation.controls =
+        detail::toInt32(task.controls, std::move(operation.controls));
     operation.controlValues = task.controlValues;
     compactMatrixTask(operation);
     if (isNoisySimulation()) {
       // Defer gates together with their following noise channels so the entire
       // circuit can be replayed independently for every trajectory.
-      m_deferredTasks.emplace_back(std::move(operation));
+      m_deferredTasks.emplace_back(operation);
       return;
     }
 
-    m_engine->apply(*m_state, operation);
+    m_engine->apply(*m_state, m_gateScratch);
   }
 
   void applyGateWithControlValues(const GateApplicationTask &task) override {
@@ -349,7 +387,7 @@ protected:
     flushPendingQubits();
     replayDeferredFromCurrentState();
     synchronize();
-    const int32_t wire = static_cast<int32_t>(qubit);
+    const std::int32_t wire = static_cast<std::int32_t>(qubit);
     custatevecIndex_t result = 0;
     HANDLE_CUSTATEVEC_ERROR(custatevecExMeasure(
         /*stateVector=*/state().descriptor(), /*bitString=*/&result,
@@ -374,14 +412,14 @@ protected:
           {1.0, 0.0, 0.0, 0.0},
           {0.0, 1.0, 0.0, 0.0},
       };
-      reset.wires = {static_cast<int32_t>(qubit)};
+      reset.wires = {static_cast<std::int32_t>(qubit)};
       compactNoiseMatrices(reset);
       m_deferredTasks.emplace_back(std::move(reset));
       return;
     }
     replayDeferredFromCurrentState();
     synchronize();
-    const int32_t wire = static_cast<int32_t>(qubit);
+    const std::int32_t wire = static_cast<std::int32_t>(qubit);
     custatevecIndex_t result = 0;
     HANDLE_CUSTATEVEC_ERROR(custatevecExMeasure(
         /*stateVector=*/state().descriptor(), /*bitString=*/&result,
@@ -408,7 +446,7 @@ protected:
       Base::applyExpPauli(theta, controls, qubits, term, controlValues);
       return;
     }
-    flushGateQueue();
+    flushGateQueueNoWait();
     if (term.num_ops() != qubits.size())
       throw std::runtime_error(
           "incorrect number of qubits in exp_pauli - expecting " +
@@ -457,7 +495,8 @@ protected:
     const std::size_t circuitTaskCount = m_deferredTasks.size();
     std::vector<std::size_t> measuredWires;
     std::vector<std::function<void()>> basisChanges;
-    for (const auto &termOp : *op.begin()) {
+    auto term = *op.begin();
+    for (const auto &termOp : term) {
       const auto pauli = termOp.as_pauli();
       const std::size_t target = termOp.target();
       if (pauli != cudaq::pauli::I)
@@ -499,15 +538,16 @@ protected:
     // point into the stable per-term Pauli and wire storage owned by `terms`.
     const auto terms = detail::extractPauliTerms(op);
     std::vector<const custatevecPauli_t *> pauliArrays;
-    std::vector<const int32_t *> wireArrays;
-    std::vector<int32_t> wireCounts;
+    std::vector<const std::int32_t *> wireArrays;
+    std::vector<std::int32_t> wireCounts;
     pauliArrays.reserve(op.num_terms());
     wireArrays.reserve(op.num_terms());
     wireCounts.reserve(op.num_terms());
     for (std::size_t term = 0; term < op.num_terms(); ++term) {
       pauliArrays.push_back(dataOrNull(terms.paulis[term]));
       wireArrays.push_back(dataOrNull(terms.targets[term]));
-      wireCounts.push_back(static_cast<int32_t>(terms.targets[term].size()));
+      wireCounts.push_back(
+          static_cast<std::int32_t>(terms.targets[term].size()));
     }
 
     std::vector<double> expectations(op.num_terms());
@@ -515,7 +555,8 @@ protected:
         /*stateVector=*/state().descriptor(),
         /*expectationValues=*/expectations.data(),
         /*pauliOperatorArrays=*/pauliArrays.data(),
-        /*numPauliOperatorArrays=*/static_cast<int32_t>(pauliArrays.size()),
+        /*numPauliOperatorArrays=*/
+        static_cast<std::int32_t>(pauliArrays.size()),
         /*basisWiresArray=*/wireArrays.data(),
         /*numBasisWiresArray=*/wireCounts.data()));
     double expectation = 0.0;
@@ -546,8 +587,9 @@ protected:
     if (shots < 1) {
       std::vector<custatevecPauli_t> paulis(wires.size(), CUSTATEVEC_PAULI_Z);
       const custatevecPauli_t *pauliArrays[] = {paulis.data()};
-      const int32_t *wireArrays[] = {wires.data()};
-      const int32_t wireCounts[] = {static_cast<int32_t>(wires.size())};
+      const std::int32_t *wireArrays[] = {wires.data()};
+      const std::int32_t wireCounts[] = {
+          static_cast<std::int32_t>(wires.size())};
       double expectation = 0.0;
       HANDLE_CUSTATEVEC_ERROR(custatevecExComputeExpectationOnPauliBasis(
           /*stateVector=*/state().descriptor(),
@@ -562,12 +604,14 @@ protected:
     HANDLE_CUSTATEVEC_ERROR(custatevecExSample(
         /*stateVector=*/state().descriptor(), /*bitStrings=*/bitStrings.data(),
         /*bitStringOrdering=*/wires.data(),
-        /*bitStringOrderingLen=*/static_cast<int32_t>(wires.size()),
+        /*bitStringOrderingLen=*/static_cast<std::int32_t>(wires.size()),
         /*randnums=*/randomNumbers.data(), /*numShots=*/shots,
         /*output=*/CUSTATEVEC_SAMPLER_OUTPUT_ASCENDING_ORDER,
         /*abs2Sums=*/nullptr));
 
     cudaq::ExecutionResult result;
+    if (includeSequentialData)
+      result.sequentialData.reserve(shots);
     // cuStateVecEx returns ascending bit strings. Run-length encoding avoids a
     // string conversion for every shot and instead performs one per unique
     // sampled bit string.
@@ -579,9 +623,9 @@ protected:
         ++runLength;
       std::string bitString = formatBitString(value, measuredBits.size());
       if (includeSequentialData)
-        result.appendResult(bitString, runLength);
+        result.appendResult(std::move(bitString), runLength);
       else
-        result.counts[bitString] += runLength;
+        result.counts[std::move(bitString)] += runLength;
       index += runLength;
     }
     result.expectationValue = detail::parityExpectation(result, shots);
@@ -707,16 +751,16 @@ protected:
                : queryDeviceMemoryCapacity().usableBytes();
   }
 
-  int32_t maximumDeviceWires() const {
+  std::int32_t maximumDeviceWires() const {
     const std::size_t availableBytes = availableGpuBytes();
     const std::size_t amplitudes =
         availableBytes / sizeof(std::complex<Scalar>);
     if (amplitudes == 0)
       throw std::runtime_error("Insufficient GPU memory for a state vector.");
-    return static_cast<int32_t>(std::bit_width(amplitudes) - 1);
+    return static_cast<std::int32_t>(std::bit_width(amplitudes) - 1);
   }
 
-  int32_t maximumMigrationWires(int32_t maxDeviceWires) const {
+  std::int32_t maximumMigrationWires(std::int32_t maxDeviceWires) const {
     if (m_config.maxCpuMemoryGb == 0)
       return 0;
 
@@ -766,13 +810,14 @@ protected:
   }
 
   virtual void addZeroWires(std::size_t count) {
-    const int32_t localHeadroom =
+    const std::int32_t localHeadroom =
         state().maxLocalWires() - state().numLocalWires();
-    const int32_t localCount =
-        std::min(static_cast<int32_t>(count), localHeadroom);
+    const std::int32_t localCount =
+        std::min(static_cast<std::int32_t>(count), localHeadroom);
     state().addWires(CUSTATEVEC_EX_INDEX_BIT_DOMAIN_LOCAL, localCount);
 
-    const int32_t migrationCount = static_cast<int32_t>(count) - localCount;
+    const std::int32_t migrationCount =
+        static_cast<std::int32_t>(count) - localCount;
     if (migrationCount >
         state().maxMigrationWires() - state().numMigrationWires())
       throw std::runtime_error(
@@ -786,10 +831,11 @@ protected:
     assert(m_pendingQubits == 0 && "deferred qubit allocations not flushed");
     if (m_state)
       return;
-    int32_t device = 0;
+    std::int32_t device = 0;
     HANDLE_CUDA_ERROR(cudaGetDevice(&device));
-    const int32_t maxDeviceWires = maximumDeviceWires();
-    const int32_t maxMigrationWires = maximumMigrationWires(maxDeviceWires);
+    const std::int32_t maxDeviceWires = maximumDeviceWires();
+    const std::int32_t maxMigrationWires =
+        maximumMigrationWires(maxDeviceWires);
     if (nQubitsAllocated >
         static_cast<std::size_t>(maxDeviceWires + maxMigrationWires))
       throw std::runtime_error(
@@ -818,23 +864,14 @@ protected:
       }
     } else {
       task.kind = NoiseChannelKind::General;
-      for (const auto &operation : channel.get_ops()) {
-        auto &converted = task.matrices.emplace_back();
-        // Python-defined channels may carry a precision different from the
-        // simulator, so inspect each operation before converting its matrix.
-        converted.reserve(operation.data.size());
-        if (operation.precision == cudaq::simulation_precision::fp32) {
-          const auto *const values =
-              reinterpret_cast<const std::complex<float> *>(
-                  operation.data.data());
-          converted.assign(values, values + operation.data.size());
-        } else {
-          const auto *const values =
-              reinterpret_cast<const std::complex<double> *>(
-                  operation.data.data());
-          converted.assign(values, values + operation.data.size());
-        }
-      }
+      // Both `kraus_op::data` and `NoiseTask::matrices` are always double
+      // precision regardless of the simulator scalar type, so the Kraus
+      // matrices can be moved in directly. `get_ops()` returns by value, so
+      // moving out of the local copy avoids a second copy of each matrix.
+      auto ops = channel.get_ops();
+      task.matrices.reserve(ops.size());
+      for (auto &operation : ops)
+        task.matrices.push_back(std::move(operation.data));
     }
     compactNoiseMatrices(task);
     return task;
@@ -958,7 +995,8 @@ protected:
         !supportsBatchedTrajectories() ||
         selectedTrajectoryBatchSize(workItems) < m_config.batchedMinBatchSize ||
         m_state->numMigrationWires() != 0 ||
-        m_state->numWires() > static_cast<int32_t>(m_config.batchedMaxQubits))
+        m_state->numWires() >
+            static_cast<std::int32_t>(m_config.batchedMaxQubits))
       return false;
     for (const auto &task : m_deferredTasks) {
       if (std::holds_alternative<PauliRotationTask>(task))
@@ -1004,7 +1042,8 @@ protected:
   std::optional<PTSBEPlan>
   analyzePTSBEBatch(const cudaq::ptsbe::PTSBatch &batch) {
     if (!supportsBatchedTrajectories() || state().numMigrationWires() != 0 ||
-        state().numWires() > static_cast<int32_t>(m_config.batchedMaxQubits))
+        state().numWires() >
+            static_cast<std::int32_t>(m_config.batchedMaxQubits))
       return std::nullopt;
 
     PTSBEPlan plan;
@@ -1122,7 +1161,7 @@ protected:
                              const cudaq::ptsbe::PTSBatch &batch,
                              const PTSBEPlan &plan, std::size_t offset,
                              std::size_t count,
-                             const std::vector<int32_t> &measuredWires,
+                             const std::vector<std::int32_t> &measuredWires,
                              std::vector<cudaq::sample_result> &results) {
     std::vector<cudaq::ExecutionResult> batchResults(count);
     std::vector<std::size_t> shotsPerState(count);
@@ -1157,7 +1196,7 @@ protected:
                            const cudaq::ptsbe::PTSBatch &batch,
                            const PTSBEPlan &plan, std::size_t offset,
                            std::size_t count,
-                           const std::vector<int32_t> &measuredWires,
+                           const std::vector<std::int32_t> &measuredWires,
                            std::vector<cudaq::sample_result> &results) {
     for (std::size_t local = 0; local < count; ++local) {
       const std::size_t trajectoryIndex = plan.active[offset + local];
@@ -1381,11 +1420,16 @@ protected:
   CuStateVecRandom m_gpuRandom;
   std::vector<SimulationTask<Scalar>> m_deferredTasks;
   std::vector<double> m_pendingRandomNumbers;
+  // Reused by applyGate so its vectors keep their capacity between gates. Held
+  // as the variant the engine takes, which would otherwise copy it per gate.
+  SimulationTask<Scalar> m_gateScratch;
   // Set once a measurement is recorded on the non-explicit noisy `sample` path;
   // used to reject unsupported non-terminal (mid-circuit) measurements.
   bool m_measurementRecorded = false;
   bool m_replayingTrajectory = false;
   bool m_hasCustomInitialState = false;
+  // Set by DeferredHostWait; read by synchronize().
+  bool m_deferHostWait = false;
 };
 
 } // namespace cudaq::cusv

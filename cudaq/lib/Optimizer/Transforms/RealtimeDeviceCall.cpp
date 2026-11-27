@@ -60,7 +60,7 @@ static std::optional<Type> getSupportedRealtimeSequenceElement(Type ty) {
   if (!sequenceTy)
     return std::nullopt;
   Type elemTy = sequenceTy.getElementType();
-  if (isa<cudaq::cc::MeasureHandleType>(elemTy))
+  if (isa<cudaq::quake::MeasureType>(elemTy))
     return IntegerType::get(elemTy.getContext(), 1);
   return getSupportedRealtimePrimitiveArrayElement(elemTy);
 }
@@ -70,7 +70,7 @@ static std::optional<Type> getSupportedRealtimeSequenceResultElement(Type ty) {
   if (!sequenceTy)
     return std::nullopt;
   Type elemTy = sequenceTy.getElementType();
-  if (isa<cudaq::cc::MeasureHandleType>(elemTy))
+  if (isa<cudaq::quake::MeasureType>(elemTy))
     return std::nullopt;
   return getSupportedRealtimePrimitiveArrayElement(elemTy);
 }
@@ -313,7 +313,7 @@ static Value marshalArrayArgument(OpBuilder &builder, Location loc,
         computeArrayPayloadSize(builder, loc, arrayLength, payloadElementTy);
     Value dstPtr = typedPtrAt(builder, loc, requestBuffer, cursor,
                               cudaq::cc::ArrayType::get(i8Ty));
-    StringRef packFunc = isa<cudaq::cc::MeasureHandleType>(sourceElementTy)
+    StringRef packFunc = isa<cudaq::quake::MeasureType>(sourceElementTy)
                              ? cudaq::realtimePackMeasurements
                              : cudaq::realtimePackBits;
     func::CallOp::create(builder, loc, TypeRange{}, packFunc,
@@ -492,9 +492,9 @@ public:
     // Reserve a frame from the selected channel. On acquire failure no frame is
     // owned yet, so trapping does not need a release callback.
     // Function signature of the acquire:
-    //   extern "C" int32_t __cudaq_device_call_acquire_realtime_frame(
-    //       uint32_t device_id, uint32_t function_id,
-    //       uint64_t request_size, uint64_t response_capacity,
+    //   extern "C" std::int32_t __cudaq_device_call_acquire_realtime_frame(
+    //       std::uint32_t device_id, std::uint32_t function_id,
+    //       std::uint64_t request_size, std::uint64_t response_capacity,
     //       void **frame_handle, void **request_payload,
     //       void **response_payload);
     auto acquireStatus = func::CallOp::create(
@@ -556,8 +556,8 @@ public:
     }
 
     // Dispatch the populated frame:
-    //   extern "C" int32_t __cudaq_device_call_dispatch_realtime_frame(
-    //       void *frame_handle, uint64_t *response_size);
+    //   extern "C" std::int32_t __cudaq_device_call_dispatch_realtime_frame(
+    //       void *frame_handle, std::uint64_t *response_size);
     auto status = func::CallOp::create(
         rewriter, loc, i32Ty, cudaq::runtime::deviceCallDispatchRealtimeFrame,
         ValueRange{frameHandle, responseLen});

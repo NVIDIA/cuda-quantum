@@ -11,7 +11,6 @@
 #include "common/SampleResult.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
-#include "cudaq/platform.h"
 #include "cudaq/qis/measure_handle.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
@@ -21,11 +20,17 @@
 #include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <functional>
 #include <stdexcept>
 
 #define __qpu__ __attribute__((annotate("quantum")))
+// Mark the declaration of a function that takes a quantum type, but is not a
+// kernel: it is implemented outside of CUDA-Q (such as by a backend), or is a
+// primitive operation of an execution manager. Only a kernel (`__qpu__`) and
+// an intrinsic can take a quantum type.
+#define __qpu_intrinsic__ __attribute__((annotate("quantum_intrinsic")))
 #define __disable_quantum_optimization__                                       \
   __attribute__((annotate("disable_quantum_optimization")))
 #define __atomic_quantum_region__                                              \
@@ -556,23 +561,12 @@ std::vector<measure_result> mz(qubit &q, Qs &&...qs) {
   return result;
 }
 
-namespace support {
-// Helpers to deal with the `vector<bool>` specialized template type.
-extern "C" {
-void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &, char *,
-                                             std::size_t);
-void __nvqpp_vector_bool_to_initializer_list(void *, const std::vector<bool> &,
-                                             std::vector<char *> **);
-void __nvqpp_vector_bool_free_temporary_initlists(std::vector<char *> *);
-}
-} // namespace support
-
 // Measure the state in the given spin_op basis.
 inline SpinMeasureResult measure(const cudaq::spin_op &term) {
   return getExecutionManager()->measure(term);
 }
 
-// Cast a measure register to an int64_t.
+// Cast a measure register to an std::int64_t.
 // This function is classic control code that may run on a QPU.
 inline std::int64_t to_integer(const std::vector<measure_result> &bits) {
   std::int64_t ret = 0;

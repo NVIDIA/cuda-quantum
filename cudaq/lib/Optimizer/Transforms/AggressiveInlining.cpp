@@ -13,6 +13,7 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Operation.h"
+#include "mlir/IR/SymbolTable.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -29,7 +30,7 @@ namespace cudaq::opt {
 using namespace mlir;
 
 static bool isIndirectFunc(StringRef funcName,
-                           llvm::StringMap<StringRef> indirectMap) {
+                           const llvm::StringMap<StringRef> &indirectMap) {
   return indirectMap.find(funcName) != indirectMap.end();
 }
 
@@ -65,6 +66,8 @@ public:
         return *indirectMapOpt;
       return {};
     }();
+    // Build each symbol table once and reuse it for every call.
+    SymbolTableCollection symbolTables;
     LLVM_DEBUG(llvm::dbgs() << "Processing: " << mod << '\n');
     mod.walk([&](Operation *op) {
       auto call = dyn_cast<CallOpInterface>(op);
@@ -90,18 +93,28 @@ public:
         StringRef directName = indirectMap[callee];
         auto *ctx = rewriter.getContext();
         auto loc = call.getLoc();
-        auto indirectFn = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
+        auto indirectFn = symbolTables.lookupNearestSymbolFrom<func::FuncOp>(
             call, calleeAttr);
         auto funcTy = indirectFn.getFunctionType();
-        cudaq::opt::factory::getOrAddFunc(loc, directName, funcTy, mod);
+        auto &moduleSymbols = symbolTables.getSymbolTable(mod);
+        if (!moduleSymbols.lookup<func::FuncOp>(directName)) {
+          auto func = func::FuncOp::create(loc, directName, funcTy);
+          func.setPrivate();
+          // Register the new declaration so later lookups find it.
+          moduleSymbols.insert(func, mod.getBody()->end());
+        }
         auto directAttr = FlatSymbolRefAttr::get(ctx, directName);
         call.setCalleeFromCallable(directAttr);
         calleeAttr = directAttr;
         LLVM_DEBUG(llvm::dbgs() << "Rewriting " << directName << '\n');
       }
 
-      if (!isa<cudaq::cc::DeviceCallOp, cudaq::cc::NoInlineCallOp>(op)) {
-        auto calleeFunc = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
+      auto isNoInlineCall = [&]() {
+        auto funcCall = dyn_cast<func::CallOp>(op);
+        return funcCall && funcCall.getNoInline();
+      };
+      if (!isa<cudaq::cc::DeviceCallOp>(op) && !isNoInlineCall()) {
+        auto calleeFunc = symbolTables.lookupNearestSymbolFrom<func::FuncOp>(
             call, calleeAttr);
         const bool isAtomicQuantumRegion =
             calleeFunc &&
@@ -217,7 +230,7 @@ private:
 
   /// Descend into a callee that the inliner left behind so a marked kernel
   /// cannot hide a violation in an ordinary helper. `verifiedCallees` bounds
-  /// the traversal: a recursive or mutually recursive `cc.noinline_call` chain
+  /// the traversal: a recursive or mutually recursive `no_inline` call chain
   /// would not terminate otherwise. A callee with no body is not checked. It
   /// may be defined in another translation unit, and the link step runs this
   /// pass again on the merged module.
@@ -233,12 +246,27 @@ private:
   }
 
   void verifyResidualCall(Operation *op) {
-    if (auto call = dyn_cast<func::CallOp>(op)) {
+    if (auto call = dyn_cast<func::CallOp>(op))
       verifyCallee(op, call.getCalleeAttr());
+  }
+
+  /// A call through a value is opaque: the callee is not a symbol that can be
+  /// descended into, and this pass has no analysis to find out what the value
+  /// may be. By the time this runs, `ConvertToDirectCalls` and the inliner have
+  /// already resolved every call they are able to, so a call that is still
+  /// indirect is one whose callee is unknown. Such a callee may
+  /// measure or allocate qubits, so the region cannot be verified. This is a
+  /// warning for now and not an error, as it can reject programs that are
+  /// accepted today.
+  void verifyIndirectCall(Operation *op) {
+    if (!isa<func::CallIndirectOp, cudaq::cc::CallCallableOp,
+             cudaq::cc::CallIndirectCallableOp>(op))
       return;
-    }
-    if (auto call = dyn_cast<cudaq::cc::NoInlineCallOp>(op))
-      verifyCallee(op, call.getCalleeAttr());
+    if (!shouldReport(op, reportedIndirectCallLocations))
+      return;
+    op->emitWarning(
+        "cannot verify this call inside an atomic quantum region: the callee "
+        "is not known, so it may measure or allocate qubits");
   }
 
   /// Regions nest but never reopen, so `insideAtomicRegion` only ever gets set.
@@ -247,6 +275,7 @@ private:
     if (insideAtomicRegion) {
       verifyForbiddenOperation(op);
       verifyResidualCall(op);
+      verifyIndirectCall(op);
     }
 
     for (Region &region : op->getRegions())
@@ -260,6 +289,7 @@ private:
   llvm::DenseSet<Operation *> reportedOperations;
   llvm::DenseSet<Operation *> verifiedCallees;
   llvm::SmallDenseSet<Location> reportedAllocationLocations;
+  llvm::SmallDenseSet<Location> reportedIndirectCallLocations;
   llvm::SmallDenseSet<Location> reportedMeasurementLocations;
 };
 

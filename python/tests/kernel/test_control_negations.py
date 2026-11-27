@@ -59,6 +59,25 @@ def test_builtin_controlled_gates():
     # c<gatename> version at the time of writing this.
 
 
+def test_negated_control_does_not_leak_into_later_gates():
+    # Simulators reuse gate storage across gates and kernel runs, so a gate
+    # without control values must not inherit the previous gate's.
+
+    @cudaq.kernel
+    def negated():
+        c, q = cudaq.qubit(), cudaq.qubit()
+        cx(~c, q)
+
+    @cudaq.kernel
+    def plain():
+        c, q = cudaq.qubit(), cudaq.qubit()
+        cx(c, q)
+
+    for _ in range(3):
+        assert cudaq.sample(negated)["01"] == 1000
+        assert cudaq.sample(plain)["00"] == 1000
+
+
 def test_ctrl_attribute():
 
     @cudaq.kernel

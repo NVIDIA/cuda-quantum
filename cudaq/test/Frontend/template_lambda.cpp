@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct thisWorks {
   void operator()(cudaq::qubit &q) __qpu__ { x(q); }

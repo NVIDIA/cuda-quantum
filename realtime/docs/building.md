@@ -17,7 +17,7 @@ ninja install
 
 - CMake 4.0+
 
-- CUDA toolkit (12+)
+- CUDA toolkit (12.6+ and 13.0+)
 
 In the above `cmake` command, we enabled unit testing with `-DCUDAQ_REALTIME_BUILD_TESTS=ON`.
 To execute those unit tests, run the `ctest` command from the `build` directory:
@@ -48,25 +48,6 @@ bash realtime/scripts/build_realtime.sh
 bash realtime/scripts/build_realtime.sh -c Debug -s
 ```
 
-A Holoscan Sensor Bridge tree that exports `HololinkRoce` can be picked up
-via `HSB_ROOT`. Opt in with `CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON`.
-
-```bash
-CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON \
-  HSB_ROOT=/path/to/holoscan-sensor-bridge \
-  bash realtime/scripts/build_realtime.sh
-```
-
-Requires HololinkRoce 2.7. With no HSB tree, build the leaf and pass it in:
-
-```bash
-HOLOLINK_SRC=/path/to/hololink
-cmake -G Ninja -S "$HOLOLINK_SRC/src/hololink/transport/roce" -B roce-build
-cmake --build roce-build --target hololink_transport_roce
-CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON bash realtime/scripts/build_realtime.sh \
-  -- -DHololinkRoce_DIR="$PWD/roce-build/HololinkRoce"
-```
-
 ## Enable Holoscan Sensor Bridge Support
 
 [Holoscan Sensor Bridge](https://www.nvidia.com/en-us/technologies/holoscan-sensor-bridge/)
@@ -84,7 +65,7 @@ for realtime coprocessing between FPGA and GPU systems.
 
 ### Software Requirements
 
-- `DOCA` version 3.3 with `gpunetio`
+- `DOCA` version 3.4 with `gpunetio`
 
 Please refer to [the download page](https://developer.nvidia.com/doca-downloads)
 to install `DOCA` for your system.
@@ -128,16 +109,9 @@ to build CUDA-Q Realtime.
 To enable `HSB`, we can configure `cmake` when building CUDA-Q Realtime as follows:
 
 ```bash
-cmake -G Ninja -S "$CUDAQ_REALTIME_DIR" -B build \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCUDAQ_REALTIME_ENABLE_HSB_TOOLS=ON \
-        -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR="$HSB_DIR" \
-        -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR="$HSB_DIR/build"
-cmake --build build
+HSB_ROOT=/path/to/holoscan-sensor-bridge \
+  bash realtime/scripts/build_realtime.sh
 ```
-
-The `$CUDAQ_REALTIME_DIR` directory is the `realtime`
-sub-directory in CUDA-Q source tree.
 
 ### Running the FPGA RPC dispatch test
 
@@ -149,7 +123,7 @@ using CUDA-Q Realtime and Holoscan Sensor Bridge,
   for the reusable `nv_hsb_ip` RTL source, the RFSoC PYNQ source example,
   and the pre-built RFSoC bit-file.
 
-- Run the test script (at `cuda-quantum/realtime/unittests/utils/gpu_roce_test.sh`).
+- Run the test script (at `cuda-quantum/realtime/validation/gpu_roce_test.sh`).
 For example,
 
 ```bash
@@ -207,3 +181,25 @@ the report as shown above.
 > and CUDA-Q, respectively.
 > Please note that `$CUDAQ_DIR` here is the parent directory
 > that contains the `realtime` sub-directory.
+
+For CPU dispatch, replace `--gpu 0` with `--cpu` in the test commands above.
+Both execution paths use `roce_app` through the bridge API. HSB playback requires
+the CUDA driver library (`libcuda.so.1`); CPU RoCE also requires `libibverbs`.
+
+With `CUDAQ_REALTIME_BUILD_TESTS=ON`, `validation_app`
+requires the CUDA compiler and dispatcher, but does not require HSB tools.
+`roce_app` additionally requires `CUDAQ_REALTIME_ENABLE_HSB_TOOLS=ON`.
+After building, run local validation from the repository root:
+
+```bash
+bash realtime/validation/validation_test.sh --udp
+bash realtime/validation/validation_test.sh --udp --dispatch=unified
+```
+
+For FPGA validation, omit `--udp` and supply the device/FPGA settings shown in the
+[installation guide](user_guide.md#setup). Both runners accept the same options.
+See the [validation architecture](validation_workflow.md) for plugin integration.
+
+Validation applications, playback providers and runners live in
+`realtime/validation/`; their unit tests live in `realtime/unittests/validation/`.
+Local validation tools are built under `realtime/build/validation/`.

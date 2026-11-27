@@ -332,3 +332,37 @@ func.func @while_coincident_secondary(%n: i64) -> (i64, i64) {
 // CHECK:           %[[SUBI_2:.*]] = arith.subi %[[ARG0]], %[[LOOP_0]] : i64
 // CHECK:           return %[[SUBI_2]], %[[LOOP_0]] : i64, i64
 
+// ---------------------------------------------------------------------------
+// Test 7: the loop condition is a while-region argument.
+//
+//   go = arg;
+//   while (go) { go = next(); }
+//
+// The condition has no defining op, so it is not a comparison of an
+// induction variable. `getLoopComponents` must reject the loop rather than
+// crash on the missing op, and the loop must come out unchanged.
+// ---------------------------------------------------------------------------
+
+func.func private @next() -> i1
+
+func.func @while_condition_argument(%go: i1) -> i1 {
+  %r = cc.loop while ((%c = %go) -> (i1)) {
+    cc.condition %c(%c : i1)
+  } do {
+  ^bb0(%c : i1):
+    %n = func.call @next() : () -> i1
+    cc.continue %n : i1
+  }
+  return %r : i1
+}
+
+// CHECK-LABEL:   func.func @while_condition_argument(
+// CHECK-SAME:      %[[ARG0:.*]]: i1) -> i1 {
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[ARG0]]) -> (i1)) {
+// CHECK:             cc.condition %[[VAL_0]](%[[VAL_0]] : i1)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i1):
+// CHECK:             %[[CALL_0:.*]] = func.call @next() : () -> i1
+// CHECK:             cc.continue %[[CALL_0]] : i1
+// CHECK:           }
+// CHECK:           return %[[LOOP_0]] : i1

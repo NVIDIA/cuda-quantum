@@ -36,7 +36,8 @@ from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
                     getMLIRContext, is_recovered_value_ok,
                     recover_annotation_of_or_none, recover_value_of_or_none,
-                    cudaq__unique_attr_name, mlirTryCreateStructType)
+                    cudaq__unique_attr_name, mlirTryCreateStructType,
+                    set_optimization_level_attr)
 
 State = cudaq_runtime.State
 
@@ -692,7 +693,7 @@ class PyASTBridge(ast.NodeVisitor):
         # primary contract; the wider-integer and float cases also automatically
         # discriminate. `i8` also covers element stores into a `list[bool]`,
         # which the bridge backs with `i8` storage but logically owns as bool.
-        if cc.MeasureHandleType.isinstance(
+        if quake.MeasureType.isinstance(
                 operand.type) and (IntegerType.isinstance(ty) or
                                    F32Type.isinstance(ty) or
                                    F64Type.isinstance(ty)):
@@ -701,7 +702,7 @@ class PyASTBridge(ast.NodeVisitor):
         if (cc.SequenceType.isinstance(ty) and
                 cc.SequenceType.getElementType(ty) == i1Type and
                 cc.SequenceType.isinstance(operand.type) and
-                cc.MeasureHandleType.isinstance(
+                quake.MeasureType.isinstance(
                     cc.SequenceType.getElementType(operand.type))):
             return self.__discriminateIfMeasureHandle(operand, self.currentNode)
         if cc.CallableType.isinstance(ty):
@@ -980,19 +981,19 @@ class PyASTBridge(ast.NodeVisitor):
         return sawStore
 
     def __discriminateIfMeasureHandle(self, value, node):
-        """If `value` is a `!cc.measure_handle` (or `sequence` thereof) at a
+        """If `value` is a `!quake.measure` (or `sequence` thereof) at a
         `bool`-coercion context, insert a `quake.discriminate` and return
         the `i1`/`sequence<i1>` result.
         """
         if value is None:
             return value
         ty = value.type
-        if cc.MeasureHandleType.isinstance(ty):
+        if quake.MeasureType.isinstance(ty):
             if self.__isProvablyUnboundHandleSource(value):
                 self.emitFatalError(
                     'discriminating an unbound measurement handle', node)
             return quake.DiscriminateOp(self.getIntegerType(1), value).result
-        if cc.SequenceType.isinstance(ty) and cc.MeasureHandleType.isinstance(
+        if cc.SequenceType.isinstance(ty) and quake.MeasureType.isinstance(
                 cc.SequenceType.getElementType(ty)):
             return quake.DiscriminateOp(
                 cc.SequenceType.get(self.getIntegerType(1)), value).result
@@ -2585,75 +2586,6 @@ class PyASTBridge(ast.NodeVisitor):
                     return name + ".." + hex(id(result))
         return None
 
-    def __expandCustomOpTargets(self, pyArgs, numTargets, node):
-        """Collect qubit references for a custom operation call, expanding `qvector`
-        arguments into individual references.
-        """
-        # Pass 1: Compute the static qubit count
-        values = []
-        staticCount = 0
-        for arg in pyArgs:
-            if isinstance(arg, ast.Starred):
-                self.visit(arg.value)
-            else:
-                self.visit(arg)
-            val = self.popValue()
-            values.append(val)
-            if quake.RefType.isinstance(val.type):
-                staticCount += 1
-            elif quake.VeqType.isinstance(val.type):
-                if quake.VeqType.hasSpecifiedSize(val.type):
-                    staticCount += quake.VeqType.getSize(val.type)
-            else:
-                self.emitFatalError(
-                    'invalid target operand for custom operation: '
-                    'expected a qubit or qvector', node)
-
-        dynamicExpected = numTargets - staticCount
-
-        # Pass 2: emit runtime size checks
-        targets = []
-        for val in values:
-            if quake.VeqType.isinstance(val.type):
-                if quake.VeqType.hasSpecifiedSize(val.type):
-                    size = quake.VeqType.getSize(val.type)
-                else:
-                    load_intrinsic(self.module, '__nvqpp_customop_size_error')
-                    actualSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                 val).result
-                    expectedSizeVal = self.getConstantInt(dynamicExpected)
-                    eqPred = IntegerAttr.get(self.getIntegerType(), 0)
-                    sizesMatch = arith.CmpIOp(eqPred, actualSize,
-                                              expectedSizeVal).result
-                    ifOp = cc.IfOp([], sizesMatch, [])
-                    thenBlock = Block.create_at_start(ifOp.thenRegion, [])
-                    with InsertionPoint(thenBlock):
-                        cc.ContinueOp([])
-                    elseBlock = Block.create_at_start(ifOp.elseRegion, [])
-                    with InsertionPoint(elseBlock):
-                        totalActual = arith.AddIOp(
-                            actualSize, self.getConstantInt(staticCount)).result
-                        func.CallOp(
-                            [], '__nvqpp_customop_size_error',
-                            [self.getConstantInt(numTargets), totalActual])
-                        cc.ContinueOp([])
-                    size = dynamicExpected
-                for i in range(size):
-                    ref = quake.ExtractRefOp(
-                        self.getRefType(),
-                        val,
-                        -1,
-                        index=self.getConstantInt(i)).result
-                    targets.append(ref)
-            elif quake.RefType.isinstance(val.type):
-                targets.append(val)
-
-        if len(targets) != numTargets:
-            self.emitFatalError(
-                f'custom operation requires {numTargets} qubit target(s), '
-                f'but {len(targets)} were provided', node)
-        return targets
-
     def visit_Call(self, node):
         """Map a Python Call operation to equivalent MLIR. This method handles
         functions that are `ast.Name` and `ast.Attribute` objects.
@@ -3292,10 +3224,10 @@ class PyASTBridge(ast.NodeVisitor):
                     qubits = groupValues(node.args, [(1, -1)])
                     label = registerName or None
                     # `mx`/`my`/`mz` are the single measurement API: they emit
-                    # `quake.{mx,my,mz}` producing `!cc.measure_handle` (scalar)
-                    # or `!cc.sequence<!cc.measure_handle>` (vector form on a
+                    # `quake.{mx,my,mz}` producing `!quake.measure` (scalar)
+                    # or `!cc.sequence<!quake.measure>` (vector form on a
                     # `qvector`/`qview`).
-                    handleEleTy = cc.MeasureHandleType.get()
+                    handleEleTy = quake.MeasureType.get()
                     if len(qubits) == 1 and quake.RefType.isinstance(
                             qubits[0].type):
                         measTy = handleEleTy
@@ -3365,8 +3297,14 @@ class PyASTBridge(ast.NodeVisitor):
                 with trace.span("ast_bridge.call.emit_custom_operation"):
                     unitary = globalRegisteredOperations[node.func.id]
                     numTargets = int(np.log2(np.sqrt(unitary.size)))
-                    targets = self.__expandCustomOpTargets(
-                        node.args, numTargets, node)
+                    targets = self.__groupValues(node.args,
+                                                 [(numTargets, numTargets)])
+
+                    for i, t in enumerate(targets):
+                        if not quake.RefType.isinstance(t.type):
+                            self.emitFatalError(
+                                f'invalid target operand {i}, broadcasting is not supported on custom operations.'
+                            )
 
                     globalName = f'{nvqppPrefix}{node.func.id}_generator_{numTargets}.rodata'
 
@@ -3396,9 +3334,9 @@ class PyASTBridge(ast.NodeVisitor):
 
             elif node.func.id == 'bool':
                 # explicit `bool(h)` is one of the sanctioned coercion contexts
-                # on a `!cc.measure_handle`, lowering to `quake.discriminate`.
+                # on a `!quake.measure`, lowering to `quake.discriminate`.
                 value = self.__groupValues(node.args, [1])
-                if cc.MeasureHandleType.isinstance(value.type):
+                if quake.MeasureType.isinstance(value.type):
                     self.pushValue(
                         self.__discriminateIfMeasureHandle(value, node))
                     return
@@ -3614,18 +3552,19 @@ class PyASTBridge(ast.NodeVisitor):
                     (namespace == 'math' and
                      self.__isSupportedMathFunction(node.func.attr))):
 
-                    value = self.__groupValues(node.args, [1])
-
                     if node.func.attr == 'array':
-                        # The expected Python behavior is that a constructor
-                        # call to array creates a new array (a shallow copy).
-                        # Additionally, since a new value is created, we need to
-                        # make sure container entries are properly validated. To
-                        # not duplicate the logic, we simply call `copy` here.
+                        if not node.args:
+                            self.emitFatalError("missing value", node)
+                        if len(node.args) > 1:
+                            self.emitFatalError("too many values", node)
+                        # Let copy evaluate the input once and validate the
+                        # entries of the newly created container.
                         self.visit_Call(
                             ast.Call(ast.Attribute(node.args[0], 'copy'), [],
                                      node.keywords))
                         return
+
+                    value = self.__groupValues(node.args, [1])
 
                     if node.func.attr in ['complex128', 'complex64']:
                         if node.func.attr == 'complex128':
@@ -3929,14 +3868,14 @@ class PyASTBridge(ast.NodeVisitor):
                     if node.func.attr == "measure_handle":
                         # `cudaq.measure_handle()`, i.e. the default
                         # constructor produces an unbound handle. Materialize
-                        # a fresh `!cc.measure_handle` SSA value via
+                        # a fresh `!quake.measure` SSA value via
                         # `cc.undef`.
                         if len(node.args) != 0 or node.keywords:
                             self.emitFatalError(
                                 'cudaq.measure_handle() takes no arguments',
                                 node)
                         self.pushValue(
-                            cc.UndefOp(cc.MeasureHandleType.get()).result)
+                            cc.UndefOp(quake.MeasureType.get()).result)
                         return
 
                     if node.func.attr == "to_bools":
@@ -3951,7 +3890,7 @@ class PyASTBridge(ast.NodeVisitor):
                         handle = self.__groupValues(node.args, [1])
                         ty = handle.type
                         if not (cc.SequenceType.isinstance(ty) and
-                                cc.MeasureHandleType.isinstance(
+                                quake.MeasureType.isinstance(
                                     cc.SequenceType.getElementType(ty))):
                             self.emitFatalError(
                                 'cudaq.to_bools expects a '
@@ -4158,7 +4097,7 @@ class PyASTBridge(ast.NodeVisitor):
                         # `cudaq.to_integer` consumes a `list[bool]`
                         boolVec = self.__groupValues(node.args, [1])
                         if (cc.SequenceType.isinstance(boolVec.type) and
-                                cc.MeasureHandleType.isinstance(
+                                quake.MeasureType.isinstance(
                                     cc.SequenceType.getElementType(
                                         boolVec.type))):
                             self.emitFatalError(
@@ -4402,9 +4341,19 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitWarning(
                 "produced elements in list comprehension contain None - "
                 "expression will be evaluated but no list is generated", node)
+            body = [node.elt]
+            if hasFilter:
+                # Apply the `if` clauses so only the selected elements are
+                # evaluated, matching Python semantics.
+                test = (if_clauses[0] if len(if_clauses) == 1 else ast.BoolOp(
+                    op=ast.And(), values=list(if_clauses)))
+                ifNode = ast.If(test=test, body=body, orelse=[])
+                ast.copy_location(ifNode, node.elt)
+                ast.fix_missing_locations(ifNode)
+                body = [ifNode]
             forNode = ast.For(target=node.generators[0].target,
                               iter=node.generators[0].iter,
-                              body=[node.elt],
+                              body=body,
                               orelse=[])
             forNode.lineno = node.lineno
             # This loop could be marked as invariant if we didn't use
@@ -4586,7 +4535,7 @@ class PyASTBridge(ast.NodeVisitor):
                     if (pyval.func.attr == 'measure_handle' and
                             isinstance(pyval.func.value, ast.Name) and
                             pyval.func.value.id == 'cudaq'):
-                        return cc.MeasureHandleType.get()
+                        return quake.MeasureType.get()
                 self.emitFatalError("unsupported call in list comprehension",
                                     node)
             elif isinstance(pyval, ast.Compare):
@@ -5689,7 +5638,7 @@ class PyASTBridge(ast.NodeVisitor):
         # If we are returning a tuple expression with a struct return type,
         # signal `visit_Tuple` to coerce each element to its expected member
         # type before assembling the struct. Without this, an intermediate
-        # struct whose element types include `!cc.measure_handle` is built
+        # struct whose element types include `!quake.measure` is built
         # and survives to QIR lowering, where it fails to legalize even
         # though the outer struct is later coerced to the expected type.
         expectedRet = self.signature.return_type
@@ -6271,8 +6220,7 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
         cudaq__unique_attr_name, StringAttr.get(bridge.name,
                                                 context=bridge.ctx))
     if disable_quantum_optimization:
-        bridge.module.operation.attributes.__setitem__(
-            'quake.noOptimization', UnitAttr.get(context=bridge.ctx))
+        set_optimization_level_attr(bridge.module, bridge.name, level=0)
     if verbose:
         print(bridge.module)
     # Clear the live operations cache. This avoids python crashing with

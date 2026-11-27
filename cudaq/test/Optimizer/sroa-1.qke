@@ -1,0 +1,60 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -cc-sroa %s | FileCheck %s
+
+// Follow pointer casts all the way to initialization, even when the allocation
+// also has ordinary element accesses. State storage must remain contiguous.
+func.func @state_through_casts(%x: f64) {
+  %a = cc.alloca !cc.array<f64 x 2>
+  %p = cc.compute_ptr %a[0] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
+  cc.store %x, %p : !cc.ptr<f64>
+  %raw = cc.cast %a : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<i8>
+  %data = cc.cast %raw : (!cc.ptr<i8>) -> !cc.ptr<f64>
+  %q = quake.alloca !quake.veq<1>
+  %s = quake.init_state %q, %data : (!quake.veq<1>, !cc.ptr<f64>) -> !quake.veq<1>
+  quake.dealloc %s : !quake.veq<1>
+  return
+}
+// CHECK-LABEL: func.func @state_through_casts
+// CHECK: %[[A:.*]] = cc.alloca !cc.array<f64 x 2>
+// CHECK: cc.compute_ptr %[[A]][0]
+// CHECK: %[[RAW:.*]] = cc.cast %[[A]]
+// CHECK: %[[DATA:.*]] = cc.cast %[[RAW]]
+// CHECK: quake.init_state {{.*}}, %[[DATA]]
+
+// An integer escape also prevents scalar replacement.
+func.func @integer_escape() -> i64 {
+  %a = cc.alloca !cc.array<i64 x 2>
+  %p = cc.cast %a : (!cc.ptr<!cc.array<i64 x 2>>) -> !cc.ptr<i64>
+  %addr = cc.cast %p : (!cc.ptr<i64>) -> i64
+  return %addr : i64
+}
+// CHECK-LABEL: func.func @integer_escape
+// CHECK: %[[A:.*]] = cc.alloca !cc.array<i64 x 2>
+// CHECK: %[[P:.*]] = cc.cast %[[A]]
+// CHECK: %[[ADDR:.*]] = cc.cast %[[P]] : (!cc.ptr<i64>) -> i64
+// CHECK: return %[[ADDR]]
+
+// A user reached through both pointer casts is queued only once. Replacing the
+// traversal's membership checks must preserve the state-initialization guard.
+func.func @shared_cast_user(%x: f64) {
+  %a = cc.alloca !cc.array<f64 x 2>
+  %p = cc.cast %a : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
+  %other = cc.cast %a : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<!cc.array<f64 x ?>>
+  quake.evince %p, %other : (!cc.ptr<f64>, !cc.ptr<!cc.array<f64 x ?>>) -> ()
+  cc.store %x, %p : !cc.ptr<f64>
+  %q = quake.alloca !quake.veq<1>
+  %s = quake.init_state %q, %p : (!quake.veq<1>, !cc.ptr<f64>) -> !quake.veq<1>
+  quake.dealloc %s : !quake.veq<1>
+  return
+}
+// CHECK-LABEL: func.func @shared_cast_user
+// CHECK: cc.alloca !cc.array<f64 x 2>
+// CHECK: quake.evince
+// CHECK: quake.init_state

@@ -34,12 +34,14 @@ CPTP
 CPU
 CPUs
 CPython
+CSC
 CTest
 CUDA
 CX
 Cartesian
 CentOS
 Cheeger
+Choi
 Chuang
 Cliffords
 CompileMetrics
@@ -49,6 +51,8 @@ ConnectX
 CuDensityMat
 CuPy
 DCO
+DEMs
+DEP
 DGX
 DLP
 DOCA
@@ -59,6 +63,7 @@ Deutsch
 Devcontainer
 Dockerfile
 Doxygen
+EDEMs
 Ekerå
 Eq
 Exponentiating
@@ -67,11 +72,13 @@ FPGA
 FPGAs
 FabricToQIR
 Fermion
+FetchDependencies
 Floquet
 Fock
 ForLoop
 Fortran
 Fourier
+GDRCopy
 GF
 GHCR
 GMP
@@ -139,6 +146,7 @@ MPICH
 MPPs
 MPS
 MSB
+MUNGE
 MacOS
 MachineModel
 Magnus
@@ -155,6 +163,9 @@ NVLink
 NVQIR
 NVQLink
 Nielsen
+NumPy
+Numba
+OFED
 OPX
 OQC
 ORCA
@@ -167,6 +178,8 @@ OpenSSL
 OpenSUSE
 Ou
 PBC
+PMI
+PMIx
 POSIX
 PSIRT
 PTSBE
@@ -226,9 +239,11 @@ RSH
 RTL
 RTR
 RTS
+RTTI
 Rabi
 Realtime
 RepeatOp
+Retargeting
 RoCE
 Roetteler
 RydbergAtom
@@ -243,6 +258,7 @@ Scaleway
 SelectionOp
 Selinger
 Shutty
+Slurm
 Sqale
 Steane
 Stim
@@ -259,9 +275,12 @@ Toffoli
 Toshiko
 TryTakeOp
 UC
+UCC
 UCCSD
+UCX
 UDD
 UMA
+UTF
 Uhrig
 VQE
 VTU
@@ -292,6 +311,7 @@ afqmc
 al
 alap
 alloc
+allocator
 amongst
 anc
 ancilla
@@ -301,6 +321,7 @@ anharmonicity
 ansatz
 ansatzes
 anticommute
+anticommuting
 antiferromagnet
 api
 arXiv
@@ -313,6 +334,7 @@ aspirational
 attr
 attrs
 automorphism
+automorphisms
 auxillary
 backend
 backends
@@ -357,6 +379,7 @@ cflow
 checkable
 circulant
 circulants
+cmake
 cnot
 codebase
 codecs
@@ -371,6 +394,7 @@ compat
 composability
 composable
 config
+configurability
 conftest
 constructible
 controlled
@@ -395,6 +419,7 @@ cuQuantum
 cuTensor
 cudaq
 cudaqPulseRunCanonicalize
+cudaqx
 cudm
 cultiv
 cwd
@@ -402,6 +427,7 @@ cx
 cyclotomic
 cz
 dataclass
+dataclasses
 dataflow
 datagram
 datagrams
@@ -414,6 +440,7 @@ deallocated
 deallocates
 deallocation
 deallocations
+deallocator
 decomposer
 decompositions
 decrement
@@ -430,9 +457,12 @@ deserialization
 deserialize
 deserializes
 destructor
+destructors
 deterministically
 detuning
 deutsch
+devcontainer
+devdeps
 diag
 dicts
 dimensionality
@@ -444,11 +474,14 @@ discretized
 dispersive
 dissipator
 dissipators
+dkms
+doca
 dominator
 dsurface
 dt
 durations
 dylib
+edem
 eigenbasis
 eigensolver
 eigensolvers
@@ -498,8 +531,11 @@ frac
 frontend
 frontends
 func
+functionals
 functors
 gaussian
+getter
+getters
 ghz
 globals
 gpu
@@ -522,6 +558,7 @@ hz
 iXZ
 idx
 iff
+importlib
 increment
 incrementing
 init
@@ -537,6 +574,7 @@ installable
 instantiation
 instantiations
 instrs
+integrations
 integrator
 integrators
 interferometer
@@ -550,10 +588,13 @@ ir
 iterable
 iteratively
 kOp
+ket
 kets
+knem
 krylov
 legalizations
 len
+lexicographically
 libcudm
 libs
 libunwind
@@ -594,14 +635,18 @@ miscalibration
 misclassified
 mixup
 mlir
+mlnx
 monomial
 monomials
 monotonicity
 mpp
 mps
 mul
+multibyte
 multinomial
+multiset
 multithreaded
+multiwire
 mutex
 namespace
 namespaces
@@ -614,6 +659,7 @@ nonidentity
 nonnegative
 nonterminal
 nontrivially
+nonzeros
 noqa
 normalization
 normalizer
@@ -625,6 +671,8 @@ numpy
 nvcc
 nvq
 observables
+ofed
+ompi
 operand's
 opname
 optimizer
@@ -667,6 +715,7 @@ prepended
 prepends
 preprocessing
 preprocessor
+prereqs
 probability
 prog
 programmatically
@@ -701,6 +750,7 @@ qumode
 qumodes
 qvec
 rabi
+rdma
 reStructuredText
 realtime
 rebindings
@@ -712,6 +762,9 @@ recv
 rehydrate
 rehydrated
 renderer
+renormalization
+renormalized
+renormalizes
 reparsed
 reparsing
 replanning
@@ -746,6 +799,7 @@ schedulable
 scheduler's
 schemas
 sdg
+sdist
 selectable
 serializable
 sexualized
@@ -763,6 +817,9 @@ splitters
 sqale
 sqrt
 statevector
+stderr
+stdin
+stdout
 stim
 str
 struct
@@ -795,6 +852,7 @@ subtyping
 summands
 summarize
 superoperator
+superoperators
 superpositions
 sx
 symlink
@@ -812,7 +870,9 @@ toolchains
 toolset
 topologies
 toric
+tpls
 traceback
+tracebacks
 transactional
 transactionally
 transmon
@@ -823,10 +883,12 @@ triorthogonal
 trixie
 trotterization
 trotterized
+tsv
 tunable
 tx
 typeinfo
 uccsd
+ucx
 uint
 unadopted
 unary
@@ -859,6 +921,8 @@ untracked
 upstream's
 upvote
 url
+uv
+validator
 variadic
 variational
 vazirani
@@ -879,4 +943,5 @@ whitespace
 workflow
 workspaces
 worldlines
+xpmem
 zener

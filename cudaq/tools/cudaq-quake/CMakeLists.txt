@@ -8,7 +8,7 @@
 
 set(LLVM_LINK_COMPONENTS Support ${LLVM_TARGETS_TO_BUILD})
 
-add_llvm_executable(cudaq-quake cudaq-quake.cpp)
+add_llvm_executable(cudaq-quake cudaq-quake.cpp CUDAQAttributes.cpp)
 
 llvm_update_compile_flags(cudaq-quake)
 target_link_libraries(cudaq-quake

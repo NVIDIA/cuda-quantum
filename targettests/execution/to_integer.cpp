@@ -9,8 +9,8 @@
 // RUN: nvq++ %s -o %t && %t
 // BROKEN: nvq++ -fkernel-exec-kind=2 %s -o %t && %t
 
+#include "cudaq/qis/qubit_qis.h"
 #include <cstdio>
-#include <cudaq.h>
 
 struct test {
   int operator()(std::vector<int> applyX) __qpu__ {

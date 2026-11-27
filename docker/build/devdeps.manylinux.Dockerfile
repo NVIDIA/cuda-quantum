@@ -83,14 +83,22 @@ RUN case "$(uname -m)" in \
     && chmod +x /usr/local/bin/ninja
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA-Q.
+# The build restores its ccache from the registry and saves it back (see
+# llvm_ccache.sh), so that it recompiles only what changed when the layer misses.
+# The cache mount keeps it out of the image, which the wheel builds start from.
+ADD ./scripts/llvm_ccache.sh /scripts/llvm_ccache.sh
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 ADD ./scripts/build_mlir_python_bindings.sh /scripts/build_mlir_python_bindings.sh
 ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
 ADD ./tpls/customizations/llvm/ /tpls/customizations/llvm/
-RUN LLVM_PROJECTS='clang;lld;mlir' LLVM_SOURCE=/llvm-project \
+RUN --mount=type=cache,target=/root/.ccache,id=llvm-ccache \
+    --mount=type=secret,id=llvm_ccache,required=false \
+    . /scripts/llvm_ccache.sh && llvm_ccache_begin manylinux '%compiler% -v' && \
+    LLVM_PROJECTS='clang;lld;mlir' LLVM_SOURCE=/llvm-project \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     LLVM_CMAKE_PATCHES=/tpls/customizations/llvm \
-    bash /scripts/build_llvm.sh -c Release -v
+    bash /scripts/build_llvm.sh -c Release -v && true
+    # The `&& true` keeps bash 4 from skipping the ccache save (see llvm_ccache.sh).
     # The build directory at /llvm-project/build is intentionally retained:
     # build_mlir_python_bindings.sh reuses it in the wheel container to add
     # the python-binding targets per Python version without recompiling

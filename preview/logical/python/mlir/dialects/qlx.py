@@ -26,6 +26,10 @@ from __future__ import annotations
 from ._qlx_ops_gen import *  # noqa: F401,F403
 from ._qlx_enum_gen import *  # noqa: F401,F403
 
+# Canonical semantic name; the existing op mnemonic stays qlx.objective_body
+# so saved MLIR and build bundles continue to parse without a schema migration.
+ActionBodyOp = ObjectiveBodyOp
+
 # Native extension: attribute subclasses live in the `qlx` submodule
 # of the combined _qlx_ext extension.
 from .._mlir_libs._qlx_ext.qlx import (  # noqa: F401

@@ -11,6 +11,7 @@
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <cstdint>
 namespace cudaq {
 CuDensityMatExpectation::CuDensityMatExpectation(cudensitymatHandle_t handle,
                                                  cudensitymatOperator_t op)
@@ -34,7 +35,7 @@ void CuDensityMatExpectation::prepare(cudensitymatState_t state) {
 }
 std::vector<std::complex<double>>
 CuDensityMatExpectation::compute(cudensitymatState_t state, double time,
-                                 int64_t batchSize) {
+                                 std::int64_t batchSize) {
   std::size_t requiredBufferSize = 0;
   HANDLE_CUDM_ERROR(cudensitymatWorkspaceGetMemorySize(
       m_handle, m_workspace, CUDENSITYMAT_MEMSPACE_DEVICE,
@@ -51,8 +52,11 @@ CuDensityMatExpectation::compute(cudensitymatState_t state, double time,
         CUDENSITYMAT_WORKSPACE_SCRATCH, workspaceBuffer, requiredBufferSize));
   }
 
-  auto *expectationValue_d = cudaq::dynamics::createArrayGpu(
-      std::vector<std::complex<double>>(batchSize, {0.0, 0.0}));
+  auto *context = dynamics::Context::getCurrentContext();
+  const std::size_t resultSizeBytes = batchSize * sizeof(std::complex<double>);
+  void *expectationValue_d =
+      context->getExpectationResultBuffer(resultSizeBytes);
+  HANDLE_CUDA_ERROR(cudaMemset(expectationValue_d, 0, resultSizeBytes));
   {
     cudaq::dynamics::PerfMetricScopeTimer metricTimer(
         "cudensitymatExpectationCompute");
@@ -62,9 +66,8 @@ CuDensityMatExpectation::compute(cudensitymatState_t state, double time,
   }
   std::vector<std::complex<double>> result(batchSize);
   HANDLE_CUDA_ERROR(cudaMemcpy(result.data(), expectationValue_d,
-                               batchSize * sizeof(std::complex<double>),
-                               cudaMemcpyDefault));
-  cudaq::dynamics::destroyArrayGpu(expectationValue_d);
+                               resultSizeBytes, cudaMemcpyDefault));
+  context->releaseExpectationResultBuffer();
   return result;
 }
 } // namespace cudaq

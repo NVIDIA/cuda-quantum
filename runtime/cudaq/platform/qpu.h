@@ -9,11 +9,12 @@
 #pragma once
 
 #include "QuantumExecutionQueue.h"
-#include "common/CompileTarget.h"
+#include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/KernelArgs.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/algorithms/policies.h"
 
 namespace mlir {
@@ -64,6 +65,11 @@ public:
   QPU(QPU &&) = default;
   /// The destructor
   virtual ~QPU() = default;
+  /// Stop pending work and join the active task before destroying the QPU.
+  void shutdownExecutionQueue() {
+    if (execution_queue)
+      execution_queue->shutdown();
+  }
   /// Set the current QPU Id
   void setId(std::size_t _qpuId) { qpu_id = _qpuId; }
 
@@ -168,9 +174,22 @@ public:
   launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
                KernelArgs args);
 
+  /// \cond
+  /// Launch \p module outside of a launch policy.
+  ///
+  /// If a `SourceModule` is passed, it is compiled against \p target and
+  /// \p options before being launched.
+  ///
+  /// This is a legacy API. The preferred path is what all the policy-based
+  /// kernel launches do: the QPU only deals with pre-compiled `CompiledModule`s
+  /// and never drives compilation itself.
   [[nodiscard]] virtual KernelThunkResultType
-  unifiedLaunchModule(const AnyModule &module, KernelArgs args);
+  compileAndLaunchKernel(const AnyModule &module, KernelArgs args,
+                         const CompileTarget &target,
+                         const CompileOptions &options);
+  /// \endcond
 
+  /// Create the default compile target of this QPU.
   [[nodiscard]] virtual CompileTarget
   getCompileTarget(const RuntimeTarget *rt = nullptr);
 

@@ -13,6 +13,7 @@ from typing import Union
 import uuid, base64, ctypes
 from pydantic import BaseModel
 from llvmlite import binding as llvm
+from .. import expose_nvqir_to_jit
 
 # Define the REST Server App
 app = FastAPI()
@@ -46,6 +47,7 @@ target = llvm.Target.from_default_triple()
 targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
+expose_nvqir_to_jit()
 # Verbose logging for debugging
 verbose = False
 
@@ -175,6 +177,23 @@ async def create_job(job: dict):
     if not items:
         raise HTTPException(status_code=400,
                             detail="No items in job definition")
+    # Helios execution requires a per-item cost limit, even if the deprecated
+    # backend_config.max_cost field is present.
+    if is_ng_device and not device_name.endswith("SC"):
+        for item in items:
+            if item.get("max_cost", 0) <= 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=
+                    f"Please specify a maximum cost when using device: {device_name}"
+                )
+            if item.get("n_qubits", 0) <= 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=
+                    "max-qubits/n_qubits must currently be set explicitly per job item."
+                )
+
     shots = items[0].get("n_shots", 1000)
     program_id = items[0].get("program_id", "")
     program = createdQIRModules[program_id]

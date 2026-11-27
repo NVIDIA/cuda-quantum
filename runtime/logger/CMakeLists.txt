@@ -32,9 +32,9 @@ target_link_libraries(cudaq-logger
 install(TARGETS cudaq-logger
         EXPORT cudaq-logger-targets
         DESTINATION lib
-        COMPONENT Runtime)
+        COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT})
 install(EXPORT cudaq-logger-targets
         FILE CUDAQLoggerTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq
-        COMPONENT Development)
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})

@@ -11,6 +11,8 @@
 // This file must be included after a `using namespace mlir;` as it uses bare
 // identifiers from that namespace.
 
+#include "llvm/ADT/SetVector.h"
+
 namespace {
 class AllocaPattern : public OpRewritePattern<cudaq::cc::AllocaOp> {
 public:
@@ -55,12 +57,7 @@ public:
 
     // Collect all the stores, casts, and compute_ptr to be erased safely and in
     // topological order.
-    SmallVector<Operation *> opsToErase;
-    auto insertOpToErase = [&](Operation *op) {
-      auto iter = std::find(opsToErase.begin(), opsToErase.end(), op);
-      if (iter == opsToErase.end())
-        opsToErase.push_back(op);
-    };
+    llvm::SetVector<Operation *> opsToErase;
 
     // Rewalk all the uses of alloc, u, which must be cc.cast or cc.compute_ptr.
     // For each u remove a store and replace a load with a cc.extract_value.
@@ -78,6 +75,16 @@ public:
           if (!useuser)
             continue;
           if (auto load = dyn_cast<cudaq::cc::LoadOp>(useuser)) {
+            // This load reads the array through a cast to another element
+            // type. Python does that for a `list[bool]`, which it stores as
+            // `i8` and reads as `i1`. Replacing the load with an element of
+            // the constant array would hand its users an `i8` where they
+            // expect an `i1`, which fails verification. Leave the load alone
+            // and keep the array in memory for it to read.
+            if (load.getType() != eleTy) {
+              cannotEraseAlloc = isLive = true;
+              continue;
+            }
             rewriter.setInsertionPointAfter(useuser);
             LLVM_DEBUG(llvm::dbgs() << "replaced load\n");
             // rewriter.replaceOpWithNewOp<cudaq::cc::ExtractValueOp>(
@@ -88,11 +95,11 @@ public:
                 rewriter, loc, eleTy, conArr,
                 ArrayRef<cudaq::cc::ExtractValueArg>{offset});
             rewriter.replaceAllUsesWith(load, extractValue);
-            insertOpToErase(load);
+            opsToErase.insert(load);
             continue;
           }
           if (isa<cudaq::cc::StoreOp>(useuser)) {
-            insertOpToErase(useuser);
+            opsToErase.insert(useuser);
             continue;
           }
           LLVM_DEBUG(llvm::dbgs() << "alloc is live\n");
@@ -100,7 +107,7 @@ public:
         }
       }
       if (!isLive)
-        insertOpToErase(user);
+        opsToErase.insert(user);
     }
 
     for (auto *e : opsToErase)

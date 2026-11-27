@@ -21,3 +21,6 @@ namespace {
   std::ofstream(sentinelPath) << "loaded\n";
 }
 } // namespace
+
+// Probe that the loader retains a local symbol scope.
+extern "C" int cudaqDlopenSentinelProbe() { return 42; }

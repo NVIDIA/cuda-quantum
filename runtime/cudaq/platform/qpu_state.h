@@ -59,11 +59,18 @@ public:
     }
   }
 
+  /// A state is the name of a kernel and its arguments. The object of a kernel
+  /// class is not part of that, so the values of its data members would be
+  /// lost. Throw if the kernel is a kernel class with data members.
+  static void rejectKernelClassWithMembers(const std::string &name,
+                                           const std::string &quake);
+
   /// @brief Constructor
   template <typename... Args>
   QPUState(const std::string &name, std::string &&quake, Args &&...args) {
     kernelName = name;
     kernelQuake = std::move(quake);
+    rejectKernelClassWithMembers(kernelName, kernelQuake);
     (addArgument(args), ...);
   }
 

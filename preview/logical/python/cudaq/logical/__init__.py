@@ -29,18 +29,11 @@ def _require_cudaq_core() -> None:
         raise ImportError(
             "cudaq.logical requires the CUDA-Q core bindings, which are not "
             "installed. Install it with "
-            'pip install "cudaq-logical[cu13]" (CUDA 13) or '
-            'pip install "cudaq-logical[cu12]" (CUDA 12), or with '
+            "pip install cudaq-logical, or install the complete product with "
             "pip install cudaq.")
 
 
 _require_cudaq_core()
-
-_warnings.warn(
-    "cudaq-logical is in preview. Its APIs, behavior, and documentation "
-    "may change substantially in upcoming versions.",
-    stacklevel=2,
-)
 
 from . import (  # noqa: E402
     analysis, algebra, architecture, architectures, codes, compiler, devices,
@@ -49,6 +42,7 @@ from . import (  # noqa: E402
 )
 from .compiler import compile, materialize  # noqa: E402
 from .programs import (
+    action,
     abort_on,
     condition_results,
     objective,
@@ -91,8 +85,17 @@ finally:
     globals().pop("_package_root", None)
     globals().pop("_metadata_root", None)
 
+# The frontend can retry an optional import after a build-tree binding path
+# becomes available. Warn only once this import has completed successfully.
+_warnings.warn(
+    "cudaq-logical is in preview. Its APIs, behavior, and documentation "
+    "may change substantially in upcoming versions.",
+    stacklevel=2,
+)
+
 __all__ = [
     "program",
+    "action",
     "objective",
     "code",
     "gadget",

@@ -114,24 +114,21 @@ IQM
 
 .. _iqm-backend:
 
-`IQM Resonance <https://meetiqm.com/products/iqm-resonance/>`__ offers access to various different IQM quantum computers.
-The machines available there will be constantly extended as development progresses.
+`IQM Resonance <https://iqm.tech/products/iqm-resonance/>`__ offers access to various different IQM quantum computers.
+The quantum computers available there will be constantly extended as development progresses.
 Programmers of CUDA-Q may use IQM Resonance with either C++ or Python.
 
-With this version it is no longer necessary to define the target QPU architecture in the code or at compile time.
-The IQM backend integration now contacts at runtime the configured IQM server and fetches the active dynamic quantum architecture of the QPU.
-This is then used as input to transpile the quantum kernel code just-in-time for the target QPU topology.
-By setting the environment variable ``IQM_SERVER_URL`` the target server can be selected just before executing the program.
-As result the python script or the compiled C++ program can be executed on different QPUs without recompilation or code changes.
-
-Please find also more documentation after logging in to the IQM Resonance portal.
+To address an IQM quantum computer on Resonance set the environment variables ``IQM_SERVER_URL`` and ``IQM_QUANTUM_COMPUTER``.
+You can find the address information in Resonance by clicking on the name of the quantum computer of your choice and opening the "Get started" section.
+The environment variables are evaluated at runtime of your program.
+As result the python script or the compiled C++ program can be executed on different QPUs without any code changes or recompilation.
 
 
 Setting Credentials
 ```````````````````
 
-Create a free account on the `IQM Resonance portal <https://meetiqm.com/products/iqm-resonance/>`__ and log-in.
-Navigate to the account profile (top right). There generate an "API Token" and copy the generated token-string.
+Create a free account on the `IQM Resonance portal <https://iqm.tech/products/iqm-resonance/>`__ and `log-in <https://resonance.iqm.tech/>`__.
+Navigate to the account profile (top right). There create a new "API Token" and copy the generated token-string.
 Set the environment variable ``IQM_TOKEN`` to contain the value of the token-string.
 The IQM backend integration will use this as authorization token at the IQM server.
 
@@ -141,32 +138,54 @@ Submitting
 
 .. tab:: Python
 
-    The target to which quantum kernels are submitted can be controlled with the ``cudaq.set_target()`` function.
+    To target IQM quantum computers for your quantum kernel use  `"iqm"` as first parameter of the ``cudaq.set_target()`` function.
 
     .. code:: python
 
-        cudaq.set_target("iqm", url="https://<IQM Server>/")
+        cudaq.set_target("iqm")
 
-    Please note that setting the environment variable ``IQM_SERVER_URL`` takes precedence over the URL configured in the code.
-
+    Then address the quantum computer by setting the environment variables ``IQM_SERVER_URL``, ``IQM_QUANTUM_COMPUTER`` and ``IQM_TOKEN`` before running the program.
 
 .. tab:: C++
 
-    To target quantum kernel code for execution on an IQM Server, pass the ``--target iqm`` option to the ``nvq++`` compiler.
-
-    .. code:: bash
-
-        nvq++ --target iqm src.cpp
-
-    Once the binary for an IQM QPU is compiled, it can be executed against any IQM Server by setting the environment variable ``IQM_SERVER_URL`` as shown here:
+    To target quantum kernel code for execution on an IQM quantum computer pass the ``--target iqm`` option to the ``nvq++`` compiler.
 
     .. code:: bash
 
         nvq++ --target iqm src.cpp -o program
-        IQM_SERVER_URL="https://demo.qc.iqm.fi/" ./program
+
+    Once the binary for an IQM QPU is compiled, it can be executed against any IQM Server by setting the environment variables ``IQM_SERVER_URL``, ``IQM_QUANTUM_COMPUTER`` and ``IQM_TOKEN`` and running the program.
 
 
-To see a complete example for using IQM server backends, take a look at :ref:`IQM examples <iqm-examples>`.
+Example
+```````
+
+.. tab:: Python
+
+    Save the :ref:`Python code variant of this example<iqm-examples>` to a file named `ghz.py`.
+
+    Then set the address and your personal API token for an IQM quantum computer in environment variables and execute the code.
+
+    .. code:: bash
+
+        export IQM_TOKEN="replace with your personal API token"
+        export IQM_SERVER_URL="https://resonance.iqm.tech/"
+        export IQM_QUANTUM_COMPUTER="garnet"
+        python3 ghz.py
+
+.. tab:: C++
+
+    Save the :ref:`C++ code variant of this example<iqm-examples>` to a file named `ghz.cpp`.
+
+    Compile and execute the program like this:
+
+    .. code:: bash
+
+        nvq++ --target iqm ghz.cpp -o ghz
+        export IQM_TOKEN="replace with your personal API token"
+        export IQM_SERVER_URL="https://resonance.iqm.tech/"
+        export IQM_QUANTUM_COMPUTER="garnet"
+        ./ghz
 
 
 Advanced use cases
@@ -178,6 +197,8 @@ The IQM backend integration offers more options for advanced use cases. Please f
    :maxdepth: 2
 
         IQM backend advanced use cases <backend_iqm.rst>
+
+Please find more documentation after logging in to the `IQM Resonance portal <https://resonance.iqm.tech/>`__.
 
 
 OQC

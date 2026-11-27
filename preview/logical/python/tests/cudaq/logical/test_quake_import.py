@@ -7,12 +7,14 @@
 # ============================================================================ #
 """CUDA-Q Quake to canonical QLX P0 import tests."""
 
+import hashlib
 import importlib
 import re
 from pathlib import Path
 
 import pytest
 
+import cudaq
 import cudaq.logical as cql
 import cudaq.mlir.ir as mlir_ir
 from cudaq.logical._native import native
@@ -30,14 +32,14 @@ module attributes {cc.python_uniqued = "bell..0xabc"} {
     %2 = quake.h %0 : (!quake.wire) -> !quake.wire
     %3:2 = quake.x [%2] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
     %4 = quake.t %3#0 : (!quake.wire) -> !quake.wire
-    %m0, %w0 = quake.mz %4 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %m1, %w1 = quake.mz %3#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %m0, %w0 = quake.mz %4 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %m1, %w1 = quake.mz %3#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
     quake.sink %w0 : !quake.wire
     quake.sink %w1 : !quake.wire
     return
   }
   func.func private @malloc(i64) -> !cc.ptr<i8>
-  llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
+  llvm.func @__cudaq_registerLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 }
 """
 
@@ -142,6 +144,62 @@ def test_live_module_pass_has_no_file_or_text_round_trip():
     assert "quake." not in str(module)
 
 
+def test_live_module_import_preserves_source_without_reparsing(monkeypatch):
+    from cudaq.mlir.dialects import quake
+
+    quake_import = importlib.import_module("cudaq.logical.compiler.quake")
+    context = mlir_ir.Context()
+    quake.register_dialect(context=context)
+    module = mlir_ir.Module.parse(SAME_BASE_VARIANTS, context)
+    before = str(module)
+
+    def unexpected_text_conversion(*args, **kwargs):
+        pytest.fail("live module import must not parse source text")
+
+    monkeypatch.setattr(quake_import, "_convert_to_p0",
+                        unexpected_text_conversion)
+    p0 = cql.compiler.import_quake(module, root="foo..0x2")
+
+    assert p0.stage == cql.stages.P0
+    assert p0.root.symbol == "foo"
+    assert str(module) == before
+    digest = hashlib.sha256(before.encode("utf-8")).hexdigest()
+    assert f"source-sha256:{digest}" in p0.evidence[0].assumptions
+    assert cql.analysis.estimate(p0,
+                                 tier=cql.analysis.Tier.LOGICAL).actions == {
+                                     "qlx_standard_h": 1
+                                 }
+
+
+@pytest.mark.parametrize("live_module", [False, True])
+def test_compiled_kernel_import_preserves_source(live_module):
+
+    @cudaq.kernel
+    def bell():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+
+    compiled = cudaq.compile(bell, target=cql.targets.estimator)
+    module = compiled.mlir_module
+    before = str(module)
+
+    p0 = cql.compiler.import_quake(module if live_module else compiled)
+
+    assert str(module) == before
+    assert str(compiled.mlir_module) == before
+    assert p0.stage == cql.stages.P0
+    logical = cql.analysis.estimate(p0, tier=cql.analysis.Tier.LOGICAL)
+    assert logical.logical_qubits_peak == 2
+    assert logical.actions == {"qlx_standard_h": 1, "qlx_standard_cx": 1}
+
+
+@pytest.mark.parametrize("source", [None, 42, object()])
+def test_quake_import_rejects_unsupported_source(source):
+    with pytest.raises(TypeError, match="Quake source must be"):
+        cql.compiler.import_quake(source)
+
+
 def test_closed_import_and_public_conversion_each_verify_linearity_once(
     monkeypatch,):
     quake_import = importlib.import_module("cudaq.logical.compiler.quake")
@@ -195,7 +253,7 @@ def test_live_module_conversion_rolls_back_when_owner_closure_fails():
     module = mlir_ir.Module.parse(ENTRY_OWNER_LEAK, mlir_ir.Context())
     before = str(module)
 
-    with pytest.raises(RuntimeError, match="leaves 1 live quantum owner"):
+    with pytest.raises(RuntimeError, match="leaves 1 live quantum value"):
         cql.compiler.convert_quake_to_p0(module)
 
     assert str(module) == before
@@ -380,8 +438,8 @@ module {
   func.func @__nvqpp__mlirgen__nested_adaptive() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.null_wire
     %1 = quake.null_wire
-    %m, %w = quake.mz %0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %c = quake.discriminate %m : (!cc.measure_handle) -> i1
+    %m, %w = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %c = quake.discriminate %m : (!quake.measure) -> i1
     %r = cc.if (%c) ((%a = %1)) -> (!quake.wire) {
       %inner = cc.if (%c) ((%b = %a)) -> (!quake.wire) {
         %x = quake.x %b : (!quake.wire) -> !quake.wire
@@ -573,8 +631,8 @@ module {
   func.func @__nvqpp__mlirgen__cond() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.null_wire
     %1 = quake.null_wire
-    %m, %w = quake.mz %0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %c = quake.discriminate %m : (!cc.measure_handle) -> i1
+    %m, %w = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %c = quake.discriminate %m : (!quake.measure) -> i1
     %r = cc.if (%c) ((%a = %1)) -> (!quake.wire) {
       %x = quake.x %a : (!quake.wire) -> !quake.wire
       cc.continue %x : !quake.wire

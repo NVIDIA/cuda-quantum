@@ -10,6 +10,7 @@
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
@@ -142,8 +143,8 @@ public:
   /// and using the compiler's knowledge of a kernel encodes those argument
   /// values into a message buffer. The message buffer is a pointer-free block
   /// of memory allocated on the heap on the host. Once the argument values are
-  /// packed into the message buffer, they can be passed to altLaunchKernel or
-  /// the corresponding thunk function.
+  /// packed into the message buffer, they can be passed to
+  /// __cudaq_altLaunchKernel or the corresponding thunk function.
   ///
   /// The created function takes two arguments. The first argument is a pointer
   /// to a block containing the argument values to be encoded. The second
@@ -321,9 +322,9 @@ public:
         args.push_back(a);
       }
     }
-    auto call = cudaq::cc::NoInlineCallOp::create(
-        builder, loc, funcTy.getResults(), funcOp.getName(), args, ArrayAttr(),
-        ArrayAttr());
+    auto call = func::CallOp::create(builder, loc, funcTy.getResults(),
+                                     funcOp.getName(), args);
+    call.setNoInline(true);
     // After the kernel call, clean up any `Array` allocations during kernel
     // executions.
     func::CallOp::create(builder, loc, TypeRange{},
@@ -413,7 +414,7 @@ public:
                             FunctionType devFuncTy,
                             LLVM::GlobalOp kernelNameObj, func::FuncOp hostFunc,
                             bool addThisPtr, cudaq::cc::StructType structTy,
-                            func::FuncOp thunkFunc) {
+                            func::FuncOp thunkFunc, func::FuncOp devFunc) {
     auto *ctx = builder.getContext();
     auto i64Ty = builder.getI64Type();
     auto i8Ty = builder.getI8Type();
@@ -431,6 +432,52 @@ public:
             hostFuncEntryBlock->getArguments(), devFuncTy, addThisPtr)};
     SmallVector<Value> blockValues(blockArgs.size());
     std::copy(blockArgs.begin(), blockArgs.end(), blockValues.begin());
+    // The data members of a kernel class are the leading arguments of the
+    // kernel, but they are not arguments of the host function. They are read
+    // from the object, which is the `this` pointer.
+    SmallVector<Value> memberValues;
+    if (auto numMembers = devFunc->getAttrOfType<IntegerAttr>(
+            cudaq::kernelMemberArgsAttrName)) {
+      auto offsetsAttr = devFunc->getAttrOfType<DenseI64ArrayAttr>(
+          cudaq::kernelMemberOffsetsAttrName);
+      if (!offsetsAttr || offsetsAttr.size() != numMembers.getInt() ||
+          numMembers.getInt() > devFuncTy.getNumInputs()) {
+        devFunc.emitError("kernel class data member attributes are missing or "
+                          "inconsistent with the kernel's arguments");
+        signalPassFailure();
+        return;
+      }
+      auto offsets = offsetsAttr.asArrayRef();
+      // The `this` pointer follows the sret pointer, if any.
+      const unsigned thisPos =
+          cudaq::opt::factory::hasHiddenSRet(devFuncTy) ? 1 : 0;
+      Value thisPtr = hostFuncEntryBlock->getArgument(thisPos);
+      for (auto [i, offset] : llvm::enumerate(offsets)) {
+        auto memberPtr = cudaq::cc::ComputePtrOp::create(
+            builder, loc, ptrI8Ty,
+            cudaq::cc::CastOp::create(
+                builder, loc, cudaq::opt::factory::getIndexedObjectType(i8Ty),
+                thisPtr),
+            ArrayRef<cudaq::cc::ComputePtrArg>{
+                static_cast<std::int32_t>(offset)});
+        // A `bool` is a byte in memory and an `i1` as a value.
+        Type memberTy = devFuncTy.getInput(i);
+        const bool isBool = memberTy == builder.getI1Type();
+        auto castPtr = cudaq::cc::CastOp::create(
+            builder, loc,
+            cudaq::cc::PointerType::get(isBool ? Type{i8Ty} : memberTy),
+            memberPtr);
+        Value member = cudaq::cc::LoadOp::create(builder, loc, castPtr);
+        if (isBool) {
+          auto zero = arith::ConstantIntOp::create(builder, loc, 0, 8);
+          member = arith::CmpIOp::create(builder, loc, arith::CmpIPredicate::ne,
+                                         member, zero);
+        }
+        memberValues.push_back(member);
+      }
+    }
+    blockValues.insert(blockValues.begin(), memberValues.begin(),
+                       memberValues.end());
     const bool hasDynamicSignature =
         cudaq::opt::marshal::isDynamicSignature(devFuncTy);
     Value heapTracker =
@@ -510,12 +557,13 @@ public:
       cudaq::cc::StoreOp::create(builder, loc, cast3, stdVec2);
 
       // 2) Iterate over the arguments passed in and populate the vector.
-      SmallVector<BlockArgument> blockArgs{
-          cudaq::opt::marshal::dropAnyHiddenArguments(
-              hostFuncEntryBlock->getArguments(), devFuncTy, addThisPtr)};
+      SmallVector<Value> gatherArgs{memberValues};
+      for (auto arg : cudaq::opt::marshal::dropAnyHiddenArguments(
+               hostFuncEntryBlock->getArguments(), devFuncTy, addThisPtr))
+        gatherArgs.push_back(arg);
       unsigned j = 0;
-      for (std::int32_t i = 0, N = blockArgs.size(); i < N; ++i, ++j) {
-        auto blkArg = blockArgs[i];
+      for (std::int32_t i = 0, N = gatherArgs.size(); i < N; ++i, ++j) {
+        auto blkArg = gatherArgs[i];
         auto pos = cudaq::cc::ComputePtrOp::create(
             builder, loc, ptrPtrTy, buffer,
             ArrayRef<cudaq::cc::ComputePtrArg>{i});
@@ -536,7 +584,7 @@ public:
               builder, loc, cudaq::cc::PointerType::get(blkArg.getType()),
               temp);
           cudaq::cc::StoreOp::create(builder, loc, blkArg, part1);
-          auto blkArg2 = blockArgs[++i];
+          auto blkArg2 = gatherArgs[++i];
           auto cast2 = cudaq::cc::CastOp::create(
               builder, loc,
               cudaq::cc::PointerType::get(
@@ -560,9 +608,8 @@ public:
     }
 
     // Prepare to call the `launchKernel` runtime library entry point.
-    Value loadKernName = LLVM::AddressOfOp::create(
-        builder, loc,
-        cudaq::opt::factory::getPointerType(kernelNameObj.getType()),
+    Value loadKernName = cudaq::cc::AddressOfOp::create(
+        builder, loc, cudaq::cc::PointerType::get(kernelNameObj.getType()),
         kernelNameObj.getSymName());
     auto castLoadKernName =
         cudaq::cc::CastOp::create(builder, loc, ptrI8Ty, loadKernName);
@@ -770,9 +817,8 @@ public:
     OpBuilder::InsertionGuard guard(builder);
     auto *initFunEntry = initFun.addEntryBlock(builder);
     builder.setInsertionPointToStart(initFunEntry);
-    auto kernRef = LLVM::AddressOfOp::create(
-        builder, loc,
-        cudaq::opt::factory::getPointerType(kernelNameObj.getType()),
+    auto kernRef = cudaq::cc::AddressOfOp::create(
+        builder, loc, cudaq::cc::PointerType::get(kernelNameObj.getType()),
         kernelNameObj.getSymName());
     auto castKernRef =
         cudaq::cc::CastOp::create(builder, loc, ptrType, kernRef);
@@ -816,9 +862,8 @@ public:
             builder.getStringAttr(demangledName + '\0'), /*alignment=*/0);
 
         builder.restoreInsertionPoint(insertPoint);
-        auto lambdaRef = LLVM::AddressOfOp::create(
-            builder, loc,
-            cudaq::opt::factory::getPointerType(lambdaName.getType()),
+        auto lambdaRef = cudaq::cc::AddressOfOp::create(
+            builder, loc, cudaq::cc::PointerType::get(lambdaName.getType()),
             lambdaName.getSymName());
 
         auto castLambdaRef = cudaq::cc::CastOp::create(
@@ -848,17 +893,20 @@ public:
     case 0:
       if (failed(irBuilder.loadIntrinsic(
               module, cudaq::runtime::launchKernelHybridFuncName)))
-        return module.emitError("could not load altLaunchKernel intrinsic.");
+        return module.emitError(
+            "could not load __cudaq_altLaunchKernel intrinsic.");
       break;
     case 1:
       if (failed(irBuilder.loadIntrinsic(module,
                                          cudaq::runtime::launchKernelFuncName)))
-        return module.emitError("could not load altLaunchKernel intrinsic.");
+        return module.emitError(
+            "could not load __cudaq_altLaunchKernel intrinsic.");
       break;
     case 2:
       if (failed(irBuilder.loadIntrinsic(
               module, cudaq::runtime::launchKernelStreamlinedFuncName)))
-        return module.emitError("could not load altLaunchKernel intrinsic.");
+        return module.emitError(
+            "could not load __cudaq_altLaunchKernel intrinsic.");
       break;
     default:
       return module.emitError("invalid codegen kind value.");
@@ -899,7 +947,7 @@ public:
       return module.emitError(
           "could not load cudaq::pauli_word::_nvqpp_size or _nvqpp_data");
     if (failed(irBuilder.loadIntrinsic(module, cudaq::runtime::cleanupArrays)))
-      return module.emitError("could not load __nvqpp_cleanup_arrays");
+      return module.emitError("could not load __nvqir_cleanupArrays");
     return success();
   }
 
@@ -967,6 +1015,12 @@ public:
         if (epKern.getFunctionType().getResults().empty() ||
             epKern->hasAttr(cudaq::generatorAnnotation))
           continue;
+        // The run entry point is called without the object, so it cannot read
+        // the data members of a kernel class. Do not make one. A call of
+        // `cudaq::run` then reports that the kernel cannot be run, instead of
+        // running the kernel with the wrong values.
+        if (epKern->hasAttr(cudaq::kernelMemberArgsAttrName))
+          continue;
 
         std::string runKernName = epKern.getName().str() + ".run";
         auto runKernTy =
@@ -985,6 +1039,9 @@ public:
             resultTys.emplace_back(TypeAttr::get(rt));
           auto arrAttr = ArrayAttr::get(ctx, resultTys);
           runKern->setAttr(cudaq::runtime::enableCudaqRun, arrAttr);
+          // Propagate the optimization level attribute
+          if (auto level = cudaq::runtime::getOptimizationLevel(epKern))
+            cudaq::runtime::setOptimizationLevel(runKern, *level);
           OpBuilder::InsertionGuard guard(builder);
           Block *entry = runKern.addEntryBlock();
           builder.setInsertionPointToStart(entry);
@@ -1150,7 +1207,7 @@ public:
         // callback function.
         if (hostEntryNeeded)
           genNewHostEntryPoint(loc, builder, module, funcTy, kernelNameObj,
-                               hostFunc, hasThisPtr, structTy, thunk);
+                               hostFunc, hasThisPtr, structTy, thunk, funcOp);
 
         // Generate a function at startup to register this kernel as having
         // been processed for kernel execution.

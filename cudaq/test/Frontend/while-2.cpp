@@ -8,14 +8,15 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
+#include <cstdint>
 
 void fun(int);
 
-void uma(cudaq::qubit &, cudaq::qubit &, cudaq::qubit &);
+__qpu_intrinsic__ void uma(cudaq::qubit &, cudaq::qubit &, cudaq::qubit &);
 
 __qpu__ void test1(cudaq::qview<> a, cudaq::qview<> b) {
-  uint32_t i = a.size();
+  std::uint32_t i = a.size();
   while (i > 0) {
     uma(a[i - 1ul], b[i - 1ul], a[i]);
     break;
@@ -23,7 +24,7 @@ __qpu__ void test1(cudaq::qview<> a, cudaq::qview<> b) {
 }
 
 __qpu__ void test2(cudaq::qview<> a, cudaq::qview<> b) {
-  uint32_t i = a.size();
+  std::uint32_t i = a.size();
   while (i > 0) {
     uma(a[i - 1ul], b[i - 1ul], a[i]);
     if (i == 57) {
@@ -35,7 +36,7 @@ __qpu__ void test2(cudaq::qview<> a, cudaq::qview<> b) {
 }
 
 __qpu__ void test3(cudaq::qview<> a, cudaq::qview<> b) {
-  uint32_t i = a.size();
+  std::uint32_t i = a.size();
   while (i > 0) {
     uma(a[i - 1ul], b[i - 1ul], a[i]);
     continue;
@@ -43,7 +44,7 @@ __qpu__ void test3(cudaq::qview<> a, cudaq::qview<> b) {
 }
 
 __qpu__ void test4(cudaq::qview<> a, cudaq::qview<> b) {
-  uint32_t i = a.size();
+  std::uint32_t i = a.size();
   while (i > 0) {
     uma(a[i - 1ul], b[i - 1ul], a[i]);
     if (i == 57) {

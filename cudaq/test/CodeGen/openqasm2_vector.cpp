@@ -10,7 +10,8 @@
 // RUN: cudaq-quake  %s | cudaq-opt -canonicalize -cse -lift-array-alloc -globalize-array-values -canonicalize -state-prep | cudaq-translate --convert-to=openqasm2 | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/algorithms/sample.h"
+#include "cudaq/qis/qubit_qis.h"
 #include <fstream>
 
 struct kernel {

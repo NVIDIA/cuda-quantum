@@ -152,6 +152,26 @@ create or modify the [WSL configuration file][wsl_config] if necessary.
 
 [wsl_config]: https://learn.microsoft.com/en-us/windows/wsl/wsl-config
 
+## Use one compiler for everything
+
+Build LLVM/MLIR, CUDA-Q, and anything built against CUDA-Q (for example
+`preview/logical`, or your own MLIR plugins and Python extensions) with the
+**same C++ compiler family** -- clang or GCC -- and ideally the same version.
+`build_cudaq.sh` takes the compiler from the `CC`/`CXX` environment variables, so
+export them once and keep them set for every step:
+
+```bash
+export CC=/path/to/clang CXX=/path/to/clang++
+```
+
+MLIR derives some `TypeID`s (e.g. the `SymbolTable` op trait) from
+compiler-specific type-name strings. Mixing compiler families builds and links
+without complaint and then fails at runtime, typically with verifier errors from
+the code built with the "other" compiler. Building `preview/logical` in-tree
+(`-DCUDAQ_ENABLE_LOGICAL=ON`) guarantees consistency; for an out-of-tree build see
+[`preview/logical/docs/source/reference/building-against-cudaq.md`](./preview/logical/docs/source/reference/building-against-cudaq.md)
+and its `QLX_VERIFY_TOOLCHAIN` check.
+
 ## Cleaning up after failed builds
 
 If `/.scripts/build_cuda.sh` fails partway through installation (or installing

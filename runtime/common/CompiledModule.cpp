@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CompiledModule.h"
+#include <cstdint>
 #include <string_view>
 
 cudaq::FatQuakeModule::FatQuakeModule(std::string kernelName)
@@ -60,10 +61,11 @@ bool cudaq::FatQuakeModule::isFullySpecialized() const {
   return getArgsCreator() == nullptr;
 }
 
-int64_t (*cudaq::FatQuakeModule::getArgsCreator() const)(const void *,
-                                                         void **) {
+std::int64_t (*cudaq::FatQuakeModule::getArgsCreator() const)(const void *,
+                                                              void **) {
   auto jit = getJit(name + ".argsCreator");
-  return jit ? reinterpret_cast<int64_t (*)(const void *, void **)>(jit->fn)
+  return jit ? reinterpret_cast<std::int64_t (*)(const void *, void **)>(
+                   jit->fn)
              : nullptr;
 }
 
@@ -83,6 +85,16 @@ const cudaq::Resources *
 cudaq::FatQuakeModule::getResources(std::string_view resourcesName) const {
   auto *res = artifacts.get<ResourcesArtifact>(resourcesName);
   return res ? &res->getResources() : nullptr;
+}
+
+const cudaq::FatQuakeModule::CodegenArtifact *
+cudaq::FatQuakeModule::getTargetCode() const {
+  return getTargetCode(name);
+}
+
+const cudaq::FatQuakeModule::CodegenArtifact *
+cudaq::FatQuakeModule::getTargetCode(std::string_view codeName) const {
+  return artifacts.get<CodegenArtifact>(codeName);
 }
 
 void cudaq::FatQuakeModule::addArtifact(std::string name,

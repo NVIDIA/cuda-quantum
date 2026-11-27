@@ -9,6 +9,10 @@ on:
         type: string
         required: false
         default: openmpi
+      toolchain:
+        type: string
+        required: false
+        default: ''
       devdeps_image:
         required: false
         type: string
@@ -57,14 +61,19 @@ jobs:
 
       - name: Compute platform ID
         id: platform_meta
+        env:
+          toolchain: ${{ inputs.toolchain }}
         run: |
           platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+          # Separate partition per toolchain: ccache hashes the compiler, so
+          # gcc12 and llvm never share entries.
+          echo "ccache_key=${platform_id}-devenv${toolchain:+-$toolchain}" >> $GITHUB_OUTPUT
 
       - name: Restore ccache from GHCR
         uses: ./.github/actions/ccache-restore
         with:
-          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv
+          cache-key: ${{ steps.platform_meta.outputs.ccache_key }}
           registry-token: ${{ github.token }}
 
       - name: Set up context for buildx
@@ -122,6 +131,58 @@ jobs:
             --build-arg run_tests=true \
             --target test
 
+      # PyPI has no aarch64 wheel of stim, so the two Logical stages below would each
+      # compile it for ~8 min. Build the wheels once and keep them in the cache.
+      - name: Restore prebuilt Logical test wheels
+        id: test_wheels
+        if: contains(inputs.platform, 'arm')
+        uses: actions/cache/restore@v6
+        with:
+          path: /tmp/test-wheelhouse
+          key: test-wheels-${{ steps.platform_meta.outputs.platform_id }}${{ inputs.toolchain && format('-{0}', inputs.toolchain) }}-${{ hashFiles('preview/logical/requirements-test.txt', 'docker/build/devdeps.Dockerfile') }}
+
+      - name: Build Logical test wheels
+        if: contains(inputs.platform, 'arm') && steps.test_wheels.outputs.cache-hit != 'true'
+        run: |
+          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --target test-wheels-export \
+            --output type=local,dest=/tmp/test-wheelhouse
+
+      - name: Save prebuilt Logical test wheels
+        if: contains(inputs.platform, 'arm') && steps.test_wheels.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: /tmp/test-wheelhouse
+          key: ${{ steps.test_wheels.outputs.cache-primary-key }}
+
+      - name: Test cudaq.logical (out-of-tree, toolchain audit)
+        run: |
+          mkdir -p /tmp/test-wheelhouse
+          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-context test-wheelhouse=/tmp/test-wheelhouse \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target test-logical
+
+      - name: Test cudaq.logical (in-tree, CUDAQ_ENABLE_LOGICAL=ON)
+        run: |
+          mkdir -p /tmp/test-wheelhouse
+          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-context test-wheelhouse=/tmp/test-wheelhouse \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target test-logical-intree
+
       - name: Test CUDA Quantum MPI Plugin Activation
         run: |
           docker buildx build --progress=plain --platform ${{ inputs.platform }} \
@@ -160,7 +221,7 @@ jobs:
         if: github.event_name != 'push'
         uses: ./.github/actions/ccache-push
         with:
-          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv
+          cache-key: ${{ steps.platform_meta.outputs.ccache_key }}
           cache-path: /tmp/ccache-export/ccache
           registry-token: ${{ github.token }}
 
@@ -228,14 +289,19 @@ jobs:
 
       - name: Compute platform ID
         id: platform_meta
+        env:
+          toolchain: ${{ inputs.toolchain }}
         run: |
           platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+          # Separate partition per toolchain: ccache hashes the compiler, so
+          # gcc12 and llvm never share entries.
+          echo "ccache_key=${platform_id}-devenv-python${toolchain:+-$toolchain}" >> $GITHUB_OUTPUT
 
       - name: Restore ccache from GHCR
         uses: ./.github/actions/ccache-restore
         with:
-          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
+          cache-key: ${{ steps.platform_meta.outputs.ccache_key }}
           registry-token: ${{ github.token }}
 
       - name: Set up context for buildx
@@ -304,11 +370,12 @@ jobs:
               exit 1
             fi
 
-            retry python -m pip install pytest pytest-xdist
+            retry python -m pip install -r requirements-tests.txt
             # Uncapped, 16 workers x 16 OMP threads on a cpu16 runner starve 
             # memory and surface as `std::bad_alloc`. See PR#4530.
             export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
-            pytest_workers="${PYTEST_WORKERS:-$(( ($(nproc) + 1) / 2 ))}"
+            # nproc reports OMP_NUM_THREADS when it is set, so unset it to count the cores.
+            pytest_workers="${PYTEST_WORKERS:-$(( ($(env -u OMP_NUM_THREADS -u OMP_THREAD_LIMIT nproc) + 1) / 2 ))}"
             python -m pytest -v --durations=0 -n "$pytest_workers" python/tests/ \
               --ignore python/tests/backends \
               --ignore python/tests/contrib
@@ -354,7 +421,7 @@ jobs:
         if: github.event_name != 'push'
         uses: ./.github/actions/ccache-push
         with:
-          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
+          cache-key: ${{ steps.platform_meta.outputs.ccache_key }}
           cache-path: /tmp/ccache-export/ccache
           registry-token: ${{ github.token }}
 

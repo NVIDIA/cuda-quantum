@@ -29,3 +29,8 @@ target-arguments:
     type: string
     platform-arg: machine
     help-string: "Specify Pasqal execution mode or machine. Use qrmi to route via QRMI, or use direct Pasqal machines like FRESNEL / EMU_MPS / EMU_FREE."
+  - key: emulation_rydberg_c6
+    required: false
+    type: string
+    platform-arg: emulation_rydberg_c6
+    help-string: "Override the emulation C6/hbar coefficient in rad m^6 / s."

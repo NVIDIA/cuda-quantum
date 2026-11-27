@@ -9,6 +9,7 @@
 #include "kernel_builder.h"
 #include "common/Environment.h"
 #include "common/FmtCore.h"
+#include "cudaq_internal/compiler/ExecutionEngine.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -20,7 +21,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/platform/nvqpp_interface.h"
+#include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
@@ -796,11 +797,11 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   if (!regName.empty())
     strAttr = builder.getStringAttr(regName);
 
-  // `mz`/`mx`/`my` produce a `!cc.measure_handle` (or
-  // `!cc.sequence<!cc.measure_handle>` when the target is a vector).
+  // `mz`/`mx`/`my` produce a `!quake.measure` (or
+  // `!cc.sequence<!quake.measure>` when the target is a vector).
   // Discrimination is deferred to consumer sites, matching the AST-bridge
   // behavior.
-  Type measTy = cc::MeasureHandleType::get(builder.getContext());
+  Type measTy = quake::MeasureType::get(builder.getContext());
   if (!isa<cudaq::quake::RefType>(type))
     measTy = cc::SequenceType::get(measTy);
   Value handle;
@@ -1054,7 +1055,8 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   opts.llvmModuleBuilder = std::move(llvmModuleBuilderTemp);
 
   CUDAQ_INFO(" - Creating the MLIR ExecutionEngine");
-  auto jitOrError = ExecutionEngine::create(module, opts);
+  auto jitOrError =
+      cudaq_internal::compiler::createExecutionEngine(module, opts);
   assert(!!jitOrError);
 
   auto uniqueJit = std::move(jitOrError.get());

@@ -37,8 +37,11 @@ struct CuDensityMatIntegratorHelper {
   static void setState(std::shared_ptr<cudaq::state> &m_state, double &m_t,
                        const cudaq::state &initialState, double t0) {
     auto *cudmState = asCudmState(*const_cast<cudaq::state *>(&initialState));
-    m_state = std::make_shared<cudaq::state>(
-        CuDensityMatState::clone(*cudmState).release());
+    // The integrated state is the input of every operator action, which
+    // cuDensityMat may send over MPI.
+    auto state = CuDensityMatState::mpi_buffer_like(*cudmState);
+    state->copy_from(*cudmState);
+    m_state = std::make_shared<cudaq::state>(state.release());
     m_t = t0;
   }
 
@@ -128,6 +131,15 @@ struct CuDensityMatIntegratorHelper {
                                         castSimState.is_density_matrix());
     m_stepper = std::make_unique<CuDensityMatTimeStepper>(
         castSimState.get_handle(), liouvillian);
+  }
+
+  /// @brief Cast the stepper created by `ensureStepper`.
+  static CuDensityMatTimeStepper &
+  asCudmStepper(std::unique_ptr<base_time_stepper> &m_stepper) {
+    auto *stepper = dynamic_cast<CuDensityMatTimeStepper *>(m_stepper.get());
+    if (!stepper)
+      throw std::runtime_error("Invalid time stepper.");
+    return *stepper;
   }
 
   /// @brief Evaluate all schedule parameters at time t.

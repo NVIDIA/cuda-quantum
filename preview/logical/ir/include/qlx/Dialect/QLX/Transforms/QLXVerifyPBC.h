@@ -1,13 +1,12 @@
-/******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
- * the terms of the Apache License 2.0 which accompanies this distribution.  *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#ifndef QLX_DIALECT_QLX_TRANSFORMS_QLXVERIFYPBC_H
-#define QLX_DIALECT_QLX_TRANSFORMS_QLXVERIFYPBC_H
+#pragma once
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Support/LogicalResult.h"
@@ -17,16 +16,19 @@ namespace qlx {
 
 /// Certify that a module is in Pauli-based-computation (PBC) normal form, the
 /// contract `to_pbc` produces for downstream PBC lowering:
-///   1. the body contains only prepare / pi/4 pauli_rotation / mpp / discard /
-///      return / constant ops -- every Clifford has been absorbed;
-///   2. every pauli_rotation is exactly +/- pi/4 (angle_pi_numer = +/-1,
-///      angle_pi_denom = 4) -- the magic rotations;
+///   1. the body contains only prepare / pi/4 pauli_rotation / repeat / mpp /
+///      discard / return / constant ops -- every Clifford has been absorbed;
+///      repeat regions contain only rotations, nested repeats, constants, and
+///      position-preserving logical-qubit yields;
+///   2. every Pauli product has a support-minimal, owner-disjoint signature
+///      with its exact parameter set, and every pauli_rotation is exactly +/-
+///      pi/4 (i64 angle_pi_numer = 1, angle_pi_denom = 4, sign = +/-1) -- the
+///      magic rotations;
 ///   3. no pauli_rotation follows a measurement (rotations precede measures);
 ///   4. the measured Pauli products pairwise commute (simultaneously
-///      measurable).
+///      measurable); logical-qubit program returns are not part of this
+///      terminal-measurement form.
 /// On failure, a human-readable reason is written to `error`.
 mlir::LogicalResult verifyPBCForm(mlir::ModuleOp module, std::string &error);
 
 } // namespace qlx
-
-#endif // QLX_DIALECT_QLX_TRANSFORMS_QLXVERIFYPBC_H

@@ -19,6 +19,18 @@ QPUState::~QPUState() {
   deleters.clear();
 }
 
+void QPUState::rejectKernelClassWithMembers(const std::string &name,
+                                            const std::string &quake) {
+  // The spelling is that of `cudaq::kernelMemberArgsAttrName`, which marks the
+  // entry point of a kernel class with data members.
+  if (quake.find("cudaq-member-args") != std::string::npos)
+    throw std::runtime_error(
+        "kernel " + name +
+        " is a class with data members: its state cannot be captured by "
+        "cudaq::get_state on this target, as the values of the data members "
+        "are not part of the kernel's arguments");
+}
+
 std::size_t QPUState::getNumQubits() const {
   throw std::runtime_error(
       "getNumQubits is not implemented for quantum hardware");

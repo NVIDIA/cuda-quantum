@@ -1,0 +1,38 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Packages that are NVIDIA or Mellanox proprietary software and ship no source.
+# The source image keeps their license and EULA files instead (apt_licenses/ and
+# pip_licenses/). check_package_sources.sh fails when an omitted package is not
+# listed here, so an open source package that loses its source is never silent.
+#
+# <apt|pip> <glob>; apt globs match the source package name, pip globs the
+# distribution name.
+
+apt cuda
+apt cuda-*
+apt libcu*
+apt libnpp
+apt libnv*
+apt libnccl*
+apt nvidia-*
+apt tensorrt*
+apt doca-*
+apt sharp
+
+pip cuda-*
+pip cudaq-edem
+pip cudaq-logical
+pip cudensitymat-*
+pip cupauliprop-*
+pip custabilizer-*
+pip custatevec-*
+pip cuquantum-*
+pip cutensor-*
+pip cutensornet-*
+pip nvidia-*

@@ -9,7 +9,7 @@
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 // XFAIL: *
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <string>
 #include <tuple>
 

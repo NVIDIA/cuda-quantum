@@ -1,10 +1,10 @@
-/*******************************************************************************
+/***********************************************************-*- tablegen -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // This file defines all operations for the QLX (Quantum Logical eXecution)
 // dialect: a machine-free P0 logical program stratum plus the target-manifest
@@ -274,9 +274,11 @@ def QLX_ActionOp : QLX_Op<"action", [Symbol]> {
     StrAttr:$kind,
     OptionalAttr<AnyAttr>:$semantics,
     OptionalAttr<QLX_CliffordActionAttr>:$clifford_action,
-    OptionalAttr<DictionaryAttr>:$effects
+    OptionalAttr<DictionaryAttr>:$effects,
+    OptionalAttr<StrArrayAttr>:$operand_names
   );
   let assemblyFormat = "$sym_name `:` $function_type attr-dict";
+  let hasVerifier = 1;
 }
 
 def QLX_InstrumentDeclOp : QLX_Op<"instrument_decl", [Symbol]> {
@@ -287,9 +289,11 @@ def QLX_InstrumentDeclOp : QLX_Op<"instrument_decl", [Symbol]> {
     StrAttr:$kind,
     OptionalAttr<AnyAttr>:$semantics,
     OptionalAttr<DictionaryAttr>:$ownership,
-    OptionalAttr<DictionaryAttr>:$effects
+    OptionalAttr<DictionaryAttr>:$effects,
+    OptionalAttr<StrArrayAttr>:$operand_names
   );
   let assemblyFormat = "$sym_name `:` $function_type attr-dict";
+  let hasVerifier = 1;
 }
 
 def QLX_ApplyOp : QLX_Op<"apply", []> {

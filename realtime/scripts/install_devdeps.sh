@@ -22,6 +22,9 @@
 #                      Default: /tmp/holoscan-sensor-bridge
 #   CUDA_NATIVE_ARCH   CUDA architectures to compile HSB for.
 #                      Default: derived from the CUDA toolkit version.
+#   CUDAQ_REALTIME_HSB_PATCH_DIR
+#                      Patches applied to the HSB clone.
+#                      Default: realtime/patches/hsb. Empty: none.
 
 set -e
 
@@ -47,6 +50,11 @@ retry apt-get -y install --no-install-recommends libdoca-sdk-gpunetio-dev
 # hololink_core links CUDA::nvrtc -- must match the exact toolkit version
 CUDA_VER_DASH=$(echo $CUDA_FULL_VERSION | sed 's/\./-/')
 retry apt-get install -y cuda-nvrtc-dev-$CUDA_VER_DASH 2>/dev/null || true
+
+# cudaq-realtime compiles against the nvJitLink header, which the dev package
+# ships.  A no-op over a full apt toolkit; over a runfile install it re-adds
+# identical files.
+retry apt-get install -y --no-install-recommends libnvjitlink-dev-$CUDA_VER_DASH
 
 # [Holoscan SDK]
 cudaq_realtime_install_holoscan

@@ -68,8 +68,17 @@ runs:
         # Use ccache's miss rate to decide whether the cache is worth saving.
         # File-count growth is a poor proxy: a small percentage change can still
         # represent hundreds of missed compile results in a large cache.
-        cacheable_calls=$(echo "$stats_output" | awk '/^Cacheable calls:/ {print $3; exit}')
-        cache_misses=$(echo "$stats_output" | awk '/^  Misses:/ {print $2; exit}')
+        # The Dockerfiles write this with `ccache --print-stats`, which is
+        # tab separated; `ccache -s` on a native build is the prose form.
+        cache_misses=$(echo "$stats_output" | awk '$1 == "cache_miss" {print $2; exit}')
+        if [[ "$cache_misses" =~ ^[0-9]+$ ]]; then
+          cacheable_calls=$(echo "$stats_output" | awk '
+            $1 == "direct_cache_hit" || $1 == "preprocessed_cache_hit" || $1 == "cache_miss" { n += $2 }
+            END { print n }')
+        else
+          cacheable_calls=$(echo "$stats_output" | awk '/^Cacheable calls:/ {print $3; exit}')
+          cache_misses=$(echo "$stats_output" | awk '/^  Misses:/ {print $2; exit}')
+        fi
         miss_pct=""
         if [[ "$cacheable_calls" =~ ^[0-9]+$ ]] && \
            [[ "$cache_misses" =~ ^[0-9]+$ ]] && \
@@ -78,19 +87,16 @@ runs:
           echo "Cache miss rate: ${miss_pct}% (${cache_misses} misses / ${cacheable_calls} cacheable calls)"
         fi
 
-        # Always push on the default branch to keep the baseline fresh.
-        # This includes merge queue runs, which are the only path into
-        # main (no workflow triggers on direct push-to-main).
-        default_branch="${{ github.event.repository.default_branch }}"
-        default_branch="${default_branch:-main}"
-        if [ "${{ github.event_name }}" = "merge_group" ] || [ "${{ github.ref_name }}" = "$default_branch" ]; then
-          is_default_branch=true
+        # The scheduled run always pushes, keeping the baseline fresh daily.
+        # Everything else goes through the threshold below.
+        if [ "${{ github.event_name }}" = "schedule" ]; then
+          always_push=true
         else
-          is_default_branch=false
+          always_push=false
         fi
 
-        if $is_default_branch; then
-          echo "On default branch ($default_branch); always pushing to keep baseline fresh."
+        if $always_push; then
+          echo "Scheduled run; always pushing to keep the baseline fresh."
         elif [ "$miss_threshold" -gt 0 ] 2>/dev/null; then
           if [ -z "$miss_pct" ]; then
             echo "No ccache miss rate available; pushing cache."

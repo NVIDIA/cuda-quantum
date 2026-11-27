@@ -1,9 +1,9 @@
 # ============================================================================ #
-# Copyright (c) 2026 NVIDIA Corporation & Affiliates.
-# All rights reserved.
-#
-# This source code and the accompanying materials are made available under
-# the terms of the Apache License 2.0 which accompanies this distribution.
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 """Private WSC synthesis for the curated logical-microarchitecture recipes.
 
@@ -28,7 +28,8 @@ import cudaq.logical.codes as codes
 import cudaq.logical.gadgets as gadgets
 import cudaq.logical.ops as ops
 import cudaq.logical.types as types
-from cudaq.logical.programs.decorators import objective as _objective
+from cudaq.logical.algebra.gf2 import _row_bits
+from cudaq.logical.programs.decorators import action as _action
 
 __all__ = ()
 
@@ -223,9 +224,11 @@ class WSCMeasurementPlan:
 
 def _base_stabilizers(code) -> tuple[_LabeledPauli, ...]:
     output = []
+    mask = (1 << code.n) - 1
     for index, row in enumerate(code.stabilizer_basis.rows):
-        x = sum(int(bit) << qubit for qubit, bit in enumerate(row[:code.n]))
-        z = sum(int(bit) << qubit for qubit, bit in enumerate(row[code.n:]))
+        # Stabilizer rows are normalized GF(2) entries in [X | Z] order.
+        packed = _row_bits(row)
+        x, z = packed & mask, packed >> code.n
         output.append(_LabeledPauli.from_masks(x, z, 0, f"base_{index}"))
     return tuple(output)
 
@@ -558,7 +561,7 @@ def _row_from_symplectic(bits, width: int, *, label: str) -> _LabeledPauli:
     return _LabeledPauli.from_masks(x_mask, z_mask, 0, label)
 
 
-def _measurement_objective(code, terms, name, *, sign: int = 1):
+def _measurement_action(code, terms, name, *, sign: int = 1):
     parameter_names = tuple(f"q{logical}" for logical, _ in terms)
 
     def intent(*values):
@@ -568,7 +571,7 @@ def _measurement_objective(code, terms, name, *, sign: int = 1):
             product = factor if product is None else product @ factor
         return ops.mpp(product if sign > 0 else -product)
 
-    intent.__name__ = intent.__qualname__ = f"{name}_objective"
+    intent.__name__ = intent.__qualname__ = f"{name}_action"
     intent.__signature__ = Signature(
         tuple(
             Parameter(
@@ -585,7 +588,7 @@ def _measurement_objective(code, terms, name, *, sign: int = 1):
         },
         "return": tuple[tuple([types.logical_qubit] * len(terms) + [bool])],
     }
-    return _objective(intent, name=f"{name}_objective")
+    return _action(intent, name=f"{name}_action")
 
 
 def _measurement_gadget(
@@ -622,7 +625,7 @@ def _measurement_gadget(
         evidence=
         "arXiv:2511.15989v1 WSC deformation; exact rank/span certificate",
     )
-    intent = _measurement_objective(code, terms, name, sign=sign)
+    intent = _measurement_action(code, terms, name, sign=sign)
     frame_recovery = _logical_frame_recovery(
         code,
         requested,
@@ -738,7 +741,7 @@ class WSCMeasurementBundle:
 
     product: types.PauliProduct
     realization: gadgets.GadgetDefinition
-    analysis: gadgets.GadgetProfile
+    analysis: gadgets.GadgetContract
     evidence: WSCMeasurementEvidence
     rounds: int
     data_code: codes.Code
@@ -758,13 +761,13 @@ class WSCMeasurementBundle:
         return len(self.diagnostics.chi_checks)
 
 
-def measurement_profile(diagnostics, *, name: str) -> gadgets.GadgetProfile:
+def measurement_profile(diagnostics, *, name: str) -> gadgets.GadgetContract:
     """Derive the complete output-syndrome boundary for a WSC gadget."""
 
     gadget = diagnostics.gadget
     boundary = {output.syndrome: False for output in gadget.outputs.blocks}
     evidence = diagnostics.evidence
-    return gadgets.GadgetProfile(
+    return gadgets.GadgetContract(
         gadget,
         boundary=boundary,
         boundary_complete=True,

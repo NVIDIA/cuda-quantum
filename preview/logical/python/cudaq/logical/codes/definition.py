@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from inspect import signature
+from random import Random
 import json
 import math
 import re
@@ -58,7 +59,6 @@ from .distance import (
     _support_rows,
     _symplectic_functional,
     _symplectic_product,
-    _symplectic_product_bits,
     _validate_symplectic_closure,
     _xor_rows,
 )
@@ -191,17 +191,18 @@ class Code(ImmutableValue):
         )
         if any(not any(row) for row in declared_stabilizers):
             raise ValueError("stabilizer generators must be nonidentity")
-        declared_stabilizer_bits = tuple(
-            _row_bits(row) for row in declared_stabilizers)
         symplectic_mask = (1 << self.n) - 1
-        for left in range(len(declared_stabilizers)):
+
+        def encode_masks(rows):
+            bits = tuple(map(_row_bits, rows))
+            return (tuple(value & symplectic_mask for value in bits),
+                    tuple(value >> self.n for value in bits))
+
+        declared_x, declared_z = encode_masks(declared_stabilizers)
+        for left, (left_x, left_z) in enumerate(zip(declared_x, declared_z)):
             for right in range(left + 1, len(declared_stabilizers)):
-                if _symplectic_product_bits(
-                        declared_stabilizer_bits[left],
-                        declared_stabilizer_bits[right],
-                        self.n,
-                        mask=symplectic_mask,
-                ):
+                if ((left_x & declared_z[right]).bit_count() ^
+                    (left_z & declared_x[right]).bit_count()) & 1:
                     raise ValueError(
                         "stabilizer generators must mutually commute")
         self.declared_stabilizers = GF2Matrix._from_normalized_rows(
@@ -303,22 +304,23 @@ class Code(ImmutableValue):
             for family, encoded in encoded_families:
                 if rows is family:
                     return encoded
-            encoded = tuple(_row_bits(row) for row in rows)
+            # Split once per row rather than once per pairwise comparison.
+            encoded = encode_masks(rows)
             encoded_families.append((rows, encoded))
             return encoded
 
         def require_commutation(left_rows, right_rows, label, *, paired=False):
-            left_encoded = encode_family(left_rows)
-            right_encoded = encode_family(right_rows)
-            for left_index, left in enumerate(left_encoded):
-                for right_index, right in enumerate(right_encoded):
-                    expected = int(paired and left_index == right_index)
-                    actual = _symplectic_product_bits(
-                        left,
-                        right,
-                        self.n,
-                        mask=symplectic_mask,
-                    )
+            left_xs, left_zs = encode_family(left_rows)
+            right_xs, right_zs = encode_family(right_rows)
+            same_family = left_rows is right_rows and not paired
+            for left_index, (left_x, left_z) in enumerate(zip(left_xs,
+                                                              left_zs)):
+                # Self-products vanish and the symplectic product is symmetric.
+                start = left_index + 1 if same_family else 0
+                for right_index in range(start, len(right_xs)):
+                    expected = paired and left_index == right_index
+                    actual = ((left_x & right_zs[right_index]).bit_count() ^
+                              (left_z & right_xs[right_index]).bit_count()) & 1
                     if actual != expected:
                         relation = "canonical pairs" if paired else "commuting families"
                         raise ValueError(f"{label} must form {relation}")
@@ -470,7 +472,7 @@ def _reorder_support(support, order):
     return tuple(support)
 
 
-def _exact_edge_color(checks, order):
+def _exact_edge_color(checks, order, rng):
     """Optimally color a bipartite check/data incidence graph.
 
     Edges are inserted neighbor-rank by neighbor-rank. When an edge's
@@ -508,17 +510,21 @@ def _exact_edge_color(checks, order):
 
     for edge, (check, data) in enumerate(incidences):
         edge_colors.append(-1)
-        common = next((color for color in range(delta)
+        common = tuple(color for color in range(delta)
                        if color not in check_colors[check] and
-                       color not in data_colors[data]), None)
-        if common is not None:
-            assign(edge, common)
+                       color not in data_colors[data])
+        if common:
+            assign(edge, common[0] if rng is None else rng.choice(common))
             continue
 
-        check_free = next(
+        check_free_colors = tuple(
             color for color in range(delta) if color not in check_colors[check])
-        data_free = next(
+        data_free_colors = tuple(
             color for color in range(delta) if color not in data_colors[data])
+        check_free = (check_free_colors[0]
+                      if rng is None else rng.choice(check_free_colors))
+        data_free = (data_free_colors[0]
+                     if rng is None else rng.choice(data_free_colors))
         path = []
         left_side = True
         vertex = check
@@ -555,7 +561,7 @@ class CSSCode(StabilizerCode):
 
     __slots__ = ()
 
-    def colored_schedule(self, *, x_order=None, z_order=None):
+    def colored_schedule(self, *, x_order=None, z_order=None, rng_seed=None):
         """A per-time-step layering of this code's syndrome-extraction CX gates.
 
         Returns plain data -- ``(x_layers, z_layers)``, where each basis's
@@ -564,9 +570,10 @@ class CSSCode(StabilizerCode):
         of the layers is the schedule: the same stabilizers laid out two ways
         can have two circuit distances (a mid-round ancilla fault spreads to the
         data qubits it has yet to touch). ``x_order`` / ``z_order`` permute each
-        bulk check's neighbor ranking before deterministic exact bipartite
-        edge-coloring. Each basis uses the minimum possible number of layers:
-        the maximum degree among its check and data vertices.
+        bulk check's neighbor ranking before exact bipartite edge coloring.
+        Each basis uses the minimum possible number of layers: the maximum
+        degree among its check and data vertices. ``rng_seed`` selects
+        reproducible random tie breaks without changing that depth.
 
         Pass the result straight to
         ``cudaq.logical.extract_syndrome(..., cx_schedule=...)``; it is not a
@@ -574,8 +581,14 @@ class CSSCode(StabilizerCode):
         the schedule input that lays the gadget's CXs into ``fabric.tick``
         moments.
         """
-        return (_exact_edge_color(self.hx,
-                                  x_order), _exact_edge_color(self.hz, z_order))
+        if rng_seed is None:
+            x_rng = z_rng = None
+        else:
+            seed_rng = Random(rng_seed)
+            x_rng = Random(seed_rng.getrandbits(128))
+            z_rng = Random(seed_rng.getrandbits(128))
+        return (_exact_edge_color(self.hx, x_order, x_rng),
+                _exact_edge_color(self.hz, z_order, z_rng))
 
     @classmethod
     def from_geometry(cls, geometry, *, d=None, name: str | None = None):

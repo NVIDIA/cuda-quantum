@@ -40,9 +40,9 @@ int main() {
 // CHECK-DAG:        %[[VAL_3:.*]] = arith.constant 1 : i32
 // CHECK-DAG:        %[[VAL_4:.*]] = arith.constant 0 : i32
 // CHECK:             cc.scope {
-// CHECK:               %[[VAL_35:.*]] = cc.alloca !cc.measure_handle
-// CHECK:               %[[VAL_36:.*]] = cc.load %[[VAL_35]] : !cc.ptr<!cc.measure_handle>
-// CHECK:               %[[DISC:.*]] = quake.discriminate %[[VAL_36]] : (!cc.measure_handle) -> i1
+// CHECK:               %[[VAL_35:.*]] = cc.alloca !quake.measure
+// CHECK:               %[[VAL_36:.*]] = cc.load %[[VAL_35]] : !cc.ptr<!quake.measure>
+// CHECK:               %[[DISC:.*]] = quake.discriminate %[[VAL_36]] : (!quake.measure) -> i1
 // CHECK:               %[[VAL_37:.*]] = cc.if(%[[DISC]]) -> i32 {
 // CHECK:                 cc.continue %[[VAL_3]] : i32
 // CHECK:               } else {

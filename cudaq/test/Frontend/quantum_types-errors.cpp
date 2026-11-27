@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake -verify %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct S1 {
   // expected-error@+1{{may not use quantum types in non-kernel functions}}

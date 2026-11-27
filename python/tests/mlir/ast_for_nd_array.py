@@ -51,3 +51,27 @@ def test_for_ndarray():
 # CHECK:           } {normalized}
 # CHECK:           quake.dealloc %[[VAL_4]] : !quake.veq<4>
 # CHECK:           return
+
+
+def test_array_evaluates_argument_once():
+
+    @cudaq.kernel
+    def flip_and_return(q: cudaq.qubit) -> list[float]:
+        x(q)
+        return [1.0, 2.0]
+
+    @cudaq.kernel
+    def array_from_kernel():
+        q = cudaq.qubit()
+        values = np.array(flip_and_return(q))
+        mz(q)
+
+    print(array_from_kernel)
+    counts = cudaq.sample(array_from_kernel, shots_count=20)
+    assert dict(counts.items()) == {'1': 20}
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__array_from_kernel..
+# CHECK:           cc.call_callable {{.*}} {symbol = "flip_and_return"}
+# CHECK-NOT:       cc.call_callable {{.*}} {symbol = "flip_and_return"}
+# CHECK:           {{^ *return$}}

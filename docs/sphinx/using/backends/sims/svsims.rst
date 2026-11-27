@@ -8,8 +8,8 @@ CPU
 .. _openmp cpu-only:
 .. _qpp-cpu-backend:
 
-The `qpp-cpu` backend backend provides a state vector simulator based on the CPU-only, OpenMP threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library.
-This backend is good for basic testing and experimentation with just a few qubits, but performs poorly for all but the smallest simulation and is the default target when running on CPU-only systems. 
+The `qpp-cpu` backend provides a state vector simulator based on the CPU-only, OpenMP threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library.
+This backend is good for basic testing and experimentation with just a few qubits, but performs poorly for all but the smallest simulations and is the default target when running on CPU-only systems. 
 
 To execute a program on the :code:`qpp-cpu` target even if a GPU-accelerated backend is available, 
 
@@ -109,7 +109,7 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
     - Description
   * - ``CUDAQ_FUSION_MAX_QUBITS``
     - integer (maximum effective value: 10)
-    - The maximum number of qubits used for dense gate fusion. When unset, ``cuStateVecEx`` `automatically selects the fusion size <https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/api-reference/custatevecex/index.html#svupdater-api>`__. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion.
+    - The maximum number of qubits used for dense gate fusion. When unset, ``cuStateVecEx`` `automatically selects the fusion size <https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/api-reference/custatevecex/index.html#svupdater-api>`__. On compute capability 10.7 (Rubin) with ``cuStateVec`` 1.15 or earlier, CUDA-Q instead selects 3 in `FP64` and 4 in `FP32`, which measured faster than the library choice there. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion.
   * - ``CUDAQ_FUSION_DIAGONAL_GATE_MAX_QUBITS``
     - integer greater than or equal to -1 (maximum effective value: 20)
     - The maximum number of qubits used for diagonal gate fusion. When unset or set to -1, ``cuStateVecEx`` automatically selects the fusion size. Values greater than 20 are clamped to 20, while 0 disables diagonal gate fusion.
@@ -134,7 +134,7 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
 
 
 .. deprecated:: 0.8
-    The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 
+    The :code:`nvidia-fp64` target, which is equivalent to setting the `fp64` option on the :code:`nvidia` target, 
     is deprecated and will be removed in a future release.
 
 .. note:: 
@@ -212,7 +212,7 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 
     .. note::
         
-        * The order of the option settings are interchangeable.
+        * The order of the option settings is interchangeable.
           For example, `cudaq.set_target('nvidia', option='mgpu,fp64')` is equivalent to `cudaq.set_target('nvidia', option='fp64,mgpu')`.
 
         * The `nvidia` target has single-precision as the default setting. Thus, using `option='mgpu'` implies that `option='mgpu,fp32'`.  
@@ -269,7 +269,7 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
     - The qubit count threshold where state vector distribution is activated. Below this threshold, simulation is performed as independent (non-distributed) tasks across all MPI processes for optimal performance. Default is 25. 
   * - ``CUDAQ_MGPU_FUSE``
     - integer (maximum effective value: 10)
-    - Legacy multi-GPU alias for ``CUDAQ_FUSION_MAX_QUBITS``. The generic variable takes precedence when both are set. When neither variable is set, ``cuStateVecEx`` automatically selects the dense fusion size. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion.
+    - Legacy multi-GPU alias for ``CUDAQ_FUSION_MAX_QUBITS``. The generic variable takes precedence when both are set. When neither variable is set, ``cuStateVecEx`` automatically selects the dense fusion size. The Rubin exception described for ``CUDAQ_FUSION_MAX_QUBITS`` applies. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion.
   * - ``CUDAQ_MGPU_P2P_DEVICE_BITS``
     - non-negative integer
     - Specify the number of global device-index bits that use GPUDirect P2P communication. A value of 0 disables P2P communication.
@@ -287,7 +287,7 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
     - Specify the temporary buffer size (:code:`1 << CUDAQ_DATA_TRANSFER_BUFFER_BITS` bytes) for inter-node data transfer. The default is set to 26 (64 MB). The minimum allowed value is 24 (16 MB). Depending on systems, setting a larger value to `CUDAQ_DATA_TRANSFER_BUFFER_BITS` can accelerate inter-node data transfers.
 
 .. deprecated:: 0.8
-    The :code:`nvidia-mgpu` backend, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`
+    The :code:`nvidia-mgpu` backend, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia` target,
     is deprecated and will be removed in a future release.
 
 The above configuration options of the :code:`nvidia` backend 

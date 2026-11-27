@@ -122,18 +122,33 @@ jobs:
       # This cache is pushed every time, and some caches are even shared between different branches.
       # We can hence delete the entire build cache for all branches at any time without significant
       # downsides, and do just that here to have some periodic clean up.
+      # The package names carry the CUDA version, so update them when it changes.
 
-      - name: Delete build caches for MPI asset (ARM64)
+      - name: Delete build caches for MPI asset (CUDA 12.6, ARM64)
         uses: actions/delete-package-versions@v5
         with: 
-          package-name: buildcache-cuda-quantum-assets-openmpi-llvm-arm64
+          package-name: buildcache-cuda-quantum-assets-openmpi-cu12-6-llvm-arm64
           package-type: 'container'
           min-versions-to-keep: 1 # the used action does not support 0 here
 
-      - name: Delete build caches for MPI asset (AMD64)
+      - name: Delete build caches for MPI asset (CUDA 12.6, AMD64)
         uses: actions/delete-package-versions@v5
         with: 
-          package-name: buildcache-cuda-quantum-assets-openmpi-llvm-amd64
+          package-name: buildcache-cuda-quantum-assets-openmpi-cu12-6-llvm-amd64
+          package-type: 'container'
+          min-versions-to-keep: 1 # the used action does not support 0 here
+
+      - name: Delete build caches for MPI asset (CUDA 13.0, ARM64)
+        uses: actions/delete-package-versions@v5
+        with: 
+          package-name: buildcache-cuda-quantum-assets-openmpi-cu13-0-llvm-arm64
+          package-type: 'container'
+          min-versions-to-keep: 1 # the used action does not support 0 here
+
+      - name: Delete build caches for MPI asset (CUDA 13.0, AMD64)
+        uses: actions/delete-package-versions@v5
+        with: 
+          package-name: buildcache-cuda-quantum-assets-openmpi-cu13-0-llvm-amd64
           package-type: 'container'
           min-versions-to-keep: 1 # the used action does not support 0 here
 

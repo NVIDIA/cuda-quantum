@@ -18,6 +18,7 @@
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
+#include <cstdint>
 
 #define DEBUG_TYPE "quake-to-llvm"
 
@@ -285,11 +286,9 @@ public:
   matchAndRewrite(cudaq::quake::DiscriminateOp discr, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto m = adaptor.getMeasurement();
-    // `MeasureRewrite` produces `i1` for legacy `!quake.measure` results
-    // and `i64` for `!cc.measure_handle` results. The discriminated outcome is
-    // held in the low bit of the payload, so truncate when the upstream value
-    // was widened. Forward the value untouched in the legacy case so we don't
-    // add a no-op cast that would defeat downstream pattern matching.
+    // `MeasureRewrite` produces an `i64` for `!quake.measure` results. The
+    // discriminated outcome is held in the low bit of the payload, so truncate
+    // when the upstream value was widened.
     if (isa<IntegerType>(m.getType()) &&
         cast<IntegerType>(m.getType()).getWidth() != 1)
       m = LLVM::TruncOp::create(rewriter, discr.getLoc(), rewriter.getI1Type(),
@@ -504,7 +503,8 @@ public:
     auto pauliWord = operands.back();
     if (isa<LLVM::LLVMPointerType>(pauliWord.getType())) {
       // With opaque pointers we get the string length from the literal
-      auto numElements = static_cast<int64_t>(instOp.getPauliLiteral()->size());
+      auto numElements =
+          static_cast<std::int64_t>(instOp.getPauliLiteral()->size());
 
       // Remove the old operand
       operands.pop_back();
@@ -1176,15 +1176,11 @@ public:
         LLVM::BitcastOp::create(rewriter, loc, i1PtrTy, callOp.getResult());
     Value loaded = LLVM::LoadOp::create(rewriter, loc, i1Ty, cast);
 
-    // The legacy QIR call returns an opaque `Result*`; loading the result
-    // bitcast as `i1` is the discriminated outcome regardless of whether
-    // the source-level result type was `!quake.measure` or
-    // `!cc.measure_handle`.
-    Value replacement = loaded;
-    if (isa<cudaq::cc::MeasureHandleType>(measure.getMeasOut().getType())) {
-      replacement =
-          LLVM::ZExtOp::create(rewriter, loc, rewriter.getI64Type(), loaded);
-    }
+    // The QIR call returns an opaque `Result*`; loading the result bitcast as
+    // `i1` is the discriminated outcome, which is carried in the low bit of
+    // the `i64` that `!quake.measure` converts to.
+    Value replacement =
+        LLVM::ZExtOp::create(rewriter, loc, rewriter.getI64Type(), loaded);
     rewriter.replaceOp(measure, replacement);
 
     return success();

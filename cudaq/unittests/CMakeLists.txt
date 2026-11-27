@@ -104,6 +104,7 @@ function(add_cudaq_unittest test_name)
     cudaq_gtest_discover_tests(${test_name} DISCOVERY_TIMEOUT 120)
 endfunction(add_cudaq_unittest)
 
+add_subdirectory(Frontend)
 add_subdirectory(Optimizer)
 add_subdirectory(plugins)
 add_subdirectory(Synthesis)

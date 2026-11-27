@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "py_runtime_target.h"
+#include "CompileTargetCaster.h"
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
 #include "runtime/cudaq/platform/PyRuntimeEndpoint.h"
@@ -14,11 +15,13 @@
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/map.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 #include <shared_mutex>
@@ -70,7 +73,7 @@ parseTargetKwArgs(const nanobind::kwargs &extraConfig) {
     else if (nanobind::isinstance<nanobind::str>(value))
       strValue = nanobind::cast<std::string>(value);
     else if (nanobind::isinstance<nanobind::int_>(value))
-      strValue = std::to_string(nanobind::cast<int64_t>(value));
+      strValue = std::to_string(nanobind::cast<std::int64_t>(value));
     else
       throw std::runtime_error(
           "QPU kwargs config value must be cast-able to a string.");
@@ -168,6 +171,12 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "Return the `cudaq.Target` with the given name. Will raise an exception "
       "if the name is not valid.");
   mod.def(
+      "get_compile_target",
+      [](std::size_t qpuId) { return cudaq::get_compile_target(qpuId); },
+      nanobind::arg("qpu_id") = 0,
+      "Return the `CompileTarget` that kernels for QPU `qpu_id` of the "
+      "current target are compiled against.");
+  mod.def(
       "get_targets",
       [&](bool includeUnavailable) {
         return holder.getTargets(includeUnavailable);
@@ -199,24 +208,36 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "`registerBackendPath` instead.");
   mod.def(
       "set_target",
-      [&](const cudaq::RuntimeTarget &target, nanobind::kwargs extraConfig) {
+      [&](const cudaq::RuntimeTarget &target,
+          std::optional<cudaq::CompileTarget> compileTarget,
+          nanobind::kwargs extraConfig) {
         auto config = parseTargetKwArgs(extraConfig);
-        holder.setTarget(target.name, config);
+        holder.setTarget(target.name, config, std::move(compileTarget));
         onTargetChange(target);
       },
-      "Set the `cudaq.Target` to be used for CUDA-Q kernel execution. "
-      "Can provide optional, target-specific configuration data via Python "
-      "kwargs.");
+      nanobind::arg("target"), nanobind::kw_only(),
+      nanobind::arg("compile_target") = nanobind::none(),
+      nanobind::arg("kwargs"),
+      "Set the `cudaq.Target` that CUDA-Q kernels run on. Kernels are "
+      "compiled against `compile_target` if given, and against the target's "
+      "default compile target otherwise. Can provide optional, "
+      "target-specific configuration data via Python kwargs.");
   mod.def(
       "set_target",
-      [&](const std::string &name, nanobind::kwargs extraConfig) {
+      [&](const std::string &name,
+          std::optional<cudaq::CompileTarget> compileTarget,
+          nanobind::kwargs extraConfig) {
         auto config = parseTargetKwArgs(extraConfig);
-        holder.setTarget(name, config);
+        holder.setTarget(name, config, std::move(compileTarget));
         onTargetChange(holder.getTarget());
       },
-      "Set the `cudaq.Target` with given name to be used for CUDA-Q "
-      "kernel execution. Can provide optional, target-specific configuration "
-      "data via Python kwargs.");
+      nanobind::arg("target"), nanobind::kw_only(),
+      nanobind::arg("compile_target") = nanobind::none(),
+      nanobind::arg("kwargs"),
+      "Set the `cudaq.Target` with given name that CUDA-Q kernels run on. "
+      "Kernels are compiled against `compile_target` if given, and against "
+      "the target's default compile target otherwise. Can provide optional, "
+      "target-specific configuration data via Python kwargs.");
   mod.def(
       "set_target",
       [&](const cudaq::CompileTarget &compileTarget,

@@ -41,6 +41,43 @@ def testMPI():
     for idx, x in enumerate(gatherData):
         assert abs(gatherData[idx] - float(idx)) < 1e-12
 
+    # all_gather with a different number of elements on each rank: rank `r`
+    # contributes `r + 1` elements
+    numRanks = cudaq.mpi.num_ranks()
+    rank = cudaq.mpi.rank()
+    expected = [r * 10 + i for r in range(numRanks) for i in range(r + 1)]
+    localData = [rank * 10 + i for i in range(rank + 1)]
+    assert cudaq.mpi.all_gather(len(expected), localData) == expected
+    gatherData = cudaq.mpi.all_gather(len(expected),
+                                      [float(x) for x in localData])
+    assert gatherData == [float(x) for x in expected]
+
+    # An empty list binds to the `float` overload on its own rank, but the
+    # ranks agree on one element type: rank `r` contributes `r` elements, so
+    # rank 0 contributes none
+    expected = [r * 10 + i for r in range(numRanks) for i in range(r)]
+    localData = [rank * 10 + i for i in range(rank)]
+    gatherData = cudaq.mpi.all_gather(len(expected), localData)
+    assert gatherData == expected
+    assert all(type(x) is int for x in gatherData)
+    gatherData = cudaq.mpi.all_gather(len(expected),
+                                      [float(x) for x in localData])
+    assert gatherData == [float(x) for x in expected]
+    assert all(type(x) is float for x in gatherData)
+    # Every rank contributes an empty list
+    assert cudaq.mpi.all_gather(0, []) == []
+
+    # Integers on odd ranks and floats on even ranks gather as floats
+    expected = [
+        float(r * 10 + i) for r in range(numRanks) for i in range(r + 1)
+    ]
+    localData = [rank * 10 + i for i in range(rank + 1)]
+    if rank % 2 == 0:
+        localData = [float(x) for x in localData]
+    gatherData = cudaq.mpi.all_gather(len(expected), localData)
+    assert gatherData == expected
+    assert all(type(x) is float for x in gatherData)
+
     # Broadcast
     ref_data = [1.0, 2.0, 3.0]
     if cudaq.mpi.rank() == 0:

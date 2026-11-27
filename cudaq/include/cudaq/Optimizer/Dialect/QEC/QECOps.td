@@ -10,6 +10,7 @@
 #define CUDAQ_OPTIMIZER_DIALECT_QEC_OPS
 
 include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
+include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.td"
 include "cudaq/Optimizer/Dialect/QEC/QECDialect.td"
 include "mlir/IR/OpBase.td"
 
@@ -21,13 +22,13 @@ def QEC_DetectorOp : QECOp<"detector"> {
   let description = [{
     Declares a parity constraint over one or more measurement results. Under
     noise-free execution the XOR of the referenced measurements is
-    deterministic. Operands may be individual `!cc.measure_handle` values or a
-    `!cc.sequence<!cc.measure_handle>` collection. This is a side-effecting
+    deterministic. Operands may be individual `!quake.measure` values or a
+    `!cc.sequence<!quake.measure>` collection. This is a side-effecting
     declaration that informs the backend.
   }];
   let arguments = (ins
-    Variadic<AnyTypeOf<[cc_MeasureHandleType,
-                        SequenceOf<[cc_MeasureHandleType]>]>>:$measurements
+    Variadic<AnyTypeOf<[MeasureType,
+                        SequenceOf<[MeasureType]>]>>:$measurements
   );
   let assemblyFormat = [{
     $measurements `:` type($measurements) attr-dict
@@ -38,14 +39,14 @@ def QEC_DetectorsOp : QECOp<"pair_detectors"> {
   let summary =
     "Declare N detectors by pairing previous and current measurement vectors.";
   let description = [{
-    Given two `!cc.sequence<!cc.measure_handle>` collections of measurement
+    Given two `!cc.sequence<!quake.measure>` collections of measurement
     results, declares N detectors where detector `i` is the parity of `prev[i]`
     and `curr[i]`. `!cc.sequence` carries no static size, so size agreement
     between `prev` and `curr` is checked at runtime.
   }];
   let arguments = (ins
-    SequenceOf<[cc_MeasureHandleType]>:$prev,
-    SequenceOf<[cc_MeasureHandleType]>:$curr
+    SequenceOf<[MeasureType]>:$prev,
+    SequenceOf<[MeasureType]>:$curr
   );
   let assemblyFormat = [{
     $prev `,` $curr `:` type($prev) `,` type($curr) attr-dict
@@ -56,13 +57,13 @@ def QEC_ObservableOp : QECOp<"observable"> {
   let summary = "Declare a logical observable over measurement results.";
   let description = [{
     Declares a logical observable as a binary sum of measurement results.
-    Operands may be individual `!cc.measure_handle` values or a
-    `!cc.sequence<!cc.measure_handle>` collection. The optional observable index
+    Operands may be individual `!quake.measure` values or a
+    `!cc.sequence<!quake.measure>` collection. The optional observable index
     defaults to 0.
   }];
   let arguments = (ins
-    Variadic<AnyTypeOf<[cc_MeasureHandleType,
-                        SequenceOf<[cc_MeasureHandleType]>]>>:$measurements,
+    Variadic<AnyTypeOf<[MeasureType,
+                        SequenceOf<[MeasureType]>]>>:$measurements,
     DefaultValuedOptionalAttr<I64Attr, "0">:$observableIndex
   );
   let assemblyFormat = [{

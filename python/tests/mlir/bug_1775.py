@@ -33,14 +33,14 @@ def test_bug_1775():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test
 # CHECK-SAME:      () attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "res" : (!quake.ref) -> !cc.measure_handle
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "res" : (!quake.ref) -> !quake.measure
 # CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] name "res" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.measure_handle) -> i1
+# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] name "res" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
 # CHECK:           cc.if(%[[VAL_3]]) {
-# CHECK:             %[[VAL_4:.*]] = quake.mz %[[VAL_0]] name "true_res" : (!quake.ref) -> !cc.measure_handle
+# CHECK:             %[[VAL_4:.*]] = quake.mz %[[VAL_0]] name "true_res" : (!quake.ref) -> !quake.measure
 # CHECK:           } else {
-# CHECK:             %[[VAL_5:.*]] = quake.mz %[[VAL_0]] name "false_res" : (!quake.ref) -> !cc.measure_handle
+# CHECK:             %[[VAL_5:.*]] = quake.mz %[[VAL_0]] name "false_res" : (!quake.ref) -> !quake.measure
 # CHECK:           }
 # CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
 # CHECK:           return

@@ -223,6 +223,12 @@ class QECActionSelection:
     endpoints: tuple[str, ...] = ()
     direction: str | None = None
 
+    @property
+    def action(self) -> str:
+        """Selected logical action; the stored key preserves bundle format."""
+
+        return self.objective
+
     def __post_init__(self) -> None:
         for field_name in (
                 "site",

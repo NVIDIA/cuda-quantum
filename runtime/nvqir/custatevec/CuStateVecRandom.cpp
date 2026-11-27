@@ -7,9 +7,7 @@
  ******************************************************************************/
 
 #include "CuStateVecRandom.h"
-
 #include "CuStateVecError.h"
-
 #include <cmath>
 #include <random>
 

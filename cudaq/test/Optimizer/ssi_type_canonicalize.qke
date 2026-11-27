@@ -1,0 +1,43 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize='region-simplify=aggressive' %s | FileCheck %s
+
+// *** IF THIS TEST FAILS, YOUR MLIR/LLVM BUILD IS MISSING THE CUDA-Q PATCHES. ***
+//
+// Quake's linear types (!quake.wire, !quake.cable) carry the `SSIType` trait.
+// A patched MLIR honors that trait and will not collapse block arguments (or
+// region successor inputs) of those types when every predecessor forwards the
+// same value. An unpatched MLIR treats wires as plain SSA values, folds the
+// block arguments away, and silently turns each wire into a value with
+// multiple uses, which is invalid linear IR and miscompiles quantum programs.
+//
+// Rebuild LLVM/MLIR with the patch tpls/customizations/llvm/mlir-ssi.diff
+// applied (see scripts/build_llvm.sh). Do NOT work around this failure by
+// editing the test or by adding a repair pass to the pipeline.
+
+// Both successors of the branch are passed the same wire. The block arguments
+// are information points (sigma nodes) and must survive.
+// CHECK-LABEL: func.func @sigma_nodes_preserved(
+// CHECK-SAME:    %[[C:.*]]: i1, %[[W:.*]]: !quake.wire)
+// CHECK:         cf.cond_br %[[C]], ^bb1(%[[W]] : !quake.wire), ^bb2(%[[W]] : !quake.wire)
+// CHECK:       ^bb1(%[[A:.*]]: !quake.wire):
+// CHECK:         quake.x %[[A]]
+// CHECK:       ^bb2(%[[B:.*]]: !quake.wire):
+// CHECK:         quake.y %[[B]]
+func.func @sigma_nodes_preserved(%c: i1, %w: !quake.wire) -> !quake.wire {
+  cf.cond_br %c, ^bb1(%w : !quake.wire), ^bb2(%w : !quake.wire)
+^bb1(%a: !quake.wire):
+  %x = quake.x %a : (!quake.wire) -> !quake.wire
+  cf.br ^bb3(%x : !quake.wire)
+^bb2(%b: !quake.wire):
+  %y = quake.y %b : (!quake.wire) -> !quake.wire
+  cf.br ^bb3(%y : !quake.wire)
+^bb3(%r: !quake.wire):
+  return %r : !quake.wire
+}

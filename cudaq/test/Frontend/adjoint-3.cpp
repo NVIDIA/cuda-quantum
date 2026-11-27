@@ -7,11 +7,12 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %s | FileCheck %s
-// RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --apply-op-specialization | FileCheck --check-prefix=ADJOINT %s
+// RUN: cudaq-quake %s -o %t.qke
+// RUN: FileCheck %s --input-file=%t.qke
+// RUN: cudaq-opt %t.qke --memtoreg=quantum=0 --canonicalize --apply-op-specialization | FileCheck --check-prefix=ADJOINT %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct statePrep_A {
   void operator()(cudaq::qvector<> &q, const double bmax) __qpu__ {

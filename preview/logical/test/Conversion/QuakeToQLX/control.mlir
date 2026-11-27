@@ -60,8 +60,8 @@ module {
     ^bb0(%w: !quake.wire, %iv: i32):
       %local = quake.null_wire
       %m, %measured = quake.mx %local
-          : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-      %bit = quake.discriminate %m : (!cc.measure_handle) -> i1
+          : (!quake.wire) -> (!quake.measure, !quake.wire)
+      %bit = quake.discriminate %m : (!quake.measure) -> i1
       quake.sink %measured : !quake.wire
       %next = quake.h %w : (!quake.wire) -> !quake.wire
       cc.continue %next, %iv : !quake.wire, i32
@@ -115,8 +115,8 @@ module {
   func.func @__nvqpp__mlirgen__adaptive() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %q0 = quake.null_wire
     %q1 = quake.null_wire
-    %m, %w = quake.mz %q0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
-    %cond = quake.discriminate %m : (!cc.measure_handle) -> i1
+    %m, %w = quake.mz %q0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %cond = quake.discriminate %m : (!quake.measure) -> i1
     %sel = cc.if (%cond) ((%c = %q1)) -> (!quake.wire) {
       %t = quake.t %c : (!quake.wire) -> !quake.wire
       cc.continue %t : !quake.wire

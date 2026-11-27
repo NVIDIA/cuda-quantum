@@ -1,0 +1,116 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
+// RUN:   clifford-t-optimization-pipeline{level=1 approximation-tolerance=1e-3})' %s | \
+// RUN:   FileCheck %s --check-prefix=LEVEL1
+// RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
+// RUN:   clifford-t-optimization-pipeline{level=2 approximation-tolerance=1e-3})' %s \
+// RUN:   -o %t.level2
+// RUN: FileCheck %s --check-prefix=LEVEL2 --input-file=%t.level2
+// RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
+// RUN:   clifford-t-optimization-pipeline{level=3 approximation-tolerance=1e-3})' %s | \
+// RUN:   diff %t.level2 -
+// RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
+// RUN:   clifford-t-optimization-pipeline{level=2 approximation-tolerance=1e-13})' %s | \
+// RUN:   FileCheck %s --check-prefix=BOUND
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='level=1 approximation-tolerance=1e-3' %s | \
+// RUN:   FileCheck %s --check-prefix=SYNTH \
+// RUN:   --implicit-check-not='quake.r{{[xyz1]}}' \
+// RUN:   --implicit-check-not='@__cliffordt_' --implicit-check-not='quake.phase'
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=rz,x approximation-tolerance=1e-3' \
+// RUN:   %s | FileCheck %s --check-prefix=EXACT
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=r1,h approximation-tolerance=1e-3' \
+// RUN:   %s | FileCheck %s --check-prefix=EXACT
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=h,s,t approximation-tolerance=1e-3' \
+// RUN:   %s | FileCheck %s --check-prefix=SYNTH \
+// RUN:   --implicit-check-not='quake.r{{[xyz1]}}' \
+// RUN:   --implicit-check-not='@__cliffordt_' --implicit-check-not='quake.phase'
+// RUN: cudaq-opt --two-qubit-gate-count-optimization-pipeline=level=1 \
+// RUN:   --dump-pass-pipeline -o /dev/null %s 2>&1 | FileCheck %s --check-prefix=TWOQ1
+// RUN: cudaq-opt --two-qubit-gate-count-optimization-pipeline=level=2 \
+// RUN:   --dump-pass-pipeline -o /dev/null %s 2>&1 | FileCheck %s --check-prefix=TWOQ2
+
+// The two-qubit-gate-count optimization pipeline adds phase folding at level 2.
+// TWOQ1:     dqe
+// TWOQ1-NOT: phase-folding
+// TWOQ2:     phase-folding
+
+// Level 1 of the Clifford+T optimization pipeline only cleans up, and level 3
+// runs level 2. No level erases a rotation larger than the tolerance. The
+// synthesis pipeline leaves no rotation, helper, or phase behind.
+
+// The angle is within the tolerance of pi/4, so level 2 snaps it to a T gate
+// and level 1 keeps the rotation.
+func.func @near_t() -> !quake.measure attributes {"cudaq-entrypoint"} {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.7862981633974483 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return %m : !quake.measure
+}
+
+// LEVEL1-LABEL: func.func @near_t()
+// LEVEL1:         quake.rz
+// LEVEL2-LABEL: func.func @near_t()
+// LEVEL2-NOT:     quake.rz
+// LEVEL2:         quake.t
+// SYNTH-LABEL:  func.func @near_t()
+// SYNTH-NEXT:     quake.alloca
+// SYNTH-NEXT:     quake.t
+// SYNTH-NEXT:     quake.mz
+
+// A basis that expresses any Clifford+T rotation exactly, such as one with `rz`
+// or one with `r1`, makes the synthesis pipeline add no passes, while a basis of
+// `h`, `s`, and `t` still synthesizes.
+// EXACT-LABEL:  func.func @near_t()
+// EXACT:          quake.rz
+
+// Level 1 erases a rotation below the tolerance.
+func.func @below_tolerance() -> !quake.measure attributes {"cudaq-entrypoint"} {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 5.000000e-04 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return %m : !quake.measure
+}
+
+// LEVEL1-LABEL: func.func @below_tolerance()
+// LEVEL1-NOT:     quake.rz
+// LEVEL1:         quake.mz
+
+// The default threshold of `quake-simplify` would erase this rotation. Level 2
+// keeps it because it is larger than the tolerance.
+func.func @above_tolerance() -> !quake.measure attributes {"cudaq-entrypoint"} {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 5.000000e-13 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return %m : !quake.measure
+}
+
+// BOUND-LABEL: func.func @above_tolerance()
+// BOUND:         quake.rz
+// BOUND:         quake.mz
+
+// Synthesis reduces `rx`, `ry`, and `r1` to `rz` and inlines the helper it
+// outlines for each angle.
+func.func @inexact() -> !quake.measure attributes {"cudaq-entrypoint"} {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 1.250000e-01 : f64
+  quake.rx (%a) %q : (f64, !quake.ref) -> ()
+  quake.ry (%a) %q : (f64, !quake.ref) -> ()
+  quake.r1 (%a) %q : (f64, !quake.ref) -> ()
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return %m : !quake.measure
+}
+
+// SYNTH-LABEL: func.func @inexact()
+// SYNTH:         quake.t
+// SYNTH:         quake.mz

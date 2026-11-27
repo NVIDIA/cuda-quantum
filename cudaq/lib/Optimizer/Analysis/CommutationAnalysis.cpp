@@ -586,7 +586,7 @@ static CommutationResult dispatchRules(const OperationView &lhs,
   return indeterminate(commutation_reason::no_applicable_rule);
 }
 
-// Populate the normalized view used by commutation rules. Resolve scalar wire
+// Populate the normalized view used by commutation rules. Resolve wire
 // controls and targets to analysis-local qubit IDs, record their roles and
 // control polarities, and reject unmapped or duplicate qubit uses.
 static std::optional<commutation_reason>
@@ -717,12 +717,12 @@ bool CommutationAnalysis::collectScopeWireCaptures(
     if (isIgnorableNonQuantumOperation(nested))
       return WalkResult::advance();
 
-    auto isScalarWire = [](Type type) {
+    auto isWireOrClassical = [](Type type) {
       return !cudaq::quake::isQuantumType(type) ||
              isa<cudaq::quake::WireType>(type);
     };
-    if (!llvm::all_of(nested->getOperandTypes(), isScalarWire) ||
-        !llvm::all_of(nested->getResultTypes(), isScalarWire))
+    if (!llvm::all_of(nested->getOperandTypes(), isWireOrClassical) ||
+        !llvm::all_of(nested->getResultTypes(), isWireOrClassical))
       return WalkResult::interrupt();
 
     for (Value operand : nested->getOperands()) {
@@ -733,7 +733,7 @@ bool CommutationAnalysis::collectScopeWireCaptures(
         captures.push_back(operand);
     }
 
-    if (cudaq::quake::detail::getScalarWireFlow(nested) ||
+    if (cudaq::quake::detail::getWireFlow(nested) ||
         isa<cudaq::quake::NullWireOp, cudaq::quake::SinkOp,
             cudaq::cc::ContinueOp>(nested))
       return WalkResult::advance();
@@ -1031,7 +1031,7 @@ private:
       return resolveQubitSupport(captures, qubitIdentity);
     }
 
-    if (auto flow = cudaq::quake::detail::getScalarWireFlow(operation))
+    if (auto flow = cudaq::quake::detail::getWireFlow(operation))
       return resolveQubitSupport(flow->inputs, qubitIdentity);
 
     llvm::SmallVector<Value, 1> support;
@@ -1193,7 +1193,7 @@ bool CommutationAnalysis::tryWalkPriorOperations(
   if (!operationIndex) {
     // Avoid a block-wide build until the anchor has known support that can use
     // the index.
-    auto flow = cudaq::quake::detail::getScalarWireFlow(anchor);
+    auto flow = cudaq::quake::detail::getWireFlow(anchor);
     if (!flow)
       return false;
     auto support = resolveQubitSupport(flow->inputs, *qubitIdentity);

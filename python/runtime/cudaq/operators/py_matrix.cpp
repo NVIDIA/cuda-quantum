@@ -16,7 +16,6 @@
 #include "py_helpers.h"
 #include "py_matrix.h"
 #include "cudaq/operators/matrix.h"
-
 #include <complex>
 
 namespace cudaq {
@@ -34,6 +33,9 @@ void bindComplexMatrix(nanobind::module_ &mod) {
               throw std::runtime_error("ComplexMatrix requires a 2D array");
             if (arr.shape(0) == 0 || arr.shape(1) == 0)
               throw std::runtime_error("Matrix dimensions must be non-zero.");
+            if (arr.dtype() != nanobind::dtype<std::complex<double>>())
+              throw nanobind::type_error(
+                  "ComplexMatrix requires an array with complex128 dtype");
 
             new (self) complex_matrix(arr.shape(0), arr.shape(1));
 
@@ -49,7 +51,7 @@ void bindComplexMatrix(nanobind::module_ &mod) {
                 dest[i * arr.shape(1) + j] = src[i * stride0 + j * stride1];
           },
           "Create a :class:`ComplexMatrix` from a buffer of data, such as a "
-          "numpy.ndarray.")
+          "numpy.ndarray with complex128 dtype.")
       .def(
           "to_numpy",
           [](complex_matrix &op) { return detail::cmat_to_numpy(op); },

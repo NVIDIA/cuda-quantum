@@ -191,6 +191,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      # The floor counts every version, including the untagged child manifests
+      # of each image (index, image, attestation), so a running workflow's
+      # freshly pushed images survive only if it is well above that count.
       - name: Delete old images
         uses: actions/delete-package-versions@v5
         with: 

@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include "cudaq/Target/TargetAbiVersion.h"
 #include "cudaq/Target/TargetConfig.h"
-#include "cudaq/Target/TargetDatabase.h"
 #include <array>
 #include <string>
 #include <string_view>

@@ -3,12 +3,12 @@ on:
     inputs:
       delete_draft_releases:
         type: boolean
-        description: Delete all draft releases on GitHub. This will interfere with any active publishing workflow.
+        description: Delete all draft releases on GitHub. This will interfere with a running Deployments release.
         required: false
         default: false
       delete_temp_branches:
         type: boolean
-        description: Delete temporary branches created for publishing. This will interfere with any active publishing workflow.
+        description: Delete temporary branches created for publishing. This will interfere with a running Deployments or Validation.
         required: false
         default: false
   schedule:
@@ -165,6 +165,31 @@ jobs:
           package-type: 'container'
           package-version-ids: '${{ steps.packages.outputs.versions_to_remove }}'
 
+  # Saving a ccache over its tag leaves the previous archive, several GB, untagged.
+  # Nothing depends on an untagged version of these, so only the latest few are kept.
+  llvm_ccache_images:
+    name: Clean up the LLVM ccache images
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 0 * * *'
+    runs-on: ubuntu-latest
+
+    permissions:
+      packages: write
+
+    strategy:
+      matrix:
+        image_name: [cuda-quantum-llvm-ccache, cuda-quantum-llvm-ccache-ci]
+      fail-fast: false
+
+    steps:
+      - name: Delete untagged images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.image_name }}
+          package-type: 'container'
+          min-versions-to-keep: 4
+          delete-only-untagged-versions: 'true'
+        continue-on-error: true
+
   # We use environments to deploy to a public registry after PRs are merged.
   # Since we use the same workflows during CI, a default environment that defines
   # the necessary variables is used instead. Unfortunately, this automatically
@@ -182,27 +207,36 @@ jobs:
       - uses: actions/github-script@v9
         with:
           script: |
-            for (const environment of ['default', 'ghcr-ci']) {
+            // Keep the branches we deploy from; other refs are CI noise.
+            const keep = /^(main$|releases\/|staging\/|experimental\/|features\/)/
+            // Capped per environment: a shared cap is spent on `default`.
+            const perEnvironment = 10
+
+            for (const environment of ['default', 'ghcr-ci', 'ghcr-deployment']) {
+              let budget = perEnvironment;
               const deployments = await github.rest.repos.listDeployments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                environment: environment
+                environment: environment,
+                per_page: 100
               });
-              await Promise.all(
-                deployments.data.map(async (deployment) => {
-                  await github.rest.repos.createDeploymentStatus({
+              for (const deployment of deployments.data) {
+                if (budget < 1) break;
+                if (environment === 'ghcr-deployment' && keep.test(deployment.ref))
+                  continue;
+                await github.rest.repos.createDeploymentStatus({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   deployment_id: deployment.id,
                   state: 'inactive'
-                  });
-                  return github.rest.repos.deleteDeployment({
+                });
+                await github.rest.repos.deleteDeployment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   deployment_id: deployment.id
-                  });
-                })
-              );
+                });
+                budget--;
+              }
             }
 
   pr_cleanup:

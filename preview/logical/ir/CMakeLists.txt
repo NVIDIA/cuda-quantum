@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+include(HandleLLVMOptions)
 add_subdirectory(include/qlx/Conversion)
 add_subdirectory(include/qlx/Dialect/Cflow)
 add_subdirectory(include/qlx/Dialect/Event)
@@ -27,11 +28,18 @@ add_subdirectory(lib/Dialect/Phys)
 add_subdirectory(lib/Compiler)
 
 # Cross-dialect lowerings (MLIR-style Conversion/<X>To<Y>).
-add_subdirectory(lib/Conversion/QuakeToQLX)
 add_subdirectory(lib/Conversion/QLXToLVM)
+# Quake <-> QLX lowerings link CUDA-Q's Quake and CC dialects, so they exist
+# only when QLX_USE_CUDAQ_SDK is ON, the default.
+if(QLX_USE_CUDAQ_SDK)
+  add_subdirectory(lib/Conversion/QuakeToQLX)
+  add_subdirectory(lib/Conversion/PhysToQuake)
+endif()
 
 # Translation backends (MLIR-style Target/).
 add_subdirectory(lib/Target/Fabric)
+
+add_subdirectory(lib/Analysis/EDEM)
 
 # C-API shims for the Python bindings (always built; pure additive layer).
 add_subdirectory(lib/CAPI)

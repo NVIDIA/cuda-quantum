@@ -1,0 +1,12 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/cudaq-edem-targets.cmake")
+check_required_components(cudaq-edem)

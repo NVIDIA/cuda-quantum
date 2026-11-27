@@ -1,0 +1,41 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --pass-pipeline='builtin.module(func.func(classical-optimization))' %s | FileCheck %s
+// RUN: cudaq-opt --cc-loop-unroll %s | FileCheck %s
+// RUN: sed 's/ {normalized}//' %s | cudaq-opt --cc-loop-unroll | FileCheck %s
+
+// A counted loop whose bound is a cast of a constant unrolls once the cast
+// folds, whether or not the loop is normalized.
+
+func.func @cast_bound(%p: !cc.ptr<!cc.array<i64 x 4>>) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c2 = arith.constant 2 : i32
+  %n = cc.cast signed %c2 : (i32) -> i64
+  %r = cc.loop while ((%i = %c0) -> (i64)) {
+    %b = arith.cmpi slt, %i, %n : i64
+    cc.condition %b(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %q = cc.compute_ptr %p[%i] : (!cc.ptr<!cc.array<i64 x 4>>, i64) -> !cc.ptr<i64>
+    cc.store %i, %q : !cc.ptr<i64>
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %j = arith.addi %i, %c1 : i64
+    cc.continue %j : i64
+  } {normalized}
+  return
+}
+
+// CHECK-LABEL: func.func @cast_bound(
+// CHECK-NOT:     cc.loop
+// CHECK-COUNT-2: cc.store
+// CHECK-NOT:     cc.store
+// CHECK:         return

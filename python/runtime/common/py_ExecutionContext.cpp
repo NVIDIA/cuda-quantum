@@ -7,20 +7,12 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
-#include "common/RecordLogParser.h"
 #include "cudaq/platform.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "mlir/ExecutionEngine/ExecutionEngine.h"
-#include <fmt/core.h>
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
-
-namespace nvqir {
-std::string_view getQirOutputLog();
-void clearQirOutputLog();
-} // namespace nvqir
 
 namespace cudaq {
 
@@ -105,31 +97,5 @@ void bindExecutionContext(nanobind::module_ &mod) {
         return (platform.is_remote() || platform.is_emulated());
       },
       nanobind::arg("qpuId") = 0);
-  mod.def("getQirOutputLog", []() { return nvqir::getQirOutputLog(); });
-  mod.def("clearQirOutputLog", []() { nvqir::clearQirOutputLog(); });
-  mod.def("decodeQirOutputLog", [](const std::string &outputLog,
-                                   nanobind::object decodedResults) {
-    cudaq::RecordLogParser parser;
-    parser.parse(outputLog);
-    Py_buffer view;
-    if (PyObject_GetBuffer(decodedResults.ptr(), &view, PyBUF_WRITABLE) != 0)
-      throw nanobind::python_error();
-    // Get the buffer and length of buffer (in bytes) from the parser.
-    auto *origBuffer = parser.getBufferPtr();
-    const std::size_t bufferSize = parser.getBufferSize();
-    const Py_ssize_t destinationSize = view.len;
-    if (destinationSize < 0 ||
-        bufferSize > static_cast<std::size_t>(destinationSize)) {
-      PyBuffer_Release(&view);
-      throw nanobind::value_error(
-          fmt::format("Decoded result requires {} bytes, but the destination "
-                      "buffer provides {} bytes.",
-                      bufferSize, destinationSize)
-              .c_str());
-    }
-    if (bufferSize > 0)
-      std::memcpy(view.buf, origBuffer, bufferSize);
-    PyBuffer_Release(&view);
-  });
 }
 } // namespace cudaq

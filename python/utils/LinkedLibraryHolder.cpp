@@ -23,7 +23,7 @@
 
 // Our hooks into configuring the NVQIR backend.
 extern "C" {
-void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
+void __nvqir__setCircuitSimulatorFactory(nvqir::CircuitSimulator *(*)());
 void __nvqir__setSimulatorInitCallback(void (*)());
 }
 
@@ -52,7 +52,7 @@ static void lazyInitSimulator() {
 static bool isSimulationConfig(const cudaq::config::TargetConfig &config) {
   const cudaq::config::BackendEndConfigEntry *backend = nullptr;
   for (const auto &entry : config.ConfigMap)
-    if (entry.Default.has_value() && entry.Default.value())
+    if (entry.Default)
       backend = &entry.Config;
   if (!backend && config.BackendConfig)
     backend = &*config.BackendConfig;
@@ -140,12 +140,8 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   dl_iterate_phdr(cudaq::detail::getCUDAQLibraryPath, &data);
 #endif
 
-  std::filesystem::path nvqirLibPath{data.path};
-  cudaqLibPath = nvqirLibPath.parent_path();
-  if (cudaqLibPath.filename().string() == "common") {
-    // this is a build path
-    cudaqLibPath = cudaqLibPath.parent_path().parent_path() / "lib";
-  }
+  std::filesystem::path libcudaqPath{data.path};
+  cudaqLibPath = libcudaqPath.parent_path();
 
   // Populate the map of available targets.
   {
@@ -157,13 +153,19 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
 
   CUDAQ_INFO("Init: Library Path is {}.", cudaqLibPath.string());
 
-  // Load nvqir, cudaq, and the default execution manager. The em cannot
-  // be a needed dep of libcudaq.so (circular dependency), but downstream
-  // libraries like cuda-qx reference its symbols at dlopen time.
-  std::vector<std::filesystem::path> libPaths{
-      cudaqLibPath / fmt::format("libnvqir.{}", libSuffix),
-      cudaqLibPath / fmt::format("libcudaq.{}", libSuffix),
-      cudaqLibPath / fmt::format("libcudaq-em-default.{}", libSuffix)};
+  // Load nvqir and the nvq++ C API into the global scope. Kernels compiled with
+  // `nvq++` call into the C API of both, so that libraries containing such
+  // kernels (e.g. built with `nvq++ -c`) can be loaded and called from Python.
+  //
+  // Note: we have to be careful that these libraries don't pollute the global
+  // link table with symbols that might conflict with third-party packages (e.g.
+  // MLIR symbols). All libraries that do link in MLIR (e.g. libcudaqMLIR,
+  // cudaq-mlir-runtime, and the `CUDAQ_DYNLIBS` below) must be loaded locally.
+  std::vector<std::pair<std::filesystem::path, int>> libPaths{
+      // NVQIR may already be loaded from a separate core installation.
+      {fmt::format("libnvqir.{}", libSuffix), RTLD_GLOBAL},
+      {cudaqLibPath / fmt::format("libcudaq-nvqpp-capi.{}", libSuffix),
+       RTLD_GLOBAL}};
 
   const char *dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
   if (dynlibs_var != nullptr) {
@@ -171,15 +173,15 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
     std::stringstream ss((std::string(dynlibs_var)));
     while (std::getline(ss, dynlib, ':')) {
       CUDAQ_INFO("Init: add dynamic library path {}.", dynlib);
-      libPaths.push_back(dynlib);
+      libPaths.emplace_back(dynlib, RTLD_LOCAL);
     }
   }
 
   // Load all the defaults
   {
     ScopedTraceWithContext("dlopen_core_and_dynlibs");
-    for (auto &p : libPaths) {
-      void *libHandle = dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+    for (auto &[p, scope] : libPaths) {
+      void *libHandle = dlopen(p.string().c_str(), scope | RTLD_NOW);
       if (libHandle) {
         libHandles.emplace(p.string(), libHandle);
       } else {
@@ -260,11 +262,11 @@ LinkedLibraryHolder::~LinkedLibraryHolder() {
 }
 
 /// @brief Ensure a library is loaded, dlopen'ing it on demand if needed.
-void LinkedLibraryHolder::ensureLibLoaded(const std::filesystem::path &path) {
+void *LinkedLibraryHolder::ensureLibLoaded(const std::filesystem::path &path) {
   auto pathStr = path.string();
-  if (libHandles.count(pathStr))
-    return;
-  void *handle = dlopen(pathStr.c_str(), RTLD_GLOBAL | RTLD_NOW);
+  if (auto it = libHandles.find(pathStr); it != libHandles.end())
+    return it->second;
+  void *handle = dlopen(pathStr.c_str(), RTLD_LOCAL | RTLD_NOW);
   if (!handle) {
     char *error_msg = dlerror();
     throw std::runtime_error(
@@ -286,24 +288,28 @@ void LinkedLibraryHolder::ensureLibLoaded(const std::filesystem::path &path) {
       info.RegisterCallbacks();
     }
   }
+  return handle;
 }
 
-nvqir::CircuitSimulator *
-LinkedLibraryHolder::getSimulator(const std::string &simName) {
+LinkedLibraryHolder::SimulatorFactory
+LinkedLibraryHolder::getSimulatorFactory(const std::string &simName) {
   auto end = availableSimulators.end();
   auto iter = std::find(availableSimulators.begin(), end, simName);
   if (iter == end)
     throw std::runtime_error("Invalid simulator requested: " + simName);
 
-  // Ensure the simulator library is loaded on demand. Since ensureLibLoaded
-  // uses RTLD_GLOBAL, the symbols are globally visible and
-  // getUniquePluginInstance can find them via dlopen(nullptr).
-  auto pathIter = simulatorLibPaths.find(simName);
-  if (pathIter != simulatorLibPaths.end())
-    ensureLibLoaded(pathIter->second);
+  auto *handle = ensureLibLoaded(simulatorLibPaths.at(simName));
+  auto symbol = "getCircuitSimulator_" + simName;
+  auto factory =
+      reinterpret_cast<SimulatorFactory>(dlsym(handle, symbol.c_str()));
+  if (!factory)
+    throw std::runtime_error("Could not load simulator factory: " + symbol);
+  return factory;
+}
 
-  return getUniquePluginInstance<nvqir::CircuitSimulator>(
-      std::string("getCircuitSimulator_") + simName);
+nvqir::CircuitSimulator *
+LinkedLibraryHolder::getSimulator(const std::string &simName) {
+  return getSimulatorFactory(simName)();
 }
 
 quantum_platform *
@@ -313,12 +319,20 @@ LinkedLibraryHolder::getPlatform(const std::string &platformName) {
   if (iter == end)
     throw std::runtime_error("Invalid platform requested: " + platformName);
 
+  // The default platform is linked into the extension, but still needs a
+  // library handle (a process-wide lookup cannot see locally loaded libraries).
   auto pathIter = platformLibPaths.find(platformName);
-  if (pathIter != platformLibPaths.end())
-    ensureLibLoaded(pathIter->second);
-
-  return getUniquePluginInstance<quantum_platform>(
-      std::string("getQuantumPlatform_") + platformName);
+  auto path = pathIter != platformLibPaths.end()
+                  ? pathIter->second
+                  : cudaqLibPath / fmt::format("libcudaq-platform-{}.{}",
+                                               platformName, libSuffix);
+  auto *handle = ensureLibLoaded(path);
+  auto symbol = "getQuantumPlatform_" + platformName;
+  auto factory =
+      reinterpret_cast<quantum_platform *(*)()>(dlsym(handle, symbol.c_str()));
+  if (!factory)
+    throw std::runtime_error("Could not load platform factory: " + symbol);
+  return factory();
 }
 
 /// @brief Determine the best default target based on GPU availability and
@@ -442,7 +456,8 @@ bool LinkedLibraryHolder::hasTarget(const std::string &name,
 
 void LinkedLibraryHolder::setTarget(
     const std::string &targetName,
-    std::map<std::string, std::string> extraConfig) {
+    std::map<std::string, std::string> extraConfig,
+    std::optional<CompileTarget> compileTarget) {
   // Do not set the default target if the disallow
   // flag has been set.
   if (!cudaq::detail::canModifyTarget())
@@ -516,7 +531,8 @@ void LinkedLibraryHolder::setTarget(
                                " doesn't define a simulator. Please check your "
                                "CUDAQ_DEFAULT_SIMULATOR environment variable.");
   }
-  __nvqir__setCircuitSimulator(getSimulator(simName));
+  // Pass the factory (this thread's instance dies with it).
+  __nvqir__setCircuitSimulatorFactory(getSimulatorFactory(simName));
   auto *platform = getPlatform(target.platformName);
 
   // Provide the already-parsed target config so that
@@ -533,6 +549,12 @@ void LinkedLibraryHolder::setTarget(
         fmt::format(";__target_config_path;{}", target.configPath.string());
 
   platform->setTargetBackend(backendConfigStr);
+  if (compileTarget) {
+    std::vector<RuntimeEndpoint> endpoints;
+    for (std::size_t qpuId = 0; qpuId < platform->num_qpus(); ++qpuId)
+      endpoints.push_back(platform->getRuntimeEndpoint(qpuId));
+    setQPUs(*platform, *compileTarget, endpoints);
+  }
   setQuantumPlatformInternal(platform);
   currentTarget = targetName;
 
@@ -570,8 +592,15 @@ void LinkedLibraryHolder::setTarget(const CompileTarget &compileTarget,
   resetTarget();
 
   auto *platform = getPlatform(targets.at(currentTarget).platformName);
-  platform->clearQPUs();
-  platform->addQPU(compileTarget, runtimeEndpoint);
+  setQPUs(*platform, compileTarget, {runtimeEndpoint});
+}
+
+void LinkedLibraryHolder::setQPUs(
+    quantum_platform &platform, const CompileTarget &compileTarget,
+    const std::vector<RuntimeEndpoint> &endpoints) {
+  platform.clearQPUs(endpoints);
+  for (const auto &endpoint : endpoints)
+    platform.addQPU(compileTarget, endpoint);
 }
 
 std::vector<RuntimeTarget>

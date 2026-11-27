@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void kernel_a(long a, unsigned long b) {}
 

@@ -12,7 +12,7 @@
 // RUN: cudaq-quake -verify -Xcudaq -Xclang \
 // RUN:   -Xcudaq -verify-ignore-unexpected=error %s -o /dev/null
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct for_in_vector {
   auto operator()() __qpu__ {

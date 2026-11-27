@@ -17,7 +17,7 @@ verifies from the column permutation alone (arXiv:2412.14256).
 from __future__ import annotations
 
 from ..codes import Tesseract
-from cudaq.logical.programs.decorators import objective as _objective
+from cudaq.logical.programs.decorators import action as _action
 from cudaq.logical.ops._impl import cx as _cx
 from cudaq.logical.ops._impl import permute as _permute
 from cudaq.logical.types.values import logical_qubit as _logical_qubit
@@ -59,7 +59,7 @@ column_swap = (
 )
 
 
-@_objective(name="tesseract_two_free_cnots")
+@_action(name="tesseract_two_free_cnots")
 def two_free_cnots(
     path0: _logical_qubit,
     path1: _logical_qubit,

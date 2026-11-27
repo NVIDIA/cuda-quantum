@@ -1,10 +1,10 @@
-/*******************************************************************************
+/***********************************************************-*- tablegen -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef QLX_PHYS_OPS_TD
 #define QLX_PHYS_OPS_TD
@@ -845,7 +845,7 @@ def Phys_CallTemplateOp : Phys_Op<"call_template", []> {
     only when the canonical call has an all-state, type-identical input/output
     boundary. The invocation either uses those exact physical resources or
     supplies a complete nonidentity `state_aliases` bijection. The canonical
-    resource-effect summary then advances the resolved owners without
+    resource-effect summary then advances the resolved values without
     repeating a potentially wide SSA boundary at every invocation.
   }];
   let arguments = (ins

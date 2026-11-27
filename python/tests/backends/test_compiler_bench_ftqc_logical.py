@@ -13,6 +13,8 @@ from pathlib import Path
 
 import cudaq
 import pytest
+from cudaq._experimental import QuakeUnmappedProfile
+from test_helpers import derive_compile_target
 
 cudaq._register_target_config(
     str(
@@ -32,6 +34,14 @@ def reset():
     cudaq.reset_target()
     yield
     cudaq.reset_target()
+
+
+def set_target_with_tolerance(tolerance):
+    cudaq.set_target(FTQC_LOGICAL_TARGET,
+                     compile_target=derive_compile_target(
+                         FTQC_LOGICAL_TARGET,
+                         QuakeUnmappedProfile,
+                         approximation_tolerance=tolerance))
 
 
 def assert_logical_basis_only(ops):
@@ -118,7 +128,8 @@ def test_axis_measurements_count_as_measurements():
     assert ops.get('mz', 0) == 1
 
 
-def test_composite_operations_lower_to_logical_basis():
+@pytest.mark.parametrize("level", range(4))
+def test_composite_operations_lower_to_logical_basis(level):
     cudaq.set_target(FTQC_LOGICAL_TARGET)
 
     kernel = cudaq.make_kernel()
@@ -126,7 +137,7 @@ def test_composite_operations_lower_to_logical_basis():
     kernel.r1(0.75, q[0])
     kernel.cr1(0.375, q[1], q[2])
 
-    ops = cudaq.estimate_resources(kernel).to_dict()
+    ops = cudaq.estimate_resources(kernel, optimization_level=level).to_dict()
     assert_logical_basis_only(ops)
     assert 'r1' not in ops, f"R1 did not lower to RZ: {ops}"
     assert 'cr1' not in ops, f"CR1 did not lower to CX/RZ basis: {ops}"
@@ -134,7 +145,8 @@ def test_composite_operations_lower_to_logical_basis():
     assert ops.get('cx', 0) >= 1
 
 
-def test_controlled_s_and_t_lower_to_logical_basis():
+@pytest.mark.parametrize("level", range(4))
+def test_controlled_s_and_t_lower_to_logical_basis(level):
     cudaq.set_target(FTQC_LOGICAL_TARGET)
 
     kernel = cudaq.make_kernel()
@@ -142,7 +154,7 @@ def test_controlled_s_and_t_lower_to_logical_basis():
     kernel.cs(q[0], q[1])
     kernel.ct(q[1], q[2])
 
-    ops = cudaq.estimate_resources(kernel).to_dict()
+    ops = cudaq.estimate_resources(kernel, optimization_level=level).to_dict()
     assert_logical_basis_only(ops)
     assert 'cs' not in ops, f"Controlled-S did not lower: {ops}"
     assert 'ct' not in ops, f"Controlled-T did not lower: {ops}"
@@ -173,7 +185,7 @@ def test_exact_exp_pauli_avoids_rotation_resources():
     # `-pi/4` before exact-angle simplification instead of reaching `gridsynth`.
     kernel.exp_pauli(0.39269908169872414, q, "Z")
 
-    ops = cudaq.estimate_resources(kernel).to_dict()
+    ops = cudaq.estimate_resources(kernel, optimization_level=2).to_dict()
     assert_logical_basis_only(ops)
     assert 'exp_pauli' not in ops, f"exp_pauli did not lower: {ops}"
     assert not {'rx', 'ry', 'rz'}.intersection(ops)
@@ -191,7 +203,7 @@ def test_exact_clifford_t_angles_avoid_rotation_resources():
     kernel.rx(quarter_turn, q[2])
     kernel.ry(quarter_turn, q[3])
 
-    ops = cudaq.estimate_resources(kernel).to_dict()
+    ops = cudaq.estimate_resources(kernel, optimization_level=2).to_dict()
     assert_logical_basis_only(ops)
     assert not {'r1', 'rx', 'ry', 'rz'}.intersection(ops), (
         f"Exact Clifford+T rotations survived target lowering: {ops}")
@@ -200,25 +212,26 @@ def test_exact_clifford_t_angles_avoid_rotation_resources():
     assert ops.get('s', 0) + ops.get('sdg', 0) == 2
 
 
-def test_epsilon_controls_thresholded_canonicalization():
+def test_tolerance_controls_thresholded_canonicalization():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc()
     # pi/4 + 9e-4 fails exact matching but is inside the 1e-3 threshold.
     kernel.r1(0.7862981633974483, q)
 
     cudaq.set_target(FTQC_LOGICAL_TARGET)
-    exact_ops = cudaq.estimate_resources(kernel).to_dict()
+    exact_ops = cudaq.estimate_resources(kernel, optimization_level=2).to_dict()
     assert exact_ops.get('rz', 0) == 1
     assert exact_ops.get('t', 0) + exact_ops.get('tdg', 0) == 0
 
     cudaq.reset_target()
-    cudaq.set_target(FTQC_LOGICAL_TARGET, epsilon='1e-3')
-    threshold_ops = cudaq.estimate_resources(kernel).to_dict()
+    set_target_with_tolerance(1e-3)
+    threshold_ops = cudaq.estimate_resources(kernel,
+                                             optimization_level=2).to_dict()
     assert threshold_ops.get('rz', 0) == 0
     assert threshold_ops.get('t', 0) + threshold_ops.get('tdg', 0) == 1
 
 
-def test_dynamic_controlled_axis_callable_remains_phase_strict():
+def test_dynamic_controlled_axis_callable_is_rejected(capfd):
     cudaq.set_target(FTQC_LOGICAL_TARGET)
 
     @cudaq.kernel
@@ -228,12 +241,30 @@ def test_dynamic_controlled_axis_callable_remains_phase_strict():
     @cudaq.kernel
     def kernel(num_controls: int):
         # A runtime-sized `qvector` produces a `.ctrl` clone with
-        # `!quake.veq<?>` controls, exercising both the simplifier's control
-        # guard and mixed-operand `RegToMem` conversion.
+        # `!quake.veq<?>` controls.
         controls = cudaq.qvector(num_controls)
         target = cudaq.qubit()
         cudaq.control(axis_rotation, controls, target)
 
-    ops = cudaq.estimate_resources(kernel, 3).to_dict()
-    # The guarded rotation retains all three controls instead of becoming `T`.
-    assert ops == {'cccrz': 1}
+    # The rotation keeps all three controls, and the final basis conversion
+    # cannot express a rotation with more than one control.
+    with pytest.raises(RuntimeError):
+        cudaq.estimate_resources(kernel, 3)
+    assert "failed to legalize operation 'quake.rz'" in capfd.readouterr().err
+
+
+def test_fuses_constant_one_qubit_rotations():
+    cudaq.set_target(FTQC_LOGICAL_TARGET)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(1)
+    # Any one-qubit unitary needs at most three Euler rotations, so the four
+    # arbitrary rotations below fuse into three.
+    kernel.rz(0.3, q[0])
+    kernel.rx(0.5, q[0])
+    kernel.rz(0.7, q[0])
+    kernel.rx(0.2, q[0])
+
+    ops = cudaq.estimate_resources(kernel, optimization_level=2).to_dict()
+    assert_logical_basis_only(ops)
+    assert sum(ops.get(gate, 0) for gate in ('rx', 'ry', 'rz')) == 3, ops

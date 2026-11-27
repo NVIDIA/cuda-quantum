@@ -32,7 +32,8 @@ func.func @test_loop_single_wire() attributes {"cudaq-kernel"} {
     %out = quake.h %bw : (!quake.wire) -> !quake.wire
     cc.continue %out : !quake.wire
   }
-  quake.return_wire %loop : !quake.wire
+  %m, %w = quake.mz %loop : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w : !quake.wire
   return
 }
 
@@ -113,7 +114,8 @@ func.func @test_two_loops() attributes {"cudaq-kernel"} {
     %out = quake.t %bw : (!quake.wire) -> !quake.wire
     cc.continue %out : !quake.wire
   }
-  quake.return_wire %loop2 : !quake.wire
+  %m, %w = quake.mz %loop2 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w : !quake.wire
   return
 }
 
@@ -144,8 +146,10 @@ func.func @test_loop_two_wires() attributes {"cudaq-kernel"} {
     %r1 = quake.t %bw1 : (!quake.wire) -> !quake.wire
     cc.continue %r0, %r1 : !quake.wire, !quake.wire
   }
-  quake.return_wire %loop#0 : !quake.wire
-  quake.return_wire %loop#1 : !quake.wire
+  %m0, %w0 = quake.mz %loop#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m1, %w1 = quake.mz %loop#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w0 : !quake.wire
+  quake.return_wire %w1 : !quake.wire
   return
 }
 
@@ -226,7 +230,8 @@ func.func @test_nested_loop() attributes {"cudaq-kernel"} {
     }
     cc.continue %inner : !quake.wire
   }
-  quake.return_wire %outer : !quake.wire
+  %m, %w = quake.mz %outer : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w : !quake.wire
   return
 }
 
@@ -324,7 +329,8 @@ func.func @test_postcond_single_wire() attributes {"cudaq-kernel"} {
   ^bb0(%w : !quake.wire):
     cc.condition %cond (%w : !quake.wire)
   }
-  quake.return_wire %loop : !quake.wire
+  %m, %w2 = quake.mz %loop : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w2 : !quake.wire
   return
 }
 
@@ -394,6 +400,7 @@ func.func @test_step_passthrough() attributes {"cudaq-kernel"} {
   ^bb0(%sw : !quake.wire):
     cc.continue %sw : !quake.wire
   }
-  quake.return_wire %loop : !quake.wire
+  %m, %w = quake.mz %loop : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w : !quake.wire
   return
 }
