@@ -31,7 +31,7 @@ name: Run CI within the dev environment container
 jobs:
   build_and_test:
     name: Dev environment (Debug)
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu16') || 'linux-amd64-cpu16' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu32') || 'linux-amd64-cpu16' }}
     permissions:
       contents: read
       packages: write
@@ -120,17 +120,6 @@ jobs:
             --build-arg run_tests=true \
             --target devbuild
 
-      - name: Test CUDA Quantum
-        run: |
-          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
-            -f docker/build/cudaq.dev.Dockerfile . \
-            --build-context ccache-data=/tmp/ccache-data \
-            --build-arg base_image=${{ steps.build.outputs.base_image }} \
-            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
-            --build-arg mpi="${{ inputs.mpi }}" \
-            --build-arg run_tests=true \
-            --target test
-
       # PyPI has no aarch64 wheel of stim, so the two Logical stages below would each
       # compile it for ~8 min. Build the wheels once and keep them in the cache.
       - name: Restore prebuilt Logical test wheels
@@ -157,42 +146,39 @@ jobs:
           path: /tmp/test-wheelhouse
           key: ${{ steps.test_wheels.outputs.cache-primary-key }}
 
-      - name: Test cudaq.logical (out-of-tree, toolchain audit)
+      # The stages are independent of each other and each one leaves cores idle (the
+      # suites end in a few long tests), so run two chains at the same time:
+      # the main tests followed by the MPI check, and the two Logical stages.
+      # Each line of the log is prefixed with the name of its stage.
+      - name: Test CUDA Quantum
         run: |
+          common=(--progress=plain --platform ${{ inputs.platform }}
+            -f docker/build/cudaq.dev.Dockerfile .
+            --build-context ccache-data=/tmp/ccache-data
+            --build-arg base_image=${{ steps.build.outputs.base_image }}
+            --build-arg install="CMAKE_BUILD_TYPE=Debug"
+            --build-arg mpi="${{ inputs.mpi }}"
+            --build-arg run_tests=true)
+          stage() { # stage <name> <target> [extra buildx args]
+            local name=$1 target=$2
+            shift 2
+            docker buildx build "${common[@]}" "$@" --target "$target" 2>&1 | sed -u "s/^/[$name] /"
+            return "${PIPESTATUS[0]}"
+          }
+          # The Logical stages read the wheels built above; an empty folder if they were not.
           mkdir -p /tmp/test-wheelhouse
-          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
-            -f docker/build/cudaq.dev.Dockerfile . \
-            --build-context ccache-data=/tmp/ccache-data \
-            --build-context test-wheelhouse=/tmp/test-wheelhouse \
-            --build-arg base_image=${{ steps.build.outputs.base_image }} \
-            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
-            --build-arg mpi="${{ inputs.mpi }}" \
-            --build-arg run_tests=true \
-            --target test-logical
+          wheels=(--build-context test-wheelhouse=/tmp/test-wheelhouse)
 
-      - name: Test cudaq.logical (in-tree, CUDAQ_ENABLE_LOGICAL=ON)
-        run: |
-          mkdir -p /tmp/test-wheelhouse
-          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
-            -f docker/build/cudaq.dev.Dockerfile . \
-            --build-context ccache-data=/tmp/ccache-data \
-            --build-context test-wheelhouse=/tmp/test-wheelhouse \
-            --build-arg base_image=${{ steps.build.outputs.base_image }} \
-            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
-            --build-arg mpi="${{ inputs.mpi }}" \
-            --build-arg run_tests=true \
-            --target test-logical-intree
+          (stage test test && stage mpi test-mpi) & main=$!
+          (rc=0
+           stage logical-out test-logical "${wheels[@]}" || rc=1
+           stage logical-in test-logical-intree "${wheels[@]}" || rc=1
+           exit $rc) & logical=$!
 
-      - name: Test CUDA Quantum MPI Plugin Activation
-        run: |
-          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
-            -f docker/build/cudaq.dev.Dockerfile . \
-            --build-context ccache-data=/tmp/ccache-data \
-            --build-arg base_image=${{ steps.build.outputs.base_image }} \
-            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
-            --build-arg mpi="${{ inputs.mpi }}" \
-            --build-arg run_tests=true \
-            --target test-mpi
+          status=0
+          wait $main || { echo "::error::The main tests or the MPI check failed."; status=1; }
+          wait $logical || { echo "::error::The cudaq.logical tests failed."; status=1; }
+          exit $status
 
       - name: Extract ccache from build
         # Write cache only on merge-queue/scheduled runs; PRs (event 'push' =
