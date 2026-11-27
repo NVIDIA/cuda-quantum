@@ -37,3 +37,19 @@ To configure and build this file, all we need to do is execute the following fro
 Notice that by running the :code:`ninja` command with :code:`--verbose`, you'll see that 
 :code:`nvq++` was used to compile and link the executable. 
 
+
+Linking objects compiled with :code:`nvq++ -c`
++++++++++++++++++++++++++++++++++++++++++++++++
+
+When `nvq++` is used to compile and link CUDA-Q source code, all required CUDA-Q
+runtime libraries are automatically linked in. If you choose instead to compile
+CUDA-Q sources using :code:`nvq++ -c` and link the resulting objects with standard
+C++ tooling, you must ensure that all required CUDA-Q runtime libraries are
+included. The CMake target :code:`cudaq::nvqpp` target is provided by
+:code:`find_package(CUDAQ)` for this purpose.
+
+.. code:: cmake
+
+    find_package(CUDAQ REQUIRED)
+    add_library(my_kernels SHARED kernels.o)
+    target_link_libraries(my_kernels PRIVATE cudaq::nvqpp)
