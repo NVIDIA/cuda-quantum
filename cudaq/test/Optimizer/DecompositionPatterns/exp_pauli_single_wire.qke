@@ -1,0 +1,107 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition})' %s | FileCheck %s
+
+func.func @wire_x(%theta: f64, %qubit: !quake.wire) -> !quake.wire attributes {"cudaq-entrypoint"} {
+  %result = quake.exp_pauli (%theta) %qubit to "X" : (f64, !quake.wire) -> !quake.wire
+  return %result : !quake.wire
+}
+
+// CHECK-LABEL: func.func @wire_x(
+// CHECK-SAME: %[[THETA:.*]]: f64, %[[Q:.*]]: !quake.wire
+// CHECK: %[[NEG_TWO:.*]] = arith.constant -2.000000e+00 : f64
+// CHECK: %[[BASIS:.*]] = quake.h %[[Q]] : (!quake.wire) -> !quake.wire
+// CHECK: %[[ANGLE:.*]] = arith.mulf %[[THETA]], %[[NEG_TWO]] : f64
+// CHECK: %[[ROTATED:.*]] = quake.rz (%[[ANGLE]]) %[[BASIS]] : (f64, !quake.wire) -> !quake.wire
+// CHECK: %[[FINAL:.*]] = quake.h %[[ROTATED]] : (!quake.wire) -> !quake.wire
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return %[[FINAL]] : !quake.wire
+
+func.func @wire_y(%theta: f64, %qubit: !quake.wire) -> !quake.wire attributes {"cudaq-entrypoint"} {
+  %result = quake.exp_pauli (%theta) %qubit to "Y" : (f64, !quake.wire) -> !quake.wire
+  return %result : !quake.wire
+}
+
+// CHECK-LABEL: func.func @wire_y(
+// CHECK-SAME: %[[THETA:.*]]: f64, %[[Q:.*]]: !quake.wire
+// CHECK-DAG: %[[POS_PI_2:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK-DAG: %[[NEG_PI_2:.*]] = arith.constant -1.5707963267948966 : f64
+// CHECK-DAG: %[[NEG_TWO:.*]] = arith.constant -2.000000e+00 : f64
+// CHECK: %[[BASIS:.*]] = quake.rx (%[[POS_PI_2]]) %[[Q]] : (f64, !quake.wire) -> !quake.wire
+// CHECK: %[[ANGLE:.*]] = arith.mulf %[[THETA]], %[[NEG_TWO]] : f64
+// CHECK: %[[ROTATED:.*]] = quake.rz (%[[ANGLE]]) %[[BASIS]] : (f64, !quake.wire) -> !quake.wire
+// CHECK: %[[FINAL:.*]] = quake.rx (%[[NEG_PI_2]]) %[[ROTATED]] : (f64, !quake.wire) -> !quake.wire
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return %[[FINAL]] : !quake.wire
+
+func.func @wire_z(%theta: f64, %qubit: !quake.wire) -> !quake.wire attributes {"cudaq-entrypoint"} {
+  %result = quake.exp_pauli (%theta) %qubit to "Z" : (f64, !quake.wire) -> !quake.wire
+  return %result : !quake.wire
+}
+
+// CHECK-LABEL: func.func @wire_z(
+// CHECK-SAME: %[[THETA:.*]]: f64, %[[Q:.*]]: !quake.wire
+// CHECK: %[[NEG_TWO:.*]] = arith.constant -2.000000e+00 : f64
+// CHECK: %[[ANGLE:.*]] = arith.mulf %[[THETA]], %[[NEG_TWO]] : f64
+// CHECK: %[[FINAL:.*]] = quake.rz (%[[ANGLE]]) %[[Q]] : (f64, !quake.wire) -> !quake.wire
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return %[[FINAL]] : !quake.wire
+
+func.func @wire_f32(%theta: f32, %qubit: !quake.wire) -> !quake.wire attributes {"cudaq-entrypoint"} {
+  %result = quake.exp_pauli (%theta) %qubit to "Z" : (f32, !quake.wire) -> !quake.wire
+  return %result : !quake.wire
+}
+
+// CHECK-LABEL: func.func @wire_f32(
+// CHECK-SAME: %[[THETA:.*]]: f32, %[[Q:.*]]: !quake.wire
+// CHECK: %[[NEG_TWO:.*]] = arith.constant -2.000000e+00 : f32
+// CHECK: %[[ANGLE:.*]] = arith.mulf %[[THETA]], %[[NEG_TWO]] : f32
+// CHECK: %[[FINAL:.*]] = quake.rz (%[[ANGLE]]) %[[Q]] : (f32, !quake.wire) -> !quake.wire
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return %[[FINAL]] : !quake.wire
+
+func.func @wire_adjoint(%qubit: !quake.wire) -> !quake.wire attributes {"cudaq-entrypoint"} {
+  %theta = arith.constant 0.125 : f64
+  %result = quake.exp_pauli<adj> (%theta) %qubit to "X" : (f64, !quake.wire) -> !quake.wire
+  return %result : !quake.wire
+}
+
+// CHECK-LABEL: func.func @wire_adjoint(
+// CHECK-SAME: %[[Q:.*]]: !quake.wire
+// CHECK: %[[ANGLE:.*]] = arith.constant 2.500000e-01 : f64
+// CHECK: %[[BASIS:.*]] = quake.h %[[Q]] : (!quake.wire) -> !quake.wire
+// CHECK: %[[ROTATED:.*]] = quake.rz (%[[ANGLE]]) %[[BASIS]] : (f64, !quake.wire) -> !quake.wire
+// CHECK: %[[FINAL:.*]] = quake.h %[[ROTATED]] : (!quake.wire) -> !quake.wire
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return %[[FINAL]] : !quake.wire
+
+func.func @multi_wire_adjoint(%theta: f64, %first: !quake.wire, %second: !quake.wire) -> (!quake.wire, !quake.wire) attributes {"cudaq-entrypoint"} {
+  %result:2 = quake.exp_pauli<adj> (%theta) %first, %second to "XY"
+      : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return %result#0, %result#1 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @multi_wire_adjoint(
+// CHECK-NOT: arith.negf
+// CHECK-NOT: quake.h
+// CHECK-NOT: quake.rx
+// CHECK: %[[SOURCE:.*]]:2 = quake.exp_pauli<adj>
+// CHECK: return %[[SOURCE]]#0, %[[SOURCE]]#1 : !quake.wire, !quake.wire
+
+func.func @wire_f16_adjoint(%theta: f16, %qubit: !quake.wire) -> !quake.wire attributes {"cudaq-entrypoint"} {
+  %result = quake.exp_pauli<adj> (%theta) %qubit to "Y" : (f16, !quake.wire) -> !quake.wire
+  return %result : !quake.wire
+}
+
+// CHECK-LABEL: func.func @wire_f16_adjoint(
+// CHECK-NOT: arith.negf
+// CHECK-NOT: quake.rx
+// CHECK-NOT: quake.rz
+// CHECK: %[[SOURCE:.*]] = quake.exp_pauli<adj>
+// CHECK: return %[[SOURCE]] : !quake.wire
