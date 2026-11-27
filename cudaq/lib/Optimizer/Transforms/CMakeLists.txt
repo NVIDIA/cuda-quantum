@@ -91,6 +91,7 @@ add_cudaq_library(OptTransforms
   RunSemanticsHackery.cpp
   SROA.cpp
   ShrinkWrap.cpp
+  SignedPauliPropagation.cpp
   SingleQubitChain.cpp
   StackFramePrealloc.cpp
   StatePreparation.cpp
