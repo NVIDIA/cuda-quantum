@@ -21,7 +21,7 @@ from .context import CompilationContext
 from .experiment_bundle import ExperimentBundle, compile_many
 from .pipeline import PassSpec, Pipeline, passes, pipelines
 from .place import place
-from .quake import convert_quake_to_p0, import_cudaq, import_quake
+from .quake import convert_quake_to_p0, import_quake
 from .physical_lower import (
     PhysicalProjectionBuilder,
     PhysicalProjectionEmission,
@@ -46,6 +46,9 @@ from .projection import (
     ProjectedMeasurement,
     ProjectedPort,
 )
+from .clifford import CliffordInstruction, CliffordProjection, project_clifford
+from .noise import Depolarize1Placement, StandardDepolarizingNoise
+from .stim import emit_stim
 from .topology_view import (
     CarrierGraphView,
     DeviceStackGraphView,
@@ -71,7 +74,6 @@ from cudaq.logical.compiler.authoring import (
     ActionBuilder,
     CodeBuilder,
     GadgetBuilder,
-    GadgetProfileBuilder,
     PhysicalBuilder,
     PlacedBuilder,
     ProtocolBuilder,
@@ -120,12 +122,17 @@ __all__ = [
     "to_pbc",
     "absorb_clifford_frame",
     "materialize",
+    "CliffordInstruction",
+    "CliffordProjection",
+    "project_clifford",
+    "StandardDepolarizingNoise",
+    "Depolarize1Placement",
+    "emit_stim",
     "lower",
     "passes",
     "pipelines",
     "place",
     "import_quake",
-    "import_cudaq",
     "convert_quake_to_p0",
     "PhysicalProjector",
     "PhysicalProjectionBuilder",
@@ -160,7 +167,6 @@ __all__ = [
     "ActionBuilder",
     "CodeBuilder",
     "GadgetBuilder",
-    "GadgetProfileBuilder",
     "PhysicalBuilder",
     "PlacedBuilder",
     "UnplacedBuilder",

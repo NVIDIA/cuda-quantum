@@ -36,7 +36,7 @@ class _SSAProxy:
 
 
 class logical_qubit(_SSAProxy):
-    """One live, linear P0 logical-qubit SSA owner."""
+    """One live P0 logical qubit, an SSI value used exactly once."""
 
     __slots__ = ("_semantic_ref", "_live")
 

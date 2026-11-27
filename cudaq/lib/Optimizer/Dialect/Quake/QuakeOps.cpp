@@ -24,14 +24,50 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <cmath>
+#include <cstdint>
 #include <limits>
+#include <optional>
 #include <unordered_set>
 
 using namespace mlir;
 
 #include "CanonicalPatterns.inc"
+
+// A linear value may be forwarded by several branches (CFG terminators) as long
+// as every one of those branches delivers it to the same block argument of the
+// same successor block. That is a phi node that merges one value: on each path
+// the wire is still consumed exactly once, by the block argument. Block
+// argument positions must agree, otherwise the block would receive the wire
+// more than once.
+//
+// This is a local check on the uses of one value; it deliberately does not look
+// at the control-flow graph, because the verifier runs on every operation of a
+// potentially very large function. In particular it does not detect
+// hand-written IR where a back edge delivers a value defined outside a loop to
+// the loop header again. The passes do not produce that shape: loop-carried
+// wires travel through `cc.loop` iteration arguments before CFG lowering.
+static bool allUsesMergeIntoOneBlockArgument(Value v) {
+  BlockArgument merged;
+  for (OpOperand &use : v.getUses()) {
+    auto branch = dyn_cast<BranchOpInterface>(use.getOwner());
+    if (!branch)
+      return false;
+    // The block argument that receives this operand. There is none when the
+    // operand is not forwarded to a successor, e.g., a branch condition.
+    std::optional<BlockArgument> arg =
+        branch.getSuccessorBlockArgument(use.getOperandNumber());
+    if (!arg)
+      return false;
+    if (!merged)
+      merged = *arg;
+    else if (merged != *arg)
+      return false;
+  }
+  return static_cast<bool>(merged);
+}
 
 static LogicalResult verifyWireResultsAreLinear(Operation *op) {
   for (Value v : op->getOpResults())
@@ -47,21 +83,10 @@ static LogicalResult verifyWireResultsAreLinear(Operation *op) {
       if (uniqs.size() == 1 &&
           (*uniqs.begin())->hasTrait<OpTrait::IsTerminator>())
         continue;
-      std::unordered_set<Block *> blocks;
-      for (auto *u : uniqs)
-        blocks.insert(u->getBlock());
-      if (blocks.size() == uniqs.size()) {
-        // MLIR's canonicalizer has degenerated the linear type invariants for
-        // us and they need to be reconstructed. There is no good way to get
-        // MLIR to understand that a Value might have some semantics other than
-        // pure SSA, so the canonicalizer feels it is free to duplicate uses
-        // whenever it feels like it. The way to prevent this is to always
-        // disable region simplification, but that is very Draconian. We
-        // actually want region simplification, we just do not want values of
-        // linear type to have multiple uses and control-flow path information
-        // (phi-nodes) dropped on the floor.
+      // Allow several branches to forward the value to the same block
+      // argument (a phi node merging one value).
+      if (allUsesMergeIntoOneBlockArgument(v))
         continue;
-      }
       return op->emitOpError(
           "wires are a linear type and must have exactly one use");
     }
@@ -173,9 +198,9 @@ ValueRange cudaq::quake::getQuantumOperands(Operation *op) {
 
 /// Collect the quantum operands that may thread a wire, controls before
 /// targets, together with the wire results they map onto.
-static std::optional<cudaq::quake::detail::ScalarWireFlow>
+static std::optional<cudaq::quake::detail::WireFlow>
 getWireFlowOperands(Operation *operation) {
-  cudaq::quake::detail::ScalarWireFlow flow;
+  cudaq::quake::detail::WireFlow flow;
   if (auto quantumOperator =
           dyn_cast<cudaq::quake::OperatorInterface>(operation)) {
     llvm::append_range(flow.inputs, quantumOperator.getControls());
@@ -194,28 +219,35 @@ getWireFlowOperands(Operation *operation) {
   return flow;
 }
 
-std::optional<cudaq::quake::detail::ScalarWireFlow>
-cudaq::quake::detail::getScalarWireFlow(Operation *operation) {
+bool cudaq::quake::detail::mayModifyMemory(Operation *operation) {
+  auto effects = dyn_cast<MemoryEffectOpInterface>(operation);
+  if (!effects)
+    return !isMemoryEffectFree(operation);
+  return effects.hasEffect<MemoryEffects::Write>() ||
+         effects.hasEffect<MemoryEffects::Free>() ||
+         effects.hasEffect<MemoryEffects::Allocate>();
+}
+
+std::optional<cudaq::quake::detail::WireFlow>
+cudaq::quake::detail::getWireFlow(Operation *operation) {
   if (operation->getNumRegions() != 0 || operation->getNumSuccessors() != 0)
     return std::nullopt;
-  if (!isMemoryEffectFree(operation))
+  if (mayModifyMemory(operation))
     return std::nullopt;
 
   auto flow = getWireFlowOperands(operation);
   if (!flow)
     return std::nullopt;
 
-  auto isScalarWire = [](Value value) {
-    return isa<WireType>(value.getType());
-  };
+  auto isWire = [](Value value) { return isa<WireType>(value.getType()); };
   if (flow->inputs.size() != flow->results.size() ||
-      !llvm::all_of(flow->inputs, isScalarWire) ||
-      !llvm::all_of(flow->results, isScalarWire))
+      !llvm::all_of(flow->inputs, isWire) ||
+      !llvm::all_of(flow->results, isWire))
     return std::nullopt;
   return flow;
 }
 
-std::optional<cudaq::quake::detail::ScalarWireFlow>
+std::optional<cudaq::quake::detail::WireFlow>
 cudaq::quake::detail::getThreadedWireFlow(Operation *operation) {
   auto flow = getWireFlowOperands(operation);
   if (!flow)
@@ -549,9 +581,9 @@ ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
     return failure();
   result.addAttribute(cudaq::runtime::operandSegmentSizes,
                       parser.getBuilder().getDenseI32ArrayAttr(
-                          {static_cast<int32_t>(calleeOperand.size()),
-                           static_cast<int32_t>(controlOperands.size()),
-                           static_cast<int32_t>(miscOperands.size())}));
+                          {static_cast<std::int32_t>(calleeOperand.size()),
+                           static_cast<std::int32_t>(controlOperands.size()),
+                           static_cast<std::int32_t>(miscOperands.size())}));
   result.addTypes(applyTy.getResults());
   if (isDirect) {
     if (parser.resolveOperands(
@@ -629,9 +661,9 @@ ParseResult cudaq::quake::ApplyNoiseOp::parse(OpAsmParser &parser,
     return failure();
   result.addAttribute(cudaq::runtime::operandSegmentSizes,
                       parser.getBuilder().getDenseI32ArrayAttr(
-                          {static_cast<int32_t>(keyOperand.size()),
-                           static_cast<int32_t>(parameterOperands.size()),
-                           static_cast<int32_t>(targetOperands.size())}));
+                          {static_cast<std::int32_t>(keyOperand.size()),
+                           static_cast<std::int32_t>(parameterOperands.size()),
+                           static_cast<std::int32_t>(targetOperands.size())}));
   result.addTypes(applyTy.getResults());
   if (parser.resolveOperands(llvm::concat<const OpAsmParser::UnresolvedOperand>(
                                  keyOperand, parameterOperands, targetOperands),
@@ -776,7 +808,13 @@ void printRawString(OpAsmPrinter &printer, OP refOp, Value stringVal,
 void cudaq::quake::ExpPauliOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<BindExpPauliWord, AdjustAdjointExpPauliPattern,
-               EraseEmptyVeqControlPattern<ExpPauliOp>>(context);
+               EraseEmptyVeqControlPattern<ExpPauliOp>,
+               EraseAllFalseNegatedControlsPattern<ExpPauliOp>>(context);
+}
+
+void cudaq::quake::MppOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<BindMppPauliWord>(context);
 }
 
 LogicalResult cudaq::quake::ExpPauliOp::verify() {
@@ -1103,7 +1141,7 @@ LogicalResult cudaq::quake::CallByRefOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
-// Measurements (MxOp, MyOp, MzOp)
+// Measurements (MxOp, MyOp, MzOp, MppOp)
 //===----------------------------------------------------------------------===//
 
 // Common verification for measurement operations.
@@ -1119,18 +1157,14 @@ LogicalResult verifyMeasurements(MEAS op, TypeRange targetsType,
     auto sequenceTy =
         dyn_cast<cudaq::cc::SequenceType>(op.getMeasOut().getType());
     if (!sequenceTy ||
-        !isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
-            sequenceTy.getElementType()))
+        !isa<cudaq::quake::MeasureType>(sequenceTy.getElementType()))
       return op.emitOpError(
-          "must return `!cc.sequence<!quake.measure>` or "
-          "`!cc.sequence<!cc.measure_handle>` when measuring a qvector, a "
-          "series of qubits, or both");
+          "must return `!cc.sequence<!quake.measure>` when measuring a "
+          "qvector, a series of qubits, or both");
   } else {
-    if (!isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
-            op.getMeasOut().getType()))
-      return op->emitOpError(
-          "must return `!quake.measure` or `!cc.measure_handle` when "
-          "measuring exactly one qubit");
+    if (!isa<cudaq::quake::MeasureType>(op.getMeasOut().getType()))
+      return op->emitOpError("must return `!quake.measure` when measuring "
+                             "exactly one qubit");
   }
   if (op.getRegisterName())
     if (op.getRegisterName()->empty())
@@ -1153,6 +1187,33 @@ LogicalResult cudaq::quake::MzOp::verify() {
                             getMeasOut().getType());
 }
 
+// An mpp measures one Pauli product over all of its targets, so unlike the
+// single-axis measurements it yields exactly one measurement result no matter
+// how many qubits it acts on. The result type is already restricted to a
+// single measure or measure handle by the op definition. The Pauli word is
+// either a literal or a value, exactly as for exp_pauli.
+LogicalResult cudaq::quake::MppOp::verify() {
+  if (failed(verifyWireResultsAreLinear(getOperation())))
+    return failure();
+  if (getTargets().empty())
+    return emitOpError("must have at least one target");
+  if (getPauliLiteralAttr()) {
+    if (getPauli())
+      return emitOpError("cannot have both a literal and a value Pauli word");
+    if (!symbolizePauliWord(*getPauliLiteral()))
+      return emitOpError("literal Pauli word must contain only I, X, Y, or Z");
+    auto targetQubitCount = getStaticTargetQubitCount(getTargets());
+    if (targetQubitCount && getPauliLiteral()->size() != *targetQubitCount)
+      return emitOpError(
+          "literal Pauli word length must match target qubit count");
+  } else if (!getPauli()) {
+    return emitOpError("must have either a literal or a value Pauli word");
+  }
+  if (getRegisterName() && getRegisterName()->empty())
+    return emitOpError("quake measurement name cannot be empty.");
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // Discriminate
 //===----------------------------------------------------------------------===//
@@ -1165,8 +1226,7 @@ LogicalResult cudaq::quake::DiscriminateOp::verify() {
           "must return a !cc.sequence<integral> type, when discriminating a "
           "qvector, a series of qubits, or both");
   } else {
-    if (!isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
-            getMeasurement().getType()) ||
+    if (!isa<cudaq::quake::MeasureType>(getMeasurement().getType()) ||
         !isa<IntegerType>(getResult().getType()))
       return emitOpError(
           "must return integral type when discriminating exactly one qubit");
@@ -1318,8 +1378,8 @@ void cudaq::quake::PhaseOp::getOperatorMatrix(Matrix &matrix) {
 void cudaq::quake::PhaseOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<AdjustAdjointPhasePattern, EraseZeroPhasePattern,
-               MergeAdjacentPhasePattern, EraseEmptyVeqControlPattern<PhaseOp>>(
-      context);
+               MergeAdjacentPhasePattern, EraseEmptyVeqControlPattern<PhaseOp>,
+               EraseAllFalseNegatedControlsPattern<PhaseOp>>(context);
 }
 
 void cudaq::quake::PhasedRxOp::getOperatorMatrix(Matrix &matrix) {
@@ -1480,7 +1540,9 @@ LogicalResult cudaq::quake::CustomUnitaryCallOp::verify() {
 
 void cudaq::quake::CustomUnitaryCallOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryCallOp>>(context);
+  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryCallOp>,
+               EraseAllFalseNegatedControlsPattern<CustomUnitaryCallOp>>(
+      context);
 }
 
 void cudaq::quake::CustomUnitaryConstantOp::getOperatorMatrix(Matrix &matrix) {
@@ -1574,7 +1636,9 @@ LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {
 
 void cudaq::quake::CustomUnitaryConstantOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryConstantOp>>(context);
+  patterns.add<EraseEmptyVeqControlPattern<CustomUnitaryConstantOp>,
+               EraseAllFalseNegatedControlsPattern<CustomUnitaryConstantOp>>(
+      context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1674,7 +1738,7 @@ void cudaq::quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
 #define GATE_OPS(MACRO) BUILTIN_GATE_OPS(MACRO) CUSTOM_GATE_OPS(MACRO)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
 #define QUANTUM_OPS(MACRO)                                                     \
-  MACRO(ResetOp) MACRO(ExpPauliOp) MACRO(PhaseOp) GATE_OPS(MACRO)              \
+  MACRO(ResetOp) MACRO(PhaseOp) GATE_OPS(MACRO)                                \
   MEASURE_OPS(MACRO)
 #define WIRE_OPS(MACRO) MACRO(FromControlOp) MACRO(ResetOp) MACRO(NullCableOp) \
   MACRO(NullWireOp) MACRO(UnwrapOp)
@@ -1688,6 +1752,29 @@ void cudaq::quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
   }
 
 QUANTUM_OPS(INSTANTIATE_CALLBACKS)
+
+/// An mpp reads the Pauli word, if it is given as an argument, in addition to
+/// the effects it has on its qubits, as an exp_pauli does.
+void cudaq::quake::MppOp::getEffects(
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
+        &effects) {
+  getEffectsImpl(effects);
+  if (getPauli())
+    effects.emplace_back(MemoryEffects::Read::get(), &getPauliMutable()[0],
+                         SideEffects::DefaultResource::get());
+}
+
+/// An exp_pauli reads the Pauli word, if it is given as an argument, in
+/// addition to the effects it has on its qubits. This is the case whether the
+/// qubits are in reference or in value form.
+void cudaq::quake::ExpPauliOp::getEffects(
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
+        &effects) {
+  getEffectsImpl(effects);
+  if (getPauli())
+    effects.emplace_back(MemoryEffects::Read::get(), &getPauliMutable()[0],
+                         SideEffects::DefaultResource::get());
+}
 
 #define INSTANTIATE_LINEAR_TYPE_VERIFY(Op)                                     \
   LogicalResult cudaq::quake::Op::verify() {                                   \
@@ -1706,7 +1793,8 @@ WIRE_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 #define INSTANTIATE_OPERATOR_CANONICALIZATION(Op)                              \
   void cudaq::quake::Op::getCanonicalizationPatterns(                          \
       RewritePatternSet &patterns, MLIRContext *context) {                     \
-    patterns.add<EraseEmptyVeqControlPattern<Op>>(context);                    \
+    patterns.add<EraseEmptyVeqControlPattern<Op>,                              \
+                 EraseAllFalseNegatedControlsPattern<Op>>(context);            \
   }
 
 BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_CANONICALIZATION)

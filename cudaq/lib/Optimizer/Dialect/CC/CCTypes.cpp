@@ -92,8 +92,9 @@ cc::StructType::getTypeSizeInBits(const DataLayout &dataLayout,
   return llvm::TypeSize::getFixed(getBitSize());
 }
 
-uint64_t cc::StructType::getABIAlignment(const DataLayout &dataLayout,
-                                         DataLayoutEntryListRef params) const {
+std::uint64_t
+cc::StructType::getABIAlignment(const DataLayout &dataLayout,
+                                DataLayoutEntryListRef params) const {
   return getAlignment();
 }
 
@@ -169,6 +170,7 @@ cc::SequenceType::verify(function_ref<InFlightDiagnostic()> emitError,
 
 #define GET_TYPEDEF_CLASSES
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.cpp.inc"
+#include <cstdint>
 
 //===----------------------------------------------------------------------===//
 
@@ -222,13 +224,13 @@ bool isDynamicallySizedType(Type ty) {
   return false;
 }
 
-static bool containsMeasureHandleImpl(Type ty,
-                                      llvm::SmallPtrSetImpl<Type> &seen) {
+static bool containsMeasureTypeImpl(Type ty,
+                                    llvm::SmallPtrSetImpl<Type> &seen) {
   if (!ty || !seen.insert(ty).second)
     return false;
-  if (isa<MeasureHandleType>(ty))
+  if (isa<cudaq::quake::MeasureType>(ty))
     return true;
-  auto recurse = [&](Type t) { return containsMeasureHandleImpl(t, seen); };
+  auto recurse = [&](Type t) { return containsMeasureTypeImpl(t, seen); };
   if (auto p = dyn_cast<PointerType>(ty))
     return recurse(p.getElementType());
   if (auto a = dyn_cast<ArrayType>(ty))
@@ -248,14 +250,14 @@ static bool containsMeasureHandleImpl(Type ty,
   return false;
 }
 
-bool containsMeasureHandle(Type ty) {
+bool containsMeasureType(Type ty) {
   llvm::SmallPtrSet<Type, 8> seen;
-  return containsMeasureHandleImpl(ty, seen);
+  return containsMeasureTypeImpl(ty, seen);
 }
 
 void CCDialect::registerTypes() {
   addTypes<ArrayType, CallableType, CharspanType, IndirectCallableType,
-           MeasureHandleType, PointerType, SequenceType, StructType>();
+           PointerType, SequenceType, StructType>();
 }
 
 } // namespace cudaq::cc

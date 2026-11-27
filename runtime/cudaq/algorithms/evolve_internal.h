@@ -297,6 +297,20 @@ launchAnalogKernelAsync(const std::string &kernel_name,
     throw std::runtime_error("Unexpected type of kernel.");
 
   auto &platform = cudaq::get_platform();
+  if (!platform.is_remote(qpu_id)) {
+    // As for digital emulation, run the synchronous launch on the QPU's
+    // execution queue. The random seed is thread-local, so carry it over.
+    std::size_t seed = cudaq::get_random_seed();
+    KernelExecutionTask task([=]() {
+      // The worker thread keeps its seed between launches: reset it to the
+      // caller's, also when that is unset (0).
+      if (cudaq::get_random_seed() != seed)
+        cudaq::set_random_seed(seed);
+      return launchAnalogKernel(kernel_name, program, shots_count, qpu_id);
+    });
+    return async_sample_result(
+        detail::future(platform.enqueueAsyncTask(qpu_id, task)));
+  }
   async_sample_policy policy;
   policy.inner.options.shots = shots_count;
   policy.inner.kernelName = kernel_name;

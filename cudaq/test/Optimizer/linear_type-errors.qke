@@ -1,0 +1,195 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --split-input-file --verify-diagnostics %s
+
+// Wires and cables are linear types: every wire value must have exactly one
+// use. The verifier is attached to the operation that defines the value, so the
+// diagnostic is reported there rather than on the extra use. Control flow
+// forwards a wire to its successors only through block arguments (sigma nodes);
+// using a dominating wire directly in more than one block is not allowed,
+// except that several branches may deliver the same wire to the same block
+// argument of the same block (a phi node merging one value).
+
+// Two operations in the same block consume one wire.
+func.func @two_consumers() {
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %0 = quake.null_wire
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.x %0 : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// -----
+
+// One operation uses the same wire twice, here as both control and target.
+func.func @one_operation_two_roles() {
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %0 = quake.null_wire
+  %1:2 = quake.x [%0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %1#0 : !quake.wire
+  quake.sink %1#1 : !quake.wire
+  return
+}
+
+// -----
+
+// The wire is consumed in one block and used again in a block that follows it.
+// The second use needs a block argument that carries the wire forward.
+func.func @reuse_in_later_block() {
+  %0 = quake.null_wire
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  cf.br ^bb1(%1 : !quake.wire)
+^bb1(%2: !quake.wire):
+  %3 = quake.x %1 : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  quake.sink %3 : !quake.wire
+  return
+}
+
+// -----
+
+// Each arm of a branch consumes the dominating wire, but neither arm receives
+// it through a block argument. Both uses are on exclusive paths, yet the wire
+// still has two uses; it must be forwarded as a sigma split.
+func.func @missing_sigma_nodes(%cond: i1) {
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %0 = quake.null_wire
+  cf.cond_br %cond, ^bb1, ^bb2
+^bb1:
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+^bb2:
+  %2 = quake.x %0 : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// -----
+
+// A wire used inside a nested region and again outside it.
+func.func @use_inside_and_outside_scope() {
+  %0 = quake.null_wire
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %2 = cc.scope -> (!quake.wire) {
+    %3 = quake.x %1 : (!quake.wire) -> !quake.wire
+    cc.continue %3 : !quake.wire
+  }
+  %4 = quake.z %1 : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  quake.sink %4 : !quake.wire
+  return
+}
+
+// -----
+
+// Two branches deliver the same wire to the same argument position of the same
+// block. This is a phi node that merges one value, so the wire is consumed once
+// on every path. No diagnostic is expected.
+func.func @merge_same_value(%cond: i1) {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.h %1 : (!quake.wire) -> !quake.wire
+  cf.cond_br %cond, ^bb1(%2 : !quake.wire), ^bb3(%2, %0 : !quake.wire, !quake.wire)
+^bb1(%3: !quake.wire):
+  %4 = quake.x %3 : (!quake.wire) -> !quake.wire
+  cf.br ^bb3(%4, %0 : !quake.wire, !quake.wire)
+^bb3(%5: !quake.wire, %6: !quake.wire):
+  quake.sink %5 : !quake.wire
+  quake.sink %6 : !quake.wire
+  return
+}
+
+// -----
+
+// The same wire reaches different argument positions of the merge block.
+func.func @merge_different_positions(%cond: i1) {
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %0 = quake.null_wire
+  cf.cond_br %cond, ^bb1, ^bb2(%0, %0 : !quake.wire, !quake.wire)
+^bb1:
+  cf.br ^bb2(%0, %0 : !quake.wire, !quake.wire)
+^bb2(%1: !quake.wire, %2: !quake.wire):
+  quake.sink %1 : !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// -----
+
+// The wire is delivered to different blocks by different branches.
+func.func @merge_different_blocks(%cond: i1) {
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %0 = quake.null_wire
+  cf.cond_br %cond, ^bb1, ^bb2
+^bb1:
+  cf.br ^bb3(%0 : !quake.wire)
+^bb2:
+  cf.br ^bb4(%0 : !quake.wire)
+^bb3(%1: !quake.wire):
+  quake.sink %1 : !quake.wire
+  return
+^bb4(%2: !quake.wire):
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// -----
+
+// One of the uses is not a branch: the wire is both merged and consumed.
+func.func @merge_and_consume(%cond: i1) {
+  // expected-error@+1 {{wires are a linear type and must have exactly one use}}
+  %0 = quake.null_wire
+  cf.cond_br %cond, ^bb1, ^bb2(%0 : !quake.wire)
+^bb1:
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  cf.br ^bb2(%1 : !quake.wire)
+^bb2(%2: !quake.wire):
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// -----
+
+// Two exclusive paths deliver one wire to a loop header. Neither delivering
+// block is reachable from the header, so each path consumes the wire once.
+// No diagnostic is expected.
+func.func @diamond_into_loop_header(%c: i1, %d: i1) {
+  %0 = quake.null_wire
+  cf.cond_br %c, ^b1, ^b2
+^b1:
+  cf.br ^h(%0 : !quake.wire)
+^b2:
+  cf.br ^h(%0 : !quake.wire)
+^h(%a: !quake.wire):
+  %1 = quake.h %a : (!quake.wire) -> !quake.wire
+  cf.cond_br %d, ^h(%1 : !quake.wire), ^exit(%1 : !quake.wire)
+^exit(%2: !quake.wire):
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// -----
+
+// A loop that threads its wire through the header argument, with a different
+// value on the back edge. No diagnostic is expected.
+func.func @well_formed_loop(%c: i1) {
+  %0 = quake.null_wire
+  cf.br ^h(%0 : !quake.wire)
+^h(%a: !quake.wire):
+  %1 = quake.h %a : (!quake.wire) -> !quake.wire
+  cf.cond_br %c, ^h(%1 : !quake.wire), ^exit(%1 : !quake.wire)
+^exit(%2: !quake.wire):
+  quake.sink %2 : !quake.wire
+  return
+}

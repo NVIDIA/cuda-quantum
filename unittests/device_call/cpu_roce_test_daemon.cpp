@@ -39,8 +39,7 @@
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/realtime/daemon/dispatcher/graph_launch_engine.h"
-
+#include "cudaq/realtime/daemon/dispatcher/host_dispatch_loop.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -426,31 +425,30 @@ int main(int argc, char **argv) {
   volatile int dispatcher_shutdown = 0;
   std::uint64_t packets_dispatched = 0;
   cudaq_ringbuffer_t ring{};
-  ring.rx_flags_host = reinterpret_cast<volatile uint64_t *>(
+  ring.rx_flags_host = reinterpret_cast<volatile std::uint64_t *>(
       cpu_roce_get_rx_ring_flag_addr(xcvr));
-  ring.tx_flags_host = reinterpret_cast<volatile uint64_t *>(
+  ring.tx_flags_host = reinterpret_cast<volatile std::uint64_t *>(
       cpu_roce_get_tx_ring_flag_addr(xcvr));
   ring.rx_data_host =
-      reinterpret_cast<uint8_t *>(cpu_roce_get_rx_ring_data_addr(xcvr));
+      reinterpret_cast<std::uint8_t *>(cpu_roce_get_rx_ring_data_addr(xcvr));
   ring.tx_data_host =
-      reinterpret_cast<uint8_t *>(cpu_roce_get_tx_ring_data_addr(xcvr));
+      reinterpret_cast<std::uint8_t *>(cpu_roce_get_tx_ring_data_addr(xcvr));
   ring.rx_stride_sz = cfg.page_size;
   ring.tx_stride_sz = cfg.page_size;
   cudaq_dispatcher_config_t dcfg{};
   dcfg.num_slots = cfg.num_pages;
-  dcfg.slot_size = static_cast<uint32_t>(cfg.page_size);
+  dcfg.slot_size = static_cast<std::uint32_t>(cfg.page_size);
   dcfg.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
   dcfg.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
-  dcfg.skip_tx_markers = 1;
   cudaq_function_table_t table{};
   table.entries = entries;
   table.count = 4;
 
-  // HOST_CALL-only table -> the ring loop runs the handler inline with a NULL
-  // engine (no graph workers, nothing to sweep).
+  // The ring loop runs each HOST_CALL handler inline on this thread and
+  // publishes the response as soon as the handler returns.
   std::thread dispatcher_thread([&]() {
-    cudaq_host_ring_dispatch_loop(&ring, &table, &dcfg, /*engine=*/nullptr,
-                                  &dispatcher_shutdown, &packets_dispatched);
+    cudaq_host_ring_dispatch_loop(&ring, &table, &dcfg, &dispatcher_shutdown,
+                                  &packets_dispatched);
   });
   std::thread xcvr_monitor([xcvr]() { cpu_roce_blocking_monitor(xcvr); });
 

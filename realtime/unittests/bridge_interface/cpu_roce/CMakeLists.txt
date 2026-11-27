@@ -9,6 +9,15 @@
 # CPU RoCE bridge provider tests
 # ==============================================================================
 
+if (TARGET cudaq-realtime-bridge-cpu-roce)
+  add_executable(test_cpu_roce_bridge_config test_cpu_roce_bridge_config.cpp)
+  target_link_libraries(test_cpu_roce_bridge_config PRIVATE
+    GTest::gtest_main cudaq-realtime)
+  add_dependencies(test_cpu_roce_bridge_config cudaq-realtime-bridge-cpu-roce)
+  cudaq_gtest_discover_tests(test_cpu_roce_bridge_config
+    TEST_PREFIX "test_cpu_roce_bridge_config.")
+endif()
+
 # End-to-end: spawn the transport-agnostic test server on a cpu_roce bridge
 # and drive it from a caller transceiver in this process, under both dispatch
 # shapes.  Needs RoCE: every case probes the transport and skips (or fails,
@@ -36,7 +45,9 @@ if (TARGET cudaq-realtime-bridge-cpu-roce AND
   # The server is exec'd, not linked.
   add_dependencies(test_cpu_roce_two_process cudaq-realtime-test-server)
 
-  cudaq_gtest_discover_tests(test_cpu_roce_two_process DISCOVERY_TIMEOUT 120)
+  # Each case takes seconds. A hung case must not wait for the 1500 s default.
+  cudaq_gtest_discover_tests(test_cpu_roce_two_process DISCOVERY_TIMEOUT 120
+    PROPERTIES TIMEOUT 120)
   message(STATUS
     "  - test_cpu_roce_two_process (cpu_roce dispatch, two processes)")
 endif()

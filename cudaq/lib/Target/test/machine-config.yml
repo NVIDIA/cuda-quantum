@@ -1,0 +1,42 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
+# RUN: %target-catalog-driver codegen %s qpu=gen2-device | FileCheck %s --check-prefix=NAME
+# RUN: %target-catalog-driver codegen %s qpu=acme-x100 | FileCheck %s --check-prefix=PATTERN
+# RUN: %target-catalog-driver codegen %s | FileCheck %s --check-prefix=FALLBACK
+
+# Machine-config argument: codegen selected by exact name, pattern, or fallback.
+
+version: 1
+name: lit-machine
+description: "Machine-config codegen selection coverage"
+config:
+  codegen-emission: qir-base
+target-arguments:
+  - key: machine
+    type: machine-config
+    platform-arg: qpu
+    help-string: "Select the machine"
+    machine-config:
+      - arch-name: gen2
+        machine-names: ["gen2-device"]
+        config:
+          codegen-emission: qir-full
+      - arch-name: acme
+        pattern: "acme-.*"
+        config:
+          codegen-emission: qir-adaptive
+
+# PARSE: argument: machine type=machine-config required=false platform-arg=qpu
+# PARSE:   arch: gen2 codegen-emission=qir-full pattern= machines=["gen2-device"]
+# PARSE:   arch: acme codegen-emission=qir-adaptive pattern=acme-.* machines=[]
+
+# NAME: codegen-emission: qir-full
+# PATTERN: codegen-emission: qir-adaptive
+# FALLBACK: codegen-emission: qir-base

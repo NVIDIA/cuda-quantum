@@ -26,7 +26,7 @@ jobs:
       github.repository == 'NVIDIA/cuda-quantum' &&
       github.event.pull_request.draft == false
     steps:
-      - uses: actions/labeler@v6
+      - uses: actions/labeler@v7
         with:
           configuration-path: .github/labeler.yml
           sync-labels: false

@@ -7,12 +7,9 @@
  ******************************************************************************/
 
 // C ABI shim over Hololink's CpuRoceTransceiver (find_package(HololinkRoce)),
-// mirroring roce_wrapper.cpp. The legacy CUDA-Q implementation remains
-// selectable at configure time; exactly one implementation of the cpu_roce_*
-// symbols is linked into a build.
+// the only implementation of the cpu_roce_* symbols.
 
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
-
 #include <hololink/transport/roce/cpu_roce_transceiver.hpp>
 
 #include <atomic>

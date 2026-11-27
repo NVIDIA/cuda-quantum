@@ -1,0 +1,222 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --memtoreg=quantum=1 %s | FileCheck %s
+
+// A reference that cannot be promoted to a wire stays in memory form. No
+// `quake.unwrap` or `quake.wrap` is added around the operations that use it,
+// and its `quake.dealloc` is not turned into a `quake.sink`. An operation may
+// take both wires and references, so a reference that stays in memory form does
+// not hold back the wires beside it.
+
+// The target is reached at run time, so it stays a reference. The wire control
+// is threaded through the gate.
+func.func @wire_control_reference_target(%i: i64) {
+  %w0 = quake.null_wire
+  %q = quake.alloca !quake.veq<2>
+  %t = quake.extract_ref %q[%i] : (!quake.veq<2>, i64) -> !quake.ref
+  %w1 = quake.x [%w0] %t : (!quake.wire, !quake.ref) -> !quake.wire
+  quake.sink %w1 : !quake.wire
+  quake.dealloc %q : !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @wire_control_reference_target(
+// CHECK:           %[[W0:.*]] = quake.null_wire
+// CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[T:.*]] = quake.extract_ref %[[Q]][%{{.*}}]
+// CHECK-NOT:       quake.unwrap
+// CHECK:           %[[W1:.*]] = quake.x [%[[W0]]] %[[T]] : (!quake.wire, !quake.ref) -> !quake.wire
+// CHECK-NOT:       quake.wrap
+// CHECK:           quake.sink %[[W1]]
+// CHECK:           quake.dealloc %[[Q]] : !quake.veq<2>
+
+// Same, with the operand kinds swapped.
+func.func @reference_control_wire_target(%i: i64) {
+  %w0 = quake.null_wire
+  %q = quake.alloca !quake.veq<2>
+  %c = quake.extract_ref %q[%i] : (!quake.veq<2>, i64) -> !quake.ref
+  %w1 = quake.x [%c] %w0 : (!quake.ref, !quake.wire) -> !quake.wire
+  quake.sink %w1 : !quake.wire
+  quake.dealloc %q : !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @reference_control_wire_target(
+// CHECK:           %[[W0:.*]] = quake.null_wire
+// CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[C:.*]] = quake.extract_ref %[[Q]][%{{.*}}]
+// CHECK-NOT:       quake.unwrap
+// CHECK:           %[[W1:.*]] = quake.x [%[[C]]] %[[W0]] : (!quake.ref, !quake.wire) -> !quake.wire
+// CHECK-NOT:       quake.wrap
+// CHECK:           quake.sink %[[W1]]
+// CHECK:           quake.dealloc %[[Q]] : !quake.veq<2>
+
+// The control is promoted and the run-time indexed target is not.
+func.func @promoted_control_reference_target(%i: i64) {
+  %a = quake.alloca !quake.ref
+  %q = quake.alloca !quake.veq<2>
+  %t = quake.extract_ref %q[%i] : (!quake.veq<2>, i64) -> !quake.ref
+  quake.x [%a] %t : (!quake.ref, !quake.ref) -> ()
+  quake.h %a : (!quake.ref) -> ()
+  quake.dealloc %a : !quake.ref
+  quake.dealloc %q : !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @promoted_control_reference_target(
+// CHECK:           %[[W0:.*]] = quake.null_wire
+// CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[T:.*]] = quake.extract_ref %[[Q]][%{{.*}}]
+// CHECK-NOT:       quake.unwrap
+// CHECK:           %[[W1:.*]] = quake.x [%[[W0]]] %[[T]] : (!quake.wire, !quake.ref) -> !quake.wire
+// CHECK-NOT:       quake.wrap
+// CHECK:           %[[W2:.*]] = quake.h %[[W1]]
+// CHECK:           quake.sink %[[W2]]
+// CHECK:           quake.dealloc %[[Q]] : !quake.veq<2>
+
+// The allocations are operands of a concat that is indexed at run time, so
+// they stay in memory form and are deallocated as they were.
+func.func @concat_operands_dealloc(%i: i64) {
+  %a = quake.alloca !quake.ref
+  %b = quake.alloca !quake.ref
+  %q = quake.concat %a, %b : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %t = quake.extract_ref %q[%i] : (!quake.veq<2>, i64) -> !quake.ref
+  quake.x %t : (!quake.ref) -> ()
+  quake.dealloc %a : !quake.ref
+  quake.dealloc %b : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @concat_operands_dealloc(
+// CHECK:           %[[A:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[B:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.concat %[[A]], %[[B]]
+// CHECK-NOT:       quake.sink
+// CHECK:           quake.dealloc %[[A]] : !quake.ref
+// CHECK:           quake.dealloc %[[B]] : !quake.ref
+
+// The evince of a reference that stays in memory form keeps that reference as
+// is. The reference that is promoted is unwrapped, and its wire is threaded
+// through the evince.
+func.func @evince_mixed(%i: i64) {
+  %q = quake.alloca !quake.veq<2>
+  %t = quake.extract_ref %q[%i] : (!quake.veq<2>, i64) -> !quake.ref
+  %a = quake.alloca !quake.ref
+  quake.x %t : (!quake.ref) -> ()
+  quake.evince %t, %a : (!quake.ref, !quake.ref) -> ()
+  quake.dealloc %a : !quake.ref
+  quake.dealloc %q : !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @evince_mixed(
+// CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[T:.*]] = quake.extract_ref %[[Q]][%{{.*}}]
+// CHECK:           %[[W0:.*]] = quake.null_wire
+// CHECK:           quake.x %[[T]] : (!quake.ref) -> ()
+// CHECK-NOT:       quake.unwrap
+// CHECK:           %[[W1:.*]] = quake.evince %[[T]], %[[W0]] : (!quake.ref, !quake.wire) -> !quake.wire
+// CHECK-NOT:       quake.wrap
+// CHECK:           quake.sink %[[W1]]
+// CHECK:           quake.dealloc %[[Q]] : !quake.veq<2>
+
+// Evince operands that all stay in memory form are left as they are.
+func.func @evince_two_blacklisted(%i: i64, %j: i64) {
+  %q = quake.alloca !quake.veq<2>
+  %s = quake.extract_ref %q[%i] : (!quake.veq<2>, i64) -> !quake.ref
+  %t = quake.extract_ref %q[%j] : (!quake.veq<2>, i64) -> !quake.ref
+  quake.x %s : (!quake.ref) -> ()
+  quake.evince %s, %t : (!quake.ref, !quake.ref) -> ()
+  quake.dealloc %q : !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @evince_two_blacklisted(
+// CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[S:.*]] = quake.extract_ref %[[Q]][%{{.*}}]
+// CHECK:           %[[T:.*]] = quake.extract_ref %[[Q]][%{{.*}}]
+// CHECK:           quake.x %[[S]] : (!quake.ref) -> ()
+// CHECK-NEXT:      quake.evince %[[S]], %[[T]] : (!quake.ref, !quake.ref) -> ()
+// CHECK-NOT:       quake.unwrap
+// CHECK-NOT:       quake.wrap
+// CHECK:           quake.dealloc %[[Q]] : !quake.veq<2>
+
+// A veq operand is not a reference, so it is used as is beside the wire.
+func.func @evince_with_veq(%i: i64) {
+  %q = quake.alloca !quake.veq<2>
+  %t = quake.extract_ref %q[%i] : (!quake.veq<2>, i64) -> !quake.ref
+  %r = quake.alloca !quake.veq<3>
+  %a = quake.alloca !quake.ref
+  quake.x %t : (!quake.ref) -> ()
+  quake.evince %t, %r, %a : (!quake.ref, !quake.veq<3>, !quake.ref) -> ()
+  quake.dealloc %a : !quake.ref
+  quake.dealloc %r : !quake.veq<3>
+  quake.dealloc %q : !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @evince_with_veq(
+// CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[T:.*]] = quake.extract_ref %[[Q]][%{{.*}}]
+// CHECK:           %[[R:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[W0:.*]] = quake.null_wire
+// CHECK:           quake.x %[[T]] : (!quake.ref) -> ()
+// CHECK-NOT:       quake.unwrap
+// CHECK:           %[[W1:.*]] = quake.evince %[[T]], %[[R]], %[[W0]] : (!quake.ref, !quake.veq<3>, !quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[W1]]
+// CHECK:           quake.dealloc %[[R]] : !quake.veq<3>
+// CHECK:           quake.dealloc %[[Q]] : !quake.veq<2>
+
+// Wires and references are interleaved. Each result belongs to the wire operand
+// in the same position, and the reference sits between them.
+func.func @evince_interleaved(%i: i64) {
+  %q = quake.alloca !quake.veq<2>
+  %t = quake.extract_ref %q[%i] : (!quake.veq<2>, i64) -> !quake.ref
+  %a = quake.alloca !quake.ref
+  %b = quake.alloca !quake.ref
+  quake.x %t : (!quake.ref) -> ()
+  quake.evince %a, %t, %b : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.dealloc %a : !quake.ref
+  quake.dealloc %b : !quake.ref
+  quake.dealloc %q : !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @evince_interleaved(
+// CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[T:.*]] = quake.extract_ref %[[Q]][%{{.*}}]
+// CHECK:           %[[WA:.*]] = quake.null_wire
+// CHECK:           %[[WB:.*]] = quake.null_wire
+// CHECK:           quake.x %[[T]] : (!quake.ref) -> ()
+// CHECK-NOT:       quake.unwrap
+// CHECK:           %[[E:.*]]:2 = quake.evince %[[WA]], %[[T]], %[[WB]] : (!quake.wire, !quake.ref, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-NOT:       quake.wrap
+// CHECK:           quake.sink %[[E]]#0 : !quake.wire
+// CHECK:           quake.sink %[[E]]#1 : !quake.wire
+// CHECK:           quake.dealloc %[[Q]] : !quake.veq<2>
+
+// Control: when every operand is promoted, all of them become wires.
+func.func @evince_all_promoted() {
+  %a = quake.alloca !quake.ref
+  %b = quake.alloca !quake.ref
+  quake.h %a : (!quake.ref) -> ()
+  quake.evince %a, %b : (!quake.ref, !quake.ref) -> ()
+  quake.dealloc %a : !quake.ref
+  quake.dealloc %b : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @evince_all_promoted()
+// CHECK:           %[[WA:.*]] = quake.null_wire
+// CHECK:           %[[WB:.*]] = quake.null_wire
+// CHECK:           %[[H:.*]] = quake.h %[[WA]]
+// CHECK:           %[[E:.*]]:2 = quake.evince %[[H]], %[[WB]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[E]]#0 : !quake.wire
+// CHECK:           quake.sink %[[E]]#1 : !quake.wire
+// CHECK-NOT:       quake.alloca

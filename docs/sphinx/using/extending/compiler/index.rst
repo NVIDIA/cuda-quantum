@@ -6,7 +6,9 @@ CUDA-Q compiler development
    :maxdepth: 1
 
    Compiler IR <cudaq_ir>
+   Value-semantics IR change log <ir_changelog>
    External compiler pass plugins <pass_plugins>
+   Using compile targets to customize compilation <compile_targets>
 
 CUDA-Q compiles C++ and Python quantum kernels using the
 `MLIR compiler infrastructure <https://mlir.llvm.org/>`_. The language frontends
@@ -40,6 +42,8 @@ pipeline.
   see the :doc:`Quake semantic specification
   <../../../specification/quake-dialect>`.
 * See :doc:`pass_plugins` for the existing external pass plugin interface.
+* See :doc:`ir_changelog` for changes to fully value-semantics IR between
+  releases.
 
 .. only:: compiler_developer_docs
 

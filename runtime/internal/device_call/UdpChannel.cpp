@@ -41,9 +41,7 @@
 // drops every request.
 
 #include "cudaq_internal/device_call/RingSlotChannel.h"
-
 #include "cudaq/realtime/cpu_transport/udp_wrapper.h"
-
 #include <chrono>
 #include <string>
 #include <thread>

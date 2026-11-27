@@ -8,11 +8,12 @@
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
+#include <cstdint>
 
-__qpu__ uint64_t otherKernel(std::vector<cudaq::measure_result> &x);
+__qpu__ std::uint64_t otherKernel(std::vector<cudaq::measure_result> &x);
 
-__qpu__ uint64_t test_entry_point() {
+__qpu__ std::uint64_t test_entry_point() {
   cudaq::qvector q(5);
   auto results = cudaq::mz(q);
   return otherKernel(results);
@@ -21,5 +22,5 @@ __qpu__ uint64_t test_entry_point() {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_entry_point.
 // CHECK-SAME:      () -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_3:.*]] = call @{{.*}}otherKernel{{.*}}(%{{.*}}) : (!cc.sequence<!cc.measure_handle>) -> i64
+// CHECK:           %[[VAL_3:.*]] = call @{{.*}}otherKernel{{.*}}(%{{.*}}) : (!cc.sequence<!quake.measure>) -> i64
 // clang-format on

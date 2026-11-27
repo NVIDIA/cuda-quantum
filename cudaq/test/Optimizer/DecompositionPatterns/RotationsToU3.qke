@@ -1,0 +1,55 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Rotations successfully convert to `u3`.
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=u3,x(1)})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=u3,x(1)})' %s | CircuitCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),basis-conversion{basis=u3,x(1)})' %s | CircuitCheck %s
+
+// CHECK-LABEL: func.func @rotations
+func.func @rotations(%q0: !quake.ref, %q1: !quake.ref) {
+  %a = arith.constant 0.3 : f64
+  %b = arith.constant 0.5 : f64
+  %c = arith.constant 0.7 : f64
+  %d = arith.constant 1.1 : f64
+
+  // rx and rx<adj> become u3 with no phase correction.
+  // CHECK:     quake.u3
+  // CHECK-NOT: quake.phase
+  // CHECK:     quake.u3
+  // CHECK-NOT: quake.phase
+  // CHECK:     quake.x
+  quake.rx (%a) %q0 : (f64, !quake.ref) -> ()
+  quake.rx<adj> (%b) %q1 : (f64, !quake.ref) -> ()
+
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+
+  // ry and ry<adj> become u3 with no phase correction.
+  // CHECK:     quake.u3
+  // CHECK-NOT: quake.phase
+  // CHECK:     quake.u3
+  // CHECK-NOT: quake.phase
+  // CHECK:     quake.x
+  quake.ry (%b) %q0 : (f64, !quake.ref) -> ()
+  quake.ry<adj> (%c) %q1 : (f64, !quake.ref) -> ()
+
+  quake.x [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+
+  // rz and rz<adj> become u3 with an exact phase correction.
+  // CHECK:     quake.u3
+  // CHECK:     quake.phase
+  // CHECK:     quake.u3
+  // CHECK:     quake.phase
+  // CHECK:     quake.x
+  quake.rz (%c) %q0 : (f64, !quake.ref) -> ()
+  quake.rz<adj> (%d) %q1 : (f64, !quake.ref) -> ()
+
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}

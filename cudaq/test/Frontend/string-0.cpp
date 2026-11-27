@@ -11,7 +11,7 @@
 
 // Test that a std::string argument can be passed to a kernel.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct KernelWithString {
   void operator()(double angle, std::string data) __qpu__ {

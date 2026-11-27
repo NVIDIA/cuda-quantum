@@ -25,9 +25,9 @@
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <iostream>
 #include <limits>
-#include <queue>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -629,12 +629,14 @@ public:
   /// indices. Operands are copied because the gate can execute after the call
   /// that enqueues the operation returns.
   struct GateApplicationTask {
-    const std::string operationName;
-    const std::vector<std::complex<ScalarType>> matrix;
-    const std::vector<std::size_t> controls;
-    const std::vector<std::size_t> targets;
-    const std::vector<ScalarType> parameters;
-    const std::vector<std::int32_t> controlValues;
+    std::string operationName;
+    std::vector<std::complex<ScalarType>> matrix;
+    std::vector<std::size_t> controls;
+    std::vector<std::size_t> targets;
+    std::vector<ScalarType> parameters;
+    std::vector<std::int32_t> controlValues;
+
+    GateApplicationTask() = default;
     GateApplicationTask(const std::string &name,
                         const std::vector<std::complex<ScalarType>> &m,
                         const std::vector<std::size_t> &c,
@@ -645,9 +647,78 @@ public:
           parameters(params), controlValues(values) {
       validateControlValues(controls.size(), controlValues);
     }
+
+    /// Overwrite this task in place, so its buffers are reused instead of being
+    /// released and requested again.
+    void assign(const std::string &name,
+                const std::vector<std::complex<ScalarType>> &m,
+                const std::vector<std::size_t> &c,
+                const std::vector<std::size_t> &t,
+                const std::vector<ScalarType> &params,
+                const std::vector<std::int32_t> &values = {}) {
+      operationName.assign(name);
+      matrix.assign(m.begin(), m.end());
+      controls.assign(c.begin(), c.end());
+      targets.assign(t.begin(), t.end());
+      parameters.assign(params.begin(), params.end());
+      // Assigned unconditionally: a reused slot still holds the previous
+      // gate's control values, and an empty `values` means "no required
+      // values", not "leave whatever was here".
+      controlValues.assign(values.begin(), values.end());
+      validateControlValues(controls.size(), controlValues);
+    }
   };
 
 protected:
+  /// @brief A queue of gate application tasks that reuses its slots.
+  ///
+  /// Popped tasks are kept and overwritten rather than destroyed.
+  class GateQueue {
+  public:
+    bool empty() const { return m_head == m_size; }
+    std::size_t size() const { return m_size - m_head; }
+    GateApplicationTask &front() { return m_tasks[m_head]; }
+
+    void pop() {
+      // Rewind once drained to bound slot index
+      if (++m_head == m_size)
+        m_head = m_size = 0;
+    }
+
+    /// Discard queued tasks while keeping the slots and their buffers.
+    void clear() { m_head = m_size = 0; }
+
+    /// Discard queued tasks and free the slots and their buffers.
+    void release() {
+      std::deque<GateApplicationTask>().swap(m_tasks);
+      m_head = m_size = 0;
+    }
+
+    template <typename... Args>
+    void emplace(Args &&...args) {
+      if (m_size == m_tasks.size())
+        m_tasks.emplace_back();
+      // Counted only once assign() has validated it, so a throw queues nothing.
+      m_tasks[m_size].assign(std::forward<Args>(args)...);
+      ++m_size;
+    }
+
+    void push(const GateApplicationTask &task) {
+      emplace(task.operationName, task.matrix, task.controls, task.targets,
+              task.parameters, task.controlValues);
+    }
+
+  private:
+    // A deque rather than a vector because flushGateQueueImpl holds a reference
+    // to the front task while applying it, and growth must not invalidate it.
+    std::deque<GateApplicationTask> m_tasks;
+    // Slots [m_head, m_size) are queued; [0, m_head) and [m_size,
+    // m_tasks.size()) are spent or unused but keep their buffers for the next
+    // run.
+    std::size_t m_head = 0;
+    std::size_t m_size = 0;
+  };
+
   /// @brief A tracker for qubit allocation
   cudaq::QuditIdTracker tracker;
 
@@ -691,7 +762,11 @@ protected:
       "CUDAQ_OBSERVE_FROM_SAMPLING";
 
   /// @brief The current queue of operations to execute
-  std::queue<GateApplicationTask> gateQueue;
+  GateQueue gateQueue;
+
+  /// @brief Free the gate queue's slots on deallocation instead of reusing them
+  bool releaseGateQueue =
+      cudaq::getEnvBool("CUDAQ_FORCE_RELEASE_GATE_QUEUE", false);
 
   /// @brief Get the number of shots to execute (only valid if executionContext
   /// is set)
@@ -753,8 +828,10 @@ protected:
   /// @brief Reset the qubit state back to dim = 0.
   void deallocateState() {
     deallocateStateImpl();
-    auto empty = std::queue<GateApplicationTask>{};
-    std::swap(gateQueue, empty);
+    if (releaseGateQueue)
+      gateQueue.release();
+    else
+      gateQueue.clear();
     tracker.reset();
     nQubitsAllocated = 0;
     stateDimension = 0;
@@ -898,7 +975,7 @@ protected:
       // OK, now we're ready to grab the buffered sample results for the entire
       // execution context.
       auto execResult = sample(sampleQubits, nShots);
-      internalResult.append(execResult);
+      internalResult.append(std::move(execResult));
       return;
     }
 
@@ -935,7 +1012,12 @@ protected:
     }
 
     if (registerNameToMeasuredQubit.empty()) {
-      internalResult.append(execResult, executionContext->explicitMeasurements);
+      // The whole sampled result goes into internalResult and execResult is not
+      // read again on this path, so hand over its dictionary and its per-shot
+      // bitstrings instead of duplicating both. The else branch below does read
+      // execResult, but the two are mutually exclusive.
+      internalResult.append(std::move(execResult),
+                            executionContext->explicitMeasurements);
     } else {
 
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
@@ -960,10 +1042,10 @@ protected:
           b.reserve(qubits.size());
           for (auto &qb : qubits)
             b += bits[qubitLocMap[qb]];
-          tmp.appendResult(b, count);
+          tmp.appendResult(std::move(b), count);
         }
 
-        internalResult.append(tmp);
+        internalResult.append(std::move(tmp));
       }
     }
 
@@ -1058,8 +1140,7 @@ protected:
     // queued gates without applying them. The recorded error is re-thrown by
     // the launcher once the kernel returns (see deferOrThrowKernelException).
     if (kernelExecutionDeferred()) {
-      while (!gateQueue.empty())
-        gateQueue.pop();
+      gateQueue.clear();
       return;
     }
 
@@ -1072,14 +1153,12 @@ protected:
       try {
         applyGateWithControlValues(next);
       } catch (std::exception &e) {
-        while (!gateQueue.empty())
-          gateQueue.pop();
+        gateQueue.clear();
         deferOrThrowKernelException(std::string("Exception in applyGate: ") +
                                     e.what());
         return;
       } catch (...) {
-        while (!gateQueue.empty())
-          gateQueue.pop();
+        gateQueue.clear();
         deferOrThrowKernelException("Unknown exception in applyGate");
         return;
       }
@@ -1215,8 +1294,7 @@ public:
     if (getNumQubits() == 0) {
       if (cudaq::isInBatchMode() && !cudaq::isLastBatch()) {
         setToZeroState();
-        auto empty = std::queue<GateApplicationTask>{};
-        std::swap(gateQueue, empty);
+        gateQueue.clear();
       } else {
         deallocateState();
       }
@@ -1307,7 +1385,7 @@ protected:
           counts.appendResult(bitResults[j], 1);
         }
       }
-      internalResult.append(counts);
+      internalResult.append(std::move(counts));
     }
 
     // Reorder the global register (if necessary). This might be necessary if
@@ -1324,7 +1402,15 @@ protected:
     lastMidCircuitRegisterName = "";
     currentCircuitName = "";
 
-    return internalResult;
+    // internalResult is a member, so returning it is a copy: there is no NRVO
+    // for a member, and the counts dictionary and the per-shot bitstrings both
+    // get duplicated on the way out. endExecution() assigns a fresh one
+    // immediately after this returns, so the storage is handed over instead.
+    // Reset here as well rather than relying on that, so totalShots cannot be
+    // left describing a dictionary that has been moved away.
+    auto result = std::move(internalResult);
+    internalResult = {};
+    return result;
   }
 
   void finalizeExecutionContext(const cudaq::other_policies &policy,
@@ -1360,8 +1446,7 @@ public:
       CUDAQ_INFO("In batch mode currently, resetting simulator state to |0>");
       // Do not deallocate the state, but reset it to |0> to be reused
       setToZeroState();
-      auto empty = std::queue<GateApplicationTask>{};
-      std::swap(gateQueue, empty);
+      gateQueue.clear();
     } else {
       CUDAQ_INFO("Deallocating simulator state.");
       // all qubits deallocated,

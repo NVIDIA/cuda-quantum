@@ -25,11 +25,16 @@ func.func @component_swapped() {
   %c:2 = quake.x [%b#0] %b#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %d:2 = quake.x [%v2] %v3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %e:2 = quake.x [%d#1] %v4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.return_wire %c#0 : !quake.wire
-  quake.return_wire %c#1 : !quake.wire
-  quake.return_wire %d#0 : !quake.wire
-  quake.return_wire %e#0 : !quake.wire
-  quake.return_wire %e#1 : !quake.wire
+  %m0, %w0 = quake.mz %c#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m1, %w1 = quake.mz %c#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m2, %w2 = quake.mz %d#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m3, %w3 = quake.mz %e#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m4, %w4 = quake.mz %e#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w0 : !quake.wire
+  quake.return_wire %w1 : !quake.wire
+  quake.return_wire %w2 : !quake.wire
+  quake.return_wire %w3 : !quake.wire
+  quake.return_wire %w4 : !quake.wire
   return
 }
 

@@ -8,8 +8,8 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
+#include "cudaq/qis/qubit_qis.h"
 #include <cmath>
-#include <cudaq.h>
 
 struct math_functions {
   void operator()(double theta) __qpu__ {

@@ -53,16 +53,38 @@ struct PrepareForWiresetPipelineOptions
   PassOptions::Option<bool> addWireset{
       *this, "add-wireset",
       llvm::cl::desc("Add a wire set and assign wire indices.")};
+  PassOptions::Option<bool> decomposeExpPauli{
+      *this, "decompose-exp-pauli",
+      llvm::cl::desc("Decompose each exp_pauli whose Pauli word is known, so "
+                     "that its qubits can be converted to wires. Otherwise "
+                     "exp_pauli stays on references."),
+      llvm::cl::init(true)};
+  PassOptions::Option<bool> eraseImplicitOutput{
+      *this, "erase-implicit-output",
+      llvm::cl::desc("Erase the implicit output, so that qubits the kernel "
+                     "never measures can be dropped. A simulator that "
+                     "returns the state needs those qubits."),
+      llvm::cl::init(true)};
+  // TODO: Profile QIR already records a register's bits under a repeated
+  // label. Find which output formats need unique names, rename in their
+  // codegen, and remove this option.
+  PassOptions::Option<bool> uniqueRegisterNames{
+      *this, "unique-register-names",
+      llvm::cl::desc("Give each measurement that shares a register name a "
+                     "unique name. (default: true)"),
+      llvm::cl::init(true)};
 };
 } // namespace
 
 static void createPrepareForWiresetPipeline(
     OpPassManager &pm, const cudaq::opt::LoopUnrollOptions &loopUnrollOptions,
-    bool addWireset) {
+    bool addWireset, bool decomposeExpPauli, bool eraseImplicitOutput,
+    bool uniqueRegisterNames) {
   auto &funcPM = pm.nest<func::FuncOp>();
   funcPM.addPass(cudaq::opt::createExpandMeasurementsPass());
   funcPM.addPass(cudaq::opt::createAddDeallocs());
-  funcPM.addPass(cudaq::opt::createEraseCompilerGeneratedEvince());
+  if (eraseImplicitOutput)
+    funcPM.addPass(cudaq::opt::createEraseCompilerGeneratedEvince());
   funcPM.addPass(cudaq::opt::createExpandControlVeqs());
   funcPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   funcPM.addPass(createCanonicalizerPass());
@@ -75,7 +97,7 @@ static void createPrepareForWiresetPipeline(
       pm, loopUnrollOptions.threshold, loopUnrollOptions.allowBreak,
       /*allowClosedInterval=*/std::nullopt, /*disableLoopUnrolling=*/false,
       loopUnrollOptions.unrollOnlyAliasingQuantumAccessLoops,
-      loopUnrollOptions.unrollOnlyIndexUseLoops);
+      loopUnrollOptions.unrollOnlyIndexUseLoops, uniqueRegisterNames);
   // That pipeline nests its own func.func passes on pm, so continue in a fresh
   // nest to keep the order clear.
   auto &postFuncPM = pm.nest<func::FuncOp>();
@@ -97,7 +119,16 @@ static void createPrepareForWiresetPipeline(
   postFuncPM.addPass(cudaq::opt::createSROA());
   postFuncPM.addPass(cudaq::opt::createClassicalMemToReg());
   postFuncPM.addPass(createCanonicalizerPass());
-  cudaq::opt::addDecomposition(pm, {"ExpPauliDecomposition"});
+  // When a stage normalizes the kernel, prep specializes before any loop is
+  // unrolled, so it can't build the adjoint of a kernel in which a loop feeds a
+  // later gate, such as a counter carried out of the loop. Specialize again now
+  // that the loops are unrolled, inline the adjoint and controlled calls this
+  // creates, and clean up the inlined code.
+  pm.addPass(cudaq::opt::createApplySpecialization());
+  cudaq::opt::addAggressiveInlining(pm);
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  if (decomposeExpPauli)
+    cudaq::opt::addDecomposition(pm, {"ExpPauliDecomposition"});
   cudaq::opt::addConvertToLinearValues(pm);
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
@@ -125,7 +156,9 @@ void cudaq::opt::registerPrepareForWiresetPipeline() {
               opt.unrollOnlyAliasingQuantumAccessLoops);
         setIt(loopUnrollOptions.unrollOnlyIndexUseLoops,
               opt.unrollOnlyIndexUseLoops);
-        createPrepareForWiresetPipeline(pm, loopUnrollOptions, opt.addWireset);
+        createPrepareForWiresetPipeline(
+            pm, loopUnrollOptions, opt.addWireset, opt.decomposeExpPauli,
+            opt.eraseImplicitOutput, opt.uniqueRegisterNames);
       });
 }
 
@@ -150,7 +183,6 @@ static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
 static void
 createCommonTargetCodegenPipeline(OpPassManager &pm,
                                   const TargetCodegenPipelineOptions &options) {
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
@@ -181,12 +213,39 @@ createCommonTargetCodegenPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCSEPass());
 }
 
+/// Build the passes that remain before emission once a stage has run
+/// `prepare-for-wireset`. `stack-frame-prealloc` is needed for correctness.
+/// Without it, a value that is allocated in a `cc.scope` and returned is freed
+/// with the scope's stack frame before it is read.
+static void createEmitOnlyCodegenPipeline(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
+}
+
 static void
 createTargetCodegenPipeline(OpPassManager &pm,
                             const TargetCodegenPipelineOptions &options,
-                            bool useValueSemantics) {
-  createCommonTargetCodegenPipeline(pm, options);
-  if (useValueSemantics) {
+                            cudaq::opt::CodegenMode mode) {
+  auto tgt = StringRef(options.target).split(':').first;
+  bool fullQIR = tgt == "qir" || tgt == "qir-full";
+  // QIR without a profile can't lower borrowed wires, so swap them for null
+  // wires first. Profile QIR lowers wire sets with `wireset-to-profile-qir`
+  // instead, so it still rejects borrowed wires here.
+  if (fullQIR)
+    pm.addPass(cudaq::opt::createWireSetToNullWires());
+  // A QIR API that cannot lower negated controls gets them expanded. When
+  // codegen optimizes, the simplification below can then cancel the X pairs.
+  const bool supportNegatedControls = cudaq::opt::qirAPISupportsNegatedControls(
+      fullQIR ? "full" : "base-profile");
+  if (!supportNegatedControls)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  // TODO: Once REST targets and `nvq++` also compile through stages that
+  // normalize the kernel and apply the level, remove the common pipeline and
+  // the optimization below, so that codegen always only emits.
+  if (mode == cudaq::opt::CodegenMode::emit_only)
+    createEmitOnlyCodegenPipeline(pm);
+  else
+    createCommonTargetCodegenPipeline(pm, options);
+  if (mode == cudaq::opt::CodegenMode::normalize_and_optimize) {
     cudaq::opt::addConvertToLinearValues(pm);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
@@ -195,9 +254,10 @@ createTargetCodegenPipeline(OpPassManager &pm,
       cudaq::opt::createEraseCompilerGeneratedEvince());
 
   cudaq::opt::addPhaseLifecycle(pm);
-  // LowerPhase can leave negative controls on the R1/Rz it creates, so we need
-  // to run this pass again to expand those negations.
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  // `LowerPhase` can leave negative controls on the R1/Rz it creates, so we
+  // need to run this pass again to expand those negations.
+  if (!supportNegatedControls)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
 
   cudaq::opt::addLowerToCFG(pm);
   // Merge the trivial blocks left behind by lowering.
@@ -207,8 +267,7 @@ createTargetCodegenPipeline(OpPassManager &pm,
   cudaq::opt::addLowerToCFG(pm);
   cudaq::opt::ReturnToOutputLogOptions opts;
   // Only allow dynamic results with full QIR (local simulator targets).
-  auto tgt = StringRef(options.target).split(':').first;
-  opts.allowDynamicResult = tgt == "qir" || tgt == "qir-full";
+  opts.allowDynamicResult = fullQIR;
   pm.addPass(cudaq::opt::createReturnToOutputLog(opts));
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
@@ -216,21 +275,21 @@ createTargetCodegenPipeline(OpPassManager &pm,
 }
 
 static void createTargetCodegenPipeline(OpPassManager &pm,
-                                        bool useValueSemantics,
+                                        cudaq::opt::CodegenMode mode,
                                         StringRef convertTo) {
   auto convertFields = convertTo.split(':');
   TargetCodegenPipelineOptions opts;
   opts.allowBreaksInLoops = convertFields.first == "qir-adaptive";
   opts.target = convertTo.str();
-  createTargetCodegenPipeline(pm, opts, useValueSemantics);
+  createTargetCodegenPipeline(pm, opts, mode);
 }
 
 void cudaq::opt::addAOTPipelineConvertToQIR(PassManager &pm,
                                             StringRef convertTo,
-                                            bool useValueSemantics) {
+                                            cudaq::opt::CodegenMode mode) {
   if (convertTo.empty())
     convertTo = "qir";
-  ::createTargetCodegenPipeline(pm, useValueSemantics, convertTo);
+  ::createTargetCodegenPipeline(pm, mode, convertTo);
 }
 
 namespace {
@@ -240,11 +299,19 @@ struct CodegenForQIRPipelineOptions
       *this, "convert-to",
       llvm::cl::desc("option to specify what QIR profile to convert to."),
       llvm::cl::init("qir")};
-  PassOptions::Option<bool> useValueSemantics{
-      *this, "value-semantics",
-      llvm::cl::desc(
-          "lower to value semantics to enable quantum optimizations"),
-      llvm::cl::init(false)};
+  PassOptions::Option<cudaq::opt::CodegenMode> mode{
+      *this, "mode",
+      llvm::cl::desc("Which of normalization and optimization the pipeline "
+                     "runs before it emits."),
+      llvm::cl::init(cudaq::opt::CodegenMode::normalize),
+      llvm::cl::values(
+          clEnumValN(cudaq::opt::CodegenMode::emit_only, "emit-only",
+                     "Only emit. The kernel is already normalized."),
+          clEnumValN(cudaq::opt::CodegenMode::normalize, "normalize",
+                     "Normalize the kernel, then emit."),
+          clEnumValN(cudaq::opt::CodegenMode::normalize_and_optimize,
+                     "normalize-and-optimize",
+                     "Normalize and optimize the kernel, then emit."))};
 };
 } // namespace
 
@@ -252,7 +319,7 @@ void cudaq::opt::registerCodegenForQIRPipeline() {
   PassPipelineRegistration<CodegenForQIRPipelineOptions>(
       "codegen-for-qir", "Convert quake to one of the QIR APIs.",
       [](OpPassManager &pm, const CodegenForQIRPipelineOptions &opt) {
-        ::createTargetCodegenPipeline(pm, opt.useValueSemantics, opt.convertTo);
+        ::createTargetCodegenPipeline(pm, opt.mode, opt.convertTo);
       });
 }
 

@@ -20,12 +20,16 @@ func.func @covered_wagon() {
 // CHECK-LABEL:   func.func @covered_wagon() {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 3 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 2 : i64
-// CHECK-DAG:       %[[VAL_2:.*]] = cc.string_literal "XY" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_20:.*]] = cc.alloca !cc.array<!cc.sequence<!cc.charspan> x 2>
+// CHECK:           %[[VAL_21:.*]] = cc.cast %[[VAL_20]] : (!cc.ptr<!cc.array<!cc.sequence<!cc.charspan> x 2>>) -> !cc.ptr<!cc.array<!cc.sequence<!cc.charspan> x ?>>
+// CHECK:           %[[VAL_15:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
+// CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_15]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+// CHECK:           %[[VAL_6:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+// CHECK:           %[[VAL_2:.*]] = cc.string_literal "XY" : !cc.ptr<!cc.array<i8 x 3>>
 // CHECK:           %[[VAL_3:.*]] = cc.sequence_init %[[VAL_2]], %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 3>>, i64) -> !cc.charspan
 // CHECK:           %[[VAL_4:.*]] = cc.string_literal "ZI" : !cc.ptr<!cc.array<i8 x 3>>
 // CHECK:           %[[VAL_5:.*]] = cc.sequence_init %[[VAL_4]], %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 3>>, i64) -> !cc.charspan
-// CHECK:           %[[VAL_6:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
-// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_8]] : !cc.ptr<!cc.charspan>
 // CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_6]][1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
@@ -35,15 +39,11 @@ func.func @covered_wagon() {
 // CHECK:           %[[VAL_12:.*]] = cc.sequence_init %[[VAL_11]], %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 3>>, i64) -> !cc.charspan
 // CHECK:           %[[VAL_13:.*]] = cc.string_literal "YX" : !cc.ptr<!cc.array<i8 x 3>>
 // CHECK:           %[[VAL_14:.*]] = cc.sequence_init %[[VAL_13]], %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 3>>, i64) -> !cc.charspan
-// CHECK:           %[[VAL_15:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
-// CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_15]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
 // CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_15]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
 // CHECK:           cc.store %[[VAL_12]], %[[VAL_17]] : !cc.ptr<!cc.charspan>
 // CHECK:           %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_15]][1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
 // CHECK:           cc.store %[[VAL_14]], %[[VAL_18]] : !cc.ptr<!cc.charspan>
 // CHECK:           %[[VAL_19:.*]] = cc.sequence_init %[[VAL_16]], %[[VAL_1]] : (!cc.ptr<!cc.array<!cc.charspan x ?>>, i64) -> !cc.sequence<!cc.charspan>
-// CHECK:           %[[VAL_20:.*]] = cc.alloca !cc.array<!cc.sequence<!cc.charspan> x 2>
-// CHECK:           %[[VAL_21:.*]] = cc.cast %[[VAL_20]] : (!cc.ptr<!cc.array<!cc.sequence<!cc.charspan> x 2>>) -> !cc.ptr<!cc.array<!cc.sequence<!cc.charspan> x ?>>
 // CHECK:           %[[VAL_22:.*]] = cc.cast %[[VAL_20]] : (!cc.ptr<!cc.array<!cc.sequence<!cc.charspan> x 2>>) -> !cc.ptr<!cc.sequence<!cc.charspan>>
 // CHECK:           cc.store %[[VAL_10]], %[[VAL_22]] : !cc.ptr<!cc.sequence<!cc.charspan>>
 // CHECK:           %[[VAL_23:.*]] = cc.compute_ptr %[[VAL_20]][1] : (!cc.ptr<!cc.array<!cc.sequence<!cc.charspan> x 2>>) -> !cc.ptr<!cc.sequence<!cc.charspan>>
@@ -52,4 +52,3 @@ func.func @covered_wagon() {
 // CHECK:           call @pony_express(%[[VAL_24]]) : (!cc.sequence<!cc.sequence<!cc.charspan>>) -> ()
 // CHECK:           return
 // CHECK:         }
-

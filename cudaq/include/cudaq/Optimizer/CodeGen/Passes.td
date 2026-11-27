@@ -72,21 +72,25 @@ def LowerToCG : Pass<"lower-to-cg", "mlir::ModuleOp"> {
   let dependentDialects = [ "cudaq::codegen::CodeGenDialect" ];
 }
 
-def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
+def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
   let summary =
-    "Prepare the IR for rewriting to the base profile or adaptive profile";
+    "Lower full QIR further to the specific QIR Profile.";
   let description = [{
-    This is a (module) subpass of the pipeline to convert to a specific QIR
-    Profile.
+    This is run after lowering a Quake kernel to full QIR.
 
-    Before we can convert the functions to the specific profile, we have to do
-    a bit of bookkeeping on the module itself. That preparation is done in
-    this pass. Specifically, we create all the function declarations that we
-    may need and add them to the ModuleOp a priori. This avoids multi-threading
-    conflicts when rewriting matching DAGs independently.
+    This is a subpass of the pipeline to convert to the specific QIR Profile.
+
+    This pass lowers various QIR DAGs to the specific QIR Profile. See
+    https://github.com/qir-alliance/qir-spec/blob/main/specification/v0.1/7_Profiles.md
   }];
 
-  let constructor = "cudaq::opt::createQIRProfilePreparationPass()";
+  let options = [
+    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+           "Which QIR profile to convert to (default is 'qir-base')">
+  ];
+
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+  let constructor = "cudaq::opt::createQIRToQIRProfilePass(\"qir-base\")";
 }
 
 def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
@@ -110,31 +114,27 @@ def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
   let constructor = "cudaq::opt::createConvertToQIRFuncPass(\"qir-base\")";
 }
 
-def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
+def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
   let summary =
-    "Lower full QIR further to the specific QIR Profile.";
+    "Prepare the IR for rewriting to the base profile or adaptive profile";
   let description = [{
-    This is run after lowering a Quake kernel to full QIR.
+    This is a (module) subpass of the pipeline to convert to a specific QIR
+    Profile.
 
-    This is a subpass of the pipeline to convert to the specific QIR Profile.
-
-    This pass lowers various QIR DAGs to the specific QIR Profile. See
-    https://github.com/qir-alliance/qir-spec/blob/main/specification/v0.1/7_Profiles.md
+    Before we can convert the functions to the specific profile, we have to do
+    a bit of bookkeeping on the module itself. That preparation is done in
+    this pass. Specifically, we create all the function declarations that we
+    may need and add them to the ModuleOp a priori. This avoids multi-threading
+    conflicts when rewriting matching DAGs independently.
   }];
 
-  let options = [
-    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
-           "Which QIR profile to convert to (default is 'qir-base')">
-  ];
-
-  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
-  let constructor = "cudaq::opt::createQIRToQIRProfilePass(\"qir-base\")";
+  let constructor = "cudaq::opt::createQIRProfilePreparationPass()";
 }
 
 def QirInsertArrayRecord : Pass<"qir-insert-array-record", "mlir::ModuleOp"> {
   let summary = "Analyze result recording calls and insert new instructions for QIR";
   let description = [{
-    This pass runs after QIR prep and conversion passes, then inserts array 
+    This pass runs after QIR prep and conversion passes, then inserts array
     recording instruction based on the number of result recording calls.
   }];
 }
@@ -161,7 +161,7 @@ def QuakeToCCPrep : Pass<"quake-to-cc-prep", "mlir::ModuleOp"> {
     `quake-to-cc` pass is run.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
 }
 
 def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
@@ -260,6 +260,23 @@ def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
   ];
 }
 
+def WireSetToNullWires : Pass<"wireset-to-null-wires", "mlir::ModuleOp"> {
+  let summary = "Replace wires borrowed from wire sets with null wires";
+  let description = [{
+    Replaces each wire borrowed from a `quake.wire_set` with a
+    `quake.null_wire`, turns each `quake.return_wire` into a `quake.sink`, and
+    removes the wire sets.
+
+    Simulators run QIR without a profile, which gives each null wire a new
+    qubit but has no way to lower `quake.borrow_wire`. A kernel ends up on
+    borrowed wires when it is mapped onto a device, for example:
+    `assign-wire-indices` borrows every qubit from a new wire set before
+    mapping, and `qubit-mapping` borrows the device's qubits from one it
+    creates. The entry block's null wires are created in identity order, so
+    the qubits are allocated in the wire set's order.
+  }];
+}
+
 def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
   let summary = "Convert quake using wire sets to a profile of QIR";
   let description = [{
@@ -283,7 +300,8 @@ def WireSetToProfileQIRPost :
     This pass should be run immediately after wireset-to-profile-qir.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect",
+                           "mlir::LLVM::LLVMDialect"];
 }
 
 def WireSetToProfileQIRPrep :
@@ -293,7 +311,8 @@ def WireSetToProfileQIRPrep :
     This pass should be run immediately before wireset-to-profile-qir.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect",
+                           "mlir::LLVM::LLVMDialect"];
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

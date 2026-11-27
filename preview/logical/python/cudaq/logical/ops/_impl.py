@@ -82,10 +82,31 @@ def move(values, *, via, trajectory=None):
 
 
 def measure(value, *, basis="z", destructive=True, record=None):
-    return require_trace("measure").measure(value,
-                                            basis=basis,
-                                            destructive=destructive,
-                                            record=record)
+    from cudaq.logical.programs.builder import UnplacedBuilder
+
+    trace = require_trace("measure")
+    if isinstance(trace, UnplacedBuilder):
+        # A logical program measures destructively in Z or X, as measure_z and
+        # measure_x do.
+        passed = [
+            option for option, is_set in (
+                ("destructive=False", not destructive),
+                (f"record={record!r}", record is not None),
+            ) if is_set
+        ]
+        if passed:
+            raise TypeError(
+                f"cudaq.logical.measure({', '.join(passed)}) is available "
+                "only in a P3 physical trace")
+        name = str(basis).lower()
+        if name not in ("x", "z"):
+            raise ValueError(
+                f"logical measurement basis must be 'x' or 'z', got {basis!r}")
+        return trace.measure(name, value)
+    return trace.measure(value,
+                         basis=basis,
+                         destructive=destructive,
+                         record=record)
 
 
 def delay(values, *, duration_ns):

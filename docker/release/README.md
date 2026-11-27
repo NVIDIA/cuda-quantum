@@ -12,8 +12,9 @@ To install additional software, run the installation command as administrator
 if necessary by using `sudo <command>` (no password is required).
 
 The image includes a folder with examples in C++ and Python in the home
-directory. You can find more information about CUDA-Q including a link to
-the documentation on our [GitHub
+directory. When CUDA-Q Logical is installed, its examples are in
+`logical-examples`. You can find more information about CUDA-Q including a
+link to the documentation on our [GitHub
 repository](https://github.com/NVIDIA/cuda-quantum).
 
 The CUDA-Q installation in this image is licensed under [Apache License

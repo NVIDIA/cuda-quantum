@@ -347,6 +347,48 @@ func.func @exp_pauli_targets(%dynamic : !quake.veq<?>, %wire : !quake.wire) -> !
 // CHECK:           return %[[RESULT]] : !quake.wire
 // CHECK:         }
 
+func.func @mpp_targets(%dynamic : !quake.veq<?>, %w0 : !quake.wire, %w1 : !quake.wire) -> (!quake.wire, !quake.wire) {
+  // A Pauli product over mixed fixed-size targets yields one measurement.
+  %ref = quake.alloca !quake.ref
+  %vector = quake.alloca !quake.veq<2>
+  %m0 = quake.mpp %ref, %vector to "XYZ" : (!quake.ref, !quake.veq<2>) -> !quake.measure
+
+  // A single-qubit product, with a register name.
+  %m1 = quake.mpp %ref to "Z" name "z0" : (!quake.ref) -> !quake.measure
+
+  // A negated product that yields a measure handle.
+  %m2 = quake.mpp %ref, %vector negated to "XIZ" : (!quake.ref, !quake.veq<2>) -> !quake.measure
+
+  // A negated product, with a register name.
+  %m6 = quake.mpp %ref negated to "X" name "x0" : (!quake.ref) -> !quake.measure
+
+  // Dynamic cardinality defers the length check.
+  %m3 = quake.mpp %dynamic to "XYZ" : (!quake.veq<?>) -> !quake.measure
+
+  // A runtime Pauli word defers all checks of the word to run time.
+  %word = cc.string_literal "XYZ" : !cc.ptr<!cc.array<i8 x 4>>
+  %m5 = quake.mpp %ref, %vector to %word : (!quake.ref, !quake.veq<2>, !cc.ptr<!cc.array<i8 x 4>>) -> !quake.measure
+
+  // Value form returns the targets' wires after the single measurement.
+  %m4, %r0, %r1 = quake.mpp %w0, %w1 negated to "ZZ" : (!quake.wire, !quake.wire) -> (!quake.measure, !quake.wire, !quake.wire)
+  return %r0, %r1 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL:   func.func @mpp_targets(
+// CHECK-SAME:        %[[DYNAMIC:.*]]: !quake.veq<?>, %[[W0:.*]]: !quake.wire, %[[W1:.*]]: !quake.wire) -> (!quake.wire, !quake.wire) {
+// CHECK:           %[[REF:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VECTOR:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           quake.mpp %[[REF]], %[[VECTOR]] to "XYZ" : (!quake.ref, !quake.veq<2>) -> !quake.measure
+// CHECK:           quake.mpp %[[REF]] to "Z" name "z0" : (!quake.ref) -> !quake.measure
+// CHECK:           quake.mpp %[[REF]], %[[VECTOR]] negated to "XIZ" : (!quake.ref, !quake.veq<2>) -> !quake.measure
+// CHECK:           quake.mpp %[[REF]] negated to "X" name "x0" : (!quake.ref) -> !quake.measure
+// CHECK:           quake.mpp %[[DYNAMIC]] to "XYZ" : (!quake.veq<?>) -> !quake.measure
+// CHECK:           %[[WORD:.*]] = cc.string_literal "XYZ" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK:           quake.mpp %[[REF]], %[[VECTOR]] to %[[WORD]] : (!quake.ref, !quake.veq<2>, !cc.ptr<!cc.array<i8 x 4>>) -> !quake.measure
+// CHECK:           %[[M:.*]], %[[WIRES:.*]]:2 = quake.mpp %[[W0]], %[[W1]] negated to "ZZ" : (!quake.wire, !quake.wire) -> (!quake.measure, !quake.wire, !quake.wire)
+// CHECK:           return %[[WIRES]]#0, %[[WIRES]]#1 : !quake.wire, !quake.wire
+// CHECK:         }
+
 // CHECK-LABEL:   func.func @quake_op1(
 // CHECK-SAME:        %[[VAL_0:.*]]: !cc.ptr<f64>, %[[VAL_1:.*]]: i64) -> i64 {
 // CHECK:           %[[VAL_2:.*]] = cc.sequence_init %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<f64>, i64) -> !cc.sequence<f64>
@@ -1033,53 +1075,39 @@ func.func @integrated_device() {
 // CHECK:         }
 
 
-func.func @measure_handle_passthrough(%h : !cc.measure_handle) -> !cc.measure_handle {
-  return %h : !cc.measure_handle
+func.func @measure_handle_passthrough(%h : !quake.measure) -> !quake.measure {
+  return %h : !quake.measure
 }
 
 // CHECK-LABEL: func.func @measure_handle_passthrough(
-// CHECK-SAME:    %[[VAL_0:.*]]: !cc.measure_handle) -> !cc.measure_handle {
-// CHECK:         return %[[VAL_0]] : !cc.measure_handle
+// CHECK-SAME:    %[[VAL_0:.*]]: !quake.measure) -> !quake.measure {
+// CHECK:         return %[[VAL_0]] : !quake.measure
 // CHECK:       }
-
-func.func @measure_handle_cast_roundtrip(%i : i64) -> i64 {
-  %h = cc.cast %i : (i64) -> !cc.measure_handle
-  %r = cc.cast %h : (!cc.measure_handle) -> i64
-  return %r : i64
-}
-
-// CHECK-LABEL: func.func @measure_handle_cast_roundtrip(
-// CHECK-SAME:    %[[VAL_0:.*]]: i64) -> i64 {
-// CHECK:         %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.measure_handle
-// CHECK:         %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.measure_handle) -> i64
-// CHECK:         return %[[VAL_2]] : i64
-// CHECK:       }
-
 
 func.func @measure_handle_mz_one(%q : !quake.ref) -> i1 {
-  %m = quake.mz %q name "h" : (!quake.ref) -> !cc.measure_handle
-  %b = quake.discriminate %m : (!cc.measure_handle) -> i1
+  %m = quake.mz %q name "h" : (!quake.ref) -> !quake.measure
+  %b = quake.discriminate %m : (!quake.measure) -> i1
   return %b : i1
 }
 
 // CHECK-LABEL: func.func @measure_handle_mz_one(
 // CHECK-SAME:    %[[VAL_0:.*]]: !quake.ref) -> i1 {
-// CHECK:         %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "h" : (!quake.ref) -> !cc.measure_handle
-// CHECK:         %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+// CHECK:         %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "h" : (!quake.ref) -> !quake.measure
+// CHECK:         %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
 // CHECK:         return %[[VAL_2]] : i1
 // CHECK:       }
 
 func.func @measure_handle_mx_vec(%v : !quake.veq<?>) -> !cc.sequence<i1> {
-  %m = quake.mx %v : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+  %m = quake.mx %v : (!quake.veq<?>) -> !cc.sequence<!quake.measure>
   %b = quake.discriminate %m
-      : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+      : (!cc.sequence<!quake.measure>) -> !cc.sequence<i1>
   return %b : !cc.sequence<i1>
 }
 
 // CHECK-LABEL: func.func @measure_handle_mx_vec(
 // CHECK-SAME:    %[[VAL_0:.*]]: !quake.veq<?>) -> !cc.sequence<i1> {
-// CHECK:         %[[VAL_1:.*]] = quake.mx %[[VAL_0]] : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
-// CHECK:         %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+// CHECK:         %[[VAL_1:.*]] = quake.mx %[[VAL_0]] : (!quake.veq<?>) -> !cc.sequence<!quake.measure>
+// CHECK:         %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.sequence<!quake.measure>) -> !cc.sequence<i1>
 // CHECK:         return %[[VAL_2]] : !cc.sequence<i1>
 // CHECK:       }
 

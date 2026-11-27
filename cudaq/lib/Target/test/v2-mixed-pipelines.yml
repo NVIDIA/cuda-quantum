@@ -1,0 +1,32 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: not %target-catalog-driver parse %s 2>&1 | FileCheck %s
+
+# The full-pipeline string form of `custom-pipeline` excludes the staged
+# mapping form: neither variant alternative accepts the other alternative's
+# keys.
+
+version: 2-alpha
+name: lit-v2-mixed
+description: "Mixed override and staged pipelines rejected"
+config:
+  library-mode: false
+
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline:
+          override-pipeline: "canonicalize"
+          high-level: "high-pipe"
+  codegen: nop
+
+# CHECK: error: Failed to parse target configuration YAML
+# CHECK: Could not parse the variant

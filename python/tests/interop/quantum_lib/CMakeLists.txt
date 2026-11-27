@@ -15,6 +15,8 @@ set(CMAKE_CXX_COMPILE_OBJECT
 add_library(quantum_lib
   OBJECT
     quantum_lib.cpp
+    flip.cpp
+    call_flip.cpp
 )
 
 target_include_directories(quantum_lib

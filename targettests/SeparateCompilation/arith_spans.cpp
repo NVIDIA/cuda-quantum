@@ -60,7 +60,7 @@ void dump_double_vector(std::span<double> x) {
 
 //--- span_exercise.cpp
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <iostream>
 
 // Fake host C++ signature that matches.

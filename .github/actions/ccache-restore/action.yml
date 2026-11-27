@@ -70,6 +70,10 @@ runs:
         if [ -n "$pr_number" ]; then
           tags+=("${cache_key}-pr-${pr_number}")
         fi
+        # A refresh_ccache dispatch saves under its own branch tag, so read it back.
+        if [ "${{ github.event.inputs.refresh_ccache }}" = "true" ]; then
+          tags+=("${cache_key}-$(echo "${{ github.ref_name }}" | tr '/' '-')")
+        fi
         if [ -n "$base_branch" ] && [ "$base_branch" != "main" ]; then
           tags+=("${cache_key}-${base_branch}")
         fi

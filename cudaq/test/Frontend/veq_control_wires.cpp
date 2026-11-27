@@ -12,7 +12,7 @@
 // RUN: cudaq-quake %s | cudaq-opt --expand-control-veqs --memtoreg=quantum=0 --canonicalize --cc-loop-normalize --expand-measurements --cc-loop-unroll=unroll-only-aliasing-quantum-access-loops=true --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct veq_control {
   void operator()() __qpu__ {
@@ -42,7 +42,7 @@ struct veq_control {
 // CHECK-NOT:       {{quake\.alloca|!quake\.veq|!quake\.ref}}
 // CHECK:           %[[X_0:.*]]:4 = quake.x {{\[}}%[[BORROW_WIRE_0]], %[[BORROW_WIRE_1]], %[[BORROW_WIRE_2]]] %[[BORROW_WIRE_3]] : (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire)
 // CHECK-NOT:       {{quake\.alloca|!quake\.veq|!quake\.ref}}
-// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[X_0]]#3 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[X_0]]#3 : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK-NOT:       {{quake\.alloca|!quake\.veq|!quake\.ref}}
 // CHECK:           quake.return_wire %[[X_0]]#0 : !quake.wire
 // CHECK-NOT:       {{quake\.alloca|!quake\.veq|!quake\.ref}}

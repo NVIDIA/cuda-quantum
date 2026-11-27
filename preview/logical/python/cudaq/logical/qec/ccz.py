@@ -334,8 +334,8 @@ def compiler(
     provider.__name__ = name or f"{code_or_encoding.name}_ccz_state_compiler"
     return QECLowering(
         provider,
-        objective_family="resource_action",
-        objective=std.ccz,
+        action_family="resource_action",
+        action=std.ccz,
         codes=(code_or_encoding,),
         # The selected stream producer and transfer protocols are serialized
         # by P1 and are the dependency closure.  Do not substitute a builtin

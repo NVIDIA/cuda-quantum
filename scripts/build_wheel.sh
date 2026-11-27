@@ -444,6 +444,14 @@ if [ "$platform" = "Darwin" ]; then
             done
             # The separate core wheel is not inside delocate's frontend staging tree.
             export DYLD_LIBRARY_PATH="$(pwd)/_skbuild/lib:$(pwd)/_skbuild/python/cudaq/mlir/_mlir_libs${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+            # GMP and MPFR are installed into core, not the native build's lib
+            # directory. Delocate must resolve them before applying exclusions.
+            for dependency in GMP MPFR; do
+                library_path=$(sed -n "s/^${dependency}_LIBRARY:FILEPATH=//p" _skbuild/CMakeCache.txt)
+                if [ -n "$library_path" ]; then
+                    export DYLD_LIBRARY_PATH="${library_path%/*}${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+                fi
+            done
         fi
         # Resolve frontend's @rpath/libomp.dylib during repair. The exclusion
         # preserves that reference; installed wheels find core's bundled copy.
@@ -500,6 +508,7 @@ else
     mkdir -p "$auditwheel_tmp"
     auditwheel_args="repair $wheel_file -w $auditwheel_tmp"
     auditwheel_args="$auditwheel_args --exclude libcustatevec.so.1"
+    auditwheel_args="$auditwheel_args --exclude libcustabilizer.so.0"
     auditwheel_args="$auditwheel_args --exclude libcutensornet.so.2"
     auditwheel_args="$auditwheel_args --exclude libcudensitymat.so.0"
     auditwheel_args="$auditwheel_args --exclude libcublas.so.$cuda_major"

@@ -4,14 +4,13 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Conversion/Passes.h"
 #include "qlx/Dialect/Cflow/IR/CflowOps.h"
 #include "qlx/Dialect/LVM/IR/LVMOps.h"
 #include "qlx/Dialect/LVM/IR/LVMTypes.h"
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
-
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringSet.h"
@@ -26,7 +25,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Parser/Parser.h"
-
+#include <cstdint>
 #include <limits>
 #include <set>
 
@@ -46,7 +45,7 @@ static std::string sha256(StringRef text) {
   std::string result = "sha256:";
   llvm::raw_string_ostream stream(result);
   static constexpr char hex[] = "0123456789abcdef";
-  for (uint8_t byte : bytes)
+  for (std::uint8_t byte : bytes)
     stream << hex[byte >> 4] << hex[byte & 0xf];
   return result;
 }
@@ -74,16 +73,16 @@ public:
 private:
   struct SpaceState {
     qlx::lvm::SpaceOp op;
-    std::optional<int64_t> capacity;
-    std::set<int64_t> occupied;
-    std::set<int64_t> recycled;
-    int64_t nextUnused = 0;
+    std::optional<std::int64_t> capacity;
+    std::set<std::int64_t> occupied;
+    std::set<std::int64_t> recycled;
+    std::int64_t nextUnused = 0;
     bool compatible = false;
   };
 
   struct Allocation {
     unsigned space = 0;
-    int64_t slot = 0;
+    std::int64_t slot = 0;
     SymbolRefAttr reference;
   };
 
@@ -100,15 +99,16 @@ private:
   struct BindingRecord {
     std::string source;
     std::string space;
-    int64_t slot;
+    std::int64_t slot;
   };
   SmallVector<BindingRecord> bindingRecords;
   llvm::StringSet<> requiredCapabilities;
-  int64_t nextSite = 0;
+  std::int64_t nextSite = 0;
 
   LogicalResult indexSpaces() {
     for (auto space : domain.getBody().getOps<qlx::lvm::SpaceOp>()) {
-      SpaceState state{space};
+      SpaceState state;
+      state.op = space;
       if (auto capacity = space.getCapacityAttr())
         state.capacity = capacity.getInt();
       spaces.push_back(state);
@@ -138,8 +138,8 @@ private:
   /// Take the lowest available slot without rescanning the occupied prefix.
   /// Virgin slots form a monotonic frontier; released slots are kept ordered.
   /// Allocation is therefore O(log n), rather than O(n) per live owner.
-  FailureOr<int64_t> takeSlot(SpaceState &space) {
-    int64_t slot = 0;
+  FailureOr<std::int64_t> takeSlot(SpaceState &space) {
+    std::int64_t slot = 0;
     if (!space.recycled.empty()) {
       auto first = space.recycled.begin();
       slot = *first;
@@ -328,11 +328,12 @@ private:
     auto allocation = allocationOf(value);
     if (failed(allocation))
       return emitError(value.getLoc(),
-                       "native placement cannot release logical owner");
+                       "native placement cannot release logical-qubit value");
     SpaceState &space = spaces[allocation->space];
     if (!space.occupied.erase(allocation->slot))
-      return emitError(value.getLoc(),
-                       "native placement detected a non-live logical owner");
+      return emitError(
+          value.getLoc(),
+          "native placement detected a non-live logical-qubit value");
     if (!space.recycled.insert(allocation->slot).second)
       return emitError(value.getLoc(),
                        "native placement recycled a logical slot twice");
@@ -751,7 +752,7 @@ private:
               initial->slot != loopBack->slot)
             return repeat.emitOpError(
                 "native placement requires each repeat yield to preserve "
-                "its carried owner's exact logical slot");
+                "its carried qubit's exact logical slot");
           resultAllocations[quantumIndex++] = *loopBack;
         }
       }

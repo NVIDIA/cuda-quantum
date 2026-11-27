@@ -572,4 +572,20 @@ TEST_F(FullDecompositionPatternSelectionTest,
   EXPECT_EQ(tPattern->getDisabledControlCounts(), llvm::ArrayRef(expT));
 }
 
+// `canDecomposeTo` answers from the registered patterns, so the Clifford+T
+// synthesis pipeline agrees with `basis-conversion` on whether a basis
+// expresses a gate exactly.
+TEST(DecompositionPatternSelectionTest, CanDecomposeToUsesRegisteredPatterns) {
+  using cudaq::canDecomposeTo;
+  EXPECT_TRUE(canDecomposeTo("rz", {"rz"}));
+  EXPECT_TRUE(canDecomposeTo("rx", {"h", "rz"}));
+  EXPECT_TRUE(canDecomposeTo("r1", {"u3(n)"}));
+  EXPECT_TRUE(canDecomposeTo("r1", {"u3"}));
+  EXPECT_FALSE(canDecomposeTo("r1(1)", {"u3"}));
+  EXPECT_TRUE(canDecomposeTo("rx", {"u3"}));
+  EXPECT_TRUE(canDecomposeTo("ry(2)", {"u3(n)"}));
+  EXPECT_FALSE(canDecomposeTo("rz", {"h", "s", "t"}));
+  EXPECT_FALSE(canDecomposeTo("rx", {"rz", "x"}));
+}
+
 } // namespace

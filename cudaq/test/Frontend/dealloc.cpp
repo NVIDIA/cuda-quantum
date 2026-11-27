@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake --no-simplify %s | cudaq-opt --add-dealloc | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void magic_func(int N) {
   {

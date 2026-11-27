@@ -1,0 +1,26 @@
+# This name is matched by .github/nv-slack-bot.yaml to trigger a Slack
+# alert on failure (workflow_run.name) -- update the matcher there too
+# if you rename this workflow.
+name: Check links
+
+# Run on request and every day at 3 AM UTC
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: 0 3 * * *
+
+jobs:
+  # Run a daily check of all links in the docs to find any newly broken links
+  links:
+    runs-on: ubuntu-latest
+    name: "Check links"
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Check links in Markdown files
+        uses: ./.github/actions/check-markdown-links

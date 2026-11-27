@@ -232,22 +232,116 @@ def _candidate_code(candidate) -> tuple[Code, Encoding]:
 
 
 def _matches_objective(lowering: QECLowering, site: ActionSiteHandle) -> bool:
+    return _matches_objective_name(lowering, site.kind, site.objective_family,
+                                   site.objective)
+
+
+def _matches_objective_name(lowering, kind, family, objective) -> bool:
     if lowering.objective_family not in {
-            site.objective_family,
-            site.kind,
+            family,
+            kind,
             "any",
     }:
         return False
-    objective = lowering.objective
-    if objective is None:
+    declared = lowering.objective
+    if declared is None:
         return True
-    if isinstance(objective, (LogicalActionRef, LogicalInstrumentRef)):
-        expected = objective.name
-    elif isinstance(objective, ProgramDefinition):
-        expected = objective.name.removeprefix("qlx_standard_")
+    if isinstance(declared, (LogicalActionRef, LogicalInstrumentRef)):
+        expected = declared.name
+    elif isinstance(declared, ProgramDefinition):
+        expected = declared.name.removeprefix("qlx_standard_")
     else:
-        expected = getattr(objective, "name", str(objective))
-    return site.objective == expected
+        expected = getattr(declared, "name", str(declared))
+    return objective == expected
+
+
+class _ObjectiveCoverage:
+    """Which objectives the linked QEC definitions can implement."""
+
+    def __init__(self, definitions):
+        self.fixed_objectives = set()
+        self.lowerings = []
+        self.covered = {}
+        for candidate in definitions:
+            if isinstance(candidate, QECLowering):
+                self.lowerings.append(candidate)
+            elif isinstance(candidate, (GadgetDefinition, ProtocolDefinition)):
+                objective = candidate.implements
+                if isinstance(objective,
+                              (LogicalActionRef, LogicalInstrumentRef)):
+                    self.fixed_objectives.add(objective.name)
+                elif isinstance(objective, ProgramDefinition):
+                    self.fixed_objectives.add(
+                        objective.name.removeprefix("qlx_standard_"))
+
+    def covers(self, kind, objective):
+        key = (kind, objective)
+        covered = self.covered.get(key)
+        if covered is None:
+            covered = self.covered[key] = (
+                objective in self.fixed_objectives or
+                (kind == "action" and objective in {"x", "z"}) or objective
+                in {"prepare_zero", "prepare_plus", "measure_x", "measure_z"} or
+                any(
+                    _matches_objective_name(lowering, kind,
+                                            _objective_family(kind, objective),
+                                            objective)
+                    for lowering in self.lowerings))
+        return covered
+
+    def require(self, root, site):
+        """Raise for the first site under `root` whose objective is missing.
+
+        `site(operation)` returns `(kind, objective)` or None.
+        """
+        missing = None
+
+        def visit(operation):
+            nonlocal missing
+            found = site(operation)
+            if found is not None and not self.covers(*found):
+                missing = found[1]
+                return mlir_ir.WalkResult.INTERRUPT
+            return mlir_ir.WalkResult.ADVANCE
+
+        root.walk(visit, mlir_ir.WalkOrder.PRE_ORDER)
+        if missing is not None:
+            raise ValueError(f"no feasible P2 implementation for {missing}")
+
+
+def _check_p0_qec_coverage(source, device):
+    """Reject P0 actions with no QEC implementation, before placement."""
+
+    linked = discover_linked_definitions(source.source_modules, device)
+    coverage = _ObjectiveCoverage(linked.definitions)
+    # Read the Build's own module. Cloning it would be too slow.
+    programs = {
+        _text(view.operation.attributes["sym_name"]): view.operation
+        for view in source._module.body.operations
+        if view.operation.name == "qlx.program"
+    }
+    objectives = {}
+    # Follow qlx.call into helpers, as estimate/logical.py does.
+    pending = [source.root.symbol]
+    seen = set(pending)
+
+    def site(operation):
+        if operation.name == "qlx.call":
+            callee = _symbol(operation.attributes["callee"])
+            if callee not in seen:
+                seen.add(callee)
+                pending.append(callee)
+            return None
+        if operation.name != "qlx.apply":
+            return None
+        attribute = operation.attributes["action"]
+        objective = objectives.get(attribute)
+        if objective is None:
+            objective = objectives[attribute] = _objective(attribute)
+        return "action", objective
+
+    while pending:
+        coverage.require(programs[pending.pop()], site)
 
 
 def _flatten_annotation(annotation):
@@ -292,7 +386,8 @@ def _matches_fixed(candidate, site: ActionSiteHandle, operation,
 
     # High-rate blocks may realize an objective over several placed logical
     # values. The Python boundary owns one patch per distinct block, while P1
-    # still has one value per logical port.
+    # still has one value per logical port. This covers both a same-block
+    # objective and multi-block gadgets such as paired_cx.
     parameter_annotations = [
         hints.get(name, parameter.annotation)
         for name, parameter in candidate.signature.parameters.items()
@@ -1025,6 +1120,7 @@ class _P1ToP2:
     def _prepare_selection(self):
         if self._selection_prepared:
             return
+        self._check_objective_coverage()
         unsupported_bindings = tuple(
             binding for binding in self.source.placement.bindings
             if binding.binding_kind not in
@@ -1123,6 +1219,25 @@ class _P1ToP2:
             self.device_handle = self.transaction.materialize(self.device)
         self._selection_prepared = True
 
+    def _check_objective_coverage(self):
+        """Fail fast on objectives with no QEC implementation."""
+
+        sites = {
+            "lvm.apply": ("action", "action"),
+            "lvm.consume_resource": ("resource_action", "action"),
+            "lvm.instrument": ("instrument", "instrument"),
+        }
+
+        def site(operation):
+            found = sites.get(operation.name)
+            if found is None:
+                return None
+            kind, attribute = found
+            return kind, self._objective_name(operation.attributes[attribute])
+
+        _ObjectiveCoverage(
+            (*self.fixed, *self.lowerings)).require(self.kernel.operation, site)
+
     def _finalize_qec_selection(self, *, action_filter=None):
         self._prepare_selection()
         blocks = list(self.qec_selection.blocks)
@@ -1189,6 +1304,11 @@ class _P1ToP2:
         self._prepare_selection()
         self._prepare_network_regions()
         self._emit_protocol()
+        # Set each manifest's dependencies once, after all artifacts exist.
+        for symbol, (dependencies, _) in self.manifest_dependencies.items():
+            manifest = self.transaction.find_symbol(symbol, "qlx.qec_lowering")
+            manifest.attributes["dependencies"] = mlir_ir.ArrayAttr.get(
+                dependencies, context=self.context)
         self.transaction.add_profile("p2n")
         self.qec_selection = self._finalize_qec_selection()
         if self.network_request is not None:
@@ -1204,6 +1324,8 @@ class _P1ToP2:
             "qec_selection_sha256": _qec_selection_sha256(self.qec_selection),
         }
         if self.network_plan is not None:
+            from ..qec import lattice_surgery
+
             lowering = next(
                 selected.selected
                 for selected in self.selected_sites.values()
@@ -1225,6 +1347,13 @@ class _P1ToP2:
                 "required_projector_pipeline_sha256":
                     (self.network_plan.required_projector_pipeline_sha256),
             })
+            replay_validator = lattice_surgery._replay_validator_identity(
+                self.network_compiler)
+            if replay_validator is None:
+                raise ValueError(
+                    "network P2 compilation requires an importable provider "
+                    "replay validator")
+            metadata_values["network_replay_validator"] = replay_validator
         self.protocol.attributes["metadata"] = _dictionary(
             self.context,
             metadata_values,
@@ -1277,6 +1406,11 @@ class _P1ToP2:
             for name in epoch.actions
         }
         for action in self.network_request.actions:
+            # A patch-graph interaction is a relation between patches.  Scalar
+            # readout still belongs to the network plan and protocol, but it
+            # is not an edge (or hyperedge) in this placement witness.
+            if len(action.site.placements) < 2:
+                continue
             epoch = epoch_by_action[action.site.symbol]
             interactions.append(
                 mlir_ir.DictAttr.get(
@@ -1415,10 +1549,6 @@ class _P1ToP2:
         placements = tuple(
             dict.fromkeys(value.placement for value in region.live_inputs))
         block_keys = tuple(self._block_key(value) for value in placements)
-        if len(set(block_keys)) != len(block_keys):
-            raise NotImplementedError(
-                "network-region emission for several logical ports packed in "
-                "one encoded block is not yet supported")
         encodings = {}
         for placement in placements:
             binding = self.binding_by_name.get(placement)
@@ -1437,9 +1567,8 @@ class _P1ToP2:
         )
         self.network_compiler.emit_region(plan, output)
         emissions = output._take_emissions()
-        live_by_placement = {}
-        for placement in placements:
-            block = self._block_key(placement)
+        live_by_block = {}
+        for placement, block in zip(placements, block_keys):
             value = self.block_state.get(block)
             if value is None:
                 for operation in operations:
@@ -1454,23 +1583,29 @@ class _P1ToP2:
                 raise ValueError(
                     f"network region has no live patch for placement {placement!r}"
                 )
-            live_by_placement[placement] = value
+            previous = live_by_block.setdefault(block, value)
+            if previous is not value:
+                raise ValueError(
+                    "packed network owners do not share one live block value")
 
         record_results = {}
         for epoch, protocol, emitted_placements, emitted_actions in emissions:
+            emitted_blocks = tuple(
+                dict.fromkeys(
+                    self._block_key(value) for value in emitted_placements))
             handle = self.transaction.materialize(protocol)
             inputs, results, _ = self.transaction.signature_of(protocol)
-            if len(inputs) != len(emitted_placements):
+            if len(inputs) != len(emitted_blocks):
                 raise ValueError(
                     "network epoch protocol input arity differs from its patches"
                 )
-            if len(results) != len(emitted_placements) + len(emitted_actions):
+            if len(results) != len(emitted_blocks) + len(emitted_actions):
                 raise ValueError(
                     "network epoch protocol must return every live patch followed "
                     "by one record per action")
             live_values = []
-            for placement, expected in zip(emitted_placements, inputs):
-                value = live_by_placement[placement]
+            for block, expected in zip(emitted_blocks, inputs):
+                value = live_by_block[block]
                 if value.type != expected:
                     raise ValueError(
                         "network epoch protocol patch type differs from its owner"
@@ -1494,16 +1629,16 @@ class _P1ToP2:
                                                context=self.context),
                 },
             )
-            for placement, result in zip(
-                    emitted_placements,
-                    tuple(call.results)[:len(emitted_placements)],
+            for block, result in zip(
+                    emitted_blocks,
+                    tuple(call.results)[:len(emitted_blocks)],
             ):
-                live_by_placement[placement] = result
-                self.block_state[self._block_key(placement)] = result
+                live_by_block[block] = result
+                self.block_state[block] = result
             record_results.update({
                 action: result for action, result in zip(
                     emitted_actions,
-                    tuple(call.results)[len(emitted_placements):],
+                    tuple(call.results)[len(emitted_blocks):],
                 )
             })
         for operation in operations:
@@ -1512,8 +1647,8 @@ class _P1ToP2:
             for result in operation.results:
                 binding = self._binding_for_value(result)
                 if binding is not None:
-                    self.value_map[result] = live_by_placement[
-                        binding.placement]
+                    self.value_map[result] = live_by_block[self._block_key(
+                        binding.placement)]
                 else:
                     self.value_map[result] = record_results[
                         selected.handle.symbol]
@@ -2309,7 +2444,13 @@ class _P1ToP2:
             # cost/evidence uniformly after dynamic specialization.
             feasible = (*fixed, *generated)
             if not feasible:
-                continue
+                # These can still get an encoding-derived fallback later.
+                if (operation.name in {"lvm.prepare", "lvm.measure"} or
+                    (operation.name == "lvm.apply" and
+                     handle.objective in {"x", "z"})):
+                    continue
+                raise ValueError(
+                    f"no feasible P2 implementation for {handle.objective}")
             selected = feasible[0]
             self.selected_sites[handle.symbol] = _SelectedSite(
                 operation, handle, feasible, selected)
@@ -3390,11 +3531,6 @@ class _P1ToP2:
                 dependencies.append(
                     mlir_ir.FlatSymbolRefAttr.get(handle.symbol,
                                                   context=self.context))
-                manifest_operation.attributes["dependencies"] = (
-                    mlir_ir.ArrayAttr.get(
-                        dependencies,
-                        context=self.context,
-                    ))
         inputs, results, _ = self.transaction.signature_of(generated)
         blocks = {
             self._block_key(placement)
@@ -4366,10 +4502,6 @@ def _network_request(source, *, device, selection, policy=None):
             ) from exc
         blocks = tuple(block for block, _owner in bindings)
         owners = tuple(owner for _block, owner in bindings)
-        if len(set(blocks)) != len(blocks):
-            raise NotImplementedError(
-                "one network action cannot address multiple logical ports of "
-                "the same encoded block")
         actions.append(
             lattice_surgery.QECNetworkAction(
                 site=selected.handle,
@@ -4416,6 +4548,11 @@ def _network_request(source, *, device, selection, policy=None):
         architecture_digest,
         what=f"network compiler {selection.compiler.key!r} architecture digest",
     )
+    provider_policy = {
+        key: value
+        for key, value in dict(policy or {}).items()
+        if key != "qec_blocks"
+    }
     return lattice_surgery.QECNetworkRequest(
         source_sha256=_qec_network_source_sha256(
             source.module,
@@ -4430,7 +4567,7 @@ def _network_request(source, *, device, selection, policy=None):
         resources=tuple(resources),
         channel_ports=ports,
         channels=channels,
-        policy=dict(policy or {}),
+        policy=provider_policy,
     )
 
 
@@ -4479,6 +4616,8 @@ def lower_qec(source,
                 ("" if not details else f": {details}"))
         plan = network.compiler.plan_network(request, context)
         lattice_surgery.validate_network_plan(request, plan)
+        lattice_surgery.validate_provider_plan_artifact(network.compiler,
+                                                        request, plan)
         compiler = _P1ToP2(
             source,
             device,

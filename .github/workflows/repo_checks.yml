@@ -67,7 +67,7 @@ jobs:
       - name: Run formatting checks
         run: |
           # TODO: Enable end-of-file-fixer, trailing-whitespace, mixed-line-ending when enabled in .pre-commit-config.yaml
-          HOOKS="clang-format yapf markdownlint check-added-large-files check-case-conflict check-merge-conflict check-symlinks check-yaml check-toml check-json"
+          HOOKS="clang-format yapf markdownlint check-added-large-files check-case-conflict check-merge-conflict check-symlinks check-yaml check-toml check-json notebook-execution-counts"
           EXIT_CODE=0
           for hook in $HOOKS; do
             echo "::group::Running hook: $hook"

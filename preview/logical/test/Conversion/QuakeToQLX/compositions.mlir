@@ -59,9 +59,9 @@ module {
           : !quake.wire, !quake.wire, !quake.wire, !quake.wire, i32
     }
     %measurement, %measured_flag = quake.mz %flag_h
-        : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+        : (!quake.wire) -> (!quake.measure, !quake.wire)
     %condition = quake.discriminate %measurement
-        : (!cc.measure_handle) -> i1
+        : (!quake.measure) -> i1
     %corrected:4 = cc.if (%condition)
         ((%q0 = %rounds#0, %q1 = %rounds#1,
           %q2 = %rounds#2, %q3 = %rounds#3))
@@ -135,9 +135,9 @@ module {
     %q2 = quake.null_wire
     %q3 = quake.null_wire
     %measurement, %measured_wire = quake.mz %condition_qubit
-        : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+        : (!quake.wire) -> (!quake.measure, !quake.wire)
     %condition = quake.discriminate %measurement
-        : (!cc.measure_handle) -> i1
+        : (!quake.measure) -> i1
     %selected:4 = cc.if (%condition)
         ((%a = %q0, %b = %q1, %c = %q2, %d = %q3))
         -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire) {

@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Gadget definitions, profiles, and reusable factories."""
+"""Gadget definitions, contracts, and reusable factories."""
 
 from cudaq.logical._core.lazy import public_dir as _public_dir, resolve as _resolve
 
@@ -32,6 +32,9 @@ _RECORD_NAMES = (
 _SEMANTIC_NAMES = (
     "CommitPoint",
     "CommitPointKind",
+    "Detector",
+    "LogicalObservable",
+    "ProfileSemanticError",
     "OutcomeRole",
     "OutcomeMap",
     "OutcomeSyndromeTerm",
@@ -44,7 +47,7 @@ _SEMANTIC_NAMES = (
     "before_resource_output",
 )
 _SPECIFICATION_NAMES = ("GadgetSpec", "Port")
-_PROFILE_NAMES = ("GadgetProfile", "ProfileGraph")
+_CONTRACT_NAMES = ("GadgetContract", "GadgetContractBuilder")
 _DEFINITION_NAMES = ("GadgetDefinition", "gadget")
 _FACTORY_NAMES = (
     "css_memory_round",
@@ -55,6 +58,14 @@ _FACTORY_NAMES = (
     "prepare_plus",
     "prepare_zero",
     "stabilizer_preparation",
+)
+
+_VERIFICATION_NAMES = (
+    "ContractVerification",
+    "GadgetVerificationReceipt",
+    "LogicalActionVerification",
+    "VerificationFailure",
+    "verify_gadget",
 )
 
 _EXPORTS = {
@@ -71,7 +82,7 @@ _EXPORTS = {
         name: f"cudaq.logical.gadgets.specification:{name}" for name in _SPECIFICATION_NAMES
     },
     **{
-        name: f"cudaq.logical.gadgets.profiles:{name}" for name in _PROFILE_NAMES
+        name: f"cudaq.logical.gadgets.contracts:{name}" for name in _CONTRACT_NAMES
     },
     **{
         name: f"cudaq.logical.gadgets.definition:{name}" for name in _DEFINITION_NAMES
@@ -79,10 +90,13 @@ _EXPORTS = {
     **{
         name: f"cudaq.logical.gadgets.factories:{name}" for name in _FACTORY_NAMES
     },
+    **{
+        name: f"cudaq.logical.gadgets.verification:{name}" for name in _VERIFICATION_NAMES
+    },
     "GadgetBuilder":
         "cudaq.logical.gadgets.builder:GadgetBuilder",
-    "GadgetProfileBuilder":
-        "cudaq.logical.gadgets.profile_builder:GadgetProfileBuilder",
+    "GadgetContractLowerer":
+        "cudaq.logical.gadgets.contract_lowerer:GadgetContractLowerer",
     "clifford_action":
         "cudaq.logical.gadgets.analysis:clifford_action",
     "accept_all":

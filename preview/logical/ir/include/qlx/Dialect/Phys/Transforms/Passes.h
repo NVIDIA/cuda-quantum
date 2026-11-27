@@ -1,23 +1,20 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 //===- Passes.h - Phys transform passes ------------------------*- C++ -*-===//
 
-#ifndef QLX_DIALECT_PHYS_TRANSFORMS_PASSES_H
-#define QLX_DIALECT_PHYS_TRANSFORMS_PASSES_H
+#pragma once
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
 
 #include "qlx/Dialect/Phys/Transforms/ScheduleModel.h"
-
 #include "llvm/ADT/StringRef.h"
-
 #include <string>
 
 namespace qlx::phys {
@@ -68,5 +65,3 @@ mlir::FailureOr<std::string> scheduleVerifiedAndEstimateJSON(
 #include "qlx/Dialect/Phys/Transforms/Passes.h.inc"
 
 } // namespace qlx::phys
-
-#endif // QLX_DIALECT_PHYS_TRANSFORMS_PASSES_H

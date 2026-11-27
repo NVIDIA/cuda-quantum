@@ -70,7 +70,8 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
   platform.set_noise(&noiseModel);
 
   auto fnOp = getKernelFuncOp(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, runtimeArgs, fnOp, launchSpecializesArguments(/*qpuId=*/0));
 
   ptsbe::sample_result result;
   try {
@@ -138,7 +139,8 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
   auto &platform = get_platform();
 
   auto fnOp = getKernelFuncOp(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, runtimeArgs, fnOp, launchSpecializesArguments(/*qpuId=*/0));
 
   std::string kernelName = shortName;
 

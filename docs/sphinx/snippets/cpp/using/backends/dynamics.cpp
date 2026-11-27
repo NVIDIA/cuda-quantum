@@ -16,6 +16,7 @@
 #include "cudaq/operators.h"
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <cudaq.h>
 #include <iostream>
 #include <vector>
@@ -85,11 +86,11 @@ int main() {
     // Extract and print results
     for (size_t i = 0; i < steps.size(); i++) {
       double ex =
-          evolution_result.expectation_values.value()[0][i].expectation();
+          evolution_result.expectation_values.value()[i][0].expectation();
       double ey =
-          evolution_result.expectation_values.value()[1][i].expectation();
+          evolution_result.expectation_values.value()[i][1].expectation();
       double ez =
-          evolution_result.expectation_values.value()[2][i].expectation();
+          evolution_result.expectation_values.value()[i][2].expectation();
       std::cout << steps[i] << " " << ex << " " << ey << " " << ez << "\n";
     }
     // [End Print]
@@ -130,7 +131,7 @@ int main() {
   {
     // [Begin DefineOp]
     auto displacement_matrix =
-        [](const std::vector<int64_t> &dimensions,
+        [](const std::vector<std::int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>>
                &parameters) -> cudaq::complex_matrix {
       // Returns the displacement operator matrix.

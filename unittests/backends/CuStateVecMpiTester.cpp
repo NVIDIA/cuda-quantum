@@ -11,6 +11,7 @@
 #include "cudaq/distributed/mpi_plugin.h"
 #include "cudaq/ptsbe/PTSBESamplerImpl.h"
 #include <cmath>
+#include <cstdint>
 #include <execution>
 #include <gtest/gtest.h>
 #include <memory>
@@ -55,6 +56,22 @@ public:
   std::shared_ptr<cudaq::cusv::CuStateVecCommunicator> activeCommunicator() {
     return state().communicator();
   }
+
+  void configureMemoryLimits(std::int32_t gpuGb = 1, std::int32_t cpuGb = 0) {
+    this->Base::m_config.maxGpuMemoryGb = gpuGb;
+    this->Base::m_config.maxCpuMemoryGb = cpuGb;
+    this->Base::m_config.mgpuQubitThreshold = 2;
+  }
+
+  std::size_t maximumDistributedWires() const {
+    const std::int32_t localWires = Base::maximumDeviceWires();
+    return localWires + Base::maximumMigrationWires(localWires) +
+           std::countr_zero(static_cast<unsigned>(cudaq::mpi::num_ranks()));
+  }
+
+  const cudaq::cusv::CuStateVecState<cudaq::real> *materializedState() const {
+    return this->Base::m_state ? &*this->Base::m_state : nullptr;
+  }
 };
 
 class NoHostTransferState
@@ -89,13 +106,13 @@ int allreduceCalls = 0;
 int allreduceInPlaceCalls = 0;
 
 int spyAllreduce(const cudaqDistributedCommunicator_t *, const void *, void *,
-                 int32_t, DataType, ReduceOp) {
+                 std::int32_t, DataType, ReduceOp) {
   ++allreduceCalls;
   return 0;
 }
 
-int spyAllreduceInPlace(const cudaqDistributedCommunicator_t *, void *, int32_t,
-                        DataType, ReduceOp) {
+int spyAllreduceInPlace(const cudaqDistributedCommunicator_t *, void *,
+                        std::int32_t, DataType, ReduceOp) {
   ++allreduceInPlaceCalls;
   return 0;
 }
@@ -106,12 +123,12 @@ constexpr auto simulationPrecision = std::is_same_v<cudaq::real, float>
 constexpr double tolerance = std::is_same_v<cudaq::real, float> ? 1e-6 : 1e-9;
 
 int minimumVisibleGpuCount() {
-  int32_t localCount = 0;
+  std::int32_t localCount = 0;
   if (cudaGetDeviceCount(&localCount) != cudaSuccess) {
     cudaGetLastError();
     localCount = 0;
   }
-  int32_t minimumCount = 0;
+  std::int32_t minimumCount = 0;
   auto *const plugin = cudaq::mpi::getMpiPlugin();
   if (plugin->get()->Allreduce(plugin->getComm(), &localCount, &minimumCount, 1,
                                INT_32, MIN) != 0)
@@ -199,6 +216,114 @@ TEST(MGpuTesterMultiProcesses, BasicCheck) {
   EXPECT_LE(nQubitsMGPUThreshold, 10);
 }
 
+namespace {
+void expectCapacityError(CuStateVecMpiCircuitSimulatorTester &simulator) {
+  try {
+    simulator.synchronize();
+    FAIL() << "An oversized allocation should fail.";
+  } catch (const std::runtime_error &error) {
+    EXPECT_STREQ(error.what(),
+                 "State vector exceeds configured GPU and CPU memory.");
+  }
+}
+} // namespace
+
+TEST(MGpuCapacityTest, RejectsInitialAllocationBeforeCreatingState) {
+  ASSERT_GT(cudaq::mpi::num_ranks(), 1);
+  CuStateVecMpiCircuitSimulatorTester simulator;
+  simulator.configureMemoryLimits();
+  simulator.allocateQubits(simulator.maximumDistributedWires() + 1);
+  expectCapacityError(simulator);
+  EXPECT_EQ(simulator.materializedState(), nullptr);
+}
+
+TEST(MGpuCapacityTest, IncludesConfiguredHostCapacity) {
+  ASSERT_GT(cudaq::mpi::num_ranks(), 1);
+  CuStateVecMpiCircuitSimulatorTester simulator;
+  simulator.configureMemoryLimits();
+  const auto deviceCapacity = simulator.maximumDistributedWires();
+  simulator.configureMemoryLimits(1, 8);
+  const auto totalCapacity = simulator.maximumDistributedWires();
+  // Skip collectively so no peer enters the capacity check alone.
+  const std::int32_t hasHostCapacity = totalCapacity > deviceCapacity;
+  std::int32_t allRanksHaveHostCapacity = 0;
+  auto *const plugin = cudaq::mpi::getMpiPlugin();
+  ASSERT_EQ(plugin->get()->Allreduce(plugin->getComm(), &hasHostCapacity,
+                                     &allRanksHaveHostCapacity, 1, INT_32, MIN),
+            0);
+  if (!allRanksHaveHostCapacity)
+    GTEST_SKIP()
+        << "This regression requires available host migration capacity "
+           "on every rank.";
+  simulator.allocateQubits(totalCapacity + 2);
+  expectCapacityError(simulator);
+  EXPECT_EQ(simulator.materializedState(), nullptr);
+}
+
+TEST(MGpuCapacityTest, RejectsPromotionBeforeReplacingReplicatedState) {
+  ASSERT_GT(cudaq::mpi::num_ranks(), 1);
+  CuStateVecMpiCircuitSimulatorTester simulator;
+  simulator.configureMemoryLimits();
+  const std::vector<cudaq::complex> plusState{cudaq::complex{M_SQRT1_2, 0.0},
+                                              cudaq::complex{M_SQRT1_2, 0.0}};
+  simulator.allocateQubits(1, plusState.data(), simulationPrecision);
+  simulator.synchronize();
+  const auto *const original = simulator.materializedState();
+  ASSERT_NE(original, nullptr);
+  ASSERT_EQ(original->distributionType(),
+            CUSTATEVEC_EX_SV_DISTRIBUTION_SINGLE_DEVICE);
+
+  simulator.allocateQubits(simulator.maximumDistributedWires());
+  expectCapacityError(simulator);
+  EXPECT_EQ(simulator.materializedState(), original);
+  EXPECT_EQ(original->numWires(), 1);
+  std::complex<cudaq::real> amplitudes[2];
+  original->getState(amplitudes, 0, 2);
+  original->synchronize();
+  EXPECT_NEAR(std::abs(amplitudes[0]), M_SQRT1_2, tolerance);
+  EXPECT_NEAR(std::abs(amplitudes[1]), M_SQRT1_2, tolerance);
+}
+
+TEST(MGpuCapacityTest, RejectsGrowthBeforeResizingDistributedState) {
+  ASSERT_GT(cudaq::mpi::num_ranks(), 1);
+  CuStateVecMpiCircuitSimulatorTester simulator;
+  simulator.configureMemoryLimits();
+  simulator.allocateQubits(2);
+  simulator.synchronize();
+  const auto *const original = simulator.materializedState();
+  ASSERT_NE(original, nullptr);
+  ASSERT_EQ(original->numWires(), 2);
+
+  simulator.allocateQubits(simulator.maximumDistributedWires() - 1);
+  expectCapacityError(simulator);
+  EXPECT_EQ(simulator.materializedState(), original);
+  EXPECT_EQ(original->numWires(), 2);
+}
+
+TEST(MGpuCapacityTest, RejectsOnEveryRankWhenOneRankHasInsufficientCapacity) {
+  ASSERT_GT(cudaq::mpi::num_ranks(), 1);
+  CuStateVecMpiCircuitSimulatorTester simulator;
+  simulator.configureMemoryLimits();
+  const auto requestedWires = simulator.maximumDistributedWires() + 1;
+  if (cudaq::mpi::rank() != 0)
+    simulator.configureMemoryLimits(2);
+  simulator.allocateQubits(requestedWires);
+  expectCapacityError(simulator);
+  EXPECT_EQ(simulator.materializedState(), nullptr);
+}
+
+TEST(MGpuCapacityTest, AcceptsAllocationAtCapacity) {
+  ASSERT_GT(cudaq::mpi::num_ranks(), 1);
+  CuStateVecMpiCircuitSimulatorTester simulator;
+  simulator.configureMemoryLimits();
+  const auto capacity = simulator.maximumDistributedWires();
+  const auto qubits = simulator.allocateQubits(capacity);
+  simulator.synchronize();
+  ASSERT_NE(simulator.materializedState(), nullptr);
+  EXPECT_EQ(simulator.materializedState()->numWires(), capacity);
+  simulator.deallocateQubits(qubits);
+}
+
 TEST(MGpuTesterMultiProcesses, GrowsSmallReplicatedStateAcrossThreshold) {
   if (minimumVisibleGpuCount() < 2)
     GTEST_SKIP() << "This regression requires two visible GPUs.";
@@ -263,7 +388,7 @@ TEST(MGpuTesterMultiProcesses, DistributedGpuRandomAdvancesEveryRank) {
   auto *const plugin = cudaq::mpi::getMpiPlugin();
   ASSERT_EQ(
       plugin->get()->Allreduce(plugin->getComm(), local.data(), minimum.data(),
-                               static_cast<int32_t>(count), FLOAT_64, MIN),
+                               static_cast<std::int32_t>(count), FLOAT_64, MIN),
       0);
   for (std::size_t index = 0; index < count; ++index)
     EXPECT_NEAR(local[index], minimum[index], 1e-12);
@@ -667,7 +792,7 @@ TEST(MGpuTesterMultiProcesses, ThresholdTransitionPreservesStateLayout) {
   const auto &descriptor = exState->state();
   EXPECT_EQ(descriptor.distributionType(),
             CUSTATEVEC_EX_SV_DISTRIBUTION_MULTI_PROCESS);
-  EXPECT_EQ(descriptor.numWires(), static_cast<int32_t>(threshold));
+  EXPECT_EQ(descriptor.numWires(), static_cast<std::int32_t>(threshold));
   EXPECT_EQ(descriptor.numLocalWires() + descriptor.numMigrationWires() + 1,
             descriptor.numWires());
   std::vector<cudaq::complex> actual(1ULL << threshold);
@@ -753,8 +878,8 @@ TEST(MGpuTesterMultiProcesses, AddQubitsInStateSingleToMultipleUpper) {
 
 TEST(MGpuTesterMultiProcesses, FailedCommunicatorRebindingRestoresDescriptor) {
   auto communicator = getSimulatorCommunicator();
-  const int32_t expectedSize = communicator->size();
-  const int32_t expectedRank = communicator->rank();
+  const std::int32_t expectedSize = communicator->size();
+  const std::int32_t expectedRank = communicator->rank();
   const auto communicatorSize = cudaq::mpi::getMpiPlugin()->getComm()->commSize;
 
   EXPECT_ANY_THROW(communicator->setCommunicator(nullptr, communicatorSize));
@@ -855,6 +980,7 @@ TEST(MGpuTesterMultiProcesses,
     GTEST_SKIP() << "This regression requires the CUDA-Q communicator.";
   auto *const plugin = cudaq::mpi::getMpiPlugin();
   auto *const distributed = plugin->get();
+  auto communicator = getSimulatorCommunicator();
   const auto originalAllreduce = distributed->Allreduce;
   const auto originalAllreduceInPlace = distributed->AllreduceInPlace;
   distributed->Allreduce = spyAllreduce;
@@ -863,7 +989,6 @@ TEST(MGpuTesterMultiProcesses,
   allreduceCalls = 0;
   allreduceInPlaceCalls = 0;
   {
-    auto communicator = getSimulatorCommunicator();
     double send = 1.0;
     double receive = 0.0;
     communicator->allReduce(&send, &receive, 1, CUDA_R_64F);

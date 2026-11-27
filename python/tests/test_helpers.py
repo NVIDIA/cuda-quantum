@@ -30,3 +30,22 @@ def h2_hamiltonian_4q():
     h += 0.174073 * (spin.z(2) * spin.z(3))
     h += -0.0454063 * (spin.x(0) * spin.x(1) * spin.y(2) * spin.y(3))
     return h
+
+
+def derive_compile_target(target_name, profile_type, **profile_options):
+    """
+    The compile target of `target_name` with `profile_options` set on the
+    output profile of its one stage of `profile_type`, derived as a user would
+    from `get_compile_target()`.
+    """
+    from cudaq._experimental import get_compile_target
+    cudaq.set_target(target_name)
+    target = get_compile_target()
+    [stage] = [
+        stage for stage in target.stages
+        if isinstance(stage.ir_output_profile, profile_type)
+    ]
+    profile = stage.ir_output_profile
+    for name, value in profile_options.items():
+        setattr(profile, name, value)
+    return target

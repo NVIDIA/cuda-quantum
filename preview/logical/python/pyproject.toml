@@ -8,7 +8,8 @@
 
 [project]
 name = "cudaq-logical"
-dynamic = ["version"]
+# CUDA-Q Logical versions independently of CUDA-Q. Bump here for a new release.
+version = "0.2.0"
 description = "Fault-tolerant logical resource estimation for CUDA-Q (cudaq.logical)."
 authors = [{name = "NVIDIA Corporation & Affiliates"}]
 maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
@@ -17,10 +18,10 @@ requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 dependencies = [
-  # The base package is runtime-agnostic: the CUDA-Q runtime arrives through
-  # the cu12/cu13 extras below, and the much larger CUDA-Q development SDK
-  # wheel is installed only in the isolated CI build environment. Neither may
-  # ever appear in this list.
+  # Core supplies the IR bindings without frontend execution or CUDA dependencies.
+  # Release builds pin it to the tested CUDA-Q version; devel is build-time only.
+  "cudaq-core",
+  "cudaq-edem>=0.1,<0.2",
 ]
 classifiers = [
   'Intended Audience :: Science/Research',
@@ -57,8 +58,8 @@ dev = ["pytest>=7.0"]
 requires = [
   "nanobind>=2.4,<3",
   "scikit-build-core==0.12.2",
-  "setuptools-scm>=8,<9",
   "cudaq-devel",
+  "cudaq-edem>=0.1,<0.2",
 ]
 build-backend = "scikit_build_core.build"
 
@@ -84,24 +85,6 @@ rebuild = false
 [tool.scikit-build.cmake.define]
 CMAKE_DISABLE_FIND_PACKAGE_CUDAToolkit = "ON"
 
-[tool.scikit-build.metadata.version]
-provider = "scikit_build_core.metadata.setuptools_scm"
-
-[tool.setuptools_scm]
-# CUDA-Q Logical versions independently of CUDA-Q.
-root = "../../.."
-tag_regex = '^cudaq-logical/v(?P<version>\d+(?:\.\d+){0,2}[^\+]*)(?:\+.*)?$'
-git_describe_command = [
-  "git",
-  "describe",
-  "--dirty",
-  "--tags",
-  "--long",
-  "--match",
-  "cudaq-logical/v*",
-]
-fallback_version = "0.0.0"
-
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
@@ -120,9 +103,11 @@ disable_error_code = ["name-defined", "misc", "type-arg", "valid-type"]
 testpaths = ["tests/cudaq/logical"]
 # Use importlib mode so pytest doesn't insert the source tree into sys.path,
 # which would shadow the build dir's cudaq.logical package (with compiled extensions).
-addopts = "--import-mode=importlib"
+# Keep larger resource-estimation cases out of routine runs, including PR CI.
+# Override with `-m slow` for those cases or `-m ''` for the full suite.
+addopts = "--import-mode=importlib -m 'not slow'"
 # The packaging tests import the repo's `scripts/` helpers, so the repo root
 # (rootdir/..) must be importable regardless of the invocation directory. It
 # holds no top-level cudaq package, so this cannot shadow the built one.
 pythonpath = [".."]
-markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
+markers = ["slow: expensive tests excluded by default (select with '-m slow')"]

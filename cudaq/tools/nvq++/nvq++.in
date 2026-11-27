@@ -153,10 +153,13 @@ function f_option_handling {
 		ENABLE_APPLY_SPECIALIZATION=true
 		;;
 	-fno-quantum-optimization)
-		ENABLE_QUANTUM_OPTIMIZATION=false
+		QUANTUM_OPT_LEVEL=0
 		;;
 	-fquantum-optimization)
-		ENABLE_QUANTUM_OPTIMIZATION=true
+		QUANTUM_OPT_LEVEL=
+		;;
+	-fquantum-opt-level=*)
+		QUANTUM_OPT_LEVEL="${1#*=}"
 		;;
 	-fno-lambda-lifting)
 		ENABLE_LAMBDA_LIFTING=false
@@ -264,7 +267,7 @@ function show_help {
 	Set the execution manager to <mgr>.
 
 --disable-mlir-links
-    Disable linking to cudaq-mlir-runtime and cudaq-builder. 
+    Disable linking to cudaq-mlir-runtime and cudaq-builder.
 
 --target=<target> | -target=<target>
 	Set the Target name to <target>.
@@ -290,6 +293,11 @@ function show_help {
 
 -g
 	Enable debugging output.
+
+-fquantum-opt-level=<N>
+	Set the optimization level (0 to 3) for quantum kernel compilation.
+	Level 0 disables quantum optimization and is equivalent to
+	-fno-quantum-optimization.
 
 -static-libstdc++
 	Statically link the CUDA-Q C++ standard library to create a CUDA-Q binary that can be linked with another standard library.
@@ -338,6 +346,11 @@ function show_help {
 
 --opt-pass <pass name>
 	Append a pass to the pass pipeline by specifying its name in the pass pipeline syntax, e.g. <dialect>.<opname>(passname).
+
+-Wno-nvqpp-capi
+	With -c, do not warn about objects that reference CUDA-Q runtime symbols
+	outside the nvq++ C API (such objects cannot be loaded on their own, e.g.
+	into Python).
 
 -save-temps
 	Save intermediate files locally (e.g. <input>.ll, <input>.qke).
@@ -522,6 +535,7 @@ DEP_OUTPUT_FILE=
 DEP_TARGETS=
 MAPPING_FILE=
 DO_LINK=true
+WARN_CAPI=true
 PREPROCESS_ONLY=false
 SHOW_VERSION=false
 ENABLE_ARRAY_CONVERSION=true
@@ -540,7 +554,7 @@ ENABLE_LOWER_TO_CFG=false
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_INJECT_IMPLICIT_OUTPUT=true
 ENABLE_LAMBDA_LIFTING=true
-ENABLE_QUANTUM_OPTIMIZATION=true
+QUANTUM_OPT_LEVEL=
 ENABLE_MLIR_LIB_LINKING=true
 DELETE_TEMPS=true
 TARGET_CONFIG=
@@ -685,7 +699,7 @@ while [ $# -ne 0 ]; do
 		CUDAQ_EMULATE_REMOTE=true
 		;;
 	--disable-mlir-links | -disable-mlir-links)
-	    ENABLE_MLIR_LIB_LINKING=false 
+	    ENABLE_MLIR_LIB_LINKING=false
 		;;
 	--disable-qubit-mapping | -disable-qubit-mapping)
 		# disable-qubit-mapping is intentionally not included in the
@@ -758,7 +772,7 @@ while [ $# -ne 0 ]; do
 		shift
 		;;
 	--opt-pass)
-		CUDAQ_OPT_EXTRA_PASSES=$(add_pass_to_pipeline "${CUDAQ_OPT_EXTRA_PASSES}" "$2") 
+		CUDAQ_OPT_EXTRA_PASSES=$(add_pass_to_pipeline "${CUDAQ_OPT_EXTRA_PASSES}" "$2")
 		shift
 		;;
 	-save-temps|--save-temps)
@@ -829,6 +843,9 @@ while [ $# -ne 0 ]; do
 		;;
 	-c)
 		DO_LINK=false
+		;;
+	-Wno-nvqpp-capi)
+		WARN_CAPI=false
 		;;
 	-E)
 		# Preprocess only. ccache probes the compiler this way to build its
@@ -929,7 +946,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			TARGET_CONFIG_PATH_B64="base64_"$(echo -n "${TARGET_CONFIG_PATH}" | base64 --wrap=0)
 			TARGET_CONFIG="${TARGET_CONFIG};__target_config_path;${TARGET_CONFIG_PATH_B64}"
 		fi
-	    PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D NVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"""   
+	    PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D NVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"""
 	fi
 	if [ -n "${TARGET_CONFIG_FILE}" ] && ${DO_LINK}; then
 		make_intermediate_file "${TARGET_CONFIG%%;*}.target.gen.cpp" GEN_CPP
@@ -941,15 +958,19 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	fi
 fi
 
-if ! ${ENABLE_QUANTUM_OPTIMIZATION}; then
-    CUDAQ_TRANSLATE_ARGS="${CUDAQ_TRANSLATE_ARGS} -fdisable-quantum-optimization"
+if [ -n "${QUANTUM_OPT_LEVEL}" ]; then
+    case "${QUANTUM_OPT_LEVEL}" in
+        0|1|2|3) ;;
+        *) error_exit "invalid -fquantum-opt-level=${QUANTUM_OPT_LEVEL}; expected an integer between 0 and 3" ;;
+    esac
+    CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --quantum-opt-level=${QUANTUM_OPT_LEVEL}"
 fi
 
 # Configure the NVQIR link line if this is in refactored mode
 NVQIR_LIBS="${NVQIR_LIBS}${NVQIR_SIMULATION_BACKEND}"
 
-# Add the MLIR-related libraries if requested. 
-if ${ENABLE_MLIR_LIB_LINKING}; then 
+# Add the MLIR-related libraries if requested.
+if ${ENABLE_MLIR_LIB_LINKING}; then
     LINKLIBS="${LINKLIBS} -lcudaq-mlir-runtime -lcudaq-builder"
 else
 	PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D CUDAQ_DISABLE_JIT_COMPILER"
@@ -973,9 +994,9 @@ if ${LIBRARY_MODE}; then
 	ENABLE_KERNEL_EXECUTION=false
 fi
 if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_SIMULATION_SCALAR_"* ]]; then
-    if [[ "${NVQIR_SIMULATION_BACKEND}" == *"-fp32" ]]; then 
-	    PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D CUDAQ_SIMULATION_SCALAR_FP32"   
-	else 
+    if [[ "${NVQIR_SIMULATION_BACKEND}" == *"-fp32" ]]; then
+	    PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D CUDAQ_SIMULATION_SCALAR_FP32"
+	else
 	    PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D CUDAQ_SIMULATION_SCALAR_FP64"
 	fi
 fi
@@ -1203,7 +1224,7 @@ for i in ${SRCS}; do
 			QUAKE_IN=${DCL_FILE}
 		fi
 
-		# FIXME This next step needs to be extensible... 
+		# FIXME This next step needs to be extensible...
 		run ${TOOLBIN}cudaq-translate ${CUDAQ_TRANSLATE_ARGS} --convert-to=${PLATFORM_TRANSPORT_LAYER} ${QUAKE_IN} -o ${QUAKELL_FILE}
 		if ${EMIT_QIR}; then
 			run cp ${QUAKELL_FILE} ${file}.qir.ll
@@ -1212,7 +1233,12 @@ for i in ${SRCS}; do
 
 		# Rewrite internal linkages so we can override the function.
 		run mv ${LL_FILE} ${PRE_LL_FILE}
-		run ${install_dir}/bin/fixup-linkage ${QKE_FILE} ${PRE_LL_FILE} ${LL_FILE}
+		# With -c, warn if the object needs runtime symbols outside the C API.
+		FIXUP_LINKAGE_FLAGS=
+		if ! ${DO_LINK} && ${WARN_CAPI}; then
+			FIXUP_LINKAGE_FLAGS="--warn-unresolved"
+		fi
+		run ${install_dir}/bin/fixup-linkage ${FIXUP_LINKAGE_FLAGS} ${QUAKELL_FILE} ${PRE_LL_FILE} ${LL_FILE}
 
 		# Lower our LLVM to object files
 		run ${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${QUAKELL_FILE} -o ${QKE_OBJ}
@@ -1242,6 +1268,9 @@ if ${DO_LINK}; then
 	if [ -f "${llvm_libdir}/libc++abi.dylib" ] || [ -f "${llvm_libdir}/libc++abi.so" ]; then
 		LINKLIBS="-lc++abi ${LINKLIBS}"
 	fi
+
+	# The nvq++ C API library provides the C API called by the generated code.
+	LINKLIBS="${install_dir}/lib/libcudaq-nvqpp-capi.a ${LINKLIBS}"
 
 	run ${CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else

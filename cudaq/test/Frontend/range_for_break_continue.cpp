@@ -16,7 +16,7 @@
 // `cc.unwind_continue`, or the arity check in
 // UnwindBreakOp::verify()/UnwindContinueOp::verify() rejects the module.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ std::int64_t test_break(std::int64_t n) {
   std::int64_t total = 0;

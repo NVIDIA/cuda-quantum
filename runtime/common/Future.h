@@ -9,7 +9,6 @@
 #pragma once
 #include "ObserveResult.h"
 #include "SampleResult.h"
-
 #include <functional>
 #include <future>
 #include <map>

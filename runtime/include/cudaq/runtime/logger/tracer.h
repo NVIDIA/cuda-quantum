@@ -32,8 +32,8 @@ struct TraceEvent {
   std::string_view category;
   int tag;
   std::string_view args;
-  uint64_t tsUs;
-  uint32_t tid;
+  std::uint64_t tsUs;
+  std::uint32_t tid;
   int depth;
 };
 
@@ -44,7 +44,7 @@ class TraceBackend : public std::enable_shared_from_this<TraceBackend> {
 public:
   virtual ~TraceBackend() = default;
   virtual void onBegin(const TraceEvent &e) = 0;
-  virtual void onEnd(const TraceEvent &e, uint64_t durUs) = 0;
+  virtual void onEnd(const TraceEvent &e, std::uint64_t durUs) = 0;
 };
 
 // Owns its string state so it is safe against dangling caller memory between
@@ -60,8 +60,8 @@ struct SpanHandle {
   std::string name;
   std::string category;
   std::string args;
-  uint64_t beginTsUs = 0;
-  uint32_t tid = 0;
+  std::uint64_t beginTsUs = 0;
+  std::uint32_t tid = 0;
   int depth = 0;
   int tag = 0;
   bool active = false;

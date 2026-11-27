@@ -110,4 +110,31 @@ module {
 // CHECK:           quake.x [%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+
+  // Unequal leaf angles exercise all four rows of the Gray-ordered transform.
+  func.func @gray_ordered_angles() {
+    %data = cc.address_of @gray_state : !cc.ptr<!cc.array<f64 x 8>>
+    %size = arith.constant 8 : i64
+    %state = quake.create_state %data, %size : (!cc.ptr<!cc.array<f64 x 8>>, i64) -> !cc.ptr<!quake.state>
+    %q = quake.alloca !quake.veq<3>
+    %initialized = quake.init_state %q, %state : (!quake.veq<3>, !cc.ptr<!quake.state>) -> !quake.veq<3>
+    quake.delete_state %state : !cc.ptr<!quake.state>
+    return
+  }
+  cc.global constant private @gray_state (dense<[0.5, 0.0, 0.0, 0.5, 0.5, 0.0, 0.5, 0.0]> : tensor<8xf64>) : !cc.array<f64 x 8>
+
+// CHECK-LABEL: func.func @gray_ordered_angles
+// CHECK-DAG: %[[HALF:.*]] = arith.constant 1.570796326794896{{.*}} : f64
+// CHECK-DAG: %[[QUARTER:.*]] = arith.constant 0.785398163397448{{.*}} : f64
+// CHECK-DAG: %[[NEGQUARTER:.*]] = arith.constant -0.785398163397448{{.*}} : f64
+// CHECK-DAG: %[[ZERO:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK: quake.ry (%[[HALF]])
+// CHECK: quake.ry (%[[HALF]])
+// CHECK: quake.ry (%[[ZERO]])
+// CHECK: quake.ry (%[[QUARTER]])
+// CHECK: quake.ry (%[[NEGQUARTER]])
+// CHECK: quake.ry (%[[NEGQUARTER]])
+// CHECK: quake.ry (%[[QUARTER]])
+// CHECK: return
+
 }

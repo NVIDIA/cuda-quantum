@@ -69,4 +69,3 @@ class NumTargets<int n> : StructuralOpTrait,
 
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_COMMON_TRAITS
-

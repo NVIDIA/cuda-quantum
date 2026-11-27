@@ -13,6 +13,8 @@
 #include <cudaq/algorithms/gradients/central_difference.h>
 #include <cudaq/optimizers.h>
 
+#include <cstdint>
+
 // Stim does not support rotational gates
 #ifndef CUDAQ_BACKEND_STIM
 
@@ -87,7 +89,7 @@ protected:
     // clang-format on
     // auto array = __quantum__rt__array_create_1d(sizeof(double),
     // h2_data.size()); for (std::size_t i = 0; i < h2_data.size(); i++) {
-    //   int8_t *raw = __quantum__rt__array_get_element_ptr_1d(array, i);
+    //   std::int8_t *raw = __quantum__rt__array_get_element_ptr_1d(array, i);
     //   auto ptr = reinterpret_cast<double *>(raw);
     //   (*ptr) = h2_data[i];
     // }

@@ -34,4 +34,7 @@ assert resources.actions == {
     "qlx_standard_cx": 1,
 }
 
-print(f"Portable Bell program: {resources.logical_qubits_peak} logical qubits")
+print("Logical Bell-pair resources:")
+print(f"  peak logical qubits: {resources.logical_qubits_peak}")
+print(f"  Hadamard actions: {resources.actions['qlx_standard_h']}")
+print(f"  controlled-X actions: {resources.actions['qlx_standard_cx']}")

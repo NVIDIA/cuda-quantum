@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake -Xcudaq -Wall -verify %s -o /dev/null
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 void foo();
 

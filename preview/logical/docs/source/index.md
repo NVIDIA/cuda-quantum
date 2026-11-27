@@ -24,8 +24,9 @@ assumptions behind each one.
 
 In this preview, you can start from a CUDA-Q kernel or author a portable logical
 program directly; configure codes, gadgets, placement, and distillation
-protocols; generate resource estimates; and emit realized programs for
-simulation and further analysis in tools such as Stim.
+protocols; generate resource estimates; execute supported physical builds with
+`cudaq.run`; and emit realized programs for simulation and further analysis in
+tools such as Stim.
 
 ## Installation
 
@@ -48,15 +49,15 @@ qubit. You can then lower any `cudaq.kernel` to a fault-tolerant program.
 ```{eval-rst}
 .. literalinclude:: ../../examples/02_surface_code_resource_estimate.py
    :language: python
+   :start-at: import cudaq
    :caption: An ordinary CUDA-Q kernel lowered through a surface-code encoding (examples/02_surface_code_resource_estimate.py).
 ```
 
 When you call `cudaq.estimate`, CUDA-Q Logical takes the kernel's logical
 intent through placement, QEC realization, physical lowering, and scheduling.
-This example compares physical-qubit, event-count, and makespan estimates across
-two surface-code layouts, then changes the operating assumptions while holding
-the layout fixed. The logical and static annotations still expose the protected
-logical qubits, encoded patches, and selected gadget calls. The
+This example reports the physical qubits and scheduled runtime needed to
+prepare and measure a logical zero. For result layers and model assumptions,
+see [Resource estimation](use-cases/estimation.md). The
 [examples](use-cases/examples/index.md) page shows more of what CUDA-Q Logical
 can do.
 
@@ -74,7 +75,7 @@ Start from the result you want:
 | If you want to…                                                            | Go to                                                                         |
 | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | **Install and run a first estimate**                                       | [Getting started](getting-started/quickstart.md)                              |
-| **Build, place, and estimate a logical program**                           | [The logical programming stack](getting-started/cudaq-logical-in-practice.md) |
+| **Compile, place, estimate, and run a CUDA-Q kernel**                      | [The logical programming stack](getting-started/cudaq-logical-in-practice.md) |
 | **Do a specific job** (define a code, place, distill, estimate, emit Stim) | [Use cases](use-cases/define-a-code.md)                                       |
 | **Browse runnable end-to-end examples**                                    | [Examples](use-cases/examples/index.md)                                       |
 | **Inspect advanced internals or build against CUDA-Q**                     | [Reference](reference/architecture.md)                                        |
@@ -102,6 +103,7 @@ use-cases/magic-states-and-protocols
 use-cases/logical-synthesis
 use-cases/estimation
 use-cases/stim-emission
+use-cases/gadget-edems
 ```
 
 ```{toctree}
@@ -109,6 +111,7 @@ use-cases/stim-emission
 :hidden:
 :caption: Reference
 
+reference/detector-contracts
 reference/for-stim-users
 reference/capabilities
 reference/architecture

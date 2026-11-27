@@ -272,6 +272,30 @@ def test_quantinuum_dem_from_kernel_target_independent():
     assert all(1 == r for r in results)
 
 
+def test_quantinuum_sample_named_registers():
+    # Result labels are register names, not indices: `r1` and `r00000`, or
+    # `ra%0` and `rb%0`, used to claim the same index.
+
+    @cudaq.kernel
+    def named_and_unnamed():
+        q = cudaq.qvector(2)
+        x(q[0])
+        r1 = mz(q[0])
+        mz(q[1])
+
+    @cudaq.kernel
+    def two_registers():
+        a = cudaq.qvector(2)
+        b = cudaq.qvector(2)
+        x(a[0])
+        x(b[1])
+        ra = mz(a)
+        rb = mz(b)
+
+    assert cudaq.sample(named_and_unnamed, shots_count=10)["10"] == 10
+    assert cudaq.sample(two_registers, shots_count=10)["1001"] == 10
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

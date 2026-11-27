@@ -25,11 +25,11 @@ func.func @qref_control(%c0: !quake.ref, %c1: !quake.ref, %t: !quake.ref) {
   // CHECK-NEXT: quake.t
   // CHECK-NEXT: quake.x
   // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.t
   // CHECK-NEXT: quake.x
-  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.t<adj>
   // CHECK-NEXT: quake.x
-  // CHECK-NEXT: quake.t
-  // CHECK-NEXT: quake.t
   return
 }
 
@@ -44,11 +44,11 @@ func.func @mixed_control(%c0: !quake.ref, %c1: !quake.veq<1>, %t: !quake.ref) {
   // CHECK-NEXT: quake.t
   // CHECK-NEXT: quake.x
   // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.t
   // CHECK-NEXT: quake.x
-  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.t<adj>
   // CHECK-NEXT: quake.x
-  // CHECK-NEXT: quake.t
-  // CHECK-NEXT: quake.t
   return
 }
 
@@ -63,11 +63,11 @@ func.func @qvec_control(%c: !quake.veq<2>, %t: !quake.ref) {
   // CHECK-NEXT: quake.t
   // CHECK-NEXT: quake.x
   // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.t
   // CHECK-NEXT: quake.x
-  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.t<adj>
   // CHECK-NEXT: quake.x
-  // CHECK-NEXT: quake.t
-  // CHECK-NEXT: quake.t
   return
 }
 

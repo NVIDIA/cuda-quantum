@@ -42,75 +42,43 @@ def _kernel_has_conditionals_on_measure(kernel) -> bool:
 
 
 def __isBroadcast(kernel, *args):
-    # kernel could be a PyKernel or kernel decorator
-    if isinstance(kernel, PyKernel):
+    isBuilderKernel = isinstance(kernel, PyKernel)
+    if isBuilderKernel:
         argTypes = kernel.mlirArgTypes
-        if len(argTypes) == 0 or len(args) == 0:
-            return False
-
-        # Quick check, if we have a 2d array anywhere, we know this is a broadcast
-        isDefinitelyBroadcast = True in [
-            hasattr(arg, "shape") and len(arg.shape) == 2 for arg in args
-        ]
-
-        if isDefinitelyBroadcast:
-            # Error check, did the user pass a single value for any of the other arguments
-            for i, arg in enumerate(args):
-                if isinstance(arg, (int, float, bool, str)):
-                    raise RuntimeError(
-                        f"2D array argument provided for an sample or observe broadcast, but argument {i} ({type(arg)}) must be a list."
-                    )
-
-        firstArg = args[0]
-        firstArgTypeIsFlatSequence = cc.SequenceType.isinstance(argTypes[0])
-        if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsFlatSequence:
-            return True
-
-        if hasattr(firstArg, "shape"):
-            shape = firstArg.shape
-            if len(shape) == 1 and not firstArgTypeIsFlatSequence:
-                return True
-
-            if len(shape) == 2:
-                return True
-
-        return False
-
     elif isa_kernel_decorator(kernel):
         argTypes = kernel.arg_types()
-        if len(argTypes) == 0 or len(args) == 0:
-            return False
-
-        # Quick check, if we have a 2d array anywhere, we know this
-        # is a broadcast
-        isDefinitelyBroadcast = True in [
-            hasattr(arg, "shape") and len(arg.shape) == 2 for arg in args
-        ]
-
-        if isDefinitelyBroadcast:
-            # Error check, did the user pass a single value for any of the other arguments
-            for i, arg in enumerate(args):
-                if isinstance(arg, (int, float, bool, str)):
-                    raise RuntimeError(
-                        f"2D array argument provided for an observe broadcast, but argument {i} ({type(arg)}) must be a list."
-                    )
-
-        firstArg = args[0]
-        firstArgTypeIsFlatSequence = cc.SequenceType.isinstance(argTypes[0])
-        if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsFlatSequence:
-            return True
-
-        if hasattr(firstArg, "shape"):
-            shape = firstArg.shape
-            if len(shape) == 1 and not firstArgTypeIsFlatSequence:
-                return True
-
-            if len(shape) == 2:
-                return True
-
+    else:
         return False
+
+    if len(argTypes) == 0 or len(args) == 0:
+        return False
+
+    # A 2D array in any position implies a broadcast. Keep the legacy
+    # diagnostics for this path.
+    if any(hasattr(arg, "shape") and len(arg.shape) == 2 for arg in args):
+        for i, arg in enumerate(args):
+            if isinstance(arg, (int, float, bool, str)):
+                operation = "sample or observe" if isBuilderKernel else "observe"
+                raise RuntimeError(
+                    f"2D array argument provided for an {operation} broadcast, but argument {i} ({type(arg)}) must be a list."
+                )
+        return True
+
+    # A flat sequence is a broadcast only if the kernel does not expect a
+    # sequence as its first argument.
+    if cc.SequenceType.isinstance(argTypes[0]):
+        return False
+
+    firstArg = args[0]
+    isBroadcast = (isinstance(firstArg, (list, List)) or
+                   (hasattr(firstArg, "shape") and len(firstArg.shape) == 1))
+    if isBroadcast:
+        for i, arg in enumerate(args):
+            if isinstance(arg, (int, float, bool, str, complex, np.generic)):
+                raise RuntimeError(
+                    f"Argument {i} ({type(arg)}) must be a list or ndarray for sample or observe broadcasting."
+                )
+    return isBroadcast
 
 
 def __createArgumentSet(*args):
@@ -121,15 +89,25 @@ def __createArgumentSet(*args):
     # Materialize array-like arguments once.
     materializedArgs = []
     arrayRanks = []
-    for arg in args:
+    for i, arg in enumerate(args):
         if hasattr(arg, "tolist"):
             arrayRank = len(arg.shape)
             arrayRanks.append(arrayRank)
+            nProvided = arg.shape[0] if arrayRank > 0 else 0
+            if nProvided < nArgSets:
+                raise RuntimeError(
+                    f"Broadcast argument {i} provides {nProvided} argument sets, but {nArgSets} are required."
+                )
             # A later matrix argument may have more rows than the first
             # argument that defines `nArgSets`. Do not materialize unused rows.
             m = arg[:nArgSets] if arrayRank == 2 else arg
             materializedArgs.append(m.tolist())
         else:
+            if (isinstance(arg, list) or isinstance(arg, List)) and \
+                    len(arg) < nArgSets:
+                raise RuntimeError(
+                    f"Broadcast argument {i} provides {len(arg)} argument sets, but {nArgSets} are required."
+                )
             arrayRanks.append(None)
             materializedArgs.append(arg)
 
@@ -140,9 +118,10 @@ def __createArgumentSet(*args):
 
             if isinstance(arg, list) or isinstance(arg, List):
                 currentArgs[i] = arg[j]
-
-            if arrayRanks[i] is not None:
+            elif arrayRanks[i] is not None:
                 currentArgs[i] = materializedArgs[i][j]
+            else:
+                currentArgs[i] = arg
 
         argSet.append(tuple(currentArgs))
     return argSet

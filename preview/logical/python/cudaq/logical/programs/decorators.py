@@ -19,7 +19,7 @@ def _definition_decorator(
     kind: str,
     machine: Any = None,
     selection: Any = None,
-    objective_kind: str = "auto",
+    action_kind: str = "auto",
     estimate_only: bool = False,
     name: str | None = None,
     localns=None,
@@ -36,7 +36,7 @@ def _definition_decorator(
             machine=machine,
             selection=selection,
             kind=kind,
-            objective_kind=objective_kind,
+            action_kind=action_kind,
             estimate_only=estimate_only,
             name=name,
             type_hints=hints,
@@ -66,20 +66,34 @@ def program(
     )
 
 
-def objective(
+def action(
     fn: Callable[..., Any] | None = None,
     *,
     name: str | None = None,
     kind: str = "auto",
 ):
-    if kind not in {"auto", "action", "instrument"}:
-        raise ValueError("objective kind must be auto, action, or instrument")
+    """Declare the ideal logical circuit implemented by a gadget.
+
+    An action can include preparation and measurement. ``kind="unitary"``
+    requires a body of unitary actions; ``kind="instrument"``
+    permits classical outcomes and changes to the quantum boundary. The
+    default infers the kind. ``kind="action"`` is the legacy spelling of
+    ``"unitary"``.
+    """
+
+    if kind not in {"auto", "unitary", "action", "instrument"}:
+        raise ValueError("action kind must be auto, unitary, or instrument")
     frame = currentframe()
     localns = dict(frame.f_back.f_locals) if frame and frame.f_back else {}
     return _definition_decorator(
         fn,
-        kind="objective",
-        objective_kind=kind,
+        kind="action",
+        action_kind=kind,
         name=name,
         localns=localns,
     )
+
+
+# An alias, rather than a wrapper, preserves construction-time local type
+# annotations by keeping the same caller frame as the canonical decorator.
+objective = action

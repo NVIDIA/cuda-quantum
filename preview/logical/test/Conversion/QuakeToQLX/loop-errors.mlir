@@ -24,7 +24,7 @@ module {
     } do {
     ^bb0(%w: !quake.wire, %iv: i32):
       %local = quake.null_wire
-      // expected-error@+1 {{folded loop leaks an iteration-local quantum owner; measure or discard every body-local allocation before yielding}}
+      // expected-error@+1 {{folded loop leaks an iteration-local quantum value; measure or discard every body-local allocation before yielding}}
       cc.continue %w, %iv : !quake.wire, i32
     } step {
     ^bb0(%w: !quake.wire, %iv: i32):

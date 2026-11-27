@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -88,14 +89,20 @@ public:
 
   void runOnOperation() override {
     auto *op = getOperation();
-    if (op->hasAttr(cudaq::runtime::disableQuantumOpts))
+    if (cudaq::runtime::isQuantumOptimizationDisabled(op))
       return;
     LLVM_DEBUG(llvm::dbgs() << "Before DQE:\n" << *op << '\n');
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.add<RefPattern>(ctx, numRefsEliminated);
     patterns.add<WirePattern>(ctx, numWiresEliminated);
-    if (failed(applyPatternsGreedily(op, std::move(patterns))))
+    // Aggressive region simplification replaces a block argument with the value
+    // that all of its predecessors pass. A wire that a branch passes to two
+    // successors would then have a use in each, and a wire must have exactly
+    // one use. `canonicalize` also runs at `Normal`.
+    GreedyRewriteConfig config;
+    config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Normal);
+    if (failed(applyPatternsGreedily(op, std::move(patterns), config)))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After DQE:\n" << *op << '\n');
   }

@@ -163,7 +163,7 @@ def RefType : QuakeType<"Ref", "ref"> {
     memory side-effects through the same reference, `%q1`. Because these
     operations use the same reference, they cannot be reordered relative to one
     another.
-    
+
     Furthermore, `gate1` implies \em{only} a quantum memory read side-effect on
     the reference value `%q0`. This is because `%q0` appears in a control
     position in `gate1`, as indicated by the square brackets.
@@ -235,13 +235,12 @@ def StruqType : QuakeType<"Struq", "struq"> {
     }
   }];
 
-  let builders = [TypeBuilder<(ins CArg<"llvm::ArrayRef<mlir::Type>">:$members),
-                              [{
+  let builders = [
+    TypeBuilder<(ins CArg<"llvm::ArrayRef<mlir::Type>">:$members), [{
       return $_get($_ctxt, mlir::StringAttr{}, members);
     }]>,
-                  TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
-                                  CArg<"llvm::ArrayRef<mlir::Type>">:$members),
-                              [{
+    TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
+                     CArg<"llvm::ArrayRef<mlir::Type>">:$members), [{
       return $_get($_ctxt, mlir::StringAttr::get($_ctxt, name), members);
     }]>];
 }
@@ -259,8 +258,16 @@ def MeasureType : QuakeType<"Measure", "measure"> {
     may have two or more logical states. Typically, a value of type `measure`
     will be discriminated into a binary bit (or small integer).
 
+    This also captures the C++ `cudaq::measure_handle` class in the Quake IR. A
+    measurement handle is an opaque, word-sized value (64 bits) that can be
+    consumed by `quake.discriminate` or by QEC declaration operations.
+
+    The `quake.measure` type is abstract; how it is represented is a code
+    generation concern. QIR (full) lowering replaces it with an `i64` handle.
+
     ```mlir
-      %m = quake.mz %0 : (!quake.ref) -> !quake.measure
+      %mez = quake.mz %0 : (!quake.ref) -> !quake.measure
+      %bit = quake.discriminate %mez : (!quake.measure) -> i1
       quake.dealloc %0 : !quake.ref
     ```
   }];

@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s -verify
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 struct s {
   cudaq::qview<> s;

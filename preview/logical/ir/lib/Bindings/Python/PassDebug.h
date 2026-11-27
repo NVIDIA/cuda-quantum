@@ -1,13 +1,12 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
-#ifndef QLX_BINDINGS_PYTHON_PASSDEBUG_H
-#define QLX_BINDINGS_PYTHON_PASSDEBUG_H
+#pragma once
 
 #include <algorithm>
 #include <cctype>
@@ -79,5 +78,3 @@ inline void configureIRPrinting(mlir::PassManager &pm) {
 }
 
 } // namespace qlx::python
-
-#endif // QLX_BINDINGS_PYTHON_PASSDEBUG_H

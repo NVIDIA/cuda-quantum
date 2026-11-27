@@ -162,7 +162,7 @@ struct PhaseAnchorFallbackRoot {
   PhaseAnchorFallbackRootKind kind;
 };
 
-/// Return the reference that originated a scalar wire, if it is known.
+/// Return the reference that originated a wire, if it is known.
 inline mlir::Value getPhaseWireSourceReference(mlir::Value value) {
   if (auto unwrap = value.getDefiningOp<cudaq::quake::UnwrapOp>())
     return unwrap.getRefValue();
@@ -313,7 +313,7 @@ inline void collectPhaseAnchorFallbackRootsImpl(
       return;
     }
 
-    // Only scalar wires have an explicit linear control-flow path. Keep other
+    // Only wires have an explicit linear control-flow path. Keep other
     // non-entry block arguments conservative.
     if (!mlir::isa<cudaq::quake::WireType>(argument.getType())) {
       roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});

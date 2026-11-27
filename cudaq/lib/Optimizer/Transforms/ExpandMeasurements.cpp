@@ -21,29 +21,24 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-// Only an individual qubit measurement returns a scalar token. Both
-// `!quake.measure` (legacy `bool`/`Result*` token) and `!cc.measure_handle`
-// (the IR alias of `cudaq::measure_handle`, an `i64` payload) are scalar
-// per-qubit measurement results, so neither requires expansion to a register.
+// Only an individual qubit measurement returns a scalar token. `!quake.measure`
+// is the scalar per-qubit measurement result, so it requires no expansion to a
+// register.
 template <typename A>
 bool usesIndividualQubit(A x) {
-  return isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
-      x.getType());
+  return isa<cudaq::quake::MeasureType>(x.getType());
 }
 
 // Generalized pattern for expanding a multiple qubit measurement (whether it is
 // mx, my, or mz) to a series of individual measurements.
 //
-// Handles both result-type families that the vector form of `quake.mz`/`mx`/
-// `my` can carry:
-//   - `!cc.sequence<!quake.measure>` -- the legacy form. The only legitimate
-//     consumer is `quake.discriminate`, so the rewrite folds the per-element
-//     measurements straight into a `cc.sequence_init -> !cc.sequence<i1>`.
-//   - `!cc.sequence<!cc.measure_handle>` -- the handle-vector value can have
-//     non-discriminate consumers. Those consumers expect a value of the
-//     original handle-sequence type, so the rewrite additionally builds a
-//     per-element handle buffer and folds it into a `cc.sequence_init ->
-//     !cc.sequence<!cc.measure_handle>` that replaces all remaining uses.
+// The vector form of `quake.mz`/`mx`/`my` returns
+// `!cc.sequence<!quake.measure>`. The value can have discriminate and
+// non-discriminate consumers. Discriminate consumers are folded into a
+// `cc.sequence_init -> !cc.sequence<i1>`. Other consumers expect a value of the
+// original sequence type, so the rewrite additionally builds a per-element
+// measurement buffer and folds it into a `cc.sequence_init ->
+// !cc.sequence<!quake.measure>` that replaces all remaining uses.
 template <typename A>
 class ExpandRewritePattern : public OpRewritePattern<A> {
 public:
@@ -55,24 +50,12 @@ public:
     auto *ctx = rewriter.getContext();
 
     // The dynamic-legality predicate filters out the scalar forms, so by
-    // construction the result type here is `!cc.sequence<X>` for some X.
-    auto sequenceResTy =
-        dyn_cast<cudaq::cc::SequenceType>(measureOp.getMeasOut().getType());
-    auto handleTy = cudaq::cc::MeasureHandleType::get(ctx);
-    bool isHandleResult =
-        isa<cudaq::cc::MeasureHandleType>(sequenceResTy.getElementType());
-
-    // Per-element scalar result type tracks the original sequence element
-    // type. For handle inputs we measure into `!cc.measure_handle` per
-    // qubit.
-    Type perElemTy =
-        isHandleResult ? static_cast<Type>(handleTy)
-                       : static_cast<Type>(cudaq::quake::MeasureType::get(ctx));
+    // construction the result type here is `!cc.sequence<!quake.measure>`.
+    auto measTy = cudaq::quake::MeasureType::get(ctx);
 
     // Classify users so we only allocate the buffers we actually need, and
-    // collect the discriminate users at the same time. The legacy
-    // `!quake.measure` path has only `quake.discriminate` consumers by
-    // construction; the handle path may have either, both, or none.
+    // collect the discriminate users at the same time. The users may be
+    // discriminates, others, both, or none.
     SmallVector<cudaq::quake::DiscriminateOp> discUsers;
     bool hasNonDiscUser = false;
     for (auto *u : measureOp.getMeasOut().getUsers()) {
@@ -81,12 +64,10 @@ public:
       else
         hasNonDiscUser = true;
     }
-    // Allocation policy:
-    //   - Legacy `!cc.sequence<!quake.measure>` always allocates the i1 buffer.
-    //   - `!cc.sequence<!cc.measure_handle>` allocates each buffer only when a
-    //   consumer in that element-type class is present.
-    bool needI1Buf = !isHandleResult || !discUsers.empty();
-    bool needHandleBuf = isHandleResult && hasNonDiscUser;
+    // Allocation policy: allocate each buffer only when a consumer in that
+    // class is present.
+    bool needI1Buf = !discUsers.empty();
+    bool needMeasBuf = hasNonDiscUser;
 
     // 1. Determine the total number of qubits we need to measure. This
     // determines the size of the buffer of bools to create to store the results
@@ -110,15 +91,14 @@ public:
     Value i1Buff;
     if (needI1Buf)
       i1Buff = cudaq::cc::AllocaOp::create(rewriter, loc, i8Ty, totalToRead);
-    Value handleBuff;
-    if (needHandleBuf)
-      handleBuff =
-          cudaq::cc::AllocaOp::create(rewriter, loc, handleTy, totalToRead);
+    Value measBuff;
+    if (needMeasBuf)
+      measBuff =
+          cudaq::cc::AllocaOp::create(rewriter, loc, measTy, totalToRead);
 
-    // Per-element store helper. Each qubit is measured exactly once with
-    // `perElemTy`; the resulting value is fanned out to whichever buffers we
-    // allocated (i1 for discriminate consumers, handle for non-discriminate
-    // consumers).
+    // Per-element store helper. Each qubit is measured exactly once; the
+    // resulting value is fanned out to whichever buffers we allocated (i1 for
+    // discriminate consumers, measurement for non-discriminate consumers).
     auto storePerElement = [&](OpBuilder &builder, Location loc, Value meas,
                                Value offset) {
       if (needI1Buf) {
@@ -130,9 +110,9 @@ public:
             builder, loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
         cudaq::cc::StoreOp::create(builder, loc, bitByte, addr);
       }
-      if (needHandleBuf) {
+      if (needMeasBuf) {
         auto addr = cudaq::cc::ComputePtrOp::create(
-            builder, loc, cudaq::cc::PointerType::get(handleTy), handleBuff,
+            builder, loc, cudaq::cc::PointerType::get(measTy), measBuff,
             offset);
         cudaq::cc::StoreOp::create(builder, loc, meas, addr);
       }
@@ -144,7 +124,7 @@ public:
     Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
     for (auto v : measureOp.getTargets()) {
       if (isa<cudaq::quake::RefType>(v.getType())) {
-        auto meas = A::create(rewriter, loc, perElemTy, v).getMeasOut();
+        auto meas = A::create(rewriter, loc, measTy, v).getMeasOut();
         storePerElement(rewriter, loc, meas, buffOff);
         buffOff = arith::AddIOp::create(rewriter, loc, buffOff, one);
       } else {
@@ -156,7 +136,7 @@ public:
               Value iv = block.getArgument(0);
               Value qv =
                   cudaq::quake::ExtractRefOp::create(builder, loc, v, iv);
-              auto meas = A::create(builder, loc, perElemTy, qv);
+              auto meas = A::create(builder, loc, measTy, qv);
               if (auto registerName = measureOp.getRegisterNameAttr())
                 meas.setRegisterName(registerName);
               Value offset = arith::AddIOp::create(builder, loc, iv, buffOff);
@@ -180,16 +160,16 @@ public:
       }
     }
 
-    // 5. For the handle path with non-discriminate consumers, build a
-    // `cc.sequence_init -> !cc.sequence<!cc.measure_handle>` over the handle
+    // 5. With non-discriminate consumers, build a
+    // `cc.sequence_init -> !cc.sequence<!quake.measure>` over the measurement
     // buffer and route the original result's remaining users to it via
     // `replaceOp` (one atomic substitution)
     Value replacementVal;
-    if (needHandleBuf) {
-      auto sequenceHandleTy = cudaq::cc::SequenceType::get(ctx, handleTy);
-      auto handleSequence = cudaq::cc::SequenceInitOp::create(
-          rewriter, loc, sequenceHandleTy, handleBuff, totalToRead);
-      replacementVal = handleSequence.getResult();
+    if (needMeasBuf) {
+      auto sequenceMeasTy = cudaq::cc::SequenceType::get(ctx, measTy);
+      auto measSequence = cudaq::cc::SequenceInitOp::create(
+          rewriter, loc, sequenceMeasTy, measBuff, totalToRead);
+      replacementVal = measSequence.getResult();
     }
 
     // The pass is scheduled before wire lowering, so the variadic `$wires`
@@ -197,12 +177,12 @@ public:
     assert(measureOp.getWires().empty() &&
            "`expand-measurements` runs before wire lowering");
 
-    // Step 5 builds a handle-vector replacement exactly when the
+    // Step 5 builds a measurement-vector replacement exactly when the
     // user-classification scan found a non-discriminate consumer. Without
     // this, `replaceOp` below would feed a null value through to a live
     // user.
     assert((replacementVal != nullptr) == hasNonDiscUser &&
-           "handle-vector replacement must exist iff a non-discriminate "
+           "measurement-vector replacement must exist iff a non-discriminate "
            "consumer was present");
 
     rewriter.replaceOp(measureOp, replacementVal);
@@ -215,9 +195,9 @@ using MxRewrite = ExpandRewritePattern<cudaq::quake::MxOp>;
 using MyRewrite = ExpandRewritePattern<cudaq::quake::MyOp>;
 using MzRewrite = ExpandRewritePattern<cudaq::quake::MzOp>;
 
-// Expand `quake.discriminate : !cc.sequence<!cc.measure_handle> ->
-// !cc.sequence<i1>` when the input handle vector is *not* the direct result
-// of a measurement op. The bridge emits this shape for `cudaq::to_bools`
+// Expand `quake.discriminate : !cc.sequence<!quake.measure> ->
+// !cc.sequence<i1>` when the input measurement vector is *not* the direct
+// result of a measurement op. The bridge emits this shape for `cudaq::to_bools`
 // applied to a handle vector that has crossed an SSA boundary
 // (e.g. function argument, kernel return), where the measurement-op
 // pattern above cannot reach the underlying `quake.mz/mx/my`. It loops
@@ -225,7 +205,7 @@ using MzRewrite = ExpandRewritePattern<cudaq::quake::MzOp>;
 // resulting bytes as a `!cc.sequence<i1>`. The direct-from-measurement
 // case stays handled by `ExpandRewritePattern` to avoid an extra
 // per-element load.
-class ExpandSequenceHandleDiscriminate
+class ExpandSequenceDiscriminate
     : public OpRewritePattern<cudaq::quake::DiscriminateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
@@ -235,7 +215,7 @@ public:
     Value handleVec = disc.getMeasurement();
     auto sequenceTy = dyn_cast<cudaq::cc::SequenceType>(handleVec.getType());
     if (!sequenceTy ||
-        !isa<cudaq::cc::MeasureHandleType>(sequenceTy.getElementType()))
+        !isa<cudaq::quake::MeasureType>(sequenceTy.getElementType()))
       return failure();
     if (handleVec.getDefiningOp<cudaq::quake::MeasurementInterface>())
       return failure();
@@ -245,7 +225,7 @@ public:
     auto i1Ty = rewriter.getI1Type();
     auto i8Ty = rewriter.getI8Type();
     auto i64Ty = rewriter.getI64Type();
-    auto handleTy = cudaq::cc::MeasureHandleType::get(ctx);
+    auto handleTy = cudaq::quake::MeasureType::get(ctx);
 
     Value vecSize =
         cudaq::cc::SequenceSizeOp::create(rewriter, loc, i64Ty, handleVec);
@@ -321,7 +301,7 @@ public:
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<MxRewrite, MyRewrite, MzRewrite, ResetRewrite,
-                    ExpandSequenceHandleDiscriminate>(ctx);
+                    ExpandSequenceDiscriminate>(ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<cudaq::quake::QuakeDialect, cudaq::cc::CCDialect,
                            arith::ArithDialect, LLVM::LLVMDialect>();
@@ -345,15 +325,9 @@ public:
               dyn_cast<cudaq::cc::SequenceType>(d.getMeasurement().getType());
           if (!sequenceTy)
             return true;
-          // Vector discriminate of legacy `!quake.measure` is folded as
-          // a side-effect of the measurement-op rewrite (step 4); leave
-          // it legal here so the driver does not look for a standalone
-          // pattern.
-          if (!isa<cudaq::cc::MeasureHandleType>(sequenceTy.getElementType()))
-            return true;
-          // Vector discriminate of `!cc.measure_handle` whose source is
-          // a measurement op is similarly folded (step 4 again). Only
-          // the indirect case needs `ExpandSequenceHandleDiscriminate`.
+          // Vector discriminate whose source is a measurement op is folded as
+          // a side-effect of the measurement-op rewrite (step 4). Only the
+          // indirect case needs `ExpandSequenceDiscriminate`.
           return d.getMeasurement()
                      .getDefiningOp<cudaq::quake::MeasurementInterface>() !=
                  nullptr;

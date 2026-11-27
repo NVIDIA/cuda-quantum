@@ -48,6 +48,10 @@ CUDAQ_ALL_REDUCE_DEF(float, std::multiplies)
 CUDAQ_ALL_REDUCE_DEF(double, std::plus)
 CUDAQ_ALL_REDUCE_DEF(double, std::multiplies)
 
+/// @brief Element-wise sum of `local` across all ranks.
+std::vector<double> allReduce(const std::vector<double> &local,
+                              const std::plus<double> &);
+
 } // namespace detail
 
 /// @brief Reduce all values across ranks with the specified binary function.

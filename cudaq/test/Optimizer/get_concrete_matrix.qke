@@ -1,0 +1,60 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --get-concrete-matrix %s | FileCheck %s
+
+// Repeated calls share a generator. Symbol tables must remain valid when its
+// visibility changes and when an unused matrix address is removed. A nested
+// module deliberately shadows the generator name with a different matrix.
+module {
+  cc.global constant private @outer_matrix (dense<[(1.0,0.0), (0.0,0.0), (0.0,0.0), (1.0,0.0)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+
+  // The live address must remain available after rewriting both calls.
+  // CHECK-LABEL: func.func private @generator()
+  // CHECK: cc.address_of @outer_matrix
+  // CHECK: return
+  func.func @generator() -> !cc.ptr<!cc.array<complex<f64> x 4>> {
+    %p = cc.address_of @outer_matrix : !cc.ptr<!cc.array<complex<f64> x 4>>
+    return %p : !cc.ptr<!cc.array<complex<f64> x 4>>
+  }
+
+  // CHECK-LABEL: func.func @kernel(
+  // CHECK-SAME: %[[ANGLE:.*]]: f64, %[[CONTROL:.*]]: !quake.ref, %[[TARGET:.*]]: !quake.ref
+  // CHECK-NEXT: quake.custom_unitary_constant @outer_matrix %[[TARGET]] : (!quake.ref) -> ()
+  // CHECK-NEXT: quake.custom_unitary_constant @outer_matrix<adj> (%[[ANGLE]]) {{\[}}%[[CONTROL]] neg [true]] %[[TARGET]] : (f64, !quake.ref, !quake.ref) -> ()
+  // CHECK-NEXT: return
+  func.func @kernel(%angle: f64, %control: !quake.ref, %target: !quake.ref) {
+    quake.custom_unitary_call @generator %target : (!quake.ref) -> ()
+    quake.custom_unitary_call @generator<adj> (%angle) [%control neg [true]] %target : (f64, !quake.ref, !quake.ref) -> ()
+    return
+  }
+
+  // CHECK-LABEL: module @nested
+  module @nested {
+    cc.global constant private @inner_matrix (dense<[(0.0,0.0), (1.0,0.0), (1.0,0.0), (0.0,0.0)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+
+    // The unused address is erased only after both calls have been rewritten.
+    // CHECK-LABEL: func.func private @generator()
+    // CHECK-NEXT: return
+    func.func @generator() {
+      %p = cc.address_of @inner_matrix : !cc.ptr<!cc.array<complex<f64> x 4>>
+      return
+    }
+
+    // CHECK-LABEL: func.func @kernel(
+    // CHECK-SAME: %[[Q:.*]]: !quake.ref
+    // CHECK-NEXT: quake.custom_unitary_constant @inner_matrix %[[Q]] : (!quake.ref) -> ()
+    // CHECK-NEXT: quake.custom_unitary_constant @inner_matrix<adj> %[[Q]] : (!quake.ref) -> ()
+    // CHECK-NEXT: return
+    func.func @kernel(%q: !quake.ref) {
+      quake.custom_unitary_call @generator %q : (!quake.ref) -> ()
+      quake.custom_unitary_call @generator<adj> %q : (!quake.ref) -> ()
+      return
+    }
+  }
+}

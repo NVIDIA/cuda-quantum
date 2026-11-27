@@ -13,7 +13,6 @@
 
 #include "CUDAQTestUtils.h"
 #include "cudaq/algorithm.h"
-
 #include "cudaq/utils/cudaq_utils.h"
 #include <cpr/cpr.h>
 #include <fstream>
@@ -94,6 +93,9 @@ bool compareDQA(std::string ref_filename, std::string dqa_filename) {
 void runRefFile(std::string ref_filename) {
   bool status = configureMockServer(ref_filename);
   ASSERT_TRUE(status) << "Configuring the mock server failed";
+
+  // Reset the target to reload the platform's compile target.
+  cudaq::detail::TargetSetter resetTarget(NVQPP_TARGET_BACKEND_CONFIG);
 
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);

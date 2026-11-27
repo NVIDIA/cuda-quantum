@@ -8,7 +8,8 @@
 
 // RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/algorithms/sample.h"
+#include "cudaq/qis/qubit_qis.h"
 #include <utility>
 
 using namespace cudaq;
@@ -17,7 +18,7 @@ using namespace cudaq;
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Teste
 // CHECK-SAME: (%[[VAL_0:.*]]: !quake.ref{{.*}})
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
 // clang-format on

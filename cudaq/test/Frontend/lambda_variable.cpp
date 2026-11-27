@@ -12,7 +12,7 @@
 // kernels as an argument. Since the lambda is an argument, it is not possible
 // or sufficient to try to inline a template specialization.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct test3_callee {
   void operator()(std::function<void(cudaq::qubit &)> &&callback,

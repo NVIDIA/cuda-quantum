@@ -41,19 +41,37 @@ class InvalidReversibleSignature(QLXError, TypeError):
 
 
 class AmbiguousLogicalPortMap(QLXError, ValueError):
-    """Several logical-port embeddings satisfy the declared objective."""
+    """Several logical-port embeddings satisfy the declared action."""
 
 
-class ObjectiveMismatch(QLXError, ValueError):
-    """A realization does not implement its declared logical objective."""
+class ActionMismatch(QLXError, ValueError):
+    """A realization does not implement its declared logical action."""
+
+
+ObjectiveMismatch = ActionMismatch
+
+
+class GadgetVerificationError(QLXError, ValueError):
+    """A gadget's contract or logical behavior failed or was unsupported.
+
+    ``receipt`` carries the full :class:`GadgetVerificationReceipt`, including
+    the conditions that passed.
+    """
+
+    def __init__(self, message, receipt=None):
+        super().__init__(message)
+        self.receipt = receipt
 
 
 class PlacementInfeasible(QLXError, ValueError):
     """No placement satisfies the declared constraints and capacities."""
 
 
-class MissingObjective(QLXError, TypeError):
+class MissingAction(QLXError, TypeError):
     """A gadget/protocol definition lacks a resolvable ``implements=``."""
+
+
+MissingObjective = MissingAction
 
 
 class InvalidDefinitionSignature(QLXError, TypeError):
@@ -175,8 +193,10 @@ __all__ = [
     "InvalidReversibleCall",
     "InvalidReversibleSignature",
     "AmbiguousLogicalPortMap",
+    "ActionMismatch",
     "ObjectiveMismatch",
     "PlacementInfeasible",
+    "MissingAction",
     "MissingObjective",
     "InvalidDefinitionSignature",
     "NotSampleable",

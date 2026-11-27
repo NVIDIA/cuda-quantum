@@ -12,6 +12,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <sstream>
@@ -27,36 +28,63 @@ nvqir::ArrayTracker &nvqir::ArrayTracker::getInstance() {
 }
 
 // Track the given array
-void nvqir::ArrayTracker::track(Array *arr) { allocated_arrays.push_back(arr); }
+void nvqir::ArrayTracker::track(Array *arr) {
+  if (use_set)
+    allocated_arrays.insert(arr);
+  else
+    recent_arrays.push_back(arr);
+}
 // Untrack the given array (manually delete outside)
 void nvqir::ArrayTracker::untrack(Array *arr) {
   if (arr == nullptr)
     return;
 
-  auto it = std::find(allocated_arrays.begin(), allocated_arrays.end(), arr);
-  // Use nullptr to indicate untracked arrays (manually deleted outside) to
-  // prevent vector shrink.
-  if (it != allocated_arrays.end())
-    *it = nullptr;
-  else
+  if (!use_set && recent_arrays.size() > maxScannedArrays) {
+    allocated_arrays.reserve(recent_arrays.size());
+    allocated_arrays.insert(recent_arrays.begin(), recent_arrays.end());
+    recent_arrays.clear();
+    use_set = true;
+  }
+
+  if (use_set) {
+    if (!allocated_arrays.erase(arr))
+      CUDAQ_WARN("Attempting to untrack an Array that is not tracked.");
+    return;
+  }
+
+  // Newest arrays are usually released first.
+  auto it = std::find(recent_arrays.rbegin(), recent_arrays.rend(), arr);
+  if (it == recent_arrays.rend()) {
     CUDAQ_WARN("Attempting to untrack an Array that is not tracked.");
+    return;
+  }
+  *it = recent_arrays.back();
+  recent_arrays.pop_back();
 }
 
 // Clean up all tracked arrays
 void nvqir::ArrayTracker::clear() {
-  CUDAQ_INFO("Cleaning up {} allocated arrays", allocated_arrays.size());
+  CUDAQ_INFO("Cleaning up {} allocated arrays",
+             recent_arrays.size() + allocated_arrays.size());
 
-  for (auto arr : allocated_arrays)
-    if (arr != nullptr)
+  for (auto arr : recent_arrays)
+    delete arr;
+  recent_arrays.clear();
+  // Clearing the set touches every bucket, so skip it when unused.
+  if (use_set) {
+    for (auto arr : allocated_arrays)
       delete arr;
-  allocated_arrays.clear();
+    allocated_arrays.clear();
+    use_set = false;
+  }
 }
 
-int8_t *Array::operator[](std::size_t index) {
-  if (static_cast<uint64_t>(index * element_size_bytes) >= storage.size())
+std::int8_t *Array::operator[](std::size_t index) {
+  // Check the element index before computing a potentially overflowing byte
+  // offset.
+  if (index >= size())
     throw std::runtime_error(
-        fmt::format("Provided index [{}] >= array size [{}]", index,
-                    storage.size() / element_size_bytes));
+        fmt::format("Provided index [{}] >= array size [{}]", index, size()));
   return &storage.at(index * element_size_bytes);
 }
 // Ctors
@@ -92,13 +120,13 @@ Array::~Array() { clear(); }
 Array *sliceArrayRange(Array *in_array, const Range &in_range) {
   const bool is_fwd_range = in_range.step > 0;
 
-  const auto convertIndex = [&](int64_t in_rawIdx) -> int64_t {
+  const auto convertIndex = [&](std::int64_t in_rawIdx) -> std::int64_t {
     if (in_rawIdx >= 0) {
       return in_rawIdx;
     }
     // Negative-based index:
     // in_rawIdx = -1 => size - 1 (last element)
-    int64_t result = in_array->size() + in_rawIdx;
+    std::int64_t result = in_array->size() + in_rawIdx;
     if (result < 0) {
       throw std::invalid_argument("range");
     }
@@ -117,7 +145,7 @@ Array *sliceArrayRange(Array *in_array, const Range &in_range) {
 
     assert(in_range.step > 0);
 
-    for (int64_t i = start_idx; i <= end_idx; i += in_range.step) {
+    for (std::int64_t i = start_idx; i <= end_idx; i += in_range.step) {
       Qubit *qubit = *reinterpret_cast<Qubit **>((*in_array)[i]);
       result->add_element();
       auto arrayPtr = (*result)[result->size() - 1];
@@ -131,7 +159,7 @@ Array *sliceArrayRange(Array *in_array, const Range &in_range) {
   }
 
   assert(in_range.step < 0);
-  for (int64_t i = start_idx; i >= end_idx; i += in_range.step) {
+  for (std::int64_t i = start_idx; i >= end_idx; i += in_range.step) {
     auto qubit = *reinterpret_cast<Qubit **>((*in_array)[i]);
     result->add_element();
     auto arrayPtr = (*result)[result->size() - 1];
@@ -146,39 +174,42 @@ Array *vectorSizetToArray(std::vector<std::size_t> &);
 
 extern "C" {
 
-Array *__quantum__rt__array_create_1d(int32_t itemSizeInBytes,
-                                      int64_t count_items) {
+Array *__quantum__rt__array_create_1d(std::int32_t itemSizeInBytes,
+                                      std::int64_t count_items) {
   auto *array = new Array(count_items, itemSizeInBytes);
   nvqir::ArrayTracker::getInstance().track(array);
   return array;
 }
 
-int8_t *__quantum__rt__array_get_element_ptr_1d(Array *q, uint64_t idx) {
+std::int8_t *__quantum__rt__array_get_element_ptr_1d(Array *q,
+                                                     std::uint64_t idx) {
   Array &arr = *q;
-  int8_t *ptr = arr[idx];
+  std::int8_t *ptr = arr[idx];
   return ptr;
 }
 
-int64_t __quantum__rt__array_get_size_1d(Array *state1) {
+std::int64_t __quantum__rt__array_get_size_1d(Array *state1) {
   if (state1 == nullptr)
     return 0;
 
   return state1->size();
 }
-Array *__quantum__rt__array_slice(Array *array, int32_t dim,
-                                  int64_t range_start, int64_t range_step,
-                                  int64_t range_end) {
+Array *__quantum__rt__array_slice(Array *array, std::int32_t dim,
+                                  std::int64_t range_start,
+                                  std::int64_t range_step,
+                                  std::int64_t range_end) {
   return quantum__rt__array_slice(array, dim,
                                   {range_start, range_step, range_end});
 }
 
-Array *__quantum__rt__array_slice_1d(Array *array, int64_t range_start,
-                                     int64_t range_step, int64_t range_end) {
+Array *__quantum__rt__array_slice_1d(Array *array, std::int64_t range_start,
+                                     std::int64_t range_step,
+                                     std::int64_t range_end) {
   return __quantum__rt__array_slice(array, 0, range_start, range_step,
                                     range_end);
 }
 
-Array *quantum__rt__array_slice(Array *array, int32_t dim, Range range) {
+Array *quantum__rt__array_slice(Array *array, std::int32_t dim, Range range) {
   return sliceArrayRange(array, range);
 }
 
@@ -210,5 +241,5 @@ void __quantum__rt__array_release(Array *a) {
   delete a;
 }
 
-void __nvqpp_cleanup_arrays() { nvqir::ArrayTracker::getInstance().clear(); }
+void __nvqir_cleanupArrays() { nvqir::ArrayTracker::getInstance().clear(); }
 }

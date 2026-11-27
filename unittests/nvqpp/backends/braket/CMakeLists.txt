@@ -25,7 +25,8 @@ add_backend_unittest_executable(test_braket_emulation
   BACKEND braket
   BACKEND_CONFIG ${BACKEND_CONFIG}
 )
-add_test(NAME braket-emulation-tests COMMAND bash BraketStartServerAndTest.sh test_braket_emulation WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+# Emulation executes locally and does not need a mock server or credentials.
+add_test(NAME braket-emulation-tests COMMAND test_braket_emulation)
 
-# Tests are sharing the same port
-set_tests_properties(braket-tests braket-emulation-tests PROPERTIES RESOURCE_LOCK "braket_port")
+# Only the remote test starts the mock server.
+set_tests_properties(braket-tests PROPERTIES RESOURCE_LOCK "braket_port")

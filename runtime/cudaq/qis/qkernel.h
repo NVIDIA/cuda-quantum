@@ -37,6 +37,10 @@ public:
 
   virtual R dispatch(As...) = 0;
   virtual void *getEntry() = 0;
+
+  /// Create a deep copy of this holder. Needed because `qkernel` owns its
+  /// holder through a `std::unique_ptr`, which is not copyable.
+  virtual std::unique_ptr<QKernelInterface> clone() const = 0;
 };
 
 template <typename R, typename F, typename... As>
@@ -82,6 +86,10 @@ public:
   // was captured in the C++ host code.
   void *getEntry() override { return static_cast<void *>(&entry); }
 
+  std::unique_ptr<QKernelInterface<R, As...>> clone() const override {
+    return std::make_unique<QKernelHolder>(*this);
+  }
+
   // We keep a (member) function pointer (specialized by the callable) in order
   // to convert from the host-side to the device-side address space.
   EntryType entry;
@@ -114,8 +122,18 @@ public:
 
   qkernel() {}
   qkernel(std::nullptr_t) {}
-  qkernel(const qkernel &) = default;
+  qkernel(const qkernel &other)
+      : kernelCallable(other.kernelCallable ? other.kernelCallable->clone()
+                                            : nullptr) {}
   qkernel(qkernel &&) = default;
+
+  qkernel &operator=(const qkernel &other) {
+    if (this != &other)
+      kernelCallable =
+          other.kernelCallable ? other.kernelCallable->clone() : nullptr;
+    return *this;
+  }
+  qkernel &operator=(qkernel &&) = default;
 
   template <typename FUNC,
             bool SELF = std::is_same_v<remove_cvref_t<FUNC>, qkernel>>

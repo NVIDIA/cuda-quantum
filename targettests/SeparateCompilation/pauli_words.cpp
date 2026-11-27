@@ -31,7 +31,7 @@ void display(std::span<char> x) {
 
 //--- pauli_wordle.cpp
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // Fake host C++ signature that matches. Since this is called on the device side
 // the pauli_word will have been converted to a span.

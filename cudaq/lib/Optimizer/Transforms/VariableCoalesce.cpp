@@ -113,7 +113,7 @@ private:
     // are disjoint.
     for (auto &iter : buckets) {
       auto *v = iter.second.front();
-      SmallVector<Operation * /*ScopeOp*/> liveScopes;
+      DenseSet<Operation * /*ScopeOp*/> liveScopes;
       updateScopes(v, liveScopes);
       ArrayRef<Operation * /*AllocaOp*/> others{iter.second.begin() + 1,
                                                 iter.second.end()};
@@ -127,9 +127,9 @@ private:
   }
 
   void updateScopes(Operation * /*AllocaOp*/ alloc,
-                    SmallVectorImpl<Operation * /*ScopeOp*/> &liveScopes) {
+                    DenseSet<Operation * /*ScopeOp*/> &liveScopes) {
     auto *s = scopeMap[alloc];
-    liveScopes.append(parentScopes[s].begin(), parentScopes[s].end());
+    liveScopes.insert(parentScopes[s].begin(), parentScopes[s].end());
   }
 
   // The scope of alloca, `a`, is disjoint from the current set if it cannot be
@@ -137,10 +137,10 @@ private:
   // prioritized such that a variable in a parent scope is always processed
   // *after* any child scopes. That processing order guarantees that the parent
   // scope is already in `scopes`.
-  bool disjointScopes(const SmallVectorImpl<Operation * /*ScopeOp*/> &scopes,
+  bool disjointScopes(const DenseSet<Operation * /*ScopeOp*/> &scopes,
                       Operation * /*AllocaOp*/ a) {
     auto *s = scopeMap[a];
-    return std::find(scopes.begin(), scopes.end(), s) == scopes.end();
+    return !scopes.contains(s);
   }
 
   void coalesceWith(Operation * /*AllocaOp*/ merged,

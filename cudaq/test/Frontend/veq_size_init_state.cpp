@@ -10,7 +10,7 @@
 // RUN: cudaq-quake %s | cudaq-opt --canonicalize --cc-loop-normalize --cc-loop-unroll | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct kernel {
   void operator()() __qpu__ {
@@ -57,7 +57,7 @@ struct kernel {
 // CHECK:             %[[VAL_22:.*]] = arith.addi %[[VAL_21]], %[[VAL_2]] : i64
 // CHECK:             cc.continue %[[VAL_22]] : i64
 // CHECK:           } {invariant}
-// CHECK:           %[[VAL_23:.*]] = quake.mz %[[VAL_14]] : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           %[[VAL_23:.*]] = quake.mz %[[VAL_14]] : (!quake.veq<?>) -> !cc.sequence<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on

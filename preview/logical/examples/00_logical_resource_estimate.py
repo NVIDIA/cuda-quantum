@@ -24,22 +24,15 @@ def bell_pair():
 
 
 # %%
-# Select the target that stops after portable logical compilation.
+# Select the target that stops at a portable logical representation.
 cudaq.set_target(cql.targets.estimator)
-cql.targets.estimator.print_stack()
 
 # %%
-# Estimate the kernel and recover the typed logical-resource annotation.
+# Estimate the kernel and read its logical-qubit and gate counts.
 estimate = cudaq.estimate(bell_pair)
-resources = cql.estimate.LogicalEstimate.from_annotations(estimate.annotations)
-
-assert resources.logical_qubits_peak == 2
-assert resources.actions == {
-    "qlx_standard_h": 1,
-    "qlx_standard_cx": 1,
-}
+resources = estimate.resources
 
 print("Logical Bell-pair resources:")
-print(f"  peak logical qubits: {resources.logical_qubits_peak}")
-print(f"  logical action depth: {resources.action_depth_upper_bound}")
-print(f"  logical actions: {dict(resources.actions)}")
+print(f"  peak logical qubits: {resources.num_qubits}")
+print(f"  Hadamard actions: {resources.count('h')}")
+print(f"  controlled-X actions: {resources.count_controls('x', 1)}")

@@ -22,6 +22,9 @@ ARG base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:cu12.6-gcc12-main
 # --build-context ccache-data=<path> to inject a pre-populated cache,
 # while the devcontainer builds get the scratch as a noop.
 FROM scratch AS ccache-data
+# Default empty stage for prebuilt wheels of the Logical test dependencies. CI
+# overrides this with --build-context test-wheelhouse=<path> (see test-wheels).
+FROM scratch AS test-wheelhouse
 FROM $base_image AS devbuild
 
 ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
@@ -72,19 +75,36 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     else \
         echo "No ccache data injected using empty scratch stage." && \
         mkdir -p /root/.ccache; \
-    fi && \
-    if [ -n "$install" ]; \
-    then \
-        expected_prefix=$CUDAQ_INSTALL_PREFIX; \
+    fi
+
+# Build core CUDA-Q first, tests in a separate layer below (test
+# binaries are much larger and would otherwise bloat one layer).
+RUN if [ -n "$install" ]; then \
         install=`echo $install | xargs` && export $install; \
         cudaq_cmake_args=(-DCUDAQ_TEST_OMP_SLOTS=2); \
         if [ -n "$cudaq_enable_projects" ]; then \
             cudaq_cmake_args+=("-DCUDAQ_ENABLE_PROJECTS=$cudaq_enable_projects"); \
         fi; \
-        bash scripts/build_cudaq.sh -v -- "${cudaq_cmake_args[@]}"; \
-        if [ ! "$?" -eq "0" ]; then \
-            exit 1; \
-        elif [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \
+        CUDAQ_BUILD_TESTS=FALSE bash scripts/build_cudaq.sh -v -- "${cudaq_cmake_args[@]}" || exit 1; \
+    fi
+
+# Add tests incrementally (-i) on top of the already-built core.
+# Skipped for any CMake false constant (FALSE, OFF, NO, N, 0), any case.
+RUN if [ -n "$install" ]; then \
+        install=`echo $install | xargs` && export $install; \
+        if ! echo "${CUDAQ_BUILD_TESTS:-TRUE}" | grep -qiE '^(false|off|no|n|0)$'; then \
+            cudaq_cmake_args=(-DCUDAQ_TEST_OMP_SLOTS=2); \
+            if [ -n "$cudaq_enable_projects" ]; then \
+                cudaq_cmake_args+=("-DCUDAQ_ENABLE_PROJECTS=$cudaq_enable_projects"); \
+            fi; \
+            CUDAQ_BUILD_TESTS=TRUE bash scripts/build_cudaq.sh -v -i -- "${cudaq_cmake_args[@]}" || exit 1; \
+        fi; \
+    fi
+
+RUN if [ -n "$install" ]; then \
+        expected_prefix=$CUDAQ_INSTALL_PREFIX; \
+        install=`echo $install | xargs` && export $install; \
+        if [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \
             mkdir -p "$expected_prefix"; \
             mv "$CUDAQ_INSTALL_PREFIX"/* "$expected_prefix"; \
             rmdir "$CUDAQ_INSTALL_PREFIX"; \
@@ -119,6 +139,61 @@ RUN if [ "$run_tests" = "true" ] && [ -n "$mpi" ]; then \
         cd $CUDAQ_REPO_ROOT && \
         ctest --test-dir build -R MPIApiTest -V; \
     fi
+
+# CI stages for cudaq.logical (preview/logical). Both start from the freshly
+# built devbuild and only run when run_tests=true. They are independent: each
+# builds Logical one way into its own layer, so one never sees the other's
+# files in the CUDA-Q installation prefix.
+#
+# qlx-python-tests is one long pytest process, slow on Debug builds on loaded
+# runners; PYTEST_ADDOPTS makes pytest use xdist (workers capped as in
+# test_in_devenv.yml to bound memory).
+#
+# Out-of-tree: configure Logical against the CUDA-Q *installation*, with the
+# toolchain audit on, then run its ctest suite.
+FROM devbuild AS test-logical
+ARG run_tests=false
+ARG install=
+RUN --mount=from=test-wheelhouse,target=/wheelhouse \
+    if [ "$run_tests" = "true" ] && [ -n "$install" ]; then \
+        install=`echo $install | xargs` && export $install; \
+        cd $CUDAQ_REPO_ROOT && \
+        python3 -m pip install --find-links /wheelhouse -r preview/logical/requirements-test.txt --break-system-packages && \
+        QLX_VERIFY_TOOLCHAIN=ON bash scripts/build_cudaq.sh -v -I -L || exit 1; \
+        ctest_listing="$(ctest --test-dir build/preview/logical -N)" && \
+        echo "$ctest_listing" && \
+        grep -q 'qlx-filecheck-tests' <<< "$ctest_listing" || \
+            { echo "qlx-filecheck-tests is not registered; lit/FileCheck missing at configure time." >&2; exit 1; }; \
+        PYTEST_ADDOPTS="-n $(( ($(nproc) + 1) / 2 ))" OMP_NUM_THREADS=1 \
+            ctest --test-dir build/preview/logical --output-on-failure -j "$(nproc)" || exit 1; \
+    fi
+
+# In-tree: reconfigure the CUDA-Q build with -DCUDAQ_ENABLE_LOGICAL=ON on top of
+# the existing build tree, then run Logical's ctest suite from it.
+FROM devbuild AS test-logical-intree
+ARG run_tests=false
+ARG install=
+RUN --mount=from=test-wheelhouse,target=/wheelhouse \
+    if [ "$run_tests" = "true" ] && [ -n "$install" ]; then \
+        install=`echo $install | xargs` && export $install; \
+        cd $CUDAQ_REPO_ROOT && \
+        python3 -m pip install --find-links /wheelhouse -r preview/logical/requirements-test.txt --break-system-packages && \
+        CUDAQ_BUILD_TESTS=FALSE bash scripts/build_cudaq.sh -v -i -- \
+            -DCUDAQ_TEST_OMP_SLOTS=2 -DCUDAQ_ENABLE_LOGICAL=ON || exit 1; \
+        PYTEST_ADDOPTS="-n $(( ($(nproc) + 1) / 2 ))" OMP_NUM_THREADS=1 \
+            ctest --test-dir build -R '^qlx-' --output-on-failure -j "$(nproc)" || exit 1; \
+    fi
+
+# PyPI ships no aarch64 wheel of stim, so pip compiles it (~8 min) in each of the
+# two stages above. CI builds the wheels once with
+#   --target test-wheels-export --output type=local,dest=<path>
+# keeps them in the Actions cache, and passes them back as test-wheelhouse.
+FROM $base_image AS test-wheels
+COPY preview/logical/requirements-test.txt /tmp/requirements-test.txt
+RUN python3 -m pip wheel --no-deps -r /tmp/requirements-test.txt -w /wheelhouse
+
+FROM scratch AS test-wheels-export
+COPY --from=test-wheels /wheelhouse /
 
 # CI coverage stage. Build with --target coverage to generate code
 # coverage inside BuildKit. The run_coverage arg defaults to false

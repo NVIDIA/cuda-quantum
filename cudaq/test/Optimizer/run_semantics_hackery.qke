@@ -70,16 +70,16 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel..0x7de5b48
     call @llvm.memcpy.p0.p0.i64(%1, %arg0, %0, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     return %1 : !cc.ptr<i8>
   }
-  func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-  func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
-  llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
+  func.func private @__cudaq_hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+  func.func private @__cudaq_registerArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
+  llvm.func @__cudaq_registerLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
   func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)
   func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
-  func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
+  func.func private @__cudaq_registerKernelName(!cc.ptr<i8>)
   func.func private @free(!cc.ptr<i8>)
-  func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64)
-  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>, !cc.ptr<!cc.ptr<i8>>)
-  func.func private @__nvqpp_vector_bool_free_temporary_initlists(!cc.ptr<i8>)
+  func.func private @__cudaq_initializerListToVectorBool(!cc.ptr<none>, !cc.ptr<none>, i64)
+  func.func private @__cudaq_vectorBoolToInitializerList(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>, !cc.ptr<!cc.ptr<i8>>)
+  func.func private @__cudaq_vectorBoolFreeTemporaryInitLists(!cc.ptr<i8>)
   func.func private @llvm.memset.p0.i64(!cc.ptr<i8>, i8, i64, i1)
   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
     %c0_i64 = arith.constant 0 : i64
@@ -110,10 +110,10 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel..0x7de5b48
     return %10 : !cc.struct<{!cc.ptr<i8>, i64}>
   }
   func.func private @_ZNK5cudaq10pauli_word11_nvqpp_dataEv(!cc.ptr<i8>) -> !cc.ptr<i8>
-  func.func private @__nvqpp_getStringData(!cc.ptr<i8>) -> !cc.ptr<i8>
-  func.func private @__nvqpp_getStringSize(!cc.ptr<i8>) -> i64
+  func.func private @__cudaq_getStringData(!cc.ptr<i8>) -> !cc.ptr<i8>
+  func.func private @__cudaq_getStringSize(!cc.ptr<i8>) -> i64
   func.func private @_ZNK5cudaq10pauli_word11_nvqpp_sizeEv(!cc.ptr<i8>) -> i64
-  func.func private @__nvqpp_cleanup_arrays()
+  func.func private @__nvqir_cleanupArrays()
   func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030.run(%arg0: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [!cc.sequence<i64>]} {
     %0 = call @__nvqpp__mlirgen__kernel..0x7de5b482e030(%arg0) : (i64) -> !cc.sequence<i64>
     quake.evince %0 : (!cc.sequence<i64>) -> ()
@@ -124,14 +124,15 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel..0x7de5b48
   }
 }
 
+// The ruined clone is inlined into the run entry point by the pass itself, and
+// does not depend on the later inlining. The copy to the heap is gone and so is
+// the clone.
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030.run(
 // CHECK-SAME:      %[[ARG0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [!cc.sequence<i64>]} {
-// CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__kernel..0x7de5b482e030.ruined(%[[ARG0]]) : (i64) -> !cc.sequence<i64>
-// CHECK:           quake.evince %[[VAL_0]] : (!cc.sequence<i64>) -> ()
+// CHECK-NOT:       call @{{.*}}ruined
+// CHECK-NOT:       call @__nvqpp__mlirgen__kernel..0x7de5b482e030(
+// CHECK-NOT:       __nvqpp_vectorCopyCtor
+// CHECK:           quake.evince %{{.*}} : (!cc.sequence<i64>) -> ()
 // CHECK:           return
 // CHECK:         }
-
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030.ruined(
-// CHECK-SAME:      %[[ARG0:.*]]: i64 {quake.pylifted}) -> !cc.sequence<i64> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK-NOT:       __nvqpp_vectorCopyCtor
-// CHECK:           return {{.*}}: !cc.sequence<i64>
+// CHECK-NOT:       ruined

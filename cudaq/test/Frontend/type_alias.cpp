@@ -8,8 +8,8 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
+#include "cudaq/qis/qubit_qis.h"
 #include <cstddef>
-#include <cudaq.h>
 
 __qpu__ std::size_t kernel1(std::size_t arg) {
   cudaq::qubit q1;

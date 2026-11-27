@@ -20,8 +20,8 @@
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "llvm/Support/Base64.h"
 #include <algorithm>
+#include <cstdint>
 #include <dlfcn.h>
 #include <mutex>
 #include <stdexcept>
@@ -31,11 +31,49 @@
 
 using namespace cudaq;
 
+// Standard (RFC 4648) base64 decoding. Implemented here rather than with
+// llvm::decodeBase64 so that libcudaq does not depend on LLVM.
 std::string detail::decodeBase64(const std::string &encoded) {
-  std::vector<char> decoded_vec;
-  if (auto err = llvm::decodeBase64(encoded, decoded_vec))
+  auto decodeChar = [](char c) -> int {
+    if (c >= 'A' && c <= 'Z')
+      return c - 'A';
+    if (c >= 'a' && c <= 'z')
+      return c - 'a' + 26;
+    if (c >= '0' && c <= '9')
+      return c - '0' + 52;
+    if (c == '+')
+      return 62;
+    if (c == '/')
+      return 63;
+    return -1;
+  };
+
+  if (encoded.size() % 4 != 0)
     throw std::runtime_error("DecodeBase64 error");
-  return std::string(decoded_vec.data(), decoded_vec.size());
+
+  std::string decoded;
+  decoded.reserve(encoded.size() / 4 * 3);
+  for (std::size_t i = 0; i < encoded.size(); i += 4) {
+    const bool lastGroup = i + 4 == encoded.size();
+    // Padding is only allowed at the end: "xx==" or "xxx=".
+    const std::size_t padding = !lastGroup              ? 0
+                                : encoded[i + 3] != '=' ? 0
+                                : encoded[i + 2] != '=' ? 1
+                                                        : 2;
+    std::uint32_t group = 0;
+    for (std::size_t j = 0; j < 4 - padding; ++j) {
+      int value = decodeChar(encoded[i + j]);
+      if (value < 0)
+        throw std::runtime_error("DecodeBase64 error");
+      group |= static_cast<std::uint32_t>(value) << (18 - 6 * j);
+    }
+    decoded.push_back(static_cast<char>((group >> 16) & 0xFF));
+    if (padding < 2)
+      decoded.push_back(static_cast<char>((group >> 8) & 0xFF));
+    if (padding < 1)
+      decoded.push_back(static_cast<char>(group & 0xFF));
+  }
+  return decoded;
 }
 
 std::optional<std::string>
@@ -124,7 +162,7 @@ void loadTargetPluginLibrary(const std::filesystem::path &path,
 
   CUDAQ_INFO("Loading plugin library '{}' for target '{}'.", pathString,
              targetName);
-  void *handle = dlopen(pathString.c_str(), RTLD_GLOBAL | RTLD_NOW);
+  void *handle = dlopen(pathString.c_str(), RTLD_LOCAL | RTLD_NOW);
   if (!handle) {
     const char *error = dlerror();
     throw std::runtime_error("Unable to load plugin library '" + pathString +
@@ -214,12 +252,22 @@ void detail::initServerHelperAndExecutor(
   CUDAQ_INFO("Retrieving executor with name {}", qpuName);
   CUDAQ_INFO("Is this executor registered? {}",
              cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
-  executor = cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
-                 ? cudaq::registry::get<cudaq::Executor>(qpuName)
-                 : std::make_unique<cudaq::Executor>();
+  // Emulation uses the helper's compilation settings, but executes locally.
+  // Constructing a remote executor can start network connections (e.g. AWS
+  // metadata and S3 requests) even when no remote job will ever be submitted.
+  const auto emulate = backendConfig.find("emulate");
+  const bool isEmulated =
+      emulate != backendConfig.end() && emulate->second == "true";
+  executor =
+      !isEmulated && cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
+          ? cudaq::registry::get<cudaq::Executor>(qpuName)
+          : std::make_unique<cudaq::Executor>();
 
   // Give the server helper to the executor
   executor->setServerHelper(serverHelper.get());
+
+  // Register after client setup, which may initialize SDK statics.
+  detail::registerPlatformCleanup();
 
   // Construct the runtime target
   RuntimeTarget runtimeTarget;

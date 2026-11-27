@@ -66,19 +66,16 @@ struct QuakeTypeConverter : public TypeConverter {
     addConversion([](cudaq::quake::WireType ty) {
       return cudaq::cg::getQubitType(ty.getContext());
     });
-    addConversion([](cudaq::quake::MeasureType ty) {
-      return cudaq::cg::getResultType(ty.getContext());
-    });
-    addConversion([](cudaq::cc::MeasureHandleType ty) -> Type {
+    addConversion([](cudaq::quake::MeasureType ty) -> Type {
       return IntegerType::get(ty.getContext(), 64);
     });
-    // Keep these materializations abstract until all `!cc.measure_handle`
-    // types become `i64`; the pipeline canonicalizer can then erase them
+    // Keep these materializations abstract until all measurement types
+    // become `i64`; the pipeline canonicalizer can then erase them
     // instead of lowering `cc.cast` to an equal-width LLVM truncation.
     addTargetMaterialization([](OpBuilder &builder, Type type,
                                 ValueRange inputs, Location loc) -> Value {
       if (inputs.size() != 1 ||
-          !isa<cudaq::cc::MeasureHandleType>(inputs.front().getType()) ||
+          !isa<cudaq::quake::MeasureType>(inputs.front().getType()) ||
           !type.isInteger(64))
         return {};
       return UnrealizedConversionCastOp::create(builder, loc, type, inputs)
@@ -86,7 +83,7 @@ struct QuakeTypeConverter : public TypeConverter {
     });
     addSourceMaterialization([](OpBuilder &builder, Type type,
                                 ValueRange inputs, Location loc) -> Value {
-      if (!isa<cudaq::cc::MeasureHandleType>(type) || inputs.size() != 1 ||
+      if (!isa<cudaq::quake::MeasureType>(type) || inputs.size() != 1 ||
           !inputs.front().getType().isInteger(64))
         return Value{};
       return UnrealizedConversionCastOp::create(builder, loc, type, inputs)
@@ -178,7 +175,7 @@ struct GeneralRewrite : OpConversionPattern<OP> {
         } else {
           // Controlled parameterized QIS functions need the generalized
           // invocation ABI so that their rotation parameters are forwarded.
-          auto ptrTy = cudaq::opt::factory::getPointerType(ctx);
+          auto ptrTy = cudaq::cc::PointerType::get(mlir::NoneType::get(ctx));
           Value fPtrVal =
               cudaq::cc::FuncToPtrOp::create(rewriter, loc, ptrTy, fVal);
           SmallVector<Value> callParamVals{
@@ -324,18 +321,10 @@ struct MzRewrite : OpConversionPattern<cudaq::quake::MzOp> {
   matchAndRewrite(cudaq::quake::MzOp meas, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
 
-    const bool measOutIsHandle =
-        isa<cudaq::cc::MeasureHandleType>(meas.getMeasOut().getType());
     const auto regName = meas.getRegisterName();
     const ModuleOp mod = meas->getParentOfType<ModuleOp>();
     const bool isCudaqRun = meas->getParentOfType<func::FuncOp>()->hasAttr(
         cudaq::runtime::enableCudaqRun);
-    const bool measureFollowedByDiscriminate = [&]() {
-      for (auto user : meas->getResult(0).getUsers())
-        if (isa<cudaq::quake::DiscriminateOp>(user))
-          return true;
-      return false;
-    }();
 
     // FIXME: Must use sequentially assigned result ids
     std::string funcName = toQisBodyName(std::string("mz"));
@@ -349,16 +338,12 @@ struct MzRewrite : OpConversionPattern<cudaq::quake::MzOp> {
         rewriter, loc, cudaq::cg::getResultType(rewriter.getContext()), idCon);
     func::CallOp::create(rewriter, loc, mlir::TypeRange{}, funcName,
                          ValueRange{adaptor.getTargets()[0], resultVal});
-    Value measOut = resultVal;
-    if (measOutIsHandle)
-      measOut = cudaq::cc::CastOp::create(rewriter, loc, rewriter.getI64Type(),
-                                          resultVal);
+    Value measOut = cudaq::cc::CastOp::create(rewriter, loc,
+                                              rewriter.getI64Type(), resultVal);
     rewriter.replaceOp(meas, ValueRange{measOut, adaptor.getTargets()[0]});
 
-    // Handles are recorded here even when directly discriminated. Legacy
-    // measures are recorded here only when not directly discriminated.
-    if (regName && !isCudaqRun &&
-        (measOutIsHandle || !measureFollowedByDiscriminate)) {
+    // Results are recorded here, even when directly discriminated.
+    if (regName && !isCudaqRun) {
       cudaq::IRBuilder irb(rewriter.getContext());
       // NB: This is thread safe as it should never do an insertion, just a
       // lookup.
@@ -400,66 +385,26 @@ private:
 struct DiscriminateRewrite : OpConversionPattern<cudaq::quake::DiscriminateOp> {
   using Base = OpConversionPattern;
 
-  explicit DiscriminateRewrite(TypeConverter &typeConverter, bool adaptive,
-                               DenseMap<Operation *, StringRef> &nameMap,
-                               MLIRContext *ctxt, PatternBenefit benefit = 1)
-      : Base(typeConverter, ctxt, benefit), isAdaptiveProfile(adaptive),
-        regNameMap(nameMap) {}
+  using Base::Base;
 
   LogicalResult
   matchAndRewrite(cudaq::quake::DiscriminateOp disc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = disc.getLoc();
-
-    const bool operandIsHandle =
-        isa<cudaq::cc::MeasureHandleType>(disc.getMeasurement().getType());
+    // The operand is the `i64` handle. The result was already recorded by the
+    // measurement, so just read it back.
     Value resultVal = adaptor.getMeasurement();
-    if (operandIsHandle) {
-      auto i64Ty = rewriter.getI64Type();
-      if (resultVal.getType() != i64Ty)
-        resultVal = cudaq::cc::CastOp::create(rewriter, loc, i64Ty, resultVal);
-      resultVal = cudaq::cc::CastOp::create(
-          rewriter, loc, cudaq::cg::getResultType(rewriter.getContext()),
-          resultVal);
-    }
-
-    if (!operandIsHandle && !disc->getParentOfType<func::FuncOp>()->hasAttr(
-                                cudaq::runtime::enableCudaqRun)) {
-      auto mod = disc->getParentOfType<ModuleOp>();
-      cudaq::IRBuilder irb(rewriter.getContext());
-      auto iter = regNameMap.find(disc.getOperation());
-      assert(iter != regNameMap.end() && "discriminate must be in map");
-      // NB: This is thread safe as it should never do an insertion, just a
-      // lookup.
-      auto nameObj = irb.genCStringLiteralAppendNul(loc, mod, iter->second);
-      auto arrI8Ty = mlir::LLVM::LLVMArrayType::get(rewriter.getI8Type(),
-                                                    iter->second.size() + 1);
-      auto ptrArrTy = cudaq::cc::PointerType::get(arrI8Ty);
-      Value nameVal = cudaq::cc::AddressOfOp::create(rewriter, loc, ptrArrTy,
-                                                     nameObj.getName());
-      auto cstrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
-      Value nameValCStr =
-          cudaq::cc::CastOp::create(rewriter, loc, cstrTy, nameVal);
-
-      func::CallOp::create(rewriter, loc, mlir::TypeRange{},
-                           cudaq::opt::QIRRecordOutput,
-                           ValueRange{resultVal, nameValCStr});
-    }
-    if (operandIsHandle || isAdaptiveProfile) {
-      std::string funcName = toQisBodyName(std::string("read_result"));
-      rewriter.replaceOpWithNewOp<func::CallOp>(
-          disc, rewriter.getI1Type(), funcName, ValueRange{resultVal});
-    } else {
-      Value undef =
-          cudaq::cc::UndefOp::create(rewriter, loc, rewriter.getI1Type());
-      rewriter.replaceOp(disc, undef);
-    }
+    auto i64Ty = rewriter.getI64Type();
+    if (resultVal.getType() != i64Ty)
+      resultVal = cudaq::cc::CastOp::create(rewriter, loc, i64Ty, resultVal);
+    resultVal = cudaq::cc::CastOp::create(
+        rewriter, loc, cudaq::cg::getResultType(rewriter.getContext()),
+        resultVal);
+    std::string funcName = toQisBodyName(std::string("read_result"));
+    rewriter.replaceOpWithNewOp<func::CallOp>(disc, rewriter.getI1Type(),
+                                              funcName, ValueRange{resultVal});
     return success();
   }
-
-private:
-  bool isAdaptiveProfile;
-  DenseMap<Operation *, StringRef> &regNameMap;
 };
 
 struct WireSetToProfileQIRPass
@@ -471,15 +416,6 @@ struct WireSetToProfileQIRPass
     auto op = getOperation();
     auto *context = &getContext();
     OpBuilder builder(op);
-    DenseMap<Operation *, StringRef> regNameMap;
-    op.walk([&](cudaq::quake::DiscriminateOp disc) {
-      auto meas = disc.getMeasurement().getDefiningOp<cudaq::quake::MzOp>();
-      auto name = meas ? meas.getRegisterName() : std::nullopt;
-      if (name)
-        regNameMap[disc.getOperation()] = *name;
-      else
-        regNameMap[disc.getOperation()] = "?";
-    });
     std::optional<std::uint32_t> highestIdentity;
     op.walk([&](cudaq::quake::BorrowWireOp op) {
       highestIdentity = highestIdentity
@@ -506,9 +442,7 @@ struct WireSetToProfileQIRPass
         ResetRewrite, ReturnWireRewrite>(quakeTypeConverter, context);
     patterns.insert<MzRewrite>(quakeTypeConverter, resultCounter,
                                resultQubitVals, context);
-    const bool isAdaptiveProfile = convertTo == "qir-adaptive";
-    patterns.insert<DiscriminateRewrite>(quakeTypeConverter, isAdaptiveProfile,
-                                         regNameMap, context);
+    patterns.insert<DiscriminateRewrite>(quakeTypeConverter, context);
     ConversionTarget target(*context);
     target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
                            func::FuncDialect, LLVM::LLVMDialect>();

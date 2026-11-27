@@ -7,13 +7,23 @@
 # ============================================================================ #
 
 import os
+import shutil
 import lit.formats
 import lit.util
 
 config.name = "QLX"
-config.test_format = lit.formats.ShTest(True)
+try:
+    config.test_format = lit.formats.ShTest(True)
+except ValueError:
+    # LLVM 23 requires callers that intentionally use the external shell to
+    # opt in explicitly. Older lit releases reject the keyword but accept the
+    # positional form above.
+    config.test_format = lit.formats.ShTest(True, force_execute_external=True)
 
 config.suffixes = [".mlir", ".test"]
+
+# Files under Inputs/ are fixtures read by other tests, not tests themselves.
+config.excludes = ["Inputs"]
 
 config.test_source_root = os.path.dirname(__file__)
 
@@ -21,6 +31,12 @@ config.test_source_root = os.path.dirname(__file__)
 
 # Retained CLI workflow tests consume the checked-in top-level examples.
 config.substitutions.append(("%qlx_src_dir", config.qlx_src_dir))
+
+# Host OS features for REQUIRES and UNSUPPORTED lines: `system-linux`,
+# `system-darwin`.
+import platform
+
+config.available_features.add("system-" + platform.system().lower())
 
 # Features for REQUIRES lines. Each entry advertises a feature when the
 # corresponding tool exists in ${QLX_TOOLS_DIR}.
@@ -41,6 +57,16 @@ if hasattr(config,
 if hasattr(config, "llvm_tools_dir") and config.llvm_tools_dir:
     path = config.llvm_tools_dir + os.pathsep + path
 config.environment["PATH"] = path
+
+# cudaq-opt runs CUDA-Q's own passes on the Quake that Logical emits. In-tree
+# it is in `qlx_tools_dir`, CUDA-Q's bin/. The `cudaq-devel` wheel keeps it
+# next to the LLVM tools. Other development setups have it on PATH.
+# `%cudaq_opt` expands to the path found. Adding its directory to PATH
+# instead could let an installed qlx-opt there shadow the one under test.
+_cudaq_opt = shutil.which("cudaq-opt", path=path)
+if _cudaq_opt:
+    config.available_features.add("cudaq-opt")
+    config.substitutions.append(("%cudaq_opt", _cudaq_opt))
 
 # Python support for FileCheck tests.
 #
@@ -63,8 +89,13 @@ if (hasattr(config, "python_executable") and config.python_executable and
     _probe_env = dict(os.environ)
     _probe_env["PYTHONPATH"] = config.qlx_python_dir
     _probe = subprocess.run([
-        config.python_executable, "-c",
-        "import _cudaq_logical_devpath, cudaq.logical"
+        config.python_executable, "-c", """
+try:
+    import _cudaq_logical_devpath  # standalone build trees only
+except ImportError:
+    pass
+import cudaq.logical
+"""
     ],
                             env=_probe_env,
                             capture_output=True)

@@ -18,6 +18,9 @@ from __future__ import annotations
 from ._fabric_ops_gen import *  # noqa: F401,F403
 from ._fabric_enum_gen import *  # noqa: F401,F403
 
+# Keep the serialized fabric.objective operation as the compatibility format.
+ActionOp = ObjectiveOp
+
 # Native extension: Fabric type/attr subclasses live in the `fabric`
 # submodule of the combined _qlx_ext extension.  The dialect itself is
 # auto-registered on every Context via the _site_initialize_0 hook.

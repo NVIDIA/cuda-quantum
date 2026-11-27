@@ -12,7 +12,7 @@
 /// Parallels gpu_roce_wrapper.h (which wraps GpuRoceTransceiver) so the
 /// existing bridge-tool patterns can swap in the CPU transport with
 /// minimal changes.  Used by:
-///   - hsb_bridge_cpu     (Phase 1, FPGA-facing; default tx_mode_send_for_fpga)
+///   - `roce_app --cpu`   (FPGA-facing; default tx_mode_send_for_fpga)
 ///   - CpuRoceChannel     (Phase 2, plugged into PR #4565's DeviceCallChannel
 ///                         framework; tx_mode_write_with_imm_for_peer)
 ///   - cpu_roce_test_daemon (Phase 2 service-end;
@@ -33,7 +33,7 @@ typedef void *cpu_roce_transceiver_t;
 
 /// Which RDMA wire verb this transceiver's TX path uses.  Names the verb the
 /// transmitter issues, not a peer role; whoever sets the mode is the source.
-/// Mirrors CpuRoceTxMode in roce_transceiver.hpp.
+/// Maps onto Hololink's Transceiver::TxOperation.
 typedef enum {
   /// TX issues IBV_WR_SEND.  Use when the peer consumes Sends via pre-posted
   /// recv WQEs (e.g. an FPGA's HSB IP, which can only receive Sends; or a
@@ -119,9 +119,9 @@ void cpu_roce_blocking_monitor(cpu_roce_transceiver_t handle);
 //==============================================================================
 
 /// Non-blocking.  Returns 1 and sets *out_slot when a request is in that RX
-/// slot; 0 when nothing has arrived, or when the arrived request's slot still
-/// has a response in flight (tx_flags[slot] != 0) -- that request is held,
-/// not lost, and returned by a later call once the flag clears.  Re-arms the
+/// slot; 0 when nothing has arrived, or when the consumer still holds the
+/// arrived request's slot (tx_flags[slot] != 0) -- that request is kept, not
+/// lost, and returned by a later call once the flag clears.  Re-arms the
 /// slot's recv WQE on claim.  Never touches rx_flags.
 int cpu_roce_rx_poll(cpu_roce_transceiver_t handle, uint32_t *out_slot);
 

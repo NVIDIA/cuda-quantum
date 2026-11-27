@@ -64,6 +64,19 @@ def test_stim_sample():
     assert ('1' * 250 in counts)
 
 
+def test_stim_run_large_register_cleanup():
+    """Release a large register and reuse the simulator on subsequent runs."""
+
+    @cudaq.kernel
+    def kernel(n: int) -> bool:
+        qubits = cudaq.qvector(n)
+        x(qubits)
+        return mz(qubits[n - 1])
+
+    for n in [10000, 10, 10000]:
+        assert cudaq.run(kernel, n, shots_count=1) == [True]
+
+
 def test_stim_all_mz_types():
     # Create the kernel we'd like to execute on Stim
     @cudaq.kernel

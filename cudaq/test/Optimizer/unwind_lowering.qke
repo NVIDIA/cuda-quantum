@@ -40,7 +40,7 @@ func.func @__nvqpp__mlirgen__1(%arg0: i32) {
       cc.store %4, %2 : !cc.ptr<i32>
     }
   }
-  %measOut = quake.mz %1 : (!quake.ref) -> !cc.measure_handle
+  %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
   return
 }
 
@@ -78,7 +78,7 @@ func.func @__nvqpp__mlirgen__1(%arg0: i32) {
 // CHECK:               cc.store %[[ADDI_0]], %[[ALLOCA_2]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
-// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_1]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_1]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
 
@@ -114,7 +114,7 @@ func.func @__nvqpp__mlirgen__2(%arg0: i32) {
       cc.store %4, %2 : !cc.ptr<i32>
     }
   }
-  %measOut = quake.mz %1 : (!quake.ref) -> !cc.measure_handle
+  %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
   return
 }
 
@@ -152,7 +152,7 @@ func.func @__nvqpp__mlirgen__2(%arg0: i32) {
 // CHECK:               cc.store %[[ADDI_0]], %[[ALLOCA_2]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
-// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_1]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_1]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
 
@@ -188,7 +188,7 @@ func.func @__nvqpp__mlirgen__3(%arg0: i32) {
       cc.store %4, %2 : !cc.ptr<i32>
     }
   }
-  %measOut = quake.mz %1 : (!quake.ref) -> !cc.measure_handle
+  %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
   return
 }
 
@@ -225,7 +225,7 @@ func.func @__nvqpp__mlirgen__3(%arg0: i32) {
 // CHECK:           quake.dealloc %[[ALLOCA_1]] : !quake.ref
 // CHECK:           return
 // CHECK:         ^bb5:
-// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_1]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_1]] : (!quake.ref) -> !quake.measure
 // CHECK:           quake.dealloc %[[ALLOCA_1]] : !quake.ref
 // CHECK:           return
 // CHECK:         }

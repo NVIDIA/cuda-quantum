@@ -70,7 +70,7 @@ class VQE(object):
         n_layers = self.n_layers
         number_of_blocks = self.number_of_Q_blocks
 
-        # changed self.target to `nvidia`` to pass CI job, as it expects a string
+        # changed self.target to `nvidia` to pass CI job, as it expects a string
         # literal
         # cudaq.set_target("`nvidia`")  # `nvidia` or `nvidia-mgpu`
 

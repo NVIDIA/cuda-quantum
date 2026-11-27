@@ -8,7 +8,6 @@
 
 #include "quantum_lib/quantum_lib.h"
 #include "runtime/interop/PythonCppInterop.h"
-#include "cudaq/algorithms/dem.h"
 #include "cudaq/qis/qkernel.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/vector.h>
@@ -21,6 +20,9 @@ NB_MODULE(cudaq_test_cpp_algo, m) {
       m, "qstd", "another", "Demonstrate we can have multiple ones.");
   cudaq::python::addDeviceKernelInterop<cudaq::qview<>, std::size_t>(
       m, "qstd", "uccsd", "");
+  cudaq::python::addDeviceKernelInterop<cudaq::qview<>, std::size_t>(
+      m, "qstd", "call_flip",
+      "Calls `flip`, which is defined in a different source file.");
 
   // Callback tests
   m.def(
@@ -97,20 +99,6 @@ NB_MODULE(cudaq_test_cpp_algo, m) {
         return cudaq::python::launch_specialized_py_decorator<
             cudaq::qkernel<void(cudaq::qvector<> &)>>(
             qern, cudaq::measure_handle_lifetime_test);
-      },
-      "");
-
-  m.def(
-      "run_measure_handle_callback",
-      [](nanobind::object qern) {
-        cudaq::python::CppPyKernelDecorator decorator(qern);
-        auto entryPoint = decorator.getDirectKernelCall<cudaq::qkernel<
-            std::vector<cudaq::measure_handle>(cudaq::qvector<> &)>>();
-        cudaq::M2DSparseMatrix m2d;
-        cudaq::M2OSparseMatrix m2o;
-        auto dem = cudaq::dem_from_kernel(cudaq::measure_handle_callback_test,
-                                          m2d, m2o, entryPoint);
-        return nanobind::make_tuple(dem, m2d.rows, m2d.num_measurements);
       },
       "");
 }

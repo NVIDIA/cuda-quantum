@@ -13,6 +13,7 @@
 /// particular quantum target representation. There is a bevy of such targets
 /// that provide platforms on which the quantum code can be run.
 
+#include "cudaq/Optimizer/CodeGen/CodegenMode.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -69,6 +70,10 @@ void registerToQIRAPIPipeline();
 void addConvertToQIRAPIPipeline(mlir::OpPassManager &pm, mlir::StringRef api,
                                 bool opaquePtr = true);
 
+/// Whether the QIR API \p api, as passed to `addConvertToQIRAPIPipeline`,
+/// lowers negated controls. If not, `expand-control-negations` must run first.
+bool qirAPISupportsNegatedControls(mlir::StringRef api);
+
 /// The pipeline for lowering Quake code to the execution manager API. This
 /// pipeline should be run before conversion to the LLVM-IR dialect.
 void registerToExecutionManagerCCPipeline();
@@ -93,10 +98,11 @@ void addLowerToCCPipeline(mlir::OpPassManager &pm);
 /// Pipeline builder to convert Quake to QIR at AOT compilation.
 ///
 /// The driver always uses full QIR, but it can support other profiles if
-/// necessary. Letting \p convertTo default means full QIR.
+/// necessary. An empty \p convertTo means full QIR. \p mode says which of
+/// normalization and optimization the pipeline runs before it emits.
 void addAOTPipelineConvertToQIR(mlir::PassManager &pm,
-                                mlir::StringRef convertTo = {},
-                                bool useValueSemantics = true);
+                                mlir::StringRef convertTo,
+                                cudaq::opt::CodegenMode mode);
 
 /// Stage 1 of the C++ `kernel_builder` JIT path. Unlike the AOT driver, the
 /// builder JITs in-process and so must generate its own device code loader and

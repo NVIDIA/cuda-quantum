@@ -33,33 +33,33 @@ struct CuStateVecConfig {
 
   /// Maximum number of qubits in a fused dense or diagonal operation. An unset
   /// dense value or a diagonal value of -1 lets cuStateVecEx select the size.
-  std::optional<int32_t> denseFusionQubits;
-  int32_t diagonalFusionQubits = -1;
+  std::optional<std::int32_t> denseFusionQubits;
+  std::int32_t diagonalFusionQubits = -1;
 
   /// Number of host threads available to the fused updater.
-  int32_t hostThreads = 8;
+  std::int32_t hostThreads = 8;
 
   /// GPU and host-memory limits used to size the state vector. An unset GPU
   /// limit uses available device memory. A zero host limit disables migration,
   /// while an unset host limit uses all available host memory.
-  std::optional<int32_t> maxGpuMemoryGb;
-  std::optional<int32_t> maxCpuMemoryGb = 0;
+  std::optional<std::int32_t> maxGpuMemoryGb;
+  std::optional<std::int32_t> maxCpuMemoryGb = 0;
 
   /// Insertion point for the host-migration layer among global-index layers.
-  std::optional<int32_t> migrationLevel;
+  std::optional<std::int32_t> migrationLevel;
 
   /// Sizes of the network communication layers, ordered from the local state
   /// outward. Their sum must equal log2 of the communicator size.
-  std::vector<int32_t> globalIndexBits;
+  std::vector<std::int32_t> globalIndexBits;
 
   /// Number of the innermost global index bits that can use GPU-direct P2P.
   /// For example, three bits cover the eight GPUs connected by NVLink or
   /// NVSwitch within a DGX node.
-  int32_t p2pDeviceBits = 0;
+  std::int32_t p2pDeviceBits = 0;
 
   /// Base-two logarithm of the distributed transfer workspace size. The
   /// minimum supported value is 24, corresponding to 16 MiB.
-  int32_t dataTransferBufferBits = 26;
+  std::int32_t dataTransferBufferBits = 26;
 
   /// Number of noise trajectories averaged for an exact observe call. Unlike
   /// shots-based observe, these samples contain only Kraus-branch randomness,
@@ -68,7 +68,7 @@ struct CuStateVecConfig {
 
   /// Explicit power-of-two trajectory batch size, or no value to derive it
   /// from memory.
-  std::optional<int32_t> trajectoryBatchSize;
+  std::optional<std::int32_t> trajectoryBatchSize;
 
   /// Limits controlling when trajectory and PTSBE batching is profitable.
   /// States larger than batchedMaxQubits generally provide no batching benefit;
@@ -81,7 +81,7 @@ struct CuStateVecConfig {
   std::size_t gpuRngThreshold = 100'000;
 
   /// Minimum circuit width that uses a distributed state vector.
-  int32_t mgpuQubitThreshold = 25;
+  std::int32_t mgpuQubitThreshold = 25;
 
   /// Retain allocations in the default CUDA pool to avoid repeated allocation
   /// overhead across simulation loops.

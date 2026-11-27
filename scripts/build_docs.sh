@@ -20,15 +20,26 @@
 # -or-
 # bash scripts/build_docs.sh -u python
 # -or-
+# bash scripts/build_docs.sh -L
+# -or-
+# CUDAQ_INSTALL_PREFIX=/cudaq/installation/path bash scripts/build_docs.sh -i -L
+# -or-
 # CUDAQ_INSTALL_PREFIX=/cudaq/installation/path/ bash scripts/build_docs.sh
 # -or-
 # DOCS_INSTALL_PREFIX=/path/to/put/docs/ CUDAQ_INSTALL_PREFIX=/cudaq/installation/path bash scripts/build_docs.sh
+#
+# The -i option selects an incremental build, as in build_cudaq.sh.
+# It reuses the existing CMake configuration and installed Python package.
+# Doxygen and Sphinx output is still rebuilt from scratch.
+# It never calls build_cudaq.sh or changes the configured build type.
+# Missing prerequisites cause an error instead of an automatic rebuild.
+# Use -B /absolute/build/path to select an existing build directory.
 #
 # Prerequisites:
 # All tools required to run this script are installed when using the dev container definition
 # in this repository. If you are not using this dev container, you may need to install
 # wget, unzip, make, flex, and bison (available via apt install) in addition to the requirements listed in the 
-# $CUDAQ_REPO_ROOT/docs/requirements.txt file.
+# $CUDAQ_REPO_ROOT/docs/requirements.txt file. The -L option additionally requires uv.
 
 # The script prints the url to the index of the generated docs at the end. Open that url in
 # the browser to preview the docs. If you are working within a dev container, you can use
@@ -43,16 +54,22 @@ export PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
 
 # Process command line arguments
 force_update=""
+build_logical=false
+incremental_build=false
 repo_root=$(git rev-parse --show-toplevel)
 build_dir=${repo_root}/build
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":u:B:" opt; do
+while getopts ":u:B:Li" opt; do
   case $opt in
     u) force_update="$OPTARG"
     ;;
     B) build_dir="$OPTARG"
+    ;;
+    L) build_logical=true
+    ;;
+    i) incremental_build=true
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -60,6 +77,17 @@ while getopts ":u:B:" opt; do
   esac
 done
 OPTIND=$__optind__
+
+if $incremental_build; then
+    if [ -n "$force_update" ]; then
+        echo "The -i option cannot be combined with -u." >&2
+        (return 0 2>/dev/null) && return 1 || exit 1
+    fi
+    if [ ! -f "$build_dir/CMakeCache.txt" ]; then
+        echo "The -i option requires an existing CMake build in $build_dir." >&2
+        (return 0 2>/dev/null) && return 2 || exit 2
+    fi
+fi
 
 # Need to know the top-level of the repo
 working_dir=`pwd`
@@ -73,12 +101,22 @@ dialect_output_dir="$docs_build_output/Dialects"
 dialect_reference_names=(Quake CC QEC CodeGen)
 build_compiler_developer_docs="${CUDAQ_BUILD_COMPILER_DEVELOPER_DOCS:-0}"
 compiler_pass_reference_names=(Transforms CodeGenPasses)
-rm -rf "$docs_build_output"
 
 # Check if the cudaq Python package is installed and if not, build and install it
-build_include_dir="$build_dir/include"
+build_include_dir="$build_dir/cudaq/include"
 python3 -c "import cudaq" 2>/dev/null
-if [ ! "$?" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" = "python" ] || [ "${force_update,,}" = "py" ]; then
+cudaq_import_exit_code=$?
+if [ ! "$cudaq_import_exit_code" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" = "python" ] || [ "${force_update,,}" = "py" ]; then
+    if $incremental_build; then
+        if [ ! "$cudaq_import_exit_code" -eq "0" ]; then
+            echo "Cannot import cudaq. Set CUDAQ_INSTALL_PREFIX to the existing installation." >&2
+        fi
+        if [ ! -d "$build_include_dir" ]; then
+            echo "Generated headers are missing: $build_include_dir." >&2
+        fi
+        echo "No rebuild was started." >&2
+        (return 0 2>/dev/null) && return 2 || exit 2
+    fi
     echo "Building cudaq package."
     CUDAQ_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
     CUDAQ_BUILD_TESTS=OFF \
@@ -95,10 +133,22 @@ if [ ! "$?" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" 
     fi
 fi
 
+# The parent docs directory also contains compiled documentation tests.
+# Remove generated references so the checks below cannot accept stale files.
+rm -rf "$sphinx_output_dir" "$doxygen_output_dir" "$dialect_output_dir" \
+    "$docs_build_output/inventories"
+for pass_reference_name in "${compiler_pass_reference_names[@]}"; do
+    rm -f "$docs_build_output/$pass_reference_name.md"
+done
+
 # Extract documentation from tablegen files
 mkdir -p "$build_dir" && cd "$build_dir" && mkdir -p logs
 logs_dir=`pwd`/logs
-cmake $working_dir 1>/dev/null && cmake --build . --target cudaq-doc 1>/dev/null
+if $incremental_build; then
+    cmake --build . --target cudaq-doc 1>/dev/null
+else
+    cmake "$working_dir" 1>/dev/null && cmake --build . --target cudaq-doc 1>/dev/null
+fi
 cmake_exit_code=$?
 if [ ! "$cmake_exit_code" -eq "0" ]; then
     echo "Failed to generate documentation from the cudaq-doc build target."
@@ -155,12 +205,13 @@ fi
 echo "Generating XML documentation using Doxygen..."
 mkdir -p "${doxygen_output_dir}"
 sed 's@${DOXYGEN_OUTPUT_PREFIX}@'"${doxygen_output_dir}"'@' "$repo_root/docs/Doxyfile.in" | \
+sed 's@${CUDAQ_BUILD_INCLUDE_DIR}@'"${build_include_dir}"'@' | \
 sed 's@${CUDAQ_REPO_ROOT}@'"${repo_root}"'@' > "${doxygen_output_dir}/Doxyfile"
 echo "Running doxygen in $PWD"
 set -x
 "$doxygen_exe" "${doxygen_output_dir}/Doxyfile" 2> "$logs_dir/doxygen_error.txt" 1> "$logs_dir/doxygen_output.txt"
-set +x
 doxygen_exit_code=$?
+set +x
 if [ ! "$doxygen_exit_code" -eq "0" ]; then
     cat "$logs_dir/doxygen_output.txt" "$logs_dir/doxygen_error.txt"
     echo "Failed to generate documentation using doxygen."
@@ -258,9 +309,32 @@ elif [ ! "$sphinx_exit_code" -eq "0" ]; then
     docs_exit_code=12
 fi
 
+logical_docs_output="$repo_root/preview/logical/docs/_build/html"
+if [ "$docs_exit_code" -eq "0" ] && $build_logical; then
+    echo "Building CUDA-Q Logical documentation using Sphinx..."
+    if ! command -v uv >/dev/null 2>&1; then
+        echo "uv is required to build CUDA-Q Logical documentation."
+        docs_exit_code=14
+    elif ! uv run --directory "$repo_root/preview/logical/docs" \
+        --extra build-deps build-docs; then
+        echo "Failed to generate CUDA-Q Logical documentation."
+        docs_exit_code=14
+    elif [ ! -d "$logical_docs_output" ]; then
+        echo "CUDA-Q Logical documentation output was not found at $logical_docs_output."
+        docs_exit_code=14
+    fi
+fi
+
 mkdir -p "$DOCS_INSTALL_PREFIX"
 if [ "$docs_exit_code" -eq "0" ]; then
     cp -r "$sphinx_output_dir"/* "$DOCS_INSTALL_PREFIX"
+
+    if $build_logical; then
+        mkdir -p "$DOCS_INSTALL_PREFIX/preview/logical"
+        cp -r "$logical_docs_output"/* "$DOCS_INSTALL_PREFIX/preview/logical"
+        echo "CUDA-Q Logical documentation was copied to $DOCS_INSTALL_PREFIX/preview/logical."
+    fi
+
     touch "$DOCS_INSTALL_PREFIX/.nojekyll"
     echo "Documentation was generated in $DOCS_INSTALL_PREFIX."
     echo "To browse it, open this url in a browser: file://$DOCS_INSTALL_PREFIX/index.html"

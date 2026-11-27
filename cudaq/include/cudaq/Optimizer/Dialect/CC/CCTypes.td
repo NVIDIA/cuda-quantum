@@ -184,7 +184,7 @@ def cc_CallableType : CCType<"Callable", "callable"> {
     resolved instance of the callable will be lowered in the specialized
     template function.
   }];
-  
+
   let parameters = (ins "mlir::FunctionType":$signature);
 
   let assemblyFormat = "`<` $signature `>`";
@@ -281,28 +281,6 @@ def cc_CharSpanType
     mlir::IntegerType getElementType() const {
       return mlir::IntegerType::get(getContext(), 8);
     }
-  }];
-}
-
-//===----------------------------------------------------------------------===//
-// MeasureHandleType - opaque, word-sized classical value
-//===----------------------------------------------------------------------===//
-
-def cc_MeasureHandleType : CCType<"MeasureHandle", "measure_handle"> {
-  let summary = "An opaque word-sized handle for a measurement event.";
-  let description = [{
-    The IR alias of the C++ `cudaq::measure_handle` class. Semantically an
-    opaque, word-sized classical value (an `i64` payload). It may be consumed by
-    `quake.discriminate` or by QEC declaration operations. The bridge emits this
-    type so that the front end can classify signatures containing handles as
-    device-only and the marshaling layer can mark them ineligible for host-side
-    entry points. A late lowering pass replaces it with `i64` before QIR
-    emission.
-
-    ```mlir
-      %mh = quake.mz %q name "mh" : (!quake.ref) -> !cc.measure_handle
-      %b  = quake.discriminate %mh : (!cc.measure_handle) -> i1
-    ```
   }];
 }
 

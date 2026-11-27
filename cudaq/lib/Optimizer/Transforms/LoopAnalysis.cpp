@@ -682,7 +682,7 @@ cudaq::opt::getLoopComponents(cudaq::cc::LoopOp loop) {
   auto &whileEntry = whileRegion.front();
   auto condOp = cast<cc::ConditionOp>(whileRegion.back().back());
   result.compareOp = condOp.getCondition().getDefiningOp();
-  auto cmpOp = dyn_cast<arith::CmpIOp>(result.compareOp);
+  auto cmpOp = dyn_cast_or_null<arith::CmpIOp>(result.compareOp);
   if (!cmpOp)
     return {};
 

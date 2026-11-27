@@ -17,6 +17,9 @@
 #   -e <name>     Exclude a prerequisite (e.g. zlib, gmp, mpfr, llvm, blas, ssl, curl, aws, cuquantum, cutensor, toolchain)
 #   -t <name>     Select toolchain (e.g. gcc12, llvm)
 #   -m            Only install libraries for which an *_INSTALL_PREFIX is defined
+#   -b            Build the LLVM toolchain with the C/C++ compiler already in the
+#                 environment (CC/CXX), as a stage-1 clang and lld installed in
+#                 $LLVM_INSTALL_PREFIX/bootstrap, instead of using install_toolchain.sh
 #   -l            Generate a prerequisites lock file and exit (no installation)
 #
 # When the -l flag is used, a lock file named cudaq_prereqs.lock (or the path
@@ -47,10 +50,39 @@ fi
 
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
-  if [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
+  if $bootstrap; then
+    if [ "$(uname)" = "Darwin" ]; then
+      export CC=clang
+      export CXX=clang++
+      echo "Using Apple Clang: $(clang --version | head -1)"
+    else
+      export LLVM_STAGE1_BUILD="$LLVM_INSTALL_PREFIX/bootstrap"
+      if [ ! -x "$LLVM_STAGE1_BUILD/bin/clang" ]; then
+        temp_install_if_command_unknown cmake cmake
+        temp_install_if_command_unknown ninja ninja-build
+        echo "Building stage1 LLVM (clang;lld)..."
+        LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" \
+        LLVM_PROJECTS='clang;lld' \
+        LLVM_ENABLE_ZLIB=OFF \
+        LLVM_BUILD_FOLDER=bootstrap_build \
+        bash "$this_file_dir/build_llvm.sh" -v
+        remove_temp_installs
+      fi
+      export CC="$LLVM_STAGE1_BUILD/bin/clang"
+      export CXX="$LLVM_STAGE1_BUILD/bin/clang++"
+      echo "Using stage1 clang: $CC"
+    fi
+  # No need to bootstrap a compiler if LLVM is already built.
+  elif [ "$toolchain" = "llvm" ] && [ -x "$LLVM_INSTALL_PREFIX/bin/clang++" ]; then
+    export CC="$LLVM_INSTALL_PREFIX/bin/clang"
+    export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
+    echo "LLVM already installed in $LLVM_INSTALL_PREFIX; skipping stage-1 bootstrap."
+  elif [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
     echo "Installing toolchain ${toolchain}..."
     if [ "$toolchain" = "llvm" ] && [ ! -d "$LLVM_STAGE1_BUILD" ]; then
-      llvm_stage1_tmpdir="$(mktemp -d)"
+      # A fixed path: ccache keys on the include paths of this compiler's libc++.
+      llvm_stage1_tmpdir="$HOME/.llvm-stage1"
+      rm -rf "$llvm_stage1_tmpdir" && mkdir -p "$llvm_stage1_tmpdir"
       LLVM_STAGE1_BUILD="$llvm_stage1_tmpdir/llvm"
       echo "Installing LLVM stage-1 build in $LLVM_STAGE1_BUILD."
     fi
@@ -64,7 +96,10 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
       export CXX=clang++
       echo "Using Apple Clang: $(clang --version | head -1)"
     else
+      # No zlib: a later rebuild (python_build) finds the one built below, which
+      # would change the binary of this compiler, and with it all ccache keys.
       LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" LLVM_BUILD_FOLDER="stage1_build" \
+      LLVM_ENABLE_ZLIB=OFF \
       source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
     fi
   fi
@@ -98,7 +133,12 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     if [ "$(uname)" = "Darwin" ]; then
       cmake -B build
     else
-      LDFLAGS="-static-libstdc++" cmake -B build
+      lld="${LLVM_STAGE1_BUILD:+$LLVM_STAGE1_BUILD/bin/ld.lld}"
+      if $bootstrap && [ -x "$lld" ]; then
+        cmake -B build -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=$lld"
+      else
+        LDFLAGS="-static-libstdc++" cmake -B build
+      fi
     fi
     cmake --build build
 
@@ -261,8 +301,19 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     echo "LLVM already installed in $LLVM_INSTALL_PREFIX."
   fi
 
-  if [ "$toolchain" = "llvm" ] || [ "$(uname)" = "Darwin" ]; then
-    #rm -rf "$llvm_stage1_tmpdir"
+  if $bootstrap || [ "$toolchain" = "llvm" ] || [ "$(uname)" = "Darwin" ]; then
+    if ! $bootstrap; then
+      # Safe to remove: later stages skip stage-1 once LLVM is built.
+      rm -rf "$llvm_stage1_tmpdir"
+      # Fixed path, not randomized -- clean it up or a later rebuild
+      # (e.g. python_build) reuses its stale, now-invalid CMakeCache.txt.
+      rm -rf "${LLVM_SOURCE:-$HOME/.llvm-project}/stage1_build"
+      # Same issue, same fix, for the real (non-stage-1) build dir. An image
+      # that rebuilds only the MLIR Python bindings per Python version keeps it.
+      if [ -z "${LLVM_KEEP_BUILD_DIR:-}" ]; then
+        rm -rf "${LLVM_SOURCE:-$HOME/.llvm-project}/build"
+      fi
+    fi
     export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
     echo "Configured C compiler: $CC"
@@ -292,12 +343,7 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     # netlib.org resets connections under load; fail fast and retry.
     retry wget --tries=1 "${BLAS_TARBALL_URL}"
     tar -xzvf "blas-${BLAS_VERSION}.tgz" && cd BLAS-3.11.0
-    if [ toolchain == "gcc12" ]; then
-      make FC="${FC:-gfortran}"
-    else
-      make FC="${FC:-gfortran}" FFLAGS="-O2"
-    fi
-
+    make FC="${FC:-gfortran}" FFLAGS="-O2"
     mkdir -p "$BLAS_INSTALL_PREFIX"
     mv blas_*.a "$BLAS_INSTALL_PREFIX/libblas.a"
 
@@ -324,7 +370,8 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
     wget "${PERL_TARBALL_URL}"
     tar -xzf "perl-${PERL_VERSION}.tar.gz" && cd "perl-${PERL_VERSION}"
     ./Configure -des -Dcc="$CC" -Dprefix="$PREREQS_BUILD_DIR/perl5"
-    make CC="$CC" && make install
+    find . -name "*.PL" -exec touch {} + # normalize WSL clock skew
+    make -j$(getconf _NPROCESSORS_ONLN) CC="$CC" && make install
     cd ..
     # Additional perl modules can be installed with cpan, e.g.
     # PERL_MM_USE_DEFAULT=1 $PREREQS_BUILD_DIR/perl5/bin/cpan App::cpanminus
@@ -343,7 +390,8 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
       --prefix="$OPENSSL_INSTALL_PREFIX" zlib \
       --with-zlib-include="$ZLIB_INSTALL_PREFIX/include" \
       --with-zlib-lib="$ZLIB_INSTALL_PREFIX/lib"
-    make CC="$CC" CXX="$CXX" && make install
+    # The documentation takes minutes to install and is not used.
+    make -j$(getconf _NPROCESSORS_ONLN) CC="$CC" CXX="$CXX" && make install_sw install_ssldirs
 
     popd
     remove_temp_installs
@@ -447,7 +495,8 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
 
     aws_service_components='braket s3-crt sts'
     git clone --filter=tree:0 "${AWS_SDK_CPP_URL}" aws-sdk-cpp
-    cd aws-sdk-cpp && git checkout "${AWS_SDK_CPP_REF}" && git submodule update --init --recursive
+    cd aws-sdk-cpp && git checkout "${AWS_SDK_CPP_REF}" && \
+      git submodule update --init --recursive --jobs 8
 
     # FIXME: CUDAQ VERSION?
     mkdir build && cd build
@@ -500,7 +549,7 @@ if [ -n "$QRMI_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep qrmi)" ]
       echo -e "\e[01;31mError: SHA-256 checksum mismatch for ${QRMI_ARCHIVE}.\e[0m" >&2
       echo "Expected: $QRMI_ARCHIVE_SHA256" >&2
       echo "Got:      $computed_sha256" >&2
-      rm -f "${qrmi_archive}"
+      rm -f "${QRMI_ARCHIVE}"
       (return 1 2>/dev/null) && return 1 || exit 1
     fi
 
