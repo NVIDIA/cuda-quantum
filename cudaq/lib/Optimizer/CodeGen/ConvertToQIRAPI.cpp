@@ -1373,7 +1373,7 @@ struct CustomUnitaryOpPattern : public QubitHelperConversionPattern<
     if (hasNegatedControls(unitary)) {
       functionName = unitary.isAdj() ? cudaq::opt::NVQIRCustomAdjControlValues
                                      : cudaq::opt::NVQIRCustomControlValues;
-      auto pointerType = M::getLLVMPointerType(rewriter.getContext());
+      auto pointerType = M::getNonePointerType(rewriter.getContext());
       auto callback =
           unitary->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
               functionName);
@@ -1528,7 +1528,7 @@ struct ExpPauliOpPattern
 
     auto emitPauliCall = [&]() {
       if (hasNegatedControls(pauli)) {
-        auto pointerType = M::getLLVMPointerType(rewriter.getContext());
+        auto pointerType = M::getNonePointerType(rewriter.getContext());
         auto partitioned = partitionControls(pauli, adaptor.getControls(),
                                              pointerType, rewriter);
         SmallVector<Value> arguments{
@@ -2072,7 +2072,7 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     // arguments being used. This function's signature is tuned so as to
     // reduce or eliminate the creation of auxiliary temporaries needs to make
     // the call to the helper.
-    auto ptrNoneTy = M::getLLVMPointerType(rewriter.getContext());
+    auto ptrNoneTy = M::getNonePointerType(rewriter.getContext());
     auto partitioned =
         partitionControls(op, adaptor.getControls(), ptrNoneTy, rewriter);
 
@@ -2639,9 +2639,12 @@ static void commonQECHandlingPatterns(RewritePatternSet &patterns,
 // Modifier classes
 //===----------------------------------------------------------------------===//
 
+/// The type of an untyped pointer. This stays a CC pointer until the final
+/// conversion to the LLVM dialect, where the type converter maps it to
+/// `!llvm.ptr`.
 template <bool opaquePtr>
-Type GetLLVMPointerType(MLIRContext *ctx) {
-  return LLVM::LLVMPointerType::get(ctx);
+Type GetOpaquePointerType(MLIRContext *ctx) {
+  return cudaq::cc::PointerType::get(NoneType::get(ctx));
 }
 
 /// The modifier class for the "full QIR" API.
@@ -2711,8 +2714,8 @@ struct FullQIR {
   static Type getCharPointerType(MLIRContext *ctx) {
     return cudaq::cg::getCharPointerType(ctx, opaquePtr);
   }
-  static Type getLLVMPointerType(MLIRContext *ctx) {
-    return GetLLVMPointerType<opaquePtr>(ctx);
+  static Type getNonePointerType(MLIRContext *ctx) {
+    return GetOpaquePointerType<opaquePtr>(ctx);
   }
 };
 
@@ -2782,8 +2785,8 @@ struct AnyProfileQIR {
   static Type getCharPointerType(MLIRContext *ctx) {
     return cudaq::cg::getCharPointerType(ctx, opaquePtr);
   }
-  static Type getLLVMPointerType(MLIRContext *ctx) {
-    return GetLLVMPointerType<opaquePtr>(ctx);
+  static Type getNonePointerType(MLIRContext *ctx) {
+    return GetOpaquePointerType<opaquePtr>(ctx);
   }
 };
 

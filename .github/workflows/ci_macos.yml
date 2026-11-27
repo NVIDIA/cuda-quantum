@@ -146,9 +146,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # LLVM comes from the prerequisites image, so skip its slow checkout.
       - name: Initialize submodules (with retry and mirror fallback)
         run: |
-          bash scripts/update_submodules.sh --depth 1
+          bash scripts/update_submodules.sh -c submodule.tpls/llvm.update=none --depth 1
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -195,12 +196,21 @@ jobs:
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           CCACHE_DISABLE=1 retry pip install -r requirements-dev.txt
 
+      # The prerequisites image keeps the LLVM build, so only the bindings for
+      # this Python version are rebuilt. An image without it rebuilds LLVM.
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-          Python3_EXECUTABLE="$(which python3)" \
-          LLVM_SOURCE="$HOME/.llvm-project" \
-          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          export LLVM_SOURCE="$HOME/.llvm-project"
+          export Python3_EXECUTABLE="$(which python3)"
+          if [ -f "$LLVM_SOURCE/build/CMakeCache.txt" ]; then
+            NANOBIND_CMAKE_DIR="$NANOBIND_INSTALL_PREFIX/nanobind/cmake" \
+            bash scripts/build_mlir_python_bindings.sh
+            # The reconfigure points llvm-lit at this job's python, which has lit.
+            cp "$LLVM_SOURCE/build/bin/llvm-lit" "$LLVM_INSTALL_PREFIX/bin/"
+          else
+            bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          fi
 
       - name: Build CUDA-Q
         run: bash scripts/build_cudaq.sh -v -- -DCUDAQ_TEST_OMP_SLOTS=2
@@ -242,9 +252,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # LLVM comes from the prerequisites image, so skip its slow checkout.
       - name: Initialize submodules (with retry and mirror fallback)
         run: |
-          bash scripts/update_submodules.sh --depth 1
+          bash scripts/update_submodules.sh -c submodule.tpls/llvm.update=none --depth 1
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -287,12 +298,21 @@ jobs:
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           CCACHE_DISABLE=1 retry pip install -r requirements-dev.txt
 
+      # The prerequisites image keeps the LLVM build, so only the bindings for
+      # this Python version are rebuilt. An image without it rebuilds LLVM.
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-          Python3_EXECUTABLE="$(which python3)" \
-          LLVM_SOURCE="$HOME/.llvm-project" \
-          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          export LLVM_SOURCE="$HOME/.llvm-project"
+          export Python3_EXECUTABLE="$(which python3)"
+          if [ -f "$LLVM_SOURCE/build/CMakeCache.txt" ]; then
+            NANOBIND_CMAKE_DIR="$NANOBIND_INSTALL_PREFIX/nanobind/cmake" \
+            bash scripts/build_mlir_python_bindings.sh
+            # The reconfigure points llvm-lit at this job's python, which has lit.
+            cp "$LLVM_SOURCE/build/bin/llvm-lit" "$LLVM_INSTALL_PREFIX/bin/"
+          else
+            bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          fi
 
       - name: Build wheel
         run: |
@@ -348,9 +368,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # LLVM comes from the prerequisites image, so skip its slow checkout.
       - name: Initialize submodules (with retry and mirror fallback)
         run: |
-          bash scripts/update_submodules.sh --depth 1
+          bash scripts/update_submodules.sh -c submodule.tpls/llvm.update=none --depth 1
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -394,12 +415,21 @@ jobs:
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           CCACHE_DISABLE=1 retry pip install -r requirements-dev.txt
 
+      # The prerequisites image keeps the LLVM build, so only the bindings for
+      # this Python version are rebuilt. An image without it rebuilds LLVM.
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-          Python3_EXECUTABLE="$(which python3)" \
-          LLVM_SOURCE="$HOME/.llvm-project" \
-          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          export LLVM_SOURCE="$HOME/.llvm-project"
+          export Python3_EXECUTABLE="$(which python3)"
+          if [ -f "$LLVM_SOURCE/build/CMakeCache.txt" ]; then
+            NANOBIND_CMAKE_DIR="$NANOBIND_INSTALL_PREFIX/nanobind/cmake" \
+            bash scripts/build_mlir_python_bindings.sh
+            # The reconfigure points llvm-lit at this job's python, which has lit.
+            cp "$LLVM_SOURCE/build/bin/llvm-lit" "$LLVM_INSTALL_PREFIX/bin/"
+          else
+            bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          fi
 
       - name: Build devel wheel
         run: |
@@ -457,7 +487,7 @@ jobs:
   # ============================================================================
   validate_wheel:
     name: Validate (arm64, py${{ matrix.python_version }})
-    needs: [wheel, edem_wheels, logical_wheels]
+    needs: [wheel]
     strategy:
       matrix:
         python_version: ['3.11', '3.12', '3.13', '3.14']
@@ -491,18 +521,6 @@ jobs:
           name: pycudaq-${{ matrix.python_version }}-darwin-arm64
           path: dist/
 
-      - name: Download cudaq-edem wheel
-        uses: actions/download-artifact@v8
-        with:
-          name: cudaq-edem-${{ matrix.python_version }}-darwin-arm64
-          path: edem-wheels/
-
-      - name: Download cudaq-logical wheel
-        uses: actions/download-artifact@v8
-        with:
-          name: cudaq-logical-${{ matrix.python_version }}-darwin-arm64
-          path: logical-wheels/
-
       - name: Validate core without the frontend
         run: |
           python3 -m venv core-venv
@@ -523,6 +541,51 @@ jobs:
             -v ${{ needs.wheel.outputs.cudaq_version }} \
             -i dist \
             -p ${{ matrix.python_version }}
+
+  # ============================================================================
+  # Validate that the cudaq metapackage installs from the wheels above. It needs
+  # the logical wheels, so it runs apart from the wheel validation, which would
+  # otherwise wait for them.
+  # ============================================================================
+  validate_metapackage:
+    name: Validate metapackage (arm64, py${{ matrix.python_version }})
+    needs: [wheel, edem_wheels, logical_wheels]
+    strategy:
+      matrix:
+        python_version: ['3.11', '3.12', '3.13', '3.14']
+      fail-fast: false
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Download wheel artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: pycudaq-${{ matrix.python_version }}-darwin-arm64
+          path: dist/
+
+      - name: Download cudaq-edem wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: cudaq-edem-${{ matrix.python_version }}-darwin-arm64
+          path: edem-wheels/
+
+      - name: Download cudaq-logical wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: cudaq-logical-${{ matrix.python_version }}-darwin-arm64
+          path: logical-wheels/
+
+      - name: Prepare the installation test
+        run: cp docker/test/wheels/integration/test_installation.py "$RUNNER_TEMP/test_installation.py"
 
       - name: Build cudaq metapackage
         run: |
@@ -596,9 +659,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # LLVM comes from the prerequisites image, so skip its slow checkout.
       - name: Initialize submodules (with retry and mirror fallback)
         run: |
-          bash scripts/update_submodules.sh --depth 1
+          bash scripts/update_submodules.sh -c submodule.tpls/llvm.update=none --depth 1
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -642,12 +706,21 @@ jobs:
           CCACHE_DISABLE=1 retry pip install -r requirements-dev.txt
           retry brew install makeself pigz
 
+      # The prerequisites image keeps the LLVM build, so only the bindings for
+      # this Python version are rebuilt. An image without it rebuilds LLVM.
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-          Python3_EXECUTABLE="$(which python3)" \
-          LLVM_SOURCE="$HOME/.llvm-project" \
-          bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          export LLVM_SOURCE="$HOME/.llvm-project"
+          export Python3_EXECUTABLE="$(which python3)"
+          if [ -f "$LLVM_SOURCE/build/CMakeCache.txt" ]; then
+            NANOBIND_CMAKE_DIR="$NANOBIND_INSTALL_PREFIX/nanobind/cmake" \
+            bash scripts/build_mlir_python_bindings.sh
+            # The reconfigure points llvm-lit at this job's python, which has lit.
+            cp "$LLVM_SOURCE/build/bin/llvm-lit" "$LLVM_INSTALL_PREFIX/bin/"
+          else
+            bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
+          fi
 
       - name: Build CUDA-Q
         run: bash scripts/build_cudaq.sh -v -- -DCUDAQ_TEST_OMP_SLOTS=2

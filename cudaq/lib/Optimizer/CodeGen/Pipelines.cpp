@@ -65,12 +65,21 @@ struct PrepareForWiresetPipelineOptions
                      "never measures can be dropped. A simulator that "
                      "returns the state needs those qubits."),
       llvm::cl::init(true)};
+  // TODO: Profile QIR already records a register's bits under a repeated
+  // label. Find which output formats need unique names, rename in their
+  // codegen, and remove this option.
+  PassOptions::Option<bool> uniqueRegisterNames{
+      *this, "unique-register-names",
+      llvm::cl::desc("Give each measurement that shares a register name a "
+                     "unique name. (default: true)"),
+      llvm::cl::init(true)};
 };
 } // namespace
 
 static void createPrepareForWiresetPipeline(
     OpPassManager &pm, const cudaq::opt::LoopUnrollOptions &loopUnrollOptions,
-    bool addWireset, bool decomposeExpPauli, bool eraseImplicitOutput) {
+    bool addWireset, bool decomposeExpPauli, bool eraseImplicitOutput,
+    bool uniqueRegisterNames) {
   auto &funcPM = pm.nest<func::FuncOp>();
   funcPM.addPass(cudaq::opt::createExpandMeasurementsPass());
   funcPM.addPass(cudaq::opt::createAddDeallocs());
@@ -88,7 +97,7 @@ static void createPrepareForWiresetPipeline(
       pm, loopUnrollOptions.threshold, loopUnrollOptions.allowBreak,
       /*allowClosedInterval=*/std::nullopt, /*disableLoopUnrolling=*/false,
       loopUnrollOptions.unrollOnlyAliasingQuantumAccessLoops,
-      loopUnrollOptions.unrollOnlyIndexUseLoops);
+      loopUnrollOptions.unrollOnlyIndexUseLoops, uniqueRegisterNames);
   // That pipeline nests its own func.func passes on pm, so continue in a fresh
   // nest to keep the order clear.
   auto &postFuncPM = pm.nest<func::FuncOp>();
@@ -147,9 +156,9 @@ void cudaq::opt::registerPrepareForWiresetPipeline() {
               opt.unrollOnlyAliasingQuantumAccessLoops);
         setIt(loopUnrollOptions.unrollOnlyIndexUseLoops,
               opt.unrollOnlyIndexUseLoops);
-        createPrepareForWiresetPipeline(pm, loopUnrollOptions, opt.addWireset,
-                                        opt.decomposeExpPauli,
-                                        opt.eraseImplicitOutput);
+        createPrepareForWiresetPipeline(
+            pm, loopUnrollOptions, opt.addWireset, opt.decomposeExpPauli,
+            opt.eraseImplicitOutput, opt.uniqueRegisterNames);
       });
 }
 

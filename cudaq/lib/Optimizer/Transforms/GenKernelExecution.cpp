@@ -143,8 +143,8 @@ public:
   /// and using the compiler's knowledge of a kernel encodes those argument
   /// values into a message buffer. The message buffer is a pointer-free block
   /// of memory allocated on the heap on the host. Once the argument values are
-  /// packed into the message buffer, they can be passed to altLaunchKernel or
-  /// the corresponding thunk function.
+  /// packed into the message buffer, they can be passed to
+  /// __cudaq_altLaunchKernel or the corresponding thunk function.
   ///
   /// The created function takes two arguments. The first argument is a pointer
   /// to a block containing the argument values to be encoded. The second
@@ -608,9 +608,8 @@ public:
     }
 
     // Prepare to call the `launchKernel` runtime library entry point.
-    Value loadKernName = LLVM::AddressOfOp::create(
-        builder, loc,
-        cudaq::opt::factory::getPointerType(kernelNameObj.getType()),
+    Value loadKernName = cudaq::cc::AddressOfOp::create(
+        builder, loc, cudaq::cc::PointerType::get(kernelNameObj.getType()),
         kernelNameObj.getSymName());
     auto castLoadKernName =
         cudaq::cc::CastOp::create(builder, loc, ptrI8Ty, loadKernName);
@@ -818,9 +817,8 @@ public:
     OpBuilder::InsertionGuard guard(builder);
     auto *initFunEntry = initFun.addEntryBlock(builder);
     builder.setInsertionPointToStart(initFunEntry);
-    auto kernRef = LLVM::AddressOfOp::create(
-        builder, loc,
-        cudaq::opt::factory::getPointerType(kernelNameObj.getType()),
+    auto kernRef = cudaq::cc::AddressOfOp::create(
+        builder, loc, cudaq::cc::PointerType::get(kernelNameObj.getType()),
         kernelNameObj.getSymName());
     auto castKernRef =
         cudaq::cc::CastOp::create(builder, loc, ptrType, kernRef);
@@ -864,9 +862,8 @@ public:
             builder.getStringAttr(demangledName + '\0'), /*alignment=*/0);
 
         builder.restoreInsertionPoint(insertPoint);
-        auto lambdaRef = LLVM::AddressOfOp::create(
-            builder, loc,
-            cudaq::opt::factory::getPointerType(lambdaName.getType()),
+        auto lambdaRef = cudaq::cc::AddressOfOp::create(
+            builder, loc, cudaq::cc::PointerType::get(lambdaName.getType()),
             lambdaName.getSymName());
 
         auto castLambdaRef = cudaq::cc::CastOp::create(
@@ -896,17 +893,20 @@ public:
     case 0:
       if (failed(irBuilder.loadIntrinsic(
               module, cudaq::runtime::launchKernelHybridFuncName)))
-        return module.emitError("could not load altLaunchKernel intrinsic.");
+        return module.emitError(
+            "could not load __cudaq_altLaunchKernel intrinsic.");
       break;
     case 1:
       if (failed(irBuilder.loadIntrinsic(module,
                                          cudaq::runtime::launchKernelFuncName)))
-        return module.emitError("could not load altLaunchKernel intrinsic.");
+        return module.emitError(
+            "could not load __cudaq_altLaunchKernel intrinsic.");
       break;
     case 2:
       if (failed(irBuilder.loadIntrinsic(
               module, cudaq::runtime::launchKernelStreamlinedFuncName)))
-        return module.emitError("could not load altLaunchKernel intrinsic.");
+        return module.emitError(
+            "could not load __cudaq_altLaunchKernel intrinsic.");
       break;
     default:
       return module.emitError("invalid codegen kind value.");
@@ -947,7 +947,7 @@ public:
       return module.emitError(
           "could not load cudaq::pauli_word::_nvqpp_size or _nvqpp_data");
     if (failed(irBuilder.loadIntrinsic(module, cudaq::runtime::cleanupArrays)))
-      return module.emitError("could not load __nvqpp_cleanup_arrays");
+      return module.emitError("could not load __nvqir_cleanupArrays");
     return success();
   }
 

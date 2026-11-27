@@ -347,6 +347,11 @@ function show_help {
 --opt-pass <pass name>
 	Append a pass to the pass pipeline by specifying its name in the pass pipeline syntax, e.g. <dialect>.<opname>(passname).
 
+-Wno-nvqpp-capi
+	With -c, do not warn about objects that reference CUDA-Q runtime symbols
+	outside the nvq++ C API (such objects cannot be loaded on their own, e.g.
+	into Python).
+
 -save-temps
 	Save intermediate files locally (e.g. <input>.ll, <input>.qke).
 	Parallel nvq++ invocations with -save-temps may still collide on
@@ -530,6 +535,7 @@ DEP_OUTPUT_FILE=
 DEP_TARGETS=
 MAPPING_FILE=
 DO_LINK=true
+WARN_CAPI=true
 PREPROCESS_ONLY=false
 SHOW_VERSION=false
 ENABLE_ARRAY_CONVERSION=true
@@ -837,6 +843,9 @@ while [ $# -ne 0 ]; do
 		;;
 	-c)
 		DO_LINK=false
+		;;
+	-Wno-nvqpp-capi)
+		WARN_CAPI=false
 		;;
 	-E)
 		# Preprocess only. ccache probes the compiler this way to build its
@@ -1224,7 +1233,12 @@ for i in ${SRCS}; do
 
 		# Rewrite internal linkages so we can override the function.
 		run mv ${LL_FILE} ${PRE_LL_FILE}
-		run ${install_dir}/bin/fixup-linkage ${QUAKELL_FILE} ${PRE_LL_FILE} ${LL_FILE}
+		# With -c, warn if the object needs runtime symbols outside the C API.
+		FIXUP_LINKAGE_FLAGS=
+		if ! ${DO_LINK} && ${WARN_CAPI}; then
+			FIXUP_LINKAGE_FLAGS="--warn-unresolved"
+		fi
+		run ${install_dir}/bin/fixup-linkage ${FIXUP_LINKAGE_FLAGS} ${QUAKELL_FILE} ${PRE_LL_FILE} ${LL_FILE}
 
 		# Lower our LLVM to object files
 		run ${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${QUAKELL_FILE} -o ${QKE_OBJ}

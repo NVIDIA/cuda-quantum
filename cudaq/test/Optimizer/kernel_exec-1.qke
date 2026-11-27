@@ -94,9 +94,9 @@ module attributes {quake.mangled_name_map = {
 // ALT:           %[[VAL_8:.*]] = cc.func_ptr %[[VAL_7]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // ALT:           %[[VAL_9:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<i8>
 // ALT:           %[[VAL_10:.*]] = cc.offsetof !cc.struct<{i32, f64}> [1] : i64
-// ALT:           %[[VAL_11:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr
-// ALT:           %[[VAL_12:.*]] = cc.cast %[[VAL_11]] : (!llvm.ptr) -> !cc.ptr<i8>
-// ALT:           %[[VAL_13:.*]] = call @altLaunchKernel(%[[VAL_12]], %[[VAL_8]], %[[VAL_9]], %[[VAL_3]], %[[VAL_10]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// ALT:           %[[VAL_11:.*]] = cc.address_of @ghz.kernelName : !cc.ptr<!llvm.array<4 x i8>>
+// ALT:           %[[VAL_12:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// ALT:           %[[VAL_13:.*]] = call @__cudaq_altLaunchKernel(%[[VAL_12]], %[[VAL_8]], %[[VAL_9]], %[[VAL_3]], %[[VAL_10]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // ALT:           %[[VAL_14:.*]] = cc.extract_value %[[VAL_13]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // ALT:           %[[VAL_15:.*]] = cc.cast %[[VAL_14]] : (!cc.ptr<i8>) -> i64
 // ALT:           %[[VAL_16:.*]] = arith.constant 0 : i64
@@ -114,16 +114,16 @@ module attributes {quake.mangled_name_map = {
 // ALT:           %[[VAL_23:.*]] = cc.load %[[VAL_22]] : !cc.ptr<f64>
 // ALT:           return %[[VAL_23]] : f64
 // ALT:         }
-// ALT:         func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
-// ALT:         func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
-// ALT:         llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
+// ALT:         func.func private @__cudaq_altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// ALT:         func.func private @__cudaq_registerArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
+// ALT:         llvm.func @__cudaq_registerLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 // ALT:         func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)
 // ALT:         func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
-// ALT:         func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
+// ALT:         func.func private @__cudaq_registerKernelName(!cc.ptr<i8>)
 // ALT:         func.func private @malloc(i64) -> !cc.ptr<i8>
 // ALT:         func.func private @free(!cc.ptr<i8>)
-// ALT:         func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64)
-// ALT:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
+// ALT:         func.func private @__cudaq_initializerListToVectorBool(!cc.ptr<none>, !cc.ptr<none>, i64)
+// ALT:         func.func private @__cudaq_vectorBoolToInitializerList(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
 // ALT:         func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
 // ALT-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
@@ -201,12 +201,12 @@ module attributes {quake.mangled_name_map = {
 // ALT:         }
 
 // ALT-LABEL:   llvm.func @ghz.kernelRegFunc() {
-// ALT:           %[[VAL_0:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr
-// ALT:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!llvm.ptr) -> !cc.ptr<i8>
-// ALT:           func.call @cudaqRegisterKernelName(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
+// ALT:           %[[VAL_0:.*]] = cc.address_of @ghz.kernelName : !cc.ptr<!llvm.array<4 x i8>>
+// ALT:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// ALT:           func.call @__cudaq_registerKernelName(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
 // ALT:           %[[VAL_2:.*]] = func.constant @ghz.argsCreator : (!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64
 // ALT:           %[[VAL_3:.*]] = cc.func_ptr %[[VAL_2]] : ((!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64) -> !cc.ptr<i8>
-// ALT:           func.call @cudaqRegisterArgsCreator(%[[VAL_1]], %[[VAL_3]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+// ALT:           func.call @__cudaq_registerArgsCreator(%[[VAL_1]], %[[VAL_3]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
 // ALT:           llvm.return
 // ALT:         }
 // ALT:         llvm.mlir.global_ctors ctors = [@ghz.kernelRegFunc], priorities = [17 : i32]
@@ -235,22 +235,22 @@ module attributes {quake.mangled_name_map = {
 // STREAMLINED:           %[[VAL_16:.*]] = cc.cast %[[VAL_15]] : (!cc.ptr<i32>) -> !cc.ptr<i8>
 // STREAMLINED:           cc.store %[[VAL_16]], %[[VAL_14]] : !cc.ptr<!cc.ptr<i8>>
 // STREAMLINED:           %[[VAL_17:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
-// STREAMLINED:           %[[VAL_18:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr
-// STREAMLINED:           %[[VAL_19:.*]] = cc.cast %[[VAL_18]] : (!llvm.ptr) -> !cc.ptr<i8>
-// STREAMLINED:           call @streamlinedLaunchKernel(%[[VAL_19]], %[[VAL_17]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+// STREAMLINED:           %[[VAL_18:.*]] = cc.address_of @ghz.kernelName : !cc.ptr<!llvm.array<4 x i8>>
+// STREAMLINED:           %[[VAL_19:.*]] = cc.cast %[[VAL_18]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// STREAMLINED:           call @__cudaq_streamlinedLaunchKernel(%[[VAL_19]], %[[VAL_17]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
 // STREAMLINED:           %[[VAL_20:.*]] = cc.undef f64
 // STREAMLINED:           return %[[VAL_20]] : f64
 // STREAMLINED:         }
-// STREAMLINED:         func.func private @streamlinedLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>)
-// STREAMLINED:         func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
-// STREAMLINED:         llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
+// STREAMLINED:         func.func private @__cudaq_streamlinedLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>)
+// STREAMLINED:         func.func private @__cudaq_registerArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
+// STREAMLINED:         llvm.func @__cudaq_registerLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 // STREAMLINED:         func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)
 // STREAMLINED:         func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
-// STREAMLINED:         func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
+// STREAMLINED:         func.func private @__cudaq_registerKernelName(!cc.ptr<i8>)
 // STREAMLINED:         func.func private @malloc(i64) -> !cc.ptr<i8>
 // STREAMLINED:         func.func private @free(!cc.ptr<i8>)
-// STREAMLINED:         func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64)
-// STREAMLINED:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
+// STREAMLINED:         func.func private @__cudaq_initializerListToVectorBool(!cc.ptr<none>, !cc.ptr<none>, i64)
+// STREAMLINED:         func.func private @__cudaq_vectorBoolToInitializerList(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
 // STREAMLINED:         func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
 // STREAMLINED-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
@@ -289,9 +289,9 @@ module attributes {quake.mangled_name_map = {
 // STREAMLINED:         llvm.mlir.global external constant @ghz.kernelName("ghz\00") {addr_space = 0 : i32}
 
 // STREAMLINED-LABEL:   llvm.func @ghz.kernelRegFunc() {
-// STREAMLINED:           %[[VAL_0:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr
-// STREAMLINED:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!llvm.ptr) -> !cc.ptr<i8>
-// STREAMLINED:           func.call @cudaqRegisterKernelName(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
+// STREAMLINED:           %[[VAL_0:.*]] = cc.address_of @ghz.kernelName : !cc.ptr<!llvm.array<4 x i8>>
+// STREAMLINED:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// STREAMLINED:           func.call @__cudaq_registerKernelName(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
 // STREAMLINED:           llvm.return
 // STREAMLINED:         }
 // STREAMLINED:         llvm.mlir.global_ctors ctors = [@ghz.kernelRegFunc], priorities = [17 : i32]
@@ -330,9 +330,9 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:           %[[VAL_23:.*]] = cc.cast %[[VAL_22]] : (!cc.ptr<i32>) -> !cc.ptr<i8>
 // HYBRID:           cc.store %[[VAL_23]], %[[VAL_21]] : !cc.ptr<!cc.ptr<i8>>
 // HYBRID:           %[[VAL_24:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>}>>) -> !cc.ptr<i8>
-// HYBRID:           %[[VAL_25:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr
-// HYBRID:           %[[VAL_26:.*]] = cc.cast %[[VAL_25]] : (!llvm.ptr) -> !cc.ptr<i8>
-// HYBRID:           %[[VAL_27:.*]] = call @hybridLaunchKernel(%[[VAL_26]], %[[VAL_8]], %[[VAL_9]], %[[VAL_3]], %[[VAL_10]], %[[VAL_24]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// HYBRID:           %[[VAL_25:.*]] = cc.address_of @ghz.kernelName : !cc.ptr<!llvm.array<4 x i8>>
+// HYBRID:           %[[VAL_26:.*]] = cc.cast %[[VAL_25]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// HYBRID:           %[[VAL_27:.*]] = call @__cudaq_hybridLaunchKernel(%[[VAL_26]], %[[VAL_8]], %[[VAL_9]], %[[VAL_3]], %[[VAL_10]], %[[VAL_24]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // HYBRID:           %[[VAL_28:.*]] = cc.extract_value %[[VAL_27]][0] : (!cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // HYBRID:           %[[VAL_29:.*]] = cc.cast %[[VAL_28]] : (!cc.ptr<i8>) -> i64
 // HYBRID:           %[[VAL_30:.*]] = arith.constant 0 : i64
@@ -350,16 +350,16 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:           %[[VAL_37:.*]] = cc.load %[[VAL_36]] : !cc.ptr<f64>
 // HYBRID:           return %[[VAL_37]] : f64
 // HYBRID:         }
-// HYBRID:         func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
-// HYBRID:         func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
-// HYBRID:         llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
+// HYBRID:         func.func private @__cudaq_hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// HYBRID:         func.func private @__cudaq_registerArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
+// HYBRID:         llvm.func @__cudaq_registerLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 // HYBRID:         func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)
 // HYBRID:         func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
-// HYBRID:         func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
+// HYBRID:         func.func private @__cudaq_registerKernelName(!cc.ptr<i8>)
 // HYBRID:         func.func private @malloc(i64) -> !cc.ptr<i8>
 // HYBRID:         func.func private @free(!cc.ptr<i8>)
-// HYBRID:         func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64)
-// HYBRID:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
+// HYBRID:         func.func private @__cudaq_initializerListToVectorBool(!cc.ptr<none>, !cc.ptr<none>, i64)
+// HYBRID:         func.func private @__cudaq_vectorBoolToInitializerList(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
 // HYBRID:         func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
 // HYBRID-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
@@ -437,12 +437,12 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:         }
 
 // HYBRID-LABEL:   llvm.func @ghz.kernelRegFunc() {
-// HYBRID:           %[[VAL_0:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr
-// HYBRID:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!llvm.ptr) -> !cc.ptr<i8>
-// HYBRID:           func.call @cudaqRegisterKernelName(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
+// HYBRID:           %[[VAL_0:.*]] = cc.address_of @ghz.kernelName : !cc.ptr<!llvm.array<4 x i8>>
+// HYBRID:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
+// HYBRID:           func.call @__cudaq_registerKernelName(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
 // HYBRID:           %[[VAL_2:.*]] = func.constant @ghz.argsCreator : (!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64
 // HYBRID:           %[[VAL_3:.*]] = cc.func_ptr %[[VAL_2]] : ((!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64) -> !cc.ptr<i8>
-// HYBRID:           func.call @cudaqRegisterArgsCreator(%[[VAL_1]], %[[VAL_3]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+// HYBRID:           func.call @__cudaq_registerArgsCreator(%[[VAL_1]], %[[VAL_3]]) : (!cc.ptr<i8>, !cc.ptr<i8>) -> ()
 // HYBRID:           llvm.return
 // HYBRID:         }
 // HYBRID:         llvm.mlir.global_ctors ctors = [@ghz.kernelRegFunc], priorities = [17 : i32]

@@ -50,7 +50,7 @@ def ConvertQuakeToQLX : Pass<"convert-quake-to-qlx", "mlir::ModuleOp"> {
     `llvm.mlir.global_ctors`. P0 has no host side, so the conversion drops
     the registration when the constructor only passes the constant
     `<kernel>.kernelName` string and the kernel's `.argsCreator` to
-    `cudaqRegisterKernelName` and `cudaqRegisterArgsCreator`. Any other
+    `__cudaq_registerKernelName` and `__cudaq_registerArgsCreator`. Any other
     constructor is rejected.
 
     All quantum operands/results must already have type `!quake.wire`; reference,

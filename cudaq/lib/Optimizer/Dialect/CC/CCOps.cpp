@@ -476,10 +476,9 @@ LogicalResult cudaq::cc::CastOp::verify() {
     }
   } else if (isa<FloatType>(inTy) && isa<FloatType>(outTy)) {
     // ok, floating-point casts: fptrunc, fpext, nop
-  } else if (isa<cc::PointerType, LLVM::LLVMPointerType>(inTy) &&
-             isa<cc::PointerType, LLVM::LLVMPointerType>(outTy)) {
+  } else if (isa<cc::PointerType>(inTy) && isa<cc::PointerType>(outTy)) {
     // ok, pointer casts: bitcast, nop
-  } else if (isa<cc::PointerType, LLVM::LLVMPointerType>(inTy)) {
+  } else if (isa<cc::PointerType>(inTy)) {
     // ok, will become pointer casts: nop
   } else if (isa<ComplexType>(inTy) && isa<ComplexType>(outTy)) {
     auto inEleTy = cast<ComplexType>(inTy).getElementType();
@@ -3416,15 +3415,20 @@ cudaq::cc::VarargCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   if (paramTypes.size() > getNumOperands())
     return emitOpError("incorrect number of operands for callee");
 
+  // A callee whose type is not a builtin function type (`llvm.func`) is typed
+  // in its own dialect. Its parameter and result types, e.g. `!llvm.ptr`, are
+  // not CC types, and the operands here keep their CC types (e.g.
+  // `!cc.ptr<none>`) until the conversion to that dialect. Only arities can be
+  // checked in that case, and whether such a callee is variadic is not visible
+  // through the interface.
+  const bool typedCallee = isa<FunctionType>(fn.getFunctionType());
+
   // A `func.func` can never be variadic, so extra arguments would be passed to
-  // a function that does not accept them. Other callee kinds (`llvm.func`) are
-  // opaque here; whether they are variadic is not visible through the
-  // interface.
-  if (isa<FunctionType>(fn.getFunctionType()) &&
-      paramTypes.size() != getNumOperands())
+  // a function that does not accept them.
+  if (typedCallee && paramTypes.size() != getNumOperands())
     return emitOpError("variadic arguments passed to a non-variadic callee");
 
-  for (unsigned i = 0, e = paramTypes.size(); i != e; ++i)
+  for (unsigned i = 0, e = typedCallee ? paramTypes.size() : 0; i != e; ++i)
     if (getOperand(i).getType() != paramTypes[i]) {
       return emitOpError("operand type mismatch: expected operand type ")
              << paramTypes[i] << ", but provided " << getOperand(i).getType()
@@ -3439,7 +3443,7 @@ cudaq::cc::VarargCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
     return emitOpError("wrong number of result types: ") << getNumResults();
 
   if (resultTypes.size() != getNumResults() ||
-      getResult(0).getType() != resultTypes[0]) {
+      (typedCallee && getResult(0).getType() != resultTypes[0])) {
     auto diag = emitOpError("result type mismatch ");
     diag.attachNote() << "      op result types: " << getResultTypes();
     diag.attachNote() << "function result types: " << resultTypes;

@@ -9,9 +9,10 @@
 # ============================================================================ #
 
 # Builds the MLIR Python bindings against an existing LLVM build tree and
-# installs them into LLVM_INSTALL_PREFIX. Requires the manylinux devdeps
-# base image, where build_llvm.sh has already configured and built the
-# LLVM/MLIR libraries (without python-bindings) at LLVM_SOURCE/build.
+# installs them into LLVM_INSTALL_PREFIX. Requires a devdeps image where
+# build_llvm.sh has already configured and built the LLVM/MLIR libraries at
+# LLVM_SOURCE/build: the manylinux image (without python-bindings), or the
+# macOS image (for another Python version).
 #
 # This avoids reconfiguring/rebuilding the full LLVM tree once per Python
 # version: only the binding objects (linked against the active interpreter
@@ -22,6 +23,9 @@
 #   LLVM_INSTALL_PREFIX  install destination (default: /usr/local/llvm)
 #   Python3_EXECUTABLE   interpreter to bind against; must have nanobind and
 #                        numpy already installed (e.g. via pip).
+#   NANOBIND_CMAKE_DIR   optional nanobind CMake config directory, for example
+#                        $NANOBIND_INSTALL_PREFIX/nanobind/cmake. Defaults to
+#                        the one of the pip-installed nanobind.
 #
 # Usage:
 #   Python3_EXECUTABLE=$(which python3.11) bash scripts/build_mlir_python_bindings.sh
@@ -40,13 +44,13 @@ fi
 llvm_build_dir="$LLVM_SOURCE/$LLVM_BUILD_FOLDER"
 if [ ! -f "$llvm_build_dir/CMakeCache.txt" ]; then
   echo "Expected pre-configured LLVM build at $llvm_build_dir."
-  echo "This script must run on top of the manylinux devdeps base image."
+  echo "This script must run on top of a devdeps image that kept the LLVM build."
   exit 1
 fi
 
-# Locate the pip-installed nanobind's CMake config. nanobind ships its own
-# cmake module via pip, so we don't need to build it from the submodule.
-nanobind_cmake_dir=$("$Python3_EXECUTABLE" -m nanobind --cmake_dir)
+# Locate nanobind's CMake config. nanobind ships its own cmake module via pip,
+# so we don't need to build it from the submodule.
+nanobind_cmake_dir=${NANOBIND_CMAKE_DIR:-$("$Python3_EXECUTABLE" -m nanobind --cmake_dir)}
 if [ ! -d "$nanobind_cmake_dir" ]; then
   echo "Could not locate nanobind cmake dir from $Python3_EXECUTABLE."
   echo "Install with: $Python3_EXECUTABLE -m pip install 'nanobind>=2.12.0,<3'"
@@ -80,10 +84,19 @@ fi
 # Reconfigure the existing build tree: enable MLIR python bindings and
 # point at the active interpreter. Other cache entries (compiler flags,
 # enabled projects, ccache launcher, build type) are preserved.
+#
+# A tree that was already configured for another interpreter caches that
+# interpreter's include directory, library and extension suffix (Python*,
+# _Python*, NB_ABI, NB_SUFFIX). Without clearing them, CMake keeps the old
+# suffix and only reinstalls the old modules. nanobind looks up the interpreter
+# as Python rather than Python3, so both executables are set.
 echo "Reconfiguring LLVM build for python bindings (Python: $Python3_EXECUTABLE)..."
 cmake . \
+  -U 'Python_*' -U '_Python_*' -U 'Python3_*' -U '_Python3_*' \
+  -U 'NB_ABI' -U 'NB_SUFFIX' -U 'NB_SOABI' \
   -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
   -DPython3_EXECUTABLE="$Python3_EXECUTABLE" \
+  -DPython_EXECUTABLE="$Python3_EXECUTABLE" \
   -Dnanobind_DIR="$nanobind_cmake_dir" \
   ${distribution_components_arg}
 

@@ -26,6 +26,11 @@ on:
         required: false
         type: string
         description: If defined, the build cache for the given branch name will be updated on the registry (no image will be pushed or created in this case).
+      refresh_llvm_ccache:
+        required: false
+        type: boolean
+        description: Also rebuilds LLVM without the build cache, to refresh its ccache in the registry (only with update_registry_cache).
+        default: false
       create_local_cache:
         required: false
         type: boolean
@@ -257,9 +262,13 @@ jobs:
           endpoint: builder_context
           version: v0.19.0
           buildkitd-config: ${{ needs.metadata.outputs.runner != 'ubuntu-latest' && '/etc/buildkit/buildkitd.toml' || null }}
+          # BuildKit clips each step's log at 2 MiB, which drops the ccache statistics
+          # that llvm_ccache.sh prints at the end of an LLVM build.
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
+            env.BUILDKIT_STEP_LOG_MAX_SIZE=52428800
+            env.BUILDKIT_STEP_LOG_MAX_SPEED=10485760
 
       - name: Setup proxy cache
         if: needs.metadata.outputs.runner != 'ubuntu-latest'
@@ -445,6 +454,26 @@ jobs:
           secret-files: ${{ steps.llvm_ccache.outputs.secret_files }}
           push: ${{ steps.cache.outputs.push_to_registry == 'true' }}
           outputs: ${{ steps.cache.outputs.docker_output }}
+
+      # Layers that hit the build cache skip the LLVM build, and with it the ccache save.
+      # This reruns that build, so main always has a ccache that matches its sources.
+      - name: Refresh the LLVM ccache
+        if: inputs.refresh_llvm_ccache && inputs.update_registry_cache != '' && steps.llvm_ccache.outcome == 'success'
+        continue-on-error: true
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
+        with:
+          context: .
+          file: ./docker/${{ needs.metadata.outputs.dockerfile }}
+          target: ${{ inputs.build_target || (inputs.dockerfile == 'build/devdeps.Dockerfile' && 'prereqs') || '' }}
+          build-args: |
+            ${{ inputs.build_args }}
+          platforms: ${{ inputs.platforms }}
+          no-cache: true
+          secret-files: ${{ steps.llvm_ccache.outputs.secret_files }}
+          push: false
+          outputs: type=cacheonly
 
       - name: Install Cosign
         if: steps.cache.outputs.push_to_registry == 'true'
