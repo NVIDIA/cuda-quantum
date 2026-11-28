@@ -14,6 +14,9 @@ data round trips between FPGA and GPU.
 
 ## Getting Started
 
+Start with the [architecture overview](docs/architecture.md): what CUDA-Q
+Realtime is, in a few diagrams.
+
 To learn more about how to work with CUDA-Q Realtime,
 please take a look at the [user guide](docs/user_guide.md).
 

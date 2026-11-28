@@ -253,6 +253,15 @@ build_sphinx_docs() (
         echo "Failed to stage the Doxygen reference."
         return 10
     fi
+    # The realtime pages include copies of realtime/docs staged here. Their
+    # diagrams are rendered beforehand, where Docker is available, with
+    # `realtime/scripts/stage_sphinx_docs.py render`.
+    if ! python3 "$repo_root/realtime/scripts/stage_sphinx_docs.py" stage \
+        --diagrams "${CUDAQ_REALTIME_DIAGRAMS:-$build_dir/docs/realtime-diagrams}" \
+        --out sphinx/_mdgen/realtime; then
+        echo "Failed to stage the realtime docs."
+        return 10
+    fi
     if [ "$build_compiler_developer_docs" = "1" ]; then
         mkdir -p sphinx/_mdgen/Dialects
         for pass_reference_name in "${compiler_pass_reference_names[@]}"; do

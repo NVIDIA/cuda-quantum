@@ -248,7 +248,7 @@ CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular(
 // Unified dispatch launch function pointer type.
 // The unified kernel combines RDMA RX, RPC dispatch, and RDMA TX into a single
 // kernel, eliminating inter-kernel flag handoff overhead.  Transport-specific
-// details are passed via an opaque context pointer so the dispatcher API
+// details are passed via an opaque context pointer so the host API
 // remains transport-agnostic.  `threads_per_block` is the one block the
 // kernel runs as: thread 0 drives the transport and every thread calls each
 // DEVICE_CALL handler (see DeviceRPCFunction in dispatch_kernel_launch.h).
@@ -448,7 +448,7 @@ cudaq_dispatcher_set_bridge(cudaq_dispatcher_t *dispatcher,
 
 // Bundle struct returned by bridge implementations for unified dispatch.
 // Contains the bridge-provided launch function and its opaque transport state,
-// keeping the dispatcher API transport-agnostic.
+// keeping the host API transport-agnostic.
 typedef struct {
   cudaq_unified_launch_fn_t
       launch_fn;       ///< Bridge-provided unified launch function

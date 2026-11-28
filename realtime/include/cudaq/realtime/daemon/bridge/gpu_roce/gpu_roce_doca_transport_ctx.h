@@ -17,7 +17,7 @@ extern "C" {
 
 /// GpuRoceTransceiver/DOCA transport context for the unified dispatch kernel.
 /// Packed by the GpuRoceTransceiver bridge layer and passed as the opaque
-/// transport_ctx pointer through the transport-agnostic dispatcher API.
+/// transport_ctx pointer through the transport-agnostic host API.
 ///
 /// Requests land in RX slot N and the response to each goes out of TX slot N,
 /// so the TX ring must have at least `rx_ring_stride_num` slots.  Only the TX

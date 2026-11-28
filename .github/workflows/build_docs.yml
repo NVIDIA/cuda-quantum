@@ -103,10 +103,26 @@ jobs:
       - name: Setup proxy cache
         uses: nv-gha-runners/setup-proxy-cache@main
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.2
+        with:
+          python-version: '3.11'
+
+      # Mermaid is rendered here, on the runner, with the mermaid-cli image,
+      # so that no image used for the docs build needs Node or a browser.
+      - name: Render realtime diagrams
+        run: |
+          uv run --no-project python realtime/scripts/stage_sphinx_docs.py \
+            render --out "$RUNNER_TEMP/realtime-diagrams"
+
       - name: Build and check documentation
         uses: ./.github/actions/run-in-docker
+        env:
+          CUDAQ_REALTIME_DIAGRAMS: /tmp/realtime-diagrams
         with:
           image: dev_env:local
+          volume: ${{ runner.temp }}/realtime-diagrams:/tmp/realtime-diagrams:ro
+          env: CUDAQ_REALTIME_DIAGRAMS
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT

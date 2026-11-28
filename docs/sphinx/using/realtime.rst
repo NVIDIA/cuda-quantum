@@ -15,9 +15,9 @@ The provided networking layer leverages the `Holoscan Sensor Bridge <https://www
   :caption: Contents
   :maxdepth: 1
 
+  Architecture <realtime/architecture.md>
   Installation <realtime/installation.rst>
   Host API <realtime/host.md>
   Messaging Protocol <realtime/protocol.md>
-  CPU RoCE Transport <realtime/cpu_transport.md>
   Device Call Channels <realtime/device_call.md>
 
