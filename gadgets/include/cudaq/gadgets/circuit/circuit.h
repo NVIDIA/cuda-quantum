@@ -58,6 +58,7 @@ struct Circuit {
   /// - each qubit wire is consumed once, by a node or an output;
   /// - wires are read only after they are defined;
   /// - classical outputs are distinct;
+  /// - a phantom qubit is touched only by CREATE_PHANTOM and DESTROY_PHANTOM;
   /// - unitary matrices are unitary.
   void validate() const {}
 

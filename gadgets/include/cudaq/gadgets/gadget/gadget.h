@@ -9,11 +9,10 @@
 #pragma once
 
 #include "cudaq/gadgets/circuit/instructions.h"
+#include "cudaq/gadgets/codes/subsystem_code.h"
 
 namespace cudaq::gadgets {
 inline namespace v0 {
-
-struct Gadget;
 
 /// XOR of distinct outcomes and a constant offset.
 struct ParityExpr {
@@ -25,67 +24,67 @@ struct ParityExpr {
 /// v_in: o = A m + B v_in + b.
 using OutcomeMap = std::vector<std::pair<OutcomeRef, ParityExpr>>;
 
-/// Signed product of generators by index: (-1)^negative * prod g_i.
-struct GeneratorProduct {
-  std::vector<std::size_t> generators;
-  bool negative = false;
-};
-
-// TODO: validate(): sizes, commutation, decompositions.
-struct SubsystemCode {
-  std::string name;
-  std::size_t n_phys = 0;
-  std::size_t n_log = 0;
-  std::size_t n_gauge = 0;
-  std::vector<PauliString> stabilizers;
-  std::vector<PauliString> logical_x;
-  std::vector<PauliString> logical_z;
-  std::vector<PauliString> gauge_x;
-  std::vector<PauliString> gauge_z;
-  std::vector<PauliString> anti_stabilizers;
-  std::vector<PauliString> virtual_outcomes;
-  /// One per virtual-outcome generator, in the independent stabilizer basis.
-  std::vector<GeneratorProduct> decompositions;
-  /// Products of virtual-outcome generators equal to (-1)^negative * I.
-  std::vector<GeneratorProduct> metachecks;
-  const DebugInfo *debug = nullptr;
-};
-
-// TODO: validate() against the gadget.
-struct GadgetProfile {
-  const Gadget *gadget = nullptr;
-  std::vector<ParityExpr> detectors;
-  std::vector<ParityExpr> success_bits;
-  const DebugInfo *debug = nullptr;
-};
-
-/// Binds a code block, by index, to realization and logical-action qubits.
-struct BlockBinding {
-  std::size_t block = 0;
-  bool output = false;
-  std::vector<WireId> realization;
-  std::vector<WireId> logical;
-};
-
-// TODO: validate(): code sizes, bindings, outcome-map shape, parameters.
+/// Code blocks bind to wires by position: the realization's qubit inputs are
+/// the in_codes' physical qubits in order, and the logical action's are their
+/// logical qubits; outputs likewise with out_codes.
+// TODO: validate(): outcome-map shape.
 struct Gadget {
+  /// Throws std::invalid_argument unless the realization's qubit inputs
+  /// (outputs) number the input (output) codes' physical qubits, and the
+  /// logical action's number their logical qubits.
+  Gadget(std::string name, std::vector<const SubsystemCode *> in_codes,
+         std::vector<const SubsystemCode *> out_codes,
+         SemanticCircuit logical_action, InstructionCircuit realization,
+         OutcomeMap outcome_map = {});
+
+  const std::string &get_name() const { return name; }
+  const std::vector<const SubsystemCode *> &get_in_codes() const {
+    return in_codes;
+  }
+  const std::vector<const SubsystemCode *> &get_out_codes() const {
+    return out_codes;
+  }
+  const SemanticCircuit &get_logical_action() const { return logical_action; }
+  const InstructionCircuit &get_realization() const { return realization; }
+  const OutcomeMap &get_outcome_map() const { return outcome_map; }
+
+private:
   std::string name;
   std::vector<const SubsystemCode *> in_codes;
   std::vector<const SubsystemCode *> out_codes;
   SemanticCircuit logical_action;
-  std::variant<SemanticCircuit, InstructionCircuit> realization;
-  std::vector<BlockBinding> boundary_bindings;
+  InstructionCircuit realization;
   OutcomeMap outcome_map;
-  std::vector<Param> params;
-  const GadgetProfile *profile = nullptr;
-  std::string schedule; // External artifact.
-  const DebugInfo *debug = nullptr;
-
-  const std::string &get_name() const { return name; }
 };
 
-/// Gadgets, by name.
-using GadgetSet = InstructionSet<Gadget>;
+/// The redundancies in a gadget that let us detect and correct errors. Each
+/// entry is an extended outcome parity: over the realization's outcomes and
+/// the input codes' virtual outcomes.
+// TODO: validate() against the target: outcome references exist, and one
+// output syndrome per independent generator of the output codes.
+struct GadgetContract {
+  GadgetContract(const Gadget &target, std::vector<ParityExpr> detectors,
+                 std::vector<ParityExpr> inactive_detectors = {},
+                 std::vector<ParityExpr> output_syndromes = {})
+      : target(&target), detectors(std::move(detectors)),
+        inactive_detectors(std::move(inactive_detectors)),
+        output_syndromes(std::move(output_syndromes)) {}
+
+  const Gadget &get_target() const { return *target; }
+  const std::vector<ParityExpr> &get_detectors() const { return detectors; }
+  const std::vector<ParityExpr> &get_inactive_detectors() const {
+    return inactive_detectors;
+  }
+  const std::vector<ParityExpr> &get_output_syndromes() const {
+    return output_syndromes;
+  }
+
+private:
+  const Gadget *target;
+  std::vector<ParityExpr> detectors;
+  std::vector<ParityExpr> inactive_detectors;
+  std::vector<ParityExpr> output_syndromes;
+};
 
 } // namespace v0
 } // namespace cudaq::gadgets

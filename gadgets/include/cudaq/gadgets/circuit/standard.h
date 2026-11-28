@@ -56,7 +56,9 @@ enum class Opcode : u32 {
   BELL_PREPARE,
   RESET,
   IDLE,
-  RANDOM_BIT,        // Produces a uniformly random bit.
+  RANDOM_BIT,     // Produces a uniformly random bit.
+  CREATE_PHANTOM, // Phantom qubits: only these two operations touch them.
+  DESTROY_PHANTOM,
   PAULI_MEASUREMENT, // Variable width: joint, by Pauli string.
   CONDITIONAL_PAULI, // Variable width: on the parity of outcomes.
   // Non-Cliffords.

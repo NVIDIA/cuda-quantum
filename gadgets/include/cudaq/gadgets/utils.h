@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -46,6 +47,13 @@ struct PauliString {
   /// Inverse of to_string; the prefix defaults to "+", and "_" means I.
   /// Throws std::invalid_argument on bad input.
   static PauliString from_string(std::string_view text);
+};
+
+/// (-1)^negative times the product of the listed Paulis (X, Y, or Z), each on
+/// its qubit index; other qubits are I.
+struct SparsePauliString {
+  bool negative = false;
+  std::vector<std::pair<Pauli, std::size_t>> ops;
 };
 
 using u32 = std::uint32_t;

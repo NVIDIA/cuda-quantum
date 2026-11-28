@@ -9,7 +9,8 @@ Each component depends only on those above it.
 | core | [core.h](include/cudaq/gadgets/core.h) | [core.cpp](lib/core.cpp) | C ABI version |
 | utils | [utils.h](include/cudaq/gadgets/utils.h) | [utils.cpp](lib/utils.cpp) | Paulis and operation payloads |
 | circuit | [circuit/](include/cudaq/gadgets/circuit/) `circuit.h` `standard.h` `instructions.h` | [circuit/](lib/circuit/) | Base nodes and circuits; semantic operations and circuits; instruction circuits and sets |
-| gadget | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) | — | Codes, gadgets, profiles, gadget circuits |
+| codes | [codes/subsystem_code.h](include/cudaq/gadgets/codes/subsystem_code.h) | [codes/](lib/codes/) | Subsystem codes |
+| gadget | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) | — | Gadgets and outcome maps |
 | noise | [noise/noise.h](include/cudaq/gadgets/noise/noise.h) | [noise/](lib/noise/) | Pauli noise and noise models over circuits |
 | analysis | [analysis/analysis.h](include/cudaq/gadgets/analysis/analysis.h) | [analysis/](lib/analysis/) | Verification and EDEM generation |
 
@@ -19,13 +20,14 @@ Everything builds into one library, `cudaq-gadgets`. Tests are in [test/](test/)
 
 | Structure | Definition |
 | --- | --- |
-| `Pauli`, `PauliString`, `Shape`, `Wires`, `CliffordImages`, `ConditionalPauli`, `DiagonalUnitary`, `Unitary` | [utils.h](include/cudaq/gadgets/utils.h) |
+| `Pauli`, `PauliString`, `SparsePauliString`, `Shape`, `Wires`, `CliffordImages`, `ConditionalPauli`, `DiagonalUnitary`, `Unitary` | [utils.h](include/cudaq/gadgets/utils.h) |
 | `Opcode`, `Payload`, `get_shape`, `to_string`, `find_opcode`, `OpcodeNode`, `SemanticCircuit` | [circuit/standard.h](include/cudaq/gadgets/circuit/standard.h); table in [standard.cpp](lib/circuit/standard.cpp) |
 | `Node`, `Circuit`, `DebugInfo` | [circuit/circuit.h](include/cudaq/gadgets/circuit/circuit.h) |
 | `InstructionNode`, `InstructionCircuit`, `InstructionSet`, `PhysicalInstructionSet` | [circuit/instructions.h](include/cudaq/gadgets/circuit/instructions.h) |
 | `PhysicalInstructionDefinition` | [circuit/instructions.h](include/cudaq/gadgets/circuit/instructions.h); signature tracing in [instructions.cpp](lib/circuit/instructions.cpp) |
-| `SubsystemCode`, `GadgetProfile`, `BlockBinding`, `OutcomeMap` | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) |
-| `Gadget`, `GadgetSet` | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) |
+| `SubsystemCode`, `PauliPair` | [codes/subsystem_code.h](include/cudaq/gadgets/codes/subsystem_code.h) |
+| `ParityExpr`, `OutcomeMap` | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) |
+| `Gadget`, `GadgetContract` | [gadget/gadget.h](include/cudaq/gadgets/gadget/gadget.h) |
 | `PauliNoise`, `CircuitNoise`, `NoiseModel`, `InstructionSetNoiseModel` | [noise/noise.h](include/cudaq/gadgets/noise/noise.h) |
 | `EDEM`, `VerificationReport`, `verify`, `get_edem` | [analysis/analysis.h](include/cudaq/gadgets/analysis/analysis.h) |
 

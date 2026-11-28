@@ -34,6 +34,7 @@ if(NOT TARGET cudaq-edem)
 endif()
 
 add_library(cudaq-gadgets lib/core.cpp lib/utils.cpp lib/analysis/analysis.cpp
+  lib/codes/subsystem_code.cpp lib/gadget/gadget.cpp
   lib/circuit/instructions.cpp lib/circuit/standard.cpp
   lib/noise/noise.cpp)
 add_library(cudaq::gadgets ALIAS cudaq-gadgets)
@@ -46,6 +47,7 @@ target_sources(cudaq-gadgets PUBLIC
     include/cudaq/gadgets/circuit/circuit.h
     include/cudaq/gadgets/circuit/instructions.h
     include/cudaq/gadgets/circuit/standard.h
+    include/cudaq/gadgets/codes/subsystem_code.h
     include/cudaq/gadgets/gadget/gadget.h
     include/cudaq/gadgets/noise/noise.h
 )

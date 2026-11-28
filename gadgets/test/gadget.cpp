@@ -37,12 +37,18 @@ int main() {
               .q_in != 2 ||
       get_shape(Opcode::PAULI_MEASUREMENT, PauliString::from_string("ZZZ"))
               .c_out != 3 ||
+      get_shape(Opcode::CREATE_PHANTOM) != Shape{0, 1, 0, 0} ||
+      get_shape(Opcode::DESTROY_PHANTOM) != Shape{1, 0, 0, 0} ||
       find_opcode("CNOT") != Opcode::CX || to_string(Opcode::CX) != "CX" ||
       find_opcode("MPP"))
     return 1;
 
-  SubsystemCode rep3;
-  rep3.name = "rep3";
+  using P = Pauli;
+  SubsystemCode rep3(
+      "rep3", 3,
+      {{false, {{P::Z, 0}, {P::Z, 1}}}, {false, {{P::Z, 1}, {P::Z, 2}}}},
+      {0, 1},
+      {{{false, {{P::X, 0}, {P::X, 1}, {P::X, 2}}}, {false, {{P::Z, 0}}}}});
 
   PhysicalInstructionSet native;
   native.name = "native";
@@ -53,28 +59,38 @@ int main() {
   cz_action.append(OpcodeNode(Opcode::CZ, {{"a", "b"}, {"c", "d"}}));
   native.append(PhysicalInstructionDefinition("CZ", std::move(cz_action)));
 
-  Gadget gadget;
-  gadget.name = "identity";
-  gadget.in_codes = {&rep3};
-  gadget.out_codes = {&rep3};
-  InstructionCircuit realization(native, {{"q0", "q2"}, {"q3", "q4"}});
+  // Realization on rep3's three qubits; logical action the identity on one.
+  InstructionCircuit realization(native,
+                                 {{"q0", "q2", "q5"}, {"q3", "q4", "q5"}});
   realization.append(InstructionNode(*native.index_of("X"), {{"q0"}, {"q1"}}));
   realization.append(
       InstructionNode(*native.index_of("CZ"), {{"q1", "q2"}, {"q3", "q4"}}));
-  gadget.realization = std::move(realization);
-  gadget.boundary_bindings.push_back({0, false, {"q0", "q1", "q2"}, {"l0"}});
-  gadget.outcome_map.push_back({"o0", {{"m0", "v0"}, true}});
+  SemanticCircuit identity({{"l"}, {"l"}});
+  InstructionCircuit empty(native);
+  auto rejects_gadget = [&](SemanticCircuit action,
+                            InstructionCircuit physical) {
+    try {
+      Gadget("bad", {&rep3}, {&rep3}, std::move(action), std::move(physical));
+    } catch (const std::invalid_argument &) {
+      return true;
+    }
+    return false;
+  };
+  if (!rejects_gadget(identity, empty) ||
+      !rejects_gadget(SemanticCircuit(), realization))
+    return 1;
+  Gadget gadget("identity", {&rep3}, {&rep3}, identity, std::move(realization),
+                {{"o0", {{"m0", "v0"}, true}}});
 
-  GadgetSet gadgets;
-  gadgets.append(std::move(gadget));
-  const Gadget *stored = gadgets.find("identity");
-  if (!stored)
+  GadgetContract contract(gadget, {{{"m0"}, false}});
+  if (&contract.get_target() != &gadget ||
+      contract.get_detectors().size() != 1 ||
+      gadget.get_outcome_map().size() != 1)
     return 1;
   // Each native instruction's action is one semantic operation.
   auto action_opcode = [&](std::size_t i) {
-    std::size_t index = std::get<InstructionCircuit>(stored->realization)
-                            .get_nodes()[i]
-                            .get_instruction();
+    std::size_t index =
+        gadget.get_realization().get_nodes()[i].get_instruction();
     return native.get_instructions()[index]
         .get_action()
         .get_nodes()

@@ -77,6 +77,8 @@ constexpr Entry entries[] = {
     gate(Opcode::RESET, "RESET", 1),
     gate(Opcode::IDLE, "IDLE", 1),
     {Opcode::RANDOM_BIT, "RANDOM_BIT", {0, 0, 0, 1}, {}},
+    {Opcode::CREATE_PHANTOM, "CREATE_PHANTOM", {0, 1, 0, 0}, {}},
+    {Opcode::DESTROY_PHANTOM, "DESTROY_PHANTOM", {1, 0, 0, 0}, {}},
     variable(Opcode::PAULI_MEASUREMENT, "PAULI_MEASUREMENT",
              PayloadKind::PauliString),
     variable(Opcode::CONDITIONAL_PAULI, "CONDITIONAL_PAULI",
