@@ -208,7 +208,7 @@ def test_draw():
 
     # Test here is that this does not raise an exception
     result = cudaq.draw(kernel)
-    assert result is ''
+    assert result == ''
 
 
 def test_quantinuum_state_preparation():
